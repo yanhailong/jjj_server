@@ -30,6 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -352,11 +354,12 @@ public class PointsAwardTurntableService implements IRedDotService {
     public void recharge(Order order) {
         long playerId = order.getPlayerId();
         int checkValue = getRechargeCheckValue();
-        long recharge = pointsAwardService.getRecharge(playerId);
-        if (recharge <= 0 || recharge < checkValue) {
+        BigDecimal recharge = pointsAwardService.getRecharge(playerId);
+        BigDecimal needValue = BigDecimal.valueOf(checkValue);
+        if (recharge.compareTo(BigDecimal.ZERO) <= 0 || recharge.compareTo(needValue) < 0) {
             return;
         }
-        int resultCount = Math.toIntExact(recharge / checkValue);
+        int resultCount = recharge.divide(needValue, 2, RoundingMode.DOWN).intValue();
         if (resultCount > 0) {
             replaceCount(playerId, resultCount);
         }

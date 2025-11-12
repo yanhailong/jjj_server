@@ -211,7 +211,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
                 TaskData tempData = playerTasks.get(playerId);
                 TaskDetail tempDetail = tempData.getTaskDetail(taskCfg.getId());
 
-                boolean isTriggered = condition.trigger(playerId, taskCfg, taskDetail, param);
+                boolean isTriggered = condition.trigger(playerId, taskCfg, tempDetail, param);
                 log.info("玩家[{}]触发任务[{}]条件[{}]触发[{}]", playerId, taskCfg.getId(), condition.getClass().getSimpleName(), isTriggered);
                 if (isTriggered) {
                     LocalDateTime now = LocalDateTime.now();
@@ -233,13 +233,13 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
                             log.info("玩家[{}]完成任务[{}]", playerId, tempDetail.getConfigId());
                         }
                     }
+                    //同步到缓存中
+                    playerTasks.fastPut(playerId, tempData);
                     return tempData;
                 }
                 return null;
             });
             if (data != null) {
-                //同步到缓存中
-                playerTasks.fastPut(playerId, data);
                 //任务条件完成了 通知红点
                 redDotManager.updateRedDot(this, taskCfg.getTaskType(), playerId);
                 //通知进度更新

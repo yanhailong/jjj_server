@@ -6,7 +6,6 @@ import org.springframework.data.annotation.Id;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 匹配房间，需要存库，因为玩家可以暂停房间中的时间，而且后续还可以恢复房间，所以需要在玩家暂停一定时间之后直接存库，
@@ -96,8 +95,7 @@ public class FriendRoom extends Room {
      * 添加预付金币
      */
     public void addBankerSupply(long bankerId, long predictCostGoldNum) {
-        bankerPredicateMap.put(bankerId,
-                bankerPredicateMap.getOrDefault(bankerId, 0L) + predictCostGoldNum);
+        bankerPredicateMap.put(bankerId, bankerPredicateMap.getOrDefault(bankerId, 0L) + predictCostGoldNum);
     }
 
     public long getOverdueTime() {
@@ -164,12 +162,11 @@ public class FriendRoom extends Room {
      * 减少准备金
      */
     @Override
-    public void deductBankerPredicateItem(long deductItemNum, AtomicLong changeValue) {
+    public void deductBankerPredicateItem(long deductItemNum) {
         // 优先扣除庄家的
         if (deductItemNum < 0) {
             return;
         }
-        changeValue.set(deductItemNum);
         Map.Entry<Long, Long> bankerInf = bankerPredicateMap.firstEntry();
         if (bankerInf == null) {
             predictCostGoldNum = Math.max(predictCostGoldNum - deductItemNum, 0);
@@ -180,7 +177,6 @@ public class FriendRoom extends Room {
             if (deductRes <= 0) {
                 // 设置扣除后的值
                 bankerPredicateMap.put(bankerInfKey, 0L);
-                changeValue.set(bankerInf.getValue());
                 predictCostGoldNum = Math.max(predictCostGoldNum - Math.abs(deductRes), 0);
                 log.info("扣除庄家:{} 准备金：{} 剩余：{} 扣除房主准备金：{} 剩余：{}", bankerInfKey, deductItemNum, 0, deductRes, predictCostGoldNum);
             } else {

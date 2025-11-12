@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -200,12 +201,12 @@ public class PointsAwardMessageHandler {
      */
     @Command(PointsAwardConstant.Message.REQ_TURNTABLE_RECHARGE_INFO)
     public void turntableRechargeInfo(PlayerController playerController, ReqTurntableRechargeInfo msg) {
-        long recharge = pointsAwardService.getRecharge(playerController.playerId());
+        BigDecimal recharge = pointsAwardService.getRecharge(playerController.playerId());
         int addCount = pointsAwardTurntableService.getAddCount(playerController.playerId());
         int checkValue = pointsAwardTurntableService.getRechargeCheckValue();
         ResTurntableRechargeInfo res = new ResTurntableRechargeInfo(Code.SUCCESS);
         res.setAddCount(addCount);
-        res.setRechargeValue(recharge);
+        res.setRechargeValue(recharge.toPlainString());
         res.setConfigValue(checkValue);
         playerController.send(res);
         log.debug("返回玩家积分大奖转盘充值信息 playerId = {}", playerController.playerId());
