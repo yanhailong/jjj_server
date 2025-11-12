@@ -95,9 +95,9 @@ public class FriendRoom extends Room {
     /**
      * 添加预付金币
      */
-    public void addBankerSupply(long bankerId, long predictCostGoldNum) {
+    public void addBankerSupply(long bankerId, long predictCostGoldNum, long transactionItemNum) {
         bankerPredicateMap.put(bankerId,
-                bankerPredicateMap.getOrDefault(bankerId, 0L) + predictCostGoldNum);
+                Math.min(bankerPredicateMap.getOrDefault(bankerId, 0L) + predictCostGoldNum, transactionItemNum));
     }
 
     public long getOverdueTime() {
