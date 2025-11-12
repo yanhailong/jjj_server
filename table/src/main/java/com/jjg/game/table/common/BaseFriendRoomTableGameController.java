@@ -111,9 +111,8 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
         if (backNum.get() > 0) {
             GamePlayer gamePlayer = getGamePlayer(roomBankerId);
             if (gamePlayer == null) {
-                //TODO
                 if (getRoomController() instanceof AbstractFriendRoomController<? extends RoomCfg, ? extends FriendRoom> controller) {
-                    controller.sendDisbandRoomBack(roomBankerId, getGameTransactionItemId(), backNum.get());
+                    controller.sendComeDownRoomBack(roomBankerId, getGameTransactionItemId(), backNum.get());
                 }
             } else {
                 int addCode = addItem(roomBankerId, backNum.get(), AddType.FRIEND_ROOM_CANCEL_BANKER_ADD_GOLD);

@@ -233,6 +233,20 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     }
 
     /**
+     * 发送下庄时返回保证金
+     * @param gameTransactionItemId 房间货币id
+     * @param gainGold 返回金额
+     * @param playerId 玩家id
+     */
+    public void sendComeDownRoomBack(long playerId, int gameTransactionItemId, long gainGold) {
+        List<LanguageParamData> params = new ArrayList<>(2);
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(room.getRoomCfgId());
+        params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
+        params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
+        roomManager.getMailService().addCfgMail(playerId, 39, List.of(new Item(gameTransactionItemId, gainGold)), params);
+    }
+
+    /**
      * 不能让机器人加入房间
      */
     @Override
