@@ -813,6 +813,7 @@ public class GMController extends AbstractController {
                 list.add(shopProduct);
             });
 
+            shopProductDao.deleteAll();
             shopProductDao.saveProducts(list);
 
             //通知大厅节点，商城商品变更

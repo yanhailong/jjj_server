@@ -13,8 +13,10 @@ import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.constant.TaskConstant;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -310,7 +312,11 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
             noticeRedDot |= removeExpiredTasks(playerId, tmpData);
 
             // 添加新任务
-            noticeRedDot |= addNewTasks(playerId, tmpData);
+            CommonResult<TaskData> newResult = addNewTasks(playerId, tmpData);
+            if(newResult.success()){
+                noticeRedDot = true;
+                tmpData = newResult.data;
+            }
 
             if (noticeRedDot) {
                 playerTaskMap.fastPut(playerId, tmpData);
@@ -364,7 +370,14 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      * @param playerId 玩家ID
      * @return 是否需要更新红点
      */
-    private boolean addNewTasks(long playerId, TaskData tmpData) {
+    private CommonResult<TaskData> addNewTasks(long playerId, TaskData tmpData) {
+        CommonResult<TaskData> result = new CommonResult<>(Code.SUCCESS);
+
+        if(tmpData == null){
+            tmpData = new TaskData();
+            tmpData.setPlayerId(playerId);
+        }
+
         // 获取当前可接取的任务配置列表
         List<TaskCfg> availableTaskConfigs = getAvailableTaskConfigs();
         // 筛选出需要新增的任务
@@ -380,9 +393,10 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
                 taskLogger.receiveTask(playerId, k);
                 log.info("玩家[{}]领取到[{}]任务", playerId, k);
             });
-            return true;
+            result.data = tmpData;
+            return result;
         }
-        return false;
+        return result;
     }
 
     /**
