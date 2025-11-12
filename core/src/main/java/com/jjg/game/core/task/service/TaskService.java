@@ -233,6 +233,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
                             log.info("玩家[{}]完成任务[{}]", playerId, tempDetail.getConfigId());
                         }
                     }
+                    playerTasks.put(playerId, tempData);
                     return tempData;
                 }
                 return null;
