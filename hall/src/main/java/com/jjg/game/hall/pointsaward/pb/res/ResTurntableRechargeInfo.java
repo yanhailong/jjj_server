@@ -21,7 +21,7 @@ public class ResTurntableRechargeInfo extends AbstractResponse {
      * 总充值金额
      */
     @ProtoDesc("总充值金额")
-    private long rechargeValue;
+    private String rechargeValue;
 
     /**
      * 配置的金额
@@ -39,11 +39,11 @@ public class ResTurntableRechargeInfo extends AbstractResponse {
         super(code);
     }
 
-    public long getRechargeValue() {
+    public String getRechargeValue() {
         return rechargeValue;
     }
 
-    public void setRechargeValue(long rechargeValue) {
+    public void setRechargeValue(String rechargeValue) {
         this.rechargeValue = rechargeValue;
     }
 

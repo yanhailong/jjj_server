@@ -19,6 +19,7 @@ import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.rpc.HallPointsAwardBridge;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLadderRewardsInfo;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -400,8 +402,12 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      *
      * @param playerId 玩家id
      */
-    public long getRecharge(long playerId) {
-        return rechargeMap.getOrDefault(playerId, 0L);
+    public BigDecimal getRecharge(long playerId) {
+        Long recharge = rechargeMap.get(playerId);
+        if (recharge == null) {
+            return BigDecimal.ZERO;
+        }
+        return RedisUtils.fromLong(recharge);
     }
 
     /**
@@ -411,10 +417,10 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      */
     public void recharge(Order order) {
         long playerId = order.getPlayerId();
-        long price = order.getPrice().longValue();
+        BigDecimal price = order.getPrice();
         RLock lock = rechargeMap.getReadWriteLock(playerId).writeLock();
         if (lock.tryLock()) {
-            long resultValue = getRecharge(playerId) + price;
+            long resultValue = RedisUtils.toLong(getRecharge(playerId).add(price));
             //增加玩家充值金额
             rechargeMap.fastPut(playerId, resultValue);
             lock.unlock();
