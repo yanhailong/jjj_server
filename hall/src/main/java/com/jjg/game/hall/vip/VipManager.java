@@ -95,7 +95,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
             res.vipGiftInfo = new ArrayList<>(VipGift.values().length);
             res.nowExp = player.getVipExp();
             res.vipLevel = player.getVipLevel();
-            res.claimMaxLv = getMaxClaimLv(vip, player);
+            res.claimLvList = new ArrayList<>(vip.getLvGiftGetTime().keySet());
             res.recharge = countDao.getCount(CountDao.CountType.RECHARGE.getParam(), String.valueOf(playerId)).toPlainString();
             for (VipGift gift : VipGift.values()) {
                 VipGiftInfo vipGiftInfo = new VipGiftInfo();
@@ -154,8 +154,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                     res.code = Code.PARAM_ERROR;
                     return res;
                 }
-                int nowMax = getMaxClaimLv(vip, player);
-                if (nowMax != req.vipLevel) {
+                if (req.vipLevel > player.getLevel()) {
                     res.code = Code.PARAM_ERROR;
                     return res;
                 }
@@ -204,7 +203,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                 info.count = entry.getValue();
                 res.items.add(info);
             }
-            res.claimMaxLv = getMaxClaimLv(vip, player);
+            res.claimLvList = new ArrayList<>(vip.getLvGiftGetTime().keySet());
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             log.error("请求领取VIP信息异常 playerId:{}", playerController.playerId(), e);
@@ -212,13 +211,6 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
         return res;
     }
 
-    public int getMaxClaimLv(Vip vip, Player player) {
-        Map<Integer, Long> lvGiftGetTime = vip.getLvGiftGetTime();
-        if (CollectionUtil.isEmpty(lvGiftGetTime)) {
-            return 0;
-        }
-        return Math.min(player.getVipLevel(), Collections.max(lvGiftGetTime.keySet()) + 1);
-    }
 
     @Override
     public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
