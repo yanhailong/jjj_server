@@ -3,6 +3,7 @@ package com.jjg.game.common.cluster;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.data.MessageStat;
 import com.jjg.game.common.listener.SessionReferenceBinder;
 import com.jjg.game.common.net.Connect;
 import com.jjg.game.common.protostuff.*;
@@ -15,6 +16,7 @@ import org.springframework.context.ApplicationContext;
 import java.lang.reflect.Constructor;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -31,6 +33,8 @@ public class ClusterMessageDispatcher {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Map<String, SessionReferenceBinder> sessionRefenerceBinderMap;
     private final ClusterProcessorExecutors processorExecutors = ClusterProcessorExecutors.getInstance();
+
+    private final ConcurrentHashMap<Integer, MessageStat> messageStats = new ConcurrentHashMap<>();
 
     public ClusterMessageDispatcher(ClusterSystem clusterSystem) {
         this.clusterSystem = clusterSystem;
@@ -77,7 +81,7 @@ public class ClusterMessageDispatcher {
 
                 final PFSession pfSession = session;
 
-                log.debug("收到节点消息 playerId = {},msgId = {}", clusterMessage.getPlayerId(), clusterMessage.getMsg() == null ? "null" : clusterMessage.getMsg().cmd);
+//                log.debug("收到节点消息 playerId = {},msgId = {}", clusterMessage.getPlayerId(), clusterMessage.getMsg() == null ? "null" : clusterMessage.getMsg().cmd);
 
                 sessionRefenerceBinderMap.values().forEach(o -> {
                     o.bind(pfSession, clusterMessage.getPlayerId());
@@ -114,6 +118,8 @@ public class ClusterMessageDispatcher {
     public void handle(Connect<ClusterMessage> connect, PFSession session, PFMessage msg) {
         int messageType = 0;
         int command = 0;
+
+        long startTime = System.currentTimeMillis();
         try {
 //            log.debug("打印handle  connect={},session={},msg={}",connect,session,msg);
             messageType = msg.messageType;
@@ -141,6 +147,7 @@ public class ClusterMessageDispatcher {
         } catch (Exception e) {
             log.warn("消息解析错误,messageType={},cmd={},hex = 0x{}", messageType, command, Integer.toHexString(command), e);
         } finally {
+            recordMessageStat(command, System.currentTimeMillis() - startTime);
             MDC.remove("playerId");
         }
     }
@@ -210,4 +217,32 @@ public class ClusterMessageDispatcher {
             messageController.methodAccess.invoke(bean, methodInfo.index);
         }
     }
+
+    /**
+     * 记录消息处理耗时统计
+     */
+    private void recordMessageStat(int command, long durationNanos) {
+        try {
+            MessageStat stat = messageStats.computeIfAbsent(command, k -> new MessageStat());
+            stat.addExecution(durationNanos);
+
+            // 定期打印统计信息（避免频繁打印）
+            long currentTime = System.currentTimeMillis();
+            long lastLogTime = stat.getLastLogTime().get();
+            if (currentTime - lastLogTime > 5000) { // 每5秒最多打印一次
+                if (stat.getLastLogTime().compareAndSet(lastLogTime, currentTime)) {
+                    if (stat.getCount() % 100 == 0) { // 每100次处理打印一次
+                        log.info("消息统计[cmd:0x{}] - 平均耗时: {}ms, 总次数: {}, 总耗时: {}ms",
+                                Integer.toHexString(command).toUpperCase(),
+                                stat.getAverageTime(),
+                                stat.getCount(),
+                                stat.getTotalTime());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("记录消息统计异常", e);
+        }
+    }
+
 }
