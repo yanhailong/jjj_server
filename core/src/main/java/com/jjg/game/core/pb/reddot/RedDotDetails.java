@@ -98,7 +98,13 @@ public class RedDotDetails {
          * 公告
          */
         @ProtoDesc("公告")
-        NOTICE(7, RedDotType.COUNT, false);
+        NOTICE(7, RedDotType.COUNT, false),
+        /**
+         * 公告
+         */
+        @ProtoDesc("vip功能")
+        VIP(8, RedDotType.COUNT, false);
+
         private final int type;
         private final RedDotType redDotType;
         //是否需要托管

@@ -27,8 +27,8 @@ public class ResVipInfo extends AbstractResponse {
     public long needExp;
     @ProtoDesc("礼包信息")
     public List<VipGiftInfo> vipGiftInfo;
-    @ProtoDesc("当前已领取的最大vip等级")
-    public int claimMaxLv;
+    @ProtoDesc("已经领取的vip等级礼包")
+    public List<Integer> claimLvList;
     public ResVipInfo(int code) {
         super(code);
     }

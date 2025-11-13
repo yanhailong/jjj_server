@@ -187,7 +187,9 @@ public class ActivityMessageHandler {
             return;
         }
         AbstractResponse res = sharePromoteController.reqSharePromoteBindPlayer(playerController, activityData, req);
-        playerController.send(res);
+        if (res != null) {
+            playerController.send(res);
+        }
     }
 
 

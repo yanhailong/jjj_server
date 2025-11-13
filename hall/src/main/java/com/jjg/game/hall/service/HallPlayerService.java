@@ -11,6 +11,7 @@ import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.task.service.TaskService;
 import com.jjg.game.hall.casino.service.PlayerBuildingService;
+import com.jjg.game.hall.vip.service.VipService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -35,7 +36,8 @@ public class HallPlayerService extends AbstractPlayerService {
     private NoticeService noticeService;
     @Autowired
     private TaskService taskService;
-
+    @Autowired
+    private VipService vipService;
     /**
      * 仅在登录时调用
      * 创建或保存  要记录登录时间
@@ -161,6 +163,7 @@ public class HallPlayerService extends AbstractPlayerService {
         playerLoginTimeDao.remove(playerId);
         noticeService.removeReadData(playerId);
         taskService.moveToMongo(playerId);
+        vipService.moveToMongo(playerId);
         return true;
     }
 }
