@@ -5,6 +5,7 @@ import cn.hutool.core.util.EnumUtil;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
+import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
@@ -12,6 +13,7 @@ import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.vip.data.Vip;
@@ -38,7 +40,7 @@ import java.util.*;
  * @date 2025/8/27 10:01
  */
 @Component
-public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSuccess {
+public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSuccess, IRedDotService {
     private final Logger log = LoggerFactory.getLogger(VipManager.class);
     private final VipService vipService;
     private final PlayerPackService playerPackService;
@@ -244,5 +246,32 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                 }
             }
         }
+    }
+
+    @Override
+    public RedDotDetails.RedDotModule getModule() {
+        return RedDotDetails.RedDotModule.VIP;
+    }
+
+    @Override
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
+        Player player = playerService.get(playerId);
+        Optional<Vip> fromAllDB = vipService.getFromAllDB(playerId);
+        if (fromAllDB.isEmpty()) {
+            return List.of();
+        }
+        RedDotDetails details = new RedDotDetails();
+        details.setRedDotType(getModule().getRedDotType());
+        details.setRedDotModule(getModule());
+        details.setRedDotSubmodule(submodule);
+        Vip vip = fromAllDB.get();
+        long currentTimeMillis = System.currentTimeMillis();
+        for (VipGift gift : VipGift.values()) {
+            if (gift.isCanClaim(player, vip, currentTimeMillis)) {
+                details.setCount(1);
+                break;
+            }
+        }
+        return List.of(details);
     }
 }
