@@ -29,7 +29,7 @@ public record NoticeDto(
         // 结束时间
         int end_time,
         // 跳转类型
-        int scence,
+        int scene,
         // 跳转资源
         String jump_url
 ) {

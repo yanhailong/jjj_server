@@ -51,7 +51,7 @@ public class GateServer implements TimerListener<String> {
 
         if (this.gateConfig.wsAddress != null) {
             ChannelInitializer<SocketChannel> wsc =
-                this.gateConfig.wss ? new WssChannelHandler(this.gateConfig.sslKeyPath, this.gateConfig.sslKeyPwd) :
+                this.gateConfig.wss ? new WssChannelHandler(this.gateConfig.sslKeyPath, this.gateConfig.sslKeyPwd,this.gateConfig.timeOutSecond) :
                     new WebSocketChildChannelHandler(this.gateConfig.timeOutSecond);
             wsServer = new NettyServer(this.gateConfig.getWsAddress().getPort(), wsc);
             wsServer.start();
