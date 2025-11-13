@@ -25,7 +25,9 @@ public interface IRedDotService {
      *                  </p>
      *                  (如果指定了子模块则加载子模块数据,没有则加载所有子模块)
      */
-    List<RedDotDetails> initialize(long playerId, int submodule);
+    default List<RedDotDetails> initialize(long playerId, int submodule){
+        return List.of();
+    }
 
     default int getSubmodule() {
         return 0;

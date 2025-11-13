@@ -136,7 +136,7 @@ public class PointsAwardMessageHandler {
         playerController.send(res);
         log.debug("玩家请求积分大奖转盘 playerId = {},code = {},count = {},maxCount = {},gridId = {}", playerController.playerId(), res.code, res.getCount(), res.getMaxCount(), res.getGridId());
         //更新红点
-        redDotManager.updateRedDot(pointsAwardTurntableService, playerController.playerId());
+        redDotManager.updateRedDotByInitialize(pointsAwardTurntableService.getModule(), pointsAwardTurntableService.getSubmodule(), playerController.playerId());
     }
 
     /**
@@ -241,7 +241,7 @@ public class PointsAwardMessageHandler {
         playerController.send(res);
         log.debug("返回玩家领取积分大奖奖励 playerId = {},points = {},code = {}", playerController.playerId(), points, res.code);
         if (flag) {
-            redDotManager.updateRedDot(pointsAwardService, playerController.playerId());
+            redDotManager.updateRedDotByInitialize(pointsAwardService.getModule(), pointsAwardService.getSubmodule(), playerController.playerId());
         }
     }
 

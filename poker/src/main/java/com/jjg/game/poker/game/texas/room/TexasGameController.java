@@ -151,7 +151,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     @Override
     public int canExitGame(long playerId) {
         for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
-            if (seatInfo.getPlayerId() == playerId && seatInfo.isReady()) {
+            if (seatInfo.getPlayerId() == playerId && seatInfo.isReady() && getCurrentGamePhase() == EGamePhase.START_GAME) {
                 return Code.FORBID;
             }
         }

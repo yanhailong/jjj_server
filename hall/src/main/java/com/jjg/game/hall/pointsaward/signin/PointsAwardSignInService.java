@@ -278,7 +278,7 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
             //记录日志
             pointsAwardLogger.signInLog(playerId, getSignSet(playerId).size(), signInCfg.getIntegralNum(), pointsAwardService.getPoints(playerId));
             //更新红点
-            redDotManager.updateRedDot(this, getSubmodule(), playerId);
+            redDotManager.updateRedDotByInitialize(getModule(), getSubmodule(), playerId);
         }
     }
 
@@ -339,7 +339,7 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
         //记录时间 用来清除记录
         dateMap.fastPut(playerId, System.currentTimeMillis());
         //更新红点
-        redDotManager.updateRedDot(this, 0, playerId);
+        redDotManager.updateRedDotByInitialize(getModule(), 0, playerId);
     }
 
     /**

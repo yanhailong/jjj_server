@@ -222,7 +222,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         //记录日志
         pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, counter.get());
         //通知红点
-        redDotManager.updateRedDot(this, getSubmodule(), playerId);
+        redDotManager.updateRedDotByInitialize(getModule(), List.of(getSubmodule(), PointsAwardConstant.RedDotSubModule.TURNRABLE), playerId);
     }
 
     /**

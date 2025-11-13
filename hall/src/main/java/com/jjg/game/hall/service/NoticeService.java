@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -60,15 +59,7 @@ public class NoticeService implements IRedDotService {
 
         //如果有新增的公告，则要发送红点通知给玩家
         if (newNotices) {
-            Supplier<List<RedDotDetails>> supplier = () -> {
-                RedDotDetails redDotDetailInfo = new RedDotDetails();
-                redDotDetailInfo.setRedDotModule(RedDotDetails.RedDotModule.NOTICE);
-                redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
-                redDotDetailInfo.setCount(1);
-                return List.of(redDotDetailInfo);
-            };
-
-            redDotManager.updateRedDot(supplier, 0);
+            redDotManager.updateRedDot(RedDotDetails.RedDotModule.NOTICE, 0);
         }
     }
 
@@ -96,13 +87,12 @@ public class NoticeService implements IRedDotService {
      * @param noticeId
      */
     public void readNotice(long playerId, long noticeId) {
-        boolean match = this.notices.stream().anyMatch(notice -> {
-            return notice.getId() == noticeId;
-        });
+        boolean match = this.notices.stream().anyMatch(notice -> notice.getId() == noticeId);
         if (match) {
             noticeDao.readNotice(playerId, noticeId);
         }
     }
+
 
     @Override
     public RedDotDetails.RedDotModule getModule() {
