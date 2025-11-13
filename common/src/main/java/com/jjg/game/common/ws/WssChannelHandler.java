@@ -22,13 +22,15 @@ public class WssChannelHandler extends ChannelInitializer<SocketChannel> {
 
     private String sslKeyPath;
     private String sslKeyPwd;
+    private int timeout;
 
     public WssChannelHandler() {
     }
 
-    public WssChannelHandler(String sslKeyPath, String sslKeyPwd) {
+    public WssChannelHandler(String sslKeyPath, String sslKeyPwd, int timeout) {
         this.sslKeyPath = sslKeyPath;
         this.sslKeyPwd = sslKeyPwd;
+        this.timeout = timeout;
     }
 
     @Override
@@ -39,7 +41,7 @@ public class WssChannelHandler extends ChannelInitializer<SocketChannel> {
 //        SSLEngine engine = sslContext.createSSLEngine();
 //        engine.setUseClientMode(false);
 //        ch.pipeline().addLast(new SslHandler(engine));
-        ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(0, 0,30, TimeUnit.SECONDS));
+        ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(this.timeout, 0, 0, TimeUnit.SECONDS));
         ch.pipeline().addLast("http-codec", new HttpServerCodec());
         ch.pipeline().addLast("aggregator", new HttpObjectAggregator(65536));
         ch.pipeline().addLast("http-chunked", new ChunkedWriteHandler());
@@ -49,9 +51,9 @@ public class WssChannelHandler extends ChannelInitializer<SocketChannel> {
     }
 
     public static SSLContext createSslContext(String type, String path, String password) throws Exception {
-         /// "JKS"
+        /// "JKS"
         KeyStore ks = KeyStore.getInstance(type);
-         /// 证书存放地址
+        /// 证书存放地址
         InputStream ksInputStream = new FileInputStream(path);
         ks.load(ksInputStream, password.toCharArray());
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
