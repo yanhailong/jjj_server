@@ -64,6 +64,8 @@ public class ResLogin extends AbstractResponse {
     public List<Carousel> carouselList;
     @ProtoDesc("玩家创建时间(秒)")
     public int createTime;
+    @ProtoDesc("是否注册")
+    public boolean register;
 
     public ResLogin(int code) {
         super(code);

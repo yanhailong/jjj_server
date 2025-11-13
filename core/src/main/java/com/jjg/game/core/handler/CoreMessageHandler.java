@@ -173,7 +173,8 @@ public class CoreMessageHandler {
                 };
 
                 long playerId = playerController.getPlayer().getId();
-                countDao.incrBy(CountDao.CountType.RECHARGE.getParam(), String.valueOf(playerId), order.getPrice());
+//                countDao.incrBy(CountDao.CountType.RECHARGE.getParam(), String.valueOf(playerId), order.getPrice());
+                countDao.incrRechargeInfo(String.valueOf(playerId),order.getPrice());
 
                 //单笔充值任务
                 taskManager.trigger(playerId, TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);

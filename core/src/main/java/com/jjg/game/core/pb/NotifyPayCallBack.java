@@ -14,7 +14,7 @@ import java.util.List;
  * @date 2025/9/18 16:32
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SHOP_TYPE, cmd = ShopConstant.MsgBean.NOTIFY_PAY_CALLBACK,resp = true)
-@ProtoDesc("返回下单")
+@ProtoDesc("返回商城下单")
 public class NotifyPayCallBack extends AbstractNotice {
     @ProtoDesc("订单id")
     public String orderId;

@@ -209,6 +209,8 @@ public interface MessageConst {
         int RES_PLAYER_MONEY = BASE_MSG_PREFIX | 0x1A;
         //通知玩家货币变化
         int NOTIFY_MONEY_CHANGE = BASE_MSG_PREFIX | 0x1B;
+        //通知玩家充值后的信息
+        int NOTIFY_PAY_INFO = BASE_MSG_PREFIX | 0x1C;
     }
 
     interface RoomMessage {

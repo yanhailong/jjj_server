@@ -214,21 +214,14 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //添加轮播数据
             res.carouselList = getCarousel();
 
+            res.register = register[0];
+
             //更新session
             PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
-            Account account = accountDao.queryAccountByPlayerId(player.getId());
-            if (account == null) {
-                res.code = Code.NOT_FOUND;
-                session.send(res);
-                log.debug("未找到该账号 playerId = {}", player.getId());
-                return;
-            }
 
             //更新token过期时间
             playerSessionTokenDao.updateExpire(playerSessionToken);
 
-            boolean firstLogin = !TimeHelper.inSameDay(account.getLastLoginTime(), timeMillis) &&
-                    !TimeHelper.inSameDay(account.getLastOfflineTime(), timeMillis);
             //更新最近登录时间
             accountDao.updateLastLoginTime(player.getId(), timeMillis);
             //检查重连
@@ -247,7 +240,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 PlayerController playerController = new PlayerController(session, player);
                 session.setReference(playerController);
                 SystemInterfaceHolder.callGameSysAction(
-                        IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, firstLogin));
+                        IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, register[0]));
                 return;
             }
 
@@ -269,7 +262,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             // 调用登录接口类
             SystemInterfaceHolder.callGameSysAction(
-                    IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, firstLogin));
+                    IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, register[0]));
 
         } catch (Exception e) {
             res.code = Code.EXCEPTION;

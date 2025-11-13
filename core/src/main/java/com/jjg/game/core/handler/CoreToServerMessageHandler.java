@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -171,11 +172,19 @@ public class CoreToServerMessageHandler {
             return param;
         };
         //玩家累计充值
-        countDao.incrBy(CountDao.CountType.RECHARGE.getParam(), String.valueOf(player.getId()), order.getPrice());
+//        countDao.incrBy(CountDao.CountType.RECHARGE.getParam(), String.valueOf(player.getId()), order.getPrice());
+        Map<String, Object> resMap = countDao.incrRechargeInfo(String.valueOf(player.getId()), order.getPrice());
         //单笔充值任务
         taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
         //累计充值任务
         taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_SUM_PAY, paramSupplier);
+
+        NotifyPayInfo notifyPayInfo = new NotifyPayInfo();
+        notifyPayInfo.orderId = order.getId();
+
+        notifyPayInfo.allRechargeCount = resMap == null ? 0 : ((Long)resMap.get(CountDao.CountType.RECHARGE_COUNT.getParam())).intValue();
+        clusterSystem.sendToPlayer(notifyPayInfo, player.getId());
+
         log.info("充值成功，通知到玩家所在的当前节点 playerId = {},orderId = {}", player.getId(), order.getId());
     }
 

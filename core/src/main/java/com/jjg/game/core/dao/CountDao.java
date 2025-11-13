@@ -1,9 +1,9 @@
 package com.jjg.game.core.dao;
 
 import com.jjg.game.core.utils.RedisUtils;
-import org.redisson.api.RAtomicLong;
-import org.redisson.api.RScript;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -16,6 +16,8 @@ import java.util.*;
  */
 @Repository
 public class CountDao {
+
+    private Logger log = LoggerFactory.getLogger(getClass());
 
     private final RedissonClient redissonClient;
     private final String TABLE_NAME = "count:%s:%s";
@@ -73,6 +75,11 @@ public class CountDao {
         return RedisUtils.fromLong(val);
     }
 
+    public Long getLongCount(String featureId, String customId) {
+        String key = getKey(featureId, customId);
+        return redissonClient.getAtomicLong(key).get();
+    }
+
     /**
      * 原子自增（两位小数）
      * @param featureId 功能ID
@@ -85,6 +92,43 @@ public class CountDao {
         long deltaLong = RedisUtils.toLong(delta);
         long newVal = redissonClient.getAtomicLong(key).addAndGet(deltaLong);
         return RedisUtils.fromLong(newVal);
+    }
+
+    /**
+     * 原子批量自增（两位小数）
+     * @param customId
+     * @param deltaMap
+     * @return
+     */
+    public Map<String,Long> incrBy(String customId, Map<String,Long>  deltaMap) {
+        if(deltaMap == null || deltaMap.isEmpty()){
+            return Collections.emptyMap();
+        }
+        RBatch batch = redissonClient.createBatch();
+
+        Map<String,RFuture<Long>> tmpMap = new HashMap<>();
+        for(Map.Entry<String,Long> en : deltaMap.entrySet()){
+            String key = getKey(en.getKey(), customId);
+//            long deltaLong = RedisUtils.toLong(en.getValue());
+            RFuture<Long> amountAsync = batch.getAtomicLong(key).addAndGetAsync(en.getValue());
+            tmpMap.put(en.getKey(),amountAsync);
+        }
+
+        //批量执行
+        batch.execute();
+
+        try{
+            Map<String,Long> resMap = new HashMap<>(tmpMap.size());
+            for(Map.Entry<String,RFuture<Long>> en : tmpMap.entrySet()){
+                RFuture<Long> amountAsync = en.getValue();
+                Long newAmount = amountAsync.get();
+                resMap.put(en.getKey(),newAmount);
+            }
+            return resMap;
+        }catch (Exception e){
+            log.debug("获取执行后结果异常");
+            return Collections.emptyMap();
+        }
     }
 
     /**
@@ -169,6 +213,29 @@ public class CountDao {
     }
 
     /**
+     * 充值计数
+     * @param customId
+     * @param value
+     */
+    public Map<String,Object> incrRechargeInfo(String customId,BigDecimal value) {
+        Map<String,Long> map = new HashMap<>();
+
+        map.put(CountType.RECHARGE.getParam(),RedisUtils.toLong(value));
+        map.put(CountType.RECHARGE_COUNT.getParam(),1L);
+        Map<String, Long> tmpMap = incrBy(customId, map);
+        if(tmpMap == null || tmpMap.isEmpty()){
+            return Collections.emptyMap();
+        }
+
+        Long l = tmpMap.get(CountType.RECHARGE.getParam());
+
+        Map<String,Object> resMap = new HashMap<>();
+        resMap.put(CountType.RECHARGE.getParam(),RedisUtils.fromLong(l));
+        resMap.put(CountType.RECHARGE_COUNT.getParam(),tmpMap.getOrDefault(CountType.RECHARGE_COUNT.getParam(),0L));
+        return resMap;
+    }
+
+    /**
      * 条件功能枚举
      */
     public enum CountType {
@@ -180,8 +247,11 @@ public class CountDao {
         ACTIVITY_STATUS("activity:status:%s"),
         //活动计数
         ACTIVITY_COUNT("activity:count:%s"),
-        //充值计数
-        RECHARGE("recharge"),;
+        //充值金额
+        RECHARGE("recharge"),
+        //充值次数
+        RECHARGE_COUNT("recharge:count"),
+        ;
         private final String param;
 
         CountType(String param) {
