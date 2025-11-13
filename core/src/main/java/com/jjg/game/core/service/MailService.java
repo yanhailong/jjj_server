@@ -138,7 +138,6 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     public void removeMail(long playerId, long mailId) {
         getMailItems(playerId, mailId, "removeGetMailItems");
         mailDao.removeMail(playerId, mailId);
-        redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, -1);
     }
 
     /**
@@ -475,7 +474,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         if (!getMails.isEmpty()) {
             long count = mailDao.batchSaveMails(getMails);
             log.info("玩家接收全服邮件成功 playerId = {},count = {}", playerId, count);
-            redDotManager.incrementRedDotDataAndUpdate(getModule(),  playerId, getMails.size());
+            redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, getMails.size());
         }
     }
 

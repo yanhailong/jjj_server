@@ -56,7 +56,13 @@ public class RedDotDao {
     /** 增加红点值 */
     public int incrementValue(long playerId, int module, int subModule, int delta) {
         RMap<Long, Integer> map = redissonClient.getMap(getPlayerKey(playerId));
-        return map.addAndGet(combineKey(module, subModule), delta);
+        long key = combineKey(module, subModule);
+        Integer value = map.getOrDefault(key, 0);
+        if (value + delta <= 0) {
+            map.put(key, 0);
+            return 0;
+        }
+        return map.addAndGet(key, delta);
     }
 
     /** 删除一个子模块红点 */
