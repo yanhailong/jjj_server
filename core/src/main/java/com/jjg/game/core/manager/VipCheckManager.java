@@ -12,6 +12,7 @@ import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
@@ -45,11 +46,13 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
     private final CorePlayerService playerService;
     // vip配置缓存
     private static Map<Integer, ViplevelCfg> VIP_LEVEL_CFG_MAP = new HashMap<>();
+    private final RedDotManager redDotManager;
 
-    public VipCheckManager(NodeManager nodeManager, CoreSendMessageManager sendMessageManager, CorePlayerService playerService) {
+    public VipCheckManager(NodeManager nodeManager, CoreSendMessageManager sendMessageManager, CorePlayerService playerService, RedDotManager redDotManager) {
         this.nodeManager = nodeManager;
         this.sendMessageManager = sendMessageManager;
         this.playerService = playerService;
+        this.redDotManager = redDotManager;
     }
 
     public void initVipLevelCfg() {
@@ -195,6 +198,8 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
             if (change) {
                 //信息变化推送一次
                 sendMessageManager.buildBaseInfoChangeMessage(newPlayer);
+                redDotManager.updateRedDotByInitialize(RedDotDetails.RedDotModule.VIP, 0, player.getId());
+
             }
         }
     }

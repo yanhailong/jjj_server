@@ -9,7 +9,6 @@ import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -19,9 +18,9 @@ import java.util.function.Function;
  */
 public enum VipGift {
     WEEKS(1, ViplevelCfg::getWeeklyRewards),
-    BIRTHDAY(2,ViplevelCfg::getBirthdayReward),
-    PROMOTION(3,ViplevelCfg::getLevelRewards),
-    YEAR(4,ViplevelCfg::getAnnualRewards),
+    BIRTHDAY(2, ViplevelCfg::getBirthdayReward),
+    PROMOTION(3, ViplevelCfg::getLevelRewards),
+    YEAR(4, ViplevelCfg::getAnnualRewards),
     ;
     private final int type;
     private final Function<ViplevelCfg, Map<Integer, Long>> reward;
@@ -56,8 +55,12 @@ public enum VipGift {
                 if (CollectionUtil.isEmpty(vip.getLvGiftGetTime())) {
                     yield true;
                 }
-                int maxLv = Collections.max(vip.getLvGiftGetTime().keySet());
-                yield maxLv < player.getVipLevel();
+                for (int i = 1; i < player.getVipLevel(); i++) {
+                    if (!vip.getLvGiftGetTime().containsKey(i)) {
+                        yield true;
+                    }
+                }
+                yield false;
             }
         };
     }
