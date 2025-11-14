@@ -17,6 +17,7 @@ import com.jjg.game.core.base.player.IPlayerRegister;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
+import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
@@ -81,6 +82,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private FriendRoomServices friendRoomServices;
     @Autowired
     private AccountDao accountDao;
+    @Autowired
+    private CountDao countDao;
 
     public void init() {
     }
@@ -216,6 +219,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             res.register = register[0];
 
+            res.registerRewardsState = countDao.getCount(CountDao.CountType.PLAYER_COUNT.getParam().formatted("register"), String.valueOf(player.getId())).intValue();
             //更新session
             PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
 

@@ -17,12 +17,14 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
+import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.dao.PlayerSkinDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.MailService;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.casino.manager.CasinoManager;
 import com.jjg.game.hall.casino.pb.req.*;
 import com.jjg.game.hall.constant.HallCode;
@@ -44,8 +46,10 @@ import com.jjg.game.hall.vip.pb.req.ReqVipClaimGiftReward;
 import com.jjg.game.hall.vip.pb.req.ReqVipInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.AvatarCfg;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -86,6 +90,10 @@ public class HallMessageHandler implements GmListener {
     private PlayerSkinDao playerSkinDao;
     @Autowired
     private NoticeService noticeService;
+    @Autowired
+    private CountDao countDao;
+    @Autowired
+    private PlayerPackService playerPackService;
 
     /**
      * 进入游戏
@@ -1070,7 +1078,7 @@ public class HallMessageHandler implements GmListener {
                     NoticeInfo noticeInfo = new NoticeInfo();
                     BeanUtils.copyProperties(notice, noticeInfo);
 
-                    if(readSet.contains(notice.getId())){
+                    if (readSet.contains(notice.getId())) {
                         noticeInfo.setRead(true);
                     }
                     res.noticeList.add(noticeInfo);
@@ -1100,6 +1108,35 @@ public class HallMessageHandler implements GmListener {
         playerController.send(res);
     }
 
+    /**
+     * 游戏功能开放列表
+     */
+    @Command(HallConstant.MsgBean.REQ_GET_REGISTER_REWARDS)
+    public void ReqGetRegisterRewards(PlayerController playerController) {
+        ResGetRegisterRewards res = new ResGetRegisterRewards(Code.SUCCESS);
+        boolean register = countDao.setIfAbsent(CountDao.CountType.PLAYER_COUNT.getParam().formatted("register"), String.valueOf(playerController.playerId()));
+        if (register) {
+            //发送奖励
+            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(50);
+            if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
+                String[] split = StringUtils.split(globalConfigCfg.getValue(), ";");
+                Map<Integer, Long> rewards = new HashMap<>();
+                for (String string : split) {
+                    String[] itemInfo = StringUtils.split(string, "_");
+                    if (itemInfo.length == 2) {
+                        rewards.put(Integer.valueOf(itemInfo[0]), Long.valueOf(itemInfo[1]));
+                    }
+                }
+                CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerController.playerId(), rewards, AddType.PLAYER_REGISTER);
+                if (!addItems.success()) {
+                    log.error("玩家领取注册奖励失败 playerId:{}", playerController.playerId());
+                }
+                playerController.send(res);
+            }
+        }
+        res.code = Code.REPEAT_OP;
+        playerController.send(res);
+    }
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {

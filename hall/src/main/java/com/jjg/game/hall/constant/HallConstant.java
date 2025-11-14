@@ -183,5 +183,9 @@ public interface HallConstant {
         //阅读公告
         int REQ_READ_NOTICE = BASE_MSG_PREFIX | 0x4B;
         int RES_READ_NOTICE = BASE_MSG_PREFIX | 0x4C;
+
+        //请求领取注册奖励
+        int REQ_GET_REGISTER_REWARDS = BASE_MSG_PREFIX | 0x4D;
+        int RES_GET_REGISTER_REWARDS = BASE_MSG_PREFIX | 0x4E;
     }
 }
