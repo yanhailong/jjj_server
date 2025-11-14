@@ -245,11 +245,11 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             lock = redissonClient.getLock(lockKey);
 
             boolean locked = lock.tryLock(PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, TimeUnit.MILLISECONDS);
-            if(!locked){
+            if (!locked) {
                 throw new RuntimeException("获取时间段积分锁超时，playerId: " + playerId);
             }
 
-            RMap<Long,TimePoints> playerTimePointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME_DATA_POINTS);
+            RMap<Long, TimePoints> playerTimePointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME_DATA_POINTS);
             TimePoints timePoints = playerTimePointsMap.get(playerId);
 
             long currentTime = System.currentTimeMillis();
@@ -430,6 +430,21 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     }
 
     /**
+     * 获取时间段积分
+     *
+     * @param playerId
+     * @return
+     */
+    public long getTimePoints(long playerId) {
+        RMap<Long, TimePoints> playerTimePointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME_DATA_POINTS);
+        TimePoints timePoints = playerTimePointsMap.get(playerId);
+        if (timePoints == null) {
+            return 0;
+        }
+        return timePoints.getPoints();
+    }
+
+    /**
      * 通知玩家同步积分
      *
      * @param player 玩家id
@@ -534,31 +549,38 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     /**
      * 重置时间段积分
      */
-    public void resetTimePoints(){
-        RMap<Long,TimePoints> playerTimePointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME_DATA_POINTS);
+    public void resetTimePoints() {
+        RMap<Long, TimePoints> playerTimePointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME_DATA_POINTS);
         //先全部读取，然后删除
         Map<Long, TimePoints> timePointsMap = playerTimePointsMap.readAllMap();
         playerTimePointsMap.delete();
 
-        timePointsMap.forEach((playerId,timePoints) -> {
-            receiveLader(timePoints.getPoints(),playerId,true);
+        timePointsMap.forEach((playerId, timePoints) -> {
+            List<PointsAwardLadderRewardsInfo> configInfoList = getLadderConfigInfoList(playerId);
+            for(PointsAwardLadderRewardsInfo info : configInfoList){
+                if(info.getPoints() <= timePoints.getPoints()){
+                    receiveLader(info.getPoints(), playerId, true);
+                }
+            }
             getLadderReceiveSet(playerId).delete();
         });
 
-        log.debug("重置时间段积分 map.size = {}",timePointsMap.size());
+        log.debug("重置时间段积分 map.size = {}", timePointsMap.size());
     }
 
     /**
      * 玩家领取积分阶梯奖励
      */
-    public boolean receiveLader(long points, long playerId,boolean autoRecive) {
+    public boolean receiveLader(long points, long playerId, boolean autoRecive) {
         List<PointsAwardLadderRewardsInfo> configInfoList = getLadderConfigInfoList(playerId);
         Map<Long, PointsAwardLadderRewardsInfo> collect = configInfoList.stream()
                 .collect(Collectors.toMap(PointsAwardLadderRewardsInfo::getPoints, Function.identity(), (oldValue, newValue) -> newValue));
         PointsAwardLadderRewardsInfo info = collect.get(points);
+
         if (info == null) {
             return false;
         }
+
         RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
         RLock rLock = rewardReceiveSet.getReadWriteLock(playerId).writeLock();
         try {
@@ -567,10 +589,10 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                 if (rewardReceiveSet.contains(info.getPoints())) {
                     return false;
                 }
-                if(autoRecive){
+                if (autoRecive) {
                     Item item = new Item(info.getItemId(), info.getItemNum());
                     mailService.addCfgMail(playerId, GameConstant.Mail.ID_POINTS_AWARD, List.of(item));
-                }else {
+                } else {
                     //奖励道具
                     playerPackService.addItem(playerId, info.getItemId(), info.getItemNum(), AddType.POINTS_AWARD_SIGN_REWARDS);
                 }

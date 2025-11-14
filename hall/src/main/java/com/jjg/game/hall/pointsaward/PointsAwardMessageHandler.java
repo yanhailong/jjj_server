@@ -218,12 +218,13 @@ public class PointsAwardMessageHandler {
     @Command(PointsAwardConstant.Message.REQ_POINTS_AWARD_LADDER_REWARD)
     public void ladderReceiveInfo(PlayerController playerController, ReqPointsAwardLadderRewards msg) {
         ResPointsAwardLadderRewards res = new ResPointsAwardLadderRewards(Code.SUCCESS);
-        long points = pointsAwardService.getPoints(playerController.playerId());
+        long points = pointsAwardService.getTimePoints(playerController.playerId());
         List<PointsAwardLadderRewardsInfo> configInfoList = pointsAwardService.getLadderConfigInfoList(playerController.playerId());
         res.setTotalPoints(points);
         res.setLadderRewardsList(configInfoList);
         playerController.send(res);
-        log.debug("返回玩家积分大奖阶梯奖励信息 playerId = {}", playerController.playerId());
+//        pointsAwardService.resetTimePoints();
+        log.debug("返回玩家积分大奖阶梯奖励信息 playerId = {},points = {}", playerController.playerId(), points);
     }
 
     /**
