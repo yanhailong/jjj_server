@@ -57,13 +57,6 @@ public class PFSession extends Session<Object, Object> {
         this.workId = workId;
     }
 
-    public int getThreadId() {
-        return threadId;
-    }
-
-    public void setThreadId(int threadId) {
-        this.threadId = threadId;
-    }
 
     public long getActiveTime() {
         return activeTime;

@@ -1,13 +1,14 @@
 package com.jjg.game.common.cluster;
 
 import com.jjg.game.common.concurrent.BaseHandler;
-import com.jjg.game.common.concurrent.PlayerExecutorGroup;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
+import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.data.MessageStat;
 import com.jjg.game.common.listener.SessionReferenceBinder;
 import com.jjg.game.common.net.Connect;
 import com.jjg.game.common.protostuff.*;
+import com.jjg.game.common.utils.CommonUtil;
 import io.netty.channel.ChannelHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,7 @@ import org.slf4j.MDC;
 import org.springframework.context.ApplicationContext;
 
 import java.lang.reflect.Constructor;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,7 +35,7 @@ public class ClusterMessageDispatcher {
     private Map<Integer, MessageController> messageControllers;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Map<String, SessionReferenceBinder> sessionRefenerceBinderMap;
-    private final PlayerExecutorGroup playerExecutorGroup = new PlayerExecutorGroup(1000, NodeType.HALL.name());
+    private PlayerExecutorGroupDisruptor executorGroup;
     private final ConcurrentHashMap<Integer, MessageStat> messageStats = new ConcurrentHashMap<>();
 
     public ClusterMessageDispatcher(ClusterSystem clusterSystem) {
@@ -46,8 +48,9 @@ public class ClusterMessageDispatcher {
      * @param context
      */
     public void init(ApplicationContext context, Set<Integer> noStartGameMsgTypeSet) {
+        NodeConfig nodeConfig = CommonUtil.getContext().getBean(NodeConfig.class);
+        executorGroup = new PlayerExecutorGroupDisruptor(0, 0, nodeConfig.getType());
         this.sessionRefenerceBinderMap = context.getBeansOfType(SessionReferenceBinder.class);
-
         messageControllers = MessageUtil.load(context, noStartGameMsgTypeSet);
         MessageUtil.loadResponseMessage(noStartGameMsgTypeSet, CoreConst.Common.BASE_PROJECT_PACKAGE_PATH);
         messageControllers.forEach((key, value) -> log.info("消息处理器[{}]->{}", key, value.been.getClass().getName()));
@@ -90,18 +93,19 @@ public class ClusterMessageDispatcher {
         }
         PFMessage msg = clusterMessage.getMsg();
         try {
-            if (session == null) {
-                playerExecutorGroup.executeAny(() -> {
-                    handle(connect, null, msg);
-                });
-            } else {
-                PFSession finalSession = session;
-                playerExecutorGroup.submitHandler(session, new BaseHandler<>() {
-                    @Override
-                    public void action() {
-                        handle(connect, finalSession, msg);
-                    }
-                }.setHandlerParamWithSelf("handle message:" + msg.cmd));
+            PFSession finalSession = session;
+            long bindId = 0;
+            if (session != null) {
+                bindId = session.getWorkId();
+            }
+            boolean tryPublish = executorGroup.tryPublish(bindId, msg.cmd, new BaseHandler<>() {
+                @Override
+                public void action() {
+                    handle(connect, finalSession, msg);
+                }
+            });
+            if (!tryPublish) {
+                log.error("消息消费失败 msgId:{} data:{} session:{}", msg, Arrays.toString(msg.data), sessionId);
             }
         } catch (Exception e) {
             log.warn("节点消息分发异常!", e);
