@@ -154,7 +154,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                     res.code = Code.PARAM_ERROR;
                     return res;
                 }
-                if (req.vipLevel > player.getLevel()) {
+                if (req.vipLevel > player.getVipLevel()) {
                     res.code = Code.PARAM_ERROR;
                     return res;
                 }
