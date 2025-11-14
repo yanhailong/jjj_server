@@ -55,6 +55,8 @@ public enum AddType {
     GET_MAIL_ITEMS(501),
     //一键领取邮件
     GET_ALL_MAILS_ITEMS(502),
+    //删除邮件
+    REMOVE_MAIL(503),
 
 
     //摇钱树

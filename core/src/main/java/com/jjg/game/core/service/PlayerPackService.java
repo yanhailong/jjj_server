@@ -115,7 +115,7 @@ public class PlayerPackService implements IPlayerRegister {
 
         if (addGold > 0 || addDiamond > 0) {
             CommonResult<Player> goldAndDiamond =
-                    corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, null);
+                    corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, desc);
             if (!goldAndDiamond.success()) {
                 result.code = goldAndDiamond.code;
                 return result;
