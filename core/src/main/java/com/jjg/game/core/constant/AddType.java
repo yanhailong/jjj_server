@@ -188,6 +188,9 @@ public enum AddType {
     BANKER_PREDICATE_BACK(1502),
     //购买头像
     BUY_AVATAR(1601),
+
+    //注册金币领取
+    PLAYER_REGISTER(1602),
     ;
 
 

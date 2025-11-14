@@ -66,6 +66,8 @@ public class ResLogin extends AbstractResponse {
     public int createTime;
     @ProtoDesc("是否注册")
     public boolean register;
+    @ProtoDesc("注册奖励领取状态 1已经领取 2未领取")
+    public int registerRewardsState;
 
     public ResLogin(int code) {
         super(code);

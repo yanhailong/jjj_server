@@ -100,32 +100,32 @@ public class CountDao {
      * @param deltaMap
      * @return
      */
-    public Map<String,Long> incrBy(String customId, Map<String,Long>  deltaMap) {
-        if(deltaMap == null || deltaMap.isEmpty()){
+    public Map<String, Long> incrBy(String customId, Map<String, Long> deltaMap) {
+        if (deltaMap == null || deltaMap.isEmpty()) {
             return Collections.emptyMap();
         }
         RBatch batch = redissonClient.createBatch();
 
-        Map<String,RFuture<Long>> tmpMap = new HashMap<>();
-        for(Map.Entry<String,Long> en : deltaMap.entrySet()){
+        Map<String, RFuture<Long>> tmpMap = new HashMap<>();
+        for (Map.Entry<String, Long> en : deltaMap.entrySet()) {
             String key = getKey(en.getKey(), customId);
 //            long deltaLong = RedisUtils.toLong(en.getValue());
             RFuture<Long> amountAsync = batch.getAtomicLong(key).addAndGetAsync(en.getValue());
-            tmpMap.put(en.getKey(),amountAsync);
+            tmpMap.put(en.getKey(), amountAsync);
         }
 
         //批量执行
         batch.execute();
 
-        try{
-            Map<String,Long> resMap = new HashMap<>(tmpMap.size());
-            for(Map.Entry<String,RFuture<Long>> en : tmpMap.entrySet()){
+        try {
+            Map<String, Long> resMap = new HashMap<>(tmpMap.size());
+            for (Map.Entry<String, RFuture<Long>> en : tmpMap.entrySet()) {
                 RFuture<Long> amountAsync = en.getValue();
                 Long newAmount = amountAsync.get();
-                resMap.put(en.getKey(),newAmount);
+                resMap.put(en.getKey(), newAmount);
             }
             return resMap;
-        }catch (Exception e){
+        } catch (Exception e) {
             log.debug("获取执行后结果异常");
             return Collections.emptyMap();
         }
@@ -189,17 +189,17 @@ public class CountDao {
         // Lua 一次性批量获取
         // Lua: 获取并尝试转换为 number，缺失则返回 0
         String lua = """
-            local res = {}
-            for i, k in ipairs(KEYS) do
-                local v = redis.call('GET', k)
-                if not v then
-                    table.insert(res, 0)
-                else
-                    table.insert(res, tonumber(v))
+                local res = {}
+                for i, k in ipairs(KEYS) do
+                    local v = redis.call('GET', k)
+                    if not v then
+                        table.insert(res, 0)
+                    else
+                        table.insert(res, tonumber(v))
+                    end
                 end
-            end
-            return res
-            """;
+                return res
+                """;
 
         List<Long> values = redissonClient.getScript()
                 .eval(RScript.Mode.READ_ONLY, lua, RScript.ReturnType.MULTI, objectKeys);
@@ -217,21 +217,21 @@ public class CountDao {
      * @param customId
      * @param value
      */
-    public Map<String,Object> incrRechargeInfo(String customId,BigDecimal value) {
-        Map<String,Long> map = new HashMap<>();
+    public Map<String, Object> incrRechargeInfo(String customId, BigDecimal value) {
+        Map<String, Long> map = new HashMap<>();
 
-        map.put(CountType.RECHARGE.getParam(),RedisUtils.toLong(value));
-        map.put(CountType.RECHARGE_COUNT.getParam(),1L);
+        map.put(CountType.RECHARGE.getParam(), RedisUtils.toLong(value));
+        map.put(CountType.RECHARGE_COUNT.getParam(), 1L);
         Map<String, Long> tmpMap = incrBy(customId, map);
-        if(tmpMap == null || tmpMap.isEmpty()){
+        if (tmpMap == null || tmpMap.isEmpty()) {
             return Collections.emptyMap();
         }
 
         Long l = tmpMap.get(CountType.RECHARGE.getParam());
 
-        Map<String,Object> resMap = new HashMap<>();
-        resMap.put(CountType.RECHARGE.getParam(),RedisUtils.fromLong(l));
-        resMap.put(CountType.RECHARGE_COUNT.getParam(),tmpMap.getOrDefault(CountType.RECHARGE_COUNT.getParam(),0L));
+        Map<String, Object> resMap = new HashMap<>();
+        resMap.put(CountType.RECHARGE.getParam(), RedisUtils.fromLong(l));
+        resMap.put(CountType.RECHARGE_COUNT.getParam(), tmpMap.getOrDefault(CountType.RECHARGE_COUNT.getParam(), 0L));
         return resMap;
     }
 
@@ -251,6 +251,8 @@ public class CountDao {
         RECHARGE("recharge"),
         //充值次数
         RECHARGE_COUNT("recharge:count"),
+        //玩家计数
+        PLAYER_COUNT("player:%s"),
         ;
         private final String param;
 
