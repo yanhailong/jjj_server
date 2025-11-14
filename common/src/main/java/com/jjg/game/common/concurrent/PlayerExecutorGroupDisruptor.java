@@ -23,6 +23,9 @@ public class PlayerExecutorGroupDisruptor {
     private final int bufferSize;
     /** 当 publish 失败时，将任务交给 fallbackExecutor 执行，避免阻塞 Netty I/O 线程 */
     private ExecutorService fallbackExecutor;
+
+    private final static PlayerExecutorGroupDisruptor defaultExecutor = new PlayerExecutorGroupDisruptor(0, 0, "default");
+
     /**
      * 构造
      * @param slotCount 要创建的槽位数（建议为2的幂），如果 <=0 则自动按 cores*2
@@ -42,6 +45,10 @@ public class PlayerExecutorGroupDisruptor {
         }
         log.info("PlayerExecutorGroupDisruptor initialized: slots={}, bufferSize={}",
                 this.slotCount, this.bufferSize);
+    }
+
+    public static PlayerExecutorGroupDisruptor getDefaultExecutor() {
+        return defaultExecutor;
     }
 
     /**
@@ -87,9 +94,9 @@ public class PlayerExecutorGroupDisruptor {
         return hash & (slotCount - 1); // requires slotCount power-of-two
     }
 
-    public  PlayerWorker getPlayerWorker(long bindId) {
+    public PlayerWorker getPlayerWorker(long bindId) {
         int idx = calcSlot(bindId);
-        if(idx >= this.workers.length) {
+        if (idx >= this.workers.length) {
             return null;
         }
         return this.workers[idx];
@@ -106,7 +113,11 @@ public class PlayerExecutorGroupDisruptor {
         } else {
             idx = calcSlot(bindId);
         }
-        return workers[idx].tryPublish(msgId, task);
+        boolean tryPublish = workers[idx].tryPublish(msgId, task);
+        if (!tryPublish) {
+            log.error("tryPublish is rejected bindId:{} msgId:{} param:{}", bindId, msgId, task.getHandlerParam());
+        }
+        return tryPublish;
     }
 
     /**
@@ -200,7 +211,7 @@ public class PlayerExecutorGroupDisruptor {
     }
 
     // -------------------- util --------------------
-    private  int nextPowerOfTwo(int v) {
+    private int nextPowerOfTwo(int v) {
         if (v <= 0) return 1;
         int n = v - 1;
         n |= n >>> 1;

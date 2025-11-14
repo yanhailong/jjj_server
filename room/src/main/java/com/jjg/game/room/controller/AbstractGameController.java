@@ -197,10 +197,15 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     @Override
     public <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
         GamePlayer gamePlayer = gameDataVo.getGamePlayerMap().get(playerController.playerId());
+
         // 从玩家列表中移除玩家数据，子类的gameDataVo有和玩家相关的临时数据需要自行删除
         gameDataVo.getGamePlayerMap().remove(playerController.playerId());
         // 玩家退出时直接回存玩家数据，需要放在游戏离开逻辑最后
-        directlySavePlayerData(gamePlayer);
+        if (gamePlayer != null) {
+            directlySavePlayerData(gamePlayer);
+        } else {
+            log.error("gamePlayer is null playerId:{}", playerController.playerId());
+        }
         return new CommonResult<>(Code.SUCCESS);
     }
 
@@ -415,6 +420,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         int goldCfgId = ItemUtils.getGoldItemId();
         int diamondCfgId = ItemUtils.getDiamondItemId();
         GamePlayer gamePlayer = getGamePlayer(playerId);
+        if (gamePlayer == null) {
+            log.error("gamePlayer is null playerId:{}", playerId);
+            return 0;
+        }
         if (transactionItemId == goldCfgId) {
             return gamePlayer.getGold();
         } else if (transactionItemId == diamondCfgId) {

@@ -2,13 +2,11 @@ package com.jjg.game.common.cluster;
 
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
-import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.data.MessageStat;
 import com.jjg.game.common.listener.SessionReferenceBinder;
 import com.jjg.game.common.net.Connect;
 import com.jjg.game.common.protostuff.*;
-import com.jjg.game.common.utils.CommonUtil;
 import io.netty.channel.ChannelHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,8 +46,7 @@ public class ClusterMessageDispatcher {
      * @param context
      */
     public void init(ApplicationContext context, Set<Integer> noStartGameMsgTypeSet) {
-        NodeConfig nodeConfig = CommonUtil.getContext().getBean(NodeConfig.class);
-        executorGroup = new PlayerExecutorGroupDisruptor(0, 0, nodeConfig.getType());
+        executorGroup = PlayerExecutorGroupDisruptor.getDefaultExecutor();
         this.sessionRefenerceBinderMap = context.getBeansOfType(SessionReferenceBinder.class);
         messageControllers = MessageUtil.load(context, noStartGameMsgTypeSet);
         MessageUtil.loadResponseMessage(noStartGameMsgTypeSet, CoreConst.Common.BASE_PROJECT_PACKAGE_PATH);
