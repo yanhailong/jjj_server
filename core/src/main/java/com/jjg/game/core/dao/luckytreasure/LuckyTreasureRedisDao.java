@@ -124,8 +124,12 @@ public class LuckyTreasureRedisDao {
      */
     public List<String> getAllActiveRoundKeys() {
         String pattern = LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_ROUND_DATA_ISSUE + "*";
+        KeysScanOptions defaults = KeysScanOptions.defaults();
+        defaults.chunkSize(1000);
+        defaults.limit(10);
+        defaults.pattern(pattern);
         RKeys keys = redissonClient.getKeys();
-        Iterable<String> keyIterable = keys.getKeys(KeysScanOptions.defaults().pattern(pattern));
+        Iterable<String> keyIterable = keys.getKeys(defaults);
         List<String> keyList = new ArrayList<>();
         for (String key : keyIterable) {
             keyList.add(key);
