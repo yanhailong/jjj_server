@@ -113,15 +113,15 @@ public class PointsAwardLeaderboardService {
         String lockKey = PointsAwardConstant.RedisLockKey.POINTS_AWARD_RANKING_LOCK + type;
         redisLock.lockAndRun(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
             RMap<Long, Long> playerPointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_POINTS + type);
-            long totalPoints = playerPointsMap.put(playerId, points);
+            playerPointsMap.put(playerId, points);
             RScoredSortedSet<Long> s = set(type);
             int minPoints = resolveMinPoints(type);
-            log.info("upsert playerId = {},type = {}, points = {}, totalPoints = {},tsMillis = {},minPoints = {}", playerId, type, points, totalPoints, tsMillis, minPoints);
-            if (totalPoints < minPoints) {
+            log.info("upsert playerId = {},type = {}, points = {}, tsMillis = {},minPoints = {}", playerId, type, points, tsMillis, minPoints);
+            if (points < minPoints) {
                 return;
             }
             // 写入新的分数（总积分 + 时间偏移），并按照需要裁剪榜单大小
-            s.add(toScore(totalPoints, tsMillis), playerId);
+            s.add(toScore(points, tsMillis), playerId);
             int size = s.size();
             int maxSize = manager.getMaxSize(type);
             if (size > maxSize) {

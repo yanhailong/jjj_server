@@ -27,7 +27,7 @@ public class ViplevelCfg extends BaseCfgBean {
   protected int describeID;
   /** 有效下注经验转化万分比 */
   protected int effectiveBetting;
-  /** 等级奖励 */
+  /** 等级金币奖励 */
   protected Map<Integer,Long> levelRewards;
   /** 特权功能 */
   protected Map<Integer,Integer> privilegedFunctions;
@@ -66,7 +66,7 @@ public class ViplevelCfg extends BaseCfgBean {
     return effectiveBetting;
   }
 
-  /** 返回等级奖励 */
+  /** 返回等级金币奖励 */
   public Map<Integer,Long> getLevelRewards() {
     return levelRewards;
   }
