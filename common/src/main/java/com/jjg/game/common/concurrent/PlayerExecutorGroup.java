@@ -68,7 +68,12 @@ public class PlayerExecutorGroup {
         }
         execute(session.getWorkId(), () -> {
             try {
+                long currentTimeMillis = System.currentTimeMillis();
                 handler.action();
+                long time = System.currentTimeMillis() - currentTimeMillis;
+                if (time > 100) {
+                    log.error("消息执行超时 msgId:{}", handler.getHandlerParam());
+                }
             } catch (Throwable t) {
                 log.error("player handler error, workId={}, handler={}", session.getWorkId(), handler.getClass().getName(), t);
             }
