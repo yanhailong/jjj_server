@@ -119,17 +119,19 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
         WealthGodGameRunInfo gameRunInfo = new WealthGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             CommonResult<WealthGodResultLib> commonResult = normalGetLib(playerGameData, betValue, WealthGodConstant.SpecialMode.TYPE_NORMAL);
-            //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
-            gameRunInfo.setBeforeGold(player.getGold());
-            if (playerController != null) {
-                playerController.setPlayer(player);
-            }
+
             WealthGodResultLib resultLib = commonResult.data;
             if (resultLib == null) {
                 gameRunInfo.setCode(Code.EXCEPTION);
                 return gameRunInfo;
             }
+
+            //玩家当前金币
+            Player player = slotsPlayerService.get(playerGameData.playerId());
+            playerController.setPlayer(player);
+
+            gameRunInfo.setBeforeGold(player.getGold());
+
             gameRunInfo.setStake(betValue);
             //所有的spin数据
             List<WealthGodSpinInfo> infoList = new ArrayList<>();
@@ -175,10 +177,10 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
+            playerController.setPlayer(player);
+
             gameRunInfo.setAfterGold(player.getGold());
-            if (playerController != null) {
-                playerController.setPlayer(player);
-            }
+
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             return gameRunInfo;
         } catch (Exception e) {
