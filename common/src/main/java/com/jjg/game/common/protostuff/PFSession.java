@@ -23,6 +23,8 @@ public class PFSession extends Session<Object, Object> {
     public String gatePath;
     /* 业务ID，用于根据该ID分配业务线程*/
     public long workId;
+    //线程id
+    public int threadId;
 
     public long activeTime;
 
@@ -53,6 +55,14 @@ public class PFSession extends Session<Object, Object> {
 
     public void setWorkId(long workId) {
         this.workId = workId;
+    }
+
+    public int getThreadId() {
+        return threadId;
+    }
+
+    public void setThreadId(int threadId) {
+        this.threadId = threadId;
     }
 
     public long getActiveTime() {

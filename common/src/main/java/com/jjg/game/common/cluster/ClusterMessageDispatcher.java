@@ -1,8 +1,9 @@
 package com.jjg.game.common.cluster;
 
 import com.jjg.game.common.concurrent.BaseHandler;
-import com.jjg.game.common.concurrent.BaseProcessor;
+import com.jjg.game.common.concurrent.PlayerExecutorGroup;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.data.MessageStat;
 import com.jjg.game.common.listener.SessionReferenceBinder;
 import com.jjg.game.common.net.Connect;
@@ -32,8 +33,7 @@ public class ClusterMessageDispatcher {
     private Map<Integer, MessageController> messageControllers;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Map<String, SessionReferenceBinder> sessionRefenerceBinderMap;
-    private final ClusterProcessorExecutors processorExecutors = ClusterProcessorExecutors.getInstance();
-
+    private final PlayerExecutorGroup playerExecutorGroup = new PlayerExecutorGroup(1000, NodeType.HALL.name());
     private final ConcurrentHashMap<Integer, MessageStat> messageStats = new ConcurrentHashMap<>();
 
     public ClusterMessageDispatcher(ClusterSystem clusterSystem) {
@@ -90,13 +90,13 @@ public class ClusterMessageDispatcher {
         }
         PFMessage msg = clusterMessage.getMsg();
         try {
-            BaseProcessor processor = processorExecutors.getProcessorById(
-                session == null ? 0 : session.getWorkId());
-            if (processor == null) {
-                handle(connect, session, msg);
+            if (session == null) {
+                playerExecutorGroup.executeAny(() -> {
+                    handle(connect, null, msg);
+                });
             } else {
                 PFSession finalSession = session;
-                processor.executeHandler(new BaseHandler<>() {
+                playerExecutorGroup.submitHandler(session, new BaseHandler<>() {
                     @Override
                     public void action() {
                         handle(connect, finalSession, msg);
@@ -135,8 +135,8 @@ public class ClusterMessageDispatcher {
                         }
                     }
                     log.warn("找不到处理函数,bean={},messageType={},cmd={},hexCmd = {}", messageController.been,
-                        "0x" + Integer.toHexString(messageType).toUpperCase(), command,
-                        "0x" + Integer.toHexString(command).toUpperCase());
+                            "0x" + Integer.toHexString(messageType).toUpperCase(), command,
+                            "0x" + Integer.toHexString(command).toUpperCase());
                     return;
                 }
                 // 调用消息具体实现方法
@@ -147,7 +147,7 @@ public class ClusterMessageDispatcher {
         } catch (Exception e) {
             log.warn("消息解析错误,messageType={},cmd={},hex = 0x{}", messageType, command, Integer.toHexString(command), e);
         } finally {
-            recordMessageStat(command, System.currentTimeMillis() - startTime);
+//            recordMessageStat(command, System.currentTimeMillis() - startTime);
             MDC.remove("playerId");
         }
     }
@@ -156,11 +156,11 @@ public class ClusterMessageDispatcher {
      * 处理分组消息
      */
     protected boolean handGropMessage(Connect<ClusterMessage> connect, PFSession session, PFMessage msg,
-                                      MessageController messageController) throws Exception{
+                                      MessageController messageController) throws Exception {
         Map<Integer, MethodInfo> methodInfos = messageController.MethodInfos;
         Set<MethodInfo> groupMsgDispatcher =
-            methodInfos.values().stream().filter(val -> val.getCommandAnno().isGroupMsgDispatcher())
-                .collect(Collectors.toSet());
+                methodInfos.values().stream().filter(val -> val.getCommandAnno().isGroupMsgDispatcher())
+                        .collect(Collectors.toSet());
         if (groupMsgDispatcher.isEmpty()) {
             return false;
         }
@@ -173,7 +173,7 @@ public class ClusterMessageDispatcher {
      * 调用消息实现方法
      */
     private void invokeMessage(Connect<ClusterMessage> connect, PFSession session, PFMessage msg,
-                               MessageController messageController, MethodInfo methodInfo) throws Exception{
+                               MessageController messageController, MethodInfo methodInfo) throws Exception {
 
         Object bean = messageController.been;
         if (methodInfo.parms != null && methodInfo.parms.length > 0) {
@@ -198,7 +198,7 @@ public class ClusterMessageDispatcher {
                     if (msg.data != null && msg.data.length > 0) {
                         //System.out.println(Arrays.toString(msg.data));
                         args[i] = ProtostuffUtil.deserialize(msg.data, clazz);
-                    }else {
+                    } else {
                         Constructor<?> constructor = clazz.getConstructor();
                         args[i] = constructor.newInstance();
                     }
