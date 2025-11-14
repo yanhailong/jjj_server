@@ -54,7 +54,7 @@ public class PlayerWorker {
                 } catch (Throwable t) {
                     log.error("PlayerWorker task error on msgId {} ", event.getMsgId(), t);
                 } finally {
-                    long cost = System.nanoTime() - start;
+                    long cost = (System.nanoTime() - start) / 1_000_000;
                     if (cost > 100) {
                         log.error("PlayerWorker task error on msgId {} cost {} ", event.getMsgId(), cost);
                     }
