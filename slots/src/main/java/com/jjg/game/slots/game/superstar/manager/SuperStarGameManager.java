@@ -165,7 +165,7 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
             }
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.playerId(),gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerGameData.playerId(),gameRunInfo.getAllWinGold(),betValue);
 
             //添加大奖展示id
             int times = (int) (gameRunInfo.getAllWinGold() / betValue);
@@ -174,10 +174,10 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
+            playerController.setPlayer(player);
+
             gameRunInfo.setAfterGold(player.getGold());
-            if (playerController != null) {
-                playerController.setPlayer(player);
-            }
+
             return gameRunInfo;
         } catch (Exception e) {
             log.error("", e);

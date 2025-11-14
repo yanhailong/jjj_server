@@ -625,7 +625,7 @@ public class HallMessageHandler implements GmListener {
                 log.debug("参数错误，领取邮件内的道具失败 playerId = {},id = {}", playerController.playerId(), req.id);
                 return;
             }
-            CommonResult<Integer> result = mailService.getMailItems(playerController.playerId(), req.id, "playerGetMailItems");
+            CommonResult<Integer> result = mailService.getMailItems(playerController.playerId(), req.id, AddType.GET_MAIL_ITEMS);
             if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);

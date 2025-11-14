@@ -113,10 +113,9 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
             gameRunInfo.setAuto(auto);
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
+            playerController.setPlayer(player);
+
             gameRunInfo.setBeforeGold(player.getGold());
-            if (playerController != null) {
-                playerController.setPlayer(player);
-            }
 
             gameRunInfo = normal(gameRunInfo, playerGameData, betValue);
 
@@ -141,14 +140,13 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.playerId(),gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerController.playerId(), gameRunInfo.getAllWinGold(),betValue);
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
+            playerController.setPlayer(player);
+
             gameRunInfo.setAfterGold(player.getGold());
-            if (playerController != null) {
-                playerController.setPlayer(player);
-            }
 
             //添加大奖展示id
             int times = (int) (gameRunInfo.getAllWinGold() / betValue);

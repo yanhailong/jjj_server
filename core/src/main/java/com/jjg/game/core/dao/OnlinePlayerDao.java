@@ -28,12 +28,6 @@ public class OnlinePlayerDao extends MongoBaseDao<OnlinePlayer, Long> {
         mongoTemplate.save(onlinePlayer);
     }
 
-    public void online(long playerId) {
-        OnlinePlayer onlinePlayer = new OnlinePlayer();
-        onlinePlayer.setPlayerId(playerId);
-        mongoTemplate.save(onlinePlayer);
-    }
-
     public void changeGameType(long playerId, int gameType) {
         Query query = new Query(Criteria.where("playerId").is(playerId));
         Update update = new Update().set("gameType", gameType);

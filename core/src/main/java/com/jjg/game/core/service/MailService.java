@@ -83,25 +83,25 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
      * @param mailId
      * @return
      */
-    public CommonResult<Integer> getMailItems(long playerId, long mailId, String desc) {
+    public CommonResult<Integer> getMailItems(long playerId, long mailId, AddType addType) {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
         try {
             Mail mail = getMail(playerId, mailId);
             if (mail == null) {
                 result.code = Code.NOT_FOUND;
-                log.debug("未找到玩家有邮件，获取道具失败 playerId = {},mailId = {},desc = {}", playerId, mailId, desc);
+                log.debug("未找到玩家有邮件，获取道具失败 playerId = {},mailId = {},addType = {}", playerId, mailId, addType);
                 return result;
             }
 
             if (mail.getStatus() == GameConstant.Mail.STATUS_GET_ITEMS) {
                 result.code = Code.NOT_FOUND;
-                log.debug("该道具已被领取，获取道具失败 playerId = {},mailId = {},desc = {}", playerId, mailId, desc);
+                log.debug("该道具已被领取，获取道具失败 playerId = {},mailId = {},addType = {}", playerId, mailId, addType);
                 return result;
             }
 
             if (mail.getItems() == null || mail.getItems().isEmpty()) {
                 result.code = Code.NOT_FOUND;
-                log.debug("该邮件内没有道具，获取道具失败 playerId = {},mailId = {},desc = {}", playerId, mailId, desc);
+                log.debug("该邮件内没有道具，获取道具失败 playerId = {},mailId = {},addType = {}", playerId, mailId, addType);
                 return result;
             }
 
@@ -110,7 +110,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
                 int id = mailItem.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(id);
                 if (itemCfg == null) {
-                    log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {},desc = {}", playerId, id, desc);
+                    log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {},desc = {}", playerId, id, addType);
                 } else {
                     map.merge(id, mailItem.getItemCount(), Long::sum);
                 }
@@ -118,7 +118,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
 
             if (!map.isEmpty()) {
                 mailDao.getMailItems(playerId, mailId);
-                playerPackService.addItems(playerId, map, AddType.GET_MAIL_ITEMS);
+                playerPackService.addItems(playerId, map, addType, String.valueOf(mailId));
             }
             //邮件变化时通知客户端刷新小红点
             redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, -1);
@@ -136,7 +136,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
      * @param mailId
      */
     public void removeMail(long playerId, long mailId) {
-        getMailItems(playerId, mailId, "removeGetMailItems");
+        getMailItems(playerId, mailId, AddType.REMOVE_MAIL);
         mailDao.removeMail(playerId, mailId);
     }
 

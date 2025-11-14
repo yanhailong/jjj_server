@@ -111,10 +111,9 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
 
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
+            playerController.setPlayer(player);
+
             gameRunInfo.setBeforeGold(player.getGold());
-            if (playerController != null) {
-                playerController.setPlayer(player);
-            }
 
             //获取当前处于哪种状态
             int status = playerGameData.getStatus();
@@ -160,10 +159,9 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
+            playerController.setPlayer(player);
+
             gameRunInfo.setAfterGold(player.getGold());
-            if (playerController != null) {
-                playerController.setPlayer(player);
-            }
 
             //添加大奖展示id
             int times = (int) (gameRunInfo.getAllWinGold() / betValue);
