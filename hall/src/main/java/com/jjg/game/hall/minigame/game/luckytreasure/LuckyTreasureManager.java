@@ -28,6 +28,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
 import org.redisson.api.RLock;
+import org.redisson.api.RMapCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -175,18 +176,20 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * 初始化机器人购买定时器
      */
     public void initRobotTimer() {
-        List<LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
-        if (activeTreasures != null && !activeTreasures.isEmpty()) {
-            activeTreasures.forEach(activeTreasure -> {
-                TimerEvent<LuckyTreasureTimerEvent> event = activityBuyTimers.get(activeTreasure.getIssueNumber());
-                if (event == null) {
-                    if (checkRobotBuy(activeTreasure)) {
-                        //添加机器人购买定时器
-                        addRobotBuyTimer(activeTreasure);
-                    }
-                }
-            });
+        RMapCache<Long,LuckyTreasure> map = luckyTreasureRedisDao.getActiveTreasures();
+        if(map == null || map.isEmpty()){
+            return;
         }
+
+        map.forEach((k,v) -> {
+            TimerEvent<LuckyTreasureTimerEvent> event = activityBuyTimers.get(v.getIssueNumber());
+            if (event == null) {
+                if (checkRobotBuy(v)) {
+                    //添加机器人购买定时器
+                    addRobotBuyTimer(v);
+                }
+            }
+        });
     }
 
     /**

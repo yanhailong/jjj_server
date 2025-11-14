@@ -36,7 +36,7 @@ public interface LuckyTreasureConstant {
         /**
          * 活跃活动状态key前缀
          */
-        String LUCKY_TREASURE_ACTIVE = "luckyTreasure:active:";
+        String LUCKY_TREASURE_ACTIVE = "luckyTreasure:active";
 
         /**
          * 每日期号计数器key前缀
@@ -46,7 +46,7 @@ public interface LuckyTreasureConstant {
         /**
          * 期号映射key前缀
          */
-        String LUCKY_TREASURE_ROUND_DATA_ISSUE = "luckyTreasure:issue:";
+        String LUCKY_TREASURE_ROUND_DATA_ISSUE = "luckyTreasure:issue";
     }
 
     /**

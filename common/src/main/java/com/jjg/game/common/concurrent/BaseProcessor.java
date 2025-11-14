@@ -81,31 +81,6 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
         this(name, 1, 1, 0L, false);
     }
 
-    public BaseProcessor(String name, BlockingQueue<Runnable> blockingQueue) {
-        this(name, 1, 1, 0L, false, blockingQueue);
-    }
-
-    /**
-     * 固定大小线程池
-     *
-     * @param name        线程池名
-     * @param threadCount 线程属相
-     */
-    public BaseProcessor(String name, int threadCount) {
-        this(name, threadCount, threadCount, 0L, false);
-    }
-
-    /**
-     * 线程池
-     *
-     * @param name         线程池名
-     * @param corePoolSize 核心数量
-     * @param maxPoolSize  最大数量
-     */
-    public BaseProcessor(String name, int corePoolSize, int maxPoolSize) {
-        this(name, corePoolSize, maxPoolSize, 0L, false);
-    }
-
     /**
      * 线程池
      *

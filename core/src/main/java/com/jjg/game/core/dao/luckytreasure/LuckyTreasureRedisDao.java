@@ -3,16 +3,14 @@ package com.jjg.game.core.dao.luckytreasure;
 import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.data.LuckyTreasure;
 import com.jjg.game.core.data.LuckyTreasureBuyRecord;
-import org.redisson.api.RAtomicLong;
-import org.redisson.api.RBucket;
-import org.redisson.api.RKeys;
-import org.redisson.api.RedissonClient;
-import org.redisson.api.options.KeysScanOptions;
+import org.redisson.api.*;
+import org.redisson.api.options.KeysScanParams;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -32,41 +30,40 @@ public class LuckyTreasureRedisDao {
      * 检查指定配置ID是否已有活跃的活动
      */
     public boolean hasActiveRound(int configId) {
-        String configMappingKey = buildConfigMappingKey(configId);
-        RBucket<Long> bucket = redissonClient.getBucket(configMappingKey);
-        return bucket.isExists();
+        return getActiveConfigMap().containsKey(configId);
+    }
+
+    public RMapCache<Long,LuckyTreasure> getActiveTreasures() {
+        return redissonClient.getMapCache(LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_ROUND_DATA_ISSUE);
+    }
+
+    public RMapCache<Integer,Long> getActiveConfigMap() {
+        return redissonClient.getMapCache(LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_ACTIVE);
     }
 
     /**
      * 保存活跃活动到Redis
      */
     public void saveActiveRound(LuckyTreasure luckyTreasure, int expireMinutes) {
-        // 直接按期号存储活动数据，实现一次查询
-        String issueKey = buildIssueMappingKey(luckyTreasure.getIssueNumber());
-        RBucket<LuckyTreasure> issueBucket = redissonClient.getBucket(issueKey);
-        issueBucket.set(luckyTreasure);
-        issueBucket.expire(Duration.ofMinutes(expireMinutes));
+        RMapCache<Long, LuckyTreasure> cacheMap = getActiveTreasures();
+        //保存并且设置过期
+        cacheMap.put(luckyTreasure.getIssueNumber(),luckyTreasure,expireMinutes, TimeUnit.MINUTES);
 
         // 同时维护configId到期号的映射，用于按配置ID查询
-        String configMappingKey = buildConfigMappingKey(luckyTreasure.getConfig().getId());
-        RBucket<Long> configBucket = redissonClient.getBucket(configMappingKey);
-        configBucket.set(luckyTreasure.getIssueNumber());
-        configBucket.expire(Duration.ofMinutes(expireMinutes));
-    }
+        RMapCache<Integer,Long> configMap = getActiveConfigMap();
+        configMap.put(luckyTreasure.getConfig().getId(),luckyTreasure.getIssueNumber(),expireMinutes, TimeUnit.MINUTES);
 
-    /**
-     * 获取活跃活动（通过配置ID）
-     */
-    public LuckyTreasure getActiveRound(int configId) {
-        String configMappingKey = buildConfigMappingKey(configId);
-        RBucket<Long> configBucket = redissonClient.getBucket(configMappingKey);
-        Long issueNumber = configBucket.get();
-
-        if (issueNumber != null) {
-            return getTreasureByIssueNumber(issueNumber);
-        }
-
-        return null;
+        // 直接按期号存储活动数据，实现一次查询
+//        String issueKey = buildIssueMappingKey(luckyTreasure.getIssueNumber());
+//        RBucket<LuckyTreasure> issueBucket = redissonClient.getBucket(issueKey);
+//        issueBucket.set(luckyTreasure);
+//        issueBucket.expire(Duration.ofMinutes(expireMinutes));
+//
+//        // 同时维护configId到期号的映射，用于按配置ID查询
+//        String configMappingKey = buildConfigMappingKey(luckyTreasure.getConfig().getId());
+//        RBucket<Long> configBucket = redissonClient.getBucket(configMappingKey);
+//        configBucket.set(luckyTreasure.getIssueNumber());
+//        configBucket.expire(Duration.ofMinutes(expireMinutes));
     }
 
     /**
@@ -88,17 +85,14 @@ public class LuckyTreasureRedisDao {
      * 删除活跃活动状态（通过期号）
      */
     public void removeActiveRoundByIssueNumber(long issueNumber) {
-        String issueKey = buildIssueMappingKey(issueNumber);
-        RBucket<LuckyTreasure> issueBucket = redissonClient.getBucket(issueKey);
-        LuckyTreasure treasure = issueBucket.get();
+        RMapCache<Long, LuckyTreasure> activeTreasuresMap = getActiveTreasures();
+        LuckyTreasure treasure = activeTreasuresMap.get(issueNumber);
 
         if (treasure != null) {
             // 删除期号Key
-            issueBucket.delete();
+            activeTreasuresMap.remove(issueNumber);
             // 删除配置映射
-            String configMappingKey = buildConfigMappingKey(treasure.getConfig().getId());
-            RBucket<Long> configBucket = redissonClient.getBucket(configMappingKey);
-            configBucket.delete();
+            getActiveConfigMap().remove(treasure.getConfig().getId());
         }
     }
 
@@ -107,8 +101,8 @@ public class LuckyTreasureRedisDao {
      */
     public long generateIssueNumber(int configId, String today) {
         String key = buildDailyCounterKey(configId, today);
-        RAtomicLong counter = redissonClient.getAtomicLong(key);
 
+        RAtomicLong counter = redissonClient.getAtomicLong(key);
         // 使用原子操作递增
         long result = counter.incrementAndGet();
         if (result == 1) {
@@ -120,40 +114,14 @@ public class LuckyTreasureRedisDao {
     }
 
     /**
-     * 获取所有活跃活动的键
-     */
-    public List<String> getAllActiveRoundKeys() {
-        String pattern = LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_ROUND_DATA_ISSUE + "*";
-        RKeys keys = redissonClient.getKeys();
-        Iterable<String> keyIterable = keys.getKeys(KeysScanOptions.defaults().pattern(pattern));
-        List<String> keyList = new ArrayList<>();
-        for (String key : keyIterable) {
-            keyList.add(key);
-        }
-        return keyList;
-    }
-
-    /**
-     * 获取所有活跃的夺宝奇兵活动
-     */
-    public List<LuckyTreasure> getActiveTreasures() {
-        List<String> keys = getAllActiveRoundKeys();
-        return keys.stream()
-                .map(key -> {
-                    RBucket<LuckyTreasure> bucket = redissonClient.getBucket(key);
-                    return bucket.get();
-                })
-                .collect(Collectors.toList());
-    }
-
-    /**
      * 根据期号获取夺宝奇兵活动（一次查询）
      */
     public LuckyTreasure getTreasureByIssueNumber(long issueNumber) {
         // 直接按期号获取活动数据，只需要一次Redis查询
-        String issueKey = buildIssueMappingKey(issueNumber);
-        RBucket<LuckyTreasure> bucket = redissonClient.getBucket(issueKey);
-        return bucket.get();
+//        String issueKey = buildIssueMappingKey(issueNumber);
+//        RBucket<LuckyTreasure> bucket = redissonClient.getBucket(issueKey);
+//        return bucket.get();
+        return getActiveTreasures().get(issueNumber);
     }
 
     /**
@@ -190,17 +158,4 @@ public class LuckyTreasureRedisDao {
         return LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_DAILY_COUNTER + configId + ":" + date;
     }
 
-    /**
-     * 构建期号映射Redis Key
-     */
-    private String buildIssueMappingKey(long issueNumber) {
-        return LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_ROUND_DATA_ISSUE + issueNumber;
-    }
-
-    /**
-     * 构建配置映射Redis Key
-     */
-    private String buildConfigMappingKey(int configId) {
-        return LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_ACTIVE + configId;
-    }
 }
