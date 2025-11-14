@@ -103,7 +103,7 @@ public class RedDotDetails {
          * 公告
          */
         @ProtoDesc("vip功能")
-        VIP(8, RedDotType.COUNT, false);
+        VIP(8, RedDotType.COMMON, false);
 
         private final int type;
         private final RedDotType redDotType;

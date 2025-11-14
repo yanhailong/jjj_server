@@ -13,6 +13,7 @@ import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
@@ -48,18 +49,20 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
     private final CorePlayerService playerService;
     private final CoreLogger coreLogger;
     private final CountDao countDao;
+    private final RedDotManager redDotManager;
 
     public VipManager(VipService vipService,
                       PlayerPackService playerPackService,
                       AccountDao accountDao,
                       CorePlayerService playerService,
-                      CoreLogger coreLogger, CountDao countDao) {
+                      CoreLogger coreLogger, CountDao countDao, RedDotManager redDotManager) {
         this.vipService = vipService;
         this.playerPackService = playerPackService;
         this.accountDao = accountDao;
         this.playerService = playerService;
         this.coreLogger = coreLogger;
         this.countDao = countDao;
+        this.redDotManager = redDotManager;
     }
 
     @Override
@@ -204,6 +207,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                 res.items.add(info);
             }
             res.claimLvList = new ArrayList<>(vip.getLvGiftGetTime().keySet());
+            redDotManager.updateRedDotByInitialize(getModule(),getSubmodule(),playerId);
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             log.error("请求领取VIP信息异常 playerId:{}", playerController.playerId(), e);
