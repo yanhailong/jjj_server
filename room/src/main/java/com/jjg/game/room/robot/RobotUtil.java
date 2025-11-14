@@ -56,7 +56,7 @@ public class RobotUtil {
      * @param delayTime      延迟时间
      */
     public static void schedule(AbstractRoomController<?, ?> roomController, BaseHandler<?> processor, int delayTime) {
-        WheelTimerUtil.schedule(() -> roomController.getRoomProcessor().executeHandlerImmediately(processor), delayTime, TimeUnit.MILLISECONDS);
+        WheelTimerUtil.schedule(() -> roomController.getRoomProcessor().tryPublish(0, processor), delayTime, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -70,6 +70,6 @@ public class RobotUtil {
                                            long initialDelay,
                                            long period,
                                            TimeUnit unit) {
-        WheelTimerUtil.scheduleAtFixedRate(() -> roomController.getRoomProcessor().executeHandlerImmediately(processor), initialDelay, period, unit);
+        WheelTimerUtil.scheduleAtFixedRate(() -> roomController.getRoomProcessor().tryPublish(0, processor), initialDelay, period, unit);
     }
 }

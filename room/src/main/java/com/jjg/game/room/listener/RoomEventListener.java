@@ -179,8 +179,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             if (player.getRoomId() > 0) {
                 // 设置workId
                 session.setWorkId(player.getRoomId());
-                int code = roomManager.joinRoom(
-                        playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
+                int code = roomManager.joinRoom(playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
                 if (code != Code.SUCCESS) {
                     // 加入失败,需要客户端主动确认当前玩家处于哪个场景中，ReqConfirmPlayerScene
                     playerService.doSave(playerId, p -> {
