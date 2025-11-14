@@ -1,6 +1,7 @@
 package com.jjg.game.table.common.message.req;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.table.common.message.TableRoomMessageConstant;
@@ -12,5 +13,5 @@ import com.jjg.game.table.common.message.TableRoomMessageConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
         cmd = TableRoomMessageConstant.ReqMsgBean.REQ_ONLINE_PLAYER_CHIP_INFO)
 @ProtoDesc("请求在线玩家筹码皮肤id")
-public class ReqOnlinePlayerChipInfo {
+public class ReqOnlinePlayerChipInfo extends AbstractMessage {
 }

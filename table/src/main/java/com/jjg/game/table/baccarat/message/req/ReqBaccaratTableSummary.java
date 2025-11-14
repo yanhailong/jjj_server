@@ -1,6 +1,7 @@
 package com.jjg.game.table.baccarat.message.req;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.table.baccarat.message.BaccaratMessageConstant;
@@ -13,7 +14,7 @@ import com.jjg.game.table.baccarat.message.BaccaratMessageConstant;
     cmd = BaccaratMessageConstant.ReqMsgBean.REQ_BACCARAT_TABLE_SUMMARY
 )
 @ProtoDesc("请求获取百家乐房间摘要信息")
-public class ReqBaccaratTableSummary {
+public class ReqBaccaratTableSummary extends AbstractMessage {
 
     @ProtoDesc("房间ID")
     public long roomId;

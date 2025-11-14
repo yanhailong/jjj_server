@@ -14,7 +14,7 @@ import com.jjg.game.core.constant.ShopConstant;
 @ProtoDesc("商城中物品兑换")
 public class ReqBuyProduct extends AbstractMessage {
     @ProtoDesc("商品id")
-    public int productId;
+    public long productId;
     @ProtoDesc("兑换个数")
     public int count;
 }
