@@ -23,7 +23,6 @@ public class TaskLogger extends BaseLogger {
         JSONObject log = new JSONObject();
         log.put("playerId", playerId);
         log.put("taskConfigId", configId);
-        log.put("time", LocalDateTime.now());
         sendLog("receiveTask", null, log);
     }
 
@@ -34,7 +33,6 @@ public class TaskLogger extends BaseLogger {
         JSONObject log = new JSONObject();
         log.put("playerId", playerId);
         log.put("taskConfigId", configId);
-        log.put("time", LocalDateTime.now());
         sendLog("completeTask", null, log);
     }
 
@@ -45,7 +43,6 @@ public class TaskLogger extends BaseLogger {
         JSONObject log = new JSONObject();
         log.put("playerId", playerId);
         log.put("taskConfigId", configId);
-        log.put("time", LocalDateTime.now());
         if (itemList != null) {
             log.put("item", itemList);
         }

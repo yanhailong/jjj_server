@@ -232,7 +232,7 @@ public class PointsAwardMessageHandler {
     @Command(PointsAwardConstant.Message.REQ_RECEIVE_POINTS_AWARD_LADDER_REWARD)
     public void receiveLadderAward(PlayerController playerController, ReqReceivePointsAwardLadderRewards msg) {
         long points = msg.getPoints();
-        boolean flag = pointsAwardService.receiveLader(points, playerController.playerId());
+        boolean flag = pointsAwardService.receiveLader(points, playerController.playerId(), false);
         ResReceivePointsAwardLadderRewards res = new ResReceivePointsAwardLadderRewards(Code.SUCCESS);
         res.setPoints(points);
         if (!flag) {

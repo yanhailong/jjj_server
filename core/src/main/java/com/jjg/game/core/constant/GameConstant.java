@@ -100,6 +100,9 @@ public class GameConstant {
         public static final int ID_BIND_FACEBOOK = 32;
         public static final int ID_BIND_PHONE = 33;
         public static final int ID_BIND_APPLE = 34;
+
+        //积分大奖进度奖励
+        public static final int ID_POINTS_AWARD = 40;
     }
 
     public class GlobalConfig {

@@ -7,17 +7,13 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
-import com.jjg.game.core.constant.AddType;
-import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.PointsAwardType;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Order;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.constant.*;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.rpc.HallPointsAwardBridge;
+import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
@@ -35,11 +31,13 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -60,6 +58,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     private final PointsAwardLogger pointsAwardLogger;
     private final PlayerPackService playerPackService;
     private final RedDotManager redDotManager;
+    private final MailService mailService;
 
     /**
      * 玩家累计充值金额
@@ -71,7 +70,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                               PointsAwardLeaderboardService leaderboardService,
                               MarsCurator marsCurator,
                               RedisLock redisLock,
-                              PointsAwardLogger pointsAwardLogger, PlayerPackService playerPackService, RedDotManager redDotManager) {
+                              PointsAwardLogger pointsAwardLogger, PlayerPackService playerPackService, RedDotManager redDotManager, MailService mailService) {
         this.redissonClient = redissonClient;
         this.clusterSystem = clusterSystem;
         this.leaderboardService = leaderboardService;
@@ -80,6 +79,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         this.pointsAwardLogger = pointsAwardLogger;
         this.playerPackService = playerPackService;
         this.redDotManager = redDotManager;
+        this.mailService = mailService;
     }
 
     /**
@@ -209,7 +209,9 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             return;
         }
         RAtomicLong counter = redissonClient.getAtomicLong(atomicKey(playerId));
+
         try {
+            //排行榜的积分
             long currentPoints = counter.get();
             updatePointsWithOverflowProtection(counter, currentPoints, pointsAward);
             //通知玩家同步分数
@@ -218,11 +220,56 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             log.error("add 玩家积分更新失败!playerId = [{}],pointsAward = [{}]", playerId, pointsAward, e);
         }
         // 排行榜更新
-        updateLeaderboards(playerId, pointsAward);
+        updateLeaderboards(playerId, counter.get());
         //记录日志
         pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, counter.get());
         //通知红点
         redDotManager.updateRedDotByInitialize(getModule(), List.of(getSubmodule(), PointsAwardConstant.RedDotSubModule.TURNRABLE), playerId);
+
+        //添加时间段积分
+        addTimePoints(playerId, pointsAward);
+    }
+
+    /**
+     * 添加时间段积分
+     *
+     * @param playerId
+     * @param pointsAward
+     */
+    private void addTimePoints(long playerId, int pointsAward) {
+        String lockKey = PointsAwardConstant.RedisKey.POINTS_AWARD_TIME_DATA_POINTS_LOCK + playerId;
+
+        RLock lock = null;
+
+        try {
+            lock = redissonClient.getLock(lockKey);
+
+            boolean locked = lock.tryLock(PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, TimeUnit.MILLISECONDS);
+            if(!locked){
+                throw new RuntimeException("获取时间段积分锁超时，playerId: " + playerId);
+            }
+
+            RMap<Long,TimePoints> playerTimePointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME_DATA_POINTS);
+            TimePoints timePoints = playerTimePointsMap.get(playerId);
+
+            long currentTime = System.currentTimeMillis();
+
+            if (timePoints == null) {
+                timePoints = new TimePoints();
+                timePoints.setPoints(pointsAward);
+            } else {
+                // 累加
+                timePoints.setPoints(timePoints.getPoints() + pointsAward);
+            }
+            timePoints.setTime(currentTime);
+            playerTimePointsMap.put(playerId, timePoints);
+        } catch (Exception e) {
+            log.error("更新玩家时间段积分异常 playerId = {},pointsAward = {}", playerId, pointsAward, e);
+        } finally {
+            if (lock != null) {
+                lock.unlock();
+            }
+        }
     }
 
     /**
@@ -318,6 +365,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                 }
                 long next = curr - pointsAward;
                 if (counter.compareAndSet(curr, next)) {
+                    // 排行榜更新
+                    updateLeaderboards(playerId, counter.get());
                     //通知玩家同步分数
                     noticeSyncPoints(playerId, next);
                     //记录日志
@@ -483,9 +532,26 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     }
 
     /**
+     * 重置时间段积分
+     */
+    public void resetTimePoints(){
+        RMap<Long,TimePoints> playerTimePointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME_DATA_POINTS);
+        //先全部读取，然后删除
+        Map<Long, TimePoints> timePointsMap = playerTimePointsMap.readAllMap();
+        playerTimePointsMap.delete();
+
+        timePointsMap.forEach((playerId,timePoints) -> {
+            receiveLader(timePoints.getPoints(),playerId,true);
+            getLadderReceiveSet(playerId).delete();
+        });
+
+        log.debug("重置时间段积分 map.size = {}",timePointsMap.size());
+    }
+
+    /**
      * 玩家领取积分阶梯奖励
      */
-    public boolean receiveLader(long points, long playerId) {
+    public boolean receiveLader(long points, long playerId,boolean autoRecive) {
         List<PointsAwardLadderRewardsInfo> configInfoList = getLadderConfigInfoList(playerId);
         Map<Long, PointsAwardLadderRewardsInfo> collect = configInfoList.stream()
                 .collect(Collectors.toMap(PointsAwardLadderRewardsInfo::getPoints, Function.identity(), (oldValue, newValue) -> newValue));
@@ -501,8 +567,13 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                 if (rewardReceiveSet.contains(info.getPoints())) {
                     return false;
                 }
-                //奖励道具
-                playerPackService.addItem(playerId, info.getItemId(), info.getItemNum(), AddType.POINTS_AWARD_SIGN_REWARDS);
+                if(autoRecive){
+                    Item item = new Item(info.getItemId(), info.getItemNum());
+                    mailService.addCfgMail(playerId, GameConstant.Mail.ID_POINTS_AWARD, List.of(item));
+                }else {
+                    //奖励道具
+                    playerPackService.addItem(playerId, info.getItemId(), info.getItemNum(), AddType.POINTS_AWARD_SIGN_REWARDS);
+                }
                 rewardReceiveSet.add(info.getPoints());
                 return true;
             }
@@ -563,6 +634,19 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             }
         }
         return List.of(redDotDetails);
+    }
+
+    private boolean shouldRefreshTask(LocalDateTime createTime) {
+        LocalDateTime now = LocalDateTime.now();
+        // 不是同一天，肯定需要刷新
+        if (!createTime.toLocalDate().isEqual(now.toLocalDate())) {
+            return true;
+        }
+        // 同一天的情况下，判断是否跨越了12点
+        int createHour = createTime.getHour();
+        int nowHour = now.getHour();
+        // 创建时间在0-11点（上半天），当前时间在12-23点（下半天）
+        return createHour < TaskConstant.TimeConstants.NOON_HOUR && nowHour >= TaskConstant.TimeConstants.NOON_HOUR;
     }
 
     @Override

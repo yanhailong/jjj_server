@@ -71,6 +71,14 @@ public interface PointsAwardConstant {
          * 玩家积分大奖累计充值金额记录
          */
         String POINTS_AWARD_RECHARGE = "pointsAward:recharge:";
+        /**
+         * 时间段玩家积分
+         */
+        String POINTS_AWARD_TIME_DATA_POINTS = "pointsAward:timeDataPoints:";
+        /**
+         * 时间段玩家积分锁
+         */
+        String POINTS_AWARD_TIME_DATA_POINTS_LOCK = "pointsAwardTimeDataPointsLock:";
     }
 
     /**
