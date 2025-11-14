@@ -3,8 +3,8 @@ package com.jjg.game.room.controller;
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseHandler;
-import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.common.concurrent.PlayerWorker;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
@@ -265,9 +265,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             }
             // 更新tick任务下次触发时间
             tickTaskTimeRecMap.put(entry.getKey(), currentTime + entry.getValue().getTaskInterval());
-            BaseProcessor baseFuncProcessor = roomController.getRoomProcessor();
+            PlayerWorker baseFuncProcessor = roomController.getRoomProcessor();
             // 运行tick任务, 需要在房间线程中排队执行，不能阻塞正常的tick，不然会导致 Do Overtime
-            baseFuncProcessor.executeHandler(new BaseHandler<String>() {
+            baseFuncProcessor.tryPublish(0, new BaseHandler<String>() {
                 @Override
                 public void action() {
                     entry.getValue().run(currentTime);

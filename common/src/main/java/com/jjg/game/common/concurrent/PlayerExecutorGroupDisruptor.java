@@ -23,16 +23,15 @@ public class PlayerExecutorGroupDisruptor {
     private final int bufferSize;
     /** 当 publish 失败时，将任务交给 fallbackExecutor 执行，避免阻塞 Netty I/O 线程 */
     private ExecutorService fallbackExecutor;
-
     /**
      * 构造
-     * @param slotCount 要创建的槽位数（建议为2的幂），如果 <=0 则自动按 cores*4
+     * @param slotCount 要创建的槽位数（建议为2的幂），如果 <=0 则自动按 cores*2
      * @param bufferSize 每个环形缓冲区的大小（必须为2的幂）
      * @param threadNamePrefix 线程名前缀
      */
     public PlayerExecutorGroupDisruptor(int slotCount, int bufferSize, String threadNamePrefix) {
         int cores = Runtime.getRuntime().availableProcessors();
-        int sc = slotCount > 0 ? slotCount : cores * 4;
+        int sc = slotCount > 0 ? slotCount : cores * 2;
         // round up to power of two for fast masking if desired
         this.slotCount = nextPowerOfTwo(sc);
         this.bufferSize = nextPowerOfTwo(bufferSize <= 0 ? 1024 : bufferSize);
@@ -87,6 +86,15 @@ public class PlayerExecutorGroupDisruptor {
         int hash = Hashing.murmur3_32().hashLong(id).asInt();
         return hash & (slotCount - 1); // requires slotCount power-of-two
     }
+
+    public  PlayerWorker getPlayerWorker(long bindId) {
+        int idx = calcSlot(bindId);
+        if(idx >= this.workers.length) {
+            return null;
+        }
+        return this.workers[idx];
+    }
+
     /**
      * 非阻塞尝试发布（fast path）。返回 true 表示已入队（将在对应 slot 单线程执行）；
      * 返回 false 表示 ring 已满，调用者需要走降级逻辑（不会阻塞）
@@ -192,7 +200,7 @@ public class PlayerExecutorGroupDisruptor {
     }
 
     // -------------------- util --------------------
-    private int nextPowerOfTwo(int v) {
+    private  int nextPowerOfTwo(int v) {
         if (v <= 0) return 1;
         int n = v - 1;
         n |= n >>> 1;

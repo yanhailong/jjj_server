@@ -371,4 +371,5 @@ public class TimerEvent<T> implements Runnable {
     public void setInFire(boolean inFire) {
         this.inFire = inFire;
     }
+
 }

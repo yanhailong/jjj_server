@@ -2,11 +2,10 @@ package com.jjg.game.room.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.activity.manager.ActivityManager;
-import com.jjg.game.common.cluster.ClusterProcessorExecutors;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
-import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
@@ -80,8 +79,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected ClusterSystem clusterSystem;
     @Autowired
     protected CorePlayerService playerService;
-    // 通过单例拿取
-    protected ClusterProcessorExecutors processorExecutors = ClusterProcessorExecutors.getInstance();
+    protected PlayerExecutorGroupDisruptor processorExecutors;
     @Autowired
     private MatchDataDao matchDataDao;
     @Autowired
@@ -125,6 +123,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     }
 
     public AbstractRoomManager() {
+        processorExecutors = new PlayerExecutorGroupDisruptor(Runtime.getRuntime().availableProcessors(), 512, "room");
         this.roomTimerCenter = new RoomTimerCenter("room-timer", processorExecutors);
         this.roomTimerCenter.start();
         this.roomManagerTimer = new TimerCenter("room-manager-timer");
@@ -858,7 +857,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         return gameControllerClazz;
     }
 
-    public ClusterProcessorExecutors getProcessorExecutors() {
+    public PlayerExecutorGroupDisruptor getProcessorExecutors() {
         return processorExecutors;
     }
 
@@ -1097,9 +1096,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         for (AbstractRoomController<? extends RoomCfg, ? extends Room> needDestroyRoomController : needDestroyRooms) {
             log.info("开始销毁空房间: {}", needDestroyRoomController.getRoom().logStr());
             // 需要将销毁逻辑切换到原来的房间线程执行
-            BaseProcessor gameProcessor =
-                    processorExecutors.getProcessorById(needDestroyRoomController.getRoom().getId());
-            gameProcessor.executeHandler(new BaseHandler<>() {
+            processorExecutors.tryPublish(needDestroyRoomController.getRoom().getId(), 0, new BaseHandler<>() {
                 @Override
                 public void action() {
                     // 调用房间销毁逻辑

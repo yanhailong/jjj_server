@@ -1,9 +1,8 @@
 package com.jjg.game.room.timer;
 
-import com.jjg.game.common.cluster.ClusterProcessorExecutors;
 import com.jjg.game.common.concurrent.BaseHandler;
-import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.timer.BaseTimerCenter;
 import com.jjg.game.core.data.Room;
 import org.slf4j.Logger;
@@ -21,9 +20,9 @@ public class RoomTimerCenter extends BaseTimerCenter<RoomTimerEvent<IProcessorHa
     /**
      * 当前房间的线程池
      */
-    private final ClusterProcessorExecutors executors;
+    private final PlayerExecutorGroupDisruptor executors;
 
-    public RoomTimerCenter(String timerName, ClusterProcessorExecutors clusterProcessorExecutors) {
+    public RoomTimerCenter(String timerName, PlayerExecutorGroupDisruptor clusterProcessorExecutors) {
         super(timerName);
         this.executors = clusterProcessorExecutors;
     }
@@ -63,10 +62,9 @@ public class RoomTimerCenter extends BaseTimerCenter<RoomTimerEvent<IProcessorHa
                 log.warn("房间退出了，还在执行房间定时任务: {}", event);
                 continue;
             }
-            BaseProcessor baseProcessor = executors.getProcessorById(roomId);
             if (time >= event.getNextTime()) {
                 event.setInFire(true);
-                baseProcessor.executeHandler(new BaseHandler<>() {
+                executors.tryPublish(roomId, 0, new BaseHandler<>() {
                     @Override
                     public void action() {
                         event.run();

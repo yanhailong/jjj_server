@@ -2,8 +2,8 @@ package com.jjg.game.room.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseHandler;
-import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.common.concurrent.PlayerWorker;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.timer.TimerEvent;
@@ -61,8 +61,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     protected RoomTimerCenter timerCenter;
     // 游戏控制器
     protected AbstractGameController<RC, ? extends GameDataVo<RC>> gameController;
-    // 房间线程
-    protected BaseProcessor roomProcessor;
     // 房间配置
     protected RC roomCfg;
     // 机器人上次创建的时间
@@ -402,8 +400,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     @Override
     public <G extends Room> void initial(G room) {
         roomState = ERoomState.INIT_START;
-        // 当前房间的线程实例，用于投递一些异步任务
-        roomProcessor = roomManager.getProcessorExecutors().getProcessorById(room.getId());
         // 游戏事件管理器
         gameEventManager = roomManager.getGameEventManager();
         taskManager = roomManager.getTaskManager();
@@ -458,9 +454,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      * 检查机器人添加逻辑
      */
     protected void checkRobotJoinRoom() {
-        BaseProcessor baseFuncProcessor = getRoomProcessor();
+        PlayerWorker baseFuncProcessor = getRoomProcessor();
         // 必须在房间线程中执行
-        baseFuncProcessor.executeHandler(new BaseHandler<String>() {
+        baseFuncProcessor.tryPublish(0, new BaseHandler<String>() {
             @Override
             public void action() {
                 // 创建人数达到上限
@@ -482,18 +478,13 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 // 机器人创建时间更新
                 robotLastCreatedTime = currentTimeMillis + randomTime;
                 int roomCfgId = roomCfg.getId();
-                long robotCreateStartTime = System.currentTimeMillis();
                 RobotService robotService = roomManager.getRobotService();
                 // 如果房间的
                 if (!robotService.checkCanCreateRobot(roomCfgId, room)) {
                     return;
                 }
                 // 创建一个机器人
-                PlayerController robotPlayerController =
-                        robotService.getOrCreateRobotPlayerController(roomCfgId, room.getId());
-                if (System.currentTimeMillis() - robotCreateStartTime >= 200) {
-                    log.debug("机器人创建超时，花费时间：{}", System.currentTimeMillis() - robotCreateStartTime);
-                }
+                PlayerController robotPlayerController = robotService.getOrCreateRobotPlayerController(roomCfgId, room.getId());
                 if (robotPlayerController == null) {
                     // 返回
                     return;
@@ -695,8 +686,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         return gameController;
     }
 
-    public BaseProcessor getRoomProcessor() {
-        return this.roomProcessor;
+    public PlayerWorker getRoomProcessor() {
+        return roomManager.getProcessorExecutors().getPlayerWorker(room.getId());
     }
 
     public void setGameController(AbstractGameController<RC, ? extends GameDataVo<RC>> gameController) {

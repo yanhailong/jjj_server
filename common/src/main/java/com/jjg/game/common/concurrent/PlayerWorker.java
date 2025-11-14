@@ -52,11 +52,11 @@ public class PlayerWorker {
                 try {
                     task.action();
                 } catch (Throwable t) {
-                    log.error("PlayerWorker task error on msgId {} ", event.getMsgId(), t);
+                    log.error("playerWorker task error on msgId {} ", event.getMsgId(), t);
                 } finally {
                     long cost = (System.nanoTime() - start) / 1_000_000;
                     if (cost > 100) {
-                        log.error("PlayerWorker task error on msgId {} cost {} ", event.getMsgId(), cost);
+                        log.error("playerWorker task execution timeout on param:{} msgId {} cost {} ", task.getHandlerParam(), event.getMsgId(), cost);
                     }
                     processedCount.incrementAndGet();
                     // latency from publish->start
@@ -144,7 +144,7 @@ public class PlayerWorker {
         try {
             disruptor.shutdown(timeoutMs, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
-            log.warn("PlayerWorker shutdown interrupted", e);
+            log.warn("playerWorker shutdown interrupted", e);
         }
     }
 }
