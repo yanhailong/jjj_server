@@ -167,7 +167,7 @@ public class CountDao {
      * @return true 设置成功 false设置失败
      */
     public boolean setIfAbsent(String featureId, String customId) {
-        return redissonClient.getAtomicLong(getKey(featureId, customId)).compareAndSet(0, 1);
+        return redissonClient.getAtomicLong(getKey(featureId, customId)).compareAndSet(0, 100);
     }
 
     /**
