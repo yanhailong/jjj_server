@@ -72,12 +72,16 @@ public class GameDataVo<RC extends RoomCfg> {
      */
     public Map<Long, GamePlayer> getGamePlayerMapExceptRobot() {
         return gamePlayerMap.values().stream()
-            .filter((gamePlayer) -> !(gamePlayer instanceof GameRobotPlayer))
-            .collect(HashMap::new, (map, gamePlayer) -> map.put(gamePlayer.getId(), gamePlayer), HashMap::putAll);
+                .filter((gamePlayer) -> !(gamePlayer instanceof GameRobotPlayer))
+                .collect(HashMap::new, (map, gamePlayer) -> map.put(gamePlayer.getId(), gamePlayer), HashMap::putAll);
     }
 
     public GamePlayer getGamePlayer(long playerId) {
-        return gamePlayerMap.get(playerId);
+        GamePlayer gamePlayer = gamePlayerMap.get(playerId);
+        if (gamePlayer == null) {
+            log.error("getGamePlayer is null playerId:{}", playerId);
+        }
+        return gamePlayer;
     }
 
     public long getPhaseEndTime() {
