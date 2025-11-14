@@ -57,6 +57,11 @@
             <version>3.25.5</version> <!-- 保持当前版本 -->
         </dependency>
 
+        <dependency>
+            <groupId>com.lmax</groupId>
+            <artifactId>disruptor</artifactId>
+            <version>3.4.4</version>
+        </dependency>
 
         <dependency>
             <groupId>cn.hutool</groupId>
