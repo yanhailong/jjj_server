@@ -52,7 +52,6 @@ public class ClusterConnect extends NettyConnect<ClusterMessage> implements Conn
         if (msg.getMsg().cmd == MessageConst.ToClientConst.RES_HEART_BEAT) {
             //log.debug("收到心跳回包消息,ctx={}", ctx);
         } else {
-            long currentTimeMillis = System.currentTimeMillis();
             clusterMessageDispatcher.onClusterReceive(this, msg);
         }
     }

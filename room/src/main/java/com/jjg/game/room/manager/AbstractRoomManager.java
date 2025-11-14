@@ -123,7 +123,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     }
 
     public AbstractRoomManager() {
-        processorExecutors = new PlayerExecutorGroupDisruptor(Runtime.getRuntime().availableProcessors(), 512, "room");
+        processorExecutors = PlayerExecutorGroupDisruptor.getDefaultExecutor();
         this.roomTimerCenter = new RoomTimerCenter("room-timer", processorExecutors);
         this.roomTimerCenter.start();
         this.roomManagerTimer = new TimerCenter("room-manager-timer");
