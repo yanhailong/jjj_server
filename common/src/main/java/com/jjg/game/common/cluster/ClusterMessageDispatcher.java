@@ -1,7 +1,7 @@
 package com.jjg.game.common.cluster;
 
 import com.jjg.game.common.concurrent.BaseHandler;
-import com.jjg.game.common.concurrent.BaseProcessor;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.data.MessageStat;
 import com.jjg.game.common.listener.SessionReferenceBinder;
@@ -14,6 +14,7 @@ import org.slf4j.MDC;
 import org.springframework.context.ApplicationContext;
 
 import java.lang.reflect.Constructor;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,8 +33,7 @@ public class ClusterMessageDispatcher {
     private Map<Integer, MessageController> messageControllers;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Map<String, SessionReferenceBinder> sessionRefenerceBinderMap;
-    private final ClusterProcessorExecutors processorExecutors = ClusterProcessorExecutors.getInstance();
-
+    private PlayerExecutorGroupDisruptor executorGroup;
     private final ConcurrentHashMap<Integer, MessageStat> messageStats = new ConcurrentHashMap<>();
 
     public ClusterMessageDispatcher(ClusterSystem clusterSystem) {
@@ -46,8 +46,8 @@ public class ClusterMessageDispatcher {
      * @param context
      */
     public void init(ApplicationContext context, Set<Integer> noStartGameMsgTypeSet) {
+        executorGroup = PlayerExecutorGroupDisruptor.getDefaultExecutor();
         this.sessionRefenerceBinderMap = context.getBeansOfType(SessionReferenceBinder.class);
-
         messageControllers = MessageUtil.load(context, noStartGameMsgTypeSet);
         MessageUtil.loadResponseMessage(noStartGameMsgTypeSet, CoreConst.Common.BASE_PROJECT_PACKAGE_PATH);
         messageControllers.forEach((key, value) -> log.info("消息处理器[{}]->{}", key, value.been.getClass().getName()));
@@ -90,18 +90,19 @@ public class ClusterMessageDispatcher {
         }
         PFMessage msg = clusterMessage.getMsg();
         try {
-            BaseProcessor processor = processorExecutors.getProcessorById(
-                session == null ? 0 : session.getWorkId());
-            if (processor == null) {
-                handle(connect, session, msg);
-            } else {
-                PFSession finalSession = session;
-                processor.executeHandler(new BaseHandler<>() {
-                    @Override
-                    public void action() {
-                        handle(connect, finalSession, msg);
-                    }
-                }.setHandlerParamWithSelf("handle message:" + msg.cmd));
+            PFSession finalSession = session;
+            long bindId = 0;
+            if (session != null) {
+                bindId = session.getWorkId();
+            }
+            boolean tryPublish = executorGroup.tryPublish(bindId, msg.cmd, new BaseHandler<>() {
+                @Override
+                public void action() {
+                    handle(connect, finalSession, msg);
+                }
+            });
+            if (!tryPublish) {
+                log.error("消息消费失败 msgId:{} data:{} session:{}", msg, Arrays.toString(msg.data), sessionId);
             }
         } catch (Exception e) {
             log.warn("节点消息分发异常!", e);
@@ -135,8 +136,8 @@ public class ClusterMessageDispatcher {
                         }
                     }
                     log.warn("找不到处理函数,bean={},messageType={},cmd={},hexCmd = {}", messageController.been,
-                        "0x" + Integer.toHexString(messageType).toUpperCase(), command,
-                        "0x" + Integer.toHexString(command).toUpperCase());
+                            "0x" + Integer.toHexString(messageType).toUpperCase(), command,
+                            "0x" + Integer.toHexString(command).toUpperCase());
                     return;
                 }
                 // 调用消息具体实现方法
@@ -147,7 +148,7 @@ public class ClusterMessageDispatcher {
         } catch (Exception e) {
             log.warn("消息解析错误,messageType={},cmd={},hex = 0x{}", messageType, command, Integer.toHexString(command), e);
         } finally {
-            recordMessageStat(command, System.currentTimeMillis() - startTime);
+//            recordMessageStat(command, System.currentTimeMillis() - startTime);
             MDC.remove("playerId");
         }
     }
@@ -156,11 +157,11 @@ public class ClusterMessageDispatcher {
      * 处理分组消息
      */
     protected boolean handGropMessage(Connect<ClusterMessage> connect, PFSession session, PFMessage msg,
-                                      MessageController messageController) throws Exception{
+                                      MessageController messageController) throws Exception {
         Map<Integer, MethodInfo> methodInfos = messageController.MethodInfos;
         Set<MethodInfo> groupMsgDispatcher =
-            methodInfos.values().stream().filter(val -> val.getCommandAnno().isGroupMsgDispatcher())
-                .collect(Collectors.toSet());
+                methodInfos.values().stream().filter(val -> val.getCommandAnno().isGroupMsgDispatcher())
+                        .collect(Collectors.toSet());
         if (groupMsgDispatcher.isEmpty()) {
             return false;
         }
@@ -173,7 +174,7 @@ public class ClusterMessageDispatcher {
      * 调用消息实现方法
      */
     private void invokeMessage(Connect<ClusterMessage> connect, PFSession session, PFMessage msg,
-                               MessageController messageController, MethodInfo methodInfo) throws Exception{
+                               MessageController messageController, MethodInfo methodInfo) throws Exception {
 
         Object bean = messageController.been;
         if (methodInfo.parms != null && methodInfo.parms.length > 0) {
@@ -198,7 +199,7 @@ public class ClusterMessageDispatcher {
                     if (msg.data != null && msg.data.length > 0) {
                         //System.out.println(Arrays.toString(msg.data));
                         args[i] = ProtostuffUtil.deserialize(msg.data, clazz);
-                    }else {
+                    } else {
                         Constructor<?> constructor = clazz.getConstructor();
                         args[i] = constructor.newInstance();
                     }

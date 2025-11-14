@@ -111,8 +111,7 @@ public class RobotDao {
      */
     public long getAvailableNum() {
         RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(getRobotIdListTableName());
-        Collection<Long> available = scoredSortedSet.valueRange(0, false, Double.MAX_VALUE, true);
-        return available == null ? 0 : available.size();
+        return scoredSortedSet.count(0, false, Double.MAX_VALUE, true);
     }
 
     /**

@@ -5,10 +5,9 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterConnect;
 import com.jjg.game.common.cluster.ClusterMessage;
-import com.jjg.game.common.cluster.ClusterProcessorExecutors;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
-import com.jjg.game.common.concurrent.BaseProcessor;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.rpc.msg.ReqRpcServiceData;
 import com.jjg.game.common.rpc.msg.RespRpcServiceData;
 import org.slf4j.Logger;
@@ -41,8 +40,6 @@ public class RpcServerService {
     private ClusterRpcService clusterRpcService;
     @Autowired
     private RpcClientService rpcClientService;
-    // Executors
-    private final ClusterProcessorExecutors processorExecutors = ClusterProcessorExecutors.getInstance();
     // spel
     private final ExpressionParser parser = new SpelExpressionParser();
 
@@ -69,8 +66,8 @@ public class RpcServerService {
         }
         // 基础类名
         Map<String, Class<?>> basicName =
-            BasicType.PRIMITIVE_WRAPPER_MAP.keySet().stream()
-                .collect(HashMap::new, (map, e) -> map.put(e.getName(), e), HashMap::putAll);
+                BasicType.PRIMITIVE_WRAPPER_MAP.keySet().stream()
+                        .collect(HashMap::new, (map, e) -> map.put(e.getName(), e), HashMap::putAll);
         List<Object> parameterNameOfData = JSON.parseArray(req.parameterTypeWithData);
         Class<?>[] parameterTypes = new Class[parameterNameOfData.size()];
         // 数据
@@ -104,17 +101,17 @@ public class RpcServerService {
             Number processorId = Long.MIN_VALUE;
             if (rpcCallSettingAnno != null) {
                 processorId =
-                    parser.parseExpression(rpcCallSettingAnno.processorModKey()).getValue(context, Number.class);
+                        parser.parseExpression(rpcCallSettingAnno.processorModKey()).getValue(context, Number.class);
             }
             // 如果需要服务端使用指定的线程执行方法
             if (processorId != null && processorId.longValue() > 0) {
-                BaseProcessor processor = processorExecutors.getProcessorById(processorId.longValue());
-                processor.executeHandler(new BaseHandler<>() {
-                    @Override
-                    public void action() throws Exception {
-                        invokeMethod(method, provider, args, resp, clusterConnect);
-                    }
-                });
+                PlayerExecutorGroupDisruptor.getDefaultExecutor()
+                        .tryPublish(processorId.longValue(), processorId.intValue(), new BaseHandler<>() {
+                            @Override
+                            public void action() throws Exception {
+                                invokeMethod(method, provider, args, resp, clusterConnect);
+                            }
+                        });
             } else {
                 invokeMethod(method, provider, args, resp, clusterConnect);
             }
@@ -131,8 +128,8 @@ public class RpcServerService {
      * 调用方法
      */
     private void invokeMethod(
-        Method method, Object provider, Object[] args, RespRpcServiceData resp, ClusterConnect clusterConnect)
-        throws InvocationTargetException, IllegalAccessException {
+            Method method, Object provider, Object[] args, RespRpcServiceData resp, ClusterConnect clusterConnect)
+            throws InvocationTargetException, IllegalAccessException {
         method.setAccessible(true);
         // 调用provider中的方法
         Object o = method.invoke(provider, args);
@@ -152,7 +149,7 @@ public class RpcServerService {
             return;
         }
         CompletableFuture<RespRpcServiceData> completableFuture =
-            rpcClientService.completeCompletableFuture(res.requestId);
+                rpcClientService.completeCompletableFuture(res.requestId);
         // 按道理不应为空
         if (completableFuture == null) {
             log.debug("节点：{} 找不到对应rpc：{} 的Future", clusterSystem.getNodePath(), res.requestId);

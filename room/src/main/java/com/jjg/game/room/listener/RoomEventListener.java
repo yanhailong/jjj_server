@@ -2,6 +2,7 @@ package com.jjg.game.room.listener;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
@@ -179,19 +180,25 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             if (player.getRoomId() > 0) {
                 // 设置workId
                 session.setWorkId(player.getRoomId());
-                int code = roomManager.joinRoom(
-                        playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
-                if (code != Code.SUCCESS) {
-                    // 加入失败,需要客户端主动确认当前玩家处于哪个场景中，ReqConfirmPlayerScene
-                    playerService.doSave(playerId, p -> {
-                        p.setGameType(0);
-                        p.setRoomCfgId(0);
-                        p.setRoomId(0);
-                    });
-                    // 将玩家切回到大厅, 此处不发消息是因为客户端在进入时可能还未初始化完成，收不到消息不能做处理
-                    // 但是会请求玩家当前的场景位置，如果玩家在大厅会直接切回到大厅，如果在房间则正常进入房间
-                    clusterSystem.switchNode(playerController.getSession(), NodeType.HALL);
-                }
+                PlayerSessionInfo finalInfo = info;
+                //刚进来的时候没有workId，会导致线程问题
+                roomManager.getProcessorExecutors().tryPublish(player.getRoomId(), 0, new BaseHandler<String>() {
+                    @Override
+                    public void action() {
+                        int code = roomManager.joinRoom(playerController, finalInfo.getGameType(), finalInfo.getRoomCfgId(), player.getRoomId());
+                        if (code != Code.SUCCESS) {
+                            // 加入失败,需要客户端主动确认当前玩家处于哪个场景中，ReqConfirmPlayerScene
+                            playerService.doSave(playerId, p -> {
+                                p.setGameType(0);
+                                p.setRoomCfgId(0);
+                                p.setRoomId(0);
+                            });
+                            // 将玩家切回到大厅, 此处不发消息是因为客户端在进入时可能还未初始化完成，收不到消息不能做处理
+                            // 但是会请求玩家当前的场景位置，如果玩家在大厅会直接切回到大厅，如果在房间则正常进入房间
+                            clusterSystem.switchNode(playerController.getSession(), NodeType.HALL);
+                        }
+                    }
+                });
                 return;
             }
             IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());

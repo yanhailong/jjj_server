@@ -3,8 +3,8 @@ package com.jjg.game.room.controller;
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseHandler;
-import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.common.concurrent.PlayerWorker;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
@@ -197,10 +197,15 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     @Override
     public <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
         GamePlayer gamePlayer = gameDataVo.getGamePlayerMap().get(playerController.playerId());
+
         // 从玩家列表中移除玩家数据，子类的gameDataVo有和玩家相关的临时数据需要自行删除
         gameDataVo.getGamePlayerMap().remove(playerController.playerId());
         // 玩家退出时直接回存玩家数据，需要放在游戏离开逻辑最后
-        directlySavePlayerData(gamePlayer);
+        if (gamePlayer != null) {
+            directlySavePlayerData(gamePlayer);
+        } else {
+            log.error("gamePlayer is null playerId:{}", playerController.playerId());
+        }
         return new CommonResult<>(Code.SUCCESS);
     }
 
@@ -265,9 +270,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             }
             // 更新tick任务下次触发时间
             tickTaskTimeRecMap.put(entry.getKey(), currentTime + entry.getValue().getTaskInterval());
-            BaseProcessor baseFuncProcessor = roomController.getRoomProcessor();
+            PlayerWorker baseFuncProcessor = roomController.getRoomProcessor();
             // 运行tick任务, 需要在房间线程中排队执行，不能阻塞正常的tick，不然会导致 Do Overtime
-            baseFuncProcessor.executeHandler(new BaseHandler<String>() {
+            baseFuncProcessor.tryPublish(0, new BaseHandler<String>() {
                 @Override
                 public void action() {
                     entry.getValue().run(currentTime);
@@ -415,6 +420,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         int goldCfgId = ItemUtils.getGoldItemId();
         int diamondCfgId = ItemUtils.getDiamondItemId();
         GamePlayer gamePlayer = getGamePlayer(playerId);
+        if (gamePlayer == null) {
+            log.error("gamePlayer is null playerId:{}", playerId);
+            return 0;
+        }
         if (transactionItemId == goldCfgId) {
             return gamePlayer.getGold();
         } else if (transactionItemId == diamondCfgId) {

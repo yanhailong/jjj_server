@@ -1,14 +1,14 @@
 package com.jjg.game.common.cluster;
 
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.timeout.IdleState;
-import io.netty.handler.timeout.IdleStateEvent;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.message.ClusterRegsiterMsg;
 import com.jjg.game.common.net.Connect;
 import com.jjg.game.common.netty.NettyConnect;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
 
 /**
  * 集群节点连接对象
@@ -21,7 +21,7 @@ public class ClusterConnect extends NettyConnect<ClusterMessage> implements Conn
     private final ClusterMessageDispatcher clusterMessageDispatcher;
 
     private final ClusterMessage clusterHeartBeatMessage =
-        new ClusterMessage(new PFMessage(MessageConst.ToClientConst.REQ_HEART_BEAT, null));
+            new ClusterMessage(new PFMessage(MessageConst.ToClientConst.REQ_HEART_BEAT, null));
 
     public ClusterConnect(ClusterMessageDispatcher clusterMessageDispatcher) {
         this.clusterMessageDispatcher = clusterMessageDispatcher;

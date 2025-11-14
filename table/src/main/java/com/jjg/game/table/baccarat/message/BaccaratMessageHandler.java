@@ -171,10 +171,11 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         matchDataDao.addPlayerExpiredWaiting(reqJoinRoomInGame.roomId, playerController.playerId());
         // 如果就在当前节点
         if (clusterCurrentNodePath.equalsIgnoreCase(room.getPath())) {
-            // 将玩家加入房间
-            roomManager.joinRoom(
-                    playerController, reqJoinRoomInGame.gameType, room.getRoomCfgId(), reqJoinRoomInGame.roomId);
-            log.info("玩家：{} 请求加入房间：{} {} 处于当前节点", playerController.playerId(), room.getRoomCfgId(), room.getId());
+                    // 将玩家加入房间
+                    roomManager.joinRoom(
+                            playerController, reqJoinRoomInGame.gameType, room.getRoomCfgId(), reqJoinRoomInGame.roomId);
+                    log.info("玩家：{} 请求加入房间：{} {} 处于当前节点", playerController.playerId(), room.getRoomCfgId(), room.getId());
+
         } else {
             // 将玩家的房间ID设置成请求的，在session进入时会自动加入到对应的房间
             playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(reqJoinRoomInGame.roomId));
