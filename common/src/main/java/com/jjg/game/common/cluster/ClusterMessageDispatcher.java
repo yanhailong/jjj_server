@@ -120,7 +120,6 @@ public class ClusterMessageDispatcher {
         int messageType = 0;
         int command = 0;
 
-        long startTime = System.currentTimeMillis();
         try {
 //            log.debug("打印handle  connect={},session={},msg={}",connect,session,msg);
             messageType = msg.messageType;
