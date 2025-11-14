@@ -171,6 +171,9 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
             if (controller.playerNotInit(info.getPlayerId())) {
                 continue;
             }
+            if (!info.isReady() || !info.isSeatDown()) {
+                continue;
+            }
             if (entry.getKey() > gameDataVo.getDealerSeatId() && info.isSeatDown()) {
                 more = entry.getKey();
                 break;
