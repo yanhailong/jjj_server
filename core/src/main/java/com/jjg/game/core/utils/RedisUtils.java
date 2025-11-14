@@ -1,5 +1,7 @@
 package com.jjg.game.core.utils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -17,6 +19,8 @@ import java.util.List;
  */
 @Component
 public class RedisUtils {
+
+    private final Logger log = LoggerFactory.getLogger(RedisUtils.class);
 
     /**
      * 通过匹配批量删除redis数据
@@ -39,6 +43,8 @@ public class RedisUtils {
                 if (!batch.isEmpty()) {
                     connection.keyCommands().del(batch.toArray(new byte[0][]));
                 }
+            } catch (Exception e) {
+                log.error("deleteByPattern error pattern:{}", pattern, e);
             }
             return null;
         });

@@ -2,10 +2,10 @@ package com.jjg.game.hall.vip.pb.res;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.hall.constant.HallConstant;
-import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.hall.vip.pb.bean.VipGiftInfo;
 
 import java.util.List;
@@ -23,8 +23,8 @@ public class ResVipClaimGiftReward extends AbstractResponse {
     public List<ItemInfo> items;
     @ProtoDesc("礼包信息")
     public VipGiftInfo vipGiftInfo;
-    @ProtoDesc("当前已领取的最大vip等级")
-    public int claimMaxLv;
+    @ProtoDesc("已经领取的vip等级礼包")
+    public List<Integer> claimLvList;
     public ResVipClaimGiftReward(int code) {
         super(code);
     }

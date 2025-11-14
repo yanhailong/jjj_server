@@ -1,6 +1,7 @@
 package com.jjg.game.activity.cashcow.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.activity.cashcow.dao.CashCowDao;
 import com.jjg.game.activity.cashcow.data.CashCowPlayerActivityData;
@@ -332,12 +333,43 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 if (addValue > 0) {
                     List<LanguageParamData> arrayList = new ArrayList<>();
                     arrayList.add(new LanguageParamData(0, String.valueOf(newPlayer.getVipLevel())));
-                    arrayList.add(new LanguageParamData(0, String.valueOf(add)));
-                    arrayList.add(new LanguageParamData(0, String.valueOf(addValue)));
+                    arrayList.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(add).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN))));
+                    arrayList.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addValue))));
                     mailService.addCfgMail(playerId, 38, List.of(new Item(ItemUtils.getGoldItemId(), addValue)), arrayList);
                 }
             }
         }
+    }
+
+    @Override
+    public boolean hasRedDot(long playerId, ActivityData activityData) {
+        boolean hasRedDot = false;
+        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        if (CollectionUtil.isNotEmpty(playerActivityData)) {
+            for (PlayerActivityData data : playerActivityData.values()) {
+                if (data.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                    hasRedDot = true;
+                    break;
+                }
+            }
+        }
+        if (hasRedDot) {
+            return true;
+        }
+        PlayerPack playerPack = playerPackService.getFromAllDB(playerId);
+        //获取消耗
+        Map<Integer, CashcowCfg> detailCfgBean = getDetailCfgBean(activityData);
+        for (CashcowCfg cfg : detailCfgBean.values()) {
+            if (cfg.getType() == ActivityConstant.CashCow.CUMULATIVE_REWARDS_REWARD_TYPE) {
+                continue;
+            }
+            if (CollectionUtil.isNotEmpty(cfg.getNeedItem())) {
+                if (playerPack.checkHasItems(cfg.getNeedItem())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override

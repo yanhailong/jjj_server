@@ -1,5 +1,6 @@
 package com.jjg.game.core.service;
 
+import cn.hutool.core.util.NumberUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.TimeHelper;
@@ -297,15 +298,15 @@ public class ShopService implements OrderGenerate, GameEventListener {
                                 }
                             }
                             if (magnification > 0) {
-                                long addNum = shopProduct.getMoney().multiply(BigDecimal.valueOf(add))
-                                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
-                                        .multiply(BigDecimal.valueOf(magnification)).longValue();
+                                BigDecimal addNum = shopProduct.getMoney().multiply(BigDecimal.valueOf(add))
+                                        .multiply(BigDecimal.valueOf(magnification)
+                                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN));
                                 List<LanguageParamData> languageParamData = new ArrayList<>();
                                 languageParamData.add(new LanguageParamData(0, shopProduct.getMoney().toPlainString()));
                                 languageParamData.add(new LanguageParamData(0, String.valueOf(player.getVipLevel())));
-                                languageParamData.add(new LanguageParamData(0, String.valueOf(add)));
-                                languageParamData.add(new LanguageParamData(0, String.valueOf(addNum)));
-                                mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum)), languageParamData);
+                                languageParamData.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(add).divide(BigDecimal.valueOf(10000),4, RoundingMode.DOWN))));
+                                languageParamData.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addNum))));
+                                mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum.longValue())), languageParamData);
                             }
                         }
                     }
@@ -349,4 +350,6 @@ public class ShopService implements OrderGenerate, GameEventListener {
     public List<EGameEventType> needMonitorEvents() {
         return List.of(EGameEventType.RECHARGE);
     }
+
+
 }

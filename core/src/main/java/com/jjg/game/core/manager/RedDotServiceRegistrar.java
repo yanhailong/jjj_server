@@ -44,13 +44,13 @@ public class RedDotServiceRegistrar {
                 IRedDotService service = redDotServiceEntry.getValue();
                 if (service != null) {
                     RedDotDetails.RedDotModule serviceModule = service.getModule();
-                    if (serviceModule != null) {
+                    if (serviceModule != null && !serviceModule.isNeedTrusteeship()) {
                         redDotManager.registerService(serviceModule, service);
-                        successCount++;
                         log.debug("成功注册红点服务: {} -> {}", serviceModule, name);
                     } else {
-                        log.warn("红点服务 {} 的模块为空，跳过注册", name);
+                        log.warn("红点服务 {} 的模块为托管", name);
                     }
+                    successCount++;
                 }
             }
             log.info("红点服务加载完成，成功注册: {}/{}", successCount, beansOfType.size());

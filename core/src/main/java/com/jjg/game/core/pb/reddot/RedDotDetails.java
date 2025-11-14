@@ -68,37 +68,65 @@ public class RedDotDetails {
          * 邮件
          */
         @ProtoDesc("邮件")
-        MAIL,
+        MAIL(1, RedDotType.COUNT, true),
         /**
          * 背包
          */
         @ProtoDesc("背包")
-        PACK,
+        PACK(2, RedDotType.COMMON, true),
         /**
          * 活动
          */
         @ProtoDesc("活动")
-        ACTIVITY,
+        ACTIVITY(3, RedDotType.COMMON, false),
         /**
          * 任务
          */
         @ProtoDesc("任务")
-        TASK,
+        TASK(4, RedDotType.COUNT, false),
         /**
          * 积分大奖
          */
         @ProtoDesc("积分大奖")
-        POINTS_AWARD,
+        POINTS_AWARD(5, RedDotType.COMMON, false),
         /**
          * 等级礼包
          */
         @ProtoDesc("等级礼包")
-        LEVEL_PACK,
+        LEVEL_PACK(6, RedDotType.COMMON, false),
         /**
          * 公告
          */
         @ProtoDesc("公告")
-        NOTICE,
+        NOTICE(7, RedDotType.COUNT, false),
+        /**
+         * 公告
+         */
+        @ProtoDesc("vip功能")
+        VIP(8, RedDotType.COUNT, false);
+
+        private final int type;
+        private final RedDotType redDotType;
+        //是否需要托管
+        private final boolean needTrusteeship;
+
+        RedDotModule(int type, RedDotType redDotType, boolean needTrusteeship) {
+            this.type = type;
+            this.redDotType = redDotType;
+            this.needTrusteeship = needTrusteeship;
+        }
+
+        public boolean isNeedTrusteeship() {
+            return needTrusteeship;
+        }
+
+        public RedDotType getRedDotType() {
+            return redDotType;
+        }
+
+        public int getType() {
+            return type;
+        }
     }
 
 

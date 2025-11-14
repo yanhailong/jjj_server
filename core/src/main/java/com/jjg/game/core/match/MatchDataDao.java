@@ -116,21 +116,16 @@ public class MatchDataDao {
                 RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(redisKey);
                 Double score = scoredSortedSet.getScore(roomId);
                 if (score == null) {
-                    log.debug("score == null gameType:{} roomConfigId:{} roomId:{} ", gameType, roomConfigId, roomId);
                     return false;
                 }
                 RoomScoreUtil.RoomScoreInfo roomScoreInfo = RoomScoreUtil.parseScore(score);
                 if (totalNum > 0 && (totalNum + roomScoreInfo.maxPlayers()) > maxPlayerNum ||
                         totalNum < 0 && roomScoreInfo.maxPlayers() + totalNum < 0) {
-                    log.debug("ConditionsNotPass gameType:{} roomConfigId:{} roomId:{} roomScoreInfo:{} totalNum:{} waitNum:{}", gameType, roomConfigId, roomId
-                            , roomScoreInfo, totalNum, waitNum);
                     return false;
                 }
                 double computed = RoomScoreUtil.computeScore(Math.max(0, roomScoreInfo.maxPlayers() + totalNum),
                         Math.max(0, roomScoreInfo.readyPlayers() + waitNum), roomScoreInfo.seconds());
                 scoredSortedSet.add(computed, roomId);
-                log.debug("changeRoomJoinNum after:{} gameType:{} roomConfigId:{} roomId:{}", RoomScoreUtil.parseScore(computed), gameType
-                        , roomConfigId, roomId);
                 return true;
             }
         } catch (Exception e) {
@@ -190,18 +185,22 @@ public class MatchDataDao {
                 }
                 RoomScoreUtil.RoomScoreInfo roomScoreInfo = RoomScoreUtil.parseScore(score);
                 int roomNum = room.getRoomPlayers().size();
+                boolean needFix = false;
                 if (roomScoreInfo.maxPlayers() != roomNum + roomScoreInfo.readyPlayers()) {
                     log.warn("房间内人数和计数不相等 roomId:{} roomNum:{} roomScoreInfo:{} ", roomId, roomNum, roomScoreInfo);
+                    needFix = true;
                 }
                 int readyPlayers = roomScoreInfo.readyPlayers();
                 //获取过期等待人数
                 int waitingNum = getPlayerExpiredWaitingNum(roomId);
                 int more = readyPlayers - waitingNum;
-                if (more > 0 && roomScoreInfo.maxPlayers() > more) {
+                if (more > 0 && roomScoreInfo.maxPlayers() > more || needFix) {
                     //设置新的
-                    double computed = RoomScoreUtil.computeScore(roomScoreInfo.maxPlayers() - more, roomScoreInfo.readyPlayers() - more, roomScoreInfo.seconds());
+                    int finalReadyPlayers = roomScoreInfo.readyPlayers() - more;
+                    int maxPlayers = roomNum + finalReadyPlayers;
+                    double computed = RoomScoreUtil.computeScore(maxPlayers, finalReadyPlayers, roomScoreInfo.seconds());
                     scoredSortedSet.add(computed, roomId);
-                    log.info("更新房间等待人数 roomId:{} 减少人数:{}", roomId, more);
+                    log.info("更新房间等待人数 roomId:{} 最新max:{} ready:{}", roomId, maxPlayers, finalReadyPlayers);
                 }
             }
         } catch (InterruptedException ignored) {

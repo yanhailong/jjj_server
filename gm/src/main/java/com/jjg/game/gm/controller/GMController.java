@@ -1060,7 +1060,7 @@ public class GMController extends AbstractController {
             notice.setButton(dto.button());
             notice.setStartTime(dto.start_time());
             notice.setEndTime(dto.end_time());
-            notice.setScence(dto.scence());
+            notice.setScence(dto.scene());
             notice.setJumpUrl(dto.jump_url());
             noticeDao.save(notice);
 

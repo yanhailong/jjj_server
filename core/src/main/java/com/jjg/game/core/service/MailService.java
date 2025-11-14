@@ -66,7 +66,14 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
      * @param mailId
      */
     public boolean readMail(long playerId, long mailId) {
-        return mailDao.readMail(playerId, mailId);
+        Mail mail = mailDao.getMailByPlayerId(playerId, mailId);
+        boolean read = mailDao.readMail(playerId, mailId);
+        if (CollectionUtil.isEmpty(mail.getItems())) {
+            if (read) {
+                redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, -1);
+            }
+        }
+        return read;
     }
 
     /**
@@ -114,7 +121,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
                 playerPackService.addItems(playerId, map, AddType.GET_MAIL_ITEMS);
             }
             //邮件变化时通知客户端刷新小红点
-            redDotManager.updateRedDot(this, 0, playerId);
+            redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, -1);
         } catch (Exception e) {
             log.error("", e);
             result.code = Code.EXCEPTION;
@@ -204,7 +211,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         log.info("一键领取结果 playerId = {}, batchUpdateCount = {}, addItemsResultCode = {}", playerId, count,
                 addItemsResult.code);
         //邮件变化时通知客户端刷新小红点
-        redDotManager.updateRedDot(this, 0, playerId);
+        redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, -mailIds.size());
         return result;
     }
 
@@ -226,7 +233,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         mailDao.save(mail);
         log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}", playerId, mail.getId());
         //邮件变化时通知客户端刷新小红点
-        redDotManager.updateRedDot(this, 0, playerId);
+        redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, 1);
     }
 
 
@@ -246,7 +253,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         log.debug("玩家：{} 添加配置邮件：{}", playerId, JSON.toJSONString(mail));
         mailDao.save(mail);
         //邮件变化时通知客户端刷新小红点
-        redDotManager.updateRedDot(this, 0, playerId);
+        redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, 1);
     }
 
 
@@ -291,7 +298,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         mailDao.save(mail);
         log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}", playerId, mail.getId());
         //邮件变化时通知客户端刷新小红点
-        redDotManager.updateRedDot(this, 0, playerId);
+        redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, 1);
     }
 
     /**
@@ -467,6 +474,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         if (!getMails.isEmpty()) {
             long count = mailDao.batchSaveMails(getMails);
             log.info("玩家接收全服邮件成功 playerId = {},count = {}", playerId, count);
+            redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, getMails.size());
         }
     }
 
@@ -501,22 +509,6 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     public void cleanMails() {
         mailDao.cleanMails();
     }
-
-    public void updateRedDot(long playerId) {
-        try {
-            RedDotDetails redDotDetails = new RedDotDetails();
-            redDotDetails.setRedDotModule(getModule());
-            redDotDetails.setRedDotType(RedDotDetails.RedDotType.COUNT);
-            long itemMailsCount = mailDao.getItemsMailsCount(playerId);
-            redDotDetails.setCount(itemMailsCount);
-            List<RedDotDetails> red = new ArrayList<>();
-            red.add(redDotDetails);
-            redDotManager.updateRedDot(red, playerId);
-        } catch (Exception e) {
-            log.error("邮件更新红点失败 playerId:{}", playerId, e);
-        }
-    }
-
 
     /**
      * 获取所属模块{@link RedDotDetails.RedDotModule}

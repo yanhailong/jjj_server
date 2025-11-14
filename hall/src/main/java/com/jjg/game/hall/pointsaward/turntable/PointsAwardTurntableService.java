@@ -363,7 +363,7 @@ public class PointsAwardTurntableService implements IRedDotService {
         if (resultCount > 0) {
             replaceCount(playerId, resultCount);
         }
-        redDotManager.updateRedDot(this, 0, playerId);
+        redDotManager.updateRedDotByInitialize(getModule(), getSubmodule(), playerId);
     }
 
     /**
