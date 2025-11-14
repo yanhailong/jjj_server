@@ -29,6 +29,7 @@ import com.jjg.game.hall.minigame.game.luckytreasure.util.LuckyTreasureStatusUti
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import org.redisson.api.RLock;
+import org.redisson.api.RMapCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -198,20 +199,31 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             }
 
             // 从Redis获取活跃的夺宝奇兵活动
-            List<LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
+            RMapCache<Long,LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
 
             // 分页处理
             int totalCount = activeTreasures.size();
             int totalPage = (totalCount + pageSize - 1) / pageSize;
             int startIndex = (currPage - 1) * pageSize;
-            int endIndex = Math.min(startIndex + pageSize, totalCount);
 
             List<LuckyTreasureInfo> infoList = new ArrayList<>();
             if (startIndex < totalCount) {
-                List<LuckyTreasure> pageTreasures = activeTreasures.subList(startIndex, endIndex);
-                for (LuckyTreasure treasure : pageTreasures) {
-                    LuckyTreasureInfo info = convertToInfo(treasure, playerController.getPlayer());
+                Iterator<Map.Entry<Long, LuckyTreasure>> iterator = activeTreasures.entrySet().iterator();
+
+                // 跳过前面的数据
+                int skipCount = (currPage - 1) * pageSize;
+                while (iterator.hasNext() && skipCount > 0) {
+                    iterator.next();
+                    skipCount--;
+                }
+
+                // 获取当前页数据
+                int count = 0;
+                while (iterator.hasNext() && count < pageSize) {
+                    Map.Entry<Long, LuckyTreasure> entry = iterator.next();
+                    LuckyTreasureInfo info = convertToInfo(entry.getValue(), playerController.getPlayer());
                     infoList.add(info);
+                    count++;
                 }
             }
 
@@ -225,7 +237,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             return response;
         } catch (Exception e) {
             log.error("获取夺宝奇兵详情失败", e);
-            return new ResLuckyTreasureInfo(-1);
+            return new ResLuckyTreasureInfo(Code.EXCEPTION);
         }
     }
 

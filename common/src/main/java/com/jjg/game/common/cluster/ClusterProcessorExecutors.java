@@ -36,10 +36,19 @@ public class ClusterProcessorExecutors {
 
     static {
         int availableProcessors = Runtime.getRuntime().availableProcessors();
-        if (availableProcessors < 4) {
-            availableProcessors = 4;
-        } else {
-            availableProcessors = availableProcessors / 2 + 2;
+
+        if (availableProcessors <= 4) {
+            // 4核时12线程
+            availableProcessors = Math.max(8, availableProcessors * 3);
+        } else if(availableProcessors <= 8){
+            // 8核时16线程
+            availableProcessors = availableProcessors * 2;
+        }else if(availableProcessors <= 16){
+            // 16核时24线程
+            availableProcessors = availableProcessors + 8;
+        }else {
+            // 超大核心数服务器，采用更保守的策略
+            availableProcessors = Math.min(64, availableProcessors + 16);
         }
         THREAD_POOL_NUM = availableProcessors;
     }
