@@ -227,6 +227,7 @@ public class TableMessageBuilder {
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
             if (gamePlayer == null) {
                 log.error("buildBetTableInfos gamePlayer is null playerId:{}", playerId);
+                continue;
             }
             for (Map.Entry<Integer, List<Integer>> entry : value.entrySet()) {
                 if (!baccaratTableInfoMap.containsKey(entry.getKey())) {
