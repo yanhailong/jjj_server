@@ -54,9 +54,9 @@ public class RpcClientService {
             throws TimeoutException, ExecutionException, InterruptedException {
 
         // 【新增】优先检测本地调用
-        Object localResult = tryInvokeLocal(className, method, args);
-        if (localResult != null) {
-            return localResult;
+        Pair<Boolean, Object> pairResult = tryInvokeLocal(className, method, args);
+        if (pairResult.getFirst()) {
+            return pairResult.getSecond();
         }
 
         // 原有的远程调用逻辑
@@ -98,11 +98,11 @@ public class RpcClientService {
      * @param args      参数
      * @return 调用结果,如果本地不存在该服务返回null
      */
-    private Object tryInvokeLocal(String className, Method method, Object[] args) {
+    private Pair<Boolean, Object> tryInvokeLocal(String className, Method method, Object[] args) {
         try {
             ApplicationContext context = CommonUtil.getContext();
             if (context == null) {
-                return null;
+                return new Pair<>(false, null);
             }
 
             // 1. 尝试通过接口类型查找实现类
@@ -111,7 +111,7 @@ public class RpcClientService {
 
             if (beans.isEmpty()) {
                 // 本地没有该服务实现
-                return null;
+                return new Pair<>(false, null);
             }
 
             // 2. 获取第一个实现类(通常只有一个)
@@ -121,17 +121,17 @@ public class RpcClientService {
             Object result = method.invoke(serviceBean, args);
 
             log.debug("RPC本地调用成功: {}.{}", className, method.getName());
-            return result;
+            return new Pair<>(true, result);
 
         } catch (ClassNotFoundException e) {
             // 接口类不存在,可能是依赖问题,继续走远程调用
             log.debug("本地未找到RPC接口类: {}, 将使用远程调用", className);
-            return null;
+            return new Pair<>(false, null);
         } catch (Exception e) {
             // 本地调用失败,记录日志后返回null,让框架继续尝试远程调用
             log.warn("RPC本地调用失败: {}.{}, 将回退到远程调用, error: {}",
                     className, method.getName(), e.getMessage());
-            return null;
+            return new Pair<>(false, null);
         }
     }
 
