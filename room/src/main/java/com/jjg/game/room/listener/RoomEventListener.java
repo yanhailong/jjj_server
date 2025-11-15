@@ -119,17 +119,17 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             // abstractRoomController.playerOffline(playerController);
             // TODO 先让玩家直接退出，后续添加断线重连逻辑
             GamePlayer gamePlayer = roomController.getGameController().getGamePlayer(playerController.playerId());
-            roomController.getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
-                @Override
-                public void action() {
-                    if (exit) {
-                        roomManager.exitRoom(playerController);
-                    } else {
+            if (exit) {
+                roomManager.exitRoom(playerController);
+            } else {
+                roomController.getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
+                    @Override
+                    public void action() {
                         log.info("玩家掉线 player: {}", playerController.playerId());
                         roomManager.disconnectedExitRoom(playerController);
                     }
-                }
-            });
+                });
+            }
             //先取玩家信息,退出成功后会删掉
             int onlineTimeLen = 0;
             if (gamePlayer != null) {
