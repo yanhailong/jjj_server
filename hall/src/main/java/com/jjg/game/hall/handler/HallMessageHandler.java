@@ -1132,6 +1132,7 @@ public class HallMessageHandler implements GmListener {
                     log.error("玩家领取注册奖励失败 playerId:{}", playerController.playerId());
                 }
                 playerController.send(res);
+                return;
             }
         }
         res.code = Code.REPEAT_OP;
