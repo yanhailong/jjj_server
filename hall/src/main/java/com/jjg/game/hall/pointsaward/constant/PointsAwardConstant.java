@@ -251,6 +251,10 @@ public interface PointsAwardConstant {
         int HISTORY_MAX_SIZE = 50;
     }
 
+    interface GlobalConfig{
+        int ID_POINTS_AWARD = 45;
+    }
+
     /**
      * 红点子模块
      */
