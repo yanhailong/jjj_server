@@ -385,9 +385,20 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     }
 
     /**
+     * 是否能上庄
+     * @return true是
+     */
+    public boolean canBeBanker() {
+        return true;
+    }
+
+    /**
      * 申请成为庄家
      */
     public int supplyBeBanker(long playerId, long predictCostGold) {
+        if (!canBeBanker()) {
+            return Code.FORBID;
+        }
         if (room.roomBankerId() == playerId) {
             // 重复上庄
             return Code.REPEAT_OP;
