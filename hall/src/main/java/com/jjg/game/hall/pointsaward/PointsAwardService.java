@@ -1,5 +1,6 @@
 package com.jjg.game.hall.pointsaward;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.PFSession;
@@ -60,7 +61,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     private final RedDotManager redDotManager;
     private final MailService mailService;
 
-    private Map<Integer, PointsAwardLadderRewardsInfo> pointsAwardMap;
+    private Map<Long, PointsAwardLadderRewardsInfo> pointsAwardMap;
     private List<PointsAwardLadderRewardsInfo> sortPointsAwardList;
 
     /**
@@ -515,8 +516,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         } else {
             timePointsMap.forEach((playerId, timePoints) -> {
                 this.pointsAwardMap.forEach((pointsAward, pointsAwardInfo) -> {
-                    if (pointsAward <= timePoints.getPoints()) {
-                        receiveLader(pointsAward, playerId, true);
+                    if (pointsAwardInfo.getPoints() <= timePoints.getPoints()) {
+                        receiveLader(pointsAwardInfo.getPoints(), playerId, true);
                     }
                 });
                 getLadderReceiveSet(playerId).delete();
@@ -634,7 +635,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             return;
         }
 
-        Map<Integer, PointsAwardLadderRewardsInfo> tmpPointsAwardMap = new HashMap<>();
+        Map<Long, PointsAwardLadderRewardsInfo> tmpPointsAwardMap = new HashMap<>();
 
         String[] configs = configStr.split("\\|");
         for (String str : configs) {
@@ -643,7 +644,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                 continue;
             }
 
-            int points = Integer.parseInt(configArray[0]);
+            long points = Long.parseLong(configArray[0]);
             int itemId = Integer.parseInt(configArray[1]);
             int count = Integer.parseInt(configArray[2]);
 
