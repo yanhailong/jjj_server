@@ -226,7 +226,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 settlementDataMap.put(
                         playerId, settlementDataMap.getOrDefault(playerId, new SettlementData())
                                 .increaseBySettlementData(new SettlementData(
-                                        afterRatio, bet, totalGet, bet, tempTotalGet.longValue() - totalGet)));
+                                        afterRatio, bet, totalGet, bet, tempTotalGet.longValue() - afterRatio)));
                 if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(1);
                 }
