@@ -35,4 +35,9 @@ public class PokerFriendRoomController extends AbstractFriendRoomController<Room
         roomCfg = GameDataManager.getRoom_ChessCfg(room.getRoomCfgId());
         gameController.getGameDataVo().reloadRoomCfg();
     }
+
+    @Override
+    public boolean canBeBanker() {
+        return room.getGameType() != CoreConst.GameType.TEXAS;
+    }
 }
