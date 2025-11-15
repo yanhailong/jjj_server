@@ -149,6 +149,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         } else {
             gamePlayer = new GamePlayer();
             gamePlayer.setEnterGameTime(TimeHelper.nowInt());
+            gamePlayer.fromPlayer(player);
             gameDataVo.addGamePlayer(gamePlayer);
             gameDataVo.setRoomDestroyTime(0);
         }
