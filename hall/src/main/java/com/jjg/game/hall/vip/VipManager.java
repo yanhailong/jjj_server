@@ -167,7 +167,6 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                     return res;
                 }
                 rewards = gift.getReward().apply(claimCfg);
-
             } else {
                 rewards = gift.getReward().apply(viplevelCfg);
             }
@@ -207,7 +206,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                 res.items.add(info);
             }
             res.claimLvList = new ArrayList<>(vip.getLvGiftGetTime().keySet());
-            redDotManager.updateRedDotByInitialize(getModule(),getSubmodule(),playerId);
+            redDotManager.updateRedDotByInitialize(getModule(), getSubmodule(), playerId);
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             log.error("请求领取VIP信息异常 playerId:{}", playerController.playerId(), e);

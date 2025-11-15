@@ -3,7 +3,12 @@ package com.jjg.game.hall.vip.data;
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ViplevelCfg;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.DayOfWeek;
 import java.time.Instant;
@@ -20,8 +25,9 @@ public enum VipGift {
     WEEKS(1, ViplevelCfg::getWeeklyRewards),
     BIRTHDAY(2, ViplevelCfg::getBirthdayReward),
     PROMOTION(3, ViplevelCfg::getLevelRewards),
-    YEAR(4, ViplevelCfg::getAnnualRewards),
+    CUSTOMIZED(4, ViplevelCfg::getAnnualRewards),
     ;
+    private static final Logger log = LoggerFactory.getLogger(VipGift.class);
     private final int type;
     private final Function<ViplevelCfg, Map<Integer, Long>> reward;
 
@@ -42,8 +48,6 @@ public enum VipGift {
         long lastClaim = vip.getGiftGetTime().getOrDefault(type, 0L);
         return switch (this) {
             case WEEKS -> !TimeHelper.inSameWeek(lastClaim, timeMillis);
-            case YEAR ->
-                    !TimeHelper.isLastDayOfYear(lastClaim) && TimeHelper.isLastDayOfYear(System.currentTimeMillis());
             case BIRTHDAY -> {
                 long epochMilli = LocalDateTime.ofInstant(Instant.ofEpochMilli(player.getCreateTime()), ZoneId.systemDefault())
                         .plusYears(1).toLocalDate().atStartOfDay()
@@ -62,7 +66,74 @@ public enum VipGift {
                 }
                 yield false;
             }
+            case CUSTOMIZED -> !TimeHelper.inSameDay(lastClaim, timeMillis) && canClaimCustomized();
         };
+    }
+
+    /**
+     * 是否能领取自定义礼包
+     * @return 是否能领取
+     */
+    private boolean canClaimCustomized() {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(56);
+        if (globalConfigCfg == null) {
+            return false;
+        }
+        try {
+            String globalConfigCfgValue = globalConfigCfg.getValue();
+            if (StringUtils.isEmpty(globalConfigCfgValue)) {
+                return false;
+            }
+            String[] timeCfgArr = StringUtils.split(globalConfigCfgValue, "_");
+            LocalDateTime now = LocalDateTime.now();
+            int nowTimeInt = now.getMonthValue() * 100 + now.getDayOfMonth();
+            for (String timeCfg : timeCfgArr) {
+                //时间长度必须为4
+                if (timeCfg.length() != 4) {
+                    return false;
+                }
+                if (nowTimeInt == Integer.parseInt(timeCfg)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            log.error("canClaimCustomized error: {}", globalConfigCfg.getValue(), e);
+        }
+        return false;
+    }
+
+    /**
+     * 是否能领取自定义礼包
+     * @return 是否能领取
+     */
+    private long nextClaimCustomizedTime() {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(56);
+        if (globalConfigCfg == null) {
+            return 0;
+        }
+        try {
+            String globalConfigCfgValue = globalConfigCfg.getValue();
+            if (StringUtils.isEmpty(globalConfigCfgValue)) {
+                return 0;
+            }
+            String[] timeCfgArr = StringUtils.split(globalConfigCfgValue, "_");
+            LocalDateTime now = LocalDateTime.now();
+            int nowTimeInt = now.getMonthValue() * 100 + now.getDayOfMonth();
+            for (String timeCfg : timeCfgArr) {
+                //时间长度必须为4
+                if (timeCfg.length() != 4) {
+                    return 0;
+                }
+                int timeCfgInt = Integer.parseInt(timeCfg);
+                if (nowTimeInt < timeCfgInt) {
+                    //解析出来
+                    return TimeHelper.getTimestamp(LocalDateTime.of(now.getYear(), timeCfgInt / 100, timeCfgInt % 100, 0, 0));
+                }
+            }
+        } catch (Exception e) {
+            log.error("nextClaimCustomizedTime error: {}", globalConfigCfg.getValue(), e);
+        }
+        return 0;
     }
 
     public long getNextClaimNeed(Player player, boolean time) {
@@ -72,12 +143,6 @@ public enum VipGift {
                     yield 0;
                 }
                 yield TimeHelper.getNextWeekdayEnd(DayOfWeek.MONDAY);
-            }
-            case YEAR -> {
-                if (!time) {
-                    yield 0;
-                }
-                yield TimeHelper.getYearDayEnd();
             }
             case BIRTHDAY -> {
                 if (!time) {
@@ -94,6 +159,12 @@ public enum VipGift {
                 }
                 ViplevelCfg viplevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
                 yield (viplevelCfg.getViplevelUpExp() - player.getVipExp()) * viplevelCfg.getRecharge() / 10000;
+            }
+            case CUSTOMIZED -> {
+                if (time) {
+                    yield nextClaimCustomizedTime();
+                }
+                yield 0;
             }
         };
     }
