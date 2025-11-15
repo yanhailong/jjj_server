@@ -135,7 +135,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
             //当前vip配置
             Optional<Vip> vipOptional = vipService.getFromAllDB(playerId);
             if (vipOptional.isEmpty()) {
-                res.code = Code.PARAM_ERROR;
+                res.code = Code.NOT_FOUND;
                 return res;
             }
             VipGift gift = EnumUtil.getBy(VipGift.class, vipGift -> vipGift.getType() == req.type);
@@ -147,7 +147,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
             long timeMillis = System.currentTimeMillis();
             boolean canClaim = gift.isCanClaim(player, vip, timeMillis);
             if (!canClaim) {
-                res.code = Code.PARAM_ERROR;
+                res.code = Code.ERROR_REQ;
                 return res;
             }
             Map<Integer, Long> rewards;
@@ -167,7 +167,6 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                     return res;
                 }
                 rewards = gift.getReward().apply(claimCfg);
-
             } else {
                 rewards = gift.getReward().apply(viplevelCfg);
             }
@@ -207,7 +206,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                 res.items.add(info);
             }
             res.claimLvList = new ArrayList<>(vip.getLvGiftGetTime().keySet());
-            redDotManager.updateRedDotByInitialize(getModule(),getSubmodule(),playerId);
+            redDotManager.updateRedDotByInitialize(getModule(), getSubmodule(), playerId);
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             log.error("请求领取VIP信息异常 playerId:{}", playerController.playerId(), e);

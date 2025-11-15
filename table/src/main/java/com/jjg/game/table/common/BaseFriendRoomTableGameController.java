@@ -60,6 +60,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                             log.info("玩家：{} 申请下庄成功", roomBankerId);
                             //获取玩家如果没获取到发送邮件,获取到直接添加
                             backBeBankerMoney(backNum, roomBankerId);
+                            friendRoomController.getBankerPredicateInfo().remove(roomBankerId);
                         }
                     }
                     // 如果庄家没有申请下庄
@@ -76,6 +77,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                                 cancelBeBankerSuccess = true;
                                 log.info("玩家：{} 上庄次数达到上限，自动下庄", roomBankerId);
                                 backBeBankerMoney(backNum, roomBankerId);
+                                friendRoomController.getBankerPredicateInfo().remove(roomBankerId);
                             }
                         }
                     }
@@ -93,6 +95,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                             } else {
                                 log.info("庄家：{} 准备金不足，自动下庄", roomBankerId);
                                 backBeBankerMoney(backNum, roomBankerId);
+                                friendRoomController.getBankerPredicateInfo().remove(roomBankerId);
                             }
                         }
                     }
