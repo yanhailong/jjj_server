@@ -3,6 +3,7 @@ package com.jjg.game.hall.vip.data;
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ViplevelCfg;
@@ -24,7 +25,7 @@ import java.util.function.Function;
 public enum VipGift {
     WEEKS(1, ViplevelCfg::getWeeklyRewards),
     BIRTHDAY(2, ViplevelCfg::getBirthdayReward),
-    PROMOTION(3, ViplevelCfg::getLevelRewards),
+    PROMOTION(3, (viplevelCfg)-> ItemUtils.mergeItems(viplevelCfg.getAvatarType(),viplevelCfg.getLevelRewards())),
     CUSTOMIZED(4, ViplevelCfg::getAnnualRewards),
     ;
     private static final Logger log = LoggerFactory.getLogger(VipGift.class);
