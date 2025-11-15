@@ -23,9 +23,7 @@ import com.jjg.game.sampledata.bean.RoomCfg;
 import com.jjg.game.sampledata.bean.RoomExpendCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -33,6 +31,8 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends FriendRoom>
         extends AbstractRoomController<RC, R> {
+
+    private final Map<Long, GamePlayer> bankerPredicateInfo = new HashMap<>();
 
     public AbstractFriendRoomController(Class<? extends RoomPlayer> roomPlayerClazz, R room) {
         super(roomPlayerClazz, room);
@@ -56,6 +56,17 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         });
         if (result.success()) {
             this.room = result.data;
+            if (room instanceof FriendRoom friendRoom) {
+                LinkedHashMap<Long, Long> bankerPredicateMap = friendRoom.getBankerPredicateMap();
+                if (CollectionUtil.isNotEmpty(bankerPredicateMap)) {
+                    List<Player> players = getRoomManager().getPlayerService().multiGetPlayer(bankerPredicateMap.keySet());
+                    for (Player player : players) {
+                        GamePlayer gamePlayer = new GamePlayer();
+                        gamePlayer.fromPlayer(player);
+                        bankerPredicateInfo.put(player.getId(), gamePlayer);
+                    }
+                }
+            }
         }
     }
 
@@ -75,6 +86,10 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             // 检查通过开始游戏
             tryContinueGame();
         }
+    }
+
+    public Map<Long, GamePlayer> getBankerPredicateInfo() {
+        return bankerPredicateInfo;
     }
 
     @Override
@@ -387,6 +402,11 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         int addRes = addBankerPredicateGold(playerId, predictCostGold);
         // 如果申请成功，且当前游戏处于暂停状态，需要继续游戏
         if (addRes == Code.SUCCESS) {
+            GamePlayer gamePlayer = gameController.getGamePlayer(playerId);
+            if (gamePlayer != null) {
+                bankerPredicateInfo.put(playerId, gamePlayer);
+                log.info("玩家申请上庄：{} 放入缓存列表：{}", playerId, predictCostGold);
+            }
             // 尝试继续游戏
             tryContinueGame();
         }
@@ -442,6 +462,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             log.info("玩家：{} 申请取消成为庄家", playerId);
             this.room = result.data;
         }
+        bankerPredicateInfo.remove(playerId);
         log.info("玩家：{} 申请取消成为庄家", playerId);
         return Code.SUCCESS;
     }
@@ -502,6 +523,13 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         for (Map.Entry<Long, Long> entry : bankerPredicateMap.entrySet()) {
             ApplyBankPlayerInfo playerInfo = new ApplyBankPlayerInfo();
             GamePlayer gamePlayer = gameController.getGamePlayer(entry.getKey());
+            if (gamePlayer == null) {
+                gamePlayer = bankerPredicateInfo.get(entry.getKey());
+            }
+            if (gamePlayer == null) {
+                log.error("未获取到庄家信息 playerId:{}", entry.getKey());
+                continue;
+            }
             playerInfo.basePlayerInfo = FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(gamePlayer);
             playerInfo.predictCostGold = entry.getValue();
             if (bankPlayerInfo == null) {

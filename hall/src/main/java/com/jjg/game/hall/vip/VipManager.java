@@ -135,7 +135,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
             //当前vip配置
             Optional<Vip> vipOptional = vipService.getFromAllDB(playerId);
             if (vipOptional.isEmpty()) {
-                res.code = Code.PARAM_ERROR;
+                res.code = Code.NOT_FOUND;
                 return res;
             }
             VipGift gift = EnumUtil.getBy(VipGift.class, vipGift -> vipGift.getType() == req.type);
@@ -147,7 +147,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
             long timeMillis = System.currentTimeMillis();
             boolean canClaim = gift.isCanClaim(player, vip, timeMillis);
             if (!canClaim) {
-                res.code = Code.PARAM_ERROR;
+                res.code = Code.ERROR_REQ;
                 return res;
             }
             Map<Integer, Long> rewards;

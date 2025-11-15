@@ -141,13 +141,13 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         // 将玩家数据复制到玩家游戏数据中
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         Player player = playerController.isRobotPlayer() ? playerController.getPlayer() : playerService.getOrUpdatePlayerController(playerController);
-        String playerJson = JSON.toJSONString(player);
         GamePlayer gamePlayer;
         if (player instanceof RobotPlayer) {
-            gamePlayer = JSON.parseObject(playerJson, GameRobotPlayer.class);
+            gamePlayer = new GameRobotPlayer();
+            gamePlayer.fromPlayer(player);
             gameDataVo.addGamePlayer(gamePlayer);
         } else {
-            gamePlayer = JSON.parseObject(playerJson, GamePlayer.class);
+            gamePlayer = new GamePlayer();
             gamePlayer.setEnterGameTime(TimeHelper.nowInt());
             gameDataVo.addGamePlayer(gamePlayer);
             gameDataVo.setRoomDestroyTime(0);
@@ -197,7 +197,6 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     @Override
     public <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
         GamePlayer gamePlayer = gameDataVo.getGamePlayerMap().get(playerController.playerId());
-
         // 从玩家列表中移除玩家数据，子类的gameDataVo有和玩家相关的临时数据需要自行删除
         gameDataVo.getGamePlayerMap().remove(playerController.playerId());
         // 玩家退出时直接回存玩家数据，需要放在游戏离开逻辑最后

@@ -59,7 +59,7 @@ public enum VipGift {
                 if (CollectionUtil.isEmpty(vip.getLvGiftGetTime())) {
                     yield true;
                 }
-                for (int i = 1; i < player.getVipLevel(); i++) {
+                for (int i = 0; i <= player.getVipLevel(); i++) {
                     if (!vip.getLvGiftGetTime().containsKey(i)) {
                         yield true;
                     }
