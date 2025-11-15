@@ -219,7 +219,7 @@ public class PointsAwardMessageHandler {
     public void ladderReceiveInfo(PlayerController playerController, ReqPointsAwardLadderRewards msg) {
         ResPointsAwardLadderRewards res = new ResPointsAwardLadderRewards(Code.SUCCESS);
         long points = pointsAwardService.getTimePoints(playerController.playerId());
-        List<PointsAwardLadderRewardsInfo> configInfoList = pointsAwardService.getLadderConfigInfoList(playerController.playerId());
+        List<PointsAwardLadderRewardsInfo> configInfoList = pointsAwardService.getPointsAwardLadderRewardsInfoList(playerController.playerId());
         res.setTotalPoints(points);
         res.setLadderRewardsList(configInfoList);
         playerController.send(res);

@@ -90,7 +90,7 @@ public class CryptoUtils {
         });
         String sign = map.remove("sign").asText();
         log.debug("getDecryptRequest request={}", request);
-        log.debug("getDecryptRequest map={}", map);
+//        log.debug("getDecryptRequest map={}", map);
         if (Objects.isNull(sign)) {
             return null;
         }
@@ -120,7 +120,7 @@ public class CryptoUtils {
                 }
             }
         }
-        log.debug("getMd5String builder.toString()={}", builder);
+//        log.debug("getMd5String builder.toString()={}", builder);
         return DigestUtils.md5Hex(builder.toString()).toUpperCase();
     }
 

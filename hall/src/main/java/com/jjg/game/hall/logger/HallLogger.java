@@ -32,5 +32,14 @@ public class HallLogger extends BaseLogger {
         }
     }
 
-
+    public void bind(Player player, int type, String data) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("type", type);
+            json.put("data", data);
+            sendLog("bind", player, json);
+        } catch (Exception e) {
+            log.error("记录绑定日志异常", e);
+        }
+    }
 }

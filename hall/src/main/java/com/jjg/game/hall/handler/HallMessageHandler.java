@@ -321,7 +321,7 @@ public class HallMessageHandler implements GmListener {
         ResConfirmVerCode res = new ResConfirmVerCode(HallCode.SUCCESS);
         try {
             log.debug("确认验证码 req = {}", JSON.toJSONString(req));
-            CommonResult<String> result = hallService.comfirmVerCode(playerController.playerId(), req.verCodeType, req.verCode);
+            CommonResult<String> result = hallService.comfirmVerCode(playerController.getPlayer(), req.verCodeType, req.verCode);
             if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
@@ -1007,7 +1007,7 @@ public class HallMessageHandler implements GmListener {
     public void reqBindThirdAccount(PlayerController playerController, ReqBindThirdAccount req) {
         ResBindThirdAccount res = new ResBindThirdAccount(Code.SUCCESS);
         try {
-            CommonResult<List<Item>> result = hallService.bindThirdAccount(playerController.playerId(), req.type, req.token);
+            CommonResult<List<Item>> result = hallService.bindThirdAccount(playerController.getPlayer(), req.type, req.token);
             if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);

@@ -16,8 +16,9 @@ public enum LoginType {
     //脸书
     FACEBOOK(4),
     //手机登录
-    PHONE(5)
-
+    PHONE(5),
+    //邮箱
+    EMAIL(6),
     ;
 
     private int value;
