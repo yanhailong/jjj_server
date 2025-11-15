@@ -175,8 +175,10 @@ public class DropItemManager implements GameEventListener {
                 notifyItemDropInfo.itemDropInfos = itemDropInfos;
                 log.debug("玩家：{} 发送掉落数据：{}", player.getId(), JSON.toJSONString(notifyItemDropInfo));
                 PFSession pfSession = clusterSystem.getSession(player.getId());
-                // 发送道具掉落信息
-                pfSession.send(notifyItemDropInfo);
+                if(pfSession != null){
+                    // 发送道具掉落信息
+                    pfSession.send(notifyItemDropInfo);
+                }
             }
         }
     }
