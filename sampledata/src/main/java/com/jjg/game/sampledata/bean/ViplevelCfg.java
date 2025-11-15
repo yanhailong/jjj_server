@@ -19,8 +19,10 @@ public class ViplevelCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "viplevel";
 
-  /** 年奖励 */
+  /** 季度奖励 */
   protected Map<Integer,Long> annualRewards;
+  /** 等级道具奖励 */
+  protected Map<Integer,Long> avatarType;
   /** 生日奖励 */
   protected Map<Integer,Long> birthdayReward;
   /** 等级说明多语言ID */
@@ -46,9 +48,14 @@ public class ViplevelCfg extends BaseCfgBean {
   /** 每周奖励 */
   protected Map<Integer,Long> weeklyRewards;
 
-  /** 返回年奖励 */
+  /** 返回季度奖励 */
   public Map<Integer,Long> getAnnualRewards() {
     return annualRewards;
+  }
+
+  /** 返回等级道具奖励 */
+  public Map<Integer,Long> getAvatarType() {
+    return avatarType;
   }
 
   /** 返回生日奖励 */
