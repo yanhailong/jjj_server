@@ -5,6 +5,7 @@ import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.slots.data.SlotsResultLib;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
+import com.jjg.game.slots.utils.LZ4CompressionUtil;
 import org.bson.Document;
 import org.redisson.api.RKeys;
 import org.redisson.api.RedissonClient;
@@ -21,6 +22,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
 
 import java.lang.reflect.Constructor;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -30,7 +32,7 @@ import java.util.stream.Stream;
  * @author 11
  * @date 2025/7/10 17:38
  */
-public abstract class AbstractResultLibDao<T extends SlotsResultLib>{
+public abstract class AbstractResultLibDao<T extends SlotsResultLib> {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     protected Class<T> clazz;
@@ -119,15 +121,19 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib>{
         redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             for (T lib : libList) {
                 Set<Integer> libTypeSet = lib.getLibTypeSet();
-                //保存整个对象会占用很大内存，所以这里使用protostuff进行压缩序列化,然后保存
-                byte[] compressedData = ProtostuffUtil.serializeWithCompression(lib);
+                byte[] data = ProtostuffUtil.serialize(lib);
+                byte[] compressData = LZ4CompressionUtil.compressFast(data);
+
+                ByteBuffer buffer = ByteBuffer.allocate(4 + compressData.length);
+                buffer.putInt(data.length);
+                buffer.put(compressData);
+
                 for (int type : libTypeSet) {
                     int sectionIndex = getSectionIndex(resultLibSectionMap, type, lib.getTimes());
                     if (sectionIndex < 0) continue;
                     connection.sAdd(
                             tabelName(redisTableNameIndex, gameType, type, sectionIndex).getBytes(),
-
-                            compressedData
+                            buffer.array()
                     );
                 }
             }
@@ -135,7 +141,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib>{
         });
     }
 
-    public void afterSave(String newRedisTableName){
+    public void afterSave(String newRedisTableName) {
         this.redisTemplate.opsForHash().put(slotsCurrentRedisResultLib, this.gameType, newRedisTableName);
         this.currentRedisLibName = newRedisTableName;
     }
@@ -191,8 +197,15 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib>{
                         connection.sRandMember(tableName.getBytes())
         );
 
+        ByteBuffer buffer = ByteBuffer.wrap(compressedData);
+        int originalLength = buffer.getInt();  // 读取原始长度
+
+        byte[] data = new byte[compressedData.length - 4];
+        buffer.get(data);
+
+        compressedData = LZ4CompressionUtil.decompressFast(data, originalLength);
         //获取结果后进行解压反序列化
-        return ProtostuffUtil.deserializeWithCompression(compressedData, clazz);
+        return ProtostuffUtil.deserialize(compressedData, clazz);
     }
 
     /**

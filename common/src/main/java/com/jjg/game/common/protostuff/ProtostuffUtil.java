@@ -1,7 +1,5 @@
 package com.jjg.game.common.protostuff;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.protostuff.LinkedBuffer;
 import io.protostuff.ProtobufIOUtil;
 import io.protostuff.Schema;
@@ -30,7 +28,7 @@ public final class ProtostuffUtil {
             ThreadLocal.withInitial(() -> LinkedBuffer.allocate(LinkedBuffer.DEFAULT_BUFFER_SIZE));
 
     private static final boolean USE_COMPRESSION = true;
-    private static final int COMPRESSION_LEVEL = Deflater.BEST_COMPRESSION;
+    private static final int COMPRESSION_LEVEL = Deflater.BEST_SPEED;
 
     private static LinkedBuffer getBuffer() {
         return LOCAL_BUFFER.get().clear();

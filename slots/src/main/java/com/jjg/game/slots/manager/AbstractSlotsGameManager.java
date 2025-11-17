@@ -355,13 +355,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return result;
         }
 
-        Player player = slotsPlayerService.get(playerGameData.playerId());
-        if (player.getGold() < betValue) {
-            log.debug("玩家余额不足，无法快乐的玩游戏 playerId = {},gameType = {},roomCfgId = {},betValue = {},currentGold = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), betValue, player.getGold());
-            result.code = Code.NOT_ENOUGH;
-            return result;
-        }
-
         CommonResult<SpecialResultLibCfg> libCfgResult = getLibCfg(playerGameData, baseRoomCfg.getInitBasePool());
         if (!libCfgResult.success()) {
             result.code = libCfgResult.code;
@@ -434,6 +427,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             result.code = poolResult.code;
             return result;
         }
+
+        Player player = poolResult.data.getFirst();
 
         //更新玩家数据
         playerGameData.updatePlayer(poolResult.data.getFirst());
