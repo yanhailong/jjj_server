@@ -166,6 +166,8 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         settlementPlayerInfo.playerId = gameDataVo.getCurrentPlayerSeatInfo().getPlayerId();
         settlementPlayerInfo.type = gameDataVo.getCurrentPlayerSeatInfo().getOperationType();
         settlementPlayerInfo.endTime = gameDataVo.getPhaseEndTime() + (showDealer ? (long) sendCards.size() * PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) : 0);
+        //计算总税收
+        long totalTax = 0;
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
             if (info.isDelState()) {
                 continue;
@@ -236,10 +238,12 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             Long totalGet = playerGet.getOrDefault(playerId, 0L);
             long get = totalGet - controller.getPlayerTotalBet(playerId);
             if (get > 0) {
+                long radioBefore = get;
                 //扣除抽水
                 get = BigDecimal.valueOf(get)
                         .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getEffectiveRatio()))
                         .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                totalTax += radioBefore - get;
                 totalGet = controller.getPlayerTotalBet(playerId) + get;
                 if (gameDataVo.getGamePlayer(playerId) instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(1);
@@ -255,6 +259,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             blackJackSettlementInfo.currentGold = controller.getTransactionItemNum(playerId);
             settlementPlayerInfo.settlementInfos.add(settlementInfo);
         }
+        gameDataTracker.addGameLogData("tax", totalTax);
         log.info("21点结算信息: {}", JSON.toJSONString(settlementPlayerInfo));
         gameDataVo.setSettlementInfo(settlementPlayerInfo);
         return settlementPlayerInfo;
