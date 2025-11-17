@@ -280,7 +280,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        int verCode = RandomUtils.randomNum(HallConstant.VerCode.CODE_MIN, HallConstant.VerCode.CODE_MAX);
+        int verCode = RandomUtils.randomNum(GameConstant.VerCode.CODE_MIN, GameConstant.VerCode.CODE_MAX);
         verCodeDao.addVerCode(playerId, VerCodeType.MAIL_BIND_MAIL, data, verCode);
         result.data = verCode;
         return result;
@@ -308,7 +308,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        if (verCode < HallConstant.VerCode.CODE_MIN || verCode > HallConstant.VerCode.CODE_MAX) {
+        if (verCode < GameConstant.VerCode.CODE_MIN || verCode > GameConstant.VerCode.CODE_MAX) {
             result.code = Code.PARAM_ERROR;
             log.debug("验证码不在范围内，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
             return result;

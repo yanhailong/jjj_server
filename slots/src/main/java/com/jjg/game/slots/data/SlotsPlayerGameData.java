@@ -1,5 +1,6 @@
 package com.jjg.game.slots.data;
 
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
@@ -255,6 +256,12 @@ public class SlotsPlayerGameData {
 
     public void setCreateTime(int createTime) {
         this.createTime = createTime;
+    }
+
+    public void updatePlayer(Player player){
+        if(this.playerController != null){
+            this.playerController.setPlayer(player);
+        }
     }
 
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception{

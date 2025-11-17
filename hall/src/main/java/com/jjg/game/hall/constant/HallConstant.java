@@ -23,12 +23,6 @@ public interface HallConstant {
         List<Integer> ALL_REFLUSH_TYPE = List.of(4, 5);
     }
 
-    interface VerCode {
-        //验证码范围
-        int CODE_MIN = 1000;
-        int CODE_MAX = 9999999;
-    }
-
     /**
      * 传入,返回参数类型
      */

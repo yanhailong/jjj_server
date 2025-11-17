@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.dollarexpress.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
@@ -513,12 +514,13 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @return
      */
     private DollarExpressGameRunInfo normal(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData, long betValue) {
-        CommonResult<DollarExpressResultLib> libResult = normalGetLib(playerGameData, betValue, DollarExpressConstant.SpecialMode.TYPE_NORMAL);
+        CommonResult<Pair<DollarExpressResultLib,Long>> libResult = normalGetLib(playerGameData, betValue, DollarExpressConstant.SpecialMode.TYPE_NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
         }
-        DollarExpressResultLib resultLib = libResult.data;
+        DollarExpressResultLib resultLib = libResult.data.getFirst();
+        gameRunInfo.setTax(libResult.data.getSecond());
 
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_ALL_BOARD)) {  //是否会触发二选一

@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.mahjiongwin.manager;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
@@ -150,7 +151,9 @@ public class MahjiongWinSendMessageManager extends BaseSendMessageManager {
         awardLineInfoList.forEach(info -> {
             indexSet.addAll(info.getSameIconSet());
             winIconSet.add(info.getSameIcon());
-            replaceWildIndexs.addAll(info.getReplaceWildIndexs());
+            if(info.getReplaceWildIndexs() != null && !info.getReplaceWildIndexs().isEmpty()){
+                replaceWildIndexs.addAll(info.getReplaceWildIndexs());
+            }
             iconInfo.win += info.getBaseTimes() * oneBetScore;
         });
 

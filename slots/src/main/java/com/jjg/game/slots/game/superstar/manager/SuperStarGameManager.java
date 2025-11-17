@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.superstar.manager;
 
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -124,12 +125,15 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
     public SuperStarGameRunInfo startGame(PlayerController playerController, SuperStarPlayerGameData playerGameData, long betValue) {
         SuperStarGameRunInfo gameRunInfo = new SuperStarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
-            CommonResult<SuperStarResultLib> commonResult = normalGetLib(playerGameData, betValue, SuperStarConstant.Common.SPECIAL_MODE_TYPE_NORMAL);
-            SuperStarResultLib resultLib = commonResult.data;
-            if (resultLib == null) {
-                gameRunInfo.setCode(Code.EXCEPTION);
+            CommonResult<Pair<SuperStarResultLib,Long>> commonResult = normalGetLib(playerGameData, betValue, SuperStarConstant.Common.SPECIAL_MODE_TYPE_NORMAL);
+            if (!commonResult.success()) {
+                gameRunInfo.setCode(commonResult.code);
                 return gameRunInfo;
             }
+
+            SuperStarResultLib resultLib = commonResult.data.getFirst();
+            gameRunInfo.setTax(commonResult.data.getSecond());
+
             gameRunInfo.setStake(betValue);
             //记录spin数据
             SuperStarSpinInfo spinInfo = spinAnalysis(resultLib, playerGameData.getOneBetScore());

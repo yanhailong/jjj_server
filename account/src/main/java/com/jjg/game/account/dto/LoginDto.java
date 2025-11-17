@@ -15,6 +15,8 @@ public class LoginDto {
     private int channel;
     //设备类型  1.安卓  2.ios
     private int device;
+    //手机型号
+    private String phoneType;
 
     public int getLoginType() {
         return loginType;
@@ -54,5 +56,13 @@ public class LoginDto {
 
     public void setDevice(int device) {
         this.device = device;
+    }
+
+    public String getPhoneType() {
+        return phoneType;
+    }
+
+    public void setPhoneType(String phoneType) {
+        this.phoneType = phoneType;
     }
 }

@@ -274,10 +274,10 @@ public class BaseLogger {
      *
      * @param player
      * @param gameType
-     * @param device 设备
+     * @param device   设备
      * @return
      */
-    public void enterGame(Player player, int gameType, int roomCfgId,int device) {
+    public void enterGame(Player player, int gameType, int roomCfgId, int device) {
         if (player instanceof RobotPlayer) {
             return;
         }
@@ -299,7 +299,7 @@ public class BaseLogger {
      * @param player
      * @return
      */
-    public void exitGame(Player player,int onlineTimeLen,int device) {
+    public void exitGame(Player player, int onlineTimeLen, int device) {
         if (player instanceof RobotPlayer) {
             return;
         }
@@ -323,7 +323,7 @@ public class BaseLogger {
      * @param count
      * @param addType
      */
-    public void consumeItem(long playerId, Map<Integer, Long> beforeMap, int itemId, long count,Map<Integer, Long> afterMap, AddType addType) {
+    public void consumeItem(long playerId, Map<Integer, Long> beforeMap, int itemId, long count, Map<Integer, Long> afterMap, AddType addType) {
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
@@ -335,7 +335,7 @@ public class BaseLogger {
             json.put("before", beforeJsonArray);
 
             //变化值
-            JSONArray jsonArray = itemToJsonArray(itemId,count);
+            JSONArray jsonArray = itemToJsonArray(itemId, count);
             json.put("items", jsonArray);
 
             //后
@@ -443,9 +443,10 @@ public class BaseLogger {
 
         String msg = JSONObject.toJSONString(json, SerializerFeature.WriteNonStringKeyAsString);
 
-        kafkaTemplate.send(StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic.toLowerCase(), msg);
+        topic = StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic.toLowerCase();
+        kafkaTemplate.send(topic, msg);
 
-        log.debug("打印日志数据 msg = {}", msg);
+        log.debug("打印日志数据 topic = {},msg = {}", topic, msg);
     }
 
     /**
@@ -572,26 +573,26 @@ public class BaseLogger {
         }
     }
 
-    private JSONObject itemToJson(int id,long count) {
+    private JSONObject itemToJson(int id, long count) {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("itemId", id);
         jsonObject.put("count", count);
         return jsonObject;
     }
 
-    private JSONArray itemToJsonArray(int id,long count) {
+    private JSONArray itemToJsonArray(int id, long count) {
         JSONArray jsonArray = new JSONArray();
-        jsonArray.add(itemToJson(id,count));
+        jsonArray.add(itemToJson(id, count));
         return jsonArray;
     }
 
-    private JSONArray itemMapToJsonArray(Map<Integer,Long> items) {
-        if(items == null || items.isEmpty()) {
+    private JSONArray itemMapToJsonArray(Map<Integer, Long> items) {
+        if (items == null || items.isEmpty()) {
             return null;
         }
         JSONArray jsonArray = new JSONArray();
 
-        for(Map.Entry<Integer,Long> en : items.entrySet()){
+        for (Map.Entry<Integer, Long> en : items.entrySet()) {
             jsonArray.add(itemToJson(en.getKey(), en.getValue()));
         }
         return jsonArray;

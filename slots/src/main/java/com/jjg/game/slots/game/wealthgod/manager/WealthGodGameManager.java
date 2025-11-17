@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.wealthgod.manager;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
@@ -118,13 +119,14 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
     public WealthGodGameRunInfo startGame(PlayerController playerController, WealthGodPlayerGameData playerGameData, long betValue) {
         WealthGodGameRunInfo gameRunInfo = new WealthGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
-            CommonResult<WealthGodResultLib> commonResult = normalGetLib(playerGameData, betValue, WealthGodConstant.SpecialMode.TYPE_NORMAL);
-
-            WealthGodResultLib resultLib = commonResult.data;
-            if (resultLib == null) {
-                gameRunInfo.setCode(Code.EXCEPTION);
+            CommonResult<Pair<WealthGodResultLib,Long>> commonResult = normalGetLib(playerGameData, betValue, WealthGodConstant.SpecialMode.TYPE_NORMAL);
+            if (!commonResult.success()) {
+                gameRunInfo.setCode(commonResult.code);
                 return gameRunInfo;
             }
+
+            WealthGodResultLib resultLib = commonResult.data.getFirst();
+            gameRunInfo.setTax(commonResult.data.getSecond());
 
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());

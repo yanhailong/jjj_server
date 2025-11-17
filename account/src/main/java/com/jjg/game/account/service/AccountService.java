@@ -1,6 +1,5 @@
 package com.jjg.game.account.service;
 
-import com.jjg.game.account.constant.AccountConstant;
 import com.jjg.game.account.dao.PlayerIdDao;
 import com.jjg.game.account.dto.LoginDto;
 import com.jjg.game.account.logger.AccountLogger;
@@ -107,7 +106,7 @@ public class AccountService {
 
                 account = accountDao.insert(account);
 
-                accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, loginDto.getChannel(), ip, loginDto.getDevice(), loginDto.getMac());
+                accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, loginDto.getChannel(), ip, loginDto.getDevice(), loginDto.getMac(), loginDto.getPhoneType());
             } else {
                 account.setLastLoginMac(loginDto.getMac());
                 accountDao.save(account);

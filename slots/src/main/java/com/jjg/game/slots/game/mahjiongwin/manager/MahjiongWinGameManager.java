@@ -3,6 +3,7 @@ package com.jjg.game.slots.game.mahjiongwin.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -188,12 +189,13 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
      * @return
      */
     private MahjiongWinGameRunInfo normal(MahjiongWinGameRunInfo gameRunInfo, MahjiongWinPlayerGameData playerGameData, long betValue) {
-        CommonResult<MahjiongWinResultLib> libResult = normalGetLib(playerGameData, betValue, MahjiongWinConstant.SpecialMode.NORMAL);
+        CommonResult<Pair<MahjiongWinResultLib,Long>> libResult = normalGetLib(playerGameData, betValue, MahjiongWinConstant.SpecialMode.NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
         }
-        MahjiongWinResultLib resultLib = libResult.data;
+        MahjiongWinResultLib resultLib = libResult.data.getFirst();
+        gameRunInfo.setTax(libResult.data.getSecond());
 
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(MahjiongWinConstant.SpecialMode.FREE)) {  //是否会触发免费

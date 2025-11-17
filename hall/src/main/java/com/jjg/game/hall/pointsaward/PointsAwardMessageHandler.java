@@ -233,15 +233,13 @@ public class PointsAwardMessageHandler {
     @Command(PointsAwardConstant.Message.REQ_RECEIVE_POINTS_AWARD_LADDER_REWARD)
     public void receiveLadderAward(PlayerController playerController, ReqReceivePointsAwardLadderRewards msg) {
         long points = msg.getPoints();
-        boolean flag = pointsAwardService.receiveLader(points, playerController.playerId(), false);
+        int code = pointsAwardService.receiveLader(points, playerController.playerId(), false);
         ResReceivePointsAwardLadderRewards res = new ResReceivePointsAwardLadderRewards(Code.SUCCESS);
         res.setPoints(points);
-        if (!flag) {
-            res.code = Code.SAMPLE_ERROR;
-        }
+        res.code = code;
         playerController.send(res);
         log.debug("返回玩家领取积分大奖奖励 playerId = {},points = {},code = {}", playerController.playerId(), points, res.code);
-        if (flag) {
+        if (code == Code.SUCCESS) {
             redDotManager.updateRedDotByInitialize(pointsAwardService.getModule(), pointsAwardService.getSubmodule(), playerController.playerId());
         }
     }

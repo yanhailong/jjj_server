@@ -53,9 +53,11 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
                 return;
             }
 
-            gameManager.addGenerateLibEvent(countMap(req.gameType, req.count));
+            boolean add = gameManager.addGenerateLibEvent(countMap(req.gameType, req.count));
 
-            log.info("添加生成结果库事件成功  gameType = {},count = {}",req.gameType,req.count);
+            if(add){
+                log.info("添加生成结果库事件成功  gameType = {},count = {}",req.gameType,req.count);
+            }
         }catch (Exception e) {
             log.error("",e);
         }

@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.cleopatra.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
@@ -182,13 +183,15 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 //                continue;
 //            }
             //获取结果库
-            CommonResult<CleopatraResultLib> libResult = normalGetLib(playerGameData, betValue, CleopatraConstant.SpecialMode.NORMAL);
+            CommonResult<Pair<CleopatraResultLib,Long>> libResult = normalGetLib(playerGameData, betValue, CleopatraConstant.SpecialMode.NORMAL);
             if (!libResult.success()) {
                 gameRunInfo.setCode(libResult.code);
                 return gameRunInfo;
             }
 
-            CleopatraResultLib tmpLib = libResult.data;
+            CleopatraResultLib tmpLib = libResult.data.getFirst();
+            gameRunInfo.setTax(libResult.data.getSecond());
+
             //检查是否有奖池奖励
             if (tmpLib.getJackpotIds() != null && !tmpLib.getJackpotIds().isEmpty()) {
                 //判断中奖概率

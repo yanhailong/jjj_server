@@ -411,7 +411,7 @@ public class AccountController extends AbstractController {
         }
 
         //保存token，方便weboskcet连接时进行校验
-        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), channelType.getValue(), ip, deviceType.getValue(), dto.getMac());
+        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), channelType.getValue(), ip, deviceType.getValue(), dto.getMac(),account.getChannel().getValue());
 
         LoginVo vo = new LoginVo();
         vo.setToken(token);

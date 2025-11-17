@@ -15,6 +15,7 @@ public class PlayerSessionToken {
     //设备类型  1.安卓  2.ios
     private int device;
     private String mac;
+    private int registerChannel;
 
     public long getPlayerId() {
         return playerId;
@@ -78,5 +79,13 @@ public class PlayerSessionToken {
 
     public void setMac(String mac) {
         this.mac = mac;
+    }
+
+    public int getRegisterChannel() {
+        return registerChannel;
+    }
+
+    public void setRegisterChannel(int registerChannel) {
+        this.registerChannel = registerChannel;
     }
 }

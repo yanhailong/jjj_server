@@ -158,4 +158,10 @@ public class GameConstant {
         //认证用户
         public static final int VERIFIED = 1;
     }
+
+    public interface VerCode {
+        //验证码范围
+        int CODE_MIN = 100000;
+        int CODE_MAX = 999999;
+    }
 }

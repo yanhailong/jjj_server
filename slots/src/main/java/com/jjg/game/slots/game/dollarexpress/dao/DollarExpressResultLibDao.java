@@ -2,8 +2,6 @@ package com.jjg.game.slots.game.dollarexpress.dao;
 
 import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -13,7 +11,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DollarExpressResultLibDao extends AbstractResultLibDao<DollarExpressResultLib> {
 
-    public DollarExpressResultLibDao(@Autowired MongoTemplate mongoTemplate) {
-        super(DollarExpressResultLib.class, mongoTemplate);
+    public DollarExpressResultLibDao() {
+        super(DollarExpressResultLib.class);
     }
 }

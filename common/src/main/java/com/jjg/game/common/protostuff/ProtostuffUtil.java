@@ -9,8 +9,13 @@ import io.protostuff.runtime.RuntimeSchema;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.Deflater;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * 序列化工具类（基于 Protostuff 实现）
@@ -23,6 +28,9 @@ public final class ProtostuffUtil {
     private static Objenesis objenesis = new ObjenesisStd(true);
     private static final ThreadLocal<LinkedBuffer> LOCAL_BUFFER =
             ThreadLocal.withInitial(() -> LinkedBuffer.allocate(LinkedBuffer.DEFAULT_BUFFER_SIZE));
+
+    private static final boolean USE_COMPRESSION = true;
+    private static final int COMPRESSION_LEVEL = Deflater.BEST_COMPRESSION;
 
     private static LinkedBuffer getBuffer() {
         return LOCAL_BUFFER.get().clear();
@@ -61,6 +69,55 @@ public final class ProtostuffUtil {
             return message;
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage(), e);
+        }
+    }
+
+
+    /**
+     * 序列化并压缩
+     */
+    public static <T> byte[] serializeWithCompression(T obj) {
+        byte[] serialized = serialize(obj);
+        return compress(serialized);
+    }
+
+    /**
+     * 解压并反序列化
+     */
+    public static <T> T deserializeWithCompression(byte[] compressedData, Class<T> cls) {
+        byte[] data = decompress(compressedData);
+        return deserialize(data, cls);
+    }
+
+    private static byte[] compress(byte[] data) {
+        if (!USE_COMPRESSION) return data;
+
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             GZIPOutputStream gzipOS = new GZIPOutputStream(baos) {
+                 { def.setLevel(COMPRESSION_LEVEL); }
+             }) {
+            gzipOS.write(data);
+            gzipOS.finish();
+            return baos.toByteArray();
+        } catch (Exception e) {
+            throw new IllegalStateException("压缩失败", e);
+        }
+    }
+
+    private static byte[] decompress(byte[] compressedData) {
+        if (!USE_COMPRESSION) return compressedData;
+
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(compressedData);
+             GZIPInputStream gzipIS = new GZIPInputStream(bais);
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[4096];
+            int len;
+            while ((len = gzipIS.read(buffer)) > 0) {
+                baos.write(buffer, 0, len);
+            }
+            return baos.toByteArray();
+        } catch (Exception e) {
+            throw new IllegalStateException("解压失败", e);
         }
     }
 }

@@ -11,6 +11,7 @@ import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
+import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.OrderGenerate;
@@ -49,11 +50,11 @@ public class ShopService implements OrderGenerate, GameEventListener {
     @Autowired
     private CoreLogger coreLogger;
     @Autowired
-    private AccountDao accountDao;
-    @Autowired
     private ClusterSystem clusterSystem;
     @Autowired
     private MailService mailService;
+    @Autowired
+    private PlayerSessionTokenDao playerSessionTokenDao;
     //商城商品
     private Map<Long, ShopProduct> shopProductMap;
 
@@ -116,8 +117,12 @@ public class ShopService implements OrderGenerate, GameEventListener {
             return result;
         }
 
-        Account account = accountDao.queryAccountByPlayerId(playerController.playerId());
-        coreLogger.shop(playerController.getPlayer(), shopProduct, account.getChannel().getValue());
+        PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerController.playerId());
+        int registerChannel = ChannelType.GOOGLE.getValue();
+        if(playerSessionToken != null){
+            registerChannel = playerSessionToken.getRegisterChannel();
+        }
+        coreLogger.shop(playerController.getPlayer(), shopProduct, registerChannel);
         return result;
     }
 

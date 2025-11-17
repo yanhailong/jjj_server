@@ -530,16 +530,16 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     /**
      * 玩家领取积分阶梯奖励
      */
-    public boolean receiveLader(long points, long playerId, boolean autoRecive) {
+    public int receiveLader(long points, long playerId, boolean autoRecive) {
         if (this.pointsAwardMap == null || this.pointsAwardMap.isEmpty()) {
             log.debug("积分大奖保底奖励为空，玩家领取奖励失败 playerId = {},points = {},autoRecive = {}", playerId, points, autoRecive);
-            return false;
+            return Code.SAMPLE_ERROR;
         }
 
         PointsAwardLadderRewardsInfo info = this.pointsAwardMap.get(points);
         if (info == null) {
             log.debug("积分大奖奖励中无该阶段配置 playerId = {},points = {},autoRecive = {}", playerId, points, autoRecive);
-            return false;
+            return Code.SAMPLE_ERROR;
         }
 
         RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
@@ -548,7 +548,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             if (rLock.tryLock()) {
                 //已经领取过了
                 if (rewardReceiveSet.contains(info.getPoints())) {
-                    return false;
+                    return Code.REPEAT_OP;
                 }
                 if (autoRecive) {
                     Item item = new Item(info.getItemId(), info.getItemNum());
@@ -558,12 +558,12 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                     playerPackService.addItem(playerId, info.getItemId(), info.getItemNum(), AddType.POINTS_AWARD_SIGN_REWARDS);
                 }
                 rewardReceiveSet.add(info.getPoints());
-                return true;
+                return Code.SUCCESS;
             }
         } finally {
             rLock.unlock();
         }
-        return false;
+        return Code.FAIL;
     }
 
     @Override

@@ -30,6 +30,7 @@ public class SlotsLogger extends BaseLogger {
         json.put("level", player.getLevel());
         json.put("exp", player.getExp());
         json.put("auto", gameRunInfo.isAuto());
+        json.put("tax",gameRunInfo.getTax());
         return json;
     }
 

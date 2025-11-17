@@ -16,6 +16,7 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.dao.PlayerSkinDao;
@@ -25,6 +26,7 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.task.param.TaskConditionParam10001;
 import com.jjg.game.hall.casino.manager.CasinoManager;
 import com.jjg.game.hall.casino.pb.req.*;
 import com.jjg.game.hall.constant.HallCode;
@@ -285,29 +287,31 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_VER_CODE)
     public void reqVerCode(PlayerController playerController, ReqVerCode req) {
-        ResVerCode res = new ResVerCode(HallCode.SUCCESS);
-        try {
-            CommonResult<Integer> result = null;
-            if (req.type == VerCodeType.SMS_BIND_PHONE.getValue()) {
-                result = hallService.bindPhone(playerController.playerId(), req.data);
-            } else if (req.type == VerCodeType.MAIL_BIND_MAIL.getValue()) {
-                result = hallService.bindEmail(playerController.playerId(), req.data);
-            } else {
-                log.debug("没有该类型的验证码 playerId = {},verCodeType = {},data = {}", playerController.playerId(), req.type, req.data);
-                result = new CommonResult<>(Code.PARAM_ERROR);
-            }
+        Thread.ofVirtual().start(() -> {
+            ResVerCode res = new ResVerCode(HallCode.SUCCESS);
+            try {
+                CommonResult<Integer> result = null;
+                if (req.type == VerCodeType.SMS_BIND_PHONE.getValue()) {
+                    result = hallService.bindPhone(playerController.playerId(), req.data);
+                } else if (req.type == VerCodeType.MAIL_BIND_MAIL.getValue()) {
+                    result = hallService.bindEmail(playerController.playerId(), req.data);
+                } else {
+                    log.debug("没有该类型的验证码 playerId = {},verCodeType = {},data = {}", playerController.playerId(), req.type, req.data);
+                    result = new CommonResult<>(Code.PARAM_ERROR);
+                }
 
-            if (!result.success()) {
-                res.code = result.code;
-                playerController.send(res);
-                return;
+                if (!result.success()) {
+                    res.code = result.code;
+                    playerController.send(res);
+                    return;
+                }
+                log.info("获取验证码成功，playerId = {},verCodeType = {},data = {},verCode = {}", playerController.playerId(), req.type, req.data, result.data);
+            } catch (Exception e) {
+                log.error("", e);
+                res.code = Code.EXCEPTION;
             }
-            log.info("获取验证码成功，playerId = {},verCodeType = {},data = {},verCode = {}", playerController.playerId(), req.type, req.data, result.data);
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
+            playerController.send(res);
+        });
     }
 
     /**

@@ -8,6 +8,7 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.VerCodeDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.VerCodeType;
@@ -42,7 +43,7 @@ public class SmsService {
      */
     public int sendCode(String phone, VerCodeType verCodeType) {
         //生成验证码
-        int verCode = RandomUtils.randomNum(100000, 999999);
+        int verCode = RandomUtils.randomNum(GameConstant.VerCode.CODE_MIN, GameConstant.VerCode.CODE_MAX);
         String content = verCode + " is your verification code";
         int sendResultCode = sendOnbukaSms(phone, content, verCodeType);
         if (sendResultCode != Code.SUCCESS) {
@@ -63,7 +64,7 @@ public class SmsService {
     public CommonResult<Integer> sendCode(long playerId, String phone, VerCodeType verCodeType) {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
         //生成验证码
-        int verCode = RandomUtils.randomNum(100000, 999999);
+        int verCode = RandomUtils.randomNum(GameConstant.VerCode.CODE_MIN, GameConstant.VerCode.CODE_MAX);
         String content = verCode + " is your verification code";
         int sendResultCode = sendOnbukaSms(phone, content, verCodeType);
         if (sendResultCode != Code.SUCCESS) {

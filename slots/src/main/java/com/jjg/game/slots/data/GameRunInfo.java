@@ -35,6 +35,8 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
     private T data;
     //结果库
     private Object resultLib;
+    //税
+    private long tax;
 
     public GameRunInfo(int code, long playerId) {
         this.code = code;
@@ -175,5 +177,13 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
 
     public void setResultLib(Object resultLib) {
         this.resultLib = resultLib;
+    }
+
+    public long getTax() {
+        return tax;
+    }
+
+    public void setTax(long tax) {
+        this.tax = tax;
     }
 }
