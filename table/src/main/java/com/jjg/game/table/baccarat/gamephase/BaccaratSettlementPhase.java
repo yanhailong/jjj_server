@@ -225,7 +225,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameController, playerBetInfo);
             }
         }
-        if(changeParam!=null) {
+        if (changeParam != null) {
             calculationFinalBankerChange(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);
         }

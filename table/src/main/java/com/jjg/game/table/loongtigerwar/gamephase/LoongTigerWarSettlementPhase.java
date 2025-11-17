@@ -4,6 +4,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.RoomBankerChangeParam;
@@ -143,21 +144,24 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
 
     @Override
     public void calculationFinalBankerChange(RoomBankerChangeParam param) {
-        long totalGet = 0;
-        for (Map.Entry<Integer, Map<Long, Integer>> entry : param.getBankerChangeMap().entrySet()) {
-            long sum = entry.getValue().values().stream().mapToLong(Integer::intValue).sum();
-            if (entry.getKey() == LoongTigerWarConstant.Common.LUCK_AREA) {
-                //不算税收
-                totalGet += sum;
-            } else {
-                long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
-                param.addTotalTaxRevenue(sum - realGet);
-                totalGet += realGet;
+        gameDataTracker.addGameLogData("tax", param.getTotalTaxRevenue());
+        if (gameController.getRoom() instanceof FriendRoom) {
+            long totalGet = 0;
+            for (Map.Entry<Integer, Map<Long, Integer>> entry : param.getBankerChangeMap().entrySet()) {
+                long sum = entry.getValue().values().stream().mapToLong(Integer::intValue).sum();
+                if (entry.getKey() == LoongTigerWarConstant.Common.LUCK_AREA) {
+                    //不算税收
+                    totalGet += sum;
+                } else {
+                    long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
+                    param.addTotalTaxRevenue(sum - realGet);
+                    totalGet += realGet;
+                }
             }
+            param.addBankerChangeGold(-totalGet);
+            //计算房主收益
+            param.addRoomCreatorTotalIncome(calcRoomCreatorIncome(param.getTotalTaxRevenue()));
         }
-        param.addBankerChangeGold(-totalGet);
-        //计算房主收益
-        param.addRoomCreatorTotalIncome(calcRoomCreatorIncome(param.getTotalTaxRevenue()));
     }
 
     @Override
