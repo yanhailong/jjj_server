@@ -15,8 +15,8 @@ import com.jjg.game.core.dao.PlayerLoginTimeDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.CoreSendMessageManager;
-import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.manager.VipCheckManager;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PlayerLevelConfigCfg;
 import org.apache.kafka.common.utils.PrimitiveRef;
@@ -353,7 +353,7 @@ public class AbstractPlayerService {
         return deductDiamond(playerId, deductNum, addType, desc, false);
     }
 
-    public CommonResult<Player> deductDiamond(long playerId, long deductNum, AddType addType, String desc,boolean isNotify) {
+    public CommonResult<Player> deductDiamond(long playerId, long deductNum, AddType addType, String desc, boolean isNotify) {
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
         Supplier<Player> supplier = () -> checkAndSave(playerId, new DataSaveCallback<>() {
             @Override
@@ -625,7 +625,7 @@ public class AbstractPlayerService {
             coreLogger.useGold(p, beforeUpdateGold.value, addNum, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
-            if (isNotify) {
+            if (isNotify && addType != AddType.GAME_SETTLEMENT) {
                 // 推送金币变化消息
 //                sendMessageManager.buildBaseInfoChangeMessage(p);
                 sendMessageManager.buildGoldChangeMessage(p, addNum);
