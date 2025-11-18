@@ -36,6 +36,7 @@ public class RandomUtils {
     public static String getUUid() {
         return UUID.randomUUID().toString().replaceAll("-", "");
     }
+
     public static String getOriginalUUid() {
         return UUID.randomUUID().toString();
     }
@@ -303,6 +304,7 @@ public class RandomUtils {
     public static <T> Set<T> getRandomByWeight(Map<T, Integer> weightMap, int count) {
         return getRandomByWeight(weightMap, count, true);
     }
+
 
     /**
      * 根据权重选出几个结果

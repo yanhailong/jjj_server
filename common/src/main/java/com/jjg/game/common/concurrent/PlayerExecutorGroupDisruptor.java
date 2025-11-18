@@ -37,7 +37,7 @@ public class PlayerExecutorGroupDisruptor {
         int sc = slotCount > 0 ? slotCount : cores * 2;
         // round up to power of two for fast masking if desired
         this.slotCount = nextPowerOfTwo(sc);
-        this.bufferSize = nextPowerOfTwo(bufferSize <= 0 ? 1024 : bufferSize);
+        this.bufferSize = nextPowerOfTwo(bufferSize <= 0 ? 4096 : bufferSize);
 
         this.workers = new PlayerWorker[this.slotCount];
         for (int i = 0; i < this.slotCount; i++) {
