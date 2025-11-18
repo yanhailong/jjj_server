@@ -92,6 +92,7 @@ public class ClusterMessageDispatcher {
             if (session != null) {
                 bindId = session.getWorkId();
             }
+            log.warn("PFMessage.data identity={}", System.identityHashCode(msg.data));
             boolean tryPublish = executorGroup.tryPublish(bindId, msg.cmd, new BaseHandler<>() {
                 @Override
                 public void action() {
@@ -136,6 +137,7 @@ public class ClusterMessageDispatcher {
                             "0x" + Integer.toHexString(command).toUpperCase());
                     return;
                 }
+                log.warn("PFMessage.data identity={}", System.identityHashCode(msg.data));
                 // 调用消息具体实现方法
                 invokeMessage(connect, session, msg, messageController, methodInfo);
             } else {
