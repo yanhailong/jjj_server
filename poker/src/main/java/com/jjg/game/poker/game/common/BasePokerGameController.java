@@ -62,7 +62,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     @Override
     public void reconnect(PlayerController playerController) {
         try {
-            respRoomInitInfoAction(playerController);
+            respRoomInitInfo(playerController);
         } catch (Exception e) {
             log.error("重连进入主动推送基础信息失败 playerId:{}", playerController.playerId());
         }
