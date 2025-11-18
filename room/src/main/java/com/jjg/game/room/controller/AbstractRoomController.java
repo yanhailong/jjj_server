@@ -515,7 +515,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     @Override
     public void reconnect(PlayerController playerController) {
-
+        gameController.reconnect(playerController);
     }
 
     /**
