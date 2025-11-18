@@ -1,32 +1,19 @@
 package com.jjg.game.slots.dao;
 
 import com.jjg.game.common.protostuff.ProtostuffUtil;
-import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.slots.data.SlotsResultLib;
-import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import com.jjg.game.slots.utils.LZ4CompressionUtil;
-import org.bson.Document;
 import org.redisson.api.RKeys;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.BulkOperations;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ScanOptions;
 
-import java.lang.reflect.Constructor;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @author 11
@@ -185,7 +172,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> {
         RKeys keys = redisson.getKeys();
         long start = System.currentTimeMillis();
         long deleted = keys.deleteByPattern(gameTableName + "*");
-        log.debug("从redis移除结果库 gameType = {},removeName = {}, 删除Key数量 = {},耗时 = {} ms", gameType, gameTableName, deleted, System.currentTimeMillis() - start);
+        log.debug("从redis移除旧的结果库 gameType = {},removeName = {}, 删除Key数量 = {},耗时 = {} ms", gameType, gameTableName, deleted, System.currentTimeMillis() - start);
     }
 
     public T getLibBySectionIndex(int libType, int sectionIndex, Class<T> clazz) {

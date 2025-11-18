@@ -19,22 +19,31 @@ import java.util.Map;
  */
 public class ItemUtils {
 
+    public static int GOLD_ITEM_ID = 0;
+    public static int DIAMOND_ITEM_ID = 0;
+
     /**
      * 获取金币道具ID
      */
     public static int getGoldItemId() {
-        return GameDataManager.getItemCfgList().stream().filter(
-                itemCfg -> itemCfg.getType() == GameConstant.Item.TYPE_GOLD
-        ).map(ItemCfg::getId).findFirst().orElse(0);
+        if(GOLD_ITEM_ID < 1){
+            GOLD_ITEM_ID = GameDataManager.getItemCfgList().stream().filter(
+                    itemCfg -> itemCfg.getType() == GameConstant.Item.TYPE_GOLD
+            ).map(ItemCfg::getId).findFirst().orElse(0);
+        }
+        return GOLD_ITEM_ID;
     }
 
     /**
      * 获取钻石道具ID
      */
     public static int getDiamondItemId() {
-        return GameDataManager.getItemCfgList().stream().filter(
-                itemCfg -> itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND
-        ).map(ItemCfg::getId).findFirst().orElse(0);
+        if(DIAMOND_ITEM_ID < 1){
+            DIAMOND_ITEM_ID = GameDataManager.getItemCfgList().stream().filter(
+                    itemCfg -> itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND
+            ).map(ItemCfg::getId).findFirst().orElse(0);
+        }
+        return DIAMOND_ITEM_ID;
     }
 
     public static List<ItemInfo> buildItemInfo(Map<Integer, Long> itemInfo) {
