@@ -90,6 +90,7 @@ public class NoticeService implements IRedDotService {
         boolean match = this.notices.stream().anyMatch(notice -> notice.getId() == noticeId);
         if (match) {
             noticeDao.readNotice(playerId, noticeId);
+            redDotManager.updateRedDotByInitialize(getModule(), getSubmodule(), playerId);
         }
     }
 
@@ -102,19 +103,17 @@ public class NoticeService implements IRedDotService {
     @Override
     public List<RedDotDetails> initialize(long playerId, int submodule) {
         Set<Long> set = noticeDao.getPlayerReadNotice(playerId);
-
-        boolean match = this.notices.stream().anyMatch(notice -> !set.contains(notice.getId()));
-        if (!match) {
-            return List.of();
-        }
         RedDotDetails redDotDetailInfo = new RedDotDetails();
         redDotDetailInfo.setRedDotModule(RedDotDetails.RedDotModule.NOTICE);
         redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
-        redDotDetailInfo.setCount(1);
+        boolean match = this.notices.stream().anyMatch(notice -> !set.contains(notice.getId()));
+        if (match) {
+            redDotDetailInfo.setCount(1);
+        }
         return List.of(redDotDetailInfo);
     }
 
-    public void removeReadData(long playerId){
+    public void removeReadData(long playerId) {
         noticeDao.removeReadData(playerId);
     }
 }
