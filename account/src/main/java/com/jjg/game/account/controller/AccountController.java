@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 import com.jjg.game.account.config.AccountConfig;
+import com.jjg.game.account.dto.LoginConfigDto;
 import com.jjg.game.account.dto.LoginDto;
 import com.jjg.game.account.dto.LoginSmsDto;
 import com.jjg.game.account.dto.ServerUrlDto;
@@ -58,12 +59,28 @@ public class AccountController extends AbstractController {
      * @return
      */
     @RequestMapping("loginConfig")
-    public WebResult<List<LoginConfigVo>> loginConfig() {
+    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
         List<LoginConfigVo> resultList = new ArrayList<>(GameDataManager.getLoginConfigCfgList().size());
         GameDataManager.getLoginConfigCfgList().forEach(config -> {
             LoginConfigVo vo = new LoginConfigVo();
+
             vo.setType(config.getType());
-            vo.setOpen(loginConfigService.isOpen(config.getType()));
+            if(config.getType() == LoginType.GOOGLE.getValue()){
+                if(dto.getDevice() == DeviceType.ANDROID.getValue()){
+                    vo.setOpen(loginConfigService.isOpen(config.getType()));
+                }else {
+                    vo.setOpen(false);
+                }
+            }else if(config.getType() == LoginType.APPLE.getValue()){
+                if(dto.getDevice() == DeviceType.IOS.getValue()){
+                    vo.setOpen(loginConfigService.isOpen(config.getType()));
+                }else {
+                    vo.setOpen(false);
+                }
+            }else {
+                vo.setOpen(loginConfigService.isOpen(config.getType()));
+            }
+
             resultList.add(vo);
         });
         return success(resultList);
