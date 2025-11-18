@@ -181,7 +181,7 @@ public class PointsAwardMessageHandler {
         res.setMaxPageIndex(pageResult.getMaxPageIndex());
         res.setSelfIndex(rank);
         playerController.send(res);
-        log.debug("返回玩家积分大奖排行榜数据 playerId = {}", playerController.playerId());
+        log.debug("返回玩家积分大奖排行榜数据 playerId = {},type = {}", playerController.playerId(),message.getType());
     }
 
     /**

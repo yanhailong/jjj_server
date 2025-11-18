@@ -1104,7 +1104,7 @@ public class HallMessageHandler implements GmListener {
         ResReadNotice res = new ResReadNotice(Code.SUCCESS);
         try {
             noticeService.readNotice(playerController.playerId(), req.id);
-            log.debug("阅读公告 playerId = {}", playerController.playerId());
+            log.debug("阅读公告 playerId = {},id = {}", playerController.playerId(),req.id);
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             log.error("", e);
