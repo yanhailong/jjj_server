@@ -60,6 +60,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -382,7 +383,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 registerRoomController(gameType, roomId, roomController);
             }
             //roomController不为空，那么room就是在本节点
-            CommonResult<R> addResult = roomController.joinRoom(playerController);
+            AtomicBoolean reconnect = new AtomicBoolean(false);
+            CommonResult<R> addResult = roomController.joinRoom(playerController,reconnect);
             if (!addResult.success()) {
                 return Code.JOIN_ROOM_FAILED;
             }
@@ -404,6 +406,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                         playerController.playerId(),
                         playerController.getPlayer().getGold(),
                         room.getRoomPlayers().size());
+                if(reconnect.get()){
+                    roomController.reconnect(playerController);
+                }
             }
             return Code.SUCCESS;
         } catch (Exception e) {
