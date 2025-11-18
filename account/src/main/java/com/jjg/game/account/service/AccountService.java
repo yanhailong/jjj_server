@@ -7,6 +7,7 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
+import com.jjg.game.core.dao.PlayerLoginTimeDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.BlackListService;
 import org.slf4j.Logger;
@@ -35,6 +36,9 @@ public class AccountService {
     private BlackListService blackListService;
     @Autowired
     private AccountLogger accountLogger;
+    @Autowired
+    private PlayerLoginTimeDao playerLoginTimeDao;
+
 
     public CommonResult<Account> login(LoginType loginType, ChannelUserInfo channelUserInfo, LoginDto loginDto, String ip) {
         CommonResult<Account> accountResult = getOrCreateAccount(loginType, channelUserInfo, loginDto, ip);
@@ -64,10 +68,6 @@ public class AccountService {
             log.debug("该用户在黑名单，无法登录 loginType = {},channelUserId = {},playerId = {}", loginType, channelUserInfo.getUserId(), account.getPlayerId());
             accountResult.code = Code.BAN_ACCOUNT;
             return accountResult;
-        }
-
-        if (!Objects.equals(loginDto.getMac(), account.getLastLoginMac())) {
-            accountDao.save(account);
         }
         return accountResult;
     }
@@ -104,13 +104,17 @@ public class AccountService {
 
                 account = accountDao.setChannelValue(loginType, channelUserInfo, account);
 
-                account = accountDao.insert(account);
-
                 accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, loginDto.getChannel(), ip, loginDto.getDevice(), loginDto.getMac(), loginDto.getPhoneType());
-            } else {
-                account.setLastLoginMac(loginDto.getMac());
-                accountDao.save(account);
             }
+
+            if (!Objects.equals(loginDto.getMac(), account.getLastLoginMac())) {
+                account = accountDao.checkAndSave(account.getPlayerId(),a -> a.setLastLoginMac(loginDto.getMac()));
+            }else {
+                account = accountDao.save(account,loginType, channelUserInfo.getUserId());
+            }
+
+            //这里记录登录时间，是防止只有http请求，但是没有websocket登录的账号
+            playerLoginTimeDao.add(account.getPlayerId(), System.currentTimeMillis());
 
             result.code = Code.SUCCESS;
             result.data = account;

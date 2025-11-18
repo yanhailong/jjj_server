@@ -343,7 +343,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
         } else if (smsType == VerCodeType.MAIL_BIND_MAIL) {
             loginType = LoginType.EMAIL;
-            update = accountDao.updateEmail(player.getId(), verResult.data);
+            update = accountDao.checkAndSave(player.getId(),a -> a.setEmail(verResult.data)) != null;
         }
 
         if (!update) {

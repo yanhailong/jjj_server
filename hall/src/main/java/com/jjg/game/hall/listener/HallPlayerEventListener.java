@@ -227,7 +227,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             playerSessionTokenDao.updateExpire(playerSessionToken);
 
             //更新最近登录时间
-            accountDao.updateLastLoginTime(player.getId(), timeMillis);
+            accountDao.checkAndSave(player.getId(), a -> a.setLastLoginTime(timeMillis));
             //检查重连
             if (reconnect(session, player, playerSessionInfo)) {
                 res.gameWareInfo = new GameWareInfo();

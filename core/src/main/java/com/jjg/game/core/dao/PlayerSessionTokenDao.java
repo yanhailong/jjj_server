@@ -77,6 +77,10 @@ public class PlayerSessionTokenDao {
         return redisTemplate.opsForHash().delete(tableName, playerIds.toArray());
     }
 
+    public Long delToken(long playerId) {
+        return redisTemplate.opsForHash().delete(tableName, playerId);
+    }
+
     /**
      * 清除过期token
      */

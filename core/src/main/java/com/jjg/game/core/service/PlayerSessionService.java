@@ -407,6 +407,6 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
 
     @Override
     public void logout(long playerId, String sessionId) {
-        accountDao.updateLastOfflineTime(playerId, System.currentTimeMillis());
+        accountDao.checkAndSave(playerId, a -> a.setLastOfflineTime(System.currentTimeMillis()));
     }
 }
