@@ -23,6 +23,7 @@ import com.jjg.game.room.timer.RoomPhaseTimeEvent;
 import com.jjg.game.room.timer.RoomTimerEvent;
 import com.jjg.game.sampledata.bean.RoomCfg;
 
+import java.lang.reflect.Constructor;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -273,6 +274,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
      * @param message 消息
      * @param <M>     消息泛型
      */
+    @SuppressWarnings("unchecked")
     public <M extends AbstractMessage> void dispatchGamePhaseMsg(PlayerController playerController, PFMessage message) {
         List<IPhaseMsgAdapter<M>> phaseMsgAdapters =
                 gamePhases.stream().filter(gamePhase -> gamePhase instanceof IPhaseMsgAdapter<?>)
@@ -284,35 +286,45 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
             return;
         }
         for (IPhaseMsgAdapter<M> phaseMsgAdapter : phaseMsgAdapters) {
-            if (phaseMsgAdapter.reqMsgId() == msgId) {
-                // 如果请求在此阶段，直接处理
-                if (currentGamePhase.getGamePhase() == phaseMsgAdapter.getGamePhase()) {
-                    Set<Class<AbstractMessage>> actualTypes =
-                            ReflectUtils.getClassSuperActualType(phaseMsgAdapter.getClass(), AbstractMessage.class);
-                    if (actualTypes.isEmpty()) {
-                        return;
-                    }
-                    Class<AbstractMessage> mClass = null;
-                    for (Class<AbstractMessage> actualType : actualTypes) {
-                        if (AbstractMessage.class.isAssignableFrom(actualType)) {
-                            mClass = actualType;
-                            break;
+            try {
+                if (phaseMsgAdapter.reqMsgId() == msgId) {
+                    // 如果请求在此阶段，直接处理
+                    if (currentGamePhase.getGamePhase() == phaseMsgAdapter.getGamePhase()) {
+                        Set<Class<AbstractMessage>> actualTypes =
+                                ReflectUtils.getClassSuperActualType(phaseMsgAdapter.getClass(), AbstractMessage.class);
+                        if (actualTypes.isEmpty()) {
+                            return;
                         }
+                        Class<AbstractMessage> mClass = null;
+                        for (Class<AbstractMessage> actualType : actualTypes) {
+                            if (AbstractMessage.class.isAssignableFrom(actualType)) {
+                                mClass = actualType;
+                                break;
+                            }
+                        }
+                        if (mClass == null) {
+                            // 消息没有继承AbstractMessage类
+                            log.error("{} 游戏阶段：{} 消息ID: {} 对应的消息类没有继承AbstractMessage类",
+                                    gameDataVo.roomLogInfo(),
+                                    currentGamePhase.getGamePhase().getPhaseName(),
+                                    Integer.toHexString(msgId).toUpperCase());
+                            return;
+                        }
+                        M reqMessage;
+                        if (message.data == null) {
+                            Constructor<?> constructor = mClass.getConstructor();
+                            reqMessage = (M) constructor.newInstance();
+                        } else {
+                            reqMessage = (M) ProtostuffUtil.deserialize(message.data, mClass);
+                        }
+                        log.debug("处理房间：{} 消息：{}", gameDataVo.getRoomId(), JSON.toJSON(reqMessage));
+                        // 具体的处理逻辑方法
+                        phaseMsgAdapter.dealMsg(playerController, reqMessage);
+                        break;
                     }
-                    if (mClass == null) {
-                        // 消息没有继承AbstractMessage类
-                        log.error("{} 游戏阶段：{} 消息ID: {} 对应的消息类没有继承AbstractMessage类",
-                                gameDataVo.roomLogInfo(),
-                                currentGamePhase.getGamePhase().getPhaseName(),
-                                Integer.toHexString(msgId).toUpperCase());
-                        return;
-                    }
-                    M reqMessage = (M) ProtostuffUtil.deserialize(message.data, mClass);
-                    log.debug("处理房间：{} 消息：{}", gameDataVo.getRoomId(), JSON.toJSON(reqMessage));
-                    // 具体的处理逻辑方法
-                    phaseMsgAdapter.dealMsg(playerController, reqMessage);
-                    break;
                 }
+            } catch (Exception e) {
+                log.error("dispatchGamePhaseMsg playerId:{}", playerController.playerId(), e);
             }
         }
     }
