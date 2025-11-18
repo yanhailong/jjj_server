@@ -3,7 +3,9 @@ package com.jjg.game.hall.service;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
+import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.service.AbstractPlayerService;
@@ -38,6 +40,12 @@ public class HallPlayerService extends AbstractPlayerService {
     private TaskService taskService;
     @Autowired
     private VipService vipService;
+    @Autowired
+    private AccountDao accountDao;
+    @Autowired
+    private PlayerSessionTokenDao playerSessionTokenDao;
+
+
     /**
      * 仅在登录时调用
      * 创建或保存  要记录登录时间
@@ -145,25 +153,25 @@ public class HallPlayerService extends AbstractPlayerService {
             return false;
         }
 
-        Player player = get(playerId);
+        Player player = getFromRedis(playerId);
         if (player != null) {
             //如果在线就暂时不保存到mongodb
             boolean online = playerSessionService.hasSession(playerId);
             if (online) {
                 return false;
             }
-
             playerDao.save(player);
+            redisTemplate.opsForHash().delete(tableName, playerId);
         }
-
-        redisTemplate.opsForHash().delete(tableName, playerId);
+        playerLoginTimeDao.remove(playerId);
         playerPackService.moveToMongo(playerId);
         playerBuildingService.moveToMongo(playerId);
         playerLastGameInfoDao.deleteById(playerId);
-        playerLoginTimeDao.remove(playerId);
         noticeService.removeReadData(playerId);
         taskService.moveToMongo(playerId);
         vipService.moveToMongo(playerId);
+        accountDao.moveToMongo(playerId);
+        playerSessionTokenDao.delToken(playerId);
         return true;
     }
 }

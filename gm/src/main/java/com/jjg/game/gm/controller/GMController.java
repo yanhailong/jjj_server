@@ -589,14 +589,14 @@ public class GMController extends AbstractController {
 
                 if (dto.type() == 1) {  //封
                     delTokenList.add(playerId);
-                    accountDao.updateAccountStatus(playerId, GameConstant.AccountStatus.BAN);
+                    accountDao.checkAndSave(playerId,a -> a.setStatus(GameConstant.AccountStatus.BAN));
                     PFSession session = playerSessionService.getSession(playerId);
                     if (session == null) {
                         continue;
                     }
                     session.send(notifyKickout);
                 } else {  //解
-                    accountDao.updateAccountStatus(playerId, GameConstant.AccountStatus.NORMAL);
+                    accountDao.checkAndSave(playerId,a -> a.setStatus(GameConstant.AccountStatus.NORMAL));
                 }
             }
 

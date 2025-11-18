@@ -24,6 +24,6 @@ public enum ChannelType {
     }
 
     public static ChannelType valueOf(int value) {
-        return Arrays.stream(values()).filter(t -> t.getValue() == value).findFirst().orElse(null);
+        return Arrays.stream(values()).filter(t -> t.getValue() == value).findFirst().orElse(GOOGLE);
     }
 }

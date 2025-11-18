@@ -1,15 +1,18 @@
 package com.jjg.game.core.dao;
 
+import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.*;
-import com.mongodb.client.result.UpdateResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.concurrent.TimeUnit;
@@ -20,9 +23,25 @@ import java.util.concurrent.TimeUnit;
  */
 @Repository
 public class AccountDao extends MongoBaseDao<Account, Long> {
+    private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private RedisLock redisLock;
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    private final String DATA_TABLE_NAME = "account:data";
+    private final String THIRD_TABLE_NAME = "account:";
+    private final String LOCK_TABLE_NAME = "lockaccount:";
+
+    private String thirdTableName(LoginType loginType) {
+        return THIRD_TABLE_NAME + loginType.name();
+    }
+
+    private String getLockKey(long playerId) {
+        return LOCK_TABLE_NAME + playerId;
+    }
+
 
     public AccountDao(@Autowired MongoTemplate mongoTemplate) {
         super(Account.class, mongoTemplate);
@@ -34,21 +53,39 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
      * @return
      */
     public Account queryAccountByPlayerId(long playerId) {
-        return mongoTemplate.findById(playerId, this.clazz);
+        return queryAccountByPlayerId(playerId, true);
     }
 
-    /**
-     * 更新邮箱
-     *
-     * @param playerId
-     * @param email
-     * @return
-     */
-    public boolean updateEmail(long playerId, String email) {
-        Query query = new Query(Criteria.where("playerId").is(playerId));
+    public Account queryAccountByPlayerId(long playerId, boolean mongo) {
+        Object object = redisTemplate.opsForHash().get(DATA_TABLE_NAME, playerId);
+        if (object != null) {
+            return (Account) object;
+        }
 
-        Update update = new Update().set("email", email);
-        return mongoTemplate.updateFirst(query, update, this.clazz).getModifiedCount() > 0;
+        if (mongo) {
+            return mongoTemplate.findById(playerId, this.clazz);
+        }
+        return null;
+    }
+
+    public Account checkAndSave(long playerId, DataSaveCallback<Account> cbk) {
+        String key = getLockKey(playerId);
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            Account account = queryAccountByPlayerId(playerId);
+            if (account == null) {
+                log.debug("获取account为空 playerId = {}", playerId);
+                return null;
+            }
+            cbk.updateData(account);
+            redisTemplate.opsForHash().put(DATA_TABLE_NAME, playerId, account);
+            return account;
+        } catch (Exception e) {
+            log.warn("保存account失败 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(key);
+        }
+        return null;
     }
 
     /**
@@ -72,56 +109,29 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
     }
 
     /**
-     * 修改账号状态
-     *
-     * @param playerId
-     * @param status
-     * @return
-     */
-    public boolean updateAccountStatus(long playerId, int status) {
-        Query query = new Query(Criteria.where("playerId").is(playerId));
-
-        Update update = new Update().set("status", status);
-        return mongoTemplate.updateFirst(query, update, this.clazz).getModifiedCount() > 0;
-    }
-
-    /**
-     * 修改最近一次登录时间
-     */
-    public boolean updateLastLoginTime(long playerId, long lastLoginTime) {
-        Query query = new Query(Criteria.where("playerId").is(playerId));
-
-        Update update = new Update().set("lastLoginTime", lastLoginTime);
-        return mongoTemplate.updateFirst(query, update, this.clazz).getModifiedCount() > 0;
-    }
-
-    /**
-     * 修改最近一次离线时间
-     */
-    public boolean updateLastOfflineTime(long playerId, long lastOfflineTime) {
-        Query query = new Query(Criteria.where("playerId").is(playerId));
-
-        Update update = new Update().set("lastOfflineTime", lastOfflineTime);
-        return mongoTemplate.updateFirst(query, update, this.clazz).getModifiedCount() > 0;
-    }
-
-    /**
      * 查询第三方账号
      *
      * @param data
      * @return
      */
     public Account queryThirdAccount(LoginType loginType, String data) {
-        // 构建查询条件
-        Query query = new Query();
-        query.addCriteria(Criteria.where("thirdAccounts." + loginType).is(data));
-        return mongoTemplate.findOne(query, this.clazz);
+        Object object = redisTemplate.opsForHash().get(thirdTableName(loginType), data);
+        if (object == null) {
+            return null;
+        }
+
+        long playerId = Long.parseLong(object.toString());
+        Object accountObj = redisTemplate.opsForHash().get(DATA_TABLE_NAME, playerId);
+        if (accountObj != null) {
+            return (Account) accountObj;
+        }
+        return mongoTemplate.findById(playerId, this.clazz);
     }
 
     public Account setChannelValue(LoginType loginType, ChannelUserInfo channelUserInfo, Account account) {
         boolean add = account.addThirdAccount(loginType, channelUserInfo.getUserId());
         if (!add) {
-            return null;
+            return account;
         }
 
         if (loginType == LoginType.GOOGLE) {
@@ -140,6 +150,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
      */
     public CommonResult<Account> addThirdAccount(long playerId, LoginType loginType, ChannelUserInfo channelUserInfo) {
         CommonResult<Account> result = new CommonResult<>(Code.FAIL);
+
         //要加锁，防止重复绑定
         String lockKey = getBindLockKey(loginType, channelUserInfo.getUserId());
         redisLock.executeWithLock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS, () -> {
@@ -150,19 +161,15 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
                 return result;
             }
 
-            //将第三方账号绑定到玩家身上
-            Account account = queryAccountByPlayerId(playerId);
-            if (account == null) {
+            Account tmpAccount = checkAndSave(playerId, a -> {
+                setChannelValue(loginType, channelUserInfo, a);
+            });
+
+            if (tmpAccount == null) {
                 result.code = Code.NOT_FOUND;
             } else {
-                Account tmpAccount = setChannelValue(loginType, channelUserInfo, account);
-                if (tmpAccount == null) {
-                    result.code = Code.QUERY_EXCEPTION;
-                    return result;
-                }
                 result.code = Code.SUCCESS;
-                result.data = account;
-                save(account);
+                result.data = tmpAccount;
             }
             return result;
         });
@@ -190,5 +197,28 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
                 return "guestbind:" + data;
             }
         }
+    }
+
+    /**
+     * 新增account
+     *
+     * @param account
+     * @param loginType
+     * @param data
+     * @return
+     */
+    public Account save(Account account, LoginType loginType, String data) {
+        redisTemplate.opsForHash().put(DATA_TABLE_NAME, account.getPlayerId(), account);
+        redisTemplate.opsForHash().put(thirdTableName(loginType), data, account.getPlayerId());
+        return account;
+    }
+
+    public void moveToMongo(long playerId) {
+        Account account = queryAccountByPlayerId(playerId,false);
+        if (account == null) {
+            return;
+        }
+        save(account);
+        redisTemplate.opsForHash().delete(DATA_TABLE_NAME, playerId);
     }
 }

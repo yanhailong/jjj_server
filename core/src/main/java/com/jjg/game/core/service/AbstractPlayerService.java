@@ -1078,14 +1078,22 @@ public class AbstractPlayerService {
      * @return
      */
     public Player getFromAllDB(long playerId) {
-        HashOperations<String, String, Player> operations = redisTemplate.opsForHash();
-        Player player = operations.get(tableName, playerId);
+        Player player = getFromRedis(playerId);
         if (player != null) {
             return player;
         }
 
         Optional<Player> optional = playerDao.findById(playerId);
         return optional.orElse(null);
+    }
+
+    public Player getFromRedis(long playerId){
+        HashOperations<String, String, Player> operations = redisTemplate.opsForHash();
+        Player player = operations.get(tableName, playerId);
+        if (player != null) {
+            return player;
+        }
+        return null;
     }
 
     /**
