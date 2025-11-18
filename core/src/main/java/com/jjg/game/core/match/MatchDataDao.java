@@ -145,7 +145,6 @@ public class MatchDataDao {
      * @param playerId 玩家id
      */
     public void addPlayerExpiredWaiting(long roomId, long playerId) {
-        log.debug("addPlayerExpiredWaiting roomId = {}, playerId = {}", roomId, playerId);
         String playerWaitKey = getPlayerWaitKey(roomId);
         RMapCache<Long, Long> waitMap = redissonClient.getMapCache(playerWaitKey);
         waitMap.put(playerId, System.currentTimeMillis(), 10, TimeUnit.SECONDS); // 自动刷新 TTL
@@ -186,7 +185,8 @@ public class MatchDataDao {
                 RoomScoreUtil.RoomScoreInfo roomScoreInfo = RoomScoreUtil.parseScore(score);
                 int roomNum = room.getRoomPlayers().size();
                 boolean needFix = false;
-                if (roomScoreInfo.maxPlayers() != roomNum + roomScoreInfo.readyPlayers()) {
+                //当没有等待玩家数时,并且人数不等时修改人数
+                if (roomScoreInfo.readyPlayers() > 0 && roomScoreInfo.maxPlayers() != roomNum + roomScoreInfo.readyPlayers()) {
                     log.warn("房间内人数和计数不相等 roomId:{} roomNum:{} roomScoreInfo:{} ", roomId, roomNum, roomScoreInfo);
                     needFix = true;
                 }

@@ -54,7 +54,6 @@ public class MatchService {
                     long waitingRoomId = room.getId();
                     //放入等待列表
                     double score = RoomScoreUtil.computeScore(0, 0, (int) (System.currentTimeMillis() / 1000));
-
                     log.debug("大厅创建新房间 gameType:{} roomConfigId:{} ", gameType, roomConfigId);
                     scoredSortedSet.add(score, waitingRoomId);
                     //返回房间id

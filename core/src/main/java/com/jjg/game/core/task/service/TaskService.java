@@ -199,52 +199,49 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
         if (taskData == null) {
             return;
         }
-
         log.info("玩家[{}]触发条件[{}]conditionId[{}]参数[{}]", playerId, condition.getClass().getSimpleName(), condition.getId(), param == null ? "null" : param.toString());
         List<Pair<TaskDetail, TaskCfg>> updateTasks = new ArrayList<>();
         AtomicBoolean hasFinished = new AtomicBoolean(false);
-        for (TaskCfg taskCfg : taskCfgList) {
-            //接了任务才触发
-            TaskDetail taskDetail = taskData.getTaskDetail(taskCfg.getId());
-            if (taskDetail == null) {
-                continue;
-            }
-            TaskData data = redisLock.lockAndGet(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
+        String lockKey = playerTaskMapLockKey(playerId);
+        redisLock.lock(lockKey, LOCK_TIME);
+        try {
+            TaskData tempData = playerTasks.get(playerId);
+            long timestamp = TimeHelper.getTimestamp(LocalDateTime.now());
+            for (TaskCfg taskCfg : taskCfgList) {
+                //接了任务才触发
+                TaskDetail taskDetail = tempData.getTaskDetail(taskCfg.getId());
+                if (taskDetail == null) {
+                    continue;
+                }
                 //从内存加载最新的任务对象进行处理
-                TaskData tempData = playerTasks.get(playerId);
-                TaskDetail tempDetail = tempData.getTaskDetail(taskCfg.getId());
-                boolean isTriggered = condition.trigger(playerId, taskCfg, tempDetail, param);
-                log.info("玩家[{}]触发任务[{}]条件[{}]触发[{}]", playerId, taskCfg.getId(), condition.getClass().getSimpleName(), isTriggered);
+                boolean isTriggered = condition.trigger(playerId, taskCfg, taskDetail, param);
                 if (isTriggered) {
-                    LocalDateTime now = LocalDateTime.now();
-                    long timestamp = TimeHelper.getTimestamp(now);
                     //任务所有条件都完成了
-                    if (tempDetail.getFinishConditionIds().size() == tempDetail.getProgress().size()) {
-                        tempDetail.setCompleteTime(timestamp);
+                    if (taskDetail.getFinishConditionIds().size() == taskDetail.getProgress().size()) {
+                        taskDetail.setCompleteTime(timestamp);
                         hasFinished.set(true);
                         //检测是否有奖励
                         List<Integer> awardList = taskCfg.getGetItem();
                         //没有奖励的任务 默认直接完成并且已经领取奖励
                         if (awardList.isEmpty() && taskCfg.getIntegralNum() <= TaskConstant.TimeConstants.MIN_INTEGRAL_REWARD) {
-                            tempDetail.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
-                            tempDetail.setRewardTime(timestamp);
-                            taskLogger.receiveTaskAward(playerId, tempDetail.getConfigId(), null, taskCfg.getIntegralNum());
-                            log.info("玩家[{}]完成任务[{}]任务没有奖励直接修改为已领取状态!", playerId, tempDetail.getConfigId());
+                            taskDetail.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
+                            taskDetail.setRewardTime(timestamp);
+                            taskLogger.receiveTaskAward(playerId, taskDetail.getConfigId(), null, taskCfg.getIntegralNum());
+                            log.info("玩家[{}]完成任务[{}]任务没有奖励直接修改为已领取状态!", playerId, taskDetail.getConfigId());
                         } else {
-                            tempDetail.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
-                            taskLogger.completeTask(playerId, tempDetail.getConfigId());
-                            log.info("玩家[{}]完成任务[{}]", playerId, tempDetail.getConfigId());
+                            taskDetail.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
+                            taskLogger.completeTask(playerId, taskDetail.getConfigId());
+                            log.info("玩家[{}]完成任务[{}]", playerId, taskDetail.getConfigId());
                         }
                     }
-                    //同步到缓存中
-                    playerTasks.fastPut(playerId, tempData);
-                    return tempData;
+                    updateTasks.add(Pair.newPair(tempData.getTaskDetail(taskCfg.getId()), taskCfg));
                 }
-                return null;
-            });
-            if (data != null) {
-                updateTasks.add(Pair.newPair(data.getTaskDetail(taskCfg.getId()), taskCfg));
             }
+            playerTasks.fastPut(playerId, tempData);
+        } catch (Exception e) {
+            log.error("玩家增加任务进度失败 [{}]触发条件[{}]conditionId[{}]参数[{}]", playerId, condition.getClass().getSimpleName(), condition.getId(), param == null ? "null" : param.toString(),e);
+        } finally {
+            redisLock.unlock(lockKey);
         }
         if (CollectionUtil.isNotEmpty(updateTasks)) {
             if (hasFinished.get()) {

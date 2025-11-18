@@ -115,7 +115,7 @@ public class HallRoomService implements IConsoleReceiver {
             //随机选取一个
             Room room = chooseNodeRoom.getFirst();
             boolean joinNum = matchDataDao.changeRoomJoinNum(gameType, roomCfgId, room.getId(), room.getMaxLimit(), 1, 1);
-            if(!joinNum) {
+            if (!joinNum) {
                 //创建一个房间
                 long waitingRoomId = createRoom(playerController, roomCfgId, warehouseCfg, gameType, marsNode);
                 return joinRoomById(playerController, waitingRoomId, gameType);
@@ -123,14 +123,22 @@ public class HallRoomService implements IConsoleReceiver {
             return joinRoomById(playerController, room.getId(), gameType);
         }
         // 获取一个等待房间，如果有空闲的话
-        long waitingRoomId = matchService.getWaitingRoomId(playerController, gameType, roomCfgId, SampleDataUtils.getRoomMaxLimit(warehouseCfg).getT2(), marsNode.getNodePath());
+        int maxPlayer = SampleDataUtils.getRoomMaxLimit(warehouseCfg).getT2();
+        long waitingRoomId = matchService.getWaitingRoomId(playerController, gameType, roomCfgId, maxPlayer, marsNode.getNodePath());
         // 如果对应的游戏类型没有房间的话则创建一个新的房间
         if (waitingRoomId == 0) {
             log.error("加入房间时 获取房间为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return Code.NOT_FOUND;
         }
         // 加入房间
-        return joinRoomById(playerController, waitingRoomId, gameType);
+        int code = joinRoomById(playerController, waitingRoomId, gameType);
+        if (code != Code.SUCCESS) {
+            boolean joinNum = matchDataDao.changeRoomJoinNum(gameType, roomCfgId, waitingRoomId, maxPlayer, -1, -1);
+            if (!joinNum) {
+                log.error("加入房间失败时 修改房间数据失败 playerId = {},gameType = {} roomId:{}", playerController.playerId(), gameType, waitingRoomId);
+            }
+        }
+        return code;
     }
 
     /**
