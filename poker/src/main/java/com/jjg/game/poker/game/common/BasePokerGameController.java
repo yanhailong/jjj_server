@@ -59,6 +59,18 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         return getCurrentGamePhase() == EGamePhase.PLAY_CART;
     }
 
+    @Override
+    public void reconnect(PlayerController playerController) {
+        try {
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
+            gamePlayer.getPokerPlayerGameData().setInit(true);
+            respRoomInitInfoAction(playerController);
+            log.info("重连进入 playerId:{}",playerController.playerId());
+        } catch (Exception e) {
+            log.error("重连进入主动推送基础信息失败 playerId:{}", playerController.playerId());
+        }
+    }
+
     /**
      * 重载通知全部时 只发送在座位中的玩家
      */

@@ -39,7 +39,7 @@ public interface IRoomLifeCycle {
     /**
      * 断线重连
      */
-    void reconnect();
+    void reconnect(PlayerController playerController);
 
     /**
      * 玩家断线

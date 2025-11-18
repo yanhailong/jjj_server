@@ -427,6 +427,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         long playerId = player.getId();
         //获取需要增加的活动类型
+        List<ActivityData> dataArrayList = new ArrayList<>();
         for (ActivityType activityType : ActivityType.values()) {
             if (!activityType.isCanAddPlayerProgress() || (activityType.getTargetKey() & activityTargetKey) == 0) {
                 continue;
@@ -435,7 +436,6 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             if (activityDataMap == null) {
                 continue;
             }
-            List<ActivityData> dataArrayList = new ArrayList<>();
             for (ActivityData data : activityDataMap.values()) {
                 //检查活动参加条件
                 if (!playerCanJoinActivity(data, player)) {
@@ -448,23 +448,26 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     if (changeStatus) {
                         dataArrayList.add(data);
                     }
+                    if (activityType == ActivityType.OFFICIAL_AWARDS) {
+                        break;
+                    }
                 } catch (Exception e) {
                     log.error("增加玩家活动进度失败 playerId:{} activityId:{} value:{}", playerId, data.getId(), value, e);
                 }
             }
-            //通知红点
-            if (CollectionUtil.isNotEmpty(dataArrayList)) {
-                List<RedDotDetails> redInfo = new ArrayList<>();
-                for (ActivityData data : dataArrayList) {
-                    RedDotDetails redDotDetails = new RedDotDetails();
-                    redDotDetails.setRedDotModule(getModule());
-                    redDotDetails.setRedDotType(RedDotDetails.RedDotType.COMMON);
-                    redDotDetails.setCount(1);
-                    redDotDetails.setRedDotSubmodule(data.getType().getType());
-                    redInfo.add(redDotDetails);
-                }
-                redDotManager.updateRedDot(redInfo, playerId);
+        }
+        //通知红点
+        if (CollectionUtil.isNotEmpty(dataArrayList)) {
+            List<RedDotDetails> redInfo = new ArrayList<>();
+            for (ActivityData data : dataArrayList) {
+                RedDotDetails redDotDetails = new RedDotDetails();
+                redDotDetails.setRedDotModule(getModule());
+                redDotDetails.setRedDotType(RedDotDetails.RedDotType.COMMON);
+                redDotDetails.setCount(1);
+                redDotDetails.setRedDotSubmodule(data.getType().getType());
+                redInfo.add(redDotDetails);
             }
+            redDotManager.updateRedDot(redInfo, playerId);
         }
     }
 
@@ -611,7 +614,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         switch (gameEvent) {
             case PlayerEventCategory.PlayerRechargeEvent event -> {
                 //充值类型的扩大了100倍
-                addPlayerActivityProgress(event.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), RedisUtils.toLong(event.getOrder().getPrice()), null);
+                addPlayerActivityProgress(event.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), RedisUtils.toLong(event.getOrder().getPrice()), event.getOrder());
             }
             case PlayerEvent playerEvent -> {
                 if (playerEvent.getGameEventType() == EGameEventType.PLAYER_LEVEL) {

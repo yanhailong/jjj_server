@@ -35,6 +35,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -118,11 +119,11 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     /**
      * 玩家加入房间
+     * @param reconnect 重连标识
      */
-    public CommonResult<R> joinRoom(PlayerController playerController) {
+    public CommonResult<R> joinRoom(PlayerController playerController, AtomicBoolean reconnect) {
         CommonResult<R> result = new CommonResult<>(Code.SUCCESS);
         try {
-            boolean reconnect = false;
             //检查玩家在不在房间
             RoomPlayer roomPlayer = room.getPlayer(playerController.playerId());
             //如果不在房间
@@ -144,7 +145,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 // 此时游戏可能还未开始，需要游戏判断加入时逻辑
             } else if (!roomPlayer.isOnline()) {
                 updateRoomPlayer(room.getGameType(), room.getId(), playerController.playerId(), (newRoomPlayer) -> newRoomPlayer.setOnline(true));
-                reconnect = true;
+                reconnect.set(true);
             } else {
                 log.error("玩家已经在房间中 roomId = {},playerId = {}", room.getId(), playerController.playerId());
             }
@@ -152,7 +153,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             playerControllers.put(playerController.playerId(), playerController);
             playerController.setScene(this);
             //非重连
-            if (!reconnect) {
+            if (!reconnect.get()) {
                 // 当玩家加入时尝试开启游戏
                 tryStartGameOnPlayerJoinIn(playerController);
                 if (!(playerController.getPlayer() instanceof RobotPlayer) && !(room instanceof FriendRoom)) {
@@ -513,8 +514,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     @Override
-    public void reconnect() {
-
+    public void reconnect(PlayerController playerController) {
+        gameController.reconnect(playerController);
     }
 
     /**

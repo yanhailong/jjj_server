@@ -248,7 +248,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     @Override
-    public void reconnect() {
+    public void reconnect(PlayerController playerController) {
 
     }
 
