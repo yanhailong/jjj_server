@@ -124,20 +124,21 @@ public class DropItemManager implements GameEventListener {
      * @param dropTrunkId
      * @return
      */
-    public Map<Integer, Long> triggerDropItem(Player player, AddType addType, String desc, int dropTrunkId) {
+    public Map<Integer, Long> triggerDropItem(Player player, long count, AddType addType, String desc, int dropTrunkId) {
         Map<Integer, Integer> itemDropGroupCounter = dropItemDao.getItemDropGroupCounter(player.getId());
         if (itemDropGroupCounter == null) {
             itemDropGroupCounter = new HashMap<>();
         }
-
         Map<Integer, Long> dropItems = new HashMap<>();
-
-        Pair<Integer, Item> item = itemDropDataHolder.randDropItems(dropTrunkId, itemDropGroupCounter);
-
-        if (item == null) {
-            return Map.of();
+        for (int i = 0; i < count; i++) {
+            Pair<Integer, Item> item = itemDropDataHolder.randDropItems(dropTrunkId, itemDropGroupCounter);
+            if (item != null) {
+                dropItems.merge(item.getSecond().getId(), item.getSecond().getItemCount(), Long::sum);
+            }
         }
-
+        if (dropItems.isEmpty()) {
+            return dropItems;
+        }
         // 更新道具掉落使用map
         dropItemDao.updateItemDropGroupCounter(player.getId(), itemDropGroupCounter);
         // 添加道具
@@ -175,7 +176,7 @@ public class DropItemManager implements GameEventListener {
                 notifyItemDropInfo.itemDropInfos = itemDropInfos;
                 log.debug("玩家：{} 发送掉落数据：{}", player.getId(), JSON.toJSONString(notifyItemDropInfo));
                 PFSession pfSession = clusterSystem.getSession(player.getId());
-                if(pfSession != null){
+                if (pfSession != null) {
                     // 发送道具掉落信息
                     pfSession.send(notifyItemDropInfo);
                 }
