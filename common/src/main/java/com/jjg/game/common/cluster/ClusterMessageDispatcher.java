@@ -197,7 +197,7 @@ public class ClusterMessageDispatcher {
                     args[i] = connect;
                 } else if (PFMessage.class.isAssignableFrom(clazz)) {
                     args[i] = msg;
-                } else if (AbstractMessage.class.isAssignableFrom(clazz)) {
+                } else  {
                     if (msg.data != null && msg.data.length > 0) {
                         args[i] = ProtostuffUtil.deserialize(msg.data, clazz);
                     } else {
