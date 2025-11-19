@@ -297,12 +297,12 @@ public class PointsAwardLeaderboardService {
      */
 
     public PageUtils.PageResult<PointsAwardLeaderboardData> getData(int type, int pageIndex, int pageSize) {
-        List<PointsAwardLeaderboardData> tmpList = this.rankMap.get(type);
-        if(tmpList == null || tmpList.isEmpty()){
-            return PageUtils.page(Collections.emptyList(), pageIndex, pageSize);
-        }
-
-        List<PointsAwardLeaderboardData> list = new ArrayList<>(tmpList);
+        List<PointsAwardLeaderboardData> list = manager.getRankingHistory(type);
+//        if(tmpList == null || tmpList.isEmpty()){
+//            return PageUtils.page(Collections.emptyList(), pageIndex, pageSize);
+//        }
+//
+//        List<PointsAwardLeaderboardData> list = new ArrayList<>(tmpList);
 
         // 只有在排行榜活跃时才添加当前数据
         PointsAwardLeaderboardData data = null;
@@ -414,12 +414,5 @@ public class PointsAwardLeaderboardService {
                 }
             }
         });
-    }
-
-    public void loadRank(int type){
-        List<PointsAwardLeaderboardData> list = manager.getRankingHistory(type);
-        rankMap.put(type, list);
-
-        log.debug("加载排行榜数据 type = {},size = {}", type, list.size());
     }
 }

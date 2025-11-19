@@ -1,8 +1,5 @@
 package com.jjg.game.hall.pointsaward;
 
-import com.jjg.game.common.timer.TimerCenter;
-import com.jjg.game.common.timer.TimerEvent;
-import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardManager;
 import com.jjg.game.hall.pointsaward.signin.PointsAwardSignInManager;
@@ -10,13 +7,12 @@ import com.jjg.game.hall.pointsaward.turntable.PointsAwardTurntableService;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 积分大奖管理器
  */
 @Component
-public class PointsAwardManager implements GameEventListener, TimerListener {
+public class PointsAwardManager implements GameEventListener {
 
     /**
      * 转盘服务
@@ -34,19 +30,15 @@ public class PointsAwardManager implements GameEventListener, TimerListener {
     private final PointsAwardLeaderboardManager pointsAwardLeaderboardManager;
 
     private final PointsAwardService pointsAwardService;
-    private final TimerCenter timerCenter;
-
-    private TimerEvent<String> delayLoadRankEvent;
 
     public PointsAwardManager(PointsAwardTurntableService pointsAwardTurntableService,
                               PointsAwardSignInManager pointsAwardSignInManager,
                               PointsAwardService pointsAwardService,
-                              PointsAwardLeaderboardManager pointsAwardLeaderboardManager, TimerCenter timerCenter) {
+                              PointsAwardLeaderboardManager pointsAwardLeaderboardManager) {
         this.pointsAwardTurntableService = pointsAwardTurntableService;
         this.pointsAwardSignInManager = pointsAwardSignInManager;
         this.pointsAwardService = pointsAwardService;
         this.pointsAwardLeaderboardManager = pointsAwardLeaderboardManager;
-        this.timerCenter = timerCenter;
     }
 
     public void init() {
@@ -72,8 +64,6 @@ public class PointsAwardManager implements GameEventListener, TimerListener {
                 pointsAwardService.daily();
             }
             pointsAwardLeaderboardManager.clock(hour);
-            this.delayLoadRankEvent = new TimerEvent<>(this, 20, "delayLoadRank").withTimeUnit(TimeUnit.SECONDS);
-            this.timerCenter.add(this.delayLoadRankEvent);
         }
         //玩家充值事件
         else if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent rechargeEvent) {
@@ -90,14 +80,5 @@ public class PointsAwardManager implements GameEventListener, TimerListener {
     @Override
     public List<EGameEventType> needMonitorEvents() {
         return List.of(EGameEventType.CLOCK_EVENT, EGameEventType.RECHARGE);
-    }
-
-    @Override
-    public void onTimer(TimerEvent e) {
-        if(e == this.delayLoadRankEvent){
-            pointsAwardLeaderboardManager.cacheRankData();
-            this.timerCenter.remove(e);
-            this.delayLoadRankEvent = null;
-        }
     }
 }
