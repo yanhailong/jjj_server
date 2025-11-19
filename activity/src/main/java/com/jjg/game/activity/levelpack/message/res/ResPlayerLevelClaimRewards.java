@@ -17,7 +17,7 @@ import java.util.List;
 @ProtoDesc("等级礼包领取结果")
 public class ResPlayerLevelClaimRewards extends AbstractResponse {
     @ProtoDesc("id")
-    public  int id;
+    public int id;
     @ProtoDesc("道具信息")
     public List<ItemInfo> itemInfos;
 

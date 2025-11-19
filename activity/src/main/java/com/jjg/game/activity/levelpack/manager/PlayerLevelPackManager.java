@@ -241,46 +241,59 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
      * @param player 玩家信息
      */
     private void dealRecharge(Player player, Order order) {
+        long playerId = player.getId();
         try {
             String productId = order.getProductId();
             int id = Integer.parseInt(productId);
             PlayerLevelPackCfg playerLevelPackCfg = GameDataManager.getPlayerLevelPackCfg(id);
             if (playerLevelPackCfg == null) {
-                log.error("玩家购买等级礼包失败 配置不存在 playerId:{} order:{} ", player.getId(), JSONObject.toJSONString(order));
+                log.error("玩家购买等级礼包失败 配置不存在 playerId:{} order:{} ", playerId, JSONObject.toJSONString(order));
                 return;
             }
-            String lockKey = playerLevelDao.getLockKey(player.getId());
+            String lockKey = playerLevelDao.getLockKey(playerId);
             redisLock.lock(lockKey, REDIS_LOCK_TIME);
             Map<Integer, PlayerLevelPackData> playerLevelPackDataMap = null;
             PlayerLevelPackData playerLevelPackData = null;
+            CommonResult<ItemOperationResult> added = null;
             try {
-                playerLevelPackDataMap = playerLevelDao.getPlayerLevelPackData(player.getId());
+                playerLevelPackDataMap = playerLevelDao.getPlayerLevelPackData(playerId);
                 if (CollectionUtil.isEmpty(playerLevelPackDataMap)) {
-                    log.error("玩家购买等级礼包失败 没有任何等级礼包数据 playerId:{} id:{} ", player.getId(), id);
+                    log.error("玩家购买等级礼包失败 没有任何等级礼包数据 playerId:{} id:{} ", playerId, id);
                     return;
                 }
                 playerLevelPackData = playerLevelPackDataMap.get(id);
                 //购买条件判断
                 if (playerLevelPackData == null || playerLevelPackData.getClaimStatus() != ActivityConstant.ClaimStatus.NOT_CLAIM) {
-                    log.error("玩家购买等级礼包失败 数据不存在 playerLevelPackData：{} playerId:{} id:{} ", playerLevelPackData, player.getId(), id);
+                    log.error("玩家购买等级礼包失败 数据不存在 playerLevelPackData：{} playerId:{} id:{} ", playerLevelPackData, playerId, id);
                     return;
                 }
-                playerLevelPackData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
-                playerLevelDao.savePackData(player.getId(), id, playerLevelPackData);
+                added = playerPackService.addItems(playerId, playerLevelPackCfg.getLevelRewards(), AddType.LEVEL_CLAIM);
+                if (!added.success()) {
+                    added = null;
+                    log.error("等级礼包领取道具失败 playerId:{} id:{} ", playerId, id);
+                }
+                playerLevelPackData.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
+                playerLevelDao.savePackData(playerId, id, playerLevelPackData);
             } catch (Exception e) {
-                log.error("等级礼包修改数据异常 playerId:{} id:{} ", player.getId(), id, e);
+                log.error("等级礼包修改数据异常 playerId:{} id:{} ", playerId, id, e);
             } finally {
                 redisLock.unlock(lockKey);
             }
-            if (playerLevelPackData != null && playerLevelPackData.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                //发送日志
-                activityLogger.sendLevelPackBuyLog(player, playerLevelPackCfg);
+            if (playerLevelPackData == null) {
+                return;
             }
-            if (playerLevelPackData != null) {
-                clusterSystem.sendToPlayer(buildNotifyPlayerLevelPackDetailInfo(player, playerLevelPackDataMap), player.getId());
+            //发送日志
+            if (added != null) {
+                activityLogger.sendLevelPackClaimLog(player, added.data, playerLevelPackCfg);
             }
+            activityLogger.sendLevelPackBuyLog(player, playerLevelPackCfg);
+            ResPlayerLevelClaimRewards res = new ResPlayerLevelClaimRewards(Code.SUCCESS);
+            res.id = id;
+            res.itemInfos = ItemUtils.buildItemInfo(playerLevelPackCfg.getLevelRewards());
+            clusterSystem.sendToPlayer(res, playerId);
+
         } catch (Exception e) {
-            log.error("等级礼包购买 异常playerId:{} order:{} ", player.getId(), JSONObject.toJSONString(order), e);
+            log.error("等级礼包购买 异常playerId:{} order:{} ", playerId, JSONObject.toJSONString(order), e);
         }
 
     }

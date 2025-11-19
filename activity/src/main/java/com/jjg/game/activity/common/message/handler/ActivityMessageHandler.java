@@ -13,7 +13,6 @@ import com.jjg.game.activity.common.message.req.ReqActivityInfoByType;
 import com.jjg.game.activity.common.message.req.ReqActivityPlayerJoin;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.levelpack.manager.PlayerLevelPackManager;
-import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelClaimRewards;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.activity.officialawards.controller.OfficialAwardsController;
 import com.jjg.game.activity.officialawards.message.req.ReqOfficialAwardsRecord;
@@ -248,16 +247,6 @@ public class ActivityMessageHandler {
         playerController.send(res);
     }
 
-
-    /**
-     * 等级礼包 请求领取等级礼包
-     *
-     * @param playerController 玩家信息
-     */
-    @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_CLAIM_REWARDS)
-    public void reqPlayerLevelClaimRewards(PlayerController playerController, ReqPlayerLevelClaimRewards req) {
-        playerController.send(playerLevelPackManager.reqPlayerLevelClaimRewards(playerController, req));
-    }
 
     /**
      * 当前服务器能否领奖
