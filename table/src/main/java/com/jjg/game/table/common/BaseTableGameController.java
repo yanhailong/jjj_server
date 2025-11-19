@@ -254,5 +254,4 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         }
     }
 
-
 }

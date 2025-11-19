@@ -3,6 +3,7 @@ package com.jjg.game.common.cluster;
 import com.jjg.game.common.concurrent.MessageHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.listener.SessionReferenceBinder;
 import com.jjg.game.common.net.Connect;
 import com.jjg.game.common.pb.AbstractMessage;
@@ -187,6 +188,7 @@ public class ClusterMessageDispatcher {
                     args[i] = session;
                 } else if (reference != null && clazz == reference.getClass()) {
                     args[i] = reference;
+
                 } else if (Connect.class.isAssignableFrom(clazz)) {
                     args[i] = connect;
                 } else if (PFMessage.class.isAssignableFrom(clazz)) {
@@ -199,7 +201,8 @@ public class ClusterMessageDispatcher {
                         args[i] = constructor.newInstance();
                     }
                 }
-                if (args[i] == null) {
+                if ((msg.cmd != MessageConst.ToClientConst.REQ_HEART_BEAT && msg.cmd != MessageConst.ToClientConst.RES_HEART_BEAT)
+                        && args[i] == null) {
                     log.error("未找到参数 丢弃消息 sessionId:{} msg:{} ", session == null ? "null" : session.sessionId(), msg);
                     return;
                 }
