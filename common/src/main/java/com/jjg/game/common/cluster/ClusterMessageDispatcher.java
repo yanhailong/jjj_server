@@ -105,6 +105,7 @@ public class ClusterMessageDispatcher {
         }
     }
 
+
     /**
      * 根据消息查找对应的controller或者handler进行处理
      *
@@ -192,6 +193,9 @@ public class ClusterMessageDispatcher {
                 } else {
                     if (msg.data != null && msg.data.length > 0) {
                         //System.out.println(Arrays.toString(msg.data));
+                        if (msg.cmd == 131073) {
+                            log.info("session:{} data:{}", session == null ? "null" : session.sessionId(), System.identityHashCode(msg.data));
+                        }
                         args[i] = ProtostuffUtil.deserialize(msg.data, clazz);
                     } else {
                         Constructor<?> constructor = clazz.getConstructor();

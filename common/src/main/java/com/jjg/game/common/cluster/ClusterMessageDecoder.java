@@ -1,5 +1,7 @@
 package com.jjg.game.common.cluster;
 
+import cn.hutool.core.lang.generator.SnowflakeGenerator;
+import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
@@ -16,12 +18,21 @@ import java.util.List;
  */
 public class ClusterMessageDecoder extends MessageToMessageDecoder<ByteBuf> {
     private static final Logger log = LoggerFactory.getLogger(ClusterMessageDecoder.class);
+    private static final SnowflakeGenerator snowflakeGenerator = new SnowflakeGenerator();
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
         // copy the ByteBuf content to a byte array
         byte[] array = ByteBufUtil.getBytes(msg);
         ClusterMessage deserialize = ProtostuffUtil.deserialize(array, ClusterMessage.class);
-        out.add(deserialize);
+        try {
+            PFMessage message = deserialize.getMsg();
+            if (message.cmd == 131073) {
+                log.info("data:{}", System.identityHashCode(message.data));
+            }
+            out.add(deserialize);
+        } catch (Exception e) {
+            log.error("消息错误");
+        }
     }
 }
