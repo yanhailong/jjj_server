@@ -214,24 +214,23 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         }
         RAtomicLong counter = redissonClient.getAtomicLong(atomicKey(playerId));
 
+        //排行榜的积分
+        long currentPoints = counter.get();
         try {
-            //排行榜的积分
-            long currentPoints = counter.get();
-            updatePointsWithOverflowProtection(counter, currentPoints, pointsAward);
-            //通知玩家同步分数
-            noticeSyncPoints(playerId, counter.get());
+            currentPoints = updatePointsWithOverflowProtection(counter, currentPoints, pointsAward);
         } catch (Exception e) {
             log.error("add 玩家积分更新失败!playerId = [{}],pointsAward = [{}]", playerId, pointsAward, e);
         }
         // 排行榜更新
-        updateLeaderboards(playerId, counter.get());
+        updateLeaderboards(playerId, currentPoints);
         //记录日志
-        pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, counter.get());
+        pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, currentPoints);
         //通知红点
         redDotManager.updateRedDotByInitialize(getModule(), List.of(getSubmodule(), PointsAwardConstant.RedDotSubModule.TURNRABLE), playerId);
-
         //添加时间段积分
         addTimePoints(playerId, pointsAward);
+        //通知玩家同步分数
+        noticeSyncPoints(playerId, currentPoints);
     }
 
     /**
@@ -283,12 +282,13 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * @param currentPoints 当前积分值
      * @param pointsToAdd   要增加的积分
      */
-    private void updatePointsWithOverflowProtection(RAtomicLong counter, long currentPoints, int pointsToAdd) {
+    private long updatePointsWithOverflowProtection(RAtomicLong counter, long currentPoints, int pointsToAdd) {
         // 检查是否会溢出
         if (Long.MAX_VALUE - currentPoints < (long) pointsToAdd) {
             setToMaxValue(counter);
+            return counter.get();
         } else {
-            counter.addAndGet(pointsToAdd);
+            return counter.addAndGet(pointsToAdd);
         }
     }
 

@@ -95,6 +95,7 @@ public class PointsAwardLeaderboardManager {
             // 初始化服务的管理器引用
             leaderboardService.init(this);
             initLeaderboards();
+            cacheRankData();
 
             log.info("积分奖励排行榜管理器初始化完成");
         } catch (Exception e) {
@@ -176,6 +177,22 @@ public class PointsAwardLeaderboardManager {
             log.error("排行榜初始化失败", e);
             throw e;
         }
+    }
+
+    /**
+     * 缓存排行榜数据
+     */
+    public void cacheRankData(){
+        if (configMap.containsKey(PointsAwardConstant.Leaderboard.AM)) {
+            leaderboardService.loadRank(PointsAwardConstant.Leaderboard.AM);
+        }
+        if (configMap.containsKey(PointsAwardConstant.Leaderboard.PM)) {
+            leaderboardService.loadRank(PointsAwardConstant.Leaderboard.PM);
+        }
+        if (configMap.containsKey(PointsAwardConstant.Leaderboard.TYPE_MONTH)) {
+            leaderboardService.loadRank(PointsAwardConstant.Leaderboard.TYPE_MONTH);
+        }
+        log.debug("缓存排行榜数据完成");
     }
 
     // ==================== 定时任务方法 ====================
