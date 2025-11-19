@@ -2,6 +2,7 @@ package com.jjg.game.common.cluster;
 
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import org.slf4j.Logger;
@@ -19,11 +20,8 @@ public class ClusterMessageDecoder extends MessageToMessageDecoder<ByteBuf> {
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
         // copy the ByteBuf content to a byte array
-        byte[] array = new byte[msg.readableBytes()];
-        msg.getBytes(0, array);
-        log.info("deserializeBefore:object:{} {}", array, System.identityHashCode(array));
+        byte[] array = ByteBufUtil.getBytes(msg);
         ClusterMessage deserialize = ProtostuffUtil.deserialize(array, ClusterMessage.class);
-        log.info("deserializeAfter:object:{} {}", deserialize.getMsg().data, System.identityHashCode(deserialize.getMsg().data));
         out.add(deserialize);
     }
 }
