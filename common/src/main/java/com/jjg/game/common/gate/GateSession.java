@@ -37,7 +37,7 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
     /**
      * TODO 在GateSession中管理所有的网关会话?是否应该在{@linkplain com.jjg.game.gate.GateSessionManager}中管理操作所有的网关会话
      */
-    protected static Map<String, GateSession> gateSessionMap = new HashMap<>();
+    protected static final Map<String, GateSession> gateSessionMap = new HashMap<>();
     /**
      * 会话ID
      */

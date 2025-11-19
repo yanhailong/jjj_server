@@ -27,11 +27,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
 
 /**
  * 使用 Redisson 实现的分布式排行榜服务
@@ -52,6 +48,8 @@ public class PointsAwardLeaderboardService {
     private final HallPlayerService hallPlayerService;
     private final AwardCodeManager awardCodeManager;
 
+    private final Map<Integer,List<PointsAwardLeaderboardData>> rankMap = new HashMap<>();
+
     /**
      * 排行榜管理器
      */
@@ -66,7 +64,6 @@ public class PointsAwardLeaderboardService {
 
     public void init(PointsAwardLeaderboardManager manager) {
         this.manager = manager;
-
     }
 
     /**
@@ -300,13 +297,24 @@ public class PointsAwardLeaderboardService {
      */
 
     public PageUtils.PageResult<PointsAwardLeaderboardData> getData(int type, int pageIndex, int pageSize) {
-        List<PointsAwardLeaderboardData> list = manager.getRankingHistory(type);
+        List<PointsAwardLeaderboardData> tmpList = this.rankMap.get(type);
+        if(tmpList == null || tmpList.isEmpty()){
+            return PageUtils.page(Collections.emptyList(), pageIndex, pageSize);
+        }
+
+        List<PointsAwardLeaderboardData> list = new ArrayList<>(tmpList);
+
         // 只有在排行榜活跃时才添加当前数据
         PointsAwardLeaderboardData data = null;
         if (isLeaderboardActive(type)) {
             data = new PointsAwardLeaderboardData();
             data.setRankType(type);
             data.setRankingInfoList(topN(type, PointsAwardConstant.Leaderboard.MAX_RANK_SIZE));
+            data.setEndTime(System.currentTimeMillis());
+            list.addFirst(data);
+        }else {
+            data = new PointsAwardLeaderboardData();
+            data.setRankType(type);
             data.setEndTime(System.currentTimeMillis());
             list.addFirst(data);
         }
@@ -408,4 +416,10 @@ public class PointsAwardLeaderboardService {
         });
     }
 
+    public void loadRank(int type){
+        List<PointsAwardLeaderboardData> list = manager.getRankingHistory(type);
+        rankMap.put(type, list);
+
+        log.debug("加载排行榜数据 type = {},size = {}", type, list.size());
+    }
 }

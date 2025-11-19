@@ -120,7 +120,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 
             gameRunInfo = normal(gameRunInfo, playerGameData, betValue);
 
-            if(!gameRunInfo.success()){
+            if (!gameRunInfo.success()) {
                 return gameRunInfo;
             }
 
@@ -141,7 +141,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.playerId(), gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerController.playerId(), gameRunInfo.getAllWinGold(), betValue);
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
@@ -150,7 +150,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
             gameRunInfo.setAfterGold(player.getGold());
 
             //添加大奖展示id
-            int times = (int) (gameRunInfo.getAllWinGold() / betValue);
+            int times = calWinTimes(gameRunInfo, playerGameData, betValue);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 
@@ -183,7 +183,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 //                continue;
 //            }
             //获取结果库
-            CommonResult<Pair<CleopatraResultLib,Long>> libResult = normalGetLib(playerGameData, betValue, CleopatraConstant.SpecialMode.NORMAL);
+            CommonResult<Pair<CleopatraResultLib, Long>> libResult = normalGetLib(playerGameData, betValue, CleopatraConstant.SpecialMode.NORMAL);
             if (!libResult.success()) {
                 gameRunInfo.setCode(libResult.code);
                 return gameRunInfo;
@@ -258,12 +258,12 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
             lib.setId(RandomUtils.getUUid());
 
             List<int[]> addIconList = new ArrayList<>();
-            if(splitArr.length > 1){
-                for(int i = 1; i < splitArr.length; i++){
+            if (splitArr.length > 1) {
+                for (int i = 1; i < splitArr.length; i++) {
                     String[] arr3 = splitArr[i].split(",");
 
                     int[] tmpArr = new int[baseInitCfg.getRows()];
-                    for(int j = 0; j < tmpArr.length; j++){
+                    for (int j = 0; j < tmpArr.length; j++) {
                         tmpArr[j] = Integer.parseInt(arr3[j]);
                     }
                     addIconList.add(tmpArr);
@@ -271,7 +271,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
             }
 
             TestLibData testLibData = new TestLibData();
-            lib = generateManager.checkAward(initArr,lib,addIconList);
+            lib = generateManager.checkAward(initArr, lib, addIconList);
             testLibData.setData(lib);
             playerGameData.addTestIconsData(testLibData);
             log.info("添加测试icons成功 playerId = {},icons = {}", playerController.playerId(), icons);
@@ -304,11 +304,11 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 
     @Override
     protected void offlineSaveGameDataDto(CleopatraPlayerGameData gameData) {
-        try{
+        try {
             CleopatraPlayerGameDataDTO dto = gameData.converToDto(CleopatraPlayerGameDataDTO.class);
             gameDataDao.saveGameData(dto);
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 

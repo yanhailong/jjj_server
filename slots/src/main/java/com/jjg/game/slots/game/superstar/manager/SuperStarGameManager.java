@@ -172,7 +172,7 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
             triggerWinTask(playerGameData.playerId(),gameRunInfo.getAllWinGold(),betValue);
 
             //添加大奖展示id
-            int times = (int) (gameRunInfo.getAllWinGold() / betValue);
+            int times = calWinTimes(gameRunInfo, playerGameData, betValue);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
