@@ -89,18 +89,22 @@ public class ClusterMessageDispatcher {
         }
         PFMessage msg = clusterMessage.getMsg();
         try {
-            long bindId = 0;
-            if (session != null) {
-                bindId = session.getWorkId();
-            }
-            boolean tryPublish = executorGroup.tryPublish(bindId, msg.cmd, new MessageHandler<>(session, msg.copyPFMessage(), connect) {
-                @Override
-                public void action() {
-                    handle(getFinalConnect(), getFinalSession(), getFinalMsg());
+            if(msg.messageType == MessageConst.MessageTypeDef.SESSION_TYPE || msg.messageType == MessageConst.MessageTypeDef.CERTIFY_MESSAGE_TYPE){
+                handle(connect, session, msg);
+            }else {
+                long bindId = 0;
+                if (session != null) {
+                    bindId = session.getWorkId();
                 }
-            });
-            if (!tryPublish) {
-                log.error("消息消费失败 msgId:{} data:{} session:{}", msg, Arrays.toString(msg.data), sessionId);
+                boolean tryPublish = executorGroup.tryPublish(bindId, msg.cmd, new MessageHandler<>(session, msg.copyPFMessage(), connect) {
+                    @Override
+                    public void action() {
+                        handle(getFinalConnect(), getFinalSession(), getFinalMsg());
+                    }
+                });
+                if (!tryPublish) {
+                    log.error("消息消费失败 msgId:{} data:{} session:{}", msg, Arrays.toString(msg.data), sessionId);
+                }
             }
         } catch (Exception e) {
             log.warn("节点消息分发异常!", e);
@@ -144,7 +148,7 @@ public class ClusterMessageDispatcher {
                 log.warn("未被注册的消息,messageType={},cmd={},hex=0x{}", messageType, command, Integer.toHexString(command));
             }
         } catch (Exception e) {
-            log.warn("消息解析错误,messageType={},cmd={},hex = 0x{}", messageType, command, Integer.toHexString(command), e);
+            log.warn("消息解析错误,sessionId = {},connect = {},messageType={},cmd={},hex = 0x{}", session == null ? "null" : session.sessionId(), connect == null ? "null" : connect, messageType, command, Integer.toHexString(command), e);
         } finally {
             MDC.remove("playerId");
         }
