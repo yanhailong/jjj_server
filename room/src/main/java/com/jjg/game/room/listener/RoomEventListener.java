@@ -88,8 +88,12 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
     }
 
     public void exitRoomAction(PFSession session, boolean exit) {
-        PlayerController playerController = (PlayerController) session.getReference();
-        if (playerController == null || playerController.getPlayer() == null) {
+        if (session == null || !(session.getReference() instanceof PlayerController playerController)) {
+            log.warn("玩家退出游戏服务器时 playerController 为空 playerId={},sessionId={}", session == null ? "null" : session.getPlayerId(),
+                    session == null ? "null" : session.sessionId());
+            return;
+        }
+        if (playerController.getPlayer() == null) {
             log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(),
                     session.sessionId());
             return;
@@ -122,13 +126,8 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             if (exit) {
                 roomManager.exitRoom(playerController);
             } else {
-                roomController.getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
-                    @Override
-                    public void action() {
-                        log.info("玩家掉线 player: {}", playerController.playerId());
-                        roomManager.disconnectedExitRoom(playerController);
-                    }
-                });
+                log.info("玩家掉线 player: {}", playerController.playerId());
+                roomManager.disconnectedExitRoom(playerController);
             }
             //先取玩家信息,退出成功后会删掉
             int onlineTimeLen = 0;
@@ -146,6 +145,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                     playerController.playerId(), gameType);
         }
         log.info("房间 session close 成功 player: {}", playerController.playerId());
+        session.setReference(null);
     }
 
     @Override

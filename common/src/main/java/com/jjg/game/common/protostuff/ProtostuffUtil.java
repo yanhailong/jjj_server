@@ -6,6 +6,8 @@ import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -21,6 +23,7 @@ import java.util.zip.GZIPOutputStream;
  * @since 1.0.0
  */
 public final class ProtostuffUtil {
+    private static final Logger log = LoggerFactory.getLogger(ProtostuffUtil.class);
     private static Map<Class<?>, Schema<?>> cachedSchema = new ConcurrentHashMap<>();
 
     private static Objenesis objenesis = new ObjenesisStd(true);
@@ -118,4 +121,6 @@ public final class ProtostuffUtil {
             throw new IllegalStateException("解压失败", e);
         }
     }
+
+
 }

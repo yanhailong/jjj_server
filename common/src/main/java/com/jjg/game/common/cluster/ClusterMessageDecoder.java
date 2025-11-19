@@ -18,7 +18,6 @@ public class ClusterMessageDecoder extends MessageToMessageDecoder<ByteBuf> {
     protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
         // copy the ByteBuf content to a byte array
         byte[] array = ByteBufUtil.getBytes(msg);
-        ClusterMessage deserialize = ProtostuffUtil.deserialize(array, ClusterMessage.class);
-        out.add(deserialize);
+        out.add(ProtostuffUtil.deserialize(array, ClusterMessage.class));
     }
 }

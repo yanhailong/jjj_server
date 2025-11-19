@@ -6,6 +6,7 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.listener.SessionReferenceBinder;
 import com.jjg.game.common.net.Connect;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.protostuff.*;
 import io.netty.channel.ChannelHandler;
 import org.slf4j.Logger;
@@ -110,6 +111,7 @@ public class ClusterMessageDispatcher {
         }
     }
 
+
     /**
      * 根据消息查找对应的controller或者handler进行处理
      *
@@ -194,14 +196,17 @@ public class ClusterMessageDispatcher {
                     args[i] = connect;
                 } else if (PFMessage.class.isAssignableFrom(clazz)) {
                     args[i] = msg;
-                } else {
+                } else if (AbstractMessage.class.isAssignableFrom(clazz)) {
                     if (msg.data != null && msg.data.length > 0) {
-                        //System.out.println(Arrays.toString(msg.data));
                         args[i] = ProtostuffUtil.deserialize(msg.data, clazz);
                     } else {
                         Constructor<?> constructor = clazz.getConstructor();
                         args[i] = constructor.newInstance();
                     }
+                }
+                if (args[i] == null) {
+                    log.error("未找到参数 丢弃消息 sessionId:{} msg:{} ", session == null ? "null" : session.sessionId(), msg);
+                    return;
                 }
             }
 
