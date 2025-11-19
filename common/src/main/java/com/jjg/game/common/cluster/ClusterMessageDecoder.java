@@ -28,7 +28,7 @@ public class ClusterMessageDecoder extends MessageToMessageDecoder<ByteBuf> {
         try {
             PFMessage message = deserialize.getMsg();
             if (message.cmd == 131073) {
-                log.info("data:{}", System.identityHashCode(message.data));
+                log.info("data:{} hash:{}", message.data, System.identityHashCode(message.data));
             }
             out.add(deserialize);
         } catch (Exception e) {
