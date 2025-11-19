@@ -30,4 +30,12 @@ public class PFMessage {
                 ", cmd=0x" + Integer.toHexString(cmd) +
                 '}';
     }
+
+    public PFMessage copyPFMessage() {
+        PFMessage pfMessage = new PFMessage();
+        pfMessage.messageType = this.messageType;
+        pfMessage.cmd = this.cmd;
+        pfMessage.data = this.data != null ? this.data.clone() : null;
+        return pfMessage;
+    }
 }

@@ -87,16 +87,17 @@ public class ClusterMessageDispatcher {
         }
         PFMessage msg = clusterMessage.getMsg();
         try {
-            PFSession finalSession = session;
+            final PFSession finalSession = session;
+            final PFMessage finalMsg = msg.copyPFMessage();
+            final Connect<ClusterMessage> finalConnect = connect;
             long bindId = 0;
             if (session != null) {
                 bindId = session.getWorkId();
             }
-            log.warn("PFMessage.data identity={}", System.identityHashCode(msg.data));
             boolean tryPublish = executorGroup.tryPublish(bindId, msg.cmd, new BaseHandler<>() {
                 @Override
                 public void action() {
-                    handle(connect, finalSession, msg);
+                    handle(finalConnect, finalSession, finalMsg);
                 }
             });
             if (!tryPublish) {
@@ -137,7 +138,6 @@ public class ClusterMessageDispatcher {
                             "0x" + Integer.toHexString(command).toUpperCase());
                     return;
                 }
-                log.warn("PFMessage.data identity={}", System.identityHashCode(msg.data));
                 // 调用消息具体实现方法
                 invokeMessage(connect, session, msg, messageController, methodInfo);
             } else {

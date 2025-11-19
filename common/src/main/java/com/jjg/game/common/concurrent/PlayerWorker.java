@@ -22,7 +22,6 @@ public class PlayerWorker {
     private final int bufferSize;
     private final Disruptor<PlayerEvent> disruptor;
     private final RingBuffer<PlayerEvent> ringBuffer;
-    private final long consumerSequence;
     private final AtomicLong processedCount = new AtomicLong();
     private final AtomicLong totalLatencyNanos = new AtomicLong();
     private final AtomicLong rejectedCount = new AtomicLong();
@@ -64,6 +63,10 @@ public class PlayerWorker {
                     totalLatencyNanos.addAndGet(Math.max(0, latency));
                 }
             }
+            long pendingCount = getPendingCount();
+            if (pendingCount > 512) {
+                log.error("等待的队列过长 pendingCount:{}", pendingCount);
+            }
             // clear to avoid retaining references
             event.clear();
         };
@@ -71,8 +74,6 @@ public class PlayerWorker {
         disruptor.handleEventsWith(handler);
         disruptor.start();
         this.ringBuffer = disruptor.getRingBuffer();
-        // consumerSequence: get the first gating sequence (single consumer)
-        this.consumerSequence = disruptor.getRingBuffer().getCursor(); // cursor sequence
     }
 
     /**
@@ -116,7 +117,7 @@ public class PlayerWorker {
     public long getPendingCount() {
         long cursor = ringBuffer.getCursor();
         // consumer sequence is last processed
-        long pending = cursor - consumerSequence;
+        long pending = cursor - disruptor.getRingBuffer().getCursor();
         if (pending < 0) return 0;
         if (pending > Integer.MAX_VALUE) return Integer.MAX_VALUE;
         return pending;
