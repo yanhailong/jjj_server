@@ -1397,4 +1397,19 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             });
         });
     }
+
+    /**
+     * 计算实际赢钱倍数
+     *
+     * @param gameRunInfo
+     * @param playerGameData
+     * @param betValue
+     * @return
+     */
+    protected int calWinTimes(GameRunInfo<T> gameRunInfo, T playerGameData, long betValue) {
+        if (betValue < 1) {
+            return (int) (gameRunInfo.getAllWinGold() / playerGameData.getAllBetScore());
+        }
+        return (int) (gameRunInfo.getAllWinGold() / betValue);
+    }
 }

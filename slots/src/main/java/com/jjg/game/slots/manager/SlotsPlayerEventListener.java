@@ -51,6 +51,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     public void sessionEnter(PFSession session, long playerId) {
         try {
             session.setPlayerId(playerId);
+            session.setWorkId(playerId);
 
             PlayerSessionInfo info = playerSessionService.getInfo(playerId);
             if (info == null) {
@@ -86,7 +87,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 p.setRoomCfgId(tempInfo.getRoomCfgId());
             });
 
-            info = playerSessionService.enterGameServer(player);
+            playerSessionService.enterGameServer(player);
 
             PlayerController playerController = new PlayerController(session, player);
             session.setReference(playerController);
@@ -97,7 +98,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             slotsFactoryManager.clearPlayerEvent(playerId);
 
             PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
-            logger.enterGame(player, info.getGameType(), info.getRoomCfgId(), playerSessionToken.getDevice());
+            logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), playerSessionToken.getDevice());
+            log.debug("玩家进入slots 游戏 playerId = {},gameType = {}", playerId, player.getGameType());
         } catch (Exception e) {
             log.error("", e);
         }
