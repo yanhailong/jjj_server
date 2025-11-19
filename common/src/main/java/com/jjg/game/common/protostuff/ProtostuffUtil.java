@@ -69,7 +69,6 @@ public final class ProtostuffUtil {
             ProtobufIOUtil.mergeFrom(data, message, schema);
             return message;
         } catch (Exception e) {
-            log.error("data:{} hash:{} class：{}", data,System.identityHashCode(data), cls.getName(), e);
             throw new IllegalStateException(e.getMessage(), e);
         }
     }
