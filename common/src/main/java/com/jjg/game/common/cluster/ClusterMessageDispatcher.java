@@ -1,6 +1,6 @@
 package com.jjg.game.common.cluster;
 
-import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.MessageHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.listener.SessionReferenceBinder;
@@ -87,17 +87,14 @@ public class ClusterMessageDispatcher {
         }
         PFMessage msg = clusterMessage.getMsg();
         try {
-            final PFSession finalSession = session;
-            final PFMessage finalMsg = msg.copyPFMessage();
-            final Connect<ClusterMessage> finalConnect = connect;
             long bindId = 0;
             if (session != null) {
                 bindId = session.getWorkId();
             }
-            boolean tryPublish = executorGroup.tryPublish(bindId, msg.cmd, new BaseHandler<>() {
+            boolean tryPublish = executorGroup.tryPublish(bindId, msg.cmd, new MessageHandler<>(session, msg.copyPFMessage(), connect) {
                 @Override
                 public void action() {
-                    handle(finalConnect, finalSession, finalMsg);
+                    handle(getFinalConnect(), getFinalSession(), getFinalMsg());
                 }
             });
             if (!tryPublish) {

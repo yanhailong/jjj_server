@@ -20,7 +20,6 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.DropItemManager;
 import com.jjg.game.core.service.*;
 import com.jjg.game.core.utils.ItemUtils;
-import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
@@ -343,7 +342,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
         } else if (smsType == VerCodeType.MAIL_BIND_MAIL) {
             loginType = LoginType.EMAIL;
-            update = accountDao.checkAndSave(player.getId(),a -> a.setEmail(verResult.data)) != null;
+            update = accountDao.checkAndSave(player.getId(), a -> a.setEmail(verResult.data)) != null;
         }
 
         if (!update) {
@@ -595,16 +594,19 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
             //是否有掉落的道具
             if (itemCfg.getDropId() > 0) {
-                Map<Integer, Long> useItem = dropItemManager.triggerDropItem(player, AddType.USE_ITEM, player.getId() + "", itemCfg.getDropId());
+                CommonResult<ItemOperationResult> removed = playerPackService.removeItem(player.getId(), girdId, itemId, useItemCount, AddType.USE_ITEM);
+                if (!removed.success()) {
+                    result.code = removed.code;
+                    return result;
+                }
+                Map<Integer, Long> useItem = dropItemManager.triggerDropItem(player, useItemCount, AddType.USE_ITEM, player.getId() + "", itemCfg.getDropId());
                 addItemsMap.putAll(useItem);
             }
 
             if (addItemsMap.isEmpty()) {
-                log.debug("使用道具失败 playerId = {},itemId = {}", player.getId(), itemId);
-                result.code = Code.FORBID;
+                log.debug("随机到空道具 playerId = {},itemId = {}", player.getId(), itemId);
                 return result;
             }
-
             result.data = addItemsMap;
         } catch (Exception e) {
             log.error("", e);
@@ -764,9 +766,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
             CommonResult<Player> deductResult;
             if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
-                deductResult = hallPlayerService.deductGold(playerId, avatarCfg.getBuyItem().get(1), AddType.BUY_AVATAR, id + "",true);
+                deductResult = hallPlayerService.deductGold(playerId, avatarCfg.getBuyItem().get(1), AddType.BUY_AVATAR, id + "", true);
             } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
-                deductResult = hallPlayerService.deductDiamond(playerId, avatarCfg.getBuyItem().get(1), AddType.BUY_AVATAR, id + "",true);
+                deductResult = hallPlayerService.deductDiamond(playerId, avatarCfg.getBuyItem().get(1), AddType.BUY_AVATAR, id + "", true);
             } else {
                 log.debug("该配置的buyItem配置错误，配置的itemIdc错误，id = {},itemCfgId = {}", id, moneyId);
                 result.code = Code.SAMPLE_ERROR;
@@ -782,7 +784,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
             //获取赠送的id
             int giveId = 0;
-            if(avatarCfg.getBuyItem().size() >= 3){
+            if (avatarCfg.getBuyItem().size() >= 3) {
                 giveId = avatarCfg.getBuyItem().get(2);
                 AvatarCfg giveAvatarCfg = GameDataManager.getAvatarCfg(giveId);
                 if (giveAvatarCfg != null) {

@@ -16,7 +16,6 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.dao.PlayerSkinDao;
@@ -26,7 +25,7 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.task.param.TaskConditionParam10001;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.casino.manager.CasinoManager;
 import com.jjg.game.hall.casino.pb.req.*;
 import com.jjg.game.hall.constant.HallCode;
@@ -511,6 +510,11 @@ public class HallMessageHandler implements GmListener {
     @Command(HallConstant.MsgBean.REQ_USE_ITEM)
     public void reqUseItem(PlayerController playerController, ReqUseItem req) {
         ResUseItem res = new ResUseItem(HallCode.SUCCESS);
+        if (req.useItemCount <= 0 || req.itemId <= 0) {
+            res.code = Code.ERROR_REQ;
+            playerController.send(res);
+            return;
+        }
         try {
             CommonResult<Map<Integer, Long>> useResult = hallService.useItem(playerController.getPlayer(), req.girdId, req.itemId, req.useItemCount);
             if (!useResult.success()) {
@@ -518,17 +522,10 @@ public class HallMessageHandler implements GmListener {
                 playerController.send(res);
                 return;
             }
-
             res.packItemInfos = getPlayerPack(playerController.playerId());
-
-            List<ItemInfo> items = new ArrayList<>();
-            useResult.data.forEach((k, v) -> {
-                ItemInfo item = new ItemInfo();
-                item.itemId = k;
-                item.count = v;
-                items.add(item);
-            });
-            res.addItemInfos = items;
+            if (useResult.data != null) {
+                res.addItemInfos = ItemUtils.buildItemInfo(useResult.data);
+            }
             log.debug("使用道具 playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
@@ -1104,7 +1101,7 @@ public class HallMessageHandler implements GmListener {
         ResReadNotice res = new ResReadNotice(Code.SUCCESS);
         try {
             noticeService.readNotice(playerController.playerId(), req.id);
-            log.debug("阅读公告 playerId = {},id = {}", playerController.playerId(),req.id);
+            log.debug("阅读公告 playerId = {},id = {}", playerController.playerId(), req.id);
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             log.error("", e);
