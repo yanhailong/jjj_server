@@ -205,11 +205,11 @@ public class ClusterMessageDispatcher {
                         args[i] = constructor.newInstance();
                     }
                 }
-                if ((msg.cmd != MessageConst.ToClientConst.REQ_HEART_BEAT && msg.cmd != MessageConst.ToClientConst.RES_HEART_BEAT)
-                        && args[i] == null) {
-                    log.error("未找到参数 丢弃消息 sessionId:{} msg:{} ", session == null ? "null" : session.sessionId(), msg);
-                    return;
-                }
+//                if ((msg.cmd != MessageConst.ToClientConst.REQ_HEART_BEAT && msg.cmd != MessageConst.ToClientConst.RES_HEART_BEAT)
+//                        && args[i] == null) {
+//                    log.error("未找到参数 丢弃消息 sessionId:{} msg:{} ", session == null ? "null" : session.sessionId(), msg);
+//                    return;
+//                }
             }
 
             if (session != null) {
