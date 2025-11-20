@@ -1,9 +1,8 @@
 package com.jjg.game.common.cluster;
 
-import com.jjg.game.common.concurrent.MessageHandler;
+import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.data.AbsReferenceObject;
 import com.jjg.game.common.listener.SessionReferenceBinder;
 import com.jjg.game.common.net.Connect;
@@ -91,22 +90,21 @@ public class ClusterMessageDispatcher {
         }
         PFMessage msg = clusterMessage.getMsg();
         try {
-            if (msg.messageType == MessageConst.MessageTypeDef.SESSION_TYPE || msg.messageType == MessageConst.MessageTypeDef.CERTIFY_MESSAGE_TYPE) {
-                handle(connect, session, msg);
-            } else {
-                long bindId = 0;
-                if (session != null) {
-                    bindId = session.getWorkId();
+            long bindId = 0;
+            if (session != null) {
+                bindId = session.getWorkId();
+            }
+            final PFMessage finalMsg = msg;
+            final PFSession finalPFSession = session;
+            final Connect<ClusterMessage> finalConnect = connect;
+            boolean tryPublish = executorGroup.tryPublish(bindId, msg.cmd, new BaseHandler<String>() {
+                @Override
+                public void action() {
+                    handle(finalConnect, finalPFSession, finalMsg);
                 }
-                boolean tryPublish = executorGroup.tryPublish(bindId, msg.cmd, new MessageHandler<>(session, msg.copyPFMessage(), connect) {
-                    @Override
-                    public void action() {
-                        handle(getFinalConnect(), getFinalSession(), getFinalMsg());
-                    }
-                });
-                if (!tryPublish) {
-                    log.error("消息消费失败 msgId:{} data:{} session:{}", msg, Arrays.toString(msg.data), sessionId);
-                }
+            });
+            if (!tryPublish) {
+                log.error("消息消费失败 msgId:{} data:{} session:{}", msg, Arrays.toString(msg.data), sessionId);
             }
         } catch (Exception e) {
             log.warn("节点消息分发异常!", e);
