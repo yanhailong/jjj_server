@@ -97,6 +97,9 @@ public class ClusterMessageHandler {
         long playerId = sessionCreate.playerId;
         String gatePath = sessionCreate.nodePath;
         log.info("用户连接进入，sessionId={}", sessionId);
+        if (pfSession == null) {
+            pfSession = new PFSession(sessionId, connect, sessionCreate.netAddress);
+        }
         pfSession.setAddress(sessionCreate.netAddress);
         pfSession.gatePath = gatePath;
         if (sessionCreate.loginData != null && this.sessionLoginListenerMap != null && !this.sessionLoginListenerMap.isEmpty()) {
