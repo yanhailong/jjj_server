@@ -242,7 +242,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                             warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START;
                 }
                 session.send(res);
-                hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice());
+                hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice(), playerSessionToken.getMac());
                 // 调用登录接口类
                 PlayerController playerController = new PlayerController(session, player);
                 session.setReference(playerController);
@@ -253,7 +253,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             //返回登录消息
             session.send(res);
-            hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice());
+            hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice(), playerSessionToken.getMac());
 
             //创建 playerController
             PlayerController playerController = new PlayerController(session, player);
@@ -298,7 +298,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
         //更新节点地址
         playerSessionService.updateNodePath(session, player);
         //推送红点信息
-        redDotManager.notifyReddot(playerController,null,0);
+        redDotManager.notifyReddot(playerController, null, 0);
         log.debug("玩家进入大厅节点 playerId={}", playerId);
     }
 
