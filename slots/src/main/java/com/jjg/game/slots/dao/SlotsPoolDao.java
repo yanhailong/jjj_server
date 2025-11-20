@@ -133,8 +133,6 @@ public class SlotsPoolDao extends AbstractPoolDao {
             addToBigPool(gameType, roomCfgId, value);
             return result;
         }
-
-        triggerTask(playerId, gameType, value);
         log.debug("从标准池扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},value = {},afterPool = {},addType = {}", playerId, gameType, roomCfgId, value, after, addType);
         return result;
     }
@@ -142,7 +140,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
     /**
      * 从小池子扣钱，然后给玩家加钱
      */
-    public CommonResult<Player> rewardFromSmallPool(long playerId, int gameType, int roomCfgId, long value, AddType addType,String desc) {
+    public CommonResult<Player> rewardFromSmallPool(long playerId, int gameType, int roomCfgId, long value, AddType addType, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
 
         Long poolValue = addToSmallPool(gameType, roomCfgId, -value);
@@ -151,35 +149,13 @@ public class SlotsPoolDao extends AbstractPoolDao {
             return result;
         }
 
-        result = slotsPlayerService.addGold(playerId, poolValue, addType);
+        result = slotsPlayerService.addGold(playerId, poolValue, addType, desc);
         if (!result.success()) {  //如果失败，要把钱重新加回池子
             addToSmallPool(gameType, roomCfgId, value);
             return result;
         }
-        triggerTask(playerId, gameType, poolValue);
         log.debug("从小池子扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId, value, poolValue, addType);
         return result;
-    }
-
-    /**
-     * 触发任务的方法。用于根据指定的玩家ID、游戏类型和任务参数触发任务。
-     *
-     * @param playerId 玩家ID
-     * @param gameType 游戏类型
-     * @param winValue 增加的钱
-     */
-    private void triggerTask(long playerId, int gameType, long winValue) {
-        Thread.ofVirtual().start(() -> {
-            //触发任务
-            taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
-                TaskConditionParam10003 param = new TaskConditionParam10003();
-                param.setGameId(gameType);
-                param.setAddValue(winValue);
-                //TODO:默认金币
-                param.setCoinId(ItemUtils.getGoldItemId());
-                return param;
-            });
-        });
     }
 
     /**

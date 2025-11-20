@@ -342,24 +342,7 @@ public class CoreMessageHandler {
      */
     @Command(MessageConst.CoreMessage.REQ_RED_DOT)
     public void loadRedDot(PlayerController playerController, ReqRedDot req) {
-        List<RedDotDetails> result = new ArrayList<>();
-        long playerId = playerController.getPlayer().getId();
-        RedDotDetails.RedDotModule module = req.getModule();
-        if (module != null) {
-            int submodule = req.getSubmodule();
-            if (submodule == 0) {
-                List<RedDotDetails> redDots = redDotManager.load(module, submodule, playerId);
-                result.addAll(redDots);
-            }
-        } else {
-            List<RedDotDetails> redDotDetails = redDotManager.loadAll(playerId);
-            result.addAll(redDotDetails);
-        }
-        NotifyRedDot notifyRedDot = new NotifyRedDot();
-        notifyRedDot.setRedDotList(result);
-        //回复红点数据
-        playerController.send(notifyRedDot);
-        log.debug("玩家获取红点数据 module = {}，notify = {}", module, JSON.toJSONString(notifyRedDot));
+        redDotManager.notifyReddot(playerController,req.getModule(),req.getSubmodule());
     }
 
     /**

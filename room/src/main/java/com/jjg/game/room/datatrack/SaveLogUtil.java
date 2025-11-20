@@ -108,7 +108,7 @@ public class SaveLogUtil {
                     param.setGameId(controller.getRoom().getGameType());
                     param.setAddValue(effectiveGold);
                     return param;
-                });
+                },false);
                 if (income > 0) {
                     controller.triggerTask(player.getId(), controller.getRoom().getGameType(), income, controller.getGameTransactionItemId());
                 }

@@ -84,8 +84,6 @@ public class ClusterMessageDispatcher {
                 sessionRefenerceBinderMap.values().forEach(o -> {
                     o.bind(pfSession, clusterMessage.getPlayerId());
                 });
-
-                clusterSystem.putSession(sessionId, pfSession);
             }
         }
         PFMessage msg = clusterMessage.getMsg();
