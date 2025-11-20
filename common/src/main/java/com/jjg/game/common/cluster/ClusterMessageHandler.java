@@ -110,6 +110,7 @@ public class ClusterMessageHandler {
                 }
             }
         }
+        clusterSystem.putSession(pfSession.sessionId(), pfSession);
     }
 
     /**
