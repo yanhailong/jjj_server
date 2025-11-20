@@ -44,7 +44,7 @@ public class RechargeTestController extends AbstractCallbackController {
             PlayerSessionInfo info = playerSessionService.getInfo(order.getPlayerId());
             String money = order.getPrice().toPlainString();
             String regionCode = "test";
-            coreLogger.order(player, order, money, regionCode);
+            coreLogger.order(player, order, money, regionCode,order.getProductId());
             log.info("玩家充值成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
             //将充值成功消息通知玩家所在节点
             notifyPlayerCurrentNode(info, order, money, regionCode);
