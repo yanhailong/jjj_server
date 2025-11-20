@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class PlayerBinder implements SessionReferenceBinder {
-
     @Autowired
     private HallPlayerService hallPlayerService;
 
