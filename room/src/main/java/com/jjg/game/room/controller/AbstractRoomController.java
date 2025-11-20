@@ -1,6 +1,5 @@
 package com.jjg.game.room.controller;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.concurrent.PlayerWorker;
@@ -184,7 +183,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                     gameController.checkRoomCanStart(),
                     gameController.getGameState()
             );
-            log.debug("房间数据：{}", JSON.toJSONString(room));
         }
         // 检查房间开始的逻辑，由房间判断和游戏判断开启时机
         if (checkRoomCanContinue() && gameController.checkRoomCanStart()) {

@@ -174,8 +174,6 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
             info = playerSessionService.enterGameServer(player);
 
-            PlayerController playerController = new PlayerController(session, player);
-            session.setReference(playerController);
 
             PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
             logger.enterGame(player, info.getGameType(), info.getRoomCfgId(), playerSessionToken.getDevice());
@@ -189,6 +187,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 roomManager.getProcessorExecutors().tryPublish(player.getRoomId(), 0, new BaseHandler<String>() {
                     @Override
                     public void action() {
+                        PlayerController playerController = new PlayerController(session, player);
                         int code = roomManager.joinRoom(playerController, finalInfo.getGameType(), finalInfo.getRoomCfgId(), player.getRoomId());
                         if (code != Code.SUCCESS) {
                             // 加入失败,需要客户端主动确认当前玩家处于哪个场景中，ReqConfirmPlayerScene
@@ -200,18 +199,18 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                             // 将玩家切回到大厅, 此处不发消息是因为客户端在进入时可能还未初始化完成，收不到消息不能做处理
                             // 但是会请求玩家当前的场景位置，如果玩家在大厅会直接切回到大厅，如果在房间则正常进入房间
                             clusterSystem.switchNode(playerController.getSession(), NodeType.HALL);
+                            return;
                         }
+                        session.setReference(playerController);
+                        IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(finalInfo.getGameType());
+                        if (playerRoomEventListener == null) {
+                            log.warn("sessionEnter时 未找到 playerRoomEventListener, playerId = {},gameType = {}", playerId, finalInfo.getGameType());
+                            return;
+                        }
+                        playerRoomEventListener.enter(session, playerController, finalInfo);
                     }
                 });
-                return;
             }
-            IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
-            if (playerRoomEventListener == null) {
-                log.warn("sessionEnter时 未找到 playerRoomEventListener, playerId = {},gameType = {}",
-                        playerId, info.getGameType());
-                return;
-            }
-            playerRoomEventListener.enter(session, playerController, info);
         } catch (Exception e) {
             log.error("player: {} 进入session时发生异常: {}", playerId, e.getMessage(), e);
         }
