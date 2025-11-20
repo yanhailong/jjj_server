@@ -147,6 +147,8 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
 
     @Override
     public void phaseFinish() {
+        //结算完成直接清除数据
+        gameDataVo.clearRoundData(gameController);
         // 检查机器人的退出概率
         try {
             phaseFinishAction();
