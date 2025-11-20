@@ -10,7 +10,6 @@ import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
@@ -249,7 +248,7 @@ public class ShopService implements OrderGenerate, GameEventListener {
         }
         List<ItemInfo> itemInfoList = null;
         if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
-            CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(order.getPlayerId(), shopProduct.getRewardItems(), AddType.RECHARGE, order.getId());
+            CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(order.getPlayerId(), shopProduct.getRewardItems(), AddType.SHOP_RECHARGE, order.getId());
             if (!addItemsResult.success()) {
                 log.warn("支付成功，但是添加道具失败 playerId = {},orderId = {},productId = {},code = {}", order.getPlayerId(), order.getId(), shopProduct.getId(), addItemsResult.code);
             } else {

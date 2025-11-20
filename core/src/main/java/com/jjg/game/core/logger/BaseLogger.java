@@ -79,6 +79,7 @@ public class BaseLogger {
             addSafeBoxGoldChange(json, player.getSafeBoxGold(), 0, player.getSafeBoxGold());
 
             json.put("addType", addType.getValue());
+            json.put("deviceType",player.getDeviceType());
             json.put("desc", desc);
             sendLog("goldChange", player, json);
         } catch (Exception e) {
@@ -104,6 +105,7 @@ public class BaseLogger {
             json = addSafeBoxGoldChange(json, beforeSafeBoxGold, gold, player.getSafeBoxGold());
 
             json.put("addType", addType.getValue());
+            json.put("deviceType",player.getDeviceType());
             json.put("desc", desc);
             sendLog("goldChange", player, json);
         } catch (Exception e) {
@@ -130,6 +132,7 @@ public class BaseLogger {
 
             json.put("addType", addType.getValue());
             json.put("desc", desc);
+            json.put("deviceType",player.getDeviceType());
             sendLog("diamondChange", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -156,6 +159,7 @@ public class BaseLogger {
 
             json.put("addType", addType.getValue());
             json.put("desc", desc);
+            json.put("deviceType",player.getDeviceType());
             sendLog("diamondChange", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -181,6 +185,7 @@ public class BaseLogger {
 
             json.put("addType", addType.getValue());
             json.put("desc", desc);
+            json.put("deviceType",player.getDeviceType());
             sendLog("goldChange", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -206,6 +211,7 @@ public class BaseLogger {
 
             json.put("addType", addType.getValue());
             json.put("desc", desc);
+            json.put("deviceType",player.getDeviceType());
             sendLog("diamondChange", player, json);
         } catch (Exception e) {
             log.error("", e);
