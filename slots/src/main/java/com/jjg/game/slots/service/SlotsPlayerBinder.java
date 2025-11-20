@@ -1,4 +1,4 @@
-package com.jjg.game.hall.service;
+package com.jjg.game.slots.service;
 
 import com.jjg.game.common.listener.SessionReferenceBinder;
 import com.jjg.game.common.protostuff.PFSession;
@@ -9,20 +9,19 @@ import org.springframework.stereotype.Component;
 
 /**
  * @author 11
- * @date 2025/5/28 9:31
+ * @date 2025/11/20 9:46
  */
 @Component
-public class PlayerBinder implements SessionReferenceBinder {
-
+public class SlotsPlayerBinder implements SessionReferenceBinder {
     @Autowired
-    private HallPlayerService hallPlayerService;
+    private SlotsPlayerService playerService;
 
     @Override
     public Object bind(PFSession session, long playerId) {
         if(playerId < 1){
             return null;
         }
-        Player player = hallPlayerService.get(playerId);
+        Player player = playerService.get(playerId);
         PlayerController playerController = new PlayerController(session, player);
         session.setReference(playerController);
         return playerController;
