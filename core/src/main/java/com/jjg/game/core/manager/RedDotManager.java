@@ -1,11 +1,13 @@
 package com.jjg.game.core.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.dao.RedDotDao;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.reddot.NotifyRedDot;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerSessionService;
@@ -316,6 +318,25 @@ public class RedDotManager {
      */
     public void updateRedDot(RedDotDetails.RedDotModule module, long playerId) {
         updateRedDot(module, 0, playerId);
+    }
+
+
+    public void notifyReddot(PlayerController playerController, RedDotDetails.RedDotModule module, int submodule){
+        List<RedDotDetails> result = new ArrayList<>();
+        if (module != null) {
+            if (submodule == 0) {
+                List<RedDotDetails> redDots = load(module, submodule, playerController.playerId());
+                result.addAll(redDots);
+            }
+        } else {
+            List<RedDotDetails> redDotDetails = loadAll(playerController.playerId());
+            result.addAll(redDotDetails);
+        }
+        NotifyRedDot notifyRedDot = new NotifyRedDot();
+        notifyRedDot.setRedDotList(result);
+        //回复红点数据
+        playerController.send(notifyRedDot);
+        log.debug("推送玩家红点数据 module = {}，notify = {}", module, JSON.toJSONString(notifyRedDot));
     }
 }
 

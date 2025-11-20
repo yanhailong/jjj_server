@@ -425,7 +425,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                             param.setGameId(gameDataVo.getRoomCfg().getGameID());
                             param.setAddValue(betValue);
                             return param;
-                        });
+                        },false);
                         //触发任务
                         if (info.betValue > 0) {
                             gameController.triggerTask(gamePlayer.getId(), gameController.getRoom().getGameType(), info.betValue, gameController.getGameTransactionItemId());

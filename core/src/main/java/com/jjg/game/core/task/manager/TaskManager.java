@@ -98,6 +98,10 @@ public class TaskManager {
         return taskConditionMap.get(conditionId);
     }
 
+    public void trigger(long playerId, int conditionId, Supplier<DefaultTaskConditionParam> param) {
+        trigger(playerId, conditionId, param, true);
+    }
+
     /**
      * 触发任务条件
      *
@@ -105,7 +109,7 @@ public class TaskManager {
      * @param conditionId 条件id
      * @param param       条件参数
      */
-    public void trigger(long playerId, int conditionId, Supplier<DefaultTaskConditionParam> param) {
+    public void trigger(long playerId, int conditionId, Supplier<DefaultTaskConditionParam> param, boolean isNotify) {
         if (param == null) {
             return;
         }
@@ -126,7 +130,7 @@ public class TaskManager {
             return;
         }
         try {
-            taskService.trigger(playerId, taskConfigs, taskCondition, conditionParam);
+            taskService.trigger(playerId, taskConfigs, taskCondition, conditionParam, isNotify);
         } catch (Exception e) {
             log.error("玩家[{}]任务条件[{}]触发失败!", playerId, conditionId, e);
         }

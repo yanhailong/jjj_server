@@ -448,16 +448,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         result.data = new Pair<>(resultLib, poolResult.data.getSecond());
-        //默认这个地方玩家spin
-        Thread.ofVirtual().start(() -> {
-            //触发下注
-            taskManager.trigger(player.getId(), TaskConstant.ConditionType.BET_COUNT, () -> {
-                TaskConditionParam10001 param = new TaskConditionParam10001();
-                param.setAddValue(betValue);
-                param.setGameId(getGameType());
-                return param;
-            });
-        });
         return result;
     }
 
@@ -579,7 +569,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 param.setGameId(getGameType());
                 param.setAddValue(betValue);
                 return param;
-            });
+            },false);
+            //触发下注
+            taskManager.trigger(player.getId(), TaskConstant.ConditionType.BET_COUNT, () -> {
+                TaskConditionParam10001 param = new TaskConditionParam10001();
+                param.setAddValue(betValue);
+                param.setGameId(getGameType());
+                return param;
+            },false);
         });
         BigDecimal bet = BigDecimal.valueOf(betValue);
         log.debug("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.playerId(), betValue, result.data.getGold());
@@ -1394,7 +1391,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 param.setAddValue(winValue);
                 param.setCoinId(ItemUtils.getGoldItemId());
                 return param;
-            });
+            },false);
         });
     }
 

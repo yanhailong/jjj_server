@@ -613,7 +613,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 param.setAddValue(winValue);
                 param.setCoinId(coinId);
                 return param;
-            });
+            },false);
         });
     }
 

@@ -22,6 +22,7 @@ import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
+import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.core.service.CarouselService;
 import com.jjg.game.core.service.PlayerSessionService;
@@ -84,6 +85,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private AccountDao accountDao;
     @Autowired
     private CountDao countDao;
+    @Autowired
+    private RedDotManager redDotManager;
 
     public void init() {
     }
@@ -292,10 +295,13 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
         Player player = resetPlayerRoomData(playerId);
         PlayerController playerController = new PlayerController(session, player);
         session.setReference(playerController);
-
+        //更新节点地址
         playerSessionService.updateNodePath(session, player);
+        //推送红点信息
+        redDotManager.notifyReddot(playerController,null,0);
         log.debug("玩家进入大厅节点 playerId={}", playerId);
     }
+
 
     /**
      * 检查是否重连

@@ -193,13 +193,13 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      * @param taskCfgList 需要触发的任务配置列表
      * @param param       参数
      */
-    public void trigger(long playerId, List<TaskCfg> taskCfgList, AbstractTaskCondition<DefaultTaskConditionParam> condition, DefaultTaskConditionParam param) {
+    public void trigger(long playerId, List<TaskCfg> taskCfgList, AbstractTaskCondition<DefaultTaskConditionParam> condition, DefaultTaskConditionParam param,boolean isNotify) {
         RMap<Long, TaskData> playerTasks = getPlayerTaskMap();
         TaskData taskData = playerTasks.get(playerId);
         if (taskData == null) {
             return;
         }
-        log.info("玩家[{}]触发条件[{}]conditionId[{}]参数[{}]", playerId, condition.getClass().getSimpleName(), condition.getId(), param == null ? "null" : param.toString());
+//        log.info("玩家[{}]触发条件[{}]conditionId[{}]参数[{}]", playerId, condition.getClass().getSimpleName(), condition.getId(), param == null ? "null" : param.toString());
         List<Pair<TaskDetail, TaskCfg>> updateTasks = new ArrayList<>();
         AtomicBoolean hasFinished = new AtomicBoolean(false);
         String lockKey = playerTaskMapLockKey(playerId);
@@ -243,12 +243,12 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
         } finally {
             redisLock.unlock(lockKey);
         }
-        if (CollectionUtil.isNotEmpty(updateTasks)) {
+        if (isNotify && CollectionUtil.isNotEmpty(updateTasks)) {
             if (hasFinished.get()) {
                 redDotManager.updateRedDotByInitialize(getModule(), getSubmodule(), playerId);
             }
             //通知进度更新
-            noticeUpdate(playerId, updateTasks);
+//            noticeUpdate(playerId, updateTasks);
         }
     }
 
