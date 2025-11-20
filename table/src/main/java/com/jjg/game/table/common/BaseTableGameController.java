@@ -10,7 +10,6 @@ import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
-import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
@@ -75,7 +74,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
 
     @Override
     public int canExitGame(long playerId) {
-        if (getCurrentGamePhase() == EGamePhase.BET && gameDataVo.getPlayerBetInfo().containsKey(playerId)) {
+        if (gameDataVo.getPlayerBetInfo().containsKey(playerId)) {
             return Code.FORBID;
         }
         return Code.SUCCESS;
