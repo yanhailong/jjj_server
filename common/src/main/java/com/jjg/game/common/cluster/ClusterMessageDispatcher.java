@@ -1,12 +1,11 @@
 package com.jjg.game.common.cluster;
 
-import com.jjg.game.common.concurrent.MessageHandler;
+import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.data.AbsReferenceObject;
 import com.jjg.game.common.listener.SessionReferenceBinder;
 import com.jjg.game.common.net.Connect;
-import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.protostuff.*;
 import io.netty.channel.ChannelHandler;
 import org.slf4j.Logger;
@@ -89,22 +88,21 @@ public class ClusterMessageDispatcher {
         }
         PFMessage msg = clusterMessage.getMsg();
         try {
-            if(msg.messageType == MessageConst.MessageTypeDef.SESSION_TYPE || msg.messageType == MessageConst.MessageTypeDef.CERTIFY_MESSAGE_TYPE){
-                handle(connect, session, msg);
-            }else {
-                long bindId = 0;
-                if (session != null) {
-                    bindId = session.getWorkId();
+            long bindId = 0;
+            if (session != null) {
+                bindId = session.getWorkId();
+            }
+            final PFMessage finalMsg = msg;
+            final PFSession finalPFSession = session;
+            final Connect<ClusterMessage> finalConnect = connect;
+            boolean tryPublish = executorGroup.tryPublish(bindId, msg.cmd, new BaseHandler<String>() {
+                @Override
+                public void action() {
+                    handle(finalConnect, finalPFSession, finalMsg);
                 }
-                boolean tryPublish = executorGroup.tryPublish(bindId, msg.cmd, new MessageHandler<>(session, msg.copyPFMessage(), connect) {
-                    @Override
-                    public void action() {
-                        handle(getFinalConnect(), getFinalSession(), getFinalMsg());
-                    }
-                });
-                if (!tryPublish) {
-                    log.error("消息消费失败 msgId:{} data:{} session:{}", msg, Arrays.toString(msg.data), sessionId);
-                }
+            });
+            if (!tryPublish) {
+                log.error("消息消费失败 msgId:{} data:{} session:{}", msg, Arrays.toString(msg.data), sessionId);
             }
         } catch (Exception e) {
             log.warn("节点消息分发异常!", e);
@@ -190,14 +188,17 @@ public class ClusterMessageDispatcher {
                 Class<?> clazz = methodInfo.parms[i];
                 if (clazz == PFSession.class) {
                     args[i] = session;
-                } else if (reference != null && clazz == reference.getClass()) {
+                } else if (AbsReferenceObject.class.isAssignableFrom(clazz)) {
+                    if (reference == null) {
+                        log.error("未找到应用对象 丢弃消息 sessionId:{} msg:{} ", session == null ? "null" : session.sessionId(), msg);
+                        return;
+                    }
                     args[i] = reference;
-
                 } else if (Connect.class.isAssignableFrom(clazz)) {
                     args[i] = connect;
                 } else if (PFMessage.class.isAssignableFrom(clazz)) {
                     args[i] = msg;
-                } else  {
+                } else {
                     if (msg.data != null && msg.data.length > 0) {
                         args[i] = ProtostuffUtil.deserialize(msg.data, clazz);
                     } else {
@@ -205,11 +206,6 @@ public class ClusterMessageDispatcher {
                         args[i] = constructor.newInstance();
                     }
                 }
-//                if ((msg.cmd != MessageConst.ToClientConst.REQ_HEART_BEAT && msg.cmd != MessageConst.ToClientConst.RES_HEART_BEAT)
-//                        && args[i] == null) {
-//                    log.error("未找到参数 丢弃消息 sessionId:{} msg:{} ", session == null ? "null" : session.sessionId(), msg);
-//                    return;
-//                }
             }
 
             if (session != null) {

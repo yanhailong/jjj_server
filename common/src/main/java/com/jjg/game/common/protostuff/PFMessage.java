@@ -31,11 +31,4 @@ public class PFMessage {
                 '}';
     }
 
-    public PFMessage copyPFMessage() {
-        PFMessage pfMessage = new PFMessage();
-        pfMessage.messageType = this.messageType;
-        pfMessage.cmd = this.cmd;
-        pfMessage.data = this.data != null ? this.data.clone() : null;
-        return pfMessage;
-    }
 }

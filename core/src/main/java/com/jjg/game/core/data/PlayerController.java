@@ -1,12 +1,13 @@
 package com.jjg.game.core.data;
 
+import com.jjg.game.common.data.AbsReferenceObject;
 import com.jjg.game.common.protostuff.PFSession;
 
 /**
  * @author 11
  * @date 2025/5/28 9:32
  */
-public class PlayerController {
+public class PlayerController extends AbsReferenceObject {
     private PFSession session;
     private Player player;
     private Object scene;
