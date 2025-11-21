@@ -139,8 +139,8 @@ public enum AddType {
     //升级
     LEVEL_UPGRADE(902),
 
-    //充值
-    RECHARGE(1001),
+    //商城充值
+    SHOP_RECHARGE(1001),
 
     //夺宝奇兵
     LUCKY_TREASURE_BUY(1101),
