@@ -217,6 +217,15 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                         playerRoomEventListener.enter(session, playerController, finalInfo);
                     }
                 });
+            } else {
+                PlayerController playerController = new PlayerController(session, player);
+                session.setReference(playerController);
+                IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
+                if (playerRoomEventListener == null) {
+                    log.warn("sessionEnter时 未找到 playerRoomEventListener, playerId = {},gameType = {}", playerId, info.getGameType());
+                    return;
+                }
+                playerRoomEventListener.enter(session, playerController, info);
             }
         } catch (Exception e) {
             log.error("player: {} 进入session时发生异常: {}", playerId, e.getMessage(), e);
