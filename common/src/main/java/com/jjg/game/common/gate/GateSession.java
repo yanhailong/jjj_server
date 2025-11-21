@@ -249,10 +249,9 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
         if (certify) {
             //向源节点发送退出
             sendClose();
-            sendEnter(null);
-
             this.currentClient = clusterClient;
             this.connect = getConnect();
+            sendEnter(null);
         }
     }
 

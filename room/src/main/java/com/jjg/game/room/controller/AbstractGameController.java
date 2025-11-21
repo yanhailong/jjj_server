@@ -225,8 +225,12 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 直接回存玩家数据
      */
-    protected void directlySavePlayerData(GamePlayer gamePlayer) {
-        if (gamePlayer instanceof GameRobotPlayer) {
+    protected void directlySavePlayerData(GamePlayer oldGamePlayer) {
+        if (oldGamePlayer instanceof GameRobotPlayer) {
+            return;
+        }
+        GamePlayer gamePlayer = getGamePlayer(oldGamePlayer.getId());
+        if (gamePlayer == null) {
             return;
         }
         Player player = roomController.getRoomManager().getPlayerService().get(gamePlayer.getId());
@@ -613,7 +617,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 param.setAddValue(winValue);
                 param.setCoinId(coinId);
                 return param;
-            },false);
+            }, false);
         });
     }
 

@@ -60,7 +60,7 @@ public class RoomMessageHandler {
             long playerId = playerController.playerId();
             log.debug("退出游戏 playerId = {}", playerId);
             GamePlayer gamePlayer = null;
-            if (playerController.getPlayer().getGameType() != EGameType.BACCARAT.getGameTypeId()) {
+             if (playerController.getPlayer().getGameType() != EGameType.BACCARAT.getGameTypeId()) {
                 AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                         roomManager.getGameControllerByRoomId(playerController.getPlayer().getRoomId());
                 if (Objects.isNull(gameController)) {
