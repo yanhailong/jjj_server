@@ -154,7 +154,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         }
         log.info("房间 session close 成功 player: {}", playerController.playerId());
         session.setReference(null);
-        session.setWorkId(0);
+        session.setWorkId(System.identityHashCode(session.sessionId()));
     }
 
     @Override
