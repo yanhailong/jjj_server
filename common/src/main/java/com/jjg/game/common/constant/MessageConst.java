@@ -7,6 +7,7 @@ package com.jjg.game.common.constant;
  * @since 1.0
  */
 public interface MessageConst {
+
     interface MessageCommon {
         //右移位数
         int RIGHT_MOVE = 12;

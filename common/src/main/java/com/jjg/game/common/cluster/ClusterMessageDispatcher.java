@@ -3,6 +3,7 @@ package com.jjg.game.common.cluster;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.data.AbsReferenceObject;
 import com.jjg.game.common.listener.SessionReferenceBinder;
 import com.jjg.game.common.net.Connect;
@@ -91,6 +92,10 @@ public class ClusterMessageDispatcher {
             long bindId = 0;
             if (session != null) {
                 bindId = session.getWorkId();
+            }
+            if (clusterMessage.getMsg().cmd == MessageConst.SessionConst.NOTIFY_SESSION_QUIT ||
+                    clusterMessage.getMsg().cmd == MessageConst.SessionConst.NOTIFY_SESSION_ENTER) {
+                bindId = System.identityHashCode(sessionId);
             }
             final PFMessage finalMsg = msg;
             final PFSession finalPFSession = session;

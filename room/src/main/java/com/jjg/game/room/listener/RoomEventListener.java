@@ -84,7 +84,15 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
     @Override
     public void sessionClose(PFSession session) {
-        exitRoomAction(session, false);
+        if (session.getReference() instanceof PlayerController playerController &&
+                playerController.getScene() instanceof AbstractRoomController<?, ?> roomController) {
+            roomController.getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
+                @Override
+                public void action() {
+                    exitRoomAction(session, false);
+                }
+            });
+        }
     }
 
     public void exitRoomAction(PFSession session, boolean exit) {
