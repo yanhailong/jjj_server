@@ -384,7 +384,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             }
             //roomController不为空，那么room就是在本节点
             AtomicBoolean reconnect = new AtomicBoolean(false);
-            CommonResult<R> addResult = roomController.joinRoom(playerController,reconnect);
+            CommonResult<R> addResult = roomController.joinRoom(playerController, reconnect);
             if (!addResult.success()) {
                 return Code.JOIN_ROOM_FAILED;
             }
@@ -406,7 +406,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                         playerController.playerId(),
                         playerController.getPlayer().getGold(),
                         room.getRoomPlayers().size());
-                if(reconnect.get()){
+                if (reconnect.get()) {
                     roomController.reconnect(playerController);
                 }
             }

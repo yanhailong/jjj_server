@@ -23,7 +23,6 @@ public class PlayerExecutorGroupDisruptor {
     private final int bufferSize;
     /** 当 publish 失败时，将任务交给 fallbackExecutor 执行，避免阻塞 Netty I/O 线程 */
     private ExecutorService fallbackExecutor;
-
     private final static PlayerExecutorGroupDisruptor defaultExecutor = new PlayerExecutorGroupDisruptor(0, 0, "default");
 
     /**

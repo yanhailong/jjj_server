@@ -72,7 +72,6 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
     @Autowired
     private AccountDao accountDao;
 
-    private TimerEvent<String> checkSessionEvent;
     private TimerEvent<String> onlineCountEvent;
 
     public PlayerSessionInfo getInfo(long playerId) {
@@ -240,11 +239,6 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
 
     public void init() {
         if (timerCenter != null) {
-            if (NodeType.HALL.name().equals(nodeManager.nodeConfig.getType())) {
-                checkSessionEvent =
-                        new TimerEvent<>(this, "PlayerSession", SESSION_TIME_OUT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
-                timerCenter.add(checkSessionEvent);
-            }
 
             if (NodeType.HALL.name().equals(nodeManager.nodeConfig.getType()) || NodeType.GAME.name().equals(nodeManager.nodeConfig.getType())) {
                 onlineCountEvent =
@@ -391,12 +385,7 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
 
     @Override
     public void onTimer(TimerEvent<String> e) {
-        if (e == checkSessionEvent && marsCurator.isMaster()) {
-            log.info("开始执行session检查");
-            List<Long> keys = checkSessionByNode();
-            //检测cluster中的session活跃情况
-            clusterSystem.checkSessionActive(e.getCurrentTime(), keys);
-        } else if (e == onlineCountEvent) {
+       if (e == onlineCountEvent) {
             int size = clusterSystem.clusterSessionSize();
             log.info("打印在线人数 ,size={}", size);
             coreLogger.online(size, nodeManager.nodeConfig.getTcpAddress().getHost());

@@ -146,6 +146,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         }
         log.info("房间 session close 成功 player: {}", playerController.playerId());
         session.setReference(null);
+        session.setWorkId(0);
     }
 
     @Override
@@ -174,10 +175,8 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
             info = playerSessionService.enterGameServer(player);
 
-
             PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
             logger.enterGame(player, info.getGameType(), info.getRoomCfgId(), playerSessionToken.getDevice());
-
             // 玩家房间ID不为0 且 不能是百家乐重连进入的房间
             if (player.getRoomId() > 0) {
                 // 设置workId

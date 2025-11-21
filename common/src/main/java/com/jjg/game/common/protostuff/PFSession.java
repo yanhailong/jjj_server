@@ -22,9 +22,7 @@ public class PFSession extends Session<Object, Object> {
     /* 网关节点PATH*/
     public String gatePath;
     /* 业务ID，用于根据该ID分配业务线程*/
-    public long workId;
-    //线程id
-    public int threadId;
+    public volatile long workId;
 
     public long activeTime;
 

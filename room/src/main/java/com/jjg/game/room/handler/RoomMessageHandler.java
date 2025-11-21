@@ -64,7 +64,7 @@ public class RoomMessageHandler {
                 AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                         roomManager.getGameControllerByRoomId(playerController.getPlayer().getRoomId());
                 if (Objects.isNull(gameController)) {
-                    playerController.send(new ResExitGame(Code.PARAM_ERROR));
+                    playerController.send(new ResExitGame(Code.SUCCESS));
                     return;
                 }
                 int core = gameController.canExitGame(playerId);
