@@ -7,20 +7,19 @@ import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.pb.NotifyOpenFunction;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
 import com.jjg.game.sampledata.bean.GameFunctionCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 游戏功能服务
@@ -28,7 +27,7 @@ import java.util.Map;
  * @author 2CL
  */
 @Service
-public class GameFunctionService implements GameEventListener {
+public class GameFunctionService implements GameEventListener, ConfigExcelChangeListener {
 
     /**
      * 条件检查服务
@@ -46,7 +45,7 @@ public class GameFunctionService implements GameEventListener {
     /**
      * 游戏类型缓存功能配置
      */
-    private final Map<EGameEventType, List<GameFunctionCfg>> gameTypeOfFuncCache = new HashMap<>();
+    private Map<EGameEventType, List<GameFunctionCfg>> gameTypeOfFuncCache = Collections.emptyMap();
 
     /**
      * 获取开放的功能ID列表
@@ -123,6 +122,21 @@ public class GameFunctionService implements GameEventListener {
     @Override
     public List<EGameEventType> needMonitorEvents() {
         List<EGameEventType> needMonitorEvents = new ArrayList<>();
+        if(this.gameTypeOfFuncCache.isEmpty()){
+            loadConfig();
+        }
+        this.gameTypeOfFuncCache.forEach((k,v) -> needMonitorEvents.add(k));
+        return needMonitorEvents;
+    }
+
+
+    @Override
+    public void initSampleCallbackCollector() {
+        addInitSampleFileObserveWithCallBack(GameFunctionCfg.EXCEL_NAME, this::loadConfig);
+    }
+
+    private void loadConfig(){
+        Map<EGameEventType, List<GameFunctionCfg>> tmpGameTypeOfFuncCache = new HashMap<>();
         List<GameFunctionCfg> functionCfg = GameDataManager.getGameFunctionCfgList();
         for (GameFunctionCfg gameFunctionCfg : functionCfg) {
             if (!gameFunctionCfg.getIsOpen()) {
@@ -140,9 +154,8 @@ public class GameFunctionService implements GameEventListener {
                 log.error("条件表配置异常，配置的事件触发类型：{} 在游戏事件枚举中缺失", conditionCfg.getTriggerEventType());
                 continue;
             }
-            needMonitorEvents.add(gameEventType);
-            gameTypeOfFuncCache.computeIfAbsent(gameEventType, k -> new ArrayList<>()).add(gameFunctionCfg);
+            tmpGameTypeOfFuncCache.computeIfAbsent(gameEventType, k -> new ArrayList<>()).add(gameFunctionCfg);
         }
-        return needMonitorEvents;
+        this.gameTypeOfFuncCache = tmpGameTypeOfFuncCache;
     }
 }
