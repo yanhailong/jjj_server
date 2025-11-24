@@ -84,6 +84,7 @@ public class AccountService {
         CommonResult<Account> result = new CommonResult<>(Code.FAIL);
         //要加锁，防止重复创建账号
         String lockKey = getLockKey(loginType, channelUserInfo);
+        long now = System.currentTimeMillis();
         redisLock.executeWithLock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS, () -> {
             //查询该账号是否存在
             Account account = accountDao.queryThirdAccount(loginType, channelUserInfo.getUserId());
@@ -103,6 +104,7 @@ public class AccountService {
                 account.setChannel(ChannelType.valueOf(loginDto.getChannel()));
 
                 account = accountDao.setChannelValue(loginType, channelUserInfo, account);
+                account.setCreateTime((int) (now / 1000));
 
                 accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, loginDto.getChannel(), ip, loginDto.getDevice(), loginDto.getMac(), loginDto.getPhoneType());
             }
@@ -114,7 +116,7 @@ public class AccountService {
             }
 
             //这里记录登录时间，是防止只有http请求，但是没有websocket登录的账号
-            playerLoginTimeDao.add(account.getPlayerId(), System.currentTimeMillis());
+            playerLoginTimeDao.add(account.getPlayerId(), now);
 
             result.code = Code.SUCCESS;
             result.data = account;
