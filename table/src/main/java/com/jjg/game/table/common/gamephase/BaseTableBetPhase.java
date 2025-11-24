@@ -196,7 +196,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
      * 获取机器人押注行为配置
      */
     private BetRobotCfg getRobotBetActionCfg(GameRobotPlayer gameRobotPlayer) {
-        RobotCfg robotCfg = GameDataManager.getRobotCfg((int) gameRobotPlayer.getId());
+        RobotCfg robotCfg = gameController.getRoomController().getRoomManager().getRobotService().getRobotCfg(gameRobotPlayer.getId());
         List<List<Integer>> betRobotId = robotCfg.getBetRobotID();
         if (gameRobotPlayer.getActionId() == 0) {
             gameRobotPlayer.setActionId(RandomUtils.randomByWeightList(betRobotId));

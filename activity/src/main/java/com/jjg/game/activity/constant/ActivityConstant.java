@@ -188,6 +188,8 @@ public interface ActivityConstant {
         int REQ_SHARE_PROMOTE_WEEK_RANK_INFO = BASE_MSG_PREFIX | 0x22;
         //请求推广分享我的收益排行榜信息
         int REQ_SHARE_PROMOTE_SELF_RANK_INFO = BASE_MSG_PREFIX | 0x24;
+        //请求领取绑定玩家奖励
+        int REQ_SHARE_PROMOTE_CLAIM_BIND_REWARDS = BASE_MSG_PREFIX | 0x4F;
         //响应绑定玩家结果
         int RES_SHARE_PROMOTE_BIND_PLAYER = BASE_MSG_PREFIX | 0x25;
         //响应领取收益奖励结果
@@ -198,7 +200,8 @@ public interface ActivityConstant {
         int RES_SHARE_PROMOTE_WEEK_RANK_INFO = BASE_MSG_PREFIX | 0x28;
         //响应推广分享我的收益排行榜信息
         int RES_SHARE_PROMOTE_SELF_RANK_INFO = BASE_MSG_PREFIX | 0x29;
-
+        //响应领取绑定玩家奖励
+        int RES_SHARE_PROMOTE_CLAIM_BIND_REWARDS = BASE_MSG_PREFIX | 0x50;
         //等级礼包
         //请求等级礼包详情
         int REQ_PLAYER_LEVEL_PACK_DETAIL_INFO = BASE_MSG_PREFIX | 0x3A;

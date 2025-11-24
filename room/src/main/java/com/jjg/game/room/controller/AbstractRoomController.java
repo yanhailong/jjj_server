@@ -13,7 +13,6 @@ import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
-import com.jjg.game.core.dao.room.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.room.base.ERoomState;
@@ -31,7 +30,10 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -350,8 +352,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         gameController.disbandRoom(disbandRoomByPlayer);
         // 标记游戏状态为销毁完成
         gameController.markDestroyed();
-        // 回存房间数据
-        saveRoomData();
         // 向玩家发送解散房间消息
         broadcastDisbandRoomMsg();
         // 时间管理移除当前注册器
@@ -363,27 +363,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      */
     private void broadcastDisbandRoomMsg() {
         // TODO 房间解散
-    }
-
-    /**
-     * 存储房间数据
-     */
-    private void saveRoomData() {
-        PlayerRoomDataDao playerRoomDataDao = roomManager.getPlayerRoomDataDao();
-        List<PlayerRoomData> playerRoomDataList = new ArrayList<>();
-        for (Map.Entry<Long, RoomPlayer> entry : room.getRoomPlayers().entrySet()) {
-            if (entry.getValue().isRobot()) {
-                continue;
-            }
-            PlayerRoomData playerRoomData = entry.getValue().getPlayerRoomData();
-            if (playerRoomData != null && playerRoomData.getPlayerId() > 0) {
-                playerRoomDataList.add(playerRoomData);
-            }
-        }
-        if (!playerRoomDataList.isEmpty()) {
-            // 回存玩家房间数据
-            playerRoomDataDao.saveAll(playerRoomDataList);
-        }
     }
 
     /**

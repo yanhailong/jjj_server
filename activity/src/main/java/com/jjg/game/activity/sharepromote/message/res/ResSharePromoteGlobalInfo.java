@@ -28,6 +28,8 @@ public class ResSharePromoteGlobalInfo extends AbstractResponse {
     public List<SharePromoteRewardsRecode> recodes;
     @ProtoDesc("当前收益比")
     public int earningsRatio;
+    @ProtoDesc("二维码")
+    public String QrCode;
 
     public ResSharePromoteGlobalInfo(int code) {
         super(code);

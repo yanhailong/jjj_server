@@ -37,7 +37,7 @@ public class PlayerIdDao {
         // 排除机器人ID
         while (maxTry-- > 0) {
             newId = redisTemplate.opsForValue().increment(tableName, 1);
-            if (newId % 17 != 0) {
+            if (newId % GameConstant.ROBOT_ID_PRIME_NUMBER != 0) {
                 break;
             }
             try {

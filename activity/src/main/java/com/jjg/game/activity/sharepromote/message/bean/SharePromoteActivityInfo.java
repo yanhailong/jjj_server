@@ -18,4 +18,6 @@ public class SharePromoteActivityInfo {
     public long progress;
     @ProtoDesc("可领取收益")
     public long getProfitReward;
+    @ProtoDesc("未领取的绑定人信息")
+    public List<SharePromoteBindPlayerInfo> bindPlayerInfos;
 }

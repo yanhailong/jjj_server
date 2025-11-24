@@ -13,6 +13,16 @@ public class SharePromotePlayerData {
     private String code;
     //绑定玩家数
     private int bindCount;
+    //未领取的玩家id
+    private List<Long> NotClaimedPlayerIds;
+
+    public List<Long> getNotClaimedPlayerIds() {
+        return NotClaimedPlayerIds;
+    }
+
+    public void setNotClaimedPlayerIds(List<Long> notClaimedPlayerIds) {
+        NotClaimedPlayerIds = notClaimedPlayerIds;
+    }
 
     public List<String> getHistory() {
         return history;

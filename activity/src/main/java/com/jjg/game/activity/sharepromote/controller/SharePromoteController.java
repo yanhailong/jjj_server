@@ -184,10 +184,22 @@ public class SharePromoteController extends BaseActivityController {
             for (BaseActivityDetailInfo baseActivityDetailInfo : baseActivityDetailInfos) {
                 if (baseActivityDetailInfo instanceof SharePromoteDetailInfo info) {
                     detailInfos.detailInfos.add(info);
-                    detailInfos.getProfitReward = sharePromoteDao.getPlayerIncome(player.getId());
-                    detailInfos.progress = sharePromoteDao.getBindCount(player.getId());
                 }
             }
+            SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(player.getId());
+            if (playerInfoData != null && CollectionUtil.isNotEmpty(playerInfoData.getNotClaimedPlayerIds())) {
+                detailInfos.bindPlayerInfos = new ArrayList<>();
+                List<Player> players = corePlayerService.multiGetPlayer(playerInfoData.getNotClaimedPlayerIds());
+                for (Player oldPlayer : players) {
+                    SharePromoteBindPlayerInfo playerInfo = new SharePromoteBindPlayerInfo();
+                    playerInfo.headImgId = oldPlayer.getHeadImgId();
+                    playerInfo.level = oldPlayer.getLevel();
+                    playerInfo.nickname = oldPlayer.getNickName();
+                    detailInfos.bindPlayerInfos.add(playerInfo);
+                }
+            }
+            detailInfos.getProfitReward = sharePromoteDao.getPlayerIncome(player.getId());
+            detailInfos.progress = sharePromoteDao.getBindCount(player.getId());
         }
         return typeInfo;
     }
@@ -239,6 +251,10 @@ public class SharePromoteController extends BaseActivityController {
             try {
                 playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
                 playerInfoData.setBindCount(playerInfoData.getBindCount() + 1);
+                if (playerInfoData.getNotClaimedPlayerIds() == null) {
+                    playerInfoData.setNotClaimedPlayerIds(new ArrayList<>());
+                }
+                playerInfoData.getNotClaimedPlayerIds().add(playerId);
                 sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
                 save = true;
             } catch (Exception e) {
@@ -379,6 +395,10 @@ public class SharePromoteController extends BaseActivityController {
         res.earningsRatio = getPlayerProportion(playerId, data);
         res.yesterdayIncome = sharePromoteDao.getYesterdayIncome(playerId);
         res.historyIncome = sharePromoteDao.getPlayerHistoryIncome(playerId);
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(63);
+        if (globalConfigCfg != null) {
+            res.QrCode = globalConfigCfg.getValue();
+        }
         SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
         //玩家数据为null时初始化一个
         if (playerInfoData == null) {
@@ -612,5 +632,49 @@ public class SharePromoteController extends BaseActivityController {
             }
         }
         return Map.of();
+    }
+
+    public AbstractResponse reqSharePromoteClaimBindRewards(PlayerController playerController, ActivityData activityData) {
+        ResSharePromoteClaimBindRewards res = new ResSharePromoteClaimBindRewards(Code.SUCCESS);
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(62);
+        if (globalConfigCfg == null || StringUtils.isEmpty(globalConfigCfg.getValue())) {
+            res.code = Code.SAMPLE_ERROR;
+            return res;
+        }
+        String[] rewardsCfg = StringUtils.split(globalConfigCfg.getValue(), "_");
+        if (rewardsCfg.length != 2) {
+            res.code = Code.SAMPLE_ERROR;
+            return res;
+        }
+        int itemId = Integer.parseInt(rewardsCfg[0]);
+        long count = Long.parseLong(rewardsCfg[1]);
+        //获取玩家信息
+        long playerId = playerController.playerId();
+        SharePromotePlayerData playerInfoData;
+        long totalRewards = 0;
+        String lock = sharePromoteDao.getLock(playerId);
+        redisLock.lock(lock, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
+            if (playerInfoData == null || CollectionUtil.isEmpty(playerInfoData.getNotClaimedPlayerIds())) {
+                res.code = Code.SAMPLE_ERROR;
+                return res;
+            }
+            totalRewards = playerInfoData.getNotClaimedPlayerIds().size() * count;
+            //清除数据
+            playerInfoData.getNotClaimedPlayerIds().clear();
+            //发送奖励
+            CommonResult<ItemOperationResult> result = playerPackService.addItem(playerId, itemId, totalRewards, AddType.ACTIVITY_SHARE_PROMOTE_BIND_REWARDS);
+            if (!result.success()) {
+                log.error("领取推广分享绑定玩家奖励失败 playerId:{} count:{}", playerId, count);
+            }
+            sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
+        } catch (Exception e) {
+            log.error("创建玩家推广分享数据失败 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(lock);
+        }
+        res.infoList = ItemUtils.buildItemInfo(itemId, totalRewards);
+        return res;
     }
 }

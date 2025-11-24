@@ -46,6 +46,17 @@ public class NodeConfig {
     //测试充值url
     public String testRechargeUrl;
 
+    //机器人起始id
+    public long robotStartId;
+
+    public long getRobotStartId() {
+        return robotStartId;
+    }
+
+    public void setRobotStartId(long robotStartId) {
+        this.robotStartId = robotStartId;
+    }
+
     public String getTestRechargeUrl() {
         return testRechargeUrl;
     }

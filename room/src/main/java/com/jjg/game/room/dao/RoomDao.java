@@ -12,6 +12,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class RoomDao extends AbstractRoomDao<Room, RoomPlayer> {
     public RoomDao() {
-        super(Room.class,RoomPlayer.class);
+        super(Room.class);
     }
 }

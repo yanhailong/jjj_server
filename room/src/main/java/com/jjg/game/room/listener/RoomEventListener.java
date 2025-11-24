@@ -195,6 +195,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                     @Override
                     public void action() {
                         PlayerController playerController = new PlayerController(session, player);
+                        session.setReference(playerController);
                         int code = roomManager.joinRoom(playerController, finalInfo.getGameType(), finalInfo.getRoomCfgId(), player.getRoomId());
                         if (code != Code.SUCCESS) {
                             // 加入失败,需要客户端主动确认当前玩家处于哪个场景中，ReqConfirmPlayerScene
@@ -208,7 +209,6 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                             clusterSystem.switchNode(playerController.getSession(), NodeType.HALL);
                             return;
                         }
-                        session.setReference(playerController);
                         IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(finalInfo.getGameType());
                         if (playerRoomEventListener == null) {
                             log.warn("sessionEnter时 未找到 playerRoomEventListener, playerId = {},gameType = {}", playerId, finalInfo.getGameType());

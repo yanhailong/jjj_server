@@ -24,8 +24,8 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
     // 玩家好友房
     private static final String PLAYER_FRIEND_ROOM = "PlayerFriendRoomId";
 
-    public AbstractFriendRoomDao(Class<T> roomClazz, Class<P> roomPlayerClazz) {
-        super(roomClazz, roomPlayerClazz);
+    public AbstractFriendRoomDao(Class<T> roomClazz) {
+        super(roomClazz);
     }
 
     private String getPlayerFriendRoomTableName(long playerId) {

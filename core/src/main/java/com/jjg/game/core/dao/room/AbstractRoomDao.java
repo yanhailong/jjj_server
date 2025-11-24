@@ -20,7 +20,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -40,8 +39,6 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     @Autowired
     protected RedisLock redisLock;
     @Autowired
-    private PlayerRoomDataDao playerRoomDataDao;
-    @Autowired
     protected NodeManager nodeManager;
 
     @Lazy
@@ -49,11 +46,9 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     protected SnowflakeManager snowflakeManager;
 
     protected Class<T> roomClazz;
-    protected Class<P> roomPlayerClazz;
 
-    public AbstractRoomDao(Class<T> roomClazz, Class<P> roomPlayerClazz) {
+    public AbstractRoomDao(Class<T> roomClazz) {
         this.roomClazz = roomClazz;
-        this.roomPlayerClazz = roomPlayerClazz;
     }
 
     protected String getTableName(int gameType) {
@@ -124,9 +119,9 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     }
 
     protected T fillBaseRoomData(String nodeName, int gameType, int gameCfgId, int maxLimit) throws InvocationTargetException,
-        InstantiationException,
-        IllegalAccessException,
-        NoSuchMethodException {
+            InstantiationException,
+            IllegalAccessException,
+            NoSuchMethodException {
         RoomType roomType = RoomType.getRoomType(gameCfgId);
         Constructor<? extends Room> constructor = roomType.getRoomDataType().getConstructor();
         T room = (T) constructor.newInstance();
@@ -145,16 +140,16 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         String currentNodePath = nodeManager.getNodePath();
         List<Object> rooms = redisTemplate.opsForHash().values(getTableName(gameType));
         return rooms.stream()
-            .map(r -> (T) r)
-            .filter(r -> !(r instanceof FriendRoom))
-            .filter(r -> r.getPath().equalsIgnoreCase(currentNodePath) && r.getRoomCfgId() == roomCfgId)
-            .toList();
+                .map(r -> (T) r)
+                .filter(r -> !(r instanceof FriendRoom))
+                .filter(r -> r.getPath().equalsIgnoreCase(currentNodePath) && r.getRoomCfgId() == roomCfgId)
+                .toList();
     }
 
     /**
      * 获取对应当前节点所有的房间
      */
-    public List<T> getChooseNodeRoom(String nodePath,int gameType, int roomCfgId) {
+    public List<T> getChooseNodeRoom(String nodePath, int gameType, int roomCfgId) {
         List<Object> rooms = redisTemplate.opsForHash().values(getTableName(gameType));
         return rooms.stream()
                 .map(r -> (T) r)
@@ -386,7 +381,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
             return null;
         } catch (Exception e) {
             log.warn("从房间移除玩家数据异常,gameType = {},roomId = {},playerId = {}",
-                gameType, roomId, playerIds.stream().map(String::valueOf).collect(Collectors.joining(",")), e);
+                    gameType, roomId, playerIds.stream().map(String::valueOf).collect(Collectors.joining(",")), e);
         } finally {
             redisLock.unlock(key);
         }
@@ -404,17 +399,11 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         return redisTemplate.opsForHash().size(getTableName(gameType));
     }
 
-    public RoomPlayer createRoomPlayer(PlayerController playerController) throws Exception {
+    public RoomPlayer createRoomPlayer(PlayerController playerController) {
         long playerId = playerController.playerId();
         //创建roomPlayer对象
-        Constructor<? extends RoomPlayer> roomPlayerConstructor = this.roomPlayerClazz.getConstructor();
-        RoomPlayer roomPlayer = roomPlayerConstructor.newInstance();
+        RoomPlayer roomPlayer = new RoomPlayer();
         roomPlayer.setPlayerId(playerId);
-        if (!(playerController.getPlayer() instanceof RobotPlayer)) {
-            Optional<PlayerRoomData> roomData = playerRoomDataDao.findById(playerId);
-            roomPlayer.setPlayerRoomData(roomData.orElse(new PlayerRoomData()));
-            roomPlayer.getPlayerRoomData().setPlayerId(playerId);
-        }
         return roomPlayer;
     }
 }

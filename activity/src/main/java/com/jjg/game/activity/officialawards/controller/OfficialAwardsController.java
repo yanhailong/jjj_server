@@ -2,7 +2,6 @@ package com.jjg.game.activity.officialawards.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.WeightRandom;
-import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
@@ -29,16 +28,13 @@ import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.RedisUtils;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.OfficialAwardsCfg;
-import com.jjg.game.sampledata.bean.RobotCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -64,11 +60,12 @@ public class OfficialAwardsController extends BaseActivityController implements 
     private final OfficialAwardsDao officialAwardsDao;
     private final DataCache dataCache;
     private final TimerCenter timerCenter;
-
-    public OfficialAwardsController(OfficialAwardsDao officialAwardsDao, DataCache dataCache, TimerCenter timerCenter) {
+    private final RobotUtil robotUtil;
+    public OfficialAwardsController(OfficialAwardsDao officialAwardsDao, DataCache dataCache, TimerCenter timerCenter, RobotUtil robotUtil) {
         this.officialAwardsDao = officialAwardsDao;
         this.dataCache = dataCache;
         this.timerCenter = timerCenter;
+        this.robotUtil = robotUtil;
     }
 
     @Override
@@ -187,9 +184,9 @@ public class OfficialAwardsController extends BaseActivityController implements 
      * 添加机器人记录
      */
     private void addRobotRecord(long activityId, long robotGet) {
-        RobotCfg robotCfg = RandomUtil.randomEle(GameDataManager.getRobotCfgList());
+        RobotPlayer robotPlayer = robotUtil.randomRobotPlayer();
         OfficialAwardsRecord officialAwardsRecord = new OfficialAwardsRecord();
-        officialAwardsRecord.setName(robotCfg.getName());
+        officialAwardsRecord.setName(robotPlayer.getNickName());
         officialAwardsRecord.setCreateTime(System.currentTimeMillis());
         officialAwardsRecord.setGetNum(robotGet);
         //添加记录

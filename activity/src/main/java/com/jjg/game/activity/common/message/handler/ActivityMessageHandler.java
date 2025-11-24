@@ -191,6 +191,21 @@ public class ActivityMessageHandler {
         }
     }
 
+    /**
+     * 推广分享-请求绑定玩家奖励
+     */
+    @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_CLAIM_BIND_REWARDS)
+    public void reqSharePromoteClaimBindRewards(PlayerController playerController) {
+        ActivityData activityData = activityManager.getOpenActivityData(playerController.getPlayer(), ActivityType.SHARE_PROMOTE);
+        if (activityData == null) {
+            return;
+        }
+        AbstractResponse res = sharePromoteController.reqSharePromoteClaimBindRewards(playerController, activityData);
+        playerController.send(res);
+        if (res.code == Code.SUCCESS) {
+            sharePromoteController.updateRodDot(playerController.playerId(), activityData, true);
+        }
+    }
 
     /**
      * 推广分享-请求领取收益奖励

@@ -342,7 +342,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
      */
     public void onRobotPlayerJoinRoom(PlayerController playerController, GamePlayer gamePlayer) {
         if (gamePlayer instanceof GameRobotPlayer gameRobotPlayer) {
-            RobotCfg robotCfg = GameDataManager.getRobotCfg((int) gameRobotPlayer.getId());
+            RobotCfg robotCfg = getRoomController().getRoomManager().getRobotService().getRobotCfg(gameRobotPlayer.getId());
             List<List<Integer>> chessRobotID = robotCfg.getChessRobotID();
             WeightRandom<Integer> random = new WeightRandom<>();
             for (List<Integer> robotId : chessRobotID) {

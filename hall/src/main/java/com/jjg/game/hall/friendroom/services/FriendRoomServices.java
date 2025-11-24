@@ -25,6 +25,7 @@ import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.IllegalNameCheckService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.hall.friendroom.constant.FriendRoomConstant;
 import com.jjg.game.hall.friendroom.constant.FriendRoomErrorCode;
@@ -92,6 +93,8 @@ public class FriendRoomServices {
     private GameFunctionService gameFunctionService;
     // 暂停时间
     private final Map<Long, Long> roomPauseTimeRec = new ConcurrentHashMap<>();
+    @Autowired
+    private RobotUtil robotUtil;
 
     /**
      * 创建好友房
@@ -839,7 +842,7 @@ public class FriendRoomServices {
             if (blackListPlayers.containsKey(playerId)) {
                 playerInfo = FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(blackListPlayers.get(playerId));
             } else {
-                playerInfo = FriendRoomMessageBuilder.buildFriendRoomRobotPlayerInfo(playerId);
+                playerInfo = FriendRoomMessageBuilder.buildFriendRoomRobotPlayerInfo(robotUtil, playerId);
             }
             blackPlayerInfoList.add(playerInfo);
         }
@@ -1099,7 +1102,7 @@ public class FriendRoomServices {
             } else {
                 // 尝试获取机器人的玩家数据
                 playerInfo.baseFriendRoomPlayerInfo =
-                        FriendRoomMessageBuilder.buildFriendRoomRobotPlayerInfo(entry.getKey());
+                        FriendRoomMessageBuilder.buildFriendRoomRobotPlayerInfo(robotUtil, entry.getKey());
             }
             playerInfo.billFlow = entry.getValue();
             playerInfo.status = playerBlackList != null && playerBlackList.contains(entry.getKey()) ? 2 : 1;

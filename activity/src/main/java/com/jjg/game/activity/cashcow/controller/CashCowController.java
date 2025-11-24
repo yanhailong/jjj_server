@@ -35,8 +35,12 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.bean.BaseCfgBean;
+import com.jjg.game.sampledata.bean.CashcowCfg;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import com.jjg.game.sampledata.bean.ViplevelCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +78,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
     // 保存活动 -> detailId -> 下次触发时间（毫秒）的映射
     // 结构： activityId -> (detailId -> nextTriggerMillis)
     private final Map<Long, Map<Integer, Long>> timerMap;
+    private final RobotUtil robotUtil;
     // 上次机器人自动增加奖池的时间戳（毫秒）
     private long lastRobotAddTime;
     // 定时器 key（注册/移除时使用）
@@ -89,7 +94,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
     //邮件服务
     private final MailService mailService;
 
-    public CashCowController(CashCowDao cashCowDao, TimerCenter timerCenter, CountDao countDao, CorePlayerService corePlayerService, MailService mailService) {
+    public CashCowController(CashCowDao cashCowDao, TimerCenter timerCenter, CountDao countDao, CorePlayerService corePlayerService, MailService mailService, RobotUtil robotUtil) {
         this.cashCowDao = cashCowDao;
         this.timerCenter = timerCenter;
         this.countDao = countDao;
@@ -97,6 +102,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         this.mailService = mailService;
         // 使用并发 Map 以保证在并发环境下对 timerMap 的安全访问
         timerMap = new ConcurrentHashMap<>();
+        this.robotUtil = robotUtil;
     }
 
 
@@ -496,13 +502,13 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 // 以万分比概率判断是否触发机器人中奖
                 if (probabilityList.get(4) > RandomUtil.randomInt(10000)) {
                     // 随机选一个机器人（机器人配置由 GameDataManager 提供）
-                    RobotCfg robotCfg = RandomUtil.randomEle(GameDataManager.getRobotCfgList());
+                    RobotPlayer robotPlayer = robotUtil.randomRobotPlayer();
                     // 从奖池中扣除分配额度（DAO 负责原子检查与扣减）
                     long get = cashCowDao.reduceActivityPool(activityData.getId(), cfg.getDistribution());
                     if (get > 0) {
                         // 记录机器人中奖（不发包给“机器人账户”，只是写记录）
-                        CashCowRecordData cashCowRecordData = new CashCowRecordData(activityData.getRound(), System.currentTimeMillis(), robotCfg.getName(), cfg.getType(), get);
-                        cashCowDao.savePlayerRecordActivity(robotCfg.getId(), activityData.getId(), cashCowRecordData);
+                        CashCowRecordData cashCowRecordData = new CashCowRecordData(activityData.getRound(), System.currentTimeMillis(), robotPlayer.getNickName(), cfg.getType(), get);
+                        cashCowDao.savePlayerRecordActivity(robotPlayer.getId(), activityData.getId(), cashCowRecordData);
                     }
                 }
             }

@@ -16,6 +16,7 @@ import java.util.Map;
 public class GameConstant {
     //游戏主分类 -> 游戏列表
     public static final Map<Integer, List<EGameType>> MAJOR_TYPE_ID_SET = new HashMap<>();
+    public static final int ROBOT_ID_PRIME_NUMBER = 17;
 
     static {
         for (EGameType value : EGameType.values()) {
@@ -152,7 +153,7 @@ public class GameConstant {
     }
 
     //账号类型
-    public class AccountType{
+    public class AccountType {
         //游客
         public static final int GUEST = 0;
         //认证用户

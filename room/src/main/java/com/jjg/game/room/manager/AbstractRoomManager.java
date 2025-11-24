@@ -22,7 +22,6 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
-import com.jjg.game.core.dao.room.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.match.MatchDataDao;
@@ -85,8 +84,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     private MatchDataDao matchDataDao;
     @Autowired
     private RobotService robotService;
-    @Autowired
-    private PlayerRoomDataDao playerRoomDataDao;
     @Autowired
     private RoomDataTrackLogger roomDataTrackLogger;
     @Autowired
@@ -872,10 +869,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
     public RobotService getRobotService() {
         return robotService;
-    }
-
-    public PlayerRoomDataDao getPlayerRoomDataDao() {
-        return playerRoomDataDao;
     }
 
     /**

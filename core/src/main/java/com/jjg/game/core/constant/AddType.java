@@ -98,7 +98,8 @@ public enum AddType {
     ACTIVITY_FIRST_PAYMENT(616),
     //活动
     ACTIVITY(617),
-
+    //推广领取绑定奖励
+    ACTIVITY_SHARE_PROMOTE_BIND_REWARDS(618),
 
     //好友房申请庄家扣除准备金
     FRIEND_ROOM_APPLY_BANKER_DEDUCT_PREDICATE(701),

@@ -18,7 +18,6 @@ import com.jjg.game.room.data.room.TablePlayerGameData;
 import com.jjg.game.room.message.BaseRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.message.resp.NotifyRoomLongTimeNoOperate;
-import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.RobotCfg;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
@@ -95,7 +94,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         List<PlayerController> needExitRoomRobots = new ArrayList<>();
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             if (entry.getValue() instanceof GameRobotPlayer gameRobotPlayer) {
-                RobotCfg robotCfg = GameDataManager.getRobotCfg((int) gameRobotPlayer.getId());
+                RobotCfg robotCfg = getRoomController().getRoomManager().getRobotService().getRobotCfg(gameRobotPlayer.getId());
                 // 判断机器人是否需要离开房间
                 boolean needExit = isNeedRobotPlayerExitRoom(gameRobotPlayer, robotCfg, maxBetOnTable);
                 if (needExit) {

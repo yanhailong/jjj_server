@@ -13,7 +13,7 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
     private final String roomIdListKey = "roomIdList:";
 
     public AbstractGoldRoomDao(Class<T> roomClazz,Class<P> roomPlayerClazz) {
-        super(roomClazz,roomPlayerClazz);
+        super(roomClazz);
     }
 
     protected String getRoomIdListKey(int gameType,int roomCfgId) {

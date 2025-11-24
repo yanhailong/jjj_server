@@ -14,11 +14,11 @@ import org.springframework.stereotype.Repository;
 public class HallFriendRoomDao extends AbstractFriendRoomDao<FriendRoom, RoomPlayer> {
 
     public HallFriendRoomDao() {
-        super(FriendRoom.class, RoomPlayer.class);
+        super(FriendRoom.class);
     }
 
     public HallFriendRoomDao(Class<FriendRoom> roomClazz, Class<RoomPlayer> roomPlayerClazz) {
-        super(roomClazz, roomPlayerClazz);
+        super(roomClazz);
     }
 
     @Override

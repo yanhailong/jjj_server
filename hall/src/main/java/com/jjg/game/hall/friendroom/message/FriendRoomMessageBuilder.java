@@ -4,9 +4,10 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.utils.RobotUtil;
+import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.hall.friendroom.message.struct.BaseFriendRoomPlayerInfo;
 import com.jjg.game.hall.friendroom.message.struct.FriendRoomBaseData;
-import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
@@ -41,14 +42,14 @@ public class FriendRoomMessageBuilder {
     /**
      * 构建房间中机器人数据
      */
-    public static BaseFriendRoomPlayerInfo buildFriendRoomRobotPlayerInfo(long playerId) {
-        RobotCfg robotCfg = GameDataManager.getRobotCfg((int) playerId);
+    public static BaseFriendRoomPlayerInfo buildFriendRoomRobotPlayerInfo(RobotUtil robotUtil, long playerId) {
+        RobotCfg robotCfg = robotUtil.getRobotCfg(playerId);
         BaseFriendRoomPlayerInfo baseFriendRoomPlayerInfo = new BaseFriendRoomPlayerInfo();
         if (robotCfg == null) {
             return baseFriendRoomPlayerInfo;
         }
         baseFriendRoomPlayerInfo.playerId = playerId;
-        baseFriendRoomPlayerInfo.playerName = robotCfg.getName();
+        baseFriendRoomPlayerInfo.playerName = "player" + playerId;
         baseFriendRoomPlayerInfo.playerVipLevel = robotCfg.getVipLevel();
         baseFriendRoomPlayerInfo.invitationCode = 0;
         baseFriendRoomPlayerInfo.playerHeadIcon = robotCfg.getFrame();
@@ -74,11 +75,11 @@ public class FriendRoomMessageBuilder {
         friendRoomBaseData.predictCostGoldNum = friendRoom.getPredictCostGoldNum();
         friendRoomBaseData.autoRenewal = friendRoom.isAutoRenewal();
         GlobalConfigCfg globalConfigCfg =
-            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
+                GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
         int intervalTime = globalConfigCfg.getIntValue() * TimeHelper.ONE_MINUTE_OF_MILLIS;
         long curTime = System.currentTimeMillis();
         friendRoomBaseData.nextPauseBtnOverdueTime =
-            friendRoom.getPauseTime() + intervalTime > curTime ? friendRoom.getPauseTime() + intervalTime : 0;
+                friendRoom.getPauseTime() + intervalTime > curTime ? friendRoom.getPauseTime() + intervalTime : 0;
         Tuple2<Integer, Integer> roomMaxLimitCfg = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
         friendRoomBaseData.maxPlayerNum = roomMaxLimitCfg.getT1();
         friendRoomBaseData.limitGoldMin = warehouseCfg.getBetShow();

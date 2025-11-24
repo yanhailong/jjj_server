@@ -15,8 +15,6 @@ public class RoomPlayer {
     protected long playerId;
     //当前在线情况
     protected boolean online;
-    // 玩家房间数据
-    protected PlayerRoomData playerRoomData;
     // 玩家是否机器人
     protected boolean isRobot;
     public RoomPlayer() {
@@ -25,7 +23,6 @@ public class RoomPlayer {
     public RoomPlayer(byte sit, long playerId) {
         this.sit = sit;
         this.playerId = playerId;
-        this.playerRoomData = new PlayerRoomData();
     }
 
     public int getSit() {
@@ -62,14 +59,6 @@ public class RoomPlayer {
     @Override
     public int hashCode() {
         return Objects.hashCode(playerId);
-    }
-
-    public PlayerRoomData getPlayerRoomData() {
-        return playerRoomData;
-    }
-
-    public void setPlayerRoomData(PlayerRoomData playerRoomData) {
-        this.playerRoomData = playerRoomData;
     }
 
     public boolean isRobot() {

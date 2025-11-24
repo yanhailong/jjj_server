@@ -77,11 +77,7 @@ public class GameDataVo<RC extends RoomCfg> {
     }
 
     public GamePlayer getGamePlayer(long playerId) {
-        GamePlayer gamePlayer = gamePlayerMap.get(playerId);
-        if (gamePlayer == null) {
-            log.error("getGamePlayer is null playerId:{}", playerId);
-        }
-        return gamePlayer;
+        return gamePlayerMap.get(playerId);
     }
 
     public long getPhaseEndTime() {

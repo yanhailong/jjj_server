@@ -13,6 +13,6 @@ import org.springframework.stereotype.Repository;
 public class HallRoomDao extends AbstractRoomDao<Room, RoomPlayer> {
 
     public HallRoomDao() {
-        super(Room.class, RoomPlayer.class);
+        super(Room.class);
     }
 }
