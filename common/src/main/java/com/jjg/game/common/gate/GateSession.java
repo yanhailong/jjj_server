@@ -87,7 +87,7 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
 
         //token验证
         if (msg.cmd == MessageConst.CertifyMessage.REQ_LOGIN) {
-            log.info("收到请求登录消息");
+//            log.info("收到请求登录消息");
             login(msg);
             return;
         }

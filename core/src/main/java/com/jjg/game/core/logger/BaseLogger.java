@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.pb.ItemInfo;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.RechargeType;
@@ -79,7 +80,7 @@ public class BaseLogger {
             addSafeBoxGoldChange(json, player.getSafeBoxGold(), 0, player.getSafeBoxGold());
 
             json.put("addType", addType.getValue());
-            json.put("deviceType",player.getDeviceType());
+            json.put("deviceType", player.getDeviceType());
             json.put("desc", desc);
             sendLog("goldChange", player, json);
         } catch (Exception e) {
@@ -105,7 +106,7 @@ public class BaseLogger {
             json = addSafeBoxGoldChange(json, beforeSafeBoxGold, gold, player.getSafeBoxGold());
 
             json.put("addType", addType.getValue());
-            json.put("deviceType",player.getDeviceType());
+            json.put("deviceType", player.getDeviceType());
             json.put("desc", desc);
             sendLog("goldChange", player, json);
         } catch (Exception e) {
@@ -132,7 +133,7 @@ public class BaseLogger {
 
             json.put("addType", addType.getValue());
             json.put("desc", desc);
-            json.put("deviceType",player.getDeviceType());
+            json.put("deviceType", player.getDeviceType());
             sendLog("diamondChange", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -159,7 +160,7 @@ public class BaseLogger {
 
             json.put("addType", addType.getValue());
             json.put("desc", desc);
-            json.put("deviceType",player.getDeviceType());
+            json.put("deviceType", player.getDeviceType());
             sendLog("diamondChange", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -185,7 +186,7 @@ public class BaseLogger {
 
             json.put("addType", addType.getValue());
             json.put("desc", desc);
-            json.put("deviceType",player.getDeviceType());
+            json.put("deviceType", player.getDeviceType());
             sendLog("goldChange", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -211,7 +212,7 @@ public class BaseLogger {
 
             json.put("addType", addType.getValue());
             json.put("desc", desc);
-            json.put("deviceType",player.getDeviceType());
+            json.put("deviceType", player.getDeviceType());
             sendLog("diamondChange", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -416,7 +417,7 @@ public class BaseLogger {
      */
     public void shop(Player player, Order order, ShopProduct shopProduct, String money, String region) {
         shop(player, order.getId(), order.getChannelOrderId(), shopProduct.getType(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), money, order.getCreateTime(), order.getUpdateTime(),
-                order.getOrderStatus(), 0, region);
+                order.getOrderStatus(), shopProduct.getPayType(), region);
     }
 
     /**
@@ -450,7 +451,7 @@ public class BaseLogger {
         String msg = JSONObject.toJSONString(json, SerializerFeature.WriteNonStringKeyAsString);
 
         topic = StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic.toLowerCase();
-        kafkaTemplate.send(topic, msg);
+        kafkaTemplate.send(topic, RandomUtils.getUUid(), msg);
 
         log.debug("打印日志数据 topic = {},msg = {}", topic, msg);
     }
