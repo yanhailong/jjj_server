@@ -76,7 +76,7 @@ public class GameConstant {
         // 加锁尝试次数
         int LOCK_TRY_TIMES = 50;
         // 每次尝试花费的毫秒数
-        int PER_TRY_TAKE_MILE_TIME = 10;
+        int PER_TRY_TAKE_MILE_TIME = 20;
     }
 
     //性别

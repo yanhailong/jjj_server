@@ -1,6 +1,5 @@
 package com.jjg.game.common.redis;
 
-import org.redisson.RedissonLock;
 import org.redisson.api.RLock;
 import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
@@ -22,7 +21,7 @@ import java.util.function.Supplier;
 public class RedisLock {
 
     private static final String LOCK_TABLE_NAME = "RDlock:";
-    private static final Logger log = LoggerFactory.getLogger(RedisLock.class);
+    private final Logger log = LoggerFactory.getLogger(RedisLock.class);
 
     @Autowired
     private RedissonClient redissonClient;
@@ -38,7 +37,7 @@ public class RedisLock {
      * @return 是否加锁成功
      */
     public boolean tryLock(String key) {
-        RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
+        RLock redissonLock = redissonClient.getLock(getKey(key));
         return redissonLock.tryLock();
     }
 
@@ -54,7 +53,7 @@ public class RedisLock {
         if (isIllegalWaitTime(key, waitTime, TimeUnit.MILLISECONDS)) {
             return false;
         }
-        RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
+        RLock redissonLock = redissonClient.getLock(getKey(key));
         return redissonLock.tryLock(waitTime, TimeUnit.MILLISECONDS);
     }
 
@@ -71,7 +70,7 @@ public class RedisLock {
         if (isIllegalWaitTime(key, waitTime, timeUnit)) {
             return false;
         }
-        RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
+        RLock redissonLock = redissonClient.getLock(getKey(key));
         return redissonLock.tryLock(waitTime, timeUnit);
     }
 
@@ -87,7 +86,7 @@ public class RedisLock {
      * @throws InterruptedException e
      */
     public boolean tryLock(String key, long waitTime, long leaseTime, TimeUnit timeUnit) throws InterruptedException {
-        RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
+        RLock redissonLock = redissonClient.getLock(getKey(key));
         return redissonLock.tryLock(waitTime, leaseTime, timeUnit);
     }
 
@@ -95,7 +94,7 @@ public class RedisLock {
      * 释放锁
      */
     public void tryUnlock(String key) {
-        RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
+        RLock redissonLock = redissonClient.getLock(getKey(key));
         redissonLock.unlock();
     }
 
@@ -104,7 +103,7 @@ public class RedisLock {
      * 必须需要获取到锁的业务调用此方法，强制等待直到获取到锁，默认等待30s
      */
     public void lock(String key) {
-        RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
+        RLock redissonLock = redissonClient.getLock(getKey(key));
         redissonLock.lock();
     }
 
@@ -118,7 +117,7 @@ public class RedisLock {
         if (isIllegalWaitTime(key, waitTime, TimeUnit.MILLISECONDS)) {
             return;
         }
-        RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
+        RLock redissonLock = redissonClient.getLock(getKey(key));
         redissonLock.lock(waitTime, TimeUnit.MILLISECONDS);
     }
 
@@ -132,7 +131,7 @@ public class RedisLock {
         if (isIllegalWaitTime(key, leaseTime, timeUnit)) {
             return;
         }
-        RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
+        RLock redissonLock = redissonClient.getLock(getKey(key));
         redissonLock.lock(leaseTime, timeUnit);
     }
 
@@ -205,9 +204,13 @@ public class RedisLock {
      * 释放锁
      */
     public void unlock(String key) {
-        RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
+        RLock redissonLock = redissonClient.getLock(getKey(key));
         if (redissonLock.isHeldByCurrentThread()) {
-            redissonLock.unlock();
+            try {
+                redissonLock.unlock();
+            } catch (Exception e) {
+                log.error("unlock redissonLock exception key:{}", key, e);
+            }
         }
     }
 
@@ -215,7 +218,7 @@ public class RedisLock {
      * 强制释放锁
      */
     public void forceUnlock(String key) {
-        RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
+        RLock redissonLock = redissonClient.getLock(getKey(key));
         redissonLock.forceUnlock();
     }
 
