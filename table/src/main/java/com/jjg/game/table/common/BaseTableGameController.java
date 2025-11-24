@@ -79,6 +79,16 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         return Code.SUCCESS;
     }
 
+    @Override
+    public void reconnect(PlayerController playerController) {
+        try {
+            respRoomInitInfo(playerController);
+            log.info("玩家重连进入 playId:{}", playerController.playerId());
+        } catch (Exception e) {
+            log.error("玩家重连推送房间信息异常", e);
+        }
+    }
+
     /**
      * 检查机器人是否需要离开房间
      */
