@@ -1,9 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
-
 import javax.annotation.processing.Generated;
+import java.util.List;
 /**
  * 配置bean
  *
@@ -39,10 +37,6 @@ public class RobotCfg extends BaseCfgBean {
   protected int gender;
   /** 携带基础金币 */
   protected long money;
-  /** 机器人名字 */
-  protected String name;
-  /** 头像资源名 */
-  protected String nameIcon;
   /** 头像 */
   protected int picture;
   /** 玩家等级 */
@@ -98,16 +92,6 @@ public class RobotCfg extends BaseCfgBean {
   /** 返回携带基础金币 */
   public long getMoney() {
     return money;
-  }
-
-  /** 返回机器人名字 */
-  public String getName() {
-    return name;
-  }
-
-  /** 返回头像资源名 */
-  public String getNameIcon() {
-    return nameIcon;
   }
 
   /** 返回头像 */
