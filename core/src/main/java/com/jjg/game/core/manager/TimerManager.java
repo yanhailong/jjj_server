@@ -34,7 +34,7 @@ public class TimerManager {
         gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 12));
     }
 
-    @Scheduled(fixedDelay = 20000, initialDelay = 15000)
+    @Scheduled(fixedDelay = 30000, initialDelay = 15000)
     public void report() {
         try {
             String msg = PlayerExecutorGroupDisruptor.getDefaultExecutor().getOverview();

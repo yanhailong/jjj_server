@@ -143,13 +143,18 @@ public class SampleDataManager implements FileLoader {
                 // 加载配置文件成功后对应变化的CfgBean类
                 Set<Class<?>> changedSampleSet = reloadSampleOnExcelChange(file);
                 Map<String, List<DefaultCallback>> callbackCollector = Collections.EMPTY_MAP;
+                boolean hasKey = false;
                 if (change) {
                     callbackCollector = ConfigExcelChangeListener.getChangeCallbackCollector();
+                    hasKey = callbackCollector.containsKey(fileName);
                 }
-                if (callbackCollector.isEmpty()) {
+
+                if(!hasKey){
                     callbackCollector = ConfigExcelChangeListener.getInitCallbackCollector();
+                    hasKey = callbackCollector.containsKey(fileName);
                 }
-                if (callbackCollector.containsKey(fileName)) {
+
+                if (hasKey) {
                     // 执行配置表变化监听回调
                     callbackCollector.get(fileName).forEach(defaultCallback -> {
                         log.info("配置表文件：{} 变化，调用配置监听的: {} 重载逻辑", fileName, defaultCallback.getClass().getSimpleName());

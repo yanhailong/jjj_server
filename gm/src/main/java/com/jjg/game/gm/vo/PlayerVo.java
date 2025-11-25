@@ -17,6 +17,7 @@ public class PlayerVo {
     private int isOffline;
     private String mobile;
     private SafeVo safeVo;
+    private int level;
 
     public long getPlayerId() {
         return playerId;
@@ -112,5 +113,13 @@ public class PlayerVo {
 
     public void setSafeInfo(SafeVo safeVo) {
         this.safeVo = safeVo;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public void setLevel(int level) {
+        this.level = level;
     }
 }
