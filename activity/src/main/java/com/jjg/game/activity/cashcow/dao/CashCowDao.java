@@ -152,14 +152,20 @@ public class CashCowDao {
         int detailId = 0;
         String poolKey = String.format(POOL_KEY, activityId);
         String poolLock = String.format(POOL_LOCK_KEY, activityId, detailId);
-        lock.lock(poolLock, ActivityConstant.Common.REDIS_LOCK);
+        boolean l = false;
         try {
+            l = lock.tryLock(poolLock, ActivityConstant.Common.REDIS_LOCK);
+            if(!l){
+                return;
+            }
             HashOperations<String, String, String> hash = getOpsForHash();
             hash.put(poolKey, String.valueOf(detailId), String.valueOf(setValue));
         } catch (Exception e) {
             log.error("设置摇钱树奖池失败 activityId:{} detailId:{} addValue:{}", activityId, detailId, activityId, e);
         } finally {
-            lock.unlock(poolLock);
+            if(l){
+                lock.tryUnlock(poolLock);
+            }
         }
     }
 
@@ -172,8 +178,12 @@ public class CashCowDao {
         int detailId = 0;
         String poolKey = String.format(POOL_KEY, activityId);
         String poolLock = String.format(POOL_LOCK_KEY, activityId, detailId);
-        lock.lock(poolLock, ActivityConstant.Common.REDIS_LOCK);
+        boolean l = false;
         try {
+            l = lock.tryLock(poolLock, ActivityConstant.Common.REDIS_LOCK);
+            if(!l){
+                return 0;
+            }
             HashOperations<String, String, String> hash = getOpsForHash();
             String lastPool = hash.get(poolKey, String.valueOf(detailId));
             long realLastPool = lastPool == null ? 0 : Long.parseLong(lastPool);
@@ -183,7 +193,9 @@ public class CashCowDao {
         } catch (Exception e) {
             log.error("增加摇钱树奖池失败 activityId:{} detailId:{} addValue:{}", activityId, detailId, activityId, e);
         } finally {
-            lock.unlock(poolLock);
+            if(l){
+                lock.tryUnlock(poolLock);
+            }
         }
         return 0;
     }
@@ -202,8 +214,12 @@ public class CashCowDao {
         int detailId = 0;
         String poolKey = String.format(POOL_KEY, activityId);
         String poolLock = String.format(POOL_LOCK_KEY, activityId, detailId);
-        lock.lock(poolLock, ActivityConstant.Common.REDIS_LOCK);
+        boolean l = false;
         try {
+            l = lock.tryLock(poolLock, ActivityConstant.Common.REDIS_LOCK);
+            if(!l){
+                return 0;
+            }
             HashOperations<String, String, String> opsForHash = getOpsForHash();
             String pool = opsForHash.get(poolKey, String.valueOf(detailId));
             if (pool == null) {
@@ -220,7 +236,9 @@ public class CashCowDao {
         } catch (Exception e) {
             log.error("减少摇钱树奖池失败 activityId:{} detailId:{} addValue:{}", activityId, detailId, activityId, e);
         } finally {
-            lock.unlock(poolLock);
+            if(l){
+                lock.tryUnlock(poolLock);
+            }
         }
         return 0;
     }

@@ -394,8 +394,12 @@ public abstract class BaseActivityController {
         CommonResult<ItemOperationResult> addedItems;
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         // 加锁，保证领取操作原子性
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            if(!lock){
+                return null;
+            }
             Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             if (CollectionUtil.isEmpty(dataMap)) {
                 TipUtils.sendTip(playerId, TipUtils.TipType.TOAST, Code.PARAM_ERROR);
@@ -421,7 +425,9 @@ public abstract class BaseActivityController {
         } catch (Exception e) {
             log.error("活动领取异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
         }
         return null;
     }

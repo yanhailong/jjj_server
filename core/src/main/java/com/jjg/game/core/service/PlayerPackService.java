@@ -131,8 +131,13 @@ public class PlayerPackService implements IPlayerRegister {
         PlayerPack playerPack = null;
         String key = getLockKey(playerId);
         // TODO 当前的加锁位置会有数据覆盖问题
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                result.code = Code.FAIL;
+                return result;
+            }
             playerPack = getFromAllDB(playerId);
             if (playerPack == null) {
                 playerPack = new PlayerPack(playerId);
@@ -167,7 +172,9 @@ public class PlayerPackService implements IPlayerRegister {
         } catch (Exception e) {
             log.error("添加多个道具，保存 playerPack 失败 playerId={}", playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         if (result.success()) {
             if (playerPack != null) {
@@ -245,8 +252,13 @@ public class PlayerPackService implements IPlayerRegister {
         long deductDiamondV = 0;
         long playerId = player.getId();
         String key = getLockKey(playerId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                result.code = Code.FAIL;
+                return result;
+            }
             List<Item> packItemList = new ArrayList<>();
             for (Item item : removeItemList) {
                 int itemId = item.getId();
@@ -366,7 +378,9 @@ public class PlayerPackService implements IPlayerRegister {
         } catch (Exception e) {
             log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return result;
     }
@@ -483,8 +497,12 @@ public class PlayerPackService implements IPlayerRegister {
 
     public PlayerPack checkAndSave(long playerId, DataSaveCallback<PlayerPack> cbk) {
         String key = getLockKey(playerId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return null;
+            }
             PlayerPack playerPack = redisGet(playerId);
             if (playerPack == null) {
                 return null;
@@ -500,15 +518,21 @@ public class PlayerPackService implements IPlayerRegister {
         } catch (Exception e) {
             log.error("保存 playerPack 失败 playerId={}", playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return null;
     }
 
     public PlayerPack doSave(long playerId, DataSaveCallback<PlayerPack> cbk) {
         String key = getLockKey(playerId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return null;
+            }
             PlayerPack playerPack = redisGet(playerId);
             // 找不到的玩家或者机器人玩家不保存数据
             if (playerPack == null) {
@@ -521,7 +545,9 @@ public class PlayerPackService implements IPlayerRegister {
         } catch (Exception e) {
             log.warn("保存 playerPack 失败 playerId={}", playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return null;
     }

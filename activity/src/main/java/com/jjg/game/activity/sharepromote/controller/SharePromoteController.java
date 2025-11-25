@@ -247,8 +247,13 @@ public class SharePromoteController extends BaseActivityController {
             //修改玩家数据
             String lock = sharePromoteDao.getLock(playerId);
             boolean save = false;
-            redisLock.lock(lock, ActivityConstant.Common.REDIS_LOCK);
+            boolean l = false;
             try {
+                l = redisLock.tryLock(lock, ActivityConstant.Common.REDIS_LOCK);
+                if(!l){
+                    res.code = Code.FAIL;
+                    return res;
+                }
                 playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
                 playerInfoData.setBindCount(playerInfoData.getBindCount() + 1);
                 if (playerInfoData.getNotClaimedPlayerIds() == null) {
@@ -260,7 +265,9 @@ public class SharePromoteController extends BaseActivityController {
             } catch (Exception e) {
                 log.error("推广分享绑定成功 修改数据异常 playerId:{} code:{}", playerId, req.invitationCode);
             } finally {
-                redisLock.unlock(lock);
+                if(l){
+                    redisLock.tryUnlock(lock);
+                }
             }
             if (save) {
                 //发送日志
@@ -287,8 +294,12 @@ public class SharePromoteController extends BaseActivityController {
         boolean changed = false;
         long playerId = player.getId();
         String lockKey = playerActivityDao.getLockKey(playerId, data.getId());
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            if(!lock){
+                return;
+            }
             Map<Integer, PlayerActivityData> playerActivityDataMap = playerActivityDao.getPlayerActivityData(playerId, data.getType(), data.getId());
             for (SharePromoteCfg cfg : beanMap.values()) {
                 if (cfg.getType() != ActivityConstant.SharePromote.RANK_REWARDS && cfg.getCondition() <= bindNum) {
@@ -312,7 +323,9 @@ public class SharePromoteController extends BaseActivityController {
         } catch (Exception e) {
             log.error("推广分享绑定玩家成功 检查玩家进度异常 playerId:{}", playerId, e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
         }
     }
 
@@ -332,9 +345,14 @@ public class SharePromoteController extends BaseActivityController {
         SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
         if (playerIncome > 0 && playerInfoData != null) {
             String lock = sharePromoteDao.getLock(playerId);
-            redisLock.lock(lock, ActivityConstant.Common.REDIS_LOCK);
             int goldItemId = ItemUtils.getGoldItemId();
+            boolean l = false;
             try {
+                l = redisLock.tryLock(lock, ActivityConstant.Common.REDIS_LOCK);
+                if(!l){
+                    res.code = Code.FAIL;
+                    return res;
+                }
                 playerIncome = sharePromoteDao.getPlayerIncome(playerId);
                 if (playerIncome <= 0) {
                     return res;
@@ -369,7 +387,9 @@ public class SharePromoteController extends BaseActivityController {
                 log.error("玩家领取收益奖励异常 playerId={}", playerId, e);
                 res.code = Code.EXCEPTION;
             } finally {
-                redisLock.unlock(lock);
+                if(l){
+                    redisLock.tryUnlock(lock);
+                }
             }
             res.itemInfo = ItemUtils.buildItemInfo(goldItemId, playerIncome);
         }
@@ -403,8 +423,13 @@ public class SharePromoteController extends BaseActivityController {
         //玩家数据为null时初始化一个
         if (playerInfoData == null) {
             String lock = sharePromoteDao.getLock(playerId);
-            redisLock.lock(lock, ActivityConstant.Common.REDIS_LOCK);
+            boolean l = false;
             try {
+                l = redisLock.tryLock(lock, ActivityConstant.Common.REDIS_LOCK);
+                if(!l){
+                    res.code = Code.FAIL;
+                    return res;
+                }
                 playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
                 if (playerInfoData == null) {
                     playerInfoData = new SharePromotePlayerData();
@@ -414,7 +439,9 @@ public class SharePromoteController extends BaseActivityController {
             } catch (Exception e) {
                 log.error("创建玩家推广分享数据失败 playerId={}", playerId, e);
             } finally {
-                redisLock.unlock(lock);
+                if(l){
+                    redisLock.tryUnlock(lock);
+                }
             }
         }
         if (playerInfoData != null) {
@@ -653,8 +680,13 @@ public class SharePromoteController extends BaseActivityController {
         SharePromotePlayerData playerInfoData;
         long totalRewards = 0;
         String lock = sharePromoteDao.getLock(playerId);
-        redisLock.lock(lock, ActivityConstant.Common.REDIS_LOCK);
+        boolean l = false;
         try {
+            l = redisLock.tryLock(lock, ActivityConstant.Common.REDIS_LOCK);
+            if(!l){
+                res.code = Code.FAIL;
+                return res;
+            }
             playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
             if (playerInfoData == null || CollectionUtil.isEmpty(playerInfoData.getNotClaimedPlayerIds())) {
                 res.code = Code.SAMPLE_ERROR;
@@ -672,7 +704,9 @@ public class SharePromoteController extends BaseActivityController {
         } catch (Exception e) {
             log.error("创建玩家推广分享数据失败 playerId={}", playerId, e);
         } finally {
-            redisLock.unlock(lock);
+            if(l){
+                redisLock.tryUnlock(lock);
+            }
         }
         res.infoList = ItemUtils.buildItemInfo(itemId, totalRewards);
         return res;

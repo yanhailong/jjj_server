@@ -69,8 +69,14 @@ public class AbstractPlayerService {
 
     public Player checkAndSave(long playerId, DataSaveCallback<Player> cbk) {
         String key = getLockKey(playerId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+//        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                log.debug("获取redis锁失败 playerId = {}",playerId);
+                return null;
+            }
             Player player = get(playerId);
             if (player == null || player instanceof RobotPlayer) {
                 return null;
@@ -85,15 +91,21 @@ public class AbstractPlayerService {
         } catch (Exception e) {
             log.error("保存player失败 playerId={}", playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return null;
     }
 
     public Player doSave(long playerId, DataSaveCallback<Player> cbk) {
         String key = getLockKey(playerId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return null;
+            }
             Player player = get(playerId);
             // 找不到的玩家或者机器人玩家不保存数据
             if (player == null || player instanceof RobotPlayer) {
@@ -107,15 +119,21 @@ public class AbstractPlayerService {
         } catch (Exception e) {
             log.warn("保存player失败 playerId={}", playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return null;
     }
 
     public <K> Player doSave(long playerId, K k, BiConsumer<Player, K> cbk) {
         String key = getLockKey(playerId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return null;
+            }
             Player player = get(playerId);
             // 找不到的玩家或者机器人玩家不保存数据
             if (player == null || player instanceof RobotPlayer) {
@@ -128,7 +146,9 @@ public class AbstractPlayerService {
         } catch (Exception e) {
             log.warn("保存player失败 playerId={}", playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return null;
     }

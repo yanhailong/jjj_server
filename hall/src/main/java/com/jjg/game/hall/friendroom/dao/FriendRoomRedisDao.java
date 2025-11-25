@@ -12,9 +12,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -55,8 +53,12 @@ public class FriendRoomRedisDao {
      */
     public int genInvitationCode() {
         String invitationPlayerTableName = getInvitationPlayerTableName();
-        redisLock.lock(invitationPlayerTableName, 200);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(invitationPlayerTableName, 200);
+            if(!lock){
+                return 0;
+            }
             int invitationCode = Integer.MIN_VALUE, tryTimes = 5;
             while (tryTimes-- > 0) {
                 long curTime = System.currentTimeMillis();
@@ -76,9 +78,14 @@ public class FriendRoomRedisDao {
             }
             log.info("生成邀请码：{}", invitationCode);
             return invitationCode;
-        } finally {
-            redisLock.unlock(invitationPlayerTableName);
+        } catch (Exception e){
+            log.error("",e);
+        }finally {
+            if(lock){
+                redisLock.tryUnlock(invitationPlayerTableName);
+            }
         }
+        return 0;
     }
 
     /**

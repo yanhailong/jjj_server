@@ -203,8 +203,12 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
         List<Pair<TaskDetail, TaskCfg>> updateTasks = new ArrayList<>();
         AtomicBoolean hasFinished = new AtomicBoolean(false);
         String lockKey = playerTaskMapLockKey(playerId);
-        redisLock.lock(lockKey, LOCK_TIME);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, LOCK_TIME);
+            if(!lock){
+                return;
+            }
             TaskData tempData = playerTasks.get(playerId);
             long timestamp = TimeHelper.getTimestamp(LocalDateTime.now());
             for (TaskCfg taskCfg : taskCfgList) {
@@ -241,7 +245,9 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
         } catch (Exception e) {
             log.error("玩家增加任务进度失败 [{}]触发条件[{}]conditionId[{}]参数[{}]", playerId, condition.getClass().getSimpleName(), condition.getId(), param == null ? "null" : param.toString(),e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
         }
         if (isNotify && CollectionUtil.isNotEmpty(updateTasks)) {
             if (hasFinished.get()) {

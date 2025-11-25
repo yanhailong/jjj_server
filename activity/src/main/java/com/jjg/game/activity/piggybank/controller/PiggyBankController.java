@@ -87,10 +87,14 @@ public class PiggyBankController extends BaseActivityController implements GameE
             String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
 
             // 分布式锁，防止并发购买
-            redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
 
+            boolean lock = false;
             PiggyBankData piggyBankData = null;
             try {
+                lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+                if(!lock){
+                    return res;
+                }
                 // 获取玩家活动数据
                 Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
 
@@ -112,7 +116,9 @@ public class PiggyBankController extends BaseActivityController implements GameE
             } catch (Exception e) {
                 log.error("玩家参加活动失败 出现异常,playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
             } finally {
-                redisLock.unlock(lockKey);
+                if(lock){
+                    redisLock.tryUnlock(lockKey);
+                }
             }
 
             // 日志记录玩家参加活动
@@ -161,8 +167,12 @@ public class PiggyBankController extends BaseActivityController implements GameE
         boolean changeStatus = false;
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         // 分布式锁
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            if(!lock){
+                return false;
+            }
             Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
 
             // 遍历所有储钱罐子活动
@@ -198,7 +208,9 @@ public class PiggyBankController extends BaseActivityController implements GameE
         } catch (Exception e) {
             log.error("储钱罐添加玩家进度异常 playerId:{}  activityId:{} ", player, activityData.getId(), e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
         }
 
         return changeStatus;
@@ -223,8 +235,13 @@ public class PiggyBankController extends BaseActivityController implements GameE
         CommonResult<ItemOperationResult> addedItems = null;
         Map<Integer, Long> rewards = Map.of();
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            if(!lock){
+                res.code = Code.FAIL;
+                return res;
+            }
             // 获取玩家储钱罐数据
             Map<Integer, PiggyBankData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
             data = dataMap.get(detailId);
@@ -260,7 +277,9 @@ public class PiggyBankController extends BaseActivityController implements GameE
         } catch (Exception e) {
             log.error("领取每日奖金异常 playerId:{} activityId:{}", playerId, activityData.getId(), e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
         }
 
         // 记录日志
@@ -381,8 +400,12 @@ public class PiggyBankController extends BaseActivityController implements GameE
         Map<Integer, PlayerActivityData> playerActivityData = null;
         //加锁防止重置数据时请求领奖导致多发奖励
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            if(!lock){
+                return playerActivityData;
+            }
             playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
             // 遍历所有储钱罐数据
             for (Map.Entry<Integer, PlayerActivityData> piggyBankDataEntry : playerActivityData.entrySet()) {
@@ -410,7 +433,9 @@ public class PiggyBankController extends BaseActivityController implements GameE
         } catch (Exception e) {
             log.info("储钱罐重置数据失败");
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
         }
         return playerActivityData;
     }

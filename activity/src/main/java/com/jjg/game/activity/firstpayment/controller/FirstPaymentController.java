@@ -75,8 +75,13 @@ public class FirstPaymentController extends BaseActivityController implements Ga
         Map<Integer, Long> rewards = null;
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         // 加锁，防止并发修改
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            if(!lock){
+                res.code = Code.FAIL;
+                return res;
+            }
             Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
             // 获取玩家首充数据，若不存在则创建
             data = playerActivityData.computeIfAbsent(detailId, key -> new PlayerActivityData(activityData.getId(), activityData.getRound()));
@@ -104,7 +109,9 @@ public class FirstPaymentController extends BaseActivityController implements Ga
         } catch (Exception e) {
             log.error("玩家加入首充活动异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
         }
         if (addedItems != null && addedItems.success()) {
             activityLogger.sendFirstPaymentJoinLog(player, activityData, cfg, addedItems.data, rewards);

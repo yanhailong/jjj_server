@@ -76,8 +76,12 @@ public class DailyLoginController extends BaseActivityController {
         long continuousLoginDay = dailyLoginDao.getContinuousLoginDay(activityId, playerId);
         boolean change = false;
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            if(!lock){
+                return false;
+            }
             Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             for (DailyRewardsCfg cfg : baseCfgBeanMap.values()) {
                 //连续奖励
@@ -96,7 +100,9 @@ public class DailyLoginController extends BaseActivityController {
         } catch (Exception e) {
             log.error("每日签到增加进度异常 playerId:{} activityId:{}", player, activityId, e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
         }
         return change;
     }
@@ -125,8 +131,13 @@ public class DailyLoginController extends BaseActivityController {
         CommonResult<ItemOperationResult> addedItems = null;
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         // 加锁，保证领取操作原子性
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            if(!lock){
+                res.code = Code.FAIL;
+                return res;
+            }
             Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             if (CollectionUtil.isEmpty(dataMap)) {
                 res.code = Code.PARAM_ERROR;
@@ -167,7 +178,9 @@ public class DailyLoginController extends BaseActivityController {
         } catch (Exception e) {
             log.error("活动领取异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
         }
         if (data != null) {
             if (cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE) {

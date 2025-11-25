@@ -51,6 +51,7 @@ public class RedisLock {
      */
     public boolean tryLock(String key, long waitTime) throws InterruptedException {
         if (isIllegalWaitTime(key, waitTime, TimeUnit.MILLISECONDS)) {
+            log.debug("获取锁失败 key = {}",key);
             return false;
         }
         RLock redissonLock = redissonClient.getLock(getKey(key));
@@ -96,43 +97,6 @@ public class RedisLock {
     public void tryUnlock(String key) {
         RLock redissonLock = redissonClient.getLock(getKey(key));
         redissonLock.unlock();
-    }
-
-
-    /**
-     * 必须需要获取到锁的业务调用此方法，强制等待直到获取到锁，默认等待30s
-     */
-    public void lock(String key) {
-        RLock redissonLock = redissonClient.getLock(getKey(key));
-        redissonLock.lock();
-    }
-
-    /**
-     * 带过期时间的加锁 必须需要获取到锁的业务调用此方法，强制等待直到获取到锁，默认等待waitTime s
-     *
-     * @param key      锁名
-     * @param waitTime 等待时间
-     */
-    public void lock(String key, int waitTime) {
-        if (isIllegalWaitTime(key, waitTime, TimeUnit.MILLISECONDS)) {
-            return;
-        }
-        RLock redissonLock = redissonClient.getLock(getKey(key));
-        redissonLock.lock(waitTime, TimeUnit.MILLISECONDS);
-    }
-
-    /**
-     * 加锁 必须需要获取到锁的业务调用此方法，强制等待直到获取到锁，默认等待 waitTime
-     *
-     * @param key       锁名
-     * @param leaseTime 等待时间
-     */
-    public void lock(String key, long leaseTime, TimeUnit timeUnit) throws InterruptedException {
-        if (isIllegalWaitTime(key, leaseTime, timeUnit)) {
-            return;
-        }
-        RLock redissonLock = redissonClient.getLock(getKey(key));
-        redissonLock.lock(leaseTime, timeUnit);
     }
 
     /**
@@ -192,37 +156,6 @@ public class RedisLock {
     }
 
     /**
-     * 释放读写锁
-     */
-    public void unlockReadWriteLock(RLock rLock) {
-        if (rLock != null && rLock.isHeldByCurrentThread()) {
-            rLock.forceUnlock();
-        }
-    }
-
-    /**
-     * 释放锁
-     */
-    public void unlock(String key) {
-        RLock redissonLock = redissonClient.getLock(getKey(key));
-        if (redissonLock.isHeldByCurrentThread()) {
-            try {
-                redissonLock.unlock();
-            } catch (Exception e) {
-                log.error("unlock redissonLock exception key:{}", key, e);
-            }
-        }
-    }
-
-    /**
-     * 强制释放锁
-     */
-    public void forceUnlock(String key) {
-        RLock redissonLock = redissonClient.getLock(getKey(key));
-        redissonLock.forceUnlock();
-    }
-
-    /**
      * 尝试获取锁并执行逻辑，无返回值
      * 如果获取到锁则执行传入的逻辑代码，执行完毕后自动释放锁
      * 如果没有获取到锁则不执行任何逻辑
@@ -238,7 +171,7 @@ public class RedisLock {
             } catch (Exception e) {
                 log.error("tryLockAndRun error", e);
             } finally {
-                unlock(key);
+                tryUnlock(key);
             }
         }
     }
@@ -261,7 +194,7 @@ public class RedisLock {
             } catch (Exception e) {
                 log.error("tryLockAndGet error", e);
             } finally {
-                unlock(key);
+                tryUnlock(key);
             }
         }
         return null;
@@ -286,7 +219,7 @@ public class RedisLock {
             } catch (Exception e) {
                 log.error("tryLockAndGet error", e);
             } finally {
-                unlock(key);
+                tryUnlock(key);
             }
         }
         return defaultValue;
@@ -301,13 +234,17 @@ public class RedisLock {
      * @param runnable 需要执行的逻辑代码。
      */
     public void lockAndRun(String key, int waitTime, Runnable runnable) {
-        lock(key, waitTime);
         try {
+            boolean lock = tryLock(key, waitTime);
+            if (!lock) {
+                log.warn("lockAndRun 获取锁失败 key = {}", key);
+                return;
+            }
             runnable.run();
         } catch (Exception e) {
             log.error("lockAndRun error", e);
         } finally {
-            unlock(key);
+            tryUnlock(key);
         }
     }
 
@@ -322,14 +259,18 @@ public class RedisLock {
      * @return 执行逻辑代码后的返回结果。
      */
     public <T> T lockAndGet(String key, int waitTime, Supplier<T> supplier) {
-        lock(key, waitTime);
         try {
+            boolean lock = tryLock(key, waitTime);
+            if (!lock) {
+                log.warn("lockAndGet 获取锁失败 key = {}", key);
+                return null;
+            }
             return supplier.get();
         } catch (Exception e) {
             log.error("lockAndGet error", e);
             return null;
         } finally {
-            unlock(key);
+            tryUnlock(key);
         }
     }
 
@@ -344,19 +285,19 @@ public class RedisLock {
      * @return 业务结果（失败返回 null）
      */
     public <T> T executeWithLock(String key, long waitTime, TimeUnit timeUnit, Supplier<T> action) {
-        RLock lock = redissonClient.getLock(getKey(key));
         try {
-            if (lock.tryLock(waitTime, timeUnit)) {
-                try {
-                    return action.get();
-                } finally {
-                    lock.unlock();
-                }
+            boolean lock = tryLock(key, waitTime, timeUnit);
+            if (!lock) {
+                log.warn("executeWithLock 获取锁失败 key = {}", key);
+                return null;
             }
+
+            return action.get();
+        } catch (Exception e) {
+            log.error("executeWithLock error", e);
             return null;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return null;
+        } finally {
+            tryUnlock(key);
         }
     }
 }

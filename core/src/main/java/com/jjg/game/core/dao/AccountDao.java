@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -70,8 +69,12 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
 
     public Account checkAndSave(long playerId, DataSaveCallback<Account> cbk) {
         String key = getLockKey(playerId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return null;
+            }
             Account account = queryAccountByPlayerId(playerId);
             if (account == null) {
                 log.debug("获取account为空 playerId = {}", playerId);
@@ -83,7 +86,9 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
         } catch (Exception e) {
             log.warn("保存account失败 playerId={}", playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return null;
     }

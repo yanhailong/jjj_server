@@ -132,7 +132,7 @@ public class MatchDataDao {
             log.error("changeRoomJoinNum ", e);
         } finally {
             if (locked) {
-                redisLock.unlock(lockMatchRedisKey);
+                redisLock.tryUnlock(lockMatchRedisKey);
             }
         }
         return false;

@@ -57,8 +57,12 @@ public class HallPlayerService extends AbstractPlayerService {
     public CommonResult<Player> loginAndNewOrSave(long playerId, LoginQueryDataAction cbk) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return result;
+            }
             Player player = getFromAllDB(playerId);
             if (player == null) {
                 player = new Player();
@@ -76,7 +80,10 @@ public class HallPlayerService extends AbstractPlayerService {
         } catch (Exception e) {
             log.warn("创建或保存对象异常 playerId={}", playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
+
         }
         return result;
     }

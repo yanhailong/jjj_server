@@ -98,8 +98,12 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         long currentTimeMillis = System.currentTimeMillis();
         boolean change = false;
         String lockKey = playerLevelDao.getLockKey(playerId);
-        redisLock.lock(lockKey, REDIS_LOCK_TIME);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, REDIS_LOCK_TIME);
+            if(!lock){
+                return;
+            }
             //双重校验
             playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerId);
             for (PlayerLevelPackCfg packCfg : playerLevelPack) {
@@ -123,7 +127,9 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         } catch (Exception e) {
             log.error("等级变化时修改玩家活动数据失败 playerId:{} playerLevel:{} ", playerId, playerLevel, e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
         }
         if (change) {
             NotifyPlayerLevelPackDetailInfo info = buildNotifyPlayerLevelPackDetailInfo(player, playerLevelPackData);
@@ -186,9 +192,14 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
             return res;
         }
         String lockKey = playerLevelDao.getLockKey(playerId);
-        redisLock.lock(lockKey, REDIS_LOCK_TIME);
         CommonResult<ItemOperationResult> added = null;
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, REDIS_LOCK_TIME);
+            if(!lock){
+                res.code = Code.FAIL;
+                return res;
+            }
             playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerId, req.id);
             //领取奖励
             if (playerLevelPackData != null && playerLevelPackData.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
@@ -202,7 +213,9 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         } catch (Exception e) {
             log.error("等级礼包 领取奖励异常 playerId:{} id:{} ", playerId, req.id, e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
         }
         if (added != null && added.success()) {
             res.itemInfos = ItemUtils.buildItemInfo(packCfg.getLevelRewards());
@@ -251,11 +264,15 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
                 return;
             }
             String lockKey = playerLevelDao.getLockKey(playerId);
-            redisLock.lock(lockKey, REDIS_LOCK_TIME);
             Map<Integer, PlayerLevelPackData> playerLevelPackDataMap = null;
             PlayerLevelPackData playerLevelPackData = null;
             CommonResult<ItemOperationResult> added = null;
+            boolean lock = false;
             try {
+                lock = redisLock.tryLock(lockKey, REDIS_LOCK_TIME);
+                if(!lock){
+                    return;
+                }
                 playerLevelPackDataMap = playerLevelDao.getPlayerLevelPackData(playerId);
                 if (CollectionUtil.isEmpty(playerLevelPackDataMap)) {
                     log.error("玩家购买等级礼包失败 没有任何等级礼包数据 playerId:{} id:{} ", playerId, id);
@@ -277,7 +294,9 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
             } catch (Exception e) {
                 log.error("等级礼包修改数据异常 playerId:{} id:{} ", playerId, id, e);
             } finally {
-                redisLock.unlock(lockKey);
+                if(lock){
+                    redisLock.tryUnlock(lockKey);
+                }
             }
             if (playerLevelPackData == null) {
                 return;

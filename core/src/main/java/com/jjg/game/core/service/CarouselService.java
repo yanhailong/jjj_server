@@ -200,7 +200,9 @@ public class CarouselService {
             } catch (Exception e) {
                 log.error("同步轮播数据错误!", e);
             } finally {
-                redisLock.unlock(syncCompleteKey);
+                if(tryLock){
+                    redisLock.tryUnlock(syncCompleteKey);
+                }
             }
         }
     }

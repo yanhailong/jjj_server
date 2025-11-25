@@ -71,8 +71,12 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     public T nodeCreate(int gameType, int roomCfgId, int maxLimit, String nodeName) {
         String lockKey = getNodeCreateRoomName(gameType);
         // 最大等待3分钟
-        redisLock.lock(lockKey, TimeHelper.ONE_DAY_OF_MILLIS * 3);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, TimeHelper.ONE_DAY_OF_MILLIS * 3);
+            if(!lock){
+                return null;
+            }
             T room = fillBaseRoomData(nodeName, gameType, roomCfgId, maxLimit);
             room.setRoomCfgId(roomCfgId);
             T temp = createRoom(room);
@@ -82,7 +86,9 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         } catch (Exception e) {
             log.error("系统创建房间出现异常,gameType = {},", gameType, e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
         }
         return null;
     }
@@ -198,8 +204,13 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     public CommonResult<T> doSave(int gameType, long roomId, DataSaveCallback<T> roomCallback) {
         CommonResult<T> result = new CommonResult<>(Code.SUCCESS);
         String key = getLockName(gameType, roomId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                result.code = Code.FAIL;
+                return result;
+            }
             T room = getRoom(gameType, roomId);
             boolean updateDataWithRes = roomCallback.updateDataWithRes(room);
             if (updateDataWithRes) {
@@ -212,7 +223,9 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         } catch (Exception e) {
             log.warn("保存房间出现异常,gameType = {},roomId = {}", gameType, roomId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         result.code = Code.FAIL;
         return result;
@@ -230,8 +243,12 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
      */
     public Long removeRoom(int gameType, long roomId, int wareId) {
         String key = getLockName(gameType, roomId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return null;
+            }
             T room = getRoom(gameType, roomId);
             if (room != null) {
                 return redisTemplate.opsForHash().delete(getTableName(gameType), roomId);
@@ -240,15 +257,21 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         } catch (Exception e) {
             log.warn("清除房间出现异常,gameType = {},roomId = {}", gameType, roomId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return null;
     }
 
     public T removePlayer(int gameType, long roomId, long playerId) {
         String key = getLockName(gameType, roomId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return null;
+            }
             T room = getRoom(gameType, roomId);
             if (room != null) {
                 room.exit(playerId);
@@ -259,7 +282,9 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         } catch (Exception e) {
             log.warn("从房间移除玩家数据异常,gameType = {},roomId = {},playerId = {}", gameType, roomId, playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return null;
     }
@@ -275,8 +300,12 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
      */
     public T updateRoomPlayer(int gameType, long roomId, long playerId, Consumer<RoomPlayer> updateFunction) {
         String key = getLockName(gameType, roomId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return null;
+            }
             T room = getRoom(gameType, roomId);
             if (room != null) {
                 Map<Long, RoomPlayer> roomPlayers = room.getRoomPlayers();
@@ -295,7 +324,9 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         } catch (Exception e) {
             log.warn("房间更新玩家数据异常,gameType = {},roomId = {},playerId = {}", gameType, roomId, playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return null;
     }
@@ -312,8 +343,12 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
      */
     public T updateRoomPlayerSitInfo(int gameType, long roomId, long playerId, int newSitIndex, boolean forcedExchange) {
         String key = getLockName(gameType, roomId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return null;
+            }
             T room = getRoom(gameType, roomId);
             if (room != null) {
                 Map<Long, RoomPlayer> roomPlayers = room.getRoomPlayers();
@@ -360,7 +395,9 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         } catch (Exception e) {
             log.warn("房间更新玩家数据异常,gameType = {},roomId = {},playerId = {}", gameType, roomId, playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return null;
     }
@@ -370,8 +407,12 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
      */
     public T removePlayers(int gameType, long roomId, List<Long> playerIds) {
         String key = getLockName(gameType, roomId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return null;
+            }
             T room = getRoom(gameType, roomId);
             if (room != null) {
                 room.exitPlayers(playerIds);
@@ -383,7 +424,9 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
             log.warn("从房间移除玩家数据异常,gameType = {},roomId = {},playerId = {}",
                     gameType, roomId, playerIds.stream().map(String::valueOf).collect(Collectors.joining(",")), e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return null;
     }

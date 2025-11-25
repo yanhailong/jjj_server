@@ -79,7 +79,7 @@ public class MatchService {
             log.error("getWaitingRoomId ", e);
         } finally {
             if (locked) {
-                redisLock.unlock(lockMatchRedisKey);
+                redisLock.tryUnlock(lockMatchRedisKey);
             }
         }
         return 0;

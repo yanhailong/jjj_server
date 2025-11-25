@@ -104,8 +104,12 @@ public class OfficialAwardsDao {
 
     public int reduceProgress(String redisKey, int reduceValue) {
         String lockKey = "lock:" + redisKey;
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            if(!lock){
+                return -1;
+            }
             String progress = redisTemplate.opsForValue().get(redisKey);
             int currentProgress = progress == null ? 0 : Integer.parseInt(progress);
             int remain = currentProgress - reduceValue;
@@ -117,7 +121,10 @@ public class OfficialAwardsDao {
         } catch (Exception e) {
             log.error("reduce player progress", e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
+
         }
         return -1;
     }
@@ -172,8 +179,12 @@ public class OfficialAwardsDao {
     public Pair<Long, Long> reduceTotalPool(long activityId, long reduceValue) {
         String key = TOTAL_POOL_KEY.formatted(activityId);
         String lockKey = "lock:" + key;
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            if(!lock){
+                return null;
+            }
             String val = redisTemplate.opsForValue().get(key);
             long current = val == null ? 0 : Long.parseLong(val);
             if (current == 0) {
@@ -186,7 +197,10 @@ public class OfficialAwardsDao {
         } catch (Exception e) {
             log.error("reduce total pool error", e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
+
         }
         return null;
     }

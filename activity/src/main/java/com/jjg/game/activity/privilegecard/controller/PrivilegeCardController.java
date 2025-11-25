@@ -122,8 +122,13 @@ public class PrivilegeCardController extends BaseActivityController implements G
             String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
 
             // 加锁，防止并发修改
-            redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            boolean lock = false;
             try {
+                lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+                if(!lock){
+                    res.code = Code.FAIL;
+                    return res;
+                }
                 Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
                 // 获取玩家特权卡数据，若不存在则创建
                 privilegeCard = playerActivityData.computeIfAbsent(detailId, key -> new PlayerPrivilegeCard(activityData.getId(), activityData.getRound()));
@@ -158,7 +163,9 @@ public class PrivilegeCardController extends BaseActivityController implements G
             } catch (Exception e) {
                 log.error("玩家加入特权卡活动异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
             } finally {
-                redisLock.unlock(lockKey);
+                if(lock){
+                    redisLock.tryUnlock(lockKey);
+                }
             }
 
             // 发送日志
@@ -198,8 +205,13 @@ public class PrivilegeCardController extends BaseActivityController implements G
         PlayerPrivilegeCard data = null;
         CommonResult<ItemOperationResult> addedItems = null;
         // 加锁，保证领取操作原子性
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            if(!lock){
+                res.code = Code.FAIL;
+                return res;
+            }
             Map<Integer, PlayerPrivilegeCard> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
             if (CollectionUtil.isEmpty(dataMap)) {
                 res.code = Code.PARAM_ERROR;
@@ -233,7 +245,9 @@ public class PrivilegeCardController extends BaseActivityController implements G
         } catch (Exception e) {
             log.error("领取每日奖励异常 playerId:{} activityId:{} detailid:{}", playerId, activityData.getId(), detailId, e);
         } finally {
-            redisLock.unlock(lockKey);
+            if(lock){
+                redisLock.tryUnlock(lockKey);
+            }
         }
 
         // 构建响应数据

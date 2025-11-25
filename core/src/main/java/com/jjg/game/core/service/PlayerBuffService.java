@@ -53,8 +53,12 @@ public class PlayerBuffService {
         String key = getLockKey(playerId);
 
         int expire = TimeHelper.nowInt() + expireTime;
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return result;
+            }
             PlayerBuff playerBuff = get(playerId);
             if (playerBuff == null) {
                 playerBuff = new PlayerBuff();
@@ -77,7 +81,9 @@ public class PlayerBuffService {
         } catch (Exception e) {
             log.warn("创建或保存玩家buff对象异常 playerId={}", playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return result;
     }
@@ -92,8 +98,12 @@ public class PlayerBuffService {
         String key = getLockKey(playerId);
 
         int now = TimeHelper.nowInt();
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return null;
+            }
             PlayerBuff playerBuff = operations.get(tableName, playerId);
             if (playerBuff == null) {
                 return playerBuff;
@@ -117,7 +127,9 @@ public class PlayerBuffService {
         } catch (Exception e) {
             log.warn("获取玩家buff对象异常 playerId={}", playerId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return null;
     }

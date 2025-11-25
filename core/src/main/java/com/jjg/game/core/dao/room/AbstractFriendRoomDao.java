@@ -98,8 +98,13 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
     @Override
     public Long removeRoom(int gameType, long roomId, int wareId) {
         String key = getLockName(gameType, roomId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+
+        boolean lock = false;
         try {
+            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+            if(!lock){
+                return null;
+            }
             T room = getRoom(gameType, roomId);
             if (room != null) {
                 String tableName = getPlayerFriendRoomTableName(room.getCreator());
@@ -110,7 +115,9 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
         } catch (Exception e) {
             log.warn("清除房间出现异常,gameType = {},roomId = {}", gameType, roomId, e);
         } finally {
-            redisLock.unlock(key);
+            if(lock){
+                redisLock.tryUnlock(key);
+            }
         }
         return null;
     }
