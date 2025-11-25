@@ -16,7 +16,6 @@ import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
-import com.jjg.game.core.data.PlayerSessionToken;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
@@ -161,13 +160,11 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
     public void sessionEnter(PFSession session, long playerId) {
         try {
             session.setPlayerId(playerId);
-
             PlayerSessionInfo info = playerSessionService.getInfo(playerId);
             if (info == null) {
                 log.warn("sessionEnter时 PlayerSessionInfo 为空 playerId = {}", playerId);
                 return;
             }
-
             if (info.getGameType() < 1) {
                 log.warn("sessionEnter时 PlayerSessionInfo 中的gameType小于1 playerId = {}", playerId);
                 return;
@@ -183,8 +180,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
             info = playerSessionService.enterGameServer(player);
 
-            PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
-            logger.enterGame(player, info.getGameType(), info.getRoomCfgId(), playerSessionToken.getDevice());
+            logger.enterGame(player, info.getGameType(), info.getRoomCfgId(), player.getDeviceType());
             // 玩家房间ID不为0 且 不能是百家乐重连进入的房间
             if (player.getRoomId() > 0) {
                 // 设置workId

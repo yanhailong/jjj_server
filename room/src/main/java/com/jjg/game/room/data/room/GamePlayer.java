@@ -103,4 +103,5 @@ public class GamePlayer extends Player {
         this.setChannel(p.getChannel());
         this.setLoginType(p.getLoginType());
     }
+
 }

@@ -812,6 +812,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     @Override
     public List<ActivityItemDropInfo> dropItem(Player player, Object param) {
+        if (player == null) {
+            log.error("触发掉落时 玩家为null");
+        }
         if (param instanceof PlayerEventCategory.PlayerEffectiveFlowingEvent effectiveFlowingEvent) {
             //只支持有效流水条件检查
             PlayerEffectiveParam effectiveParam = PlayerEffectiveParam.getPlayerEffectiveParam(null, player.getId(), effectiveFlowingEvent);

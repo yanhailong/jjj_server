@@ -95,8 +95,7 @@ public class ClusterMessageDispatcher {
             }
             if (clusterMessage.getMsg().cmd == MessageConst.SessionConst.NOTIFY_SESSION_QUIT ||
                     clusterMessage.getMsg().cmd == MessageConst.SessionConst.NOTIFY_SESSION_ENTER) {
-                bindId = System.identityHashCode(sessionId);
-                log.error("sendEnter or Exit sessionId:{} msgId:{} ", sessionId, clusterMessage.getMsg().cmd);
+                bindId = sessionId == null ? 0 : Math.abs(sessionId.hashCode());
             }
             final PFMessage finalMsg = msg;
             final PFSession finalPFSession = session;
@@ -226,4 +225,5 @@ public class ClusterMessageDispatcher {
             messageController.methodAccess.invoke(bean, methodInfo.index);
         }
     }
+
 }

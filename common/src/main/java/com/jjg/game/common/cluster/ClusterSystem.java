@@ -119,7 +119,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
         String sessionStr = playerIdSessionMap.get(playerId);
         if (StringUtils.isNotEmpty(sessionStr)) {
             PFSession session = sessionMap.get(sessionStr);
-            if (session.getConnect() != null && session.getConnect().isActive()) {
+            if (session != null && session.getConnect() != null && session.getConnect().isActive()) {
                 session.send(notify);
             }
         }
@@ -688,7 +688,6 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
 //        return currentTimeMillis - activeTime > SESSION_TIME_OUT_MINUTES * TimeHelper.ONE_MINUTE_OF_MILLIS;
         return false;
     }
-
 
 
     /**

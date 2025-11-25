@@ -7,7 +7,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 每个小游戏的游戏配置,房间游戏数据 Value Object 值对象，
@@ -24,6 +26,8 @@ public class GameDataVo<RC extends RoomCfg> {
     private long roomId;
     // 玩家数据合集 playerId <=> 玩家数据
     protected Map<Long, GamePlayer> gamePlayerMap = new HashMap<>();
+    // 变化的玩家数据集合 playerId -> 玩家数据
+    protected final Set<Long> hasChangeGamePlayerIds = new HashSet<>();
     // 游戏开始时间
     private long startTime;
     // 游戏结束时间
@@ -65,6 +69,10 @@ public class GameDataVo<RC extends RoomCfg> {
 
     public Map<Long, GamePlayer> getGamePlayerMap() {
         return gamePlayerMap;
+    }
+
+    public Set<Long> getHasChangeGamePlayerIds() {
+        return hasChangeGamePlayerIds;
     }
 
     /**

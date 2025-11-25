@@ -252,9 +252,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
         gameDataVo.getGamePlayerMap().remove(playerController.playerId());
         // 玩家退出时直接回存玩家数据，需要放在游戏离开逻辑最后
         if (gamePlayer != null) {
-            directlySavePlayerData(gamePlayer);
-        } else {
-            log.error("gamePlayerMap is null! playerId:{}", playerController.playerId());
+            directlySavePlayerData(gamePlayer, true);
         }
         return new CommonResult<>(Code.SUCCESS);
     }
