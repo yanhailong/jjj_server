@@ -143,7 +143,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 return;
             }
 
-            ChannelType channelType = ChannelType.valueOf(playerSessionToken.getChannel());
+            ChannelType channelType = ChannelType.valueOf(playerSessionToken.getChannel(),ChannelType.GOOGLE);
             LoginType loginType = LoginType.valueOf(playerSessionToken.getLoginType());
 
             //标记是否为注册的账号

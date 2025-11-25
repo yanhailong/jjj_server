@@ -1,5 +1,6 @@
 package com.jjg.game.core.dao;
 
+import com.jjg.game.core.data.ChannelType;
 import com.jjg.game.core.data.OnlinePlayer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -52,10 +53,16 @@ public class OnlinePlayerDao extends MongoBaseDao<OnlinePlayer, Long> {
             page = 0;
         }
 
-        Query query = new Query(Criteria.where("channel").is(channel).and("gameType").is(gameType))
-                .skip(page * pageSize)
-                .limit(pageSize);
+        Query query = new Query();
 
+        ChannelType channelType = ChannelType.valueOf(channel,null);
+        if(channelType != null){
+            query.addCriteria(Criteria.where("channel").is(channelType.getValue()).and("gameType").is(gameType));
+        }else {
+            query.addCriteria(Criteria.where("gameType").is(gameType));
+        }
+
+        query.skip((long) page * pageSize).limit(pageSize);
         return mongoTemplate.find(query, OnlinePlayer.class);
     }
 

@@ -101,7 +101,7 @@ public class AccountService {
                 account.setPlayerId(playerId);
                 account.setRegisterMac(loginDto.getMac());
                 account.setLastLoginMac(loginDto.getMac());
-                account.setChannel(ChannelType.valueOf(loginDto.getChannel()));
+                account.setChannel(ChannelType.valueOf(loginDto.getChannel(),ChannelType.GOOGLE));
 
                 account = accountDao.setChannelValue(loginType, channelUserInfo, account);
                 account.setCreateTime((int) (now / 1000));

@@ -422,10 +422,7 @@ public class AccountController extends AbstractController {
         }
 
         //默认google渠道
-        ChannelType channelType = ChannelType.valueOf(dto.getChannel());
-        if (channelType == null) {
-            channelType = ChannelType.GOOGLE;
-        }
+        ChannelType channelType = ChannelType.valueOf(dto.getChannel(),ChannelType.GOOGLE);
 
         //保存token，方便weboskcet连接时进行校验
         playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), channelType.getValue(), ip, deviceType.getValue(), dto.getMac(),account.getChannel().getValue());
@@ -480,10 +477,7 @@ public class AccountController extends AbstractController {
         }
 
         //对比渠道类型
-        ChannelType channelType = ChannelType.valueOf(dto.getChannel());
-        if (channelType == null) {
-            channelType = ChannelType.GOOGLE;
-        }
+        ChannelType channelType = ChannelType.valueOf(dto.getChannel(),ChannelType.GOOGLE);
         if (channelType.getValue() != playerSessionToken.getChannel()) {
             playerSessionToken.setChannel(channelType.getValue());
             change = true;
