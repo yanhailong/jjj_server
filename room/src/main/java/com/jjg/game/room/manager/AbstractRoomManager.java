@@ -7,7 +7,6 @@ import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.proto.Pair;
@@ -229,20 +228,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         if (randomRoom == null) {
             return null;
         }
-        if (randomRoom.getRoomPlayers() != null && !randomRoom.getRoomPlayers().isEmpty()) {
-            // 加载时需要移除所有房间中的机器人
-            roomDao.doSave(gameType, randomRoom.getId(), new DataSaveCallback<>() {
-                @Override
-                public void updateData(Room dataEntity) {
-                }
-
-                @Override
-                public boolean updateDataWithRes(Room dataEntity) {
-                    dataEntity.removeAllRobotPlayer();
-                    return true;
-                }
-            });
-        }
         return initWithRoom(gameType, roomCfgId, maxLimit, roomType, randomRoom);
     }
 
@@ -274,18 +259,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         if (existedRoom.getRoomPlayers() != null && !existedRoom.getRoomPlayers().isEmpty()) {
             log.error("初始化新房间中,有玩家：{}",
                     existedRoom.getRoomPlayers().keySet().stream().map(String::valueOf).collect(Collectors.joining(",")));
-            // 加载时需要移除所有房间中的机器人
-            roomDao.doSave(gameType, existedRoom.getId(), new DataSaveCallback<>() {
-                @Override
-                public void updateData(Room dataEntity) {
-                }
-
-                @Override
-                public boolean updateDataWithRes(Room dataEntity) {
-                    dataEntity.removeAllRobotPlayer();
-                    return true;
-                }
-            });
         }
         return initWithRoom(gameType, roomCfgId, maxLimit, roomType, existedRoom);
     }
@@ -363,12 +336,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                             playerController.playerId());
                     return Code.FAIL;
                 }
-
                 //如果该房间所在节点不是本节点，就要切换节点
                 if (!room.getPath().equals(this.nodeManager.getNodePath())) {
-                    int code = switchRoomNodeOnJoin(room, playerController, roomDao);
                     log.info("玩家加入房间时，切换到其他房间节点。");
-                    return code;
+                    return Code.NOT_FOUND;
                 }
                 RC roomCfg = getRoomActualCfg(roomCfgId);
                 if (roomCfg == null) {
@@ -412,31 +383,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             log.error("玩家：{} 房间类型：{} 房间ID: {} 加入发生异常", playerController.playerId(), gameType, roomId, e);
         }
         return Code.FAIL;
-    }
-
-    private <R extends Room> int switchRoomNodeOnJoin(
-            R room, PlayerController playerController, AbstractRoomDao<R, ?> roomDao) {
-        MarsNode node = clusterSystem.getNode(room.getPath());
-        if (node == null) {
-            log.warn("房间节点为空，开始切换节点 gameType = {},roomId = {},playerId = {},toRoomPath = {}",
-                    room.getGameType(), room.getId(), playerController.playerId(), room.getPath());
-            return Code.FAIL;
-        }
-        // 需要更新房间中节点路径数据
-        roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<R>() {
-            @Override
-            public void updateData(R dataEntity) {
-
-            }
-
-            @Override
-            public boolean updateDataWithRes(Room dataEntity) {
-                dataEntity.setPath(node.getNodePath());
-                return true;
-            }
-        });
-        clusterSystem.switchNode(playerController.getSession(), node);
-        return Code.SUCCESS;
     }
 
     /**
@@ -690,6 +636,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
             @Override
             public boolean updateDataWithRes(FriendRoom dataEntity) {
+                dataEntity.removeAllRobotPlayer();
                 // 全量回存房间数据
                 BeanUtils.copyProperties(room, dataEntity);
                 // 需要将房间路径设置为空，避免出现进入维护的节点

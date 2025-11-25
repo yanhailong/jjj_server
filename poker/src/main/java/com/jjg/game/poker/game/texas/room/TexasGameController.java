@@ -833,7 +833,9 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     public void updatePlayerLatestOperateTime(long playerId) {
         try {
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-            gamePlayer.getPokerPlayerGameData().setPlayerLatestOperateTime(System.currentTimeMillis());
+            if (gamePlayer != null) {
+                gamePlayer.getPokerPlayerGameData().setPlayerLatestOperateTime(System.currentTimeMillis());
+            }
         } catch (Exception e) {
             log.error("更新玩家上次操作时间失败 playerId;{}", playerId, e);
         }
@@ -864,7 +866,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     private void checkPlayerNoOperateAlert() {
         long currentTime = System.currentTimeMillis();
         // 获取座位信息
-        TreeMap<Integer, SeatInfo> seatInfoTreeMap = gameDataVo.getSeatInfo();
+        TreeMap<Integer, SeatInfo> seatInfoTreeMap = new TreeMap<>(gameDataVo.getSeatInfo());
         if (seatInfoTreeMap.isEmpty()) {
             return;
         }

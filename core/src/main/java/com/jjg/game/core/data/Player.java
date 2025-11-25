@@ -317,4 +317,39 @@ public class Player {
     public int hashCode() {
         return Objects.hashCode(id);
     }
+
+    public void copy(Player newPlayer) {
+        if (newPlayer == null) {
+            return;
+        }
+        newPlayer.setId(this.getId());
+        newPlayer.setNickName(this.getNickName());
+        newPlayer.setGender(this.getGender());
+        newPlayer.setHeadImgId(this.getHeadImgId());
+        newPlayer.setHeadFrameId(this.getHeadFrameId());
+        newPlayer.setNationalId(this.getNationalId());
+        newPlayer.setTitleId(this.getTitleId());
+        newPlayer.setChipsId(this.getChipsId());
+        newPlayer.setBackgroundId(this.getBackgroundId());
+        newPlayer.setCardBackgroundId(this.getCardBackgroundId());
+        newPlayer.setRoomId(this.getRoomId());
+        newPlayer.setGameType(this.getGameType());
+        newPlayer.setRoomCfgId(this.getRoomCfgId());
+        newPlayer.setGold(this.getGold());
+        newPlayer.setDiamond(this.getDiamond());
+        newPlayer.setSafeBoxGold(this.getSafeBoxGold());
+        newPlayer.setSafeBoxDiamond(this.getSafeBoxDiamond());
+        newPlayer.setLevel(this.getLevel());
+        newPlayer.setExp(this.getExp());
+        newPlayer.setVipLevel(this.getVipLevel());
+        newPlayer.setVipExp(this.getVipExp());
+        newPlayer.setStatement(this.getStatement());
+        newPlayer.setIp(this.getIp());
+        newPlayer.setDeviceType(this.getDeviceType());
+        newPlayer.setCreateTime(this.getCreateTime());
+        newPlayer.setUpdateTime(this.getUpdateTime());
+        newPlayer.setFriendRoomInvitationCode(this.getFriendRoomInvitationCode());
+        newPlayer.setChannel(this.getChannel());
+        newPlayer.setLoginType(this.getLoginType());
+    }
 }

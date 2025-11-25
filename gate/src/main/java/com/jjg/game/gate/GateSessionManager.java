@@ -26,7 +26,6 @@ public class GateSessionManager implements TimerListener<String> {
     public NodeConfig nodeConfig;
 
     private TimerEvent<String> closeEvent;
-    private TimerEvent<String> userNumEvent;
 
     @Override
     public void onTimer(TimerEvent<String> e) {

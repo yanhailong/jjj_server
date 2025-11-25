@@ -1,7 +1,6 @@
 package com.jjg.game.room.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.concurrent.PlayerWorker;
@@ -42,10 +41,11 @@ import org.apache.kafka.common.utils.PrimitiveRef;
 import org.apache.kafka.common.utils.PrimitiveRef.LongRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -197,14 +197,11 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
     @Override
     public <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
-        GamePlayer gamePlayer = gameDataVo.getGamePlayerMap().get(playerController.playerId());
         // 从玩家列表中移除玩家数据，子类的gameDataVo有和玩家相关的临时数据需要自行删除
-        gameDataVo.getGamePlayerMap().remove(playerController.playerId());
+        GamePlayer gamePlayer = gameDataVo.getGamePlayerMap().remove(playerController.playerId());
         // 玩家退出时直接回存玩家数据，需要放在游戏离开逻辑最后
         if (gamePlayer != null) {
-            directlySavePlayerData(gamePlayer);
-        } else {
-            log.error("gamePlayer is null playerId:{}", playerController.playerId());
+            directlySavePlayerData(gamePlayer, true);
         }
         return new CommonResult<>(Code.SUCCESS);
     }
@@ -214,41 +211,49 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      */
     private void checkAndSavePlayerData() {
         // TODO 还需要优化回存检查
-        // 真人玩家进行数据回存
-        gameDataVo.getGamePlayerMapExceptRobot().values().forEach(gamePlayer -> {
+        Map<Long, GamePlayer> gamePlayerMap = gameDataVo.getGamePlayerMap();
+        Set<Long> ids = new HashSet<>(gameDataVo.getHasChangeGamePlayerIds());
+        gameDataVo.getHasChangeGamePlayerIds().clear();
+        for (Long gamePlayerId : ids) {
+            GamePlayer gamePlayer = gamePlayerMap.get(gamePlayerId);
+            if (gamePlayer == null || gamePlayer instanceof GameRobotPlayer) {
+                continue;
+            }
+            // 真人玩家进行数据回存
             int randomTime = RandomUtils.randomMinMax(RoomConstant.PLAYER_SAVE_DB_TIME_MIN, RoomConstant.PLAYER_SAVE_DB_TIME_MAX);
             // 每个玩家添加随机回存time事件
-            addGameTimeEvent(new TimerEvent<>(this, randomTime, () -> this.directlySavePlayerData(gamePlayer)), RoomEventType.ROOM_SAVE_PLAYER_DATA);
-        });
+            addGameTimeEvent(new TimerEvent<>(this, randomTime, () -> this.directlySavePlayerData(gamePlayer,false)), RoomEventType.ROOM_SAVE_PLAYER_DATA);
+        }
     }
 
     /**
      * 直接回存玩家数据
      */
-    protected void directlySavePlayerData(GamePlayer oldGamePlayer) {
-        if (oldGamePlayer instanceof GameRobotPlayer) {
+    protected void directlySavePlayerData(GamePlayer gamePlayer, boolean isExit) {
+        if (gamePlayer == null || gamePlayer instanceof GameRobotPlayer) {
             return;
         }
-        GamePlayer gamePlayer = getGamePlayer(oldGamePlayer.getId());
-        if (gamePlayer == null) {
-            return;
+        if (!isExit) {
+            gamePlayer = getGamePlayer(gamePlayer.getId());
+            if (gamePlayer == null) {
+                return;
+            }
         }
-        Player player = roomController.getRoomManager().getPlayerService().get(gamePlayer.getId());
-        long playerUpdateTime = player.getUpdateTime();
-        // 如果游戏端的更新时间和数据库中的不一致，说明玩家数据在游戏外部进行了修改，需要判断使用哪一边的数据，暂时先打日志
-        if (gamePlayer.getUpdateTime() != playerUpdateTime) {
-            log.error("玩家游戏数据: {} 更新时间：{} 和数据库中数据的更新时间: {} 不一致, {}", gamePlayer.getId(), gamePlayer.getUpdateTime(), playerUpdateTime, gameDataVo.roomLogInfo());
-        } else {
-            player = JSON.parseObject(JSON.toJSONString(gamePlayer), Player.class);
-            Player finalPlayer = player;
-            Player updatedPlayer = roomController.getRoomManager().getPlayerService().doSave(player.getId(), (latestPlayer) -> {
-                // TODO 后续换一种效率更高的复制方法
-                //进行值复制
-                BeanUtils.copyProperties(finalPlayer, latestPlayer);
-            });
-            gamePlayer.setUpdateTime(updatedPlayer.getUpdateTime());
-            log.info("回存玩家: {} 游戏数据成功", finalPlayer.getId());
-        }
+        final Player finalPlayer = gamePlayer;
+        String roomedLogInfo = gameDataVo.roomLogInfo();
+        Player updatedPlayer = roomController.getRoomManager().getPlayerService().doSave(finalPlayer.getId(), (latestPlayer) -> {
+            // 如果游戏端的更新时间和数据库中的不一致，说明玩家数据在游戏外部进行了修改，需要判断使用哪一边的数据，暂时先打日志
+            if (finalPlayer.getUpdateTime() != latestPlayer.getUpdateTime()) {
+                log.error("玩家游戏数据: {} 更新时间：{} 和数据库中数据的更新时间: {} 不一致, {}", finalPlayer.getId(), finalPlayer.getUpdateTime(), latestPlayer.getUpdateTime(), roomedLogInfo);
+                //金币和钻石取少的,其他的用redis的
+                latestPlayer.setDiamond(Math.min(latestPlayer.getDiamond(), finalPlayer.getDiamond()));
+                latestPlayer.setGold(Math.min(latestPlayer.getGold(), finalPlayer.getGold()));
+                return;
+            }
+            finalPlayer.copy(latestPlayer);
+        });
+        gamePlayer.setUpdateTime(updatedPlayer.getUpdateTime());
+        log.info("回存玩家: {} 游戏数据成功", finalPlayer.getId());
     }
 
     @Override
@@ -518,6 +523,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         if (result.data == null) {
             return Code.NOT_ENOUGH;
         }
+        //放入已经改变的gamePlayer列表
+        gameDataVo.getHasChangeGamePlayerIds().add(gamePlayer.getId());
         return result.code;
     }
 
@@ -553,6 +560,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         if (result.data == null) {
             return Code.NOT_ENOUGH;
         }
+        //放入已经改变的gamePlayer列表
+        gameDataVo.getHasChangeGamePlayerIds().add(gamePlayer.getId());
         return result.code;
     }
 
@@ -697,7 +706,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         }
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
-        Player gamePlayer = gameDataVo.getGamePlayer(playerId);
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
         CommonResult<Player> result;
         if (gamePlayer != null) {
             if (!(gamePlayer instanceof GameRobotPlayer)) {
@@ -717,6 +726,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             if (result.data == null) {
                 return Code.FAIL;
             }
+            //放入已经改变的gamePlayer列表
+            gameDataVo.getHasChangeGamePlayerIds().add(gamePlayer.getId());
         } else {
             log.error("异常操作，添加金币时玩家不存在");
             throw new RuntimeException("异常操作，添加金币时玩家不存在");
@@ -737,7 +748,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     private int addDiamond(long playerId, long num, AddType addType, String desc, boolean isNotify) {
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
-        Player gamePlayer = gameDataVo.getGamePlayer(playerId);
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (gamePlayer != null) {
             if (!(gamePlayer instanceof GameRobotPlayer)) {
@@ -757,6 +768,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             if (result.data == null) {
                 return Code.FAIL;
             }
+            //放入已经改变的gamePlayer列表
+            gameDataVo.getHasChangeGamePlayerIds().add(gamePlayer.getId());
         } else {
             log.error("异常操作，room: {} 不能添加非游戏好友: {} 的钻石：{} {}", gameDataVo.roomLogInfo(), playerId, num, ExceptionUtils.currentThreadTraces());
         }
