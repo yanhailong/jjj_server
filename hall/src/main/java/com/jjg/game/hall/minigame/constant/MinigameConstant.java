@@ -18,16 +18,6 @@ public interface MinigameConstant {
     }
 
     /**
-     * 缓存key
-     */
-    interface RedisKey {
-        /**
-         * 小游戏配置
-         */
-        String MINIGAME_CONFIG = "minigame:config";
-    }
-
-    /**
      * redis锁
      */
     interface RedisLock {

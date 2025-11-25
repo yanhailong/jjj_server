@@ -65,8 +65,6 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
      */
     private TimerEvent<LuckyTreasureService> updateTimer;
 
-    private TimerEvent<LuckyTreasureService> tickTimer;
-
     public LuckyTreasureService(LuckyTreasureDao luckyTreasureDao,
                                 LuckyTreasureRedisDao luckyTreasureRedisDao,
                                 RedisLock redisLock,
@@ -81,13 +79,6 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         this.timerCenter = timerCenter;
         this.subscriptionManager = subscriptionManager;
         this.clusterSystem = clusterSystem;
-    }
-
-    /**
-     * 初始化
-     */
-    public void init() {
-        tickTimer = new TimerEvent<>(this, null, 1000);
     }
 
     /**
