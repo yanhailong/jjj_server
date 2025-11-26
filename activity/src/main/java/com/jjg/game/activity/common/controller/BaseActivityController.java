@@ -396,8 +396,9 @@ public abstract class BaseActivityController {
         // 加锁，保证领取操作原子性
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{}", lockKey, playerId, activityId, detailId);
                 return null;
             }
             Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
@@ -425,7 +426,7 @@ public abstract class BaseActivityController {
         } catch (Exception e) {
             log.error("活动领取异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }

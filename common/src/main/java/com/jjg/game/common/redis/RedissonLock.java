@@ -31,7 +31,7 @@ public @interface RedissonLock {
     /**
      * 等待时间,tryLock等待的最大时长
      */
-    long waitTime() default 100;
+    long waitTime() default 500;
 
     /**
      * 时间单位

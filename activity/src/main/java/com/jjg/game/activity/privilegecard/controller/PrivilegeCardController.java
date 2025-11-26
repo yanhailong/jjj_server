@@ -124,9 +124,9 @@ public class PrivilegeCardController extends BaseActivityController implements G
             // 加锁，防止并发修改
             boolean lock = false;
             try {
-                lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-                if(!lock){
-                    res.code = Code.FAIL;
+                lock = redisLock.tryLockWithDefaultTime(lockKey);
+                if (!lock) {
+                    log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} times:{}", lockKey, playerId, activityData.getId(), detailId, times);
                     return res;
                 }
                 Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
@@ -163,7 +163,7 @@ public class PrivilegeCardController extends BaseActivityController implements G
             } catch (Exception e) {
                 log.error("玩家加入特权卡活动异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
             } finally {
-                if(lock){
+                if (lock) {
                     redisLock.tryUnlock(lockKey);
                 }
             }
@@ -207,9 +207,10 @@ public class PrivilegeCardController extends BaseActivityController implements G
         // 加锁，保证领取操作原子性
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
                 res.code = Code.FAIL;
+                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} ", lockKey, playerId, activityData.getId(), detailId);
                 return res;
             }
             Map<Integer, PlayerPrivilegeCard> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
@@ -245,7 +246,7 @@ public class PrivilegeCardController extends BaseActivityController implements G
         } catch (Exception e) {
             log.error("领取每日奖励异常 playerId:{} activityId:{} detailid:{}", playerId, activityData.getId(), detailId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }

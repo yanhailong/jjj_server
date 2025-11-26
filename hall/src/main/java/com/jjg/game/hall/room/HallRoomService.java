@@ -124,7 +124,7 @@ public class HallRoomService implements IConsoleReceiver {
         }
         // 获取一个等待房间，如果有空闲的话
         int maxPlayer = SampleDataUtils.getRoomMaxLimit(warehouseCfg).getT2();
-        long waitingRoomId = matchService.getWaitingRoomId(playerController, gameType, roomCfgId, maxPlayer, marsNode.getNodePath());
+        long waitingRoomId = matchService.getWaitingRoomId(gameType, roomCfgId, maxPlayer, marsNode.getNodePath());
         // 如果对应的游戏类型没有房间的话则创建一个新的房间
         if (waitingRoomId == 0) {
             log.error("加入房间时 获取房间为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);

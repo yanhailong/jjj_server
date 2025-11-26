@@ -106,8 +106,9 @@ public class OfficialAwardsDao {
         String lockKey = "lock:" + redisKey;
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} reduceValue:{} ", lockKey, reduceValue);
                 return -1;
             }
             String progress = redisTemplate.opsForValue().get(redisKey);
@@ -121,7 +122,7 @@ public class OfficialAwardsDao {
         } catch (Exception e) {
             log.error("reduce player progress", e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
 
@@ -181,8 +182,9 @@ public class OfficialAwardsDao {
         String lockKey = "lock:" + key;
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} activityId:{} reduceValue:{} ", lockKey, activityId, reduceValue);
                 return null;
             }
             String val = redisTemplate.opsForValue().get(key);
@@ -197,7 +199,7 @@ public class OfficialAwardsDao {
         } catch (Exception e) {
             log.error("reduce total pool error", e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
 

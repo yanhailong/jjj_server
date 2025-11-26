@@ -59,6 +59,18 @@ public class RedisLock {
     }
 
     /**
+     * 尝试获取锁，默认等待500MS
+     *
+     * @param key      锁名
+     * @return 是否成功
+     * @throws InterruptedException e
+     */
+    public boolean tryLockWithDefaultTime(String key) throws InterruptedException {
+        RLock redissonLock = redissonClient.getLock(getKey(key));
+        return redissonLock.tryLock(500, TimeUnit.MILLISECONDS);
+    }
+
+    /**
      * 尝试获取锁，适用于尝试性任务，不获取锁也能继续
      *
      * @param key      锁名

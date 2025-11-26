@@ -89,8 +89,9 @@ public class GrowthFundController extends BaseActivityController implements Game
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} times:{}", lockKey, playerId, activityId, detailId, times);
                 return null;
             }
             playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
@@ -121,7 +122,7 @@ public class GrowthFundController extends BaseActivityController implements Game
         } catch (Exception e) {
             log.error("成长基金购买增加进度异常 playerId:{} activityId:{}", playerId, activityId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }
@@ -185,8 +186,9 @@ public class GrowthFundController extends BaseActivityController implements Game
             String lockKey = playerActivityDao.getLockKey(playerId, activityId);
             boolean lock = false;
             try {
-                lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-                if(!lock){
+                lock = redisLock.tryLockWithDefaultTime(lockKey);
+                if (!lock) {
+                    log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} progress:{} ", lockKey, playerId, activityId, progress);
                     return false;
                 }
                 playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
@@ -211,7 +213,7 @@ public class GrowthFundController extends BaseActivityController implements Game
             } catch (Exception e) {
                 log.error("成长基金增加进度异常 playerId:{} activityId:{}", player, activityId, e);
             } finally {
-                if(lock){
+                if (lock) {
                     redisLock.tryUnlock(lockKey);
                 }
             }
@@ -245,9 +247,11 @@ public class GrowthFundController extends BaseActivityController implements Game
         // 加锁，保证领取操作原子性
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
-                return null;
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
+                res.code = Code.UNKNOWN_ERROR;
+                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{}  detailId:{}", lockKey, playerId, activityId, detailId);
+                return res;
             }
             dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
             if (CollectionUtil.isEmpty(dataMap)) {
@@ -283,7 +287,7 @@ public class GrowthFundController extends BaseActivityController implements Game
         } catch (Exception e) {
             log.error("领取成长基金奖励异常 playerId:{} activityId:{} detailid:{}", playerId, activityData.getId(), detailId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }

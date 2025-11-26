@@ -2,7 +2,6 @@ package com.jjg.game.hall.service;
 
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
@@ -59,8 +58,9 @@ public class HallPlayerService extends AbstractPlayerService {
         String key = getLockKey(playerId);
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
+                log.debug("获取锁失败 lockKey:{} playerId:{}", key, playerId);
                 return result;
             }
             Player player = getFromAllDB(playerId);
@@ -80,7 +80,7 @@ public class HallPlayerService extends AbstractPlayerService {
         } catch (Exception e) {
             log.warn("创建或保存对象异常 playerId={}", playerId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(key);
             }
 
@@ -104,7 +104,7 @@ public class HallPlayerService extends AbstractPlayerService {
     /**
      * 清除过期的player数据
      */
-    public void clean(){
+    public void clean() {
         log.info("开始清除过期player数据");
 
         long now = System.currentTimeMillis();

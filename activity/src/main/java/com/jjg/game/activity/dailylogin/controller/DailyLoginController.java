@@ -78,8 +78,9 @@ public class DailyLoginController extends BaseActivityController {
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} progress:{}", lockKey, playerId, activityId, progress);
                 return false;
             }
             Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
@@ -100,7 +101,7 @@ public class DailyLoginController extends BaseActivityController {
         } catch (Exception e) {
             log.error("每日签到增加进度异常 playerId:{} activityId:{}", player, activityId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }
@@ -133,9 +134,10 @@ public class DailyLoginController extends BaseActivityController {
         // 加锁，保证领取操作原子性
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
                 res.code = Code.FAIL;
+                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{}", lockKey, playerId, activityId, detailId);
                 return res;
             }
             Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
@@ -178,7 +180,7 @@ public class DailyLoginController extends BaseActivityController {
         } catch (Exception e) {
             log.error("活动领取异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }

@@ -120,8 +120,8 @@ public class PlayerPackService implements IPlayerRegister {
                 result.code = goldAndDiamond.code;
                 return result;
             }
-            result.data.goldChange(addGold,goldAndDiamond.data.getGold());
-            result.data.diamondChange(addDiamond,goldAndDiamond.data.getDiamond());
+            result.data.goldChange(addGold, goldAndDiamond.data.getGold());
+            result.data.diamondChange(addDiamond, goldAndDiamond.data.getDiamond());
         }
 
         if (itemList.isEmpty()) {
@@ -133,9 +133,10 @@ public class PlayerPackService implements IPlayerRegister {
         // TODO 当前的加锁位置会有数据覆盖问题
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
                 result.code = Code.FAIL;
+                log.debug("获取锁失败 lockKey:{} playerId = {} ", key, playerId);
                 return result;
             }
             playerPack = getFromAllDB(playerId);
@@ -172,7 +173,7 @@ public class PlayerPackService implements IPlayerRegister {
         } catch (Exception e) {
             log.error("添加多个道具，保存 playerPack 失败 playerId={}", playerId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(key);
             }
         }
@@ -188,7 +189,7 @@ public class PlayerPackService implements IPlayerRegister {
             Map<Integer, Long> addTempItemMap =
                     itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getItemCount()),
                             HashMap::putAll);
-            coreLogger.addItems(playerId, result.data.getChangeBeforeItemNum(), addTempItemMap,result.data.getChangeEndItemNum(), addType, desc);
+            coreLogger.addItems(playerId, result.data.getChangeBeforeItemNum(), addTempItemMap, result.data.getChangeEndItemNum(), addType, desc);
         }
         return result;
     }
@@ -254,9 +255,10 @@ public class PlayerPackService implements IPlayerRegister {
         String key = getLockKey(playerId);
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
                 result.code = Code.FAIL;
+                log.debug("获取锁失败 lockKey:{} playerId = {} ", key, playerId);
                 return result;
             }
             List<Item> packItemList = new ArrayList<>();
@@ -337,8 +339,8 @@ public class PlayerPackService implements IPlayerRegister {
                     result.code = removeResult.code;
                     return result;
                 }
-                result.data.goldChange(-deductGoldV,removeResult.data.getGold());
-                result.data.diamondChange(-deductDiamondV,removeResult.data.getDiamond());
+                result.data.goldChange(-deductGoldV, removeResult.data.getGold());
+                result.data.diamondChange(-deductDiamondV, removeResult.data.getDiamond());
 
                 long finalDeductGoldV = deductGoldV;
                 long finalDeductDiamondV = deductDiamondV;
@@ -378,7 +380,7 @@ public class PlayerPackService implements IPlayerRegister {
         } catch (Exception e) {
             log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(key);
             }
         }
@@ -499,8 +501,9 @@ public class PlayerPackService implements IPlayerRegister {
         String key = getLockKey(playerId);
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
+                log.debug("获取锁失败 lockKey:{} playerId = {} ", key, playerId);
                 return null;
             }
             PlayerPack playerPack = redisGet(playerId);
@@ -518,7 +521,7 @@ public class PlayerPackService implements IPlayerRegister {
         } catch (Exception e) {
             log.error("保存 playerPack 失败 playerId={}", playerId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(key);
             }
         }
@@ -529,8 +532,9 @@ public class PlayerPackService implements IPlayerRegister {
         String key = getLockKey(playerId);
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
+                log.debug("获取锁失败 lockKey:{} playerId = {} ", key, playerId);
                 return null;
             }
             PlayerPack playerPack = redisGet(playerId);
@@ -545,7 +549,7 @@ public class PlayerPackService implements IPlayerRegister {
         } catch (Exception e) {
             log.warn("保存 playerPack 失败 playerId={}", playerId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(key);
             }
         }

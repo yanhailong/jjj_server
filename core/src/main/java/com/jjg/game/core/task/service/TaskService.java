@@ -14,10 +14,7 @@ import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
-import com.jjg.game.core.constant.AddType;
-import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.PointsAwardType;
-import com.jjg.game.core.constant.TaskConstant;
+import com.jjg.game.core.constant.*;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
@@ -75,11 +72,6 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
     private final PlayerPackService playerPackService;
     @ClusterRpcReference()
     private HallPointsAwardBridge hallPointsAwardBridge;
-
-    /**
-     * 锁时间。
-     */
-    private static final int LOCK_TIME = 10000;
 
     /**
      * 任务管理器 任务服务初始化后才赋值
@@ -168,7 +160,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
     public void updatePlayerTaskCache(long playerId, TaskDetail taskDetail) {
         try {
             RMap<Long, TaskData> playerTasks = getPlayerTaskMap();
-            redisLock.lockAndRun(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
+            redisLock.lockAndRun(playerTaskMapLockKey(playerId), GameConstant.Redis.TASK_TIME, () -> {
                 TaskData taskData = playerTasks.get(playerId);
                 if (taskData == null) {
                     taskData = new TaskData();
@@ -193,7 +185,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      * @param taskCfgList 需要触发的任务配置列表
      * @param param       参数
      */
-    public void trigger(long playerId, List<TaskCfg> taskCfgList, AbstractTaskCondition<DefaultTaskConditionParam> condition, DefaultTaskConditionParam param,boolean isNotify) {
+    public void trigger(long playerId, List<TaskCfg> taskCfgList, AbstractTaskCondition<DefaultTaskConditionParam> condition, DefaultTaskConditionParam param, boolean isNotify) {
         RMap<Long, TaskData> playerTasks = getPlayerTaskMap();
         TaskData taskData = playerTasks.get(playerId);
         if (taskData == null) {
@@ -205,8 +197,9 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
         String lockKey = playerTaskMapLockKey(playerId);
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, LOCK_TIME);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
+                log.debug("获取锁失败 lockKey:{} playerId = {} ", lockKey, playerId);
                 return;
             }
             TaskData tempData = playerTasks.get(playerId);
@@ -243,9 +236,9 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
             }
             playerTasks.fastPut(playerId, tempData);
         } catch (Exception e) {
-            log.error("玩家增加任务进度失败 [{}]触发条件[{}]conditionId[{}]参数[{}]", playerId, condition.getClass().getSimpleName(), condition.getId(), param == null ? "null" : param.toString(),e);
+            log.error("玩家增加任务进度失败 [{}]触发条件[{}]conditionId[{}]参数[{}]", playerId, condition.getClass().getSimpleName(), condition.getId(), param == null ? "null" : param.toString(), e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }
@@ -311,7 +304,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      * 检测玩家任务
      */
     public void checkTask(long playerId) {
-        redisLock.lockAndRun(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
+        redisLock.lockAndRun(playerTaskMapLockKey(playerId), GameConstant.Redis.TASK_TIME, () -> {
             RMap<Long, TaskData> playerTaskMap = getPlayerTaskMap();
             TaskData tmpData = playerTaskMap.get(playerId);
             boolean noticeRedDot = false;
@@ -978,7 +971,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
         }
 
         try {
-            return redisLock.lockAndGet(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
+            return redisLock.lockAndGet(playerTaskMapLockKey(playerId), GameConstant.Redis.TASK_TIME, () -> {
                 TaskData tmpData = playerTaskMap.get(playerId);
                 if (tmpData == null || tmpData.getTaskDetails() == null || tmpData.getTaskDetails().isEmpty()) {
                     log.warn("玩家[{}]领取[{}]任务奖励失败!任务不存在!", playerId, taskId);
@@ -1110,7 +1103,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
 
     public void moveToMongo(long playerId) {
         RMap<Long, TaskData> playerTasks = getPlayerTaskMap();
-        redisLock.lockAndRun(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
+        redisLock.lockAndRun(playerTaskMapLockKey(playerId), GameConstant.Redis.TASK_TIME, () -> {
             TaskData taskData = playerTasks.get(playerId);
             if (taskData == null) {
                 return;

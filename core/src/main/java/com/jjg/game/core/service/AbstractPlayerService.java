@@ -69,12 +69,11 @@ public class AbstractPlayerService {
 
     public Player checkAndSave(long playerId, DataSaveCallback<Player> cbk) {
         String key = getLockKey(playerId);
-//        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-            if(!lock){
-                log.debug("获取redis锁失败 playerId = {}",playerId);
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
+                log.debug("获取锁失败 lockKey:{} 获取redis锁失败 playerId = {}", key, playerId);
                 return null;
             }
             Player player = get(playerId);
@@ -91,7 +90,7 @@ public class AbstractPlayerService {
         } catch (Exception e) {
             log.error("保存player失败 playerId={}", playerId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(key);
             }
         }
@@ -102,8 +101,9 @@ public class AbstractPlayerService {
         String key = getLockKey(playerId);
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
+                log.debug("获取锁失败 lockKey:{}  playerId = {}", key, playerId);
                 return null;
             }
             Player player = get(playerId);
@@ -119,7 +119,7 @@ public class AbstractPlayerService {
         } catch (Exception e) {
             log.warn("保存player失败 playerId={}", playerId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(key);
             }
         }
@@ -130,8 +130,9 @@ public class AbstractPlayerService {
         String key = getLockKey(playerId);
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
+                log.debug("获取锁失败 lockKey:{} playerId = {}", key, playerId);
                 return null;
             }
             Player player = get(playerId);
@@ -146,7 +147,7 @@ public class AbstractPlayerService {
         } catch (Exception e) {
             log.warn("保存player失败 playerId={}", playerId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(key);
             }
         }
@@ -1107,7 +1108,7 @@ public class AbstractPlayerService {
         return optional.orElse(null);
     }
 
-    public Player getFromRedis(long playerId){
+    public Player getFromRedis(long playerId) {
         HashOperations<String, String, Player> operations = redisTemplate.opsForHash();
         Player player = operations.get(tableName, playerId);
         if (player != null) {
