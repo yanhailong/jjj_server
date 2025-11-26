@@ -89,7 +89,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
                 BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(1)).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
                 long addToFakeValue = BigDecimal.valueOf(value).multiply(prop).longValue();
                 long afterValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, addToFakeValue);
-                log.debug("添加到假奖池1 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {},afterValue = {}", gameType, roomCfgId, value, addToFakeValue, afterValue);
+                log.info("添加到假奖池1 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {},afterValue = {}", gameType, roomCfgId, value, addToFakeValue, afterValue);
             } else {
                 BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(2)).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
                 long addToFakeValue = BigDecimal.valueOf(value).multiply(prop).longValue();

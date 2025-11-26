@@ -1,6 +1,5 @@
 package com.jjg.game.core.manager;
 
-import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.core.base.gameevent.ClockEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEventManager;
@@ -33,15 +32,4 @@ public class TimerManager {
     public void halfDay() {
         gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 12));
     }
-
-    @Scheduled(fixedDelay = 30000, initialDelay = 15000)
-    public void report() {
-        try {
-            String msg = PlayerExecutorGroupDisruptor.getDefaultExecutor().getOverview();
-            log.debug(msg);
-        } catch (Exception e) {
-            log.error("Player worker monitor failed", e);
-        }
-    }
-
 }
