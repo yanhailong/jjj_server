@@ -70,18 +70,15 @@ public class PointsAwardLogger extends BaseLogger {
     /**
      * 转盘抽奖日志
      *
-     * @param consumePoints 消耗的积分
-     * @param getPoints     获取的积分
-     * @param afterValue    抽奖后玩家当前积分
      */
-    public void turntableLog(long playerId, int consumePoints, int getPoints, long afterValue) {
+    public void turntableLog(long playerId, int changeCount,int afterCount) {
         try {
-            Player player = hallPlayerService.get(playerId);
             JSONObject jsonObject = new JSONObject();
-            jsonObject.put("consumePoints", consumePoints);
-            jsonObject.put("getPoints", getPoints);
-            jsonObject.put("afterValue", afterValue);
-            sendLog("pointsAwardTurntable", player, jsonObject);
+            jsonObject.put("changeCount", changeCount);
+            jsonObject.put("afterCount", afterCount);
+            jsonObject.put("type","turn_count");
+            jsonObject.put("playerId",playerId);
+            sendLog("turntime", null, jsonObject);
         } catch (Exception e) {
             log.error("记录转盘日志错误!", e);
         }
@@ -102,6 +99,7 @@ public class PointsAwardLogger extends BaseLogger {
 
     /**
      * 领取阶段奖励
+     *
      * @param playerId
      * @param points
      * @param changeGold
@@ -111,12 +109,13 @@ public class PointsAwardLogger extends BaseLogger {
     public void ladderReward(long playerId, long points, long changeGold, long afterGold, boolean autoRecive) {
         try {
             JSONObject json = new JSONObject();
-            json.put("points", points);
-            json.put("changeGold", changeGold);
-            json.put("afterGold", afterGold);
+            json.put("points", points); //积分挡位
+            json.put("changeGold", changeGold);  //获得金币
+            json.put("afterGold", afterGold);  //
             json.put("autoRecive", autoRecive);
             json.put("playerId", playerId);
-            sendLog("ladderreward", null, json);
+            json.put("type","time_process");
+            sendLog("turntime", null, json);
         } catch (Exception e) {
             log.error("记录绑定日志异常", e);
         }
