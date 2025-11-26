@@ -980,7 +980,7 @@ public class AbstractPlayerService {
         }
 
         player = levelUp(player, cfg);
-        log.info("玩家押注获取经验 playerId = {},addExp = {},level = {}", player.getId(), tmpAddExp, player.getLevel());
+        log.debug("玩家押注获取经验 playerId = {},addExp = {},level = {}", player.getId(), tmpAddExp, player.getLevel());
     }
 
     /**

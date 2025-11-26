@@ -33,7 +33,7 @@ public class SlotsRoomMessageHandler {
     public void reqExitGame(PlayerController playerController, ReqExitGame req) {
         try {
             log.debug("退出游戏 playerId = {}", playerController.playerId());
-//            slotsPlayerEventListener.exitGame(playerController.getSession());
+            slotsPlayerEventListener.exitGame(playerController.getSession());
             clusterSystem.switchNode(playerController.getSession(), NodeType.HALL, playerController.ipAddress(), playerController.playerId());
             playerController.send(new ResExitGame(Code.SUCCESS));
         } catch (Exception e) {

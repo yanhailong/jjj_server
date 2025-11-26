@@ -127,7 +127,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         if (playerGameData != null) {
             onlineTimeLen = TimeHelper.nowInt() - playerGameData.getCreateTime();
         }
-
+        session.setReference(null);
         logger.exitGame(playerController.getPlayer(), onlineTimeLen, playerController.getPlayer().getDeviceType());
         log.debug("退出游戏结算 playerId = {}", playerController.playerId());
     }
