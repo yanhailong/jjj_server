@@ -108,7 +108,7 @@ public class HallRoomService implements IConsoleReceiver {
             List<Room> chooseNodeRoom = new ArrayList<>(hallRoomDao.getChooseNodeRoom(marsNode.getNodePath(), gameType, roomCfgId));
             if (chooseNodeRoom.isEmpty()) {
                 //创建一个房间
-                long waitingRoomId = createRoom(playerController, roomCfgId, warehouseCfg, gameType, marsNode);
+                long waitingRoomId = createRoom(roomCfgId, warehouseCfg, gameType, marsNode);
                 return joinRoomById(playerController, waitingRoomId, gameType);
             }
             chooseNodeRoom.sort(Comparator.comparingInt(r -> r.getRoomPlayers().size()));
@@ -117,7 +117,7 @@ public class HallRoomService implements IConsoleReceiver {
             boolean joinNum = matchDataDao.changeRoomJoinNum(gameType, roomCfgId, room.getId(), room.getMaxLimit(), 1, 1);
             if (!joinNum) {
                 //创建一个房间
-                long waitingRoomId = createRoom(playerController, roomCfgId, warehouseCfg, gameType, marsNode);
+                long waitingRoomId = createRoom(roomCfgId, warehouseCfg, gameType, marsNode);
                 return joinRoomById(playerController, waitingRoomId, gameType);
             }
             return joinRoomById(playerController, room.getId(), gameType);
@@ -144,18 +144,17 @@ public class HallRoomService implements IConsoleReceiver {
     /**
      * 创建一个房间
      *
-     * @param playerController 玩家控制器
      * @param roomCfgId        房间配置id
      * @param warehouseCfg     场次配置
      * @param gameType         游戏类型
      * @param marsNode         节点
      * @return 创建的id
      */
-    private long createRoom(PlayerController playerController, int roomCfgId, WarehouseCfg warehouseCfg, int gameType, MarsNode marsNode) {
+    private long createRoom(int roomCfgId, WarehouseCfg warehouseCfg, int gameType, MarsNode marsNode) {
         long waitingRoomId;
         Tuple2<Integer, Integer> roomMaxLimitCfg = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
         int maxLimit = roomMaxLimitCfg.getT2();
-        Room room = hallRoomDao.createRoom(playerController, gameType, roomCfgId, maxLimit, marsNode.getNodePath());
+        Room room = hallRoomDao.createRoom(gameType, roomCfgId, maxLimit, marsNode.getNodePath());
         if (maxLimit != 1) {
             // 如果房间的限制人数不止一个，则将当前房间ID挂到房间等待列表中，等待后续玩家的加入
             matchService.addWaitingRoomId(gameType, roomCfgId, room.getId(), room.getCreateTime());
