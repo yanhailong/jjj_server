@@ -1,13 +1,8 @@
 package com.jjg.game.poker.game.texas.gamephase;
 
-import com.jjg.game.activity.common.data.ActivityTargetType;
-import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.proto.Pair;
-import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
-import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.data.FriendRoom;
-import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
@@ -395,7 +390,6 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         TexasHistory texasHistory = controller.buildTexasHistory(0, texasSaveHistory);
         TexasGameDataVo gameDataVo = controller.getGameDataVo();
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
-        ActivityManager activityManager = controller.getRoomController().getRoomManager().getActivityManager();
         //构建玩家信息
         for (TexasHistoryPlayerInfo info : texasHistory.totalPlayerBetInfo) {
             Long betValue = baseBetInfo.getOrDefault(info.playerId, 0L);
@@ -407,29 +401,11 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.EFFECTIVE_BET, betValue);
             //增加个人
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.playerId);
-            if (!(gamePlayer instanceof GameRobotPlayer)) {
+            if (gamePlayer != null && !(gamePlayer instanceof GameRobotPlayer) && info.betValue > 0) {
                 Thread.ofVirtual().start(() -> {
                     try {
-                        activityManager.addPlayerActivityProgress(gamePlayer,
-                                ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue,
-                                controller.getGameTransactionItemId());
-                        activityManager.addActivityProgress(gamePlayer,
-                                ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue,
-                                controller.getGameTransactionItemId());
-                        // 触发事件
-                        gameController.getGameEventManager().triggerEvent(
-                                new PlayerEffectiveFlowingEvent(gamePlayer, gameDataVo.getRoomCfg().getId(), betValue, 0));
                         //触发任务
-                        gameController.getTaskManager().trigger(gamePlayer.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
-                            TaskConditionParam12001 param = new TaskConditionParam12001();
-                            param.setGameId(gameDataVo.getRoomCfg().getGameID());
-                            param.setAddValue(betValue);
-                            return param;
-                        },false);
-                        //触发任务
-                        if (info.betValue > 0) {
-                            gameController.triggerTask(gamePlayer.getId(), gameController.getRoom().getGameType(), info.betValue, gameController.getGameTransactionItemId());
-                        }
+                        gameController.triggerTask(gamePlayer.getId(), gameController.getRoom().getGameType(), info.betValue, gameController.getGameTransactionItemId());
                     } catch (Exception e) {
                         log.error("德州日志添加进度失败 info:{}", gamePlayer.getId(), e);
                     }

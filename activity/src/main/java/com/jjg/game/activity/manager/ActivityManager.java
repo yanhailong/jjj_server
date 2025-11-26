@@ -442,8 +442,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     continue;
                 }
                 try {
-                    boolean changeStatus = data.getType().getController().addPlayerProgress(player, data, value
-                            , activityTargetKey, additionalParameters);
+                    boolean changeStatus = data.getType().getController().addPlayerProgress(player, data, value, activityTargetKey, additionalParameters);
                     //如果进度增加后能够领取则放入
                     if (changeStatus) {
                         dataArrayList.add(data);
@@ -814,6 +813,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     public List<ActivityItemDropInfo> dropItem(Player player, Object param) {
         if (player == null) {
             log.error("触发掉落时 玩家为null");
+            return List.of();
         }
         if (param instanceof PlayerEventCategory.PlayerEffectiveFlowingEvent effectiveFlowingEvent) {
             //只支持有效流水条件检查

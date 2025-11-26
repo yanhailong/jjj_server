@@ -17,7 +17,6 @@ import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -132,9 +131,9 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         PlayerSeatInfo info = playerSeatInfoList.get((dealerIndex + startIndex) % size);
         long sBBetValue = texasCfg.getSbNum();
         gameDataVo.getBaseBetInfo().put(info.getPlayerId(), sBBetValue);
-        GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
-        controller.changePlayerGold(gamePlayer, -sBBetValue);
-        RoomDataHelper.checkPlayerVipLevel(gamePlayer, controller, sBBetValue);
+
+        GamePlayer sBGamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
+        controller.changePlayerGold(sBGamePlayer, -sBBetValue);
         gameDataVo.getPool().getFirst().addChips(sBBetValue);
         gameDataVo.getPool().getFirst().addEligiblePlayer(info.getPlayerId());
         //添加记录
@@ -144,9 +143,9 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         info = playerSeatInfoList.get((dealerIndex + startIndex + 1) % size);
         long BBBetValue = texasCfg.getBbNum();
         gameDataVo.getBaseBetInfo().put(info.getPlayerId(), BBBetValue);
-        gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
-        controller.changePlayerGold(gamePlayer, -BBBetValue);
-        RoomDataHelper.checkPlayerVipLevel(gamePlayer, controller, BBBetValue);
+
+        GamePlayer bBGamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
+        controller.changePlayerGold(bBGamePlayer, -BBBetValue);
         gameDataVo.getPool().getFirst().addChips(BBBetValue);
         gameDataVo.getPool().getFirst().addEligiblePlayer(info.getPlayerId());
         gameDataVo.setMaxBetValue(BBBetValue);
@@ -156,6 +155,10 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         //添加记录
         texasHistory.setSBValue(sBBetValue);
         texasHistory.setBBValue(BBBetValue);
+        Thread.ofVirtual().start(() -> {
+            gameController.dealEffectiveBet(bBGamePlayer, BBBetValue);
+            gameController.dealEffectiveBet(sBGamePlayer, sBBetValue);
+        });
         historyRoundInfo.potAllBet = Arrays.asList(BBBetValue + sBBetValue);
         return Pair.newPair(sBBetValue, BBBetValue);
     }
