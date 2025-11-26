@@ -15,7 +15,6 @@
                 <File>${LOG_HOME}/slots.log</File>
                 <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
                         <FileNamePattern>${LOG_HOME}/slots-%d{yyyy-MM-dd}.log</FileNamePattern>
-                    <cleanHistoryOnStart>true</cleanHistoryOnStart>
                 </rollingPolicy>
                 <encoder>
                         <pattern>%4d{yyyy-MM-dd HH:mm:ss.fff} [%thread] %-5p - %c [%X{playerId}] - %m%n</pattern>
