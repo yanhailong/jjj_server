@@ -30,6 +30,8 @@ public class ResSharePromoteGlobalInfo extends AbstractResponse {
     public int earningsRatio;
     @ProtoDesc("二维码")
     public String QrCode;
+    @ProtoDesc("可领取收益")
+    public long getProfitReward;
 
     public ResSharePromoteGlobalInfo(int code) {
         super(code);

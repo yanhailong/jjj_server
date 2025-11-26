@@ -198,7 +198,6 @@ public class SharePromoteController extends BaseActivityController {
                     detailInfos.bindPlayerInfos.add(playerInfo);
                 }
             }
-            detailInfos.getProfitReward = sharePromoteDao.getPlayerIncome(player.getId());
             detailInfos.progress = sharePromoteDao.getBindCount(player.getId());
         }
         return typeInfo;
@@ -250,7 +249,7 @@ public class SharePromoteController extends BaseActivityController {
             boolean l = false;
             try {
                 l = redisLock.tryLock(lock, ActivityConstant.Common.REDIS_LOCK);
-                if(!l){
+                if (!l) {
                     res.code = Code.FAIL;
                     return res;
                 }
@@ -265,7 +264,7 @@ public class SharePromoteController extends BaseActivityController {
             } catch (Exception e) {
                 log.error("推广分享绑定成功 修改数据异常 playerId:{} code:{}", playerId, req.invitationCode);
             } finally {
-                if(l){
+                if (l) {
                     redisLock.tryUnlock(lock);
                 }
             }
@@ -297,7 +296,7 @@ public class SharePromoteController extends BaseActivityController {
         boolean lock = false;
         try {
             lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            if (!lock) {
                 return;
             }
             Map<Integer, PlayerActivityData> playerActivityDataMap = playerActivityDao.getPlayerActivityData(playerId, data.getType(), data.getId());
@@ -323,7 +322,7 @@ public class SharePromoteController extends BaseActivityController {
         } catch (Exception e) {
             log.error("推广分享绑定玩家成功 检查玩家进度异常 playerId:{}", playerId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }
@@ -349,7 +348,7 @@ public class SharePromoteController extends BaseActivityController {
             boolean l = false;
             try {
                 l = redisLock.tryLock(lock, ActivityConstant.Common.REDIS_LOCK);
-                if(!l){
+                if (!l) {
                     res.code = Code.FAIL;
                     return res;
                 }
@@ -387,7 +386,7 @@ public class SharePromoteController extends BaseActivityController {
                 log.error("玩家领取收益奖励异常 playerId={}", playerId, e);
                 res.code = Code.EXCEPTION;
             } finally {
-                if(l){
+                if (l) {
                     redisLock.tryUnlock(lock);
                 }
             }
@@ -422,11 +421,11 @@ public class SharePromoteController extends BaseActivityController {
         SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
         //玩家数据为null时初始化一个
         if (playerInfoData == null) {
-            String lock = sharePromoteDao.getLock(playerId);
-            boolean l = false;
+            String lockKey = sharePromoteDao.getLock(playerId);
+            boolean lock = false;
             try {
-                l = redisLock.tryLock(lock, ActivityConstant.Common.REDIS_LOCK);
-                if(!l){
+                lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+                if (!lock) {
                     res.code = Code.FAIL;
                     return res;
                 }
@@ -439,14 +438,15 @@ public class SharePromoteController extends BaseActivityController {
             } catch (Exception e) {
                 log.error("创建玩家推广分享数据失败 playerId={}", playerId, e);
             } finally {
-                if(l){
-                    redisLock.tryUnlock(lock);
+                if (lock) {
+                    redisLock.tryUnlock(lockKey);
                 }
             }
         }
         if (playerInfoData != null) {
             res.sharePlayerNum = playerInfoData.getBindCount();
             res.invitationCode = playerInfoData.getCode();
+            res.getProfitReward = sharePromoteDao.getPlayerIncome(playerId);
             List<String> history = playerInfoData.getHistory();
             if (CollectionUtil.isNotEmpty(history)) {
                 res.recodes = new ArrayList<>(history.size());
@@ -488,6 +488,7 @@ public class SharePromoteController extends BaseActivityController {
         }
         return maxProportion;
     }
+
 
     /**
      * 请求推广分享旗下贡献排行榜
@@ -683,7 +684,7 @@ public class SharePromoteController extends BaseActivityController {
         boolean l = false;
         try {
             l = redisLock.tryLock(lock, ActivityConstant.Common.REDIS_LOCK);
-            if(!l){
+            if (!l) {
                 res.code = Code.FAIL;
                 return res;
             }
@@ -704,7 +705,7 @@ public class SharePromoteController extends BaseActivityController {
         } catch (Exception e) {
             log.error("创建玩家推广分享数据失败 playerId={}", playerId, e);
         } finally {
-            if(l){
+            if (l) {
                 redisLock.tryUnlock(lock);
             }
         }
