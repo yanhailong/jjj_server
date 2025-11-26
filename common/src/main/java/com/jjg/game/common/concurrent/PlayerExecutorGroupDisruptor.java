@@ -114,7 +114,7 @@ public class PlayerExecutorGroupDisruptor {
         }
         boolean tryPublish = workers[idx].tryPublish(msgId, task);
         if (!tryPublish) {
-            log.error("tryPublish is rejected bindId:{} msgId:{} param:{}", bindId, msgId, task.getHandlerParam());
+            log.error("tryPublish is rejected bindId:{} msgId:{} param:{},slotOverview:{}", bindId, msgId, task.getHandlerParam(), getWorkIdOverview(idx));
         }
         return tryPublish;
     }
@@ -190,6 +190,15 @@ public class PlayerExecutorGroupDisruptor {
                     .append(", avgLat(ms)=").append(String.format("%.3f", getAvgLatencyMillisBySlot(i)))
                     .append(", rejected=").append(getRejectedBySlot(i)).append("\n");
         }
+        return sb.toString();
+    }
+
+    private String getWorkIdOverview(int workId){
+        StringBuilder sb = new StringBuilder();
+        sb.append("slot[").append(workId).append("]: pending=").append(getPendingBySlot(workId))
+                .append(", processed=").append(getProcessedBySlot(workId))
+                .append(", avgLat(ms)=").append(String.format("%.3f", getAvgLatencyMillisBySlot(workId)))
+                .append(", rejected=").append(getRejectedBySlot(workId));
         return sb.toString();
     }
 
