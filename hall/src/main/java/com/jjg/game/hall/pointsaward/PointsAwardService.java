@@ -1,6 +1,5 @@
 package com.jjg.game.hall.pointsaward;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.PFSession;
@@ -23,7 +22,6 @@ import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLadderRewardsInfo;
 import com.jjg.game.hall.pointsaward.pb.res.NotifySyncPlayerPoint;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import org.redisson.api.*;
 import org.slf4j.Logger;
@@ -542,28 +540,41 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             return Code.SAMPLE_ERROR;
         }
 
+        int code = Code.FAIL;
         RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
         RLock rLock = rewardReceiveSet.getReadWriteLock(playerId).writeLock();
+        CommonResult<ItemOperationResult> addResult = null;
         try {
             if (rLock.tryLock()) {
                 //已经领取过了
                 if (rewardReceiveSet.contains(info.getPoints())) {
-                    return Code.REPEAT_OP;
-                }
-                if (autoRecive) {
-                    Item item = new Item(info.getItemId(), info.getItemNum());
-                    mailService.addCfgMail(playerId, GameConstant.Mail.ID_POINTS_AWARD, List.of(item));
+                    code = Code.REPEAT_OP;
                 } else {
-                    //奖励道具
-                    playerPackService.addItem(playerId, info.getItemId(), info.getItemNum(), AddType.POINTS_AWARD_SIGN_REWARDS);
+                    if (autoRecive) {
+                        Item item = new Item(info.getItemId(), info.getItemNum());
+                        mailService.addCfgMail(playerId, GameConstant.Mail.ID_POINTS_AWARD, List.of(item));
+                    } else {
+                        //奖励道具
+                        addResult = playerPackService.addItem(playerId, info.getItemId(), info.getItemNum(), AddType.POINTS_AWARD_LADDER_REWARDS);
+                        if (!addResult.success()) {
+                            log.warn("玩家领取积分阶梯奖励失败 playerId = {},points = {},code = {}", playerId, points, addResult.code);
+                            code = addResult.code;
+                        } else {
+                            rewardReceiveSet.add(info.getPoints());
+                            code = Code.SUCCESS;
+                        }
+                    }
                 }
-                rewardReceiveSet.add(info.getPoints());
-                return Code.SUCCESS;
+
             }
         } finally {
             rLock.unlock();
         }
-        return Code.FAIL;
+
+        if (code == Code.SUCCESS) {
+            pointsAwardLogger.ladderReward(playerId, points, addResult.data.getChangeGoldNum(), addResult.data.getGoldNum(), autoRecive);
+        }
+        return code;
     }
 
     @Override
@@ -594,7 +605,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
 
     @Override
     public List<RedDotDetails> initialize(long playerId, int submodule) {
-        if(this.sortPointsAwardList == null || this.sortPointsAwardList.isEmpty()){
+        if (this.sortPointsAwardList == null || this.sortPointsAwardList.isEmpty()) {
             return List.of();
         }
 
@@ -663,20 +674,20 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         log.debug("加载 积分大奖配置结束 id = {}", PointsAwardConstant.GlobalConfig.ID_POINTS_AWARD);
     }
 
-    public List<PointsAwardLadderRewardsInfo> getPointsAwardLadderRewardsInfoList(long playerId){
-        if(this.pointsAwardMap == null || this.pointsAwardMap.isEmpty()){
+    public List<PointsAwardLadderRewardsInfo> getPointsAwardLadderRewardsInfoList(long playerId) {
+        if (this.pointsAwardMap == null || this.pointsAwardMap.isEmpty()) {
             return Collections.emptyList();
         }
 
         RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
-        if(rewardReceiveSet == null || rewardReceiveSet.isEmpty()){
+        if (rewardReceiveSet == null || rewardReceiveSet.isEmpty()) {
             return this.sortPointsAwardList;
-        }else {
+        } else {
             List<PointsAwardLadderRewardsInfo> list = new ArrayList<>();
             this.sortPointsAwardList.forEach(info -> {
                 PointsAwardLadderRewardsInfo newInfo = new PointsAwardLadderRewardsInfo();
-                BeanUtils.copyProperties(info,newInfo);
-                if(rewardReceiveSet.contains(info.getPoints())){
+                BeanUtils.copyProperties(info, newInfo);
+                if (rewardReceiveSet.contains(info.getPoints())) {
                     newInfo.setReceive(true);
                 }
                 list.add(newInfo);

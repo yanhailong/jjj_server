@@ -169,7 +169,7 @@ public enum AddType {
     SLOTS_TRAIN(1205),
 
 
-    //积分奖励
+    //积分大奖阶梯奖励
     POINTS_AWARD_LADDER_REWARDS(1301),
     //积分大奖转盘奖励
     POINTS_AWARD_TURNTABLE_REWARDS(1302),
