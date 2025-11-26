@@ -3,6 +3,9 @@ package com.jjg.game.activity.sharepromote.dao;
 import com.jjg.game.activity.sharepromote.data.SharePromotePlayerData;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.HashOperations;
@@ -152,6 +155,24 @@ public class SharePromoteDao {
         return value == null ? 0L : Long.parseLong(value);
     }
 
+    private int getWeekRankLimit(String rankKey) {
+        if (!rankKey.equals(SHARE_PROMOTE_REWARDS_RANK)) {
+            return 0;
+        }
+        try {
+            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(72);
+            if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
+                String[] limitCfg = StringUtils.split("_");
+                if (limitCfg.length == 2) {
+                    return Integer.parseInt(limitCfg[1]);
+                }
+            }
+        } catch (NumberFormatException e) {
+            log.error("getWeekRankLimit error", e);
+        }
+        return 0;
+    }
+
     /**
      * 获取排行榜前 N 名玩家
      *
@@ -169,8 +190,12 @@ public class SharePromoteDao {
         }
 
         LinkedHashMap<Long, Double> topPlayers = new LinkedHashMap<>();
+        int weekRankLimit = getWeekRankLimit(rankKey);
         for (ZSetOperations.TypedTuple<String> tuple : results) {
-            if (tuple.getValue() != null) {
+            if (tuple.getValue() != null && tuple.getScore() != null) {
+                if (weekRankLimit > tuple.getScore()) {
+                    break;
+                }
                 topPlayers.put(Long.valueOf(tuple.getValue()), tuple.getScore());
             }
         }

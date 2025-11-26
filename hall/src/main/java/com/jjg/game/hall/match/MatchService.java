@@ -50,10 +50,10 @@ public class MatchService {
                 RoomScoreUtil.RoomScoreInfo roomScoreInfo = RoomScoreUtil.parseScore(first == null ? 0 : first.getScore());
                 if (roomScoreInfo.seconds() == 0 || roomScoreInfo.maxPlayers() >= maxPlayer) {
                     //创建房间
-                    Room room = hallRoomDao.createRoom(playerController, gameType, roomConfigId, maxPlayer, nodePath);
+                    Room room = hallRoomDao.createRoom(gameType, roomConfigId, maxPlayer, nodePath);
                     long waitingRoomId = room.getId();
                     //放入等待列表
-                    double score = RoomScoreUtil.computeScore(0, 0, (int) (System.currentTimeMillis() / 1000));
+                    double score = RoomScoreUtil.computeScore(1, 1, (int) (System.currentTimeMillis() / 1000));
                     log.debug("大厅创建新房间 gameType:{} roomConfigId:{} ", gameType, roomConfigId);
                     scoredSortedSet.add(score, waitingRoomId);
                     //返回房间id

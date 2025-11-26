@@ -71,6 +71,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     private volatile ERoomState roomState;
     // 游戏事件管理器
     private GameEventManager gameEventManager;
+    // 房间数据差异计数
+    private int diffCount = 0;
     /**
      * 任务管理器
      */
@@ -400,7 +402,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      */
     public void checkNoJoinPlayer() {
         RC cfg = gameController.getGameDataVo().getRoomCfg();
-        roomManager.getMatchDataDao().checkPlayerExpiredWaitingNum(cfg.getGameID(), cfg.getId(), room);
+        diffCount = roomManager.getMatchDataDao().checkPlayerExpiredWaitingNum(diffCount, cfg.getGameID(), cfg.getId(), room);
     }
 
 

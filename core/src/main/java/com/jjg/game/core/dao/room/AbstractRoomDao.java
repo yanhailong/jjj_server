@@ -17,7 +17,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -96,27 +95,10 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     /**
      * 创建房间
      */
-    public T createRoom(PlayerController playerController, int gameType, int roomCfgId, int maxLimit, String nodeName) {
+    public T createRoom(int gameType, int roomCfgId, int maxLimit, String nodeName) {
         try {
-            long playerId = playerController.playerId();
             T room = fillBaseRoomData(nodeName, gameType, roomCfgId, maxLimit);
             room.setRoomCfgId(roomCfgId);
-            //添加玩家
-            if (playerId > 0) {
-                RoomPlayer roomPlayer = createRoomPlayer(playerController);
-                roomPlayer.setSit(0);
-                roomPlayer.setOnline(true);
-
-                Map<Long, RoomPlayer> roomPlayers = new HashMap<>();
-                roomPlayers.put(roomPlayer.getPlayerId(), roomPlayer);
-                room.setRoomPlayers(roomPlayers);
-                room.setCreator(roomPlayer.getPlayerId());
-
-                Map<Integer, Long> playerSits = new HashMap<>();
-                playerSits.put(0, roomPlayer.getPlayerId());
-                room.setPlayerSits(playerSits);
-            }
-
             return createRoom(room);
         } catch (Exception e) {
             log.error("创建房间异常: {}", e.getMessage(), e);
