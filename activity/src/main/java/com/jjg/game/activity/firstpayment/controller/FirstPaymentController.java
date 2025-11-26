@@ -77,9 +77,10 @@ public class FirstPaymentController extends BaseActivityController implements Ga
         // 加锁，防止并发修改
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
                 res.code = Code.FAIL;
+                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} times:{}", lockKey, playerId, activityData.getId(), detailId, times);
                 return res;
             }
             Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
@@ -109,7 +110,7 @@ public class FirstPaymentController extends BaseActivityController implements Ga
         } catch (Exception e) {
             log.error("玩家加入首充活动异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }

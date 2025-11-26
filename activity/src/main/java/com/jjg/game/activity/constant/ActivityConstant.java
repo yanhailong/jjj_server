@@ -8,8 +8,6 @@ import com.jjg.game.common.constant.MessageConst;
  */
 public interface ActivityConstant {
     interface Common {
-        //redis 锁时间
-        int REDIS_LOCK = 500;
         //限时活动类型
         int LIMIT_TYPE = 2;
         //开服活动类型

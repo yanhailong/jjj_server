@@ -3,7 +3,6 @@ package com.jjg.game.core.service;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerBuff;
@@ -48,15 +47,16 @@ public class PlayerBuffService {
      * @param expireTime
      * @return
      */
-    public CommonResult<PlayerBuff> addBuff(long playerId, int buffType,int value,int expireTime) {
+    public CommonResult<PlayerBuff> addBuff(long playerId, int buffType, int value, int expireTime) {
         CommonResult<PlayerBuff> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
 
         int expire = TimeHelper.nowInt() + expireTime;
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
+                log.debug("获取锁失败 lockKey:{} playerId = {} buffType:{} value:{} expireTime:{}", key, playerId, buffType, value, expireTime);
                 return result;
             }
             PlayerBuff playerBuff = get(playerId);
@@ -81,7 +81,7 @@ public class PlayerBuffService {
         } catch (Exception e) {
             log.warn("创建或保存玩家buff对象异常 playerId={}", playerId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(key);
             }
         }
@@ -90,7 +90,7 @@ public class PlayerBuffService {
 
     /**
      * 获取playerbuff对象，检查过期
-      * @param playerId
+     * @param playerId
      * @return
      */
     public PlayerBuff get(long playerId) {
@@ -100,8 +100,9 @@ public class PlayerBuffService {
         int now = TimeHelper.nowInt();
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
+                log.debug("获取锁失败 lockKey:{} playerId = {} ", key, playerId);
                 return null;
             }
             PlayerBuff playerBuff = operations.get(tableName, playerId);
@@ -109,7 +110,7 @@ public class PlayerBuffService {
                 return playerBuff;
             }
 
-            if(playerBuff.getDetails() == null || playerBuff.getDetails().isEmpty()) {
+            if (playerBuff.getDetails() == null || playerBuff.getDetails().isEmpty()) {
                 return playerBuff;
             }
 
@@ -117,7 +118,7 @@ public class PlayerBuffService {
             while (it.hasNext()) {
                 Map.Entry<Integer, List<PlayerBuffDetail>> en = it.next();
                 List<PlayerBuffDetail> list = en.getValue();
-                if(list == null || list.isEmpty()) {
+                if (list == null || list.isEmpty()) {
                     it.remove();
                     continue;
                 }
@@ -127,25 +128,25 @@ public class PlayerBuffService {
         } catch (Exception e) {
             log.warn("获取玩家buff对象异常 playerId={}", playerId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(key);
             }
         }
         return null;
     }
 
-    public BigDecimal calProp(int baseProp,List<PlayerBuffDetail> details) {
+    public BigDecimal calProp(int baseProp, List<PlayerBuffDetail> details) {
         int allProp = baseProp;
-        if(details != null && !details.isEmpty()) {
-            for(PlayerBuffDetail d : details) {
+        if (details != null && !details.isEmpty()) {
+            for (PlayerBuffDetail d : details) {
                 allProp += d.getValue();
             }
         }
         return BigDecimal.valueOf(allProp).divide(tenThousandBigDecimal, 2, BigDecimal.ROUND_HALF_UP);
     }
 
-    public BigDecimal calProp(BigDecimal beforeProp,int addProp) {
-        if(addProp < 1) {
+    public BigDecimal calProp(BigDecimal beforeProp, int addProp) {
+        if (addProp < 1) {
             return beforeProp;
         }
 

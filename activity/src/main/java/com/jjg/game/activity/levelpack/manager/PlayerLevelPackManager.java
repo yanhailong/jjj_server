@@ -57,8 +57,6 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
     private final ActivityLogger activityLogger;
     private final CoreSendMessageManager coreSendMessageManager;
     private final RedDotManager redDotManager;
-    //redis持有锁时间
-    private final int REDIS_LOCK_TIME = 200;
 
     public PlayerLevelPackManager(RedisLock redisLock, PlayerLevelDao playerLevelDao, ClusterSystem clusterSystem,
                                   PlayerPackService playerPackService, ActivityLogger activityLogger, CoreSendMessageManager coreSendMessageManager, RedDotManager redDotManager) {
@@ -100,8 +98,9 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         String lockKey = playerLevelDao.getLockKey(playerId);
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, REDIS_LOCK_TIME);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} playerId:{} ", lockKey, playerId);
                 return;
             }
             //双重校验
@@ -127,7 +126,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         } catch (Exception e) {
             log.error("等级变化时修改玩家活动数据失败 playerId:{} playerLevel:{} ", playerId, playerLevel, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }
@@ -195,8 +194,9 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         CommonResult<ItemOperationResult> added = null;
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, REDIS_LOCK_TIME);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} playerId:{} ", lockKey, playerId);
                 res.code = Code.FAIL;
                 return res;
             }
@@ -213,7 +213,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         } catch (Exception e) {
             log.error("等级礼包 领取奖励异常 playerId:{} id:{} ", playerId, req.id, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }
@@ -269,8 +269,9 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
             CommonResult<ItemOperationResult> added = null;
             boolean lock = false;
             try {
-                lock = redisLock.tryLock(lockKey, REDIS_LOCK_TIME);
-                if(!lock){
+                lock = redisLock.tryLockWithDefaultTime(lockKey);
+                if (!lock) {
+                    log.error("获取锁失败 lockKey:{} playerId:{} orderId:{}", lockKey, playerId, order.getId());
                     return;
                 }
                 playerLevelPackDataMap = playerLevelDao.getPlayerLevelPackData(playerId);
@@ -294,7 +295,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
             } catch (Exception e) {
                 log.error("等级礼包修改数据异常 playerId:{} id:{} ", playerId, id, e);
             } finally {
-                if(lock){
+                if (lock) {
                     redisLock.tryUnlock(lockKey);
                 }
             }

@@ -2,7 +2,6 @@ package com.jjg.game.core.dao.room;
 
 import com.jjg.game.common.constant.StrConstant;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.data.RoomType;
@@ -101,8 +100,9 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
 
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} gameType:{} roomId:{} wareId:{}", key, gameType, roomId, wareId);
                 return null;
             }
             T room = getRoom(gameType, roomId);
@@ -115,7 +115,7 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
         } catch (Exception e) {
             log.warn("清除房间出现异常,gameType = {},roomId = {}", gameType, roomId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(key);
             }
         }

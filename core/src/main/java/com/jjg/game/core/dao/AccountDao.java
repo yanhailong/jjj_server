@@ -71,8 +71,9 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
         String key = getLockKey(playerId);
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} playerId:{} ", key, playerId);
                 return null;
             }
             Account account = queryAccountByPlayerId(playerId);
@@ -86,7 +87,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
         } catch (Exception e) {
             log.warn("保存account失败 playerId={}", playerId, e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(key);
             }
         }
@@ -158,7 +159,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
 
         //要加锁，防止重复绑定
         String lockKey = getBindLockKey(loginType, channelUserInfo.getUserId());
-        redisLock.executeWithLock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS, () -> {
+        redisLock.executeWithLock(lockKey, GameConstant.Redis.TIME, TimeUnit.MILLISECONDS, () -> {
             //查询该账号是否被绑定
             Account existBindAccount = queryThirdAccount(loginType, channelUserInfo.getUserId());
             if (existBindAccount != null) {
@@ -219,7 +220,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
     }
 
     public void moveToMongo(long playerId) {
-        Account account = queryAccountByPlayerId(playerId,false);
+        Account account = queryAccountByPlayerId(playerId, false);
         if (account == null) {
             return;
         }

@@ -73,10 +73,10 @@ public class GameConstant {
     public interface Redis {
         //游戏状态rediskey
         String GAME_STATUS_KEY = "gm:gamelistconfig";
-        // 加锁尝试次数
-        int LOCK_TRY_TIMES = 50;
-        // 每次尝试花费的毫秒数
-        int PER_TRY_TAKE_MILE_TIME = 20;
+        //任务redis等待时间
+        int TASK_TIME = 10000;
+        //通用redis等待时间
+        int TIME = 500;
     }
 
     //性别

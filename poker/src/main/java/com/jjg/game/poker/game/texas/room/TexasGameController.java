@@ -1,7 +1,5 @@
 package com.jjg.game.poker.game.texas.room;
 
-import com.jjg.game.activity.common.data.ActivityTargetType;
-import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -48,7 +46,6 @@ import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.PokerPlayerGameData;
-import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.message.BaseRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.robot.RobotUtil;
@@ -217,13 +214,10 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         }
         gameDataVo.getPool().getFirst().addChips(betValue);
         gameDataVo.getPool().getFirst().addEligiblePlayer(playerId);
-        //添加活动进度
         final long finalBetValue = betValue;
         if (!(gamePlayer instanceof GameRobotPlayer)) {
-            Thread.ofVirtual().start(() -> {
-                ActivityManager activityManager = getRoomController().getRoomManager().getActivityManager();
-                activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.BET.getTargetKey(), finalBetValue, getGameTransactionItemId());
-            });
+            //处理下注
+            Thread.ofVirtual().start(() -> dealBet(gamePlayer, finalBetValue));
         }
         //通知
         NotifyTexasBet notifyTexasBet = new NotifyTexasBet();
@@ -235,12 +229,12 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             addNextTimer(nextExePlayer, 0);
             notifyTexasBet.nextPlayerId = nextExePlayer.getPlayerId();
             notifyTexasBet.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
-            RoomDataHelper.checkPlayerVipLevel(gamePlayer, this, betValue);
+            Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, finalBetValue));
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasBet));
         } else {
             //结算的时候加注，all不算有效押注
             if (!isNextRoundOrSettlement() || isNextRoundOrSettlement() && reqPokerBet.betType == PokerConstant.PlayerOperation.FOLLOW_CARD) {
-                RoomDataHelper.checkPlayerVipLevel(gamePlayer, this, betValue);
+                Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, finalBetValue));
             }
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasBet));
             startNextRoundOrSettlement();

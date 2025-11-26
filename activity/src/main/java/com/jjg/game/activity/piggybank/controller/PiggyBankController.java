@@ -91,8 +91,9 @@ public class PiggyBankController extends BaseActivityController implements GameE
             boolean lock = false;
             PiggyBankData piggyBankData = null;
             try {
-                lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-                if(!lock){
+                lock = redisLock.tryLockWithDefaultTime(lockKey);
+                if (!lock) {
+                    log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} times:{}", lockKey, playerId, activityData.getId(), detailId, times);
                     return res;
                 }
                 // 获取玩家活动数据
@@ -116,7 +117,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
             } catch (Exception e) {
                 log.error("玩家参加活动失败 出现异常,playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
             } finally {
-                if(lock){
+                if (lock) {
                     redisLock.tryUnlock(lockKey);
                 }
             }
@@ -169,8 +170,9 @@ public class PiggyBankController extends BaseActivityController implements GameE
         // 分布式锁
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} progress:{} ", lockKey, playerId, activityData.getId(), progress);
                 return false;
             }
             Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
@@ -208,7 +210,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
         } catch (Exception e) {
             log.error("储钱罐添加玩家进度异常 playerId:{}  activityId:{} ", player, activityData.getId(), e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }
@@ -237,8 +239,9 @@ public class PiggyBankController extends BaseActivityController implements GameE
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} ", lockKey, playerId, activityData.getId(), detailId);
                 res.code = Code.FAIL;
                 return res;
             }
@@ -277,7 +280,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
         } catch (Exception e) {
             log.error("领取每日奖金异常 playerId:{} activityId:{}", playerId, activityData.getId(), e);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }
@@ -402,8 +405,9 @@ public class PiggyBankController extends BaseActivityController implements GameE
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{}", lockKey, playerId, activityData.getId());
                 return playerActivityData;
             }
             playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
@@ -433,7 +437,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
         } catch (Exception e) {
             log.info("储钱罐重置数据失败");
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }

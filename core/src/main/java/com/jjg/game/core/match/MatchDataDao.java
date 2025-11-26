@@ -27,8 +27,6 @@ public class MatchDataDao {
 
     private final Logger log = LoggerFactory.getLogger(MatchDataDao.class);
     private final RedissonClient redissonClient;
-    // 匹配逻辑最大锁持有时间
-    public final int MATCH_MAX_LOCK_HOLD_TIME = 500;
     // 玩家等待key
     private final String PLAYER_WAIT_KEY = "match:playerWait:%s";
     private final RedisLock redisLock;
@@ -55,7 +53,7 @@ public class MatchDataDao {
      *
      * @return 获取到的等待房间ID
      */
-    @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)", waitTime = MATCH_MAX_LOCK_HOLD_TIME)
+    @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)")
     public long getNewWaitJoinRoomId(@Param("gameType") int gameType, @Param("roomConfigId") int roomConfigId, int maxLimit, long oldRoomId) {
         String matchRedisKey = getMatchRedisKey(gameType, roomConfigId);
         RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(matchRedisKey);
@@ -73,7 +71,7 @@ public class MatchDataDao {
     /**
      * 将房间ID从房间中移除
      */
-    @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)", waitTime = MATCH_MAX_LOCK_HOLD_TIME)
+    @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)")
     public boolean removeWaitJoinRoomId(@Param("gameType") int gameType, @Param("roomConfigId") int roomConfigId, long roomId) {
         String redisKey = getMatchRedisKey(gameType, roomConfigId);
         RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(redisKey);
@@ -84,7 +82,7 @@ public class MatchDataDao {
     /**
      * 添加房间等待ID
      */
-    @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)", waitTime = MATCH_MAX_LOCK_HOLD_TIME)
+    @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)")
     public boolean addWaitJoinRoomId(@Param("gameType") int gameType, @Param("roomConfigId") int roomConfigId,
                                      long roomId, long roomCreateTime) {
         String redisKey = getMatchRedisKey(gameType, roomConfigId);
@@ -110,24 +108,27 @@ public class MatchDataDao {
         String lockMatchRedisKey = getLockMatchRedisKey(gameType, roomConfigId);
         boolean locked = false;
         try {
-            locked = redisLock.tryLock(lockMatchRedisKey, MATCH_MAX_LOCK_HOLD_TIME);
-            if (locked) {
-                String redisKey = getMatchRedisKey(gameType, roomConfigId);
-                RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(redisKey);
-                Double score = scoredSortedSet.getScore(roomId);
-                if (score == null) {
-                    return false;
-                }
-                RoomScoreUtil.RoomScoreInfo roomScoreInfo = RoomScoreUtil.parseScore(score);
-                if (totalNum > 0 && (totalNum + roomScoreInfo.maxPlayers()) > maxPlayerNum ||
-                        totalNum < 0 && roomScoreInfo.maxPlayers() + totalNum < 0) {
-                    return false;
-                }
-                double computed = RoomScoreUtil.computeScore(Math.max(0, roomScoreInfo.maxPlayers() + totalNum),
-                        Math.max(0, roomScoreInfo.readyPlayers() + waitNum), roomScoreInfo.seconds());
-                scoredSortedSet.add(computed, roomId);
-                return true;
+            locked = redisLock.tryLockWithDefaultTime(lockMatchRedisKey);
+            if (!locked) {
+                log.error("获取锁失败 lockKey:{} gameType:{} roomConfigId:{} roomId:{} maxPlayerNum:{} totalNum:{} waitNum:{}", lockMatchRedisKey, gameType,
+                        roomConfigId, roomId, maxPlayerNum, totalNum, waitNum);
+                return false;
             }
+            String redisKey = getMatchRedisKey(gameType, roomConfigId);
+            RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(redisKey);
+            Double score = scoredSortedSet.getScore(roomId);
+            if (score == null) {
+                return false;
+            }
+            RoomScoreUtil.RoomScoreInfo roomScoreInfo = RoomScoreUtil.parseScore(score);
+            if (totalNum > 0 && (totalNum + roomScoreInfo.maxPlayers()) > maxPlayerNum ||
+                    totalNum < 0 && roomScoreInfo.maxPlayers() + totalNum < 0) {
+                return false;
+            }
+            double computed = RoomScoreUtil.computeScore(Math.max(0, roomScoreInfo.maxPlayers() + totalNum),
+                    Math.max(0, roomScoreInfo.readyPlayers() + waitNum), roomScoreInfo.seconds());
+            scoredSortedSet.add(computed, roomId);
+            return true;
         } catch (Exception e) {
             log.error("changeRoomJoinNum ", e);
         } finally {
@@ -174,38 +175,41 @@ public class MatchDataDao {
         long roomId = room.getId();
         boolean locked = false;
         try {
-            locked = redisLock.tryLock(lockMatchRedisKey, MATCH_MAX_LOCK_HOLD_TIME);
-            if (locked) {
-                //获取等待人数
-                RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(matchRedisKey);
-                Double score = scoredSortedSet.getScore(roomId);
-                if (score == null) {
+            locked = redisLock.tryLockWithDefaultTime(lockMatchRedisKey);
+            if (!locked) {
+                log.error("获取锁失败 lockKey:{} locked diffCount:{} gameType:{} roomConfigId:{}", lockMatchRedisKey, diffCount, gameType, roomConfigId);
+                return diffCount;
+            }
+            //获取等待人数
+            RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(matchRedisKey);
+            Double score = scoredSortedSet.getScore(roomId);
+            if (score == null) {
+                return 0;
+            }
+            RoomScoreUtil.RoomScoreInfo roomScoreInfo = RoomScoreUtil.parseScore(score);
+            int roomNum = room.getRoomPlayers().size();
+            boolean needFix = false;
+            //当没有等待玩家数时,并且人数不等时修改人数
+            if (roomScoreInfo.maxPlayers() != roomNum + roomScoreInfo.readyPlayers()) {
+                log.warn("房间内人数和计数不相等 roomId:{} roomNum:{} roomScoreInfo:{} ", roomId, roomNum, roomScoreInfo);
+                needFix = true;
+            }
+            int readyPlayers = roomScoreInfo.readyPlayers();
+            //获取过期等待人数
+            int waitingNum = getPlayerExpiredWaitingNum(roomId);
+            int more = readyPlayers - waitingNum;
+            if (more > 0 && (roomScoreInfo.maxPlayers() > more || needFix)) {
+                if (diffCount > 2) {
+                    //设置新的
+                    int finalReadyPlayers = roomScoreInfo.readyPlayers() - more;
+                    int maxPlayers = roomNum + finalReadyPlayers;
+                    double computed = RoomScoreUtil.computeScore(maxPlayers, finalReadyPlayers, roomScoreInfo.seconds());
+                    scoredSortedSet.add(computed, roomId);
+                    log.info("更新房间等待人数 roomId:{} 最新max:{} ready:{}", roomId, maxPlayers, finalReadyPlayers);
                     return 0;
                 }
-                RoomScoreUtil.RoomScoreInfo roomScoreInfo = RoomScoreUtil.parseScore(score);
-                int roomNum = room.getRoomPlayers().size();
-                boolean needFix = false;
-                //当没有等待玩家数时,并且人数不等时修改人数
-                if (roomScoreInfo.maxPlayers() != roomNum + roomScoreInfo.readyPlayers()) {
-                    log.warn("房间内人数和计数不相等 roomId:{} roomNum:{} roomScoreInfo:{} ", roomId, roomNum, roomScoreInfo);
-                    needFix = true;
-                }
-                int readyPlayers = roomScoreInfo.readyPlayers();
-                //获取过期等待人数
-                int waitingNum = getPlayerExpiredWaitingNum(roomId);
-                int more = readyPlayers - waitingNum;
-                if (more > 0 && (roomScoreInfo.maxPlayers() > more || needFix)) {
-                    if (diffCount > 2) {
-                        //设置新的
-                        int finalReadyPlayers = roomScoreInfo.readyPlayers() - more;
-                        int maxPlayers = roomNum + finalReadyPlayers;
-                        double computed = RoomScoreUtil.computeScore(maxPlayers, finalReadyPlayers, roomScoreInfo.seconds());
-                        scoredSortedSet.add(computed, roomId);
-                        log.info("更新房间等待人数 roomId:{} 最新max:{} ready:{}", roomId, maxPlayers, finalReadyPlayers);
-                        return 0;
-                    }
-                    diffCount++;
-                }
+                diffCount++;
+                log.warn("房间内人数和计数不相等 roomId:{} roomNum:{} roomScoreInfo:{} 当前计数：{} ", roomId, roomNum, roomScoreInfo, diffCount);
             }
         } catch (Exception e) {
             log.error("checkPlayerExpiredWaitingNum ", e);

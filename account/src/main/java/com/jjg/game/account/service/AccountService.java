@@ -85,7 +85,7 @@ public class AccountService {
         //要加锁，防止重复创建账号
         String lockKey = getLockKey(loginType, channelUserInfo);
         long now = System.currentTimeMillis();
-        redisLock.executeWithLock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS, () -> {
+        redisLock.executeWithLock(lockKey, GameConstant.Redis.TIME, TimeUnit.MILLISECONDS, () -> {
             //查询该账号是否存在
             Account account = accountDao.queryThirdAccount(loginType, channelUserInfo.getUserId());
             if (account == null) {
@@ -101,7 +101,7 @@ public class AccountService {
                 account.setPlayerId(playerId);
                 account.setRegisterMac(loginDto.getMac());
                 account.setLastLoginMac(loginDto.getMac());
-                account.setChannel(ChannelType.valueOf(loginDto.getChannel(),ChannelType.GOOGLE));
+                account.setChannel(ChannelType.valueOf(loginDto.getChannel(), ChannelType.GOOGLE));
 
                 account = accountDao.setChannelValue(loginType, channelUserInfo, account);
                 account.setCreateTime((int) (now / 1000));
@@ -110,9 +110,9 @@ public class AccountService {
             }
 
             if (!Objects.equals(loginDto.getMac(), account.getLastLoginMac())) {
-                account = accountDao.checkAndSave(account.getPlayerId(),a -> a.setLastLoginMac(loginDto.getMac()));
-            }else {
-                account = accountDao.save(account,loginType, channelUserInfo.getUserId());
+                account = accountDao.checkAndSave(account.getPlayerId(), a -> a.setLastLoginMac(loginDto.getMac()));
+            } else {
+                account = accountDao.save(account, loginType, channelUserInfo.getUserId());
             }
 
             //这里记录登录时间，是防止只有http请求，但是没有websocket登录的账号

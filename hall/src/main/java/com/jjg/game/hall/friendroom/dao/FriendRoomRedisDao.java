@@ -55,8 +55,9 @@ public class FriendRoomRedisDao {
         String invitationPlayerTableName = getInvitationPlayerTableName();
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(invitationPlayerTableName, 200);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(invitationPlayerTableName);
+            if (!lock) {
+                log.debug("获取锁失败 lockKey:{} ", invitationPlayerTableName);
                 return 0;
             }
             int invitationCode = Integer.MIN_VALUE, tryTimes = 5;
@@ -78,10 +79,10 @@ public class FriendRoomRedisDao {
             }
             log.info("生成邀请码：{}", invitationCode);
             return invitationCode;
-        } catch (Exception e){
-            log.error("",e);
-        }finally {
-            if(lock){
+        } catch (Exception e) {
+            log.error("", e);
+        } finally {
+            if (lock) {
                 redisLock.tryUnlock(invitationPlayerTableName);
             }
         }
@@ -154,7 +155,7 @@ public class FriendRoomRedisDao {
             connection.hashCommands().hDel(invitationPlayerTableName.getBytes(), (oldInvitationCode + "").getBytes());
             // 添加新的邀请码
             connection.hashCommands().hSet(
-                invitationPlayerTableName.getBytes(), (newInvitationCode + "").getBytes(), (playerId + "").getBytes());
+                    invitationPlayerTableName.getBytes(), (newInvitationCode + "").getBytes(), (playerId + "").getBytes());
             return null;
         });
         // 设置key的过期时间
@@ -163,7 +164,7 @@ public class FriendRoomRedisDao {
                 log.info("过期时间：{}", TimeHelper.ONE_DAY_OF_MILLIS + TimeHelper.ONE_HOUR_OF_MILLIS);
                 // 设置过期时间
                 redisTemplate.expire(
-                    tableName, TimeHelper.ONE_DAY_OF_MILLIS + TimeHelper.ONE_HOUR_OF_MILLIS, TimeUnit.MILLISECONDS);
+                        tableName, TimeHelper.ONE_DAY_OF_MILLIS + TimeHelper.ONE_HOUR_OF_MILLIS, TimeUnit.MILLISECONDS);
                 tableNameCache.add(tableName);
             }
         }

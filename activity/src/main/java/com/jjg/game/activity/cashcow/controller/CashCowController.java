@@ -180,8 +180,9 @@ public class CashCowController extends BaseActivityController implements TimerLi
         boolean canClaim = false;
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            lock = redisLock.tryLockWithDefaultTime(lockKey);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} activityId:{} playerId:{} added:{}", lockKey, data.getId(), playerId, added);
                 return false;
             }
             // 获取玩家在该活动下的所有 detail 的数据（map: detailId -> CashCowPlayerActivityData）
@@ -206,7 +207,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         } catch (Exception e) {
             log.error("摇钱树增加玩家个人进度失败 playerId:{} addValue:{}", player, progress);
         } finally {
-            if(lock){
+            if (lock) {
                 redisLock.tryUnlock(lockKey);
             }
         }
@@ -252,10 +253,11 @@ public class CashCowController extends BaseActivityController implements TimerLi
             // 对玩家参加活动的关键流程上分布式锁，保证玩家活动数据原子性
             String lockKey = playerActivityDao.getLockKey(playerId, activityId);
             try {
-                boolean lock = redisLock.tryLock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-                if(!lock){
+                boolean lock = redisLock.tryLockWithDefaultTime(lockKey);
+                if (!lock) {
                     res.code = Code.FAIL;
-                    return null;
+                    log.error("获取锁失败 lockKey:{} activityId:{} playerId:{} detail:{} times:{}", lockKey, activityData.getId(), playerId, detailId, times);
+                    return res;
                 }
                 // 读取玩家在该活动的 detail 记录（包括 joinTimes 等）
                 Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
@@ -828,9 +830,10 @@ public class CashCowController extends BaseActivityController implements TimerLi
         // 使用玩家免费锁，防止并发重复领取
         String playerFreeLockKey = cashCowDao.getPlayerFreeLockKey(playerController.playerId(), req.activityId);
         try {
-            boolean lock = redisLock.tryLock(playerFreeLockKey, ActivityConstant.Common.REDIS_LOCK);
-            if(!lock){
+            boolean lock = redisLock.tryLockWithDefaultTime(playerFreeLockKey);
+            if (!lock) {
                 res.code = Code.FAIL;
+                log.error("获取锁失败 lockKey:{} activityId:{} playerId:{} ", playerFreeLockKey, data.getId(), playerController.playerId());
                 return res;
             }
             // 再次校验（双重校验）

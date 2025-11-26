@@ -3,7 +3,6 @@ package com.jjg.game.table.common.utils;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.GameDataTracker;
@@ -39,9 +38,6 @@ public class BetDataTrackLogUtils {
         }
         if (playerBetInfo != null && !(gamePlayer instanceof GameRobotPlayer)) {
             long effectiveWaterFlow = calculationEffectiveWaterFlow(playerBetInfo);
-            if (effectiveWaterFlow > 0) {
-                RoomDataHelper.checkPlayerVipLevel(gamePlayer, controller, effectiveWaterFlow);
-            }
             gameDataTracker.addPlayerLogData(
                     gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, effectiveWaterFlow);
             //添加活动进度

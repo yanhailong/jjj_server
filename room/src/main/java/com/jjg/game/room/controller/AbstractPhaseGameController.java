@@ -1,22 +1,29 @@
 package com.jjg.game.room.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.activity.common.data.ActivityTargetType;
+import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.utils.ReflectUtils;
+import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
+import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.IPhaseMsgAdapter;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.datatrack.GameDataTracker;
 import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomPhaseTimeEvent;
@@ -366,16 +373,41 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
         return currentGamePhase.getGamePhase();
     }
 
-    /**
-     * 通过阶段类型获取房间阶段
-     */
-    public IRoomPhase findRoomPhase(EGamePhase eGamePhase) {
-        for (IRoomPhase gamePhase : gamePhases) {
-            if (gamePhase.getGamePhase() == eGamePhase) {
-                return gamePhase;
-            }
+    //处理有效下注
+    public void dealEffectiveBet(Player player, long betValue) {
+        if (player == null) {
+            log.error("处理有效流水时 玩家数据为null ");
+            return;
         }
-        return null;
+        ActivityManager activityManager = roomController.getRoomManager().getActivityManager();
+        int gameTransactionItemId = getGameTransactionItemId();
+        try {
+            activityManager.addPlayerActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue, gameTransactionItemId);
+            activityManager.addActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue, gameTransactionItemId);
+            //触发任务
+            getTaskManager().trigger(player.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
+                TaskConditionParam12001 param = new TaskConditionParam12001();
+                param.setGameId(gameDataVo.getRoomCfg().getGameID());
+                param.setAddValue(betValue);
+                return param;
+            }, false);
+            // 触发事件
+            getGameEventManager().triggerEvent(new PlayerEventCategory.PlayerEffectiveFlowingEvent(player, gameDataVo.getRoomCfg().getId(), betValue, 0));
+            RoomDataHelper.checkPlayerVipLevel(player, this, betValue);
+        } catch (Exception e) {
+            log.error("处理有效流水失败 info:{} betValue:{}", player.getId(), betValue, e);
+        }
+    }
+
+    //处理有效下注
+    public void dealBet(Player player, long betValue) {
+        ActivityManager activityManager = roomController.getRoomManager().getActivityManager();
+        try {
+            activityManager.addPlayerActivityProgress(player, ActivityTargetType.BET.getTargetKey(), betValue, getGameTransactionItemId());
+            activityManager.addActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET), betValue, getGameTransactionItemId());
+        } catch (Exception e) {
+            log.error("处理下注流水失败 info:{} betValue:{}", player.getId(), betValue, e);
+        }
     }
 
 }
