@@ -16,4 +16,8 @@ public class SharePromoteBindPlayerInfo {
     public int level;
     @ProtoDesc("头像id")
     public int headImgId;
+    @ProtoDesc("头像框id")
+    public int headFrameId;
+    @ProtoDesc("邀请时间")
+    public long invitationTime;
 }

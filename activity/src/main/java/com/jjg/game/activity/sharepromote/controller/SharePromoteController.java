@@ -40,10 +40,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -187,15 +184,20 @@ public class SharePromoteController extends BaseActivityController {
                 }
             }
             SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(player.getId());
-            if (playerInfoData != null && CollectionUtil.isNotEmpty(playerInfoData.getNotClaimedPlayerIds())) {
-                detailInfos.bindPlayerInfos = new ArrayList<>();
-                List<Player> players = corePlayerService.multiGetPlayer(playerInfoData.getNotClaimedPlayerIds());
-                for (Player oldPlayer : players) {
-                    SharePromoteBindPlayerInfo playerInfo = new SharePromoteBindPlayerInfo();
-                    playerInfo.headImgId = oldPlayer.getHeadImgId();
-                    playerInfo.level = oldPlayer.getLevel();
-                    playerInfo.nickname = oldPlayer.getNickName();
-                    detailInfos.bindPlayerInfos.add(playerInfo);
+            if (playerInfoData != null) {
+                Map<Long, Long> notClaimedPlayerIds = playerInfoData.getNotClaimedPlayerIds();
+                if (CollectionUtil.isNotEmpty(notClaimedPlayerIds)) {
+                    detailInfos.bindPlayerInfos = new ArrayList<>();
+                    List<Player> players = corePlayerService.multiGetPlayer(notClaimedPlayerIds.keySet());
+                    for (Player oldPlayer : players) {
+                        SharePromoteBindPlayerInfo playerInfo = new SharePromoteBindPlayerInfo();
+                        playerInfo.headImgId = oldPlayer.getHeadImgId();
+                        playerInfo.headFrameId = oldPlayer.getHeadFrameId();
+                        playerInfo.level = oldPlayer.getLevel();
+                        playerInfo.nickname = oldPlayer.getNickName();
+                        playerInfo.invitationTime = notClaimedPlayerIds.getOrDefault(oldPlayer.getId(), 0L);
+                        detailInfos.bindPlayerInfos.add(playerInfo);
+                    }
                 }
             }
             detailInfos.progress = sharePromoteDao.getBindCount(player.getId());
@@ -256,9 +258,9 @@ public class SharePromoteController extends BaseActivityController {
                 playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
                 playerInfoData.setBindCount(playerInfoData.getBindCount() + 1);
                 if (playerInfoData.getNotClaimedPlayerIds() == null) {
-                    playerInfoData.setNotClaimedPlayerIds(new ArrayList<>());
+                    playerInfoData.setNotClaimedPlayerIds(new HashMap<>());
                 }
-                playerInfoData.getNotClaimedPlayerIds().add(playerId);
+                playerInfoData.getNotClaimedPlayerIds().put(playerId,System.currentTimeMillis());
                 sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
                 save = true;
             } catch (Exception e) {

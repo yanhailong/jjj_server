@@ -522,7 +522,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             Map<AbstractRoomController<RC, R>, List<PlayerController>> needRemovePlayerControllers =
                     new HashMap<>();
             for (PlayerController playerController : playerControllers) {
-                if (playerController.roomId() < 1) {
+                if (playerController == null || playerController.roomId() < 1) {
                     continue;
                 }
                 if (!(playerController.getPlayer() instanceof RobotPlayer)) {
