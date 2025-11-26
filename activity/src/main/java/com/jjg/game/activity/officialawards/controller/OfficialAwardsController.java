@@ -61,6 +61,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
     private final DataCache dataCache;
     private final TimerCenter timerCenter;
     private final RobotUtil robotUtil;
+
     public OfficialAwardsController(OfficialAwardsDao officialAwardsDao, DataCache dataCache, TimerCenter timerCenter, RobotUtil robotUtil) {
         this.officialAwardsDao = officialAwardsDao;
         this.dataCache = dataCache;
@@ -82,6 +83,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
             int incremented = officialAwardsDao.incrementPlayerProgress(playerId, addValue);
             activityLogger.sendOfficialAwardsLog(player, activityData, 1, 0
                     , addValue, incremented, 0, null, null);
+            return true;
         }
         return false;
     }
@@ -280,6 +282,28 @@ public class OfficialAwardsController extends BaseActivityController implements 
         OfficialAwardsDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(player, activityData, baseCfgBeanMap.get(detailId), null);
         detailInfo.detailInfo.add(baseActivityDetailInfo);
         return detailInfo;
+    }
+
+    @Override
+    public boolean hasRedDot(long playerId, ActivityData activityData) {
+        int playerProgress = officialAwardsDao.getPlayerProgress(playerId);
+        if (playerProgress <= 0) {
+            return false;
+        }
+        Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(activityData.getType());
+        if (CollectionUtil.isEmpty(activityDataMap)) {
+            return false;
+        }
+        for (ActivityData data : activityDataMap.values()) {
+            int needPoints = activityData.getValueParam().get(1).intValue();
+            if (playerProgress >= needPoints) {
+                long totalPool = officialAwardsDao.getTotalPool(data.getId());
+                if (totalPool > 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

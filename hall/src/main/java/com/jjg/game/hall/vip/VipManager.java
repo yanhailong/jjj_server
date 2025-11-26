@@ -252,20 +252,21 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
     public List<RedDotDetails> initialize(long playerId, int submodule) {
         Player player = playerService.get(playerId);
         Optional<Vip> fromAllDB = vipService.getFromAllDB(playerId);
-        if (fromAllDB.isEmpty()) {
-            return List.of();
-        }
         RedDotDetails details = new RedDotDetails();
         details.setRedDotType(getModule().getRedDotType());
         details.setRedDotModule(getModule());
         details.setRedDotSubmodule(submodule);
-        Vip vip = fromAllDB.get();
-        long currentTimeMillis = System.currentTimeMillis();
-        for (VipGift gift : VipGift.values()) {
-            if (gift.isCanClaim(player, vip, currentTimeMillis)) {
-                details.setCount(1);
-                break;
+        if (fromAllDB.isPresent()) {
+            Vip vip = fromAllDB.get();
+            long currentTimeMillis = System.currentTimeMillis();
+            for (VipGift gift : VipGift.values()) {
+                if (gift.isCanClaim(player, vip, currentTimeMillis)) {
+                    details.setCount(1);
+                    break;
+                }
             }
+        } else {
+            details.setCount(1);
         }
         return List.of(details);
     }
