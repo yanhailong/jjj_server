@@ -251,11 +251,11 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
      * 对场上玩家进行重新排序
      */
     private void resortPlayerOnTable() {
-        List<GamePlayer> topGamePlayers =
-                gameDataVo.getGamePlayerMap().values().stream()
-                        .sorted((o1, o2) -> Long.compare(getTransactionItemNum(o2.getId()), getTransactionItemNum(o1.getId())))
-                        .limit(TableConstant.ON_TABLE_PLAYER_NUM)
-                        .toList();
+        List<GamePlayer> topGamePlayers = new ArrayList<>(gameDataVo.getGamePlayerMap().values());
+        topGamePlayers = topGamePlayers.stream()
+                .sorted((o1, o2) -> Long.compare(getTransactionItemNum(o2.getId()), getTransactionItemNum(o1.getId())))
+                .limit(TableConstant.ON_TABLE_PLAYER_NUM)
+                .toList();
         for (int i = 1; i <= topGamePlayers.size(); i++) {
             GamePlayer player = topGamePlayers.get(i - 1);
             player.getTableGameData().setSitNum(i);

@@ -1,6 +1,7 @@
 package com.jjg.game.activity.sharepromote.data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author lm
@@ -14,13 +15,13 @@ public class SharePromotePlayerData {
     //绑定玩家数
     private int bindCount;
     //未领取的玩家id
-    private List<Long> NotClaimedPlayerIds;
+    private Map<Long, Long> NotClaimedPlayerIds;
 
-    public List<Long> getNotClaimedPlayerIds() {
+    public Map<Long, Long> getNotClaimedPlayerIds() {
         return NotClaimedPlayerIds;
     }
 
-    public void setNotClaimedPlayerIds(List<Long> notClaimedPlayerIds) {
+    public void setNotClaimedPlayerIds(Map<Long, Long> notClaimedPlayerIds) {
         NotClaimedPlayerIds = notClaimedPlayerIds;
     }
 
