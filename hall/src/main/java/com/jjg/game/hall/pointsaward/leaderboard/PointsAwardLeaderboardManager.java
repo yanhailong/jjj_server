@@ -182,7 +182,7 @@ public class PointsAwardLeaderboardManager {
     /**
      * 缓存排行榜数据
      */
-    public void cacheRankData(){
+    public void cacheRankData() {
         if (configMap.containsKey(PointsAwardConstant.Leaderboard.AM)) {
             leaderboardService.loadRank(PointsAwardConstant.Leaderboard.AM);
         }
@@ -567,10 +567,10 @@ public class PointsAwardLeaderboardManager {
         };
         PointsAwardLeaderboardData rankingData;
         if (lock) {
+            rankingData = supplier.get();
+        } else {
             String lockKey = PointsAwardConstant.RedisLockKey.POINTS_AWARD_RANKING_LOCK + snapshotType;
             rankingData = redisLock.lockAndGet(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, supplier);
-        } else {
-            rankingData = supplier.get();
         }
         // 发奖
         sendAward(rankingData);

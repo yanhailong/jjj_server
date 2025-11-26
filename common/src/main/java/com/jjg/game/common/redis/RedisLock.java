@@ -51,7 +51,7 @@ public class RedisLock {
      */
     public boolean tryLock(String key, long waitTime) throws InterruptedException {
         if (isIllegalWaitTime(key, waitTime, TimeUnit.MILLISECONDS)) {
-            log.debug("获取锁失败 key = {}",key);
+            log.debug("获取锁失败 key = {}", key);
             return false;
         }
         RLock redissonLock = redissonClient.getLock(getKey(key));
@@ -234,8 +234,9 @@ public class RedisLock {
      * @param runnable 需要执行的逻辑代码。
      */
     public void lockAndRun(String key, int waitTime, Runnable runnable) {
+        boolean lock = false;
         try {
-            boolean lock = tryLock(key, waitTime);
+            lock = tryLock(key, waitTime);
             if (!lock) {
                 log.warn("lockAndRun 获取锁失败 key = {}", key);
                 return;
@@ -244,7 +245,9 @@ public class RedisLock {
         } catch (Exception e) {
             log.error("lockAndRun error", e);
         } finally {
-            tryUnlock(key);
+            if (lock) {
+                tryUnlock(key);
+            }
         }
     }
 
@@ -259,19 +262,7 @@ public class RedisLock {
      * @return 执行逻辑代码后的返回结果。
      */
     public <T> T lockAndGet(String key, int waitTime, Supplier<T> supplier) {
-        try {
-            boolean lock = tryLock(key, waitTime);
-            if (!lock) {
-                log.warn("lockAndGet 获取锁失败 key = {}", key);
-                return null;
-            }
-            return supplier.get();
-        } catch (Exception e) {
-            log.error("lockAndGet error", e);
-            return null;
-        } finally {
-            tryUnlock(key);
-        }
+        return executeWithLock(key, waitTime, TimeUnit.SECONDS, supplier);
     }
 
     /**
@@ -285,8 +276,9 @@ public class RedisLock {
      * @return 业务结果（失败返回 null）
      */
     public <T> T executeWithLock(String key, long waitTime, TimeUnit timeUnit, Supplier<T> action) {
+        boolean lock = false;
         try {
-            boolean lock = tryLock(key, waitTime, timeUnit);
+            lock = tryLock(key, waitTime, timeUnit);
             if (!lock) {
                 log.warn("executeWithLock 获取锁失败 key = {}", key);
                 return null;
@@ -297,7 +289,9 @@ public class RedisLock {
             log.error("executeWithLock error", e);
             return null;
         } finally {
-            tryUnlock(key);
+            if (lock) {
+                tryUnlock(key);
+            }
         }
     }
 }

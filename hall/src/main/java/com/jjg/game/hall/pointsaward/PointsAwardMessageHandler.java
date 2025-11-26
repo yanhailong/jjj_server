@@ -6,6 +6,7 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.PageUtils;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.req.ReqLuckyTreasureHistory;
@@ -111,9 +112,9 @@ public class PointsAwardMessageHandler {
             res.setConfigList(configList);
             res.setCount(pointsAwardTurntableService.getCount(playerController.playerId()));
             res.setMaxCount(pointsAwardTurntableService.getMaxCount(playerController.playerId()));
-            log.debug("玩家请求积分大奖签到 playerId = {}", playerController.playerId());
+            log.debug("玩家请求转盘配置 playerId = {}", playerController.playerId());
         } catch (Exception e) {
-            log.error("积分大奖获取配置错误!playerId = [{}]", playerController.playerId(), e);
+            log.error("玩家请求转盘配置错误!playerId = [{}]", playerController.playerId(), e);
             res.code = Code.EXCEPTION;
         }
         playerController.send(res);
@@ -124,17 +125,14 @@ public class PointsAwardMessageHandler {
      */
     @Command(PointsAwardConstant.Message.REQ_TURNTABLE)
     public void turntableSpin(PlayerController playerController, ReqPointsAwardTurntableSpin message) {
-        ResPointsAwardTurntableSpin res = new ResPointsAwardTurntableSpin(Code.SUCCESS);
-        int gridId = pointsAwardTurntableService.spin(playerController.playerId(), res);
-        if (gridId > 0) {
-            res.setGridId(gridId);
-        } else {
-            res.code = Code.SAMPLE_ERROR;
+        CommonResult<ResPointsAwardTurntableSpin> result =  pointsAwardTurntableService.spin(playerController.playerId());
+        if(!result.success()){
+            playerController.send(new ResPointsAwardTurntableSpin(result.code));
+            return;
         }
-        res.setCount(pointsAwardTurntableService.getCount(playerController.playerId()));
-        res.setMaxCount(pointsAwardTurntableService.getMaxCount(playerController.playerId()));
-        playerController.send(res);
-        log.debug("玩家请求积分大奖转盘 playerId = {},code = {},count = {},maxCount = {},gridId = {}", playerController.playerId(), res.code, res.getCount(), res.getMaxCount(), res.getGridId());
+
+        playerController.send(result.data);
+        log.debug("玩家请求积分大奖转盘 playerId = {},count = {},maxCount = {},gridId = {}", playerController.playerId(), result.data.getCount(), result.data.getMaxCount(), result.data.getGridId());
         //更新红点
         redDotManager.updateRedDotByInitialize(pointsAwardTurntableService.getModule(), pointsAwardTurntableService.getSubmodule(), playerController.playerId());
     }

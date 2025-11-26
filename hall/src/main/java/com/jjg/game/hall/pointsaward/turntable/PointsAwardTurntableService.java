@@ -6,8 +6,10 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.PointsAwardType;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
@@ -212,57 +214,82 @@ public class PointsAwardTurntableService implements IRedDotService {
      * @param playerId 玩家id
      * @return true 成功
      */
-    public int spin(long playerId, ResPointsAwardTurntableSpin spinRes) {
+    public CommonResult<ResPointsAwardTurntableSpin> spin(long playerId) {
+        CommonResult<ResPointsAwardTurntableSpin> result = new CommonResult<>(Code.FAIL);
+
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.POINTS_AWARDS_TURNTABLE_SPEND_SCORE);
         if (globalConfigCfg == null) {
-            return -1;
+            result.code = Code.SAMPLE_ERROR;
+            log.warn("积分大奖转盘时，未在global表中找到配置 id = {}", GameConstant.GlobalConfig.POINTS_AWARDS_TURNTABLE_SPEND_SCORE);
+            return result;
         }
 
         //积分消耗数量
         int consume = globalConfigCfg.getIntValue();
+
+        // 通过校验与扣费后再出结果，缩短锁持有时间，避免锁嵌套
+        Map<Integer, Integer> probabilityMap = cfgTreeMap.values().stream()
+                .collect(Collectors.toMap(PointsAwardTurntableCfg::getId, PointsAwardTurntableCfg::getProbability, (a, b) -> b));
+        Set<Integer> selectedIds = RandomUtils.getRandomByWeight(probabilityMap, 1);
+        if (!selectedIds.iterator().hasNext()) {
+            log.warn("玩家[{}]积分大奖转盘奖励发送失败!", playerId);
+            result.code = Code.SAMPLE_ERROR;
+            return result;
+        }
+        int selectedId = selectedIds.iterator().next();
+
+        PointsAwardTurntableCfg awardTurntableCfg = getCfg(selectedId);
+        if (awardTurntableCfg == null) {
+            log.warn("玩家[{}]积分大奖转盘奖励发送失败!中奖id[{}]配置不存在!", playerId, selectedId);
+            result.code = Code.SAMPLE_ERROR;
+            return result;
+        }
+        int integralPoints = awardTurntableCfg.getIntegralNum();
+        // 积分奖励（内部自带锁，与扣费不再嵌套）
+        if (integralPoints > 0) {
+            pointsAwardService.add(playerId, integralPoints, PointsAwardType.TURNTABLE);
+        }
+        // 道具奖励
+        if (awardTurntableCfg.getGetItem() != null && !awardTurntableCfg.getGetItem().isEmpty()) {
+            playerPackService.addItems(playerId, ItemUtils.buildItems(awardTurntableCfg.getGetItem()), AddType.POINTS_AWARD_TURNTABLE_REWARDS);
+        }
+
         //验证扣除并且返回结果
-        return pointsAwardService.deduct(playerId, consume, checkTurntable(playerId), () -> {
-            int selectedId = -1;
-            // 通过校验与扣费后再出结果，缩短锁持有时间，避免锁嵌套
-            Map<Integer, Integer> probabilityMap = cfgTreeMap.values().stream()
-                    .collect(Collectors.toMap(PointsAwardTurntableCfg::getId, PointsAwardTurntableCfg::getProbability, (a, b) -> b));
-            Set<Integer> selectedIds = RandomUtils.getRandomByWeight(probabilityMap, 1);
-            if (!selectedIds.iterator().hasNext()) {
-                return selectedId;
-            }
-            selectedId = selectedIds.iterator().next();
-            // 发送奖励
-            PointsAwardTurntableCfg awardTurntableCfg = getCfg(selectedId);
-            if (awardTurntableCfg != null) {
-                int integralPoints = awardTurntableCfg.getIntegralNum();
-                // 积分奖励（内部自带锁，与扣费不再嵌套）
-                if (integralPoints > 0) {
-                    pointsAwardService.add(playerId, integralPoints, PointsAwardType.TURNTABLE);
-                }
-                // 道具奖励
-                if (awardTurntableCfg.getGetItem() != null && !awardTurntableCfg.getGetItem().isEmpty()) {
-                    playerPackService.addItems(playerId, ItemUtils.buildItems(awardTurntableCfg.getGetItem()), AddType.POINTS_AWARD_TURNTABLE_REWARDS);
-                }
-                PointsAwardTurntableHistory history = new PointsAwardTurntableHistory();
-                history.setPlayerId(playerId);
-                history.setAwardId(selectedId);
-                history.setTime(System.currentTimeMillis());
-                history.setIntegralNum(integralPoints);
-                history.getItemInfoList().addAll(ItemUtils.buildItemInfos(awardTurntableCfg.getGetItem()));
-                addHistory(history);
-                //增加玩家转盘次数
-                countMap.fastPut(playerId, countMap.getOrDefault(playerId, 0) + 1);
-                //转盘日志
-                pointsAwardLogger.turntableLog(playerId, consume, integralPoints, pointsAwardService.getPoints(playerId));
-                //客户端返回数据组装
-                //添加本次历史记录
-                spinRes.setHistory(history);
-                spinRes.setGridId(selectedId);
-            } else {
-                log.warn("玩家[{}]积分大奖转盘奖励发送失败!中奖id[{}]配置不存在!", playerId, selectedId);
-            }
+        int girdId = pointsAwardService.deduct(playerId, consume, checkTurntable(playerId), () -> {
+            //增加玩家转盘次数
+            countMap.fastPut(playerId, countMap.getOrDefault(playerId, 0) + 1);
             return selectedId;
         }, -1, PointsAwardType.TURNTABLE);
+
+        if (girdId > 0) {
+            PointsAwardTurntableHistory history = new PointsAwardTurntableHistory();
+            history.setPlayerId(playerId);
+            history.setAwardId(selectedId);
+            history.setTime(System.currentTimeMillis());
+            history.setIntegralNum(integralPoints);
+            history.getItemInfoList().addAll(ItemUtils.buildItemInfos(awardTurntableCfg.getGetItem()));
+            addHistory(history);
+            //客户端返回数据组装
+            //添加本次历史记录
+
+            ResPointsAwardTurntableSpin res = new ResPointsAwardTurntableSpin(Code.SUCCESS);
+            res.setHistory(history);
+            res.setGridId(selectedId);
+
+            int useCount = getCount(playerId);
+            int maxCount = getMaxCount(playerId);
+
+            res.setCount(useCount);
+            res.setMaxCount(maxCount);
+            result.code = Code.SUCCESS;
+            result.data = res;
+
+            int afterCount = maxCount - useCount;
+            //转盘日志
+            pointsAwardLogger.turntableLog(playerId, -1, afterCount);
+        }
+
+        return result;
     }
 
     public String historyKey(long playerId) {
@@ -314,15 +341,19 @@ public class PointsAwardTurntableService implements IRedDotService {
     /**
      * 增加玩家转盘次数
      *
-     * @param playerId 玩家id
-     * @param count    增加次数
+     * @param playerId    玩家id
+     * @param resultCount 最终次数
      */
-    public void replaceCount(long playerId, int count) {
+    public void replaceCount(long playerId, int resultCount, int addCount) {
         RLock lock = addCountMap.getReadWriteLock(playerId).writeLock();
         if (lock.tryLock()) {
-            addCountMap.fastPut(playerId, count);
+            addCountMap.fastPut(playerId, resultCount);
             lock.unlock();
         }
+
+        int afterCount = getMaxCount(playerId) - getCount(playerId);
+        //转盘日志
+        pointsAwardLogger.turntableLog(playerId, addCount, afterCount);
     }
 
     /**
@@ -360,20 +391,23 @@ public class PointsAwardTurntableService implements IRedDotService {
             return;
         }
         int resultCount = recharge.divide(needValue, 2, RoundingMode.DOWN).intValue();
+        int addCount = order.getPrice().divide(needValue, 2, RoundingMode.DOWN).intValue();
         if (resultCount > 0) {
-            replaceCount(playerId, resultCount);
+            replaceCount(playerId, resultCount, addCount);
         }
         redDotManager.updateRedDotByInitialize(getModule(), getSubmodule(), playerId);
     }
 
     /**
      * 检查玩家是否可以转盘
+     *
      * @param playerId
      * @return
      */
     private Supplier<Boolean> checkTurntable(long playerId) {
+        int maxCount = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.POINTS_AWARDS_TURNTABLE_INIT_COUNT_LIMIT).getIntValue();
+
         return () -> {
-            int maxCount = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.POINTS_AWARDS_TURNTABLE_INIT_COUNT_LIMIT).getIntValue();
             int count = 0;
             if (countMap != null) {
                 count = countMap.getOrDefault(playerId, 0);
