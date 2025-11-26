@@ -205,6 +205,7 @@ public class MatchDataDao {
                         return 0;
                     }
                     diffCount++;
+                    log.warn("房间内人数和计数不相等 roomId:{} roomNum:{} roomScoreInfo:{} 当前计数 ", roomId, roomNum, roomScoreInfo, diffCount);
                 }
             }
         } catch (Exception e) {
