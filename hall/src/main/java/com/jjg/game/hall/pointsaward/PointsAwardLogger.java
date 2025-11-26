@@ -100,4 +100,26 @@ public class PointsAwardLogger extends BaseLogger {
         }
     }
 
+    /**
+     * 领取阶段奖励
+     * @param playerId
+     * @param points
+     * @param changeGold
+     * @param afterGold
+     * @param autoRecive
+     */
+    public void ladderReward(long playerId, long points, long changeGold, long afterGold, boolean autoRecive) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("points", points);
+            json.put("changeGold", changeGold);
+            json.put("afterGold", afterGold);
+            json.put("autoRecive", autoRecive);
+            json.put("playerId", playerId);
+            sendLog("ladderreward", null, json);
+        } catch (Exception e) {
+            log.error("记录绑定日志异常", e);
+        }
+    }
+
 }
