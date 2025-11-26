@@ -647,7 +647,7 @@ public class GMController extends AbstractController {
                     vo.setGold(player.getGold());
                     vo.setDiamond(player.getDiamond());
                 }
-                vo.setRegisterChannel(dto.registerChannel());
+                vo.setRegisterChannel(olp.getChannel());
                 resultList.add(vo);
             }
             pageVo.setCount(onlinePlayerDao.countBy(dto.registerChannel(), dto.gameId()));

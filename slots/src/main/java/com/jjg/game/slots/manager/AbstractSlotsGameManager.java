@@ -759,6 +759,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     public <DT extends SlotsPlayerGameDataDTO> T createPlayerGameData(PlayerController playerController) throws Exception {
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData != null) {
+            playerGameData.setCreateTime(TimeHelper.nowInt());
+            playerGameData.setOnline(true);
+            playerGameData.setPlayerController(playerController);
             return playerGameData;
         }
 
@@ -782,6 +785,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         } else {
             playerGameData = playerGameDataDTO.converToGameData(this.playerGameDataClass);
             playerGameData.getHasPlaySlots().set(true);
+            playerGameData.setCreateTime(TimeHelper.nowInt());
 
             log.debug("从db中获取的playerGameData = {}", JSON.toJSONString(playerGameData));
         }
@@ -1171,7 +1175,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
 
     public T exit(PlayerController playerController) {
-        return null;
+        T playerGameData = getPlayerGameData(playerController);
+        if(playerGameData == null){
+            return null;
+        }
+        playerGameData.setOnline(false);
+        return playerGameData;
     }
 
     protected int getBigShowIdByTimes(int times) {

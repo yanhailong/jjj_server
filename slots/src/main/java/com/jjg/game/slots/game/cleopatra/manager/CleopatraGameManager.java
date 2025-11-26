@@ -15,7 +15,6 @@ import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraGameDataDao;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraResultLibDao;

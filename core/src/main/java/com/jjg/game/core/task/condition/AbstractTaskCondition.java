@@ -82,7 +82,7 @@ public abstract class AbstractTaskCondition<T extends DefaultTaskConditionParam>
     protected void addProgress(long playerId, TaskCfg taskCfg, TaskDetail taskDetail, T param) {
         Map<Integer, Long> taskDataProgress = taskDetail.getProgress();
         taskDataProgress.merge(taskCfg.getTaskConditionId().getFirst(), param.getAddValue(), Long::sum);
-        log.info("玩家[{}]任务[{}]条件[{}]增加进度[{}]总进度[{}]", playerId, taskCfg.getId(), getConditionId(), param.getAddValue(), taskDataProgress.get(taskCfg.getTaskConditionId().getFirst()));
+        log.debug("玩家[{}]任务[{}]条件[{}]增加进度[{}]总进度[{}]", playerId, taskCfg.getId(), getConditionId(), param.getAddValue(), taskDataProgress.get(taskCfg.getTaskConditionId().getFirst()));
     }
 
     /**
