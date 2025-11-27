@@ -375,9 +375,6 @@ public class SharePromoteController extends BaseActivityController {
                 }
                 //添加领取记录
                 playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
-                if (playerInfoData.getHistory() == null) {
-                    playerInfoData.setHistory(new ArrayList<>());
-                }
                 //添加记录
                 addRecord(playerInfoData, playerIncome);
                 //回存玩家推广分享数据
@@ -410,6 +407,9 @@ public class SharePromoteController extends BaseActivityController {
      * @param playerIncome 本次收入
      */
     private void addRecord(SharePromotePlayerData playerInfoData, long playerIncome) {
+        if (playerInfoData.getHistory() == null) {
+            playerInfoData.setHistory(new ArrayList<>());
+        }
         //达到记录上限移除第一个
         if (playerInfoData.getHistory().size() >= ActivityConstant.SharePromote.MAX_RECODE_NUM) {
             playerInfoData.getHistory().removeFirst();
@@ -729,7 +729,7 @@ public class SharePromoteController extends BaseActivityController {
             }
             playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
             if (playerInfoData == null || CollectionUtil.isEmpty(playerInfoData.getNotClaimedPlayerIds())) {
-                res.code = Code.SAMPLE_ERROR;
+                res.code = Code.PARAM_ERROR;
                 return res;
             }
             totalRewards = playerInfoData.getNotClaimedPlayerIds().size() * count;
