@@ -120,6 +120,9 @@ public class LuckyTreasureInfo {
     @ProtoDesc("结束购买倒计时")
     private int endBuyCountDown;
 
+    @ProtoDesc("中奖玩家")
+    private String winPlayerName;
+
     public long getIssueNumber() {
         return issueNumber;
     }
@@ -262,5 +265,13 @@ public class LuckyTreasureInfo {
 
     public void setEndBuyCountDown(int endBuyCountDown) {
         this.endBuyCountDown = endBuyCountDown;
+    }
+
+    public String getWinPlayerName() {
+        return winPlayerName;
+    }
+
+    public void setWinPlayerName(String winPlayerName) {
+        this.winPlayerName = winPlayerName;
     }
 }
