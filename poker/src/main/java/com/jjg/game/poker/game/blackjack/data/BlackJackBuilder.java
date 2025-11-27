@@ -57,6 +57,7 @@ public class BlackJackBuilder {
             }
         }
         blackJackPlayerInfo.pokerPlayerInfo = pokerPlayerInfo;
+        blackJackPlayerInfo.betList = controller.getGameDataVo().getPlayerBetValueList().getOrDefault(playerSeatInfo.getPlayerId(), List.of());
         return blackJackPlayerInfo;
     }
 
