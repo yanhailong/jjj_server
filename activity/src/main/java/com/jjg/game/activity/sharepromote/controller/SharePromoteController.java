@@ -241,7 +241,8 @@ public class SharePromoteController extends BaseActivityController {
             return res;
         }
         //绑定玩家
-        res.code = sharePromoteDao.bindPlayer(playerId, req.invitationCode);
+        CommonResult<Long> result = sharePromoteDao.bindPlayer(playerId, req.invitationCode);
+        res.code = result.code;
         //绑定之前的收益率
         int bindBefore = getPlayerProportion(playerId, activityData);
         if (res.code == Code.SUCCESS) {
@@ -261,7 +262,7 @@ public class SharePromoteController extends BaseActivityController {
                 if (playerInfoData.getNotClaimedPlayerIds() == null) {
                     playerInfoData.setNotClaimedPlayerIds(new HashMap<>());
                 }
-                playerInfoData.getNotClaimedPlayerIds().put(playerId, System.currentTimeMillis());
+                playerInfoData.getNotClaimedPlayerIds().put(result.data, System.currentTimeMillis());
                 sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
                 save = true;
             } catch (Exception e) {

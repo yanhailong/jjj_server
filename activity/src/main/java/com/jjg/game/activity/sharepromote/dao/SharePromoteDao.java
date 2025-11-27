@@ -3,6 +3,7 @@ package com.jjg.game.activity.sharepromote.dao;
 import com.jjg.game.activity.sharepromote.data.SharePromotePlayerData;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import org.apache.commons.lang3.StringUtils;
@@ -275,27 +276,35 @@ public class SharePromoteDao {
      * @param code     推广码
      * @return Code.SUCCESS/Code.ALREADY_BOUND/Code.ALREADY_OTHER_BOUND/Code.CODE_ERROR
      */
-    public int bindPlayer(long playerId, String code) {
+    public CommonResult<Long> bindPlayer(long playerId, String code) {
+        CommonResult<Long> result = new CommonResult<>(Code.FAIL);
         try {
             String createPlayerId = getHashOperations().get(SHARE_PROMOTE_CODE, code);
             if (createPlayerId == null) {
                 addPlayerCodeErrorPrint(playerId);
-                return Code.CODE_ERROR;
+                result.code = Code.CODE_ERROR;
+                return result;
             }
-            if (playerId == Long.parseLong(createPlayerId)) {
-                return Code.BOUND_SELF;
+            long createId = Long.parseLong(createPlayerId);
+            if (playerId == createId) {
+                result.code = Code.BOUND_SELF;
+                return result;
             }
             // 被绑定玩家是否已绑定过
             Boolean success = redisTemplate.opsForValue().setIfAbsent(
                     SHARE_PROMOTE_ALREADY_BIND_KEY.formatted(createPlayerId), getBindString(playerId));
             if (Boolean.FALSE.equals(success)) {
                 log.info("绑定失败 playerId={} 已经被绑定", playerId);
-                return Code.ALREADY_BOUND;
+                result.code = Code.ALREADY_BOUND;
+                return result;
             }
 
             String bindKey = SHARE_PROMOTE_BIND_KEY.formatted(createPlayerId);
             Boolean member = redisTemplate.opsForSet().isMember(bindKey, String.valueOf(playerId));
-            if (Boolean.TRUE.equals(member)) return Code.ALREADY_BOUND;
+            if (Boolean.TRUE.equals(member)) {
+                result.code = Code.ALREADY_BOUND;
+                return result;
+            }
 
             // 保存绑定关系
             String requestBindKey = SHARE_PROMOTE_BIND_KEY.formatted(playerId);
@@ -306,11 +315,12 @@ public class SharePromoteDao {
             // 初始化来源排行榜
             String incomeKey = SHARE_PROMOTE_REWARDS_INCOME_RANK.formatted(playerId);
             redisTemplate.opsForZSet().add(incomeKey, createPlayerId, 0);
-
+            result.data = createId;
+            result.code = Code.SUCCESS;
         } catch (Exception e) {
             log.error("绑定玩家出现异常 playerId={} code={}", playerId, code, e);
         }
-        return Code.SUCCESS;
+        return result;
     }
 
     /**
