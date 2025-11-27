@@ -319,7 +319,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
 
     @Override
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
-//        canStartNextPhase();
+        gameDataVo.getPlayerBetValueList().remove(remove.getPlayerId());
     }
 
     public void canStartNextPhase() {
