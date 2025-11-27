@@ -89,7 +89,9 @@ public class SaveLogUtil {
             if (income > 0) {
                 controller.triggerTask(player.getId(), controller.getRoom().getGameType(), income, controller.getGameTransactionItemId());
             }
-            controller.dealBet(player, allBet);
+            if (allBet > 0) {
+                controller.dealBet(player, allBet);
+            }
         } catch (Exception e) {
             log.error("下注结束记录异常 playId:{}", player.getId(), e);
         }

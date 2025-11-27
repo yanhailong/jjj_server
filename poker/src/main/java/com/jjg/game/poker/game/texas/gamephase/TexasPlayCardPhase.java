@@ -157,7 +157,9 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         texasHistory.setBBValue(BBBetValue);
             Thread.ofVirtual().start(() -> {
                 gameController.dealEffectiveBet(bBGamePlayer, BBBetValue);
+                gameController.dealBet(bBGamePlayer, BBBetValue);
                 gameController.dealEffectiveBet(sBGamePlayer, sBBetValue);
+                gameController.dealBet(sBGamePlayer, sBBetValue);
             });
         historyRoundInfo.potAllBet = Arrays.asList(BBBetValue + sBBetValue);
         return Pair.newPair(sBBetValue, BBBetValue);
