@@ -16,9 +16,8 @@
     <!-- ch.qos.logback.core.rolling.RollingFileAppender 文件日志输出 -->
     <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <File>${LOG_HOME}/hall.log</File>
-        <cleanHistoryOnStart>true</cleanHistoryOnStart>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <FileNamePattern>${LOG_HOME}/hall-%d{yyyy-MM-dd}.log</FileNamePattern>
+            <fileNamePattern>${LOG_HOME}/hall-%d{yyyy-MM-dd-HH}.log</fileNamePattern>
         </rollingPolicy>
         <encoder>
             <pattern>%4d{yyyy-MM-dd HH:mm:ss.fff} [%thread] %-5p - %c [%X{playerId}] - %m%n</pattern>

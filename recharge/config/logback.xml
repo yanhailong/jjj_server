@@ -17,7 +17,7 @@
         <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
                 <File>${LOG_HOME}/recharge.log</File>
                 <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-                        <FileNamePattern>${LOG_HOME}/recharge-%d{yyyy-MM-dd}.log</FileNamePattern>
+                        <FileNamePattern>${LOG_HOME}/recharge-%d{yyyy-MM-dd-HH}.log</FileNamePattern>
                 </rollingPolicy>
                 <encoder>
                         <pattern>%4d{yyyy-MM-dd HH:mm:ss.fff} [%thread] %-5p - %c [%X{playerId}] - %m%n</pattern>

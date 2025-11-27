@@ -20,5 +20,6 @@ public class BlackJackPlayerInfo {
     public List<BlackJackCardInfo> cardInfos;
     @ProtoDesc("当前牌索引")
     public int currentCardIds;
-
+    @ProtoDesc("下注信息")
+    public List<Long> betList;
 }

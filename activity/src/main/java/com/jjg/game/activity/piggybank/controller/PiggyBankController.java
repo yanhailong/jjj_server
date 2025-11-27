@@ -14,6 +14,7 @@ import com.jjg.game.activity.piggybank.message.res.ResPiggyBankClaimRewards;
 import com.jjg.game.activity.piggybank.message.res.ResPiggyBankDetailInfo;
 import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
@@ -164,8 +165,8 @@ public class PiggyBankController extends BaseActivityController implements GameE
 
         long activityId = activityData.getId();
         Map<Integer, PiggyBankCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
-
         boolean changeStatus = false;
+        List<Pair<PiggyBankData, PiggyBankCfg>> piggyBankDataList = new ArrayList<>();
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         // 分布式锁
         boolean lock = false;
@@ -200,6 +201,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
                 if (piggyBankData.getProgress() >= realFull) {
                     piggyBankData.setFullTime(System.currentTimeMillis());
                     changeStatus = true;
+                    piggyBankDataList.add(Pair.newPair(piggyBankData, cfg));
                 }
             }
 
@@ -214,7 +216,15 @@ public class PiggyBankController extends BaseActivityController implements GameE
                 redisLock.tryUnlock(lockKey);
             }
         }
-
+        //推送满的信息
+        if (!piggyBankDataList.isEmpty()) {
+            ResPiggyBankDetailInfo resPiggyBankDetailInfo = new ResPiggyBankDetailInfo(Code.SUCCESS);
+            resPiggyBankDetailInfo.detailInfo = new ArrayList<>();
+            for (Pair<PiggyBankData, PiggyBankCfg> data : piggyBankDataList) {
+                resPiggyBankDetailInfo.detailInfo.add(buildPlayerActivityDetail(player, activityData, data.getSecond(), data.getFirst()));
+            }
+            activityManager.sendToPlayer(playerId, resPiggyBankDetailInfo);
+        }
         return changeStatus;
     }
 
