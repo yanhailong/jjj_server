@@ -117,6 +117,31 @@ public class SharePromoteDao {
     /**
      * 增加玩家收益
      * 会更新：
+     * 2. 历史总收益
+     * 3. 当日收益
+     *
+     */
+    public void addPlayerIncome(long playerId, long addValue) {
+        if (addValue <= 0) return;
+        // 可领取总收入
+        String key = SHARE_PROMOTE_REWARDS_INCOME.formatted(playerId);
+        redisTemplate.opsForValue().increment(key, addValue);
+
+        // 历史总收入
+        String historyKey = SHARE_PROMOTE_REWARDS_HISTORY_INCOME.formatted(playerId);
+        redisTemplate.opsForValue().increment(historyKey, addValue);
+
+        // 当日收入
+        String dailyKey = String.format("activity:sharepromote:income:%s:%d",
+                LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE), playerId);
+        redisTemplate.opsForValue().increment(dailyKey, addValue);
+        redisTemplate.expire(dailyKey, Duration.ofDays(1));
+    }
+
+
+    /**
+     * 增加玩家收益
+     * 会更新：
      * 1. 可领取总收益
      * 2. 历史总收益
      * 3. 当日收益
@@ -125,23 +150,8 @@ public class SharePromoteDao {
      */
     public void addPlayerIncome(long sourcePlayerId, long beneficiaryPlayerId, long addValue) {
         if (addValue <= 0) return;
-
+        addPlayerIncome(beneficiaryPlayerId, addValue);
         String incomeKey = SHARE_PROMOTE_REWARDS_INCOME_RANK.formatted(beneficiaryPlayerId);
-
-        // 可领取总收入
-        String key = SHARE_PROMOTE_REWARDS_INCOME.formatted(beneficiaryPlayerId);
-        redisTemplate.opsForValue().increment(key, addValue);
-
-        // 历史总收入
-        String historyKey = SHARE_PROMOTE_REWARDS_HISTORY_INCOME.formatted(beneficiaryPlayerId);
-        redisTemplate.opsForValue().increment(historyKey, addValue);
-
-        // 当日收入
-        String dailyKey = String.format("activity:sharepromote:income:%s:%d",
-                LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE), beneficiaryPlayerId);
-        redisTemplate.opsForValue().increment(dailyKey, addValue);
-        redisTemplate.expire(dailyKey, Duration.ofDays(1));
-
         // 来源排行榜
         redisTemplate.opsForZSet().incrementScore(incomeKey, String.valueOf(sourcePlayerId), addValue);
     }
@@ -163,7 +173,7 @@ public class SharePromoteDao {
         try {
             GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(72);
             if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
-                String[] limitCfg = StringUtils.split("_");
+                String[] limitCfg = StringUtils.split(globalConfigCfg.getValue(), "_");
                 if (limitCfg.length == 2) {
                     return Integer.parseInt(limitCfg[1]);
                 }

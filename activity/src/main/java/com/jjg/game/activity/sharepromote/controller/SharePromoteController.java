@@ -86,6 +86,7 @@ public class SharePromoteController extends BaseActivityController {
             }
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
             res.detailInfo = buildPlayerActivityDetail(player, activityData, cfg, claimRewardsResult.playerActivityData());
+            sharePromoteDao.addPlayerIncome(playerId, add);
         }
         return res;
     }
@@ -728,6 +729,7 @@ public class SharePromoteController extends BaseActivityController {
                 redisLock.tryUnlock(lock);
             }
         }
+        sharePromoteDao.addPlayerIncome(playerId, totalRewards);
         res.infoList = ItemUtils.buildItemInfo(itemId, totalRewards);
         return res;
     }
