@@ -86,6 +86,9 @@ public class SharePromoteController extends BaseActivityController {
             }
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
             res.detailInfo = buildPlayerActivityDetail(player, activityData, cfg, claimRewardsResult.playerActivityData());
+            SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
+            addRecord(playerInfoData, add);
+            sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
             sharePromoteDao.addPlayerIncome(playerId, add);
         }
         return res;
@@ -127,8 +130,8 @@ public class SharePromoteController extends BaseActivityController {
                 .multiply(magnification)
                 .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
                 .longValue();
-        sharePromoteDao.addPlayerIncome(playerId, beneficiaryPlayerId, addValue);
         if (addValue > 0) {
+            sharePromoteDao.addPlayerIncome(playerId, beneficiaryPlayerId, addValue);
             Player beneficiaryPlayer = corePlayerService.get(beneficiaryPlayerId);
             //发送日志
             activityLogger.sendSharePromoteAddRewards(beneficiaryPlayer, activityData, 1,
@@ -375,15 +378,13 @@ public class SharePromoteController extends BaseActivityController {
                 if (playerInfoData.getHistory() == null) {
                     playerInfoData.setHistory(new ArrayList<>());
                 }
-                //达到记录上限移除第一个
-                if (playerInfoData.getHistory().size() >= ActivityConstant.SharePromote.MAX_RECODE_NUM) {
-                    playerInfoData.getHistory().removeFirst();
-                }
-                playerInfoData.getHistory().add(getRecord(playerIncome));
+                //添加记录
+                addRecord(playerInfoData, playerIncome);
                 //回存玩家推广分享数据
                 sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
                 //更新排行榜
                 sharePromoteDao.updateRankScore(playerId, playerIncome);
+                sharePromoteDao.addPlayerIncome(playerId, playerIncome);
                 if (addedItem.data != null) {
                     //添加日志
                     activityLogger.sendSharePromoteAddRewards(playerController.getPlayer(), activityData, 3, 0, 0, playerIncome,
@@ -401,6 +402,19 @@ public class SharePromoteController extends BaseActivityController {
             res.recodes = buildRecords(playerInfoData.getHistory());
         }
         return res;
+    }
+
+    /**
+     * 添加记录
+     * @param playerInfoData 推广分享玩家数据
+     * @param playerIncome 本次收入
+     */
+    private void addRecord(SharePromotePlayerData playerInfoData, long playerIncome) {
+        //达到记录上限移除第一个
+        if (playerInfoData.getHistory().size() >= ActivityConstant.SharePromote.MAX_RECODE_NUM) {
+            playerInfoData.getHistory().removeFirst();
+        }
+        playerInfoData.getHistory().add(getRecord(playerIncome));
     }
 
     /**
@@ -681,6 +695,11 @@ public class SharePromoteController extends BaseActivityController {
         return Map.of();
     }
 
+    /**
+     * 请求领取绑定玩家奖励
+     * @param playerController 玩家控制器
+     * @param activityData 活动数据
+     */
     public AbstractResponse reqSharePromoteClaimBindRewards(PlayerController playerController, ActivityData activityData) {
         ResSharePromoteClaimBindRewards res = new ResSharePromoteClaimBindRewards(Code.SUCCESS);
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(62);
@@ -721,6 +740,8 @@ public class SharePromoteController extends BaseActivityController {
             if (!result.success()) {
                 log.error("领取推广分享绑定玩家奖励失败 playerId:{} count:{}", playerId, count);
             }
+            //添加记录
+            addRecord(playerInfoData, totalRewards);
             sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
         } catch (Exception e) {
             log.error("创建玩家推广分享数据失败 playerId={}", playerId, e);
