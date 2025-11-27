@@ -397,6 +397,7 @@ public class SharePromoteController extends BaseActivityController {
                 }
             }
             res.itemInfo = ItemUtils.buildItemInfo(goldItemId, playerIncome);
+            res.recodes = buildRecords(playerInfoData.getHistory());
         }
         return res;
     }
@@ -455,23 +456,33 @@ public class SharePromoteController extends BaseActivityController {
             res.invitationCode = playerInfoData.getCode();
             res.getProfitReward = sharePromoteDao.getPlayerIncome(playerId);
             List<String> history = playerInfoData.getHistory();
-            if (CollectionUtil.isNotEmpty(history)) {
-                res.recodes = new ArrayList<>(history.size());
-                //解析记录信息
-                for (String record : history) {
-                    String[] split = StringUtils.split(record, "_");
-                    if (split.length != 2) {
-                        continue;
-                    }
-                    SharePromoteRewardsRecode recode = new SharePromoteRewardsRecode();
-                    recode.getNum = Integer.parseInt(split[0]);
-                    recode.getTime = Long.parseLong(split[1]);
-                    res.recodes.add(recode);
-                }
-            }
+            res.recodes = buildRecords(history);
 
         }
         return res;
+    }
+
+    /**
+     * 构建记录信息
+     * @param history 历史信息
+     */
+    private List<SharePromoteRewardsRecode> buildRecords(List<String> history) {
+        if (CollectionUtil.isNotEmpty(history)) {
+            List<SharePromoteRewardsRecode> list = new ArrayList<>(history.size());
+            //解析记录信息
+            for (String record : history) {
+                String[] split = StringUtils.split(record, "_");
+                if (split.length != 2) {
+                    continue;
+                }
+                SharePromoteRewardsRecode recode = new SharePromoteRewardsRecode();
+                recode.getNum = Integer.parseInt(split[0]);
+                recode.getTime = Long.parseLong(split[1]);
+                list.add(recode);
+            }
+            return list;
+        }
+        return List.of();
     }
 
     /**
