@@ -28,13 +28,13 @@ import java.util.List;
 public class RedissonConfig {
     private Logger log = LoggerFactory.getLogger(getClass());
 
-    @Value("${spring.data.redis.host}")
+    @Value("${spring.data.redis.host:}")
     private String redisAddress;
-    @Value("${spring.data.redis.port}")
+    @Value("${spring.data.redis.port:0}")
     private int redisPort;
-    @Value("${spring.data.redis.password}")
+    @Value("${spring.data.redis.password:}")
     private String redisPassword;
-    @Value("${spring.data.redis.database}")
+    @Value("${spring.data.redis.database:0}")
     private int redisDb;
     @Value("${spring.data.redis.cluster.nodes:}")
     private String clusterNodes;
@@ -73,7 +73,13 @@ public class RedissonConfig {
      */
     private Config configureSingleMode() {
         Config config = new Config();
-        String redissonAddr = "redis://" + redisAddress + ":" + redisPort;
+
+        String redissonAddr;
+        if(redisAddress.startsWith("clustercfg")){
+            redissonAddr = "rediss://" + redisAddress + ":" + redisPort;
+        }else {
+            redissonAddr = "redis://" + redisAddress + ":" + redisPort;
+        }
         config.useSingleServer().setAddress(redissonAddr)
                 .setPassword(redisPassword)
                 .setDatabase(redisDb);
@@ -90,7 +96,6 @@ public class RedissonConfig {
         String[] nodeAddresses = nodes.stream()
                 .map(node -> "redis://" + node.trim())
                 .toArray(String[]::new);
-
         config.useClusterServers()
                 .setPassword(redisPassword)
                 .addNodeAddress(nodeAddresses)

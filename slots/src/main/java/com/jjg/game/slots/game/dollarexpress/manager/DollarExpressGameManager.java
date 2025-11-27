@@ -1149,6 +1149,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         playerGameData.setOnline(false);
+        offlineSaveGameDataDto(playerGameData);
+        removePlayerGameData(playerController.playerId(),playerGameData.getRoomCfgId());
         return playerGameData;
     }
 

@@ -158,7 +158,6 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
                 checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             }
             gameRunInfo.setData(playerGameData);
-            gameRunInfo.setData(playerGameData);
         } catch (Exception e) {
             log.error("", e);
         }

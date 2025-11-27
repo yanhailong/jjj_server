@@ -111,13 +111,13 @@ public class PointsAwardLogger extends BaseLogger {
             JSONObject json = new JSONObject();
             json.put("points", points); //积分挡位
             json.put("changeGold", changeGold);  //获得金币
-            json.put("afterGold", afterGold);  //
-            json.put("autoRecive", autoRecive);
+            json.put("afterGold", afterGold);
+            json.put("autoRecive", autoRecive);  //自动领取
             json.put("playerId", playerId);
             json.put("type","time_process");
             sendLog("turntime", null, json);
         } catch (Exception e) {
-            log.error("记录绑定日志异常", e);
+            log.error("记录领取阶段奖励日志异常", e);
         }
     }
 
