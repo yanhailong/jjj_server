@@ -75,7 +75,7 @@ public class RedissonConfig {
         Config config = new Config();
 
         String redissonAddr;
-        if(redisAddress.startsWith("clustercfg")){
+        if(redisAddress.startsWith("master")){
             redissonAddr = "rediss://" + redisAddress + ":" + redisPort;
         }else {
             redissonAddr = "redis://" + redisAddress + ":" + redisPort;

@@ -26,6 +26,7 @@ import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureI
 import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureUpdateInfo;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.res.*;
 import com.jjg.game.hall.minigame.game.luckytreasure.util.LuckyTreasureStatusUtil;
+import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import org.redisson.api.RLock;
@@ -54,6 +55,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
     private final TimerCenter timerCenter;
     private final SubscriptionManager subscriptionManager;
     private final ClusterSystem clusterSystem;
+    private final HallPlayerService playerService;
 
     /**
      * 等待通知更新的期号列表
@@ -71,7 +73,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                                 TimerCenter timerCenter,
                                 SubscriptionManager subscriptionManager,
                                 ClusterSystem clusterSystem,
-                                PlayerPackService playerPackService) {
+                                PlayerPackService playerPackService, HallPlayerService playerService) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
         this.redisLock = redisLock;
@@ -79,6 +81,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         this.timerCenter = timerCenter;
         this.subscriptionManager = subscriptionManager;
         this.clusterSystem = clusterSystem;
+        this.playerService = playerService;
     }
 
     /**
@@ -451,6 +454,13 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         info.setCountDown(LuckyTreasureStatusUtil.calculateRewardTimeSecond(treasure));
         info.setReceiveCountdown(LuckyTreasureStatusUtil.calculateReceiveCountdown(treasure));
 
+        if(treasure.getAwardPlayerId() > 0){
+            Player winPlayer = playerService.get(treasure.getAwardPlayerId());
+            if(winPlayer != null){
+                info.setWinPlayerName(winPlayer.getNickName());
+            }
+        }
+
         // 设置消耗信息
         List<LuckyTreasureConsumeInfo> consumeInfoList = convertConsumeInfo(config);
         info.setConsumeInfoList(consumeInfoList);
@@ -683,7 +693,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         if (treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
             // 已售完但未到结束时间，等待开奖
             if (soldCount >= total) {
-                return LuckyTreasureStatusUtil.STATUS_WAIT_DRAW;
+                return LuckyTreasureStatusUtil.STATUS_CAN_BUY;
             }
             if (endTime < currentTime) {
                 return LuckyTreasureStatusUtil.STATUS_WAIT_DRAW;
