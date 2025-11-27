@@ -142,7 +142,7 @@ public class TexasBuilder {
         TexasGameDataVo gameDataVo = controller.getGameDataVo();
         texasPlayerInfo.totalBet = gameDataVo.getRoundBet().getOrDefault(seatInfo.getPlayerId(), 0L);
         PokerPlayerInfo playerInfo = PokerBuilder.getPokerPlayerInfo(seatInfo, controller);
-        if (Objects.nonNull(playerSeatInfo)) {
+        if (Objects.nonNull(playerSeatInfo) && !playerSeatInfo.isDelState()) {
             texasPlayerInfo.handCards = TexasDataHelper.getClientId(gameDataVo, playerSeatInfo.getCurrentCards());
             playerInfo.operationType = playerSeatInfo.getOperationType();
         }

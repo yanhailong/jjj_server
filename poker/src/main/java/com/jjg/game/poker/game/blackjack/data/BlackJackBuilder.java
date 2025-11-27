@@ -49,14 +49,14 @@ public class BlackJackBuilder {
     public static BlackJackPlayerInfo getBlackJackPlayerInfo(PlayerSeatInfo playerSeatInfo, SeatInfo seatInfo, BlackJackGameController controller) {
         BlackJackPlayerInfo blackJackPlayerInfo = new BlackJackPlayerInfo();
         PokerPlayerInfo pokerPlayerInfo = PokerBuilder.getPokerPlayerInfo(seatInfo, controller);
-        if (Objects.nonNull(playerSeatInfo)) {
+        if (Objects.nonNull(playerSeatInfo) && !playerSeatInfo.isDelState()) {
             blackJackPlayerInfo.currentCardIds = playerSeatInfo.getCardIndex();
             pokerPlayerInfo.operationType = playerSeatInfo.getOperationType();
             if (Objects.nonNull(playerSeatInfo.getCards())) {
                 blackJackPlayerInfo.cardInfos = getCardInfos(playerSeatInfo, controller);
             }
-            blackJackPlayerInfo.betList = controller.getGameDataVo().getPlayerBetValueList().getOrDefault(playerSeatInfo.getPlayerId(), List.of());
         }
+        blackJackPlayerInfo.betList = controller.getGameDataVo().getPlayerBetValueList().getOrDefault(seatInfo.getPlayerId(), List.of());
         blackJackPlayerInfo.pokerPlayerInfo = pokerPlayerInfo;
         return blackJackPlayerInfo;
     }
