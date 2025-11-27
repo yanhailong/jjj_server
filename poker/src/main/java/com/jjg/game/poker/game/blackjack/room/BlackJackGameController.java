@@ -146,7 +146,9 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(seatInfo.getCardIndex(), betValue, Long::sum);
         deductItem(gamePlayer.getId(), betValue, AddType.GAME_BET);
-        Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, betValue));
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, betValue));
+        }
         int card = getCard(gameDataVo);
         seatInfo.getCurrentCards().add(card);
         seatInfo.setOperationType(req.type);
@@ -265,7 +267,9 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             return;
         }
         deductItem(gamePlayer.getId(), betValue, AddType.GAME_BET);
-        Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, betValue));
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, betValue));
+        }
         gameDataVo.getAceBuyPlayerIds().add(playerId);
         //计算购买ace总金额
         long totalBet = 0;
@@ -407,7 +411,9 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         }
         deductItem(gamePlayer.getId(), betValue, AddType.GAME_BET);
         baseBetInfo.merge(playerId, betValue, Long::sum);
-        Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, betValue));
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, betValue));
+        }
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(0, betValue, Long::sum);
         gameDataVo.getPlayerBetValueList().computeIfAbsent(playerId, k -> new ArrayList<>()).add(betValue);
@@ -497,7 +503,9 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         deductItem(gamePlayer.getId(), betValue, AddType.GAME_BET);
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(seatInfo.getCardIndex() + 1, betValue, Long::sum);
-        Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, betValue));
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, betValue));
+        }
         int totalPoint = BlackJackDataHelper.getTotalPoint(seatInfo.getCurrentCards());
         int sendCardNum = 1;
         notifyCutCard.playerId = playerId;
@@ -803,7 +811,9 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         deductItem(gamePlayer.getId(), totalBet, AddType.GAME_BET);
         baseBetInfo.merge(playerId, totalBet, Long::sum);
         long finalTotalBet = totalBet;
-        Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, finalTotalBet));
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, finalTotalBet));
+        }
         gameDataVo.getPlayerBetValueList().computeIfAbsent(playerId, k -> new ArrayList<>()).addAll(betValueList);
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(0, totalBet, Long::sum);

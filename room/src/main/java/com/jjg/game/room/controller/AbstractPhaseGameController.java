@@ -21,6 +21,7 @@ import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.IPhaseMsgAdapter;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.RoomDataHelper;
@@ -377,6 +378,9 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     public void dealEffectiveBet(Player player, long betValue) {
         if (player == null) {
             log.error("处理有效流水时 玩家数据为null ");
+            return;
+        }
+        if (player instanceof GameRobotPlayer) {
             return;
         }
         ActivityManager activityManager = roomController.getRoomManager().getActivityManager();

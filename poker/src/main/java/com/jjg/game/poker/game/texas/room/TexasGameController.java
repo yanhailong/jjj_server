@@ -229,12 +229,16 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             addNextTimer(nextExePlayer, 0);
             notifyTexasBet.nextPlayerId = nextExePlayer.getPlayerId();
             notifyTexasBet.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
-            Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, finalBetValue));
+            if (!(gamePlayer instanceof GameRobotPlayer)) {
+                Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, finalBetValue));
+            }
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasBet));
         } else {
             //结算的时候加注，all不算有效押注
             if (!isNextRoundOrSettlement() || isNextRoundOrSettlement() && reqPokerBet.betType == PokerConstant.PlayerOperation.FOLLOW_CARD) {
-                Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, finalBetValue));
+                if (!(gamePlayer instanceof GameRobotPlayer)) {
+                    Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, finalBetValue));
+                }
             }
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasBet));
             startNextRoundOrSettlement();
