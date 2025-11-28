@@ -579,7 +579,7 @@ public class SharePromoteController extends BaseActivityController {
                 //构建排行榜玩家基本信息
                 buildSharePromoteRankInfo(player, rankInfo, entry.getValue().longValue());
                 //构建奖励信息
-                rankInfo.itemInfos = ItemUtils.buildItemInfo(getRankRewards(rewardPairList, baseRank - 1));
+                rankInfo.itemInfos = ItemUtils.buildItemInfo(getRankRewards(rewardPairList, baseRank));
                 res.rankInfoList.add(rankInfo);
             }
             res.startIndex = req.startIndex;
@@ -635,8 +635,7 @@ public class SharePromoteController extends BaseActivityController {
                     List<LanguageParamData> params = new ArrayList<>(1);
                     params.add(new LanguageParamData(0, String.valueOf(i)));
                     //构建奖励
-                    Map<Integer, Long> rankRewards = getRankRewards(rankRewardPair, i - 1);
-                    i++;
+                    Map<Integer, Long> rankRewards = getRankRewards(rankRewardPair, i++);
                     List<Item> getItems = ItemUtils.buildItems(rankRewards);
                     //发送奖励邮件
                     mailService.addCfgMail(playerId, ActivityConstant.SharePromote.MAIL_ID, getItems, params);
@@ -686,10 +685,10 @@ public class SharePromoteController extends BaseActivityController {
         for (Pair<SharePromoteCfg, Pair<Integer, Integer>> reward : rewards) {
             Pair<Integer, Integer> rankLimit = reward.getSecond();
             SharePromoteCfg cfg = reward.getFirst();
-            if (rank > rankLimit.getFirst()) {
+            if (rank > rankLimit.getSecond()) {
                 continue;
             }
-            if (rank < rankLimit.getSecond()) {
+            if (rank >= rankLimit.getFirst()) {
                 return cfg.getGetitem();
             }
         }
