@@ -12,6 +12,8 @@ import com.jjg.game.activity.common.message.res.NotifyActivityChange;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.util.CronUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.NodeType;
@@ -666,32 +668,38 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         //节点全部在线玩家
         for (Long playerId : allPlayerIds) {
-            PFSession session = clusterSystem.getSession(playerId);
-            //判断玩家是否存在
-            if (session != null && session.getReference() instanceof PlayerController playerController) {
-                Player player = playerController.getPlayer();
-                if (player == null) {
-                    continue;
-                }
-                //确保极限情况下登录不多次触发
-                if (Boolean.FALSE.equals(playerActivityDao.checkCanTargetFirstLogin(playerId))) {
-                    continue;
-                }
-                log.info("玩家触发在线跨天 playerId:{}", player.getId());
-                //全部活动
-                for (ActivityData data : activityData.values()) {
-                    BaseActivityController controller = data.getType().getController();
-                    //检查是否能参加活动
-                    if (!playerCanJoinActivity(data, player)) {
-                        continue;
+            //分发到对应玩家线程处理
+            PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerId, 0, new BaseHandler<String>() {
+                @Override
+                public void action() {
+                    PFSession session = clusterSystem.getSession(playerId);
+                    //判断玩家是否存在
+                    if (session != null && session.getReference() instanceof PlayerController playerController) {
+                        Player player = playerController.getPlayer();
+                        if (player == null) {
+                            return;
+                        }
+                        //确保极限情况下登录不多次触发
+                        if (Boolean.FALSE.equals(playerActivityDao.checkCanTargetFirstLogin(playerId))) {
+                            return;
+                        }
+                        log.info("玩家触发在线跨天 playerId:{}", player.getId());
+                        //全部活动
+                        for (ActivityData data : activityData.values()) {
+                            BaseActivityController controller = data.getType().getController();
+                            //检查是否能参加活动
+                            if (!playerCanJoinActivity(data, player)) {
+                                continue;
+                            }
+                            //重置活动数据
+                            controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
+                        }
+                        //触发登录活动
+                        addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
+                        log.info("玩家触发登陆行为 playerId:{}", player.getId());
                     }
-                    //重置活动数据
-                    controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
                 }
-                //触发登录活动
-                addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
-                log.info("玩家触发登陆行为 playerId:{}", player.getId());
-            }
+            }.setHandlerParamWithSelf("activity onZeroEvent"));
         }
     }
 

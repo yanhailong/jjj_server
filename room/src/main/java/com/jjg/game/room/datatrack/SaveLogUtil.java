@@ -1,6 +1,7 @@
 package com.jjg.game.room.datatrack;
 
 
+import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -70,7 +71,12 @@ public class SaveLogUtil {
             //添加活动进度
             long finalTotalBet = totalBet;
             // 处理有效流水
-            Thread.ofVirtual().start(() -> dealEffectiveWaterFlow(gameController, gamePlayer, sum, finalTotalBet, income));
+            gameController.getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
+                @Override
+                public void action() {
+                    dealEffectiveWaterFlow(gameController, gamePlayer, sum, finalTotalBet, income);
+                }
+            }.setHandlerParamWithSelf("generalLog"));
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_DATA, areaMap);
         }
         gameDataTracker.addGameLogData(DataTrackNameConstant.AREA_DATA, areaTotalBet);

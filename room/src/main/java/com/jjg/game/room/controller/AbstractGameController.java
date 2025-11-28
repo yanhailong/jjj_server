@@ -222,7 +222,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             // 真人玩家进行数据回存
             int randomTime = RandomUtils.randomMinMax(RoomConstant.PLAYER_SAVE_DB_TIME_MIN, RoomConstant.PLAYER_SAVE_DB_TIME_MAX);
             // 每个玩家添加随机回存time事件
-            addGameTimeEvent(new TimerEvent<>(this, randomTime, () -> this.directlySavePlayerData(gamePlayer,false)), RoomEventType.ROOM_SAVE_PLAYER_DATA);
+            addGameTimeEvent(new TimerEvent<>(this, randomTime, () -> this.directlySavePlayerData(gamePlayer, false)), RoomEventType.ROOM_SAVE_PLAYER_DATA);
         }
     }
 
@@ -618,16 +618,14 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param coinId   货币id
      */
     public void triggerTask(long playerId, int gameType, long winValue, int coinId) {
-        Thread.ofVirtual().start(() -> {
-            //触发任务
-            taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
-                TaskConditionParam10003 param = new TaskConditionParam10003();
-                param.setGameId(gameType);
-                param.setAddValue(winValue);
-                param.setCoinId(coinId);
-                return param;
-            }, false);
-        });
+        //触发任务
+        taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
+            TaskConditionParam10003 param = new TaskConditionParam10003();
+            param.setGameId(gameType);
+            param.setAddValue(winValue);
+            param.setCoinId(coinId);
+            return param;
+        }, false);
     }
 
     /**

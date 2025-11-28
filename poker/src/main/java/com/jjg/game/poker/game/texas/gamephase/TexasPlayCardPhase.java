@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.texas.gamephase;
 
+import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
@@ -155,12 +156,15 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         //添加记录
         texasHistory.setSBValue(sBBetValue);
         texasHistory.setBBValue(BBBetValue);
-            Thread.ofVirtual().start(() -> {
+        gameController.getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
+            @Override
+            public void action() {
                 gameController.dealEffectiveBet(bBGamePlayer, BBBetValue);
                 gameController.dealBet(bBGamePlayer, BBBetValue);
                 gameController.dealEffectiveBet(sBGamePlayer, sBBetValue);
                 gameController.dealBet(sBGamePlayer, sBBetValue);
-            });
+            }
+        }.setHandlerParamWithSelf("texas BBAndSBBet"));
         historyRoundInfo.potAllBet = Arrays.asList(BBBetValue + sBBetValue);
         return Pair.newPair(sBBetValue, BBBetValue);
     }

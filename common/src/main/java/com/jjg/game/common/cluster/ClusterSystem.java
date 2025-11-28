@@ -7,6 +7,7 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.*;
 import com.jjg.game.common.gate.GateClusterMessageDispatcher;
 import com.jjg.game.common.listener.OnServerAutoShoutDown;
+import com.jjg.game.common.listener.OnSwitchNode;
 import com.jjg.game.common.message.SwitchNodeMessage;
 import com.jjg.game.common.net.NetAddress;
 import com.jjg.game.common.netty.ConnectPool;
@@ -46,7 +47,7 @@ import java.util.function.Predicate;
 @Order(1)
 //public class ClusterSystem implements MarsNodeListener, ApplicationListener<ContextRefreshedEvent>,
 // CommandLineRunner, TimerListener {
-public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
+public class ClusterSystem implements MarsNodeListener, TimerListener<String>, OnSwitchNode {
 
     private static final AtomicBoolean created = new AtomicBoolean(false);
     public static ClusterSystem system;
@@ -243,9 +244,22 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
             SwitchNodeMessage switchNodeMessage = new SwitchNodeMessage(pfSession.sessionId(), marsNode.getNodePath()
                     , pfSession.playerId);
             pfSession.send2Gate(switchNodeMessage);
-            removeSession(pfSession.sessionId());
+            onSwitchNodeAfter(pfSession);
         } catch (Exception e) {
             log.warn("节点切换异常", e);
+        }
+    }
+
+    private void onSwitchNodeAfter(PFSession pfSession) {
+        List<OnSwitchNode> gameSysInterface = SystemInterfaceHolder.getGameSysInterface(OnSwitchNode.class);
+        if (CollectionUtil.isEmpty(gameSysInterface)) {
+            for (OnSwitchNode event : gameSysInterface) {
+                try {
+                    event.OnSwitchNodeAction(pfSession);
+                } catch (Exception e) {
+                    log.error("节点选择事件处理异常 pfSession:{}", pfSession == null ? "null" : pfSession.sessionId(), e);
+                }
+            }
         }
     }
 
@@ -739,4 +753,12 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
         return playerIdSessionMap.keySet();
     }
 
+    @Override
+    public void OnSwitchNodeAction(PFSession pfSession) {
+        if (pfSession == null) {
+            log.error("OnSwitchNodeAction pfSession is null");
+            return;
+        }
+        removeSession(pfSession.sessionId());
+    }
 }
