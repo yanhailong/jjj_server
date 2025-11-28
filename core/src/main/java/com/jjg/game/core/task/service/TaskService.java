@@ -76,7 +76,8 @@ public class TaskService {
      */
     public TaskData getPlayerTask(long playerId) {
         RMap<Long, TaskData> map = getPlayerTaskMap();
-        if (map == null || map.isEmpty()) {
+        TaskData taskData = map.get(playerId);
+        if (taskData == null) {
             TaskData data = taskDataDao.findByPlayerId(playerId);
             if (data == null) {
                 data = new TaskData();
@@ -85,7 +86,7 @@ public class TaskService {
             redissonClient.getMap(TABLE_NAME).fastPut(playerId, data);
             return data;
         }
-        return map.get(playerId);
+        return taskData;
     }
 
     public RMap<Long, TaskData> getPlayerTaskMap() {
