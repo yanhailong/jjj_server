@@ -165,7 +165,7 @@ public class SharePromoteDao {
             return 0;
         }
         try {
-            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(72);
+            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(64);
             if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
                 String[] limitCfg = StringUtils.split(globalConfigCfg.getValue(), "_");
                 if (limitCfg.length == 2) {
