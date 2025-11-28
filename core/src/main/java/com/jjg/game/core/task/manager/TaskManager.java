@@ -186,19 +186,14 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
             log.info("触发[{}]条件,但是没有对应的条件处理器!", conditionId);
             return;
         }
-        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerId, 0, new BaseHandler<String>() {
-            @Override
-            public void action() {
-                try {
-                    boolean needRed = taskService.trigger(playerId, taskData, taskConfigs, taskCondition, conditionParam, isNotify);
-                    if (needRed) {
-                        updateRedDot(playerId);
-                    }
-                } catch (Exception e) {
-                    log.error("玩家[{}]任务条件[{}]触发失败!", playerId, conditionId, e);
-                }
+        try {
+            boolean needRed = taskService.trigger(playerId, taskData, taskConfigs, taskCondition, conditionParam, isNotify);
+            if (needRed) {
+                updateRedDot(playerId);
             }
-        }.setHandlerParamWithSelf("trigger task"));
+        } catch (Exception e) {
+            log.error("玩家[{}]任务条件[{}]触发失败!", playerId, conditionId, e);
+        }
     }
 
     public void updateRedDot(long playerId) {
