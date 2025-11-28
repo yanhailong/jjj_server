@@ -20,6 +20,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.TaskConditionParam10003;
+import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
@@ -614,18 +615,34 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      *
      * @param playerId 玩家ID
      * @param gameType 游戏类型
+     * @param effectiveWaterFlow 有效流水
      * @param winValue 增加的钱
      * @param coinId   货币id
      */
-    public void triggerTask(long playerId, int gameType, long winValue, int coinId) {
+    public void triggerTask(long playerId, int gameType, long effectiveWaterFlow, long winValue, int coinId) {
         //触发任务
-        taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
-            TaskConditionParam10003 param = new TaskConditionParam10003();
-            param.setGameId(gameType);
-            param.setAddValue(winValue);
-            param.setCoinId(coinId);
-            return param;
-        }, false);
+        try {
+            if (winValue > 0) {
+                taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
+                    TaskConditionParam10003 param = new TaskConditionParam10003();
+                    param.setGameId(gameType);
+                    param.setAddValue(winValue);
+                    param.setCoinId(coinId);
+                    return param;
+                }, false);
+            }
+            if (effectiveWaterFlow > 0) {
+                //触发任务
+                getTaskManager().trigger(playerId, TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
+                    TaskConditionParam12001 param = new TaskConditionParam12001();
+                    param.setGameId(gameDataVo.getRoomCfg().getGameID());
+                    param.setAddValue(effectiveWaterFlow);
+                    return param;
+                }, false);
+            }
+        } catch (Exception e) {
+            log.error("任务触发异常 playerId:{} gameType:{} effectiveWaterFlow:{} winValue:{} coinId:{}", playerId, gameType, effectiveWaterFlow, winValue, coinId, e);
+        }
     }
 
     /**
@@ -653,8 +670,6 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                         log.error("房间内添加金币失败 playerId:{} num:{}", playerId, changeValue);
                         continue;
                     }
-                    //触发任务
-                    triggerTask(playerId, getRoom().getGameType(), changeValue, ItemUtils.getGoldItemId());
                 } else {
                     if (deductGold(playerId, Math.abs(changeValue), addType, desc, isNotify) != Code.SUCCESS) {
                         log.error("房间内移除金币失败 playerId:{} num:{}", playerId, Math.abs(changeValue));
@@ -672,8 +687,6 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                         log.error("房间内添加钻石失败 playerId:{} num:{}", playerId, changeValue);
                         continue;
                     }
-                    //触发任务
-                    triggerTask(playerId, getRoom().getGameType(), changeValue, ItemUtils.getDiamondItemId());
                 } else {
                     if (deductDiamond(playerId, Math.abs(changeValue), addType, desc, isNotify) != Code.SUCCESS) {
                         log.error("房间内删除钻石失败 playerId:{} num:{}", playerId, Math.abs(changeValue));

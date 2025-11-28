@@ -165,28 +165,29 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
         if (param == null) {
             return;
         }
-        DefaultTaskConditionParam conditionParam = param.get();
-        if (conditionParam == null) {
-            return;
-        }
-        TaskData taskData = playerTaskMap.get(playerId);
-        if (taskData == null) {
-            log.error("玩家更新任务进度时 任务数据为null playerId:{} conditionId:{} param:{}", playerId, conditionId, param.get());
-            return;
-        }
-        //根据条件id计算出受影响的任务
-        List<TaskCfg> taskConfigs = taskCfgMap.get(conditionId);
-        //无事发生
-        if (taskConfigs == null || taskConfigs.isEmpty()) {
-            return;
-        }
-        AbstractTaskCondition<DefaultTaskConditionParam> taskCondition = getTaskCondition(conditionId);
-        //无事发生
-        if (taskCondition == null) {
-            log.info("触发[{}]条件,但是没有对应的条件处理器!", conditionId);
-            return;
-        }
         try {
+
+            DefaultTaskConditionParam conditionParam = param.get();
+            if (conditionParam == null) {
+                return;
+            }
+            TaskData taskData = playerTaskMap.get(playerId);
+            if (taskData == null) {
+                log.error("玩家更新任务进度时 任务数据为null playerId:{} conditionId:{} param:{}", playerId, conditionId, param.get());
+                return;
+            }
+            //根据条件id计算出受影响的任务
+            List<TaskCfg> taskConfigs = taskCfgMap.get(conditionId);
+            //无事发生
+            if (taskConfigs == null || taskConfigs.isEmpty()) {
+                return;
+            }
+            AbstractTaskCondition<DefaultTaskConditionParam> taskCondition = getTaskCondition(conditionId);
+            //无事发生
+            if (taskCondition == null) {
+                log.info("触发[{}]条件,但是没有对应的条件处理器!", conditionId);
+                return;
+            }
             boolean needRed = taskService.trigger(playerId, taskData, taskConfigs, taskCondition, conditionParam, isNotify);
             if (needRed) {
                 updateRedDot(playerId);

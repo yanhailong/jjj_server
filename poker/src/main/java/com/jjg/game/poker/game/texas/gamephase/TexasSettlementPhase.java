@@ -1,6 +1,5 @@
 package com.jjg.game.poker.game.texas.gamephase;
 
-import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.data.FriendRoom;
@@ -403,17 +402,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             //增加个人
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.playerId);
             if (gamePlayer != null && !(gamePlayer instanceof GameRobotPlayer) && info.betValue > 0) {
-                gameController.getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
-                    @Override
-                    public void action() {
-                        try {
-                            //触发任务
-                            gameController.triggerTask(gamePlayer.getId(), gameController.getRoom().getGameType(), info.betValue, gameController.getGameTransactionItemId());
-                        } catch (Exception e) {
-                            log.error("德州日志添加进度失败 info:{}", gamePlayer.getId(), e);
-                        }
-                    }
-                }.setHandlerParamWithSelf("texas triggerTask"));
+                //触发任务
+                gameController.triggerTask(gamePlayer.getId(), gameController.getRoom().getGameType(), 0, info.betValue, gameController.getGameTransactionItemId());
             }
         }
         //增加总体

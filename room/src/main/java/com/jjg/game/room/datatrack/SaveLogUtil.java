@@ -74,9 +74,11 @@ public class SaveLogUtil {
             gameController.getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
                 @Override
                 public void action() {
-                    dealEffectiveWaterFlow(gameController, gamePlayer, sum, finalTotalBet, income);
+                    dealEffectiveWaterFlow(gameController, gamePlayer, sum, finalTotalBet);
                 }
             }.setHandlerParamWithSelf("generalLog"));
+            //触发任务
+            gameController.triggerTask(gamePlayer.getId(), gameController.getRoom().getGameType(), sum, income, gameController.getGameTransactionItemId());
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_DATA, areaMap);
         }
         gameDataTracker.addGameLogData(DataTrackNameConstant.AREA_DATA, areaTotalBet);
@@ -85,15 +87,11 @@ public class SaveLogUtil {
     /**
      * 处理有效流水
      */
-    public static void dealEffectiveWaterFlow(AbstractPhaseGameController<Room_BetCfg, ?> controller, GamePlayer player, long effectiveGold,
-                                              long allBet, long income) {
+    public static void dealEffectiveWaterFlow(AbstractPhaseGameController<Room_BetCfg, ?> controller, GamePlayer player, long effectiveGold, long allBet) {
         try {
             if (effectiveGold > 0) {
                 controller.dealEffectiveBet(player, effectiveGold);
                 log.debug("玩家：{} 在房间：{} 产生有效流水：{}", player.getId(), controller.getRoom().getRoomCfgId(), effectiveGold);
-            }
-            if (income > 0) {
-                controller.triggerTask(player.getId(), controller.getRoom().getGameType(), income, controller.getGameTransactionItemId());
             }
             if (allBet > 0) {
                 controller.dealBet(player, allBet);

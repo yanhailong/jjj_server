@@ -165,6 +165,8 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
                 gameController.dealBet(sBGamePlayer, sBBetValue);
             }
         }.setHandlerParamWithSelf("texas BBAndSBBet"));
+        gameController.triggerTask(bBGamePlayer.getId(), gameController.gameControlType().getGameTypeId(), BBBetValue, 0, gameController.getGameTransactionItemId());
+        gameController.triggerTask(sBGamePlayer.getId(), gameController.gameControlType().getGameTypeId(), sBBetValue, 0, gameController.getGameTransactionItemId());
         historyRoundInfo.potAllBet = Arrays.asList(BBBetValue + sBBetValue);
         return Pair.newPair(sBBetValue, BBBetValue);
     }

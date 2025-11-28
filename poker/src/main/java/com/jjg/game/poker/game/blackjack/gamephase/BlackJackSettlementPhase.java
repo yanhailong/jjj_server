@@ -253,7 +253,10 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                     robotPlayer.setLastWin(2);
                 }
             }
-            gameController.addItem(playerId, totalGet, AddType.GAME_SETTLEMENT);
+            if (totalGet > 0) {
+                gameController.triggerTask(playerId, gameController.gameControlType().getGameTypeId(), 0, totalGet, controller.getGameTransactionItemId());
+                gameController.addItem(playerId, totalGet, AddType.GAME_SETTLEMENT);
+            }
             blackJackSettlementInfo.getGold = totalGet;
             blackJackSettlementInfo.win = get >= 0;
             blackJackSettlementInfo.currentGold = controller.getTransactionItemNum(playerId);

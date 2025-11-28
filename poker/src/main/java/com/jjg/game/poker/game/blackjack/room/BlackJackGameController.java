@@ -155,6 +155,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
                     dealBet(gamePlayer, betValue);
                 }
             }.setHandlerParamWithSelf("blackJack dealDoubleBet"));
+            triggerTask(playerId, gameControlType().getGameTypeId(), betValue, 0, getGameTransactionItemId());
         }
         int card = getCard(gameDataVo);
         seatInfo.getCurrentCards().add(card);
@@ -282,6 +283,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
                     dealBet(gamePlayer, betValue);
                 }
             }.setHandlerParamWithSelf("blackJack dealBuyACE"));
+            triggerTask(playerId, gameControlType().getGameTypeId(), betValue, 0, getGameTransactionItemId());
         }
         gameDataVo.getAceBuyPlayerIds().add(playerId);
         //计算购买ace总金额
@@ -432,6 +434,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
                     dealBet(gamePlayer, betValue);
                 }
             }.setHandlerParamWithSelf("blackJack dealBet"));
+            triggerTask(playerId, gameControlType().getGameTypeId(), betValue, 0, getGameTransactionItemId());
         }
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(0, betValue, Long::sum);
@@ -530,6 +533,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
                     dealBet(gamePlayer, betValue);
                 }
             }.setHandlerParamWithSelf("blackJack dealCutCard"));
+            triggerTask(playerId, gameControlType().getGameTypeId(), betValue, 0, getGameTransactionItemId());
         }
         int totalPoint = BlackJackDataHelper.getTotalPoint(seatInfo.getCurrentCards());
         int sendCardNum = 1;
@@ -844,6 +848,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
                     dealBet(gamePlayer, finalTotalBet);
                 }
             }.setHandlerParamWithSelf("blackJack reqBlackJackContinuedDeposit"));
+            triggerTask(playerId, gameControlType().getGameTypeId(), totalBet, 0, getGameTransactionItemId());
         }
         gameDataVo.getPlayerBetValueList().computeIfAbsent(playerId, k -> new ArrayList<>()).addAll(betValueList);
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
