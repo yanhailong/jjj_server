@@ -269,6 +269,7 @@ public class SlotsPlayerGameData {
         T t = constructor.newInstance();
         BeanUtils.copyProperties(this,t);
         t.setPlayerId(this.playerId());
+        t.setRoomCfgId(this.getRoomCfgId());
         t.setRemainFreeCount(this.remainFreeCount.get());
         t.setFreeIndex(this.freeIndex.get());
         return t;
