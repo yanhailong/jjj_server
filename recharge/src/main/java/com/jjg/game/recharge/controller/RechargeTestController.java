@@ -1,10 +1,12 @@
 package com.jjg.game.recharge.controller;
 
+import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerSessionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,6 +23,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class RechargeTestController extends AbstractCallbackController {
     private  final Logger log = LoggerFactory.getLogger(RechargeTestController.class);
 
+    @Autowired
+    private NodeConfig nodeConfig;
+
     /**
      * gm通过订单调用充值
      */
@@ -29,6 +34,11 @@ public class RechargeTestController extends AbstractCallbackController {
     public ResponseEntity<String> rechargeByOrder(@PathVariable("orderId") String orderId) {
         try {
             log.info("收到后台的请求订单充值 id = {}", orderId);
+            if(!nodeConfig.gm){
+                log.warn("不支持该请求 orderId = {}",orderId);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+
             Order order = orderService.getOrder(orderId);
             if (order == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();

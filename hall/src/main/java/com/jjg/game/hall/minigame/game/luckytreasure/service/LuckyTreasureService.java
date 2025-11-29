@@ -18,7 +18,9 @@ import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.SubscriptionManager;
 import com.jjg.game.core.pb.LuckyTreasureUpdateBroadcast;
+import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.hall.minigame.game.luckytreasure.bean.LuckyTreasureConsumeInfo;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureHistory;
@@ -29,6 +31,7 @@ import com.jjg.game.hall.minigame.game.luckytreasure.util.LuckyTreasureStatusUti
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
+import com.jjg.game.sampledata.bean.MailCfg;
 import org.redisson.api.RLock;
 import org.redisson.api.RMapCache;
 import org.slf4j.Logger;
@@ -56,6 +59,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
     private final SubscriptionManager subscriptionManager;
     private final ClusterSystem clusterSystem;
     private final HallPlayerService playerService;
+    private final MailService mailService;
 
     /**
      * 等待通知更新的期号列表
@@ -73,7 +77,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                                 TimerCenter timerCenter,
                                 SubscriptionManager subscriptionManager,
                                 ClusterSystem clusterSystem,
-                                PlayerPackService playerPackService, HallPlayerService playerService) {
+                                PlayerPackService playerPackService, HallPlayerService playerService, MailService mailService) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
         this.redisLock = redisLock;
@@ -82,6 +86,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         this.subscriptionManager = subscriptionManager;
         this.clusterSystem = clusterSystem;
         this.playerService = playerService;
+        this.mailService = mailService;
     }
 
     /**
@@ -642,27 +647,31 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                 return false;
             }
 
+            MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
             // 发放奖励道具
             LuckyTreasureConfig config = latestTreasure.getConfig();
-            Map<Integer, Long> rewardMap = new HashMap<>();
-            rewardMap.put(config.getItemId(), (long) config.getItemNum());
+            if(mailCfg == null){
+                Map<Integer, Long> rewardMap = new HashMap<>();
+                rewardMap.put(config.getItemId(), (long) config.getItemNum());
 
-            long playerId = player.getId();
-            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, rewardMap, AddType.LUCKY_TREASURE_REWARDS);
+                long playerId = player.getId();
+                CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, rewardMap, AddType.LUCKY_TREASURE_REWARDS);
 
-            if (!addResult.success()) {
-                return false;
+                if (!addResult.success()) {
+                    return false;
+                }
+                latestTreasure.setStatus(LuckyTreasureStatusUtil.STATUS_RECEIVED);
+                // 更新领取状态
+                latestTreasure.setReceived(true);
+                //记录领奖的时间戳
+                latestTreasure.setReceiveTime(System.currentTimeMillis());
+                luckyTreasureDao.save(latestTreasure);
+
+                log.info("夺宝奇兵奖励领取成功, 玩家ID:{}, 期号:{}, 领奖码:{}, 道具ID:{}, 数量:{}", playerId, latestTreasure.getIssueNumber(),
+                        latestTreasure.getRewardCode(), config.getItemId(), config.getItemNum());
+            }else {
+                mailService.addCfgMail(player.getId(), mailCfg.getTitle(),mailCfg.getText(),ItemUtils.buildItemList(config.getItemId(), config.getItemNum()),Collections.emptyList());
             }
-            latestTreasure.setStatus(LuckyTreasureStatusUtil.STATUS_RECEIVED);
-            // 更新领取状态
-            latestTreasure.setReceived(true);
-            //记录领奖的时间戳
-            latestTreasure.setReceiveTime(System.currentTimeMillis());
-            luckyTreasureDao.save(latestTreasure);
-
-            log.info("夺宝奇兵奖励领取成功, 玩家ID:{}, 期号:{}, 领奖码:{}, 道具ID:{}, 数量:{}", playerId, latestTreasure.getIssueNumber(),
-                    latestTreasure.getRewardCode(), config.getItemId(), config.getItemNum());
-
             broadcastUpdate(issueNumber);
             return true;
 

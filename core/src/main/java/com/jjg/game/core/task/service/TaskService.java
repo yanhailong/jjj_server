@@ -280,7 +280,7 @@ public class TaskService {
             newTasks.forEach((k, v) -> {
                 //记录领取任务日志
                 taskLogger.receiveTask(playerId, k);
-                log.info("玩家[{}]领取到[{}]任务", playerId, k);
+//                log.info("玩家[{}]领取到[{}]任务", playerId, k);
             });
             return true;
         }
