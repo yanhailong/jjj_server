@@ -25,8 +25,8 @@ public interface LuckyTreasureConstant {
         int GAME_ID = 1001;
     }
 
-    interface Status{
-
+    interface MailId{
+        int REWARD_MAIL_ID = 41;
     }
 
     /**

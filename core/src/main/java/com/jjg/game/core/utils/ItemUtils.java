@@ -81,6 +81,16 @@ public class ItemUtils {
         return items;
     }
 
+    public static List<Item> buildItemList(int itemId, long count) {
+        Item item = new Item();
+        item.setId(itemId);
+        item.setItemCount(count);
+
+        List<Item> list = new ArrayList<>();
+        list.add( item);
+        return list;
+    }
+
 
     public static ItemInfo buildItemInfo(int itemId, long count) {
         ItemInfo info = new ItemInfo();

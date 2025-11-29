@@ -177,6 +177,7 @@ public class GameDataManager {
     containerMap.put(RoomExpendCfg.class, new RoomExpendCfgContainer());
     containerMap.put(Room_BetCfg.class, new Room_BetCfgContainer());
     containerMap.put(Room_ChessCfg.class, new Room_ChessCfgContainer());
+    containerMap.put(RouletteShopCfg.class, new RouletteShopCfgContainer());
     containerMap.put(ScratchCardsCfg.class, new ScratchCardsCfgContainer());
     containerMap.put(SharePromoteCfg.class, new SharePromoteCfgContainer());
     containerMap.put(ShopConfigCfg.class, new ShopConfigCfgContainer());
@@ -191,6 +192,7 @@ public class GameDataManager {
     containerMap.put(TexasCfg.class, new TexasCfgContainer());
     containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
+    containerMap.put(WealthRouletteRewardCfg.class, new WealthRouletteRewardCfgContainer());
     containerMap.put(WinPosWeightCfg.class, new WinPosWeightCfgContainer());
     // endregion===============cfg加载模板结束===================
     return containerMap;
@@ -1301,6 +1303,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(Room_ChessCfg.class).getCfgBeanList();
   }
 
+  public static RouletteShopCfg getRouletteShopCfg(int key) {
+    return getInstance().getCfgContainer(RouletteShopCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, RouletteShopCfg> getRouletteShopCfgMap() {
+    return getInstance().getCfgContainer(RouletteShopCfg.class).getCfgBeanMap();
+  }
+
+  public static List<RouletteShopCfg> getRouletteShopCfgList() {
+    return getInstance().getCfgContainer(RouletteShopCfg.class).getCfgBeanList();
+  }
+
   public static ScratchCardsCfg getScratchCardsCfg(int key) {
     return getInstance().getCfgContainer(ScratchCardsCfg.class).getCfgBeanMap().get(key);
   }
@@ -1467,6 +1481,18 @@ public class GameDataManager {
 
   public static List<WarehouseCfg> getWarehouseCfgList() {
     return getInstance().getCfgContainer(WarehouseCfg.class).getCfgBeanList();
+  }
+
+  public static WealthRouletteRewardCfg getWealthRouletteRewardCfg(int key) {
+    return getInstance().getCfgContainer(WealthRouletteRewardCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, WealthRouletteRewardCfg> getWealthRouletteRewardCfgMap() {
+    return getInstance().getCfgContainer(WealthRouletteRewardCfg.class).getCfgBeanMap();
+  }
+
+  public static List<WealthRouletteRewardCfg> getWealthRouletteRewardCfgList() {
+    return getInstance().getCfgContainer(WealthRouletteRewardCfg.class).getCfgBeanList();
   }
 
   public static WinPosWeightCfg getWinPosWeightCfg(int key) {

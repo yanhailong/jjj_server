@@ -392,7 +392,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
 //                playerTasks.fastPut(taskData.getConfigId(), taskData);
                 //记录领取任务日志
                 taskLogger.receiveTask(playerId, k);
-                log.info("玩家[{}]领取到[{}]任务", playerId, k);
+//                log.info("玩家[{}]领取到[{}]任务", playerId, k);
             });
             result.code = Code.SUCCESS;
             result.data = tmpData;

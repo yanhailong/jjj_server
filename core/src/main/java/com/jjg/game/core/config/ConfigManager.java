@@ -222,6 +222,7 @@ public class ConfigManager {
      * @return 返回指定类型的配置列表
      */
     public <T extends AbstractExcelConfig> List<T> getConfigs(String name) {
+        log.debug("获取时打印本地缓存 localCache = {}",JSON.toJSONString(localCache));
         Map<Integer, AbstractExcelConfig> excelConfigMap = localCache.get(name);
         if (excelConfigMap == null) {
             return Collections.emptyList();
@@ -565,6 +566,10 @@ public class ConfigManager {
             if (!isSync) {
                 return;
             }
+
+//            refreshAllConfigsFromRedis();
+
+            log.debug("打印本地缓存 localCache = {}",JSON.toJSONString(localCache));
             Map<Integer, AbstractExcelConfig> localConfigMap = localCache.get(name);
             Map<Integer, AbstractExcelConfig> oldLocal = null;
             if (localConfigMap == null) {
@@ -636,6 +641,10 @@ public class ConfigManager {
         if (configClass == null) {
             return;
         }
+
+        Map<Integer, AbstractExcelConfig> excelConfigMap = localCache.computeIfAbsent(name, k -> new ConcurrentHashMap<>());
+        excelConfigMap.put(newConfig.getId(), newConfig);
+
         List<ConfigUpdateHandler<? extends AbstractExcelConfig>> configListenerList = updateConfigListenerMap.get(configClass);
         if (configListenerList != null && !configListenerList.isEmpty()) {
             configListenerList.forEach(handler -> executor.submit(() -> {
