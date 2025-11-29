@@ -59,7 +59,7 @@ public class VipService {
             vipDao.save(vipOptional.get());
             redisDel(playerId);
         } catch (Exception e) {
-            log.error("保存到mongo失败 playerId:{}", playerId);
+            log.error("保存到mongo失败 playerId:{}", playerId, e);
         }
     }
 
