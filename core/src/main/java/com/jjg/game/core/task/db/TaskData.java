@@ -3,7 +3,9 @@ package com.jjg.game.core.task.db;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 任务数据
@@ -40,7 +42,7 @@ public class TaskData {
 
     public void addTaskDetail(TaskDetail taskDetail) {
         if (taskDetails == null) {
-            taskDetails = new HashMap<>();
+            taskDetails = new ConcurrentHashMap<>();
         }
         taskDetails.put(taskDetail.getConfigId(), taskDetail);
     }
