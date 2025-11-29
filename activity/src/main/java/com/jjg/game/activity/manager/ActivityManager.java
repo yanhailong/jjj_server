@@ -696,7 +696,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                         }
                         //触发登录活动
                         addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
-                        log.info("玩家触发登陆行为 playerId:{}", player.getId());
+                        log.info("玩家触发登陆行为完成 playerId:{}", player.getId());
                     }
                 }
             }.setHandlerParamWithSelf("activity onZeroEvent"));
