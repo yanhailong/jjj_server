@@ -685,10 +685,10 @@ public class SharePromoteController extends BaseActivityController {
         for (Pair<SharePromoteCfg, Pair<Integer, Integer>> reward : rewards) {
             Pair<Integer, Integer> rankLimit = reward.getSecond();
             SharePromoteCfg cfg = reward.getFirst();
-            if (rank > rankLimit.getFirst()) {
+            if (rank > rankLimit.getSecond()) {
                 continue;
             }
-            if (rank < rankLimit.getSecond()) {
+            if (rank >= rankLimit.getFirst()) {
                 return cfg.getGetitem();
             }
         }

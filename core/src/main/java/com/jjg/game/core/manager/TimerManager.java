@@ -3,6 +3,10 @@ package com.jjg.game.core.manager;
 import com.jjg.game.core.base.gameevent.ClockEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.listener.GmListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,7 +19,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/9/25 15:20
  */
 @Component
-public class TimerManager {
+public class TimerManager implements GmListener {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final GameEventManager gameEventManager;
 
@@ -31,5 +35,19 @@ public class TimerManager {
     @Scheduled(cron = "0 0 12 * * *")
     public void halfDay() {
         gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 12));
+    }
+
+    @Override
+    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        String gmOrder = gmOrders[0];
+        if("onZeroClick".equals(gmOrder)) {
+            log.info("onZeroClick trigger");
+            gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 0));
+        }
+        if("halfDay".equals(gmOrder)) {
+            log.info("halfDay trigger");
+            gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 12));
+        }
+        return new CommonResult<>(Code.SUCCESS);
     }
 }

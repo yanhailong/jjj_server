@@ -1,5 +1,6 @@
 package com.jjg.game.table.common.utils;
 
+import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -41,9 +42,12 @@ public class BetDataTrackLogUtils {
             gameDataTracker.addPlayerLogData(
                     gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, effectiveWaterFlow);
             //添加活动进度
-            Thread.ofVirtual().start(() ->
-                    SaveLogUtil.dealEffectiveWaterFlow(
-                            controller, gamePlayer, effectiveWaterFlow, settlementData.getBetTotal(), settlementData.getBetWin()));
+            controller.getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
+                @Override
+                public void action() {
+                    SaveLogUtil.dealEffectiveWaterFlow(controller, gamePlayer, settlementData.getBetTotal(), settlementData.getBetWin());
+                }
+            }.setHandlerParamWithSelf("recordBetLog"));
         }
         // 添加流水数据
         gameDataTracker.addPlayerLogData(

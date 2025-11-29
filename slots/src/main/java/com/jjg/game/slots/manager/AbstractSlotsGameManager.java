@@ -7,6 +7,8 @@ import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.MessageUtil;
@@ -557,27 +559,29 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         Player player = result.data;
-
-        Thread.ofVirtual().start(() -> {
-            activityManager.addActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
-            activityManager.addPlayerActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
-            // 触发有效流水事件
-            gameEventManager.triggerEvent(new PlayerEffectiveFlowingEvent(player, gameData.getRoomCfgId(), betValue, 0));
-            //触发任务
-            taskManager.trigger(player.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
-                TaskConditionParam12001 param = new TaskConditionParam12001();
-                param.setGameId(getGameType());
-                param.setAddValue(betValue);
-                return param;
-            },false);
-            //触发下注
-            taskManager.trigger(player.getId(), TaskConstant.ConditionType.BET_COUNT, () -> {
-                TaskConditionParam10001 param = new TaskConditionParam10001();
-                param.setAddValue(betValue);
-                param.setGameId(getGameType());
-                return param;
-            },false);
-        });
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(player.getId(), 0, new BaseHandler<String>() {
+            @Override
+            public void action() {
+                activityManager.addActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
+                activityManager.addPlayerActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
+                // 触发有效流水事件
+                gameEventManager.triggerEvent(new PlayerEffectiveFlowingEvent(player, gameData.getRoomCfgId(), betValue, 0));
+            }
+        }.setHandlerParamWithSelf("goldToPool"));
+        //触发任务
+        taskManager.trigger(player.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
+            TaskConditionParam12001 param = new TaskConditionParam12001();
+            param.setGameId(getGameType());
+            param.setAddValue(betValue);
+            return param;
+        }, false);
+        //触发下注
+        taskManager.trigger(player.getId(), TaskConstant.ConditionType.BET_COUNT, () -> {
+            TaskConditionParam10001 param = new TaskConditionParam10001();
+            param.setAddValue(betValue);
+            param.setGameId(getGameType());
+            return param;
+        }, false);
         BigDecimal bet = BigDecimal.valueOf(betValue);
         log.info("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.playerId(), betValue, result.data.getGold());
 
@@ -1162,12 +1166,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     public T exit(PlayerController playerController) {
         T playerGameData = getPlayerGameData(playerController);
-        if(playerGameData == null){
+        if (playerGameData == null) {
             return null;
         }
         playerGameData.setOnline(false);
         offlineSaveGameDataDto(playerGameData);
-        removePlayerGameData(playerController.playerId(),playerGameData.getRoomCfgId());
+        removePlayerGameData(playerController.playerId(), playerGameData.getRoomCfgId());
         return playerGameData;
     }
 
@@ -1377,19 +1381,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (winValue <= 0) {
             return;
         }
-
         int gameType = getGameType();
+        //触发任务
+        taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
+            TaskConditionParam10003 param = new TaskConditionParam10003();
+            param.setGameId(gameType);
+            param.setAddValue(winValue);
+            param.setCoinId(ItemUtils.getGoldItemId());
+            return param;
+        }, false);
 
-        Thread.ofVirtual().start(() -> {
-            //触发任务
-            taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
-                TaskConditionParam10003 param = new TaskConditionParam10003();
-                param.setGameId(gameType);
-                param.setAddValue(winValue);
-                param.setCoinId(ItemUtils.getGoldItemId());
-                return param;
-            },false);
-        });
     }
 
     /**

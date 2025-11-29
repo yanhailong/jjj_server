@@ -19,6 +19,7 @@ import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.BlackjackCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -237,6 +238,11 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             blackJackSettlementInfo.playerId = playerId;
             Long totalGet = playerGet.getOrDefault(playerId, 0L);
             long get = totalGet - controller.getPlayerTotalBet(playerId);
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+            if (gamePlayer == null) {
+                log.error("21点结算时 gamePlayer=null playerId:{}", playerId);
+                continue;
+            }
             if (get > 0) {
                 long radioBefore = get;
                 //扣除抽水
@@ -245,15 +251,20 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                         .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
                 totalTax += radioBefore - get;
                 totalGet = controller.getPlayerTotalBet(playerId) + get;
-                if (gameDataVo.getGamePlayer(playerId) instanceof GameRobotPlayer robotPlayer) {
+                if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(1);
                 }
             } else {
-                if (gameDataVo.getGamePlayer(playerId) instanceof GameRobotPlayer robotPlayer) {
+                if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(2);
                 }
             }
-            gameController.addItem(playerId, totalGet, AddType.GAME_SETTLEMENT);
+            if (totalGet > 0) {
+                if (!(gamePlayer instanceof GameRobotPlayer)) {
+                    gameController.triggerTask(playerId, gameController.gameControlType().getGameTypeId(), 0, totalGet, controller.getGameTransactionItemId());
+                }
+                gameController.addItem(playerId, totalGet, AddType.GAME_SETTLEMENT);
+            }
             blackJackSettlementInfo.getGold = totalGet;
             blackJackSettlementInfo.win = get >= 0;
             blackJackSettlementInfo.currentGold = controller.getTransactionItemNum(playerId);

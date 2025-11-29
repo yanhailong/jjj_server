@@ -8,12 +8,12 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.pb.Task;
 import com.jjg.game.core.task.pb.req.ReqReceiveTaskAward;
 import com.jjg.game.core.task.pb.req.ReqTaskList;
 import com.jjg.game.core.task.pb.res.ResReceiveTaskAward;
 import com.jjg.game.core.task.pb.res.ResTaskList;
-import com.jjg.game.core.task.service.TaskService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -29,11 +29,12 @@ public class TaskMessageHandler {
 
     private static final Logger log = LoggerFactory.getLogger(TaskMessageHandler.class);
 
-    private final TaskService taskService;
+    private final TaskManager taskManager;
 
-    public TaskMessageHandler(TaskService taskService) {
-        this.taskService = taskService;
+    public TaskMessageHandler(TaskManager taskManager) {
+        this.taskManager = taskManager;
     }
+
 
     /**
      * 获取玩家任务列表
@@ -49,7 +50,7 @@ public class TaskMessageHandler {
         ResTaskList resTaskList = new ResTaskList(Code.SUCCESS);
         resTaskList.setType(message.getType());
         try {
-            List<Task> taskList = taskService.getPlayerTaskList(player.getId(), message.getType());
+            List<Task> taskList = taskManager.getPlayerTaskList(player.getId(), message.getType());
             resTaskList.setTaskList(taskList);
         } catch (Exception e) {
             log.error("获取玩家任务类型[{}]的列表出错!", message.getType(), e);
@@ -69,7 +70,7 @@ public class TaskMessageHandler {
             return;
         }
         int taskId = message.getTaskId();
-        boolean isSuccess = taskService.receiveTask(player.getId(), taskId);
+        boolean isSuccess = taskManager.receiveTask(player.getId(), taskId);
         int code = isSuccess ? Code.SUCCESS : Code.FAIL;
         ResReceiveTaskAward resReceiveTaskAward = new ResReceiveTaskAward(code);
         resReceiveTaskAward.setTaskId(taskId);

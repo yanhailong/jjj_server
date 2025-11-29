@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 
 /**
@@ -13,6 +14,7 @@ import org.springframework.context.annotation.FilterType;
  * @date 2025/7/24 16:45
  */
 @SpringBootApplication(exclude = {QuartzAutoConfiguration.class})
+@EnableScheduling
 @ComponentScan(
         basePackages = "com.jjg.game",
         excludeFilters = {

@@ -321,14 +321,12 @@ public class PlayerPackService implements IPlayerRegister {
                     result.code = removeResult.code;
                     return result;
                 }
-                Thread.ofVirtual().start(() -> {
-                    //触发消耗道具任务
-                    taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> {
-                        TaskConditionParam12101 param = new TaskConditionParam12101();
-                        param.setItemId(id);
-                        param.setAddValue(count);
-                        return param;
-                    });
+                //触发消耗道具任务
+                taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> {
+                    TaskConditionParam12101 param = new TaskConditionParam12101();
+                    param.setItemId(id);
+                    param.setAddValue(count);
+                    return param;
                 });
             }
             //扣除金币和钻石
@@ -342,26 +340,22 @@ public class PlayerPackService implements IPlayerRegister {
                 result.data.goldChange(-deductGoldV, removeResult.data.getGold());
                 result.data.diamondChange(-deductDiamondV, removeResult.data.getDiamond());
 
-                long finalDeductGoldV = deductGoldV;
-                long finalDeductDiamondV = deductDiamondV;
-                Thread.ofVirtual().start(() -> {
-                    //触发消耗金币任务
-                    if (finalDeductGoldV > 0) {
-                        TaskConditionParam12101 param = new TaskConditionParam12101();
-                        param.setItemId(ItemUtils.getGoldItemId());
-                        param.setAddValue(finalDeductGoldV);
-                        param.setResultValue(removeResult.data.getGold());
-                        taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> param);
-                    }
-                    //触发消耗钻石任务
-                    if (finalDeductDiamondV > 0) {
-                        TaskConditionParam12101 param = new TaskConditionParam12101();
-                        param.setItemId(ItemUtils.getDiamondItemId());
-                        param.setAddValue(finalDeductDiamondV);
-                        param.setResultValue(removeResult.data.getDiamond());
-                        taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> param);
-                    }
-                });
+                //触发消耗金币任务
+                if (deductGoldV > 0) {
+                    TaskConditionParam12101 param = new TaskConditionParam12101();
+                    param.setItemId(ItemUtils.getGoldItemId());
+                    param.setAddValue(deductGoldV);
+                    param.setResultValue(removeResult.data.getGold());
+                    taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> param);
+                }
+                //触发消耗钻石任务
+                if (deductDiamondV > 0) {
+                    TaskConditionParam12101 param = new TaskConditionParam12101();
+                    param.setItemId(ItemUtils.getDiamondItemId());
+                    param.setAddValue(deductDiamondV);
+                    param.setResultValue(removeResult.data.getDiamond());
+                    taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> param);
+                }
             }
             if (packItemList.isEmpty()) {
                 result.code = Code.SUCCESS;

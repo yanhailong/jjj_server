@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.texas.room;
 
+import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -216,8 +217,13 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         gameDataVo.getPool().getFirst().addEligiblePlayer(playerId);
         final long finalBetValue = betValue;
         if (!(gamePlayer instanceof GameRobotPlayer)) {
-            //处理下注
-            Thread.ofVirtual().start(() -> dealBet(gamePlayer, finalBetValue));
+            getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
+                @Override
+                public void action() {
+                    //处理下注
+                    dealBet(gamePlayer, finalBetValue);
+                }
+            }.setHandlerParamWithSelf("texas dealBet"));
         }
         //通知
         NotifyTexasBet notifyTexasBet = new NotifyTexasBet();
@@ -230,14 +236,26 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             notifyTexasBet.nextPlayerId = nextExePlayer.getPlayerId();
             notifyTexasBet.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
             if (!(gamePlayer instanceof GameRobotPlayer)) {
-                Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, finalBetValue));
+                getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
+                    @Override
+                    public void action() {
+                        dealEffectiveBet(gamePlayer, finalBetValue);
+                    }
+                }.setHandlerParamWithSelf("texas dealEffectiveBet"));
+                triggerTask(playerId, gameControlType().getGameTypeId(), finalBetValue, 0, getGameTransactionItemId());
             }
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasBet));
         } else {
             //结算的时候加注，all不算有效押注
             if (!isNextRoundOrSettlement() || isNextRoundOrSettlement() && reqPokerBet.betType == PokerConstant.PlayerOperation.FOLLOW_CARD) {
                 if (!(gamePlayer instanceof GameRobotPlayer)) {
-                    Thread.ofVirtual().start(() -> dealEffectiveBet(gamePlayer, finalBetValue));
+                    getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
+                        @Override
+                        public void action() {
+                            dealEffectiveBet(gamePlayer, finalBetValue);
+                        }
+                    }.setHandlerParamWithSelf("texas dealEffectiveBet"));
+                    triggerTask(playerId, gameControlType().getGameTypeId(), finalBetValue, 0, getGameTransactionItemId());
                 }
             }
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasBet));

@@ -23,6 +23,7 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.core.annotation.Order;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.Collections;
 import java.util.Map;
@@ -32,6 +33,7 @@ import java.util.Map;
  * @date 2025/6/17 13:25
  */
 @SpringBootApplication(exclude = {QuartzAutoConfiguration.class})
+@EnableScheduling
 @ComponentScan(
         basePackages = "com.jjg.game",
         excludeFilters = {

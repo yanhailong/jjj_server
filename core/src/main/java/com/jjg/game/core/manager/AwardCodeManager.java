@@ -1,5 +1,7 @@
 package com.jjg.game.core.manager;
 
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.core.constant.AwardCodeType;
 import com.jjg.game.core.dao.AwardCodeDao;
 import com.jjg.game.core.data.AwardCode;
@@ -128,14 +130,17 @@ public class AwardCodeManager {
      * @param code      领奖码字符串
      */
     private void saveAwardCodeAsync(AwardCode awardCode, long playerId, String code) {
-        Thread.ofVirtual().start(() -> {
-            try {
-                awardCodeDao.save(awardCode);
-            } catch (Exception e) {
-                log.error("保存领奖码失败, playerId={}, code={}, data={}",
-                        playerId, code, awardCode, e);
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerId, 0, new BaseHandler<String>() {
+            @Override
+            public void action() {
+                try {
+                    awardCodeDao.save(awardCode);
+                } catch (Exception e) {
+                    log.error("保存领奖码失败, playerId={}, code={}, data={}",
+                            playerId, code, awardCode, e);
+                }
             }
-        });
+        }.setHandlerParamWithSelf("saveAwardCodeAsync"));
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.texas.gamephase;
 
+import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
@@ -16,6 +17,7 @@ import com.jjg.game.poker.game.texas.message.reps.NotifyTexasPreFlopRoundInfo;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.GameDataManager;
@@ -155,12 +157,21 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         //添加记录
         texasHistory.setSBValue(sBBetValue);
         texasHistory.setBBValue(BBBetValue);
-            Thread.ofVirtual().start(() -> {
+        gameController.getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
+            @Override
+            public void action() {
                 gameController.dealEffectiveBet(bBGamePlayer, BBBetValue);
                 gameController.dealBet(bBGamePlayer, BBBetValue);
                 gameController.dealEffectiveBet(sBGamePlayer, sBBetValue);
                 gameController.dealBet(sBGamePlayer, sBBetValue);
-            });
+            }
+        }.setHandlerParamWithSelf("texas BBAndSBBet"));
+        if (!(bBGamePlayer instanceof GameRobotPlayer)) {
+            gameController.triggerTask(bBGamePlayer.getId(), gameController.gameControlType().getGameTypeId(), BBBetValue, 0, gameController.getGameTransactionItemId());
+        }
+        if (!(sBGamePlayer instanceof GameRobotPlayer)) {
+            gameController.triggerTask(sBGamePlayer.getId(), gameController.gameControlType().getGameTypeId(), sBBetValue, 0, gameController.getGameTransactionItemId());
+        }
         historyRoundInfo.potAllBet = Arrays.asList(BBBetValue + sBBetValue);
         return Pair.newPair(sBBetValue, BBBetValue);
     }

@@ -11,12 +11,10 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.utils.ReflectUtils;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
-import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.IPhaseMsgAdapter;
 import com.jjg.game.room.base.IRoomPhase;
@@ -388,13 +386,6 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
         try {
             activityManager.addPlayerActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue, gameTransactionItemId);
             activityManager.addActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue, gameTransactionItemId);
-            //触发任务
-            getTaskManager().trigger(player.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
-                TaskConditionParam12001 param = new TaskConditionParam12001();
-                param.setGameId(gameDataVo.getRoomCfg().getGameID());
-                param.setAddValue(betValue);
-                return param;
-            }, false);
             // 触发事件
             getGameEventManager().triggerEvent(new PlayerEventCategory.PlayerEffectiveFlowingEvent(player, gameDataVo.getRoomCfg().getId(), betValue, 0));
             RoomDataHelper.checkPlayerVipLevel(player, this, betValue);
@@ -405,6 +396,9 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
 
     //处理有效下注
     public void dealBet(Player player, long betValue) {
+        if (player instanceof GameRobotPlayer) {
+            return;
+        }
         ActivityManager activityManager = roomController.getRoomManager().getActivityManager();
         try {
             activityManager.addPlayerActivityProgress(player, ActivityTargetType.BET.getTargetKey(), betValue, getGameTransactionItemId());

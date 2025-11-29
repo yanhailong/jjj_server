@@ -31,4 +31,11 @@ public class DefaultTaskConditionParam {
         this.resultValue = resultValue;
     }
 
+    @Override
+    public String toString() {
+        return "DefaultTaskConditionParam{" +
+                "addValue=" + addValue +
+                ", resultValue=" + resultValue +
+                '}';
+    }
 }
