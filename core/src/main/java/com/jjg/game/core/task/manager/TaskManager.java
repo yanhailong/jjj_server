@@ -76,6 +76,11 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
      */
     private Map<Integer, List<TaskCfg>> taskCfgMap = new HashMap<>();
 
+    /**
+     * 根据条件id分组 k=条件id
+     */
+    private Map<Integer, List<TaskCfg>> taskGroupMap = new HashMap<>();
+
     public TaskManager(TaskService taskService, PlayerPackService playerPackService, TaskLogger taskLogger, RedDotManager redDotManager, ClusterSystem clusterSystem) {
         this.taskService = taskService;
         this.playerPackService = playerPackService;
@@ -86,6 +91,10 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
 
     public Map<Integer, List<TaskCfg>> getTaskCfgMap() {
         return taskCfgMap;
+    }
+
+    public Map<Integer, List<TaskCfg>> getTaskGroupMap() {
+        return taskGroupMap;
     }
 
     @Override
@@ -118,9 +127,15 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
             List<TaskCfg> configList = GameDataManager.getTaskCfgList();
             if (configList != null && !configList.isEmpty()) {
                 Map<Integer, List<TaskCfg>> tempMap = new HashMap<>();
-                configList.forEach(taskCfg -> tempMap.computeIfAbsent(taskCfg.getTaskConditionId().getFirst(), k -> new ArrayList<>())
-                        .add(taskCfg));
+                Map<Integer, List<TaskCfg>> tempGroupMap = new HashMap<>();
+                configList.forEach(taskCfg -> {
+                    tempMap.computeIfAbsent(taskCfg.getTaskConditionId().getFirst(), k -> new ArrayList<>())
+                            .add(taskCfg);
+                    tempGroupMap.computeIfAbsent(taskCfg.getGroup(), k -> new ArrayList<>())
+                            .add(taskCfg);
+                });
                 taskCfgMap = tempMap;
+                taskGroupMap = tempGroupMap;
                 log.info("成功加载了[{}]个任务配置", configList.size());
             } else {
                 log.warn("没有加载到任何任务配置");

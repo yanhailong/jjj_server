@@ -148,7 +148,7 @@ public class TaskService {
      * @return true 需要删除
      */
     public boolean shouldDelete(TaskDetail taskDetail, TaskCfg taskCfg, TaskManager taskManager) {
-        List<TaskCfg> taskGroupCfgs = taskManager.getTaskCfgMap().get(taskCfg.getGroup());
+        List<TaskCfg> taskGroupCfgs = taskManager.getTaskGroupMap().get(taskCfg.getGroup());
         if (CollectionUtil.isEmpty(taskGroupCfgs)) {
             return true;
         }
@@ -271,7 +271,7 @@ public class TaskService {
      */
     private boolean addNewTasks(long playerId, TaskData tmpData, TaskManager taskManager) {
         // 获取当前可接取的任务配置列表
-        List<TaskCfg> availableTaskConfigs = getAvailableTaskConfigs(taskManager.getTaskCfgMap());
+        List<TaskCfg> availableTaskConfigs = getAvailableTaskConfigs(taskManager.getTaskGroupMap());
         // 筛选出需要新增的任务
         Map<Integer, TaskDetail> newTasks = createNewTasksForPlayer(playerId, tmpData, availableTaskConfigs, taskManager);
         //有任务才更新
