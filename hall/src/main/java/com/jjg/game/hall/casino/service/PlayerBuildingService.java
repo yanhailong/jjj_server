@@ -1,7 +1,5 @@
 package com.jjg.game.hall.casino.service;
 
-import com.jjg.game.common.redis.RedisLock;
-import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.hall.casino.dao.PlayerBuildingDao;
 import com.jjg.game.hall.casino.data.PlayerBuilding;
 import org.slf4j.Logger;
@@ -96,7 +94,7 @@ public class PlayerBuildingService {
             playerBuildingDao.saveAll(playerBuilding);
             redisDel(playerId);
         } catch (Exception e) {
-            log.error("保存到mongo失败 playerId:{}", playerId);
+            log.error("保存到mongo失败 playerId:{}", playerId, e);
         }
     }
 
