@@ -582,14 +582,18 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
     private void checkAllOnlinePlayerTasks(int hour) {
         try {
             // 获取所有在线玩家ID
-            Set<Long> onlinePlayerIds = clusterSystem.getAllOnlinePlayerId();
-            log.info("时钟事件[{}点]触发，开始检查{}个在线玩家的任务", hour, onlinePlayerIds.size());
+            List<PFSession> onlinePlayerPFSessions = clusterSystem.getAllOnlinePlayerPFSession();
+            log.info("时钟事件[{}点]触发，开始检查{}个在线玩家的任务", hour, onlinePlayerPFSessions.size());
             int failCount = 0;
-            for (Long playerId : onlinePlayerIds) {
+            for (PFSession pfSession : onlinePlayerPFSessions) {
+                long playerId = pfSession.playerId;
+                if (playerId <= 0) {
+                    continue;
+                }
                 try {
                     final TaskManager taskManager = this;
                     //分发到个玩家的线程中
-                    PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerId, 0, new BaseHandler<String>() {
+                    PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(pfSession.getWorkId(), 0, new BaseHandler<String>() {
                         @Override
                         public void action() {
                             TaskData taskData = playerTaskMap.get(playerId);
@@ -606,7 +610,7 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
                     log.error("时钟事件检查玩家[{}]任务失败: {}", playerId, e.getMessage(), e);
                 }
             }
-            log.info("时钟事件[{}点]任务检查完成，total[{}] 失败: {}", hour, onlinePlayerIds.size(), failCount);
+            log.info("时钟事件[{}点]任务检查完成，total[{}] 失败: {}", hour, onlinePlayerPFSessions.size(), failCount);
         } catch (Exception e) {
             log.error("时钟事件[{}点]获取在线玩家列表失败: {}", hour, e.getMessage(), e);
         }

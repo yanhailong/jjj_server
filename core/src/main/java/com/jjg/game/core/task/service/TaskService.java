@@ -1,7 +1,6 @@
 package com.jjg.game.core.task.service;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.ClusterRpcReference;
@@ -9,7 +8,6 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.logger.TaskLogger;
-import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.rpc.HallPointsAwardBridge;
 import com.jjg.game.core.task.condition.AbstractTaskCondition;
 import com.jjg.game.core.task.db.TaskData;
@@ -55,9 +53,7 @@ public class TaskService {
     private static final int LOCK_TIME = 10000;
 
 
-    public TaskService(ClusterSystem clusterSystem,
-                       RedDotManager redDotManager,
-                       RedissonClient redissonClient,
+    public TaskService(RedissonClient redissonClient,
                        TaskDataDao taskDataDao,
                        RedisLock redisLock,
                        TaskLogger taskLogger) {
@@ -568,4 +564,5 @@ public class TaskService {
             playerTasks.remove(playerId);
         });
     }
+
 }
