@@ -188,7 +188,7 @@ public class FriendRoomServices {
             GameRpcContext.getContext().withReqParameterBuilder(
                     RpcReqParameterBuilder.create()
                             .addClusterClient(client)
-                            .setTryMillisPerClient(200));
+                            .setTryMillisPerClient(1000));
             // 向目标节点发送，创建好友房指令
             hallRoomBridge.createFriendRoom(roomCfgId, friendRoom.getId());
         } finally {
