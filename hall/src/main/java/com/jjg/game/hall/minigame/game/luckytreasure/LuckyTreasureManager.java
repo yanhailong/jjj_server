@@ -425,24 +425,26 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * 为指定配置启动新活动
      */
     private void startNewActivityForConfig(LuckyTreasureConfig config) {
-        String lockKey = LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_START + config.getId();
-        redisLock.tryLockAndRun(lockKey, () -> {
-            // 检查该配置ID是否已有活跃活动
-            if (luckyTreasureRedisDao.hasActiveRound(config.getId())) {
-                return;
-            }
-            // 创建新活动
-            LuckyTreasure newRound = createNewRound(config);
-            // 保存到数据库
-            luckyTreasureDao.save(newRound);
-            // 保存到Redis
-            saveActiveRoundToRedis(newRound);
-            // 添加活动结束定时器
-            addActivityEndTimer(newRound);
-            //通知更新
-            luckyTreasureService.broadcastUpdate(newRound.getIssueNumber());
-            log.info("启动新的夺宝奇兵活动，配置ID: {}, 期号: {}", config.getId(), newRound.getIssueNumber());
-        });
+        if(!marsCurator.isMaster()){
+            log.warn("非主节点，无法开启幸运夺宝新活动 cfgIf = {}",config.getId());
+            return;
+        }
+
+        // 检查该配置ID是否已有活跃活动
+        if (luckyTreasureRedisDao.hasActiveRound(config.getId())) {
+            return;
+        }
+        // 创建新活动
+        LuckyTreasure newRound = createNewRound(config);
+        // 保存到数据库
+        luckyTreasureDao.save(newRound);
+        // 保存到Redis
+        saveActiveRoundToRedis(newRound);
+        // 添加活动结束定时器
+        addActivityEndTimer(newRound);
+        //通知更新
+        luckyTreasureService.broadcastUpdate(newRound.getIssueNumber());
+        log.info("启动新的夺宝奇兵活动，配置ID: {}, 期号: {}", config.getId(), newRound.getIssueNumber());
     }
 
     /**
@@ -645,8 +647,6 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         // 移除定时器
         removeActivityTimer(issueNumber);
 
-        String lockKey = LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_END + issueNumber;
-
         //获取配置的开奖时间
         int rewardTime = 0;
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
@@ -658,22 +658,19 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         if(rewardTime < 1){
             handleActivityRewardTimer(issueNumber);
         }else {
-            final int finalRewardTime = rewardTime;
-            redisLock.tryLockAndRun(lockKey, () -> {
-                RMapCache<Long,LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
-                // 从redis获取活动数据
-                LuckyTreasure round = activeTreasures.get(issueNumber);
-                if (round == null || round.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
-                    log.warn("幸运夺宝开奖时出错 issueNumber = {},roundNull = {},status = {}", issueNumber, round == null, round == null ? "null" : round.getStatus());
-                    return;
-                }
+            RMapCache<Long,LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
+            // 从redis获取活动数据
+            LuckyTreasure round = activeTreasures.get(issueNumber);
+            if (round == null || round.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
+                log.warn("幸运夺宝开奖时出错 issueNumber = {},roundNull = {},status = {}", issueNumber, round == null, round == null ? "null" : round.getStatus());
+                return;
+            }
 
-                //标记等待开奖
-                round.setStatus(LuckyTreasureStatusUtil.STATUS_WAIT_DRAW);
-                activeTreasures.put(issueNumber, round);
-                addActivityRewardTimer(round);
-                log.debug("finalRewardTime = {},添加开奖倒计时", finalRewardTime);
-            });
+            //标记等待开奖
+            round.setStatus(LuckyTreasureStatusUtil.STATUS_WAIT_DRAW);
+            activeTreasures.put(issueNumber, round);
+            addActivityRewardTimer(round);
+            log.debug("finalRewardTime = {},添加开奖倒计时", rewardTime);
         }
     }
 
@@ -687,27 +684,23 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         // 移除定时器
         removeActivityTimer(issueNumber);
 
-        String lockKey = LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_REWARD + issueNumber;
+        RMapCache<Long,LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
+        // 从redis获取活动数据
+        LuckyTreasure round = activeTreasures.get(issueNumber);
+        if (round == null || (round.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY && round.getStatus() != LuckyTreasureStatusUtil.STATUS_WAIT_DRAW)) {
+            log.debug("status = {}", round == null ? "null" : round.getStatus());
+            return;
+        }
 
-        redisLock.tryLockAndRun(lockKey, () -> {
-            RMapCache<Long,LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
-            // 从redis获取活动数据
-            LuckyTreasure round = activeTreasures.get(issueNumber);
-            if (round == null || (round.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY && round.getStatus() != LuckyTreasureStatusUtil.STATUS_WAIT_DRAW)) {
-                log.debug("status = {}", round == null ? "null" : round.getStatus());
-                return;
-            }
+        reward(round);
+        luckyTreasureDao.save(round);
 
-            reward(round);
-            luckyTreasureDao.save(round);
-
-            log.info("夺宝奇兵活动结束并开奖完成，期号= {}, 中奖玩家= {}", issueNumber, round.getAwardPlayerId());
-            LuckyTreasureConfig luckyTreasureConfig = round.getConfig();
-            // 清理活跃状态
-            luckyTreasureRedisDao.removeActiveRoundByIssueNumber(issueNumber);
-            // 立即启动下一期活动
-            startNextRoundForConfig(luckyTreasureConfig.getId());
-        });
+        log.info("夺宝奇兵活动结束并开奖完成，期号= {}, 中奖玩家= {}", issueNumber, round.getAwardPlayerId());
+        LuckyTreasureConfig luckyTreasureConfig = round.getConfig();
+        // 清理活跃状态
+        luckyTreasureRedisDao.removeActiveRoundByIssueNumber(issueNumber);
+        // 立即启动下一期活动
+        startNextRoundForConfig(luckyTreasureConfig.getId());
     }
 
     /**
