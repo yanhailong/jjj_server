@@ -457,13 +457,7 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
                 .tryPublish(playerId, 0, new BaseHandler<String>() {
                     @Override
                     public void action() {
-                        TaskData taskData = playerTaskMap.get(playerId);
-                        if (taskData == null) {
-                            //从redis读取
-                            taskData = taskService.getPlayerTask(playerId);
-                            playerTaskMap.put(playerId, taskData);
-                            return;
-                        }
+                        TaskData taskData = playerTaskMap.computeIfAbsent(playerId, k -> taskService.getPlayerTask(playerId));
                         try {
                             taskService.checkTask(playerId, taskData, taskManager);
                         } catch (Exception e) {
