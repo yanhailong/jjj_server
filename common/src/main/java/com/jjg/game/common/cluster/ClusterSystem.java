@@ -759,6 +759,13 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
         return playerIdSessionMap.keySet();
     }
 
+    /**
+     * 获取当前节点所有的在线玩家
+     */
+    public List<PFSession> getAllOnlinePlayerPFSession() {
+        return new ArrayList<>(sessionMap.values());
+    }
+
     @Override
     public void OnSwitchNodeAction(PFSession pfSession) {
         if (pfSession == null) {
