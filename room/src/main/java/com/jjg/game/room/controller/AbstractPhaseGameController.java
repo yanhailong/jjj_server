@@ -396,6 +396,9 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
 
     //处理有效下注
     public void dealBet(Player player, long betValue) {
+        if (player instanceof GameRobotPlayer) {
+            return;
+        }
         ActivityManager activityManager = roomController.getRoomManager().getActivityManager();
         try {
             activityManager.addPlayerActivityProgress(player, ActivityTargetType.BET.getTargetKey(), betValue, getGameTransactionItemId());

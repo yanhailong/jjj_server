@@ -17,6 +17,7 @@ import com.jjg.game.poker.game.texas.message.reps.NotifyTexasPreFlopRoundInfo;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.GameDataManager;
@@ -165,8 +166,12 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
                 gameController.dealBet(sBGamePlayer, sBBetValue);
             }
         }.setHandlerParamWithSelf("texas BBAndSBBet"));
-        gameController.triggerTask(bBGamePlayer.getId(), gameController.gameControlType().getGameTypeId(), BBBetValue, 0, gameController.getGameTransactionItemId());
-        gameController.triggerTask(sBGamePlayer.getId(), gameController.gameControlType().getGameTypeId(), sBBetValue, 0, gameController.getGameTransactionItemId());
+        if (!(bBGamePlayer instanceof GameRobotPlayer)) {
+            gameController.triggerTask(bBGamePlayer.getId(), gameController.gameControlType().getGameTypeId(), BBBetValue, 0, gameController.getGameTransactionItemId());
+        }
+        if (!(sBGamePlayer instanceof GameRobotPlayer)) {
+            gameController.triggerTask(sBGamePlayer.getId(), gameController.gameControlType().getGameTypeId(), sBBetValue, 0, gameController.getGameTransactionItemId());
+        }
         historyRoundInfo.potAllBet = Arrays.asList(BBBetValue + sBBetValue);
         return Pair.newPair(sBBetValue, BBBetValue);
     }

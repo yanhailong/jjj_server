@@ -216,7 +216,9 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
         if (!StringUtils.isEmpty(sessionId) && pfSession != null) {
             log.info("添加sessionId:{}", sessionId);
             sessionMap.put(sessionId, pfSession);
-            playerIdSessionMap.put(pfSession.playerId, sessionId);
+            if (pfSession.playerId > 0) {
+                playerIdSessionMap.put(pfSession.playerId, sessionId);
+            }
         }
     }
 
@@ -225,7 +227,11 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
      */
     public void removeSession(String sessionId) {
         log.info("移除sessionId:{}", sessionId);
-        sessionMap.remove(sessionId);
+        PFSession pfSession = sessionMap.remove(sessionId);
+        if (pfSession != null && pfSession.playerId > 0) {
+            playerIdSessionMap.remove(pfSession.playerId, sessionId);
+        }
+
     }
 
 
