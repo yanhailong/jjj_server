@@ -123,8 +123,16 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     @Override
     public void isLeader() {
         log.info("夺宝奇兵管理器成为主节点，开始启动活动管理");
-        // 启动新活动（只有主节点才执行）
-        startNewActivitiesIfNeeded();
+        try{
+            //检测服务器重启后是否有未处理数据
+            recoverUnsettledRounds();
+            //检查并启动缺失的活动
+            startMissingActivities();
+            // 启动新活动（只有主节点才执行）
+            startNewActivitiesIfNeeded();
+        }catch (Exception e){
+            log.error("夺宝奇兵管理器启动异常", e);
+        }
     }
 
     /**
