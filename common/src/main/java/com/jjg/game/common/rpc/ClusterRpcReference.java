@@ -1,7 +1,5 @@
 package com.jjg.game.common.rpc;
 
-import com.jjg.game.common.curator.NodeType;
-
 import java.lang.annotation.*;
 
 /**
@@ -20,9 +18,9 @@ public @interface ClusterRpcReference {
     String targetNodePath() default "";
 
     /**
-     * 超时时间，默认10ms
+     * 超时时间，默认100ms
      */
-    int timeoutMillis() default 200;
+    int timeoutMillis() default 1000;
 
     /**
      * 重试次数，默认调用时尝试5次
