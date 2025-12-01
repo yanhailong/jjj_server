@@ -1,9 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
-
 import javax.annotation.processing.Generated;
+import java.util.Map;
 /**
  * 配置bean
  *
@@ -19,17 +17,12 @@ public class WealthRouletteRewardCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "WealthRouletteReward";
 
-  /** 权重（千分比） */
-  protected int Weight;
   /** 金币档位 */
   protected Map<Integer,Long> item;
   /** 客户端图片资源 */
   protected String picture;
-
-  /** 返回权重（千分比） */
-  public int getWeight() {
-    return Weight;
-  }
+  /** 权重（千分比） */
+  protected int weight;
 
   /** 返回金币档位 */
   public Map<Integer,Long> getItem() {
@@ -39,6 +32,11 @@ public class WealthRouletteRewardCfg extends BaseCfgBean {
   /** 返回客户端图片资源 */
   public String getPicture() {
     return picture;
+  }
+
+  /** 返回权重（千分比） */
+  public int getWeight() {
+    return weight;
   }
 
   @Override
