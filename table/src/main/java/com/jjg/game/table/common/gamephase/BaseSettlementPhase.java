@@ -16,6 +16,8 @@ import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 
@@ -75,12 +77,22 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
      */
     protected SettlementData calcGold(GamePlayer gamePlayer, WinPosWeightCfg weightCfg, long betValue) {
         int winRatio = gameDataVo.getRoomCfg().getWinRatio();
+//        // 倍率计算
+//        long totalGet = betValue * (weightCfg.getOdds() / 100);
+//        long multiAdd = (long) Math.floor(totalGet * ((10000 - (weightCfg.getIsRatio() == 1 ? winRatio : 0)) / 10000.0));
+//        long betReturn = (long) Math.floor(betValue * (weightCfg.getReturnRate() / 10000.0));
+//        // 赢的总值
+//        long totalWin = multiAdd + betReturn;
         // 倍率计算
-        long totalGet = betValue * (weightCfg.getOdds() / 100);
-        long multiAdd = (long) Math.floor(totalGet * ((10000 - (weightCfg.getIsRatio() == 1 ? winRatio : 0)) / 10000.0));
-        long betReturn = (long) Math.floor(betValue * (weightCfg.getReturnRate() / 10000.0));
+        BigDecimal totalGet = BigDecimal.valueOf(betValue)
+                .multiply(BigDecimal.valueOf(weightCfg.getOdds()))
+                .divide(BigDecimal.valueOf(100), 4, RoundingMode.DOWN);
+        BigDecimal multiAdd = totalGet.multiply(BigDecimal.valueOf((10000 - (weightCfg.getIsRatio() == 1 ? winRatio : 0))))
+                .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
+        long betReturn = BigDecimal.valueOf(betValue).multiply(BigDecimal.valueOf(weightCfg.getReturnRate()))
+                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
         // 赢的总值
-        long totalWin = multiAdd + betReturn;
+        long totalWin = multiAdd.longValue() + betReturn;
         if (!(gamePlayer instanceof GameRobotPlayer)) {
             log.info("玩家：{} {} 在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{}",
                     gamePlayer.getId(),
@@ -92,7 +104,7 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
                     totalWin);
         }
         // 倍率计算 + 压分返还 + 赢的总值
-        return new SettlementData(multiAdd, betReturn, totalWin, betValue, totalGet - multiAdd);
+        return new SettlementData(multiAdd.longValue(), betReturn, totalWin, betValue, totalGet.longValue() - multiAdd.longValue());
     }
 
     /**

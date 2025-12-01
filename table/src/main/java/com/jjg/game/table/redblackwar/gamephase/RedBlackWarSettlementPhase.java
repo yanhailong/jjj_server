@@ -27,6 +27,8 @@ import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -114,22 +116,25 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                         continue;
                     }
                     //返还押分
-                    long backBet = (long) totalBet * cfg.getReturnRate() / 10000;
+                    BigDecimal backBet = BigDecimal.valueOf(totalBet)
+                            .multiply(BigDecimal.valueOf(cfg.getReturnRate()))
+                            .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
                     //总获得
-                    long canGet = backBet * cfg.getOdds() / 100;
-                    long ratioBefore = canGet;
+                    BigDecimal canGetBigDecimal = backBet.multiply(BigDecimal.valueOf(cfg.getOdds()))
+                            .divide(BigDecimal.valueOf(100), 4, RoundingMode.DOWN);
+                    long canGet = 0;
                     if (cfg.getIsRatio() == 1) {
-                        canGet = canGet * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
+                        canGet = canGetBigDecimal.multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getEffectiveRatio()))
+                                .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN).longValue();
                     }
-                    canGet += backBet;
+                    canGet += backBet.longValue();
                     // 给玩家添加金币
-                    gameController.addItem(
-                            gamePlayer.getId(), canGet,
-                            AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+                    gameController.addItem(gamePlayer.getId(), canGet, AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
                     DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
                     keyValue.setKey(keyValue.getKey() + totalBet);
                     keyValue.setValue(keyValue.getValue() + canGet);
-                    SettlementData settlementData = new SettlementData(canGet - backBet, backBet, canGet, totalBet, ratioBefore + backBet - canGet);
+                    SettlementData settlementData = new SettlementData(canGet - backBet.longValue(), backBet.longValue(), canGet, totalBet,
+                            canGetBigDecimal.longValue() + backBet.longValue() - canGet);
                     if (!settlementDataMap.containsKey(playerId)) {
                         settlementDataMap.put(playerId, settlementData);
                     } else {

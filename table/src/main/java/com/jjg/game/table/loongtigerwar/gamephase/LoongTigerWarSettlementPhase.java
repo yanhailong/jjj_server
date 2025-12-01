@@ -24,6 +24,8 @@ import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,15 +88,21 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                         continue;
                     }
                     //返还押分
-                    long backBet = (long) totalBet * weightCfg.getReturnRate() / 10000;
+                    BigDecimal backBet = BigDecimal.valueOf(totalBet)
+                            .multiply(BigDecimal.valueOf(weightCfg.getReturnRate()))
+                            .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
                     //总获得
-                    long canGet = backBet * weightCfg.getOdds() / 100;
-                    long totalGet = canGet;
+                    BigDecimal canGetBigDecimal = backBet.multiply(BigDecimal.valueOf(weightCfg.getOdds()))
+                            .divide(BigDecimal.valueOf(100), 4, RoundingMode.DOWN);
+                    long totalGet = canGetBigDecimal.longValue();
+                    long canGet = 0;
                     if (weightCfg.getIsRatio() == 1) {
-                        canGet = canGet * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
+                        canGet = canGetBigDecimal.multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getEffectiveRatio()))
+                                .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN).longValue();
                     }
-                    canGet += backBet;
-                    SettlementData settlementData = new SettlementData(canGet - backBet, backBet, canGet, totalBet, totalGet + backBet - canGet);
+                    canGet += backBet.longValue();
+                    SettlementData settlementData = new SettlementData(canGet - backBet.longValue(), backBet.longValue(), canGet,
+                            totalBet, totalGet + backBet.longValue() - canGet);
                     if (!settlementDataMap.containsKey(playerId)) {
                         settlementDataMap.put(playerId, settlementData);
                     } else {
