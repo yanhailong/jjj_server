@@ -1,7 +1,9 @@
 package com.jjg.game.sampledata.bean;
 
+import java.util.*;
+
+
 import javax.annotation.processing.Generated;
-import java.util.List;
 /**
  * 配置bean
  *
@@ -20,7 +22,7 @@ public class RouletteShopCfg extends BaseCfgBean {
   /** 每日限购次数 */
   protected int frequency;
   /** 商品奖励 */
-  protected List<Integer> item;
+  protected Map<Integer,Long> item;
   /** 是否开启 */
   protected int open;
   /** 购买消耗 */
@@ -34,7 +36,7 @@ public class RouletteShopCfg extends BaseCfgBean {
   }
 
   /** 返回商品奖励 */
-  public List<Integer> getItem() {
+  public Map<Integer,Long> getItem() {
     return item;
   }
 
