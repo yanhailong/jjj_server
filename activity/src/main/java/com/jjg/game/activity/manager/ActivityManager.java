@@ -125,6 +125,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     private final CountDao countDao;
 
+
     public ActivityManager(TimerCenter timerCenter, ClusterSystem clusterSystem,
                            CoreMarqueeManager marqueeManager,
                            MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager,
@@ -662,42 +663,42 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     private void onZeroEvent() {
         //获取在线玩家
-        List<Long> allPlayerIds = clusterSystem.getAllPlayerIds();
-        if (CollectionUtil.isEmpty(allPlayerIds)) {
+        List<PFSession> allPlayerPFSession = clusterSystem.getAllOnlinePlayerPFSession();
+        if (CollectionUtil.isEmpty(allPlayerPFSession)) {
             return;
         }
         //节点全部在线玩家
-        for (Long playerId : allPlayerIds) {
+        for (PFSession pfSession : allPlayerPFSession) {
+            long playerId = pfSession.playerId;
+            if (playerId <= 0 || !(pfSession.getReference() instanceof PlayerController playerController)) {
+                continue;
+            }
+            Player player = playerController.getPlayer();
+            if (player == null) {
+                continue;
+            }
             //分发到对应玩家线程处理
-            PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerId, 0, new BaseHandler<String>() {
+            PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(pfSession.getWorkId(), 0, new BaseHandler<String>() {
                 @Override
                 public void action() {
-                    PFSession session = clusterSystem.getSession(playerId);
-                    //判断玩家是否存在
-                    if (session != null && session.getReference() instanceof PlayerController playerController) {
-                        Player player = playerController.getPlayer();
-                        if (player == null) {
-                            return;
-                        }
-                        //确保极限情况下登录不多次触发
-                        if (Boolean.FALSE.equals(playerActivityDao.checkCanTargetFirstLogin(playerId))) {
-                            return;
-                        }
-                        log.info("玩家触发在线跨天 playerId:{}", player.getId());
-                        //全部活动
-                        for (ActivityData data : activityData.values()) {
-                            BaseActivityController controller = data.getType().getController();
-                            //检查是否能参加活动
-                            if (!playerCanJoinActivity(data, player)) {
-                                continue;
-                            }
-                            //重置活动数据
-                            controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
-                        }
-                        //触发登录活动
-                        addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
-                        log.info("玩家触发登陆行为完成 playerId:{}", player.getId());
+                    //确保极限情况下登录不多次触发
+                    if (Boolean.FALSE.equals(playerActivityDao.checkCanTargetFirstLogin(playerId))) {
+                        return;
                     }
+                    log.info("玩家触发在线跨天 playerId:{}", player.getId());
+                    //全部活动
+                    for (ActivityData data : activityData.values()) {
+                        BaseActivityController controller = data.getType().getController();
+                        //检查是否能参加活动
+                        if (!playerCanJoinActivity(data, player)) {
+                            continue;
+                        }
+                        //重置活动数据
+                        controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
+                    }
+                    //触发登录活动
+                    addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
+                    log.info("玩家触发登陆行为完成 playerId:{}", player.getId());
                 }
             }.setHandlerParamWithSelf("activity onZeroEvent"));
         }

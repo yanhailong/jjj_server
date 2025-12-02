@@ -111,6 +111,10 @@ public interface Code {
     int WAIT_CLOSE_NOT_MODIFICATION = 441;
     // 非庄家不能修改准备金
     int CANT_EDIT_BANKER_GOLD = 49074;
+    // 财富转盘积分不足
+    int WEALTH_ROULETTE_NOT_POINT = 80011;
+    // 财富转盘购买上限
+    int WEALTH_ROULETTE_BUY_LIMIT = 80029;
     // 服务器错误
     int EXCEPTION = 500;
 }

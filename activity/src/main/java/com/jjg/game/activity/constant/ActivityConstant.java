@@ -253,5 +253,20 @@ public interface ActivityConstant {
         //玩家购买返回
         int RES_GROWTH_FUND_BUY_RESULT_INFO = BASE_MSG_PREFIX | 0x4E;
 
+        //财富转盘
+        //请求详细信息
+        int REQ_WEALTH_ROULETTE_DETAIL_INFO = BASE_MSG_PREFIX | 0x60;
+        int RES_WEALTH_ROULETTE_DETAIL_INFO = BASE_MSG_PREFIX | 0x61;
+        //抽取
+        int REQ_WEALTH_ROULETTE_DRAW = BASE_MSG_PREFIX | 0x62;
+        int RES_WEALTH_ROULETTE_DRAW = BASE_MSG_PREFIX | 0x63;
+
+        //商店
+        int REQ_WEALTH_ROULETTE_SHOP_INFOS = BASE_MSG_PREFIX | 0x64;
+        int RES_WEALTH_ROULETTE_SHOP_INFOS = BASE_MSG_PREFIX | 0x65;
+
+        int REQ_WEALTH_ROULETTE_BUY_GOOD = BASE_MSG_PREFIX | 0x66;
+        int RES_WEALTH_ROULETTE_BUY_GOOD = BASE_MSG_PREFIX | 0x67;
+
     }
 }

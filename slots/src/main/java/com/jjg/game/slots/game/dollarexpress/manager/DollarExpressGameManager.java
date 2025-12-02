@@ -12,13 +12,18 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
+import com.jjg.game.sampledata.bean.SpecialGirdCfg;
+import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.data.*;
+import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
+import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressGameDataDao;
-import com.jjg.game.slots.game.dollarexpress.data.*;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressResultLibDao;
+import com.jjg.game.slots.game.dollarexpress.data.*;
 import com.jjg.game.slots.game.dollarexpress.pb.DollarsInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResultLineInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.TrainInfo;
@@ -473,7 +478,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.playerId(),gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerController.getPlayer(),gameRunInfo.getAllWinGold(),betValue);
 
             //添加美元收集进度
             if (gameRunInfo.getTotalDollars() < 1) {

@@ -25,6 +25,8 @@ public enum EFunctionType {
     FRIEND_ROOM(8),
     // 商城界面
     SHOP_INTERFACE(9),
+    //幸运夺宝
+    LUCK_TREASURE(10),
     // 我的赌场
     MY_CASINO(101),
     // 每日奖金
@@ -60,7 +62,11 @@ public enum EFunctionType {
     // 夺宝
     TREASURE_HUNT(117),
     // 钻石基金
-    DIAMOND_FUND(118);
+    DIAMOND_FUND(118),
+    // 限时礼包
+    LIMITED_TIME_GIFT(119),
+    // 财富轮盘
+    WEALTH_ROULETTE(120);
 
     // 功能ID
     private final int functionId;

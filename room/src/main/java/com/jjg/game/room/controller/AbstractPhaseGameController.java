@@ -3,6 +3,7 @@ package com.jjg.game.room.controller;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.manager.ActivityManager;
+import com.jjg.game.activity.wealthroulette.controller.WealthRouletteController;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.protostuff.PFMessage;
@@ -405,6 +406,23 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
             activityManager.addActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET), betValue, getGameTransactionItemId());
         } catch (Exception e) {
             log.error("处理下注流水失败 info:{} betValue:{}", player.getId(), betValue, e);
+        }
+    }
+
+    /**
+     * 处理输的
+     * @param player 玩家数据
+     * @param loseValue 输的金额
+     */
+    public void dealLose(Player player, long loseValue) {
+        if (player instanceof GameRobotPlayer) {
+            return;
+        }
+        WealthRouletteController controller = roomController.getRoomManager().getWealthRouletteController();
+        try {
+            controller.addProgress(player,loseValue);
+        } catch (Exception e) {
+            log.error("处理输的失败 info:{} betValue:{}", player.getId(), loseValue, e);
         }
     }
 

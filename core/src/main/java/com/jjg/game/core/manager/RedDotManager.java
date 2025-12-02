@@ -102,7 +102,7 @@ public class RedDotManager {
      * @param count 数量
      * @return 红点详情
      */
-    private RedDotDetails buildRedDotDetails(RedDotDetails.RedDotModule module, int submodule, int count) {
+    public RedDotDetails buildRedDotDetails(RedDotDetails.RedDotModule module, int submodule, int count) {
         RedDotDetails details = new RedDotDetails();
         details.setCount(count);
         if (module.getRedDotType() == RedDotDetails.RedDotType.COMMON) {

@@ -2,6 +2,7 @@ package com.jjg.game.core.dao;
 
 import com.jjg.game.core.utils.RedisUtils;
 import org.redisson.api.*;
+import org.redisson.client.codec.StringCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -61,6 +62,97 @@ public class CountDao {
                         Collections.singletonList(key),
                         String.valueOf(value),
                         String.valueOf(expireSeconds));
+    }
+
+    /**
+     * 原子地设置/自增值，仅在第一次设置时设置过期时间。
+     * 如果键不存在，则设置为 count 的值并设置过期时间。
+     * 如果键存在，则自增 count 的值，但不刷新过期时间。
+     *
+     * @param featureId 特性 ID
+     * @param customId 业务 ID
+     * @param count 要设置或自增的值
+     * @param expireSeconds 第一次设置时使用的过期时间（秒）
+     * @return 自增或设置后的新值
+     */
+    public BigDecimal incrementWithoutExpireRefresh(String featureId, String customId, BigDecimal count, long expireSeconds) {
+        String key = getKey(featureId, customId);
+        long incrementValue = RedisUtils.toLong(count);
+
+        // Lua 脚本：实现原子操作
+        // KEYS[1]: key
+        // ARGV[1]: incrementValue (自增的值)
+        // ARGV[2]: expireSeconds (过期时间)
+        String lua = """
+                local exists = redis.call('EXISTS', KEYS[1])
+                local current_value = redis.call('INCRBY', KEYS[1], ARGV[1])
+                if exists == 0 then
+                    redis.call('EXPIRE', KEYS[1], ARGV[2])
+                end
+                return current_value
+                """;
+        // 执行 Lua 脚本
+        Object eval = redissonClient.getScript(StringCodec.INSTANCE)
+                .eval(
+                        RScript.Mode.READ_WRITE,
+                        lua,
+                        RScript.ReturnType.INTEGER,
+                        Collections.singletonList(key),
+                        String.valueOf(incrementValue),
+                        String.valueOf(expireSeconds)
+                );
+        if (eval instanceof Long addAfterValue) {
+            return RedisUtils.fromLong(addAfterValue);
+        }
+        return BigDecimal.ZERO;
+    }
+
+    /**
+     * 原子地执行条件自减操作。
+     * 只有当键存在且当前值 >= 要自减的值时，才执行自减。
+     * 如果自减成功，返回新的值；否则返回 null。
+     *
+     * @param featureId 特性 ID
+     * @param customId 业务 ID
+     * @param decrementValue 要自减的值 (必须为正数)
+     * @return 成功自减后的新值 (Long)，失败返回 null。
+     */
+    public BigDecimal decrementIfSufficient(String featureId, String customId, BigDecimal decrementValue) {
+        String key = getKey(featureId, customId);
+        // 确保 decrementValue 是正数，我们用负数进行比较
+        long amountToDecrement = RedisUtils.toLong(decrementValue);
+
+        // Lua 脚本：实现原子操作
+        // KEYS[1]: key
+        // ARGV[1]: amountToDecrement (要自减的正值)
+        String lua = """
+                local current_str = redis.call('GET', KEYS[1])
+                if not current_str or current_str == '' then
+                    return nil
+                end
+                local current_val = tonumber(current_str)
+                local amount = tonumber(ARGV[1])
+                if current_val < amount then
+                    return nil
+                end
+                local new_val = redis.call('DECRBY', KEYS[1], amount)
+                return new_val
+                """;
+
+        // 注意：我们将 Long.valueOf(null) 作为失败结果
+        // 执行 Lua 脚本
+        Object eval = redissonClient.getScript(StringCodec.INSTANCE)
+                .eval(
+                        RScript.Mode.READ_WRITE,
+                        lua,
+                        RScript.ReturnType.INTEGER,
+                        Collections.singletonList(key),
+                        String.valueOf(amountToDecrement)
+                );
+        if (eval instanceof Long result) {
+            return RedisUtils.fromLong(result);
+        }
+        return null;
     }
 
     /**

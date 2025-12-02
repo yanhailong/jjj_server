@@ -2,6 +2,7 @@ package com.jjg.game.room.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.activity.manager.ActivityManager;
+import com.jjg.game.activity.wealthroulette.controller.WealthRouletteController;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.IProcessorHandler;
@@ -95,6 +96,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected GameEventManager gameEventManager;
     @Autowired
     protected TaskManager taskManager;
+    @Autowired
+    protected WealthRouletteController wealthRouletteController;
     // context
     protected ApplicationContext applicationContext;
     // 房间计时器(线程池)
@@ -127,6 +130,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         this.roomManagerTimer.start();
         // 添加空房间检查
         this.roomManagerTimer.add(new TimerEvent<>(this, this::emptyRoomCheck, 5000));
+    }
+
+    public WealthRouletteController getWealthRouletteController() {
+        return wealthRouletteController;
     }
 
     public ActivityManager getActivityManager() {

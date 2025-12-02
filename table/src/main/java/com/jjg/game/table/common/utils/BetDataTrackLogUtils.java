@@ -46,6 +46,9 @@ public class BetDataTrackLogUtils {
                 @Override
                 public void action() {
                     SaveLogUtil.dealEffectiveWaterFlow(controller, gamePlayer, settlementData.getBetTotal(), settlementData.getBetWin());
+                    if (settlementData.getTotalWin() <= 0) {
+                        controller.dealLose(gamePlayer, settlementData.getBetTotal());
+                    }
                 }
             }.setHandlerParamWithSelf("recordBetLog"));
         }

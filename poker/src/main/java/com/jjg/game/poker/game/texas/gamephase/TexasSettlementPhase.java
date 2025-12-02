@@ -401,9 +401,14 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.EFFECTIVE_BET, betValue);
             //增加个人
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.playerId);
-            if (gamePlayer != null && !(gamePlayer instanceof GameRobotPlayer) && info.betValue > 0) {
-                //触发任务
-                gameController.triggerTask(gamePlayer.getId(), gameController.getRoom().getGameType(), 0, info.betValue, gameController.getGameTransactionItemId());
+            if (gamePlayer != null && !(gamePlayer instanceof GameRobotPlayer)) {
+                if (info.betValue > 0) {
+                    //触发任务
+                    gameController.triggerTask(gamePlayer.getId(), gameController.getRoom().getGameType(), 0,
+                            info.betValue, gameController.getGameTransactionItemId());
+                } else {
+                    gameController.dealLose(gamePlayer, info.betValue);
+                }
             }
         }
         //增加总体

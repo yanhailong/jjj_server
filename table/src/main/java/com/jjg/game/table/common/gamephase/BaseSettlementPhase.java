@@ -77,12 +77,6 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
      */
     protected SettlementData calcGold(GamePlayer gamePlayer, WinPosWeightCfg weightCfg, long betValue) {
         int winRatio = gameDataVo.getRoomCfg().getWinRatio();
-//        // 倍率计算
-//        long totalGet = betValue * (weightCfg.getOdds() / 100);
-//        long multiAdd = (long) Math.floor(totalGet * ((10000 - (weightCfg.getIsRatio() == 1 ? winRatio : 0)) / 10000.0));
-//        long betReturn = (long) Math.floor(betValue * (weightCfg.getReturnRate() / 10000.0));
-//        // 赢的总值
-//        long totalWin = multiAdd + betReturn;
         // 倍率计算
         BigDecimal totalGet = BigDecimal.valueOf(betValue)
                 .multiply(BigDecimal.valueOf(weightCfg.getOdds()))

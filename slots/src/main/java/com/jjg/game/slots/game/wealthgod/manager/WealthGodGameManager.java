@@ -32,7 +32,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Constructor;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -175,7 +178,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             }
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.playerId(),gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerController.getPlayer(),gameRunInfo.getAllWinGold(),betValue);
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());

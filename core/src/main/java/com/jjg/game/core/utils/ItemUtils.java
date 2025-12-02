@@ -8,7 +8,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -168,13 +167,11 @@ public class ItemUtils {
      * @return 合并后的道具
      */
     public static Map<Integer, Long> mergeItems(Map<Integer, Long> mergeMap1, Map<Integer, Long> mergeMap2) {
-        if (CollectionUtil.isEmpty(mergeMap1) || CollectionUtil.isEmpty(mergeMap2)) {
-            return Map.of();
+        if (CollectionUtil.isEmpty(mergeMap2)) {
+            return mergeMap1;
         }
-        Map<Integer, Long> tempMap = new HashMap<>();
-        mergeMap1.forEach((key, value) -> tempMap.merge(key, value, Long::sum));
-        mergeMap2.forEach((key, value) -> tempMap.merge(key, value, Long::sum));
-        return tempMap;
+        mergeMap2.forEach((key, value) -> mergeMap1.merge(key, value, Long::sum));
+        return mergeMap1;
     }
 
     /**

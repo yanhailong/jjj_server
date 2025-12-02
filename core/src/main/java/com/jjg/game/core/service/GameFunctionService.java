@@ -14,7 +14,6 @@ import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
 import com.jjg.game.sampledata.bean.GameFunctionCfg;
-import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -93,8 +92,22 @@ public class GameFunctionService implements GameEventListener, ConfigExcelChange
     /**
      * 检查游戏功能开放，应该根据功能的整个协议蔟去拦截整个功能
      */
+    public boolean checkGameFunctionOpen(EFunctionType eFunctionType) {
+        return checkGameFunctionOpen(GameDataManager.getGameFunctionCfg(eFunctionType.getFunctionId()));
+    }
+
+    /**
+     * 检查游戏功能开放，应该根据功能的整个协议蔟去拦截整个功能
+     */
     public boolean checkGameFunctionOpen(Player player, EFunctionType eFunctionType, boolean notify) {
         return checkGameFunctionOpen(player, GameDataManager.getGameFunctionCfg(eFunctionType.getFunctionId()), notify);
+    }
+
+    /**
+     * 检查游戏功能开放
+     */
+    public boolean checkGameFunctionOpen(GameFunctionCfg functionCfg) {
+        return functionCfg != null && functionCfg.getIsOpen();
     }
 
     /**
@@ -122,10 +135,10 @@ public class GameFunctionService implements GameEventListener, ConfigExcelChange
     @Override
     public List<EGameEventType> needMonitorEvents() {
         List<EGameEventType> needMonitorEvents = new ArrayList<>();
-        if(this.gameTypeOfFuncCache.isEmpty()){
+        if (this.gameTypeOfFuncCache.isEmpty()) {
             loadConfig();
         }
-        this.gameTypeOfFuncCache.forEach((k,v) -> needMonitorEvents.add(k));
+        this.gameTypeOfFuncCache.forEach((k, v) -> needMonitorEvents.add(k));
         return needMonitorEvents;
     }
 
@@ -135,7 +148,7 @@ public class GameFunctionService implements GameEventListener, ConfigExcelChange
         addInitSampleFileObserveWithCallBack(GameFunctionCfg.EXCEL_NAME, this::loadConfig);
     }
 
-    private void loadConfig(){
+    private void loadConfig() {
         Map<EGameEventType, List<GameFunctionCfg>> tmpGameTypeOfFuncCache = new HashMap<>();
         List<GameFunctionCfg> functionCfg = GameDataManager.getGameFunctionCfgList();
         for (GameFunctionCfg gameFunctionCfg : functionCfg) {

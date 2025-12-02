@@ -100,6 +100,10 @@ public enum AddType {
     ACTIVITY(617),
     //推广领取绑定奖励
     ACTIVITY_SHARE_PROMOTE_BIND_REWARDS(618),
+    //财富转盘奖励
+    WEALTH_ROULETTE_REWARDS(619),
+    //财富转盘商城购买
+    WEALTH_ROULETTE_BUY_REWARDS(620),
 
     //好友房申请庄家扣除准备金
     FRIEND_ROOM_APPLY_BANKER_DEDUCT_PREDICATE(701),
