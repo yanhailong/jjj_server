@@ -1,9 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
-
 import javax.annotation.processing.Generated;
+import java.util.List;
 /**
  * 配置bean
  *
@@ -21,6 +19,10 @@ public class BetAreaCfg extends BaseCfgBean {
 
   /** 下注区位置 */
   protected int areaID;
+  /** 基础赔付倍数 */
+  protected int baseBet;
+  /** 基础返还下注比例 */
+  protected int baseReturnRate;
   /** 游戏ID */
   protected int gameID;
   /** 当前区域最大赔付倍数 */
@@ -39,6 +41,16 @@ public class BetAreaCfg extends BaseCfgBean {
   /** 返回下注区位置 */
   public int getAreaID() {
     return areaID;
+  }
+
+  /** 返回基础赔付倍数 */
+  public int getBaseBet() {
+    return baseBet;
+  }
+
+  /** 返回基础返还下注比例 */
+  public int getBaseReturnRate() {
+    return baseReturnRate;
   }
 
   /** 返回游戏ID */

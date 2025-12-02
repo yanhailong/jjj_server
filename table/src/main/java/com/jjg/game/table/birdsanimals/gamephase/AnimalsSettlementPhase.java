@@ -88,8 +88,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(settlementData.getTotalWin());
             // 给玩家添加金币
-            gameController.addItem(
-                    gamePlayer.getId(), settlementData.getTotalWin(), AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+            gameController.addItem(gamePlayer.getId(), settlementData.getTotalWin(), AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
             playerChangedGold.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
             playerChangedGolds.add(playerChangedGold);
             settlementDataMap.put(playerId, settlementData);
@@ -102,14 +101,11 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
         settlement.settlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
-            settlement.settlementInfo.betTableInfos =
-                    TableMessageBuilder.buildPlayerBetInfo(settlement.settlementInfo.betTableInfos, gameDataVo, playerId);
+            settlement.settlementInfo.betTableInfos = TableMessageBuilder.buildPlayerBetInfo(settlement.settlementInfo.betTableInfos, gameDataVo, playerId);
             // 给玩家发送结算数据
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
             if (gameDataVo.getPlayerBetInfo().containsKey(playerId)) {
-                gameDataTracker.addPlayerLogData(
-                        entry.getValue(), DataTrackNameConstant.AREA_DATA,
-                        JSON.toJSONString(settlement.settlementInfo.betTableInfos));
+                gameDataTracker.addPlayerLogData(entry.getValue(), DataTrackNameConstant.AREA_DATA, JSON.toJSONString(settlement.settlementInfo.betTableInfos));
             }
         }
         log.debug("飞禽走兽房间：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));
@@ -157,34 +153,36 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                                               Map<Integer, List<Integer>> playerBetInfo, RoomBankerChangeParam changeParam) {
         SettlementData settlementData = new SettlementData();
         for (WinPosWeightCfg winPosWeightCfg : winPosWeightCfgs) {
+            if (winPosWeightCfg.getWinType() == 1) {
+                //通杀
+                continue;
+            }
             List<Integer> betAreas = winPosWeightCfg.getBetArea();
             if (betAreas == null || betAreas.isEmpty()) {
                 log.error("配置表异常：winPosWeight表中的飞禽走兽ID：{} 的配置没有配置betArea", winPosWeightCfg.getId());
                 continue;
             }
-            int betAreaId = betAreas.getFirst();
-            if (winPosWeightCfg.getWinType() == 0 && playerBetInfo.containsKey(betAreaId)) {
+            for (Integer betAreaId : betAreas) {
+                if (!playerBetInfo.containsKey(betAreaId)) {
+                    continue;
+                }
                 List<Integer> playerBetGoldList = playerBetInfo.get(betAreaId);
                 // 玩家总押注
                 long playerBetGoldTotal = playerBetGoldList.stream().mapToInt(Integer::intValue).sum();
-                SettlementData calcGold = calcGold(gamePlayer, winPosWeightCfg, playerBetGoldTotal);
+                int odds = 0;
+                int returnRate = 0;
+                if (winPosWeightCfg.getWinType() == 2) {
+                    //通赔
+                    BetAreaCfg betAreaCfg = GameDataManager.getBetAreaCfg(betAreaId);
+                    if (betAreaCfg != null) {
+                        odds = betAreaCfg.getBaseBet();
+                        returnRate = betAreaCfg.getBaseReturnRate();
+                    }
+                }
+                SettlementData calcGold = calcGold(gamePlayer, odds, returnRate, winPosWeightCfg, playerBetGoldTotal);
                 settlementData.increaseBySettlementData(calcGold);
                 if (changeParam != null) {
                     changeParam.removeArea(betAreaId);
-                }
-            } else if (winPosWeightCfg.getWinType() == 4) {
-                // 通赔逻辑
-                for (Map.Entry<Integer, List<Integer>> entry : playerBetInfo.entrySet()) {
-                    BetAreaCfg betAreaCfg = GameDataManager.getBetAreaCfg(entry.getKey());
-                    List<Integer> posWinList = betAreaCfg.getPosWin();
-                    int posId = posWinList.getFirst();
-                    WinPosWeightCfg weightCfg = GameDataManager.getWinPosWeightCfg(posId);
-                    int playerBetGoldTotal = entry.getValue().stream().mapToInt(Integer::intValue).sum();
-                    SettlementData calcGold = calcGold(gamePlayer, weightCfg, playerBetGoldTotal);
-                    settlementData.increaseBySettlementData(calcGold);
-                }
-                if (changeParam != null) {
-                    changeParam.clearArea();
                 }
             }
         }
