@@ -1,7 +1,6 @@
 package com.jjg.game.activity.activitylog;
 
 import com.alibaba.fastjson.JSONObject;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.activity.activitylog.data.ScratchCardsResult;
 import com.jjg.game.activity.activitylog.data.SharePromoteWeekRank;
 import com.jjg.game.activity.common.data.ActivityData;
@@ -29,7 +28,6 @@ import java.util.Map;
 public class ActivityLogger extends BaseLogger {
 
     private final String TOPIC = "activity";
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 每日奖金道具参加获得日志记录
