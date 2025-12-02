@@ -6,6 +6,7 @@ import com.jjg.game.activity.wealthroulette.message.bean.WealthRouletteDrawInfo;
 import com.jjg.game.activity.wealthroulette.message.bean.WealthRouletteDrawItemInfo;
 import com.jjg.game.activity.wealthroulette.message.bean.WealthRouletteGoodInfo;
 import com.jjg.game.activity.wealthroulette.message.req.ReqWealthRouletteBuyGood;
+import com.jjg.game.activity.wealthroulette.message.req.ReqWealthRouletteDraw;
 import com.jjg.game.activity.wealthroulette.message.res.ResWealthRouletteBuyGood;
 import com.jjg.game.activity.wealthroulette.message.res.ResWealthRouletteDetailInfo;
 import com.jjg.game.activity.wealthroulette.message.res.ResWealthRouletteDraw;
@@ -198,9 +199,11 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     /**
      * 抽奖
+     *
      * @param player 玩家信息
+     * @param req
      */
-    public AbstractResponse reqWealthRouletteDraw(Player player) {
+    public AbstractResponse reqWealthRouletteDraw(Player player, ReqWealthRouletteDraw req) {
         ResWealthRouletteDraw res = new ResWealthRouletteDraw(Code.SUCCESS);
         long playerId = player.getId();
         if (isClose(player)) {
@@ -221,7 +224,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         }
         //获取当日积分
         BigDecimal count = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), CURRENT_POINT);
-        int times = Math.min(100, count.intValue() / cfg.getIntValue());
+        int times = req.times == -1 ? Math.min(100, count.intValue() / cfg.getIntValue()) : req.times;
         if (times <= 0) {
             res.code = Code.WEALTH_ROULETTE_NOT_POINT;
             return res;

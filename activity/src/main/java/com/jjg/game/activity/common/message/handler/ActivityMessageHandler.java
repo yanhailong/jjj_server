@@ -351,7 +351,7 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_WEALTH_ROULETTE_DRAW)
     public void reqWealthRouletteDraw(PlayerController playerController, ReqWealthRouletteDraw req) {
-        AbstractResponse abstractResponse = wealthRouletteController.reqWealthRouletteDraw(playerController.getPlayer());
+        AbstractResponse abstractResponse = wealthRouletteController.reqWealthRouletteDraw(playerController.getPlayer(), req);
         playerController.send(abstractResponse);
     }
 
@@ -373,7 +373,7 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_WEALTH_ROULETTE_BUY_GOOD)
     public void reqWealthRouletteBuyGood(PlayerController playerController, ReqWealthRouletteBuyGood req) {
-        AbstractResponse abstractResponse = wealthRouletteController.reqWealthRouletteBuyGood(playerController.getPlayer(),req);
+        AbstractResponse abstractResponse = wealthRouletteController.reqWealthRouletteBuyGood(playerController.getPlayer(), req);
         playerController.send(abstractResponse);
     }
 

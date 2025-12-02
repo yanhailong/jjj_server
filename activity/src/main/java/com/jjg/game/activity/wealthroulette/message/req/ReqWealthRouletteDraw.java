@@ -13,4 +13,6 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.REQ_WEALTH_ROULETTE_DRAW)
 @ProtoDesc("财富轮盘抽取")
 public class ReqWealthRouletteDraw extends AbstractMessage {
+    @ProtoDesc("抽取次数 -1为不限制")
+    public int times;
 }
