@@ -24,6 +24,7 @@ public enum EGameType {
     WEALTH_GOD(CoreConst.GameType.WEALTH_GOD, RoomType.SLOTS, "财神"),
     WEST_JOURNEY(CoreConst.GameType.WEST_JOURNEY, RoomType.SLOTS, "西游"),
     CLEOPATRA(CoreConst.GameType.CLEOPATRA, RoomType.SLOTS, "埃及艳后"),
+    WEALTH_BANK(CoreConst.GameType.WEALTH_BANK, RoomType.SLOTS, "财富银行"),
 
 
     // TABLE

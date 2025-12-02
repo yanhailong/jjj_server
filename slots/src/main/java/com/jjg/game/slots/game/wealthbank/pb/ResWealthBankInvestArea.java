@@ -1,0 +1,30 @@
+package com.jjg.game.slots.game.wealthbank.pb;
+
+import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.slots.game.wealthbank.WealthBankConstant;
+
+import java.util.List;
+
+/**
+ * @author 11
+ * @date 2025/6/20 10:18
+ */
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.WEALTH_BANK, cmd = WealthBankConstant.MsgBean.RES_WEALTH_BANK_INVEST_AREA,resp = true)
+@ProtoDesc("选择投资地区返回")
+public class ResWealthBankInvestArea extends AbstractResponse {
+    @ProtoDesc("回报金额列表")
+    public List<Long> goldList;
+    @ProtoDesc("3次都中奖，奖励的火车信息")
+    public WealthBankTrainInfo allWinWealthBankTrainInfo;
+    @ProtoDesc("是否全地图解锁")
+    public boolean allAreaUnLock;
+    @ProtoDesc("玩家当前金币")
+    public long allGold;
+
+    public ResWealthBankInvestArea(int code) {
+        super(code);
+    }
+}
