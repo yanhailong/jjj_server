@@ -43,11 +43,13 @@ public class TimerManager implements GmListener {
         if("onZeroClick".equals(gmOrder)) {
             log.info("onZeroClick trigger");
             gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 0));
+            return new CommonResult<>(Code.SUCCESS);
         }
         if("halfDay".equals(gmOrder)) {
             log.info("halfDay trigger");
             gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 12));
+            return new CommonResult<>(Code.SUCCESS);
         }
-        return new CommonResult<>(Code.SUCCESS);
+        return null;
     }
 }
