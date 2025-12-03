@@ -32,7 +32,7 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
      * @return 指定endTime的LuckyTreasure列表
      */
     public List<LuckyTreasure> findAllNotEnd(int limit) {
-        Query query = new Query(Criteria.where("status").is(1));
+        Query query = new Query(Criteria.where("status").in(1,2));
         if (limit > 0) {
             query.limit(limit);
         }
