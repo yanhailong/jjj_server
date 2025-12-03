@@ -121,6 +121,7 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
         int newLv = player.getVipLevel();
         long newExp = player.getVipExp();
         boolean chenge = false;
+        final long finalAddValue = addValue;
         for (int i = 0; i < vipLevelCfgMap.size(); i++) {
             ViplevelCfg viplevelCfg = vipLevelCfgMap.get(newLv);
             if (Objects.isNull(viplevelCfg)) {
@@ -154,7 +155,7 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
             //发送日志
             try {
                 CoreLogger bean = CommonUtil.getContext().getBean(CoreLogger.class);
-                bean.sendVipLog(player, recharge ? 8 : 6, null, null, addValue);
+                bean.sendVipLog(player, recharge ? 8 : 6, null, null, finalAddValue);
             } catch (BeansException e) {
                 log.error("发送日志失败 playerId:{} addValue:{}", player.getId(), addValue, e);
             }
