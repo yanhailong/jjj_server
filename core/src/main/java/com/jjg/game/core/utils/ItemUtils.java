@@ -8,6 +8,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -172,6 +173,21 @@ public class ItemUtils {
         }
         mergeMap2.forEach((key, value) -> mergeMap1.merge(key, value, Long::sum));
         return mergeMap1;
+    }
+
+    /**
+     * 合并道具
+     * @param mergeMap1 需要合并的道具1
+     * @param mergeMap2 需要合并的道具2
+     * @return 合并后的道具
+     */
+    public static Map<Integer, Long> mergeItemsOnCreate(Map<Integer, Long> mergeMap1, Map<Integer, Long> mergeMap2) {
+        if (CollectionUtil.isEmpty(mergeMap2)) {
+            return mergeMap1;
+        }
+        HashMap<Integer, Long> map = new HashMap<>(mergeMap1);
+        map.forEach((key, value) -> map.merge(key, value, Long::sum));
+        return map;
     }
 
     /**
