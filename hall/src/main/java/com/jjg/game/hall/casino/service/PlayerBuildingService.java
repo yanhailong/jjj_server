@@ -1,5 +1,6 @@
 package com.jjg.game.hall.casino.service;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.hall.casino.dao.PlayerBuildingDao;
 import com.jjg.game.hall.casino.data.PlayerBuilding;
 import org.slf4j.Logger;
@@ -88,10 +89,10 @@ public class PlayerBuildingService {
     public void moveToMongo(long playerId) {
         try {
             List<PlayerBuilding> playerBuilding = getFromAllDB(playerId);
-            if (playerBuilding == null) {
+            if (CollectionUtil.isEmpty(playerBuilding)) {
                 return;
             }
-            playerBuildingDao.saveAll(playerBuilding);
+            playerBuildingDao.batchUpdateByPlayerIdAndCasinoId(playerBuilding);
             redisDel(playerId);
         } catch (Exception e) {
             log.error("保存到mongo失败 playerId:{}", playerId, e);
