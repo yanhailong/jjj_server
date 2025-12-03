@@ -137,6 +137,7 @@ public class VerCodeDao {
         }
 
         result.data = arr[0];
+        delVerCode(playerId, verCodeType);
         return result;
     }
 
@@ -166,6 +167,7 @@ public class VerCodeDao {
             return result;
         }
 
+        delVerCode(data, verCodeType);
         result.data = arr[0];
         return result;
     }
