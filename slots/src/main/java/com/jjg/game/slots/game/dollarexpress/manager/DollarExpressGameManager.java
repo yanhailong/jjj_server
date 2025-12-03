@@ -217,7 +217,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             long betScore = 0;
             if (scoreType == SlotsConst.Common.SCORE_TYPE_ONE_BET) {
                 betScore = playerGameData.getOneBetScore();
-            } else if (scoreType == SlotsConst.Common.SCORE_TYPE_ONE_BET) {
+            } else if (scoreType == SlotsConst.Common.SCORE_TYPE_ALL_BET) {
                 betScore = playerGameData.getAllBetScore();
             } else {
                 //默认平均单线押分

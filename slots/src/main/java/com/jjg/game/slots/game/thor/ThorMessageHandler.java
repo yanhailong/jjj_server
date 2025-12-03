@@ -1,0 +1,70 @@
+package com.jjg.game.slots.game.thor;
+
+import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.protostuff.Command;
+import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
+import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
+import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinEnterGame;
+import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinStartGame;
+import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
+import com.jjg.game.slots.game.thor.manager.ThorGameManager;
+import com.jjg.game.slots.game.thor.manager.ThorSendMessageManager;
+import com.jjg.game.slots.game.thor.pb.ReqThorEnterGame;
+import com.jjg.game.slots.game.thor.pb.ReqThorStartGame;
+import com.jjg.game.slots.game.thor.pb.ResThorEnterGame;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+/**
+ * @author 11
+ * @date 2025/12/1 18:00
+ */
+@Component
+@MessageType(MessageConst.MessageTypeDef.THOR)
+public class ThorMessageHandler {
+    private Logger log = LoggerFactory.getLogger(getClass());
+
+    @Autowired
+    private ThorGameManager gameManager;
+    @Autowired
+    private ThorSendMessageManager sendMessageManager;
+
+    /**
+     * 请求配置信息
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(ThorConstant.MsgBean.REQ_ENTER_GAME)
+    public void reqConfigInfo(PlayerController playerController, ReqThorEnterGame req) {
+        try {
+            log.info("收到玩家请求配置 playerId={}", playerController.playerId());
+            ThorGameRunInfo gameRunInfo = gameManager.enterGame(playerController);
+            sendMessageManager.sendConfigMessage(playerController,gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 开始游戏
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(ThorConstant.MsgBean.REQ_START_GAME)
+    public void reqStartGame(PlayerController playerController, ReqThorStartGame req) {
+        try {
+            log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+            ThorGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);
+            sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+}
