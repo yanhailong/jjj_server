@@ -186,6 +186,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
 
             gameRunInfo.setAfterGold(player.getGold());
 
+            gameRunInfo.setResultLib(resultLib);
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             return gameRunInfo;
         } catch (Exception e) {

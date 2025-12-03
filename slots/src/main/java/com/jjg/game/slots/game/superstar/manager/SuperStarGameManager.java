@@ -181,6 +181,7 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(player.getGold());
+            gameRunInfo.setResultLib(resultLib);
 
             return gameRunInfo;
         } catch (Exception e) {

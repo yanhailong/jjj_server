@@ -556,6 +556,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
 
         gameRunInfo.setStatus(playerGameData.getStatus());
         gameRunInfo.setStake(betValue);
+        gameRunInfo.setResultLib(resultLib);
         return gameRunInfo;
     }
 
@@ -602,6 +603,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
         gameRunInfo = calTrainReward(playerGameData, trainLib, gameRunInfo);
 
         gameRunInfo.setBigPoolTimes(trainLib.getTimes());
+        gameRunInfo.setResultLib(trainLib);
 
         log.debug("[Wealth Bank] libId = {},train = {}", trainLib.getId(), JSON.toJSONString(trainLib));
         return gameRunInfo;
@@ -647,6 +649,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
         gameRunInfo = checkDorllar(gameRunInfo, playerGameData, goldTrainLib);
 
         gameRunInfo.addBigPoolTimes(goldTrainLib.getTimes());
+        gameRunInfo.setResultLib(goldTrainLib);
 
         return gameRunInfo;
     }
@@ -684,6 +687,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
         gameRunInfo.setRemainFreeCount(afterCount);
+        gameRunInfo.setResultLib(freeGame);
 
         return gameRunInfo;
     }

@@ -65,12 +65,12 @@ public class SmsService {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
         //生成验证码
         int verCode = RandomUtils.randomNum(GameConstant.VerCode.CODE_MIN, GameConstant.VerCode.CODE_MAX);
-//        String content = verCode + " is your verification code";
-//        int sendResultCode = sendOnbukaSms(phone, content, verCodeType);
-//        if (sendResultCode != Code.SUCCESS) {
-//            result.code = sendResultCode;
-//            return result;
-//        }
+        String content = verCode + " is your verification code";
+        int sendResultCode = sendOnbukaSms(phone, content, verCodeType);
+        if (sendResultCode != Code.SUCCESS) {
+            result.code = sendResultCode;
+            return result;
+        }
         //缓存验证码
         verCodeDao.addVerCode(playerId, verCodeType, phone, verCode);
         result.data = verCode;
