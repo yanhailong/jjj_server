@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 缓存验证码dao
+ *
  * @author 11
  * @date 2025/8/6 18:12
  */
@@ -37,6 +38,7 @@ public class VerCodeDao {
     private String smsVercodeTableName(VerCodeType verCodeType, long playerId) {
         return smsVercodeTableName + verCodeType.name() + playerId;
     }
+
     private String smsVercodeTableName(VerCodeType verCodeType, String phone) {
         return smsVercodeTableName + verCodeType.name() + phone;
     }
@@ -44,6 +46,7 @@ public class VerCodeDao {
     private String mailVercodeTableName(VerCodeType verCodeType, long playerId) {
         return mailVercodeTableName + verCodeType.name() + playerId;
     }
+
     private String mailVercodeTableName(VerCodeType verCodeType, String mail) {
         return mailVercodeTableName + verCodeType.name() + mail;
     }
@@ -57,35 +60,37 @@ public class VerCodeDao {
      * @param verCode
      */
     public void addVerCode(long playerId, VerCodeType verCodeType, String data, int verCode) {
-        if(verCodeType == VerCodeType.MAIL_BIND_MAIL){
+        if (verCodeType == VerCodeType.MAIL_BIND_MAIL) {
             redisTemplate.opsForValue().set(mailVercodeTableName(verCodeType, playerId), verCodeValue(data, verCode), PRE_EXPIRE_TIME, TimeUnit.MINUTES);
-        }else {
+        } else {
             redisTemplate.opsForValue().set(smsVercodeTableName(verCodeType, playerId), verCodeValue(data, verCode), PRE_EXPIRE_TIME, TimeUnit.MINUTES);
         }
     }
 
     /**
      * 缓存验证码
+     *
      * @param data
      * @param verCodeType
      * @param verCode
      */
     public void addVerCode(String data, VerCodeType verCodeType, int verCode) {
-        if(verCodeType == VerCodeType.MAIL_BIND_MAIL){
+        if (verCodeType == VerCodeType.MAIL_BIND_MAIL) {
             redisTemplate.opsForValue().set(mailVercodeTableName(verCodeType, data), verCodeValue(verCode), PRE_EXPIRE_TIME, TimeUnit.MINUTES);
-        }else {
+        } else {
             redisTemplate.opsForValue().set(smsVercodeTableName(verCodeType, data), verCodeValue(verCode), PRE_EXPIRE_TIME, TimeUnit.MINUTES);
         }
     }
 
     /**
      * 获取验证码
+     *
      * @param playerId
      * @param verCodeType
      * @return
      */
     public Object getVerCode(long playerId, VerCodeType verCodeType) {
-        if(verCodeType == VerCodeType.MAIL_BIND_MAIL){
+        if (verCodeType == VerCodeType.MAIL_BIND_MAIL) {
             return redisTemplate.opsForValue().get(mailVercodeTableName(verCodeType, playerId));
         }
         return redisTemplate.opsForValue().get(smsVercodeTableName(verCodeType, playerId));
@@ -93,12 +98,13 @@ public class VerCodeDao {
 
     /**
      * 获取验证码
+     *
      * @param data
      * @param verCodeType
      * @return
      */
     public Object getVerCode(String data, VerCodeType verCodeType) {
-        if(verCodeType == VerCodeType.MAIL_BIND_MAIL){
+        if (verCodeType == VerCodeType.MAIL_BIND_MAIL) {
             return redisTemplate.opsForValue().get(mailVercodeTableName(verCodeType, data));
         }
         return redisTemplate.opsForValue().get(smsVercodeTableName(verCodeType, data));
@@ -118,7 +124,7 @@ public class VerCodeDao {
 
         if (o == null) {
             result.code = Code.NOT_FOUND;
-            log.debug("未找到该类型的验证码 playerId = {}, verCodeType = {}, verCode = {}", playerId, verCodeType, verCode);
+            log.warn("未找到该类型的验证码 playerId = {}, verCodeType = {}, verCode = {}", playerId, verCodeType, verCode);
             return result;
         }
 
@@ -126,7 +132,7 @@ public class VerCodeDao {
         int cacheCode = Integer.parseInt(arr[1]);
         if (cacheCode != verCode) {
             result.code = Code.FAIL;
-            log.debug("验证码不匹配，校验失败 playerId = {}, verCodeType = {},verCode = {}", playerId, verCodeType, verCode);
+            log.warn("验证码不匹配，校验失败 playerId = {}, verCodeType = {},verCode = {},cacheCode = {}", playerId, verCodeType, verCode, cacheCode);
             return result;
         }
 
@@ -148,7 +154,7 @@ public class VerCodeDao {
 
         if (o == null) {
             result.code = Code.NOT_FOUND;
-            log.debug("未找到该类型的验证码 data = {}, verCodeType = {}, verCode = {}", data, verCodeType, verCode);
+            log.warn("未找到该类型的验证码 data = {}, verCodeType = {}, verCode = {}", data, verCodeType, verCode);
             return result;
         }
 
@@ -156,7 +162,7 @@ public class VerCodeDao {
         int cacheCode = Integer.parseInt(arr[0]);
         if (cacheCode != verCode) {
             result.code = Code.FAIL;
-            log.debug("验证码不匹配，校验失败 data = {}, verCodeType = {},verCode = {}", data, verCodeType, verCode);
+            log.warn("验证码不匹配，校验失败 data = {}, verCodeType = {},verCode = {}", data, verCodeType, verCode);
             return result;
         }
 
@@ -208,22 +214,23 @@ public class VerCodeDao {
      * @param playerId
      */
     public void delVerCode(long playerId, VerCodeType verCodeType) {
-        if(verCodeType == VerCodeType.MAIL_BIND_MAIL){
+        if (verCodeType == VerCodeType.MAIL_BIND_MAIL) {
             redisTemplate.delete(mailVercodeTableName(verCodeType, playerId));
-        }else {
+        } else {
             redisTemplate.delete(smsVercodeTableName(verCodeType, playerId));
         }
     }
 
     /**
      * 移除验证码
+     *
      * @param data
      * @param verCodeType
      */
     public void delVerCode(String data, VerCodeType verCodeType) {
-        if(verCodeType == VerCodeType.MAIL_BIND_MAIL){
+        if (verCodeType == VerCodeType.MAIL_BIND_MAIL) {
             redisTemplate.delete(mailVercodeTableName(verCodeType, data));
-        }else {
+        } else {
             redisTemplate.delete(smsVercodeTableName(verCodeType, data));
         }
 

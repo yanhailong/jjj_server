@@ -20,6 +20,7 @@ import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.service.BlackListService;
 import com.jjg.game.core.service.LoginConfigService;
 import com.jjg.game.core.service.SmsService;
+import com.jjg.game.core.utils.CoreUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -226,7 +227,7 @@ public class AccountController extends AbstractController {
             }
 
             String phone = dto.getPhone().trim();
-            boolean valid = validPhoneNumber(phone);
+            boolean valid = CoreUtil.validPhoneNumber(phone);
             if (!valid) {
                 log.debug("获取登录验证码失败,手机号格式错误 phone = {}", dto.getPhone());
                 return fail(Code.PARAM_ERROR);
@@ -353,7 +354,7 @@ public class AccountController extends AbstractController {
             return fail(Code.PARAM_ERROR);
         }
 
-        boolean valid = validPhoneNumber(phone);
+        boolean valid = CoreUtil.validPhoneNumber(phone);
         if (!valid) {
             log.debug("手机登录失败,手机号格式错误 phone = {}", phone);
             return fail(Code.PARAM_ERROR);
@@ -431,22 +432,6 @@ public class AccountController extends AbstractController {
         vo.setToken(token);
         vo.setPlayerId(account.getPlayerId());
         return success(vo);
-    }
-
-    /**
-     * 检验手机号是否有效
-     *
-     * @param phoneNumber
-     * @return
-     */
-    private boolean validPhoneNumber(String phoneNumber) {
-        try {
-            Phonenumber.PhoneNumber parse = PhoneNumberUtil.getInstance().parse(phoneNumber, "");
-            return PhoneNumberUtil.getInstance().isValidNumber(parse);
-        } catch (Exception e) {
-            log.warn("解析手机号错误 phoneNumber = {}", phoneNumber);
-            return false;
-        }
     }
 
     /**

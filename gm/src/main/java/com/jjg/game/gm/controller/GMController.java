@@ -28,6 +28,7 @@ import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.rpc.HallPointsAwardBridge;
 import com.jjg.game.core.service.*;
+import com.jjg.game.core.utils.CoreUtil;
 import com.jjg.game.gm.dao.SlotsLibDao;
 import com.jjg.game.gm.dto.*;
 import com.jjg.game.gm.util.NetUtil;
@@ -95,6 +96,10 @@ public class GMController extends AbstractController {
     private SlotsLibDao slotsLibDao;
     @Autowired
     private NoticeDao noticeDao;
+    @Autowired
+    private SmsService smsService;
+    @Autowired
+    private VerCodeDao verCodeDao;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -570,7 +575,8 @@ public class GMController extends AbstractController {
     public WebResult<String> banAccount(@RequestBody BanAccountDto dto) {
         try {
             log.info("收到后台封禁账号的请求 dto = {}", dto);
-            if (dto.type() != 1 && dto.type() != 2) {
+            AccountStatus accountStatus = AccountStatus.valueOf(dto.type());
+            if (accountStatus == null || accountStatus == AccountStatus.DELETE) {
                 log.debug("封禁类型错误 type = {}", dto.type());
                 return fail("common.paramerror");
             }
@@ -588,21 +594,97 @@ public class GMController extends AbstractController {
             for (String str : arr) {
                 long playerId = Long.parseLong(str);
 
-                if (dto.type() == 1) {  //封
+                if (accountStatus == AccountStatus.BAN) {  //封
                     delTokenList.add(playerId);
-                    accountDao.checkAndSave(playerId,a -> a.setStatus(GameConstant.AccountStatus.BAN));
+                    accountDao.checkAndSave(playerId, a -> a.setStatus(AccountStatus.BAN.getCode()));
                     PFSession session = playerSessionService.getSession(playerId);
                     if (session == null) {
                         continue;
                     }
                     session.send(notifyKickout);
                 } else {  //解
-                    accountDao.checkAndSave(playerId,a -> a.setStatus(GameConstant.AccountStatus.NORMAL));
+                    accountDao.checkAndSave(playerId, a -> a.setStatus(AccountStatus.NORMAL.getCode()));
                 }
             }
 
-            //如果是封禁账号，则要删除当前token
+            //如果是封禁或者删除账号，则要删除当前token
             playerSessionTokenDao.delTokens(delTokenList);
+            //返回修改结果
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 封禁
+     */
+    @RequestMapping(BackendGMCmd.DEL_ACCOUNT)
+    public WebResult<String> delAccount(@RequestBody DelAccountDto dto) {
+        try {
+            log.info("收到后台删除账号的请求 dto = {}", dto);
+            if (dto.playerId() < 1 || StringUtils.isEmpty(dto.phone())) {
+                log.debug("删除账号时，参数错误 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            if (!CoreUtil.validPhoneNumber(dto.phone())) {
+                log.debug("删除账号时，手机格式错误 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            Account account = accountDao.queryAccountByPlayerId(dto.playerId());
+            if (account == null) {
+                log.debug("删除账号时，无法找到该账号 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            String dbPhone = account.getThirdAccount(LoginType.PHONE);
+            if (StringUtils.isEmpty(dbPhone)) {
+                log.debug("删除账号时，该玩家的手机号为空 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            if (!dbPhone.equals(dto.phone())) {
+                log.debug("删除账号时，手机号不匹配 dto = {},dbPhone = {}", dto, dbPhone);
+                return fail("common.paramerror");
+            }
+
+            if (dto.type() == 1) {  //请求验证码
+                CommonResult<Integer> smsResult = smsService.sendCode(dto.playerId(), dbPhone, VerCodeType.DELETE_ACCOUNT);
+                if (!smsResult.success()) {
+                    log.debug("删除账号时，发送验证码失败 type = {}，code = {}", dto.type(), smsResult.code);
+                    return fail("common.paramerror");
+                }
+                //返回修改结果
+                return success("common.success");
+            }
+
+            if (dto.type() == 2) {  //确认验证码
+                if (dto.smsCode() < GameConstant.VerCode.CODE_MIN || dto.smsCode() > GameConstant.VerCode.CODE_MAX) {
+                    log.debug("删除账号时，验证码不在范围内 dto = {}", dto);
+                    return fail("common.paramerror");
+                }
+
+                CommonResult<String> verifyResult = verCodeDao.verifyVerCode(dto.playerId(), VerCodeType.DELETE_ACCOUNT, dto.smsCode());
+                if(!verifyResult.success()){
+                    log.debug("删除账号时，验证码错误 dto = {}", dto);
+                    return fail("common.paramerror");
+                }
+            } else {
+                log.debug("删除账号时，类型错误 type = {}", dto.type());
+                return fail("common.paramerror");
+            }
+
+            accountDao.checkAndSave(dto.playerId(), a -> a.setStatus(AccountStatus.DELETE.getCode()));
+            PFSession session = playerSessionService.getSession(dto.playerId());
+            if (session != null) {
+                //先踢人
+                NotifyKickout notifyKickout = new NotifyKickout();
+                session.send(notifyKickout);
+            }
+            playerSessionTokenDao.delToken(dto.playerId());
             //返回修改结果
             return success("common.success");
         } catch (Exception e) {
@@ -1078,13 +1160,13 @@ public class GMController extends AbstractController {
     public WebResult<String> delNotice(@RequestBody DelNoticeDto dto) {
         log.info("收到删除公告的请求 dto = {}", dto);
         try {
-            if(dto.ids() == null || dto.ids().isEmpty()){
+            if (dto.ids() == null || dto.ids().isEmpty()) {
                 return fail("common.paramerror");
             }
 
             long delCount = noticeDao.delNotice(dto.ids());
-            if(delCount < 1){
-                log.debug("删除公告条数小于1，不通知hall节点 delCount = {}",delCount);
+            if (delCount < 1) {
+                log.debug("删除公告条数小于1，不通知hall节点 delCount = {}", delCount);
                 return success("common.success");
             }
 

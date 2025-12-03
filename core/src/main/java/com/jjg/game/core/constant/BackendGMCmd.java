@@ -20,6 +20,8 @@ public interface BackendGMCmd {
     String KICK_ACCOUNT = "kickAccount";
     //封禁账号
     String BAN_ACCOUNT = "banAccount";
+    //删除账号
+    String DEL_ACCOUNT = "delAccount";
     //在线玩家信息
     String PLAYING_INFO = "playingInfo";
     //添加/更新轮播数据

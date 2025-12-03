@@ -4,6 +4,7 @@ import com.jjg.game.account.dao.PlayerIdDao;
 import com.jjg.game.account.dto.LoginDto;
 import com.jjg.game.account.logger.AccountLogger;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.constant.AccountStatus;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
@@ -57,9 +58,16 @@ public class AccountService {
         }
 
         //是否被封号
-        if (account.getStatus() == GameConstant.AccountStatus.BAN) {
+        if (account.getStatus() == AccountStatus.BAN.getCode()) {
             log.debug("该用户已被封号，无法登录 loginType = {},channelUserId = {},playerId = {}", loginType, channelUserInfo.getUserId(), account.getPlayerId());
             accountResult.code = Code.BAN_ACCOUNT;
+            return accountResult;
+        }
+
+        //是否被删除
+        if (account.getStatus() == AccountStatus.DELETE.getCode()) {
+            log.debug("该用户已被逻辑删除，无法登录 loginType = {},channelUserId = {},playerId = {}", loginType, channelUserInfo.getUserId(), account.getPlayerId());
+            accountResult.code = Code.NOT_FOUND;
             return accountResult;
         }
 

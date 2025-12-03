@@ -34,3 +34,5 @@ stresstool/config/serverIndex.txt
 **/config/nodeConfig.json
 *.yaml
 *.class
+CLAUDE.md
+.claude
