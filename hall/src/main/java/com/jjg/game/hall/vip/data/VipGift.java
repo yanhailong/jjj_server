@@ -22,7 +22,7 @@ import java.util.function.Function;
 public enum VipGift {
     WEEKS(1, ViplevelCfg::getWeeklyRewards),
     BIRTHDAY(2, ViplevelCfg::getBirthdayReward),
-    PROMOTION(3, (viplevelCfg) -> ItemUtils.mergeItems(viplevelCfg.getAvatarType(), viplevelCfg.getLevelRewards())),
+    PROMOTION(3, (viplevelCfg) -> ItemUtils.mergeItemsOnCreate(viplevelCfg.getAvatarType(), viplevelCfg.getLevelRewards())),
     CUSTOMIZED(4, ViplevelCfg::getAnnualRewards),
     ;
     private static final Logger log = LoggerFactory.getLogger(VipGift.class);
