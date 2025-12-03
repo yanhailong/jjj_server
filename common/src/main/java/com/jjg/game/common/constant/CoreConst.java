@@ -65,6 +65,8 @@ public class CoreConst {
         public static final int THOR = 102200;
         //蒸汽时代
         public static final int STEAM_AGE = 102300;
+        //财富银行
+        public static final int WEALTH_BANK = 102400;
 
 
         //红黑大战

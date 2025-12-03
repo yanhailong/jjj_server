@@ -135,6 +135,8 @@ public interface MessageConst {
         int THOR = 0x39;
         //蒸汽时代
         int STEAM_AGE = 0x3A;
+        //财富银行
+        int WEALTH_BANK = 0x3B;
     }
 
     interface ToClientConst {

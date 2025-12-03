@@ -15,8 +15,10 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.utils.ConditionUtil;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.casino.data.*;
+import com.jjg.game.hall.casino.logger.CasinoLogger;
 import com.jjg.game.hall.casino.pb.CasinoBuilder;
 import com.jjg.game.hall.casino.pb.bean.CasinoFloorInfo;
 import com.jjg.game.hall.casino.pb.bean.CasinoRewardsInfo;
@@ -25,7 +27,6 @@ import com.jjg.game.hall.casino.pb.req.*;
 import com.jjg.game.hall.casino.pb.res.*;
 import com.jjg.game.hall.casino.service.PlayerBuildingService;
 import com.jjg.game.hall.constant.HallConstant;
-import com.jjg.game.core.utils.ConditionUtil;
 import com.jjg.game.hall.utils.GlobalDataCache;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingFloorCfg;
@@ -51,8 +52,8 @@ import static com.jjg.game.common.utils.TimeHelper.ONE_MINUTE_OF_MILLIS;
 public class CasinoManager implements TimerListener<String>, SessionCloseListener, IPlayerLoginSuccess {
     private final Logger log = LoggerFactory.getLogger(CasinoManager.class);
     private final PlayerBuildingService playerBuildingService;
-
     private final PlayerPackService playerPackService;
+    private final CasinoLogger casinoLogger;
 
     private final TimerCenter timerCenter;
     private final NodeManager nodeManager;
@@ -63,12 +64,13 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     private TimerEvent<String> casinoCheck;
 
     public CasinoManager(PlayerBuildingService playerBuildingService,
-                         PlayerPackService playerPackService,
+                         PlayerPackService playerPackService, CasinoLogger casinoLogger,
                          TimerCenter timerCenter,
                          NodeManager nodeManager,
                          ClusterSystem clusterSystem) {
         this.playerBuildingService = playerBuildingService;
         this.playerPackService = playerPackService;
+        this.casinoLogger = casinoLogger;
         this.timerCenter = timerCenter;
         this.nodeManager = nodeManager;
         this.clusterSystem = clusterSystem;
@@ -306,6 +308,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                     res.code = result.code;
                     return res;
                 }
+                casinoLogger.sendCasinoRewardsLog(playerId, getReward, result.data);
             }
             res.itemInfos = ItemUtils.buildItemInfo(getReward);
         } catch (Exception e) {
@@ -356,12 +359,13 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             casinoInfo.setChange(true);
             //发奖
             Item item = new Item(cfg.getOutput().get(1), totalNum);
-            CommonResult<ItemOperationResult> result = playerPackService.addItem(playerController.playerId(), item.getId(),
-                    item.getItemCount(), AddType.ONE_CLICK_CLAIM_TABKE_EARNINGS);
+            CommonResult<ItemOperationResult> result = playerPackService.addItem(playerController.playerId(), item.getId(), item.getItemCount(),
+                    AddType.ONE_CLICK_CLAIM_TABKE_EARNINGS);
             if (!result.success()) {
                 res.code = Code.UNKNOWN_ERROR;
                 return res;
             }
+            casinoLogger.sendCasinoRewardsLog(playerId, Map.of(item.getId(), item.getItemCount()), result.data);
             casinoSimpleInfos.add(CasinoBuilder.buildCasinoSimpleMachineInfo(casinoInfo, casinoMachineInfo,
                     timeMillis));
             res.machineId = req.machineId;
@@ -440,8 +444,11 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             casinoEmployment.setEmploymentEndTime(timeMillis + dealerFunctionCfg.getDuration() * 1000L);
             casinoEmployment.setId(dealerFunctionCfg.getId());
             casinoInfo.setChange(true);
-            res.simpleMachineInfo = CasinoBuilder.buildCasinoSimpleMachineInfo(casinoInfo, casinoMachineInfo,
-                    timeMillis);
+            int floorId = getFloorId(casinoInfo, casinoMachineInfo);
+            BuildingFunctionCfg functionCfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(timeMillis));
+            casinoLogger.sendCasinoOperationLog(playerController.playerId(), floorId, 5, functionCfg.getTypeID(), 0,
+                    Map.of(costItem.getId(), costItem.getItemCount()), result.data, 0);
+            res.simpleMachineInfo = CasinoBuilder.buildCasinoSimpleMachineInfo(casinoInfo, casinoMachineInfo, timeMillis);
             res.index = req.index;
             res.staffId = req.staffId;
             res.machineId = req.machineId;
@@ -477,7 +484,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             }
             switch (req.type) {
                 case 2 -> {
-                    return cleanFloor(req, res, casinoInfo);
+                    return cleanFloor(player, req, res, casinoInfo);
                 }
                 case 3 -> {
                     return overClean(playerController, req, res, casinoInfo);
@@ -522,14 +529,18 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
         }
         casinoInfo.getBuildingCleaningEndTime().put(req.floorId, timeMillis);
         casinoInfo.setChange(true);
+        casinoLogger.sendCasinoOperationLog(player.getId(), req.floorId, 2, 0, buildingCleaningEndTime - timeMillis,
+                Map.of(item.getId(), item.getItemCount()), result.data, 0);
         res.casinoFloorInfo = CasinoBuilder.buildCasinoFloorInfo(casinoInfo, req.floorId, timeMillis, true);
         res.casinoId = req.casinoId;
         res.type = req.type;
         return res;
     }
 
-    private ResCasinoFloorOperation cleanFloor(ReqCasinoFloorOperation req, ResCasinoFloorOperation res,
-                                               CasinoInfo casinoInfo) {
+    /**
+     * 清理楼层
+     */
+    private ResCasinoFloorOperation cleanFloor(Player player, ReqCasinoFloorOperation req, ResCasinoFloorOperation res, CasinoInfo casinoInfo) {
         BuildingFloorCfg buildingFloorCfg = GameDataManager.getBuildingFloorCfg(req.floorId);
         if (Objects.isNull(buildingFloorCfg)) {
             res.code = Code.PARAM_ERROR;
@@ -544,8 +555,9 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
         buildingCleaningEndTime = System.currentTimeMillis() + buildingFloorCfg.getCleartime() * 1000L;
         casinoInfo.getBuildingCleaningEndTime().put(req.floorId, buildingCleaningEndTime);
         casinoInfo.setChange(true);
-        res.casinoFloorInfo = CasinoBuilder.buildCasinoFloorInfo(casinoInfo, req.floorId, System.currentTimeMillis(),
-                false);
+        casinoLogger.sendCasinoOperationLog(player.getId(), req.floorId, 1, 0, 0,
+                null, null, 0);
+        res.casinoFloorInfo = CasinoBuilder.buildCasinoFloorInfo(casinoInfo, req.floorId, System.currentTimeMillis(), false);
         res.casinoId = req.casinoId;
         res.type = req.type;
         return res;
@@ -602,8 +614,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //获取配置
-        BuildingFunctionCfg functionCfg =
-                GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(timeMillis));
+        BuildingFunctionCfg functionCfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(timeMillis));
         if (Objects.isNull(functionCfg) || functionCfg.getNextlevelID() <= 0) {
             res.code = Code.PARAM_ERROR;
             return res;
@@ -651,6 +662,10 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
         casinoMachineInfo.setBuildLvUpStartTime(timeMillis);
         casinoMachineInfo.setBuildLvUpEndTime(timeMillis + functionCfg.getUptime() * 1000L);
         casinoInfo.setChange(true);
+        //发送日志
+        int floorId = getFloorId(casinoInfo, casinoMachineInfo);
+        casinoLogger.sendCasinoOperationLog(playerId, floorId, 3, functionCfg.getTypeID(), 0,
+                functionCfg.getUplevel_itemid(), removed.data, nextCfg.getBuldlevel());
         //构建响应
         res.type = req.type;
         res.buildLvUpEndTime = casinoMachineInfo.getBuildLvUpEndTime();
@@ -692,19 +707,39 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
         }
         casinoMachineInfo.setBuildLvUpEndTime(timeMillis);
         if (casinoMachineInfo.getProfitStartTime() == 0) {
-            BuildingFunctionCfg cfg =
-                    GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(timeMillis));
+            BuildingFunctionCfg cfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(timeMillis));
             if (Objects.nonNull(cfg) && CollectionUtil.isNotEmpty(cfg.getOutput())) {
                 casinoMachineInfo.setProfitStartTime(timeMillis);
             }
         }
         casinoInfo.setChange(true);
+        int floorId = getFloorId(casinoInfo, casinoMachineInfo);
+        BuildingFunctionCfg functionCfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(timeMillis));
+        casinoLogger.sendCasinoOperationLog(playerController.playerId(), floorId, 4, functionCfg.getTypeID(), buildLvUpEndTime - timeMillis,
+                Map.of(item.getId(), item.getItemCount()), result.data, functionCfg.getBuldlevel());
         //构建响应
         res.type = req.type;
         res.buildLvUpEndTime = timeMillis;
         res.configId = casinoMachineInfo.getRealConfigId(timeMillis);
         res.machineId = req.machineId;
         return res;
+    }
+
+    /**
+     * 获取楼层id
+     * @param casinoInfo 楼层信息
+     * @param casinoMachineInfo 机台信息
+     * @return 楼层id
+     */
+    private int getFloorId(CasinoInfo casinoInfo, CasinoMachineInfo casinoMachineInfo) {
+        int floorId = 0;
+        for (Map.Entry<Integer, List<Long>> entry : casinoInfo.getBuildingData().entrySet()) {
+            if (entry.getValue().contains(casinoMachineInfo.getId())) {
+                floorId = entry.getKey();
+                break;
+            }
+        }
+        return floorId;
     }
 
     @Override
@@ -785,8 +820,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                             CasinoMachineInfo casinoMachineInfo = machineInfoData.get(changeMachineId);
                             //如果收益开始时间为0设置为当前时间
                             if (casinoMachineInfo.getProfitStartTime() == 0) {
-                                BuildingFunctionCfg cfg =
-                                        GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(timeMillis));
+                                BuildingFunctionCfg cfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(timeMillis));
                                 if (Objects.nonNull(cfg) && CollectionUtil.isNotEmpty(cfg.getOutput())) {
                                     casinoMachineInfo.setProfitStartTime(timeMillis);
                                     casinoInfo.setChange(true);

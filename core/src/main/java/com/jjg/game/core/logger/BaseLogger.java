@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.RandomUtils;
@@ -28,6 +29,8 @@ public class BaseLogger {
     protected NodeConfig nodeConfig;
     @Autowired
     protected KafkaTemplate<String, String> kafkaTemplate;
+
+    protected final ObjectMapper objectMapper = new ObjectMapper();
 
     private final String GAME_LOGS_TOPIC = "game-logs";
 
