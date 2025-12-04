@@ -14,7 +14,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtoDesc("财富轮盘购买商品")
 public class ReqWealthRouletteBuyGood extends AbstractMessage {
     @ProtoDesc("购买数量")
-    public int bugNum;
+    public int buyNum;
     @ProtoDesc("商品Id")
     public int goodId;
 }

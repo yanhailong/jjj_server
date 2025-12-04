@@ -5,7 +5,7 @@ import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
-import org.redisson.client.codec.StringCodec;
+import org.redisson.client.codec.LongCodec;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
@@ -20,9 +20,36 @@ import java.util.Collections;
  */
 @Repository
 public class WealthRouletteDao {
-
     private final String tableName = "wealthroulette:%s";
     private final RedissonClient redissonClient;
+
+    private static final String LUA = """
+            -- 1. 获取键的当前值 (使用 HGET)
+            local current_str = redis.call('HGET', KEYS[1], ARGV[1])
+            
+            local current_val
+            
+            -- 2. 处理键不存在或值为空的情况
+            if not current_str or current_str == '' then
+                -- 如果键不存在，我们默认值为 0
+                current_val = 0
+            else
+                -- 转换为数字
+                current_val = tonumber(current_str)
+            end
+            
+            -- 3. 条件判断：如果当前值加自增值 >= 上限，则返回 nil
+            local amount = tonumber(ARGV[2])
+            local max_limit = tonumber(ARGV[3])
+            if current_val+amount > max_limit then
+                return nil
+            end
+            
+            -- 4. 执行原子自增操作 (使用 HINCRBY)
+            local new_val = redis.call('HINCRBY', KEYS[1], ARGV[1], amount)
+            -- 6. 返回自增后的新值
+            return new_val
+            """;
 
     public WealthRouletteDao(RedissonClient redissonClient) {
         this.redissonClient = redissonClient;
@@ -34,52 +61,19 @@ public class WealthRouletteDao {
      * @param goodId 商品id
      * @return 成功自增后的新值 (Long)，如果达到上限或键不存在，返回 null。
      */
-    public Long incrementIfLessThan(long playerId, int goodId, long maxLimit) {
+    public Long incrementIfLessThan(long playerId, int goodId, int addValue, long maxLimit) {
         // Lua 脚本：实现原子操作
         // KEYS[1]: Map Key (hash name)
         // ARGV[1]: Field Key (hash field)
         // ARGV[2]: incrementValue (自增的值)
         // ARGV[3]: maxLimit (上限值)
-        String lua = """
-                -- 1. 获取键的当前值 (使用 HGET)
-                local current_str = redis.call('HGET', KEYS[1], ARGV[1])
-                
-                local current_val
-                
-                -- 2. 处理键不存在或值为空的情况
-                if not current_str or current_str == '' then
-                    -- 如果键不存在，我们默认值为 0
-                    current_val = 0
-                else
-                    -- 转换为数字
-                    current_val = tonumber(current_str)
-                end
-                
-                -- 3. 条件判断：如果当前值加自增值 >= 上限，则返回 nil
-                local amount = tonumber(ARGV[2])
-                local max_limit = tonumber(ARGV[3])
-                if current_val+amount > max_limit then
-                    return nil
-                end
-                
-                -- 4. 执行原子自增操作 (使用 HINCRBY)
-                local new_val = redis.call('HINCRBY', KEYS[1], ARGV[1], amount)
-                -- 6. 返回自增后的新值
-                return new_val
-                """;
-
         // 转换为 Long，用于 Redis 的 HINCRBY
         // 执行 Lua 脚本
-        return redissonClient.getScript(StringCodec.INSTANCE)
-                .eval(
-                        RScript.Mode.READ_WRITE,
-                        lua,
+        return redissonClient.getScript(LongCodec.INSTANCE)
+                .eval(RScript.Mode.READ_WRITE, LUA,
                         RScript.ReturnType.INTEGER,
                         Collections.singletonList(tableName.formatted(playerId)),
-                        String.valueOf(goodId),
-                        String.valueOf(1),
-                        String.valueOf(maxLimit)
-                );
+                        goodId, addValue, maxLimit);
     }
 
     /**
