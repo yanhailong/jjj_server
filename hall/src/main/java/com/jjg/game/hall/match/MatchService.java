@@ -6,11 +6,15 @@ import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.utils.RoomScoreUtil;
 import com.jjg.game.hall.dao.HallRoomDao;
 import org.redisson.api.RScoredSortedSet;
+import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.LongCodec;
 import org.redisson.client.protocol.ScoredEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.util.Collections;
 
 /**
  * 预留逻辑
@@ -26,7 +30,38 @@ public class MatchService {
     private final RedisLock redisLock;
     private final HallRoomDao hallRoomDao;
     private final RedissonClient redissonClient;
-
+    private static final String TRY_JOIN_ROOM_SCRIPT = """
+            -- 获取分数最小的一个房间
+            local entries = redis.call('ZRANGE', KEYS[1], 0, 0, 'WITHSCORES')
+            if not entries or #entries == 0 then
+                return 0
+            end
+            local roomId = entries[1]
+            local score = tonumber(entries[2])
+            
+            -- 解析 score (参考 RoomScoreUtil)
+            local seconds = score % 4294967296
+            local rest = math.floor(score / 4294967296)
+            local readyPlayers = rest % 1024
+            local currentMaxPlayers = math.floor(rest / 1024)
+            
+            local maxLimit = tonumber(ARGV[1])
+            
+            -- 检查是否已满
+            if currentMaxPlayers >= maxLimit then
+                return 0
+            end
+            
+            -- 更新人数 (+1)
+            local newMax = currentMaxPlayers + 1
+            local newReady = readyPlayers + 1
+            
+            -- 计算新 score 并更新
+            local newScore = (newMax * 4398046511104) + (newReady * 4294967296) + seconds
+            redis.call('ZADD', KEYS[1], newScore, roomId)
+            
+            return tonumber(roomId)
+            """;
     public MatchService(MatchDataDao matchDataDao, RedisLock redisLock, HallRoomDao hallRoomDao, RedissonClient redissonClient) {
         this.matchDataDao = matchDataDao;
         this.redisLock = redisLock;
@@ -38,53 +73,40 @@ public class MatchService {
      * 获取一个处于等待中的房间
      */
     public long getWaitingRoomId(int gameType, int roomConfigId, int maxPlayer, String nodePath) {
-        String lockMatchRedisKey = matchDataDao.getLockMatchRedisKey(gameType, roomConfigId);
-        boolean locked = false;
-        try {
-            locked = redisLock.tryLockWithDefaultTime(lockMatchRedisKey);
-            if (!locked) {
-                log.debug("获取锁失败 lockKey:{} gameType:{} roomConfigId:{} maxPlayer:{} nodePath:{}", lockMatchRedisKey,
-                        gameType, roomConfigId, maxPlayer, nodePath);
-                return 0;
-            }
-            String matchRedisKey = matchDataDao.getMatchRedisKey(gameType, roomConfigId);
-            RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(matchRedisKey);
-            ScoredEntry<Long> first = scoredSortedSet.firstEntry();
-            RoomScoreUtil.RoomScoreInfo roomScoreInfo = RoomScoreUtil.parseScore(first == null ? 0 : first.getScore());
-            if (roomScoreInfo.seconds() == 0 || roomScoreInfo.maxPlayers() >= maxPlayer) {
-                //创建房间
-                Room room = hallRoomDao.createRoom(gameType, roomConfigId, maxPlayer, nodePath);
-                long waitingRoomId = room.getId();
-                //放入等待列表
-                double score = RoomScoreUtil.computeScore(1, 1, (int) (System.currentTimeMillis() / 1000));
-                log.debug("大厅创建新房间 gameType:{} roomConfigId:{} ", gameType, roomConfigId);
-                scoredSortedSet.add(score, waitingRoomId);
-                //返回房间id
-                return waitingRoomId;
-            }
-            if (first == null) {
-                return 0;
-            }
-            Long roomId = first.getValue();
-            //更新人数
-            Double score = scoredSortedSet.getScore(roomId);
-            if (score == null) {
-                return 0;
-            }
-            int newReadyPlayer = roomScoreInfo.readyPlayers() + 1;
-            int newMaxPlayer = roomScoreInfo.maxPlayers() + 1;
-            double computed = RoomScoreUtil.computeScore(newMaxPlayer, newReadyPlayer, roomScoreInfo.seconds());
-            scoredSortedSet.add(computed, roomId);
-            log.debug("更新后房间缓存数据 roomId:{} gameType:{} roomConfigId:{} maxPlayer:{} readyPlayer:{}", roomId, gameType, roomConfigId, newMaxPlayer, newReadyPlayer);
-            return roomId;
-        } catch (Exception e) {
-            log.error("getWaitingRoomId ", e);
-        } finally {
-            if (locked) {
-                redisLock.tryUnlock(lockMatchRedisKey);
-            }
+        String matchRedisKey = matchDataDao.getMatchRedisKey(gameType, roomConfigId);
+
+        // 1. 尝试通过 Lua 脚本原子性地获取并加入现有房间
+        // 如果成功，脚本内部会更新人数并返回 roomId
+        Long joinedRoomId = redissonClient.getScript(LongCodec.INSTANCE)
+                .eval(RScript.Mode.READ_WRITE,
+                        TRY_JOIN_ROOM_SCRIPT,
+                        RScript.ReturnType.INTEGER,
+                        Collections.singletonList(matchRedisKey),
+                        maxPlayer);
+        if (joinedRoomId != null && joinedRoomId > 0) {
+            log.debug("加入现有房间 success roomId:{} gameType:{} roomConfigId:{}", joinedRoomId, gameType, roomConfigId);
+            return joinedRoomId;
         }
-        return 0;
+        // 2. 如果没有可用房间或房间已满，则创建新房间
+        // 这里移除了原有的分布式锁。虽然在极端高并发下可能导致瞬间创建多个房间，
+        // 但这避免了锁带来的全局阻塞，通常是可以接受的。
+        try {
+            Room room = hallRoomDao.createRoom(gameType, roomConfigId, maxPlayer, nodePath);
+            long waitingRoomId = room.getId();
+
+            // 计算初始分值 (1人, 1准备)
+            double score = RoomScoreUtil.computeScore(1, 1, (int) (System.currentTimeMillis() / 1000));
+            log.debug("大厅创建新房间 gameType:{} roomConfigId:{} roomId:{}", gameType, roomConfigId, waitingRoomId);
+
+            // 放入 Redis 等待列表
+            RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(matchRedisKey);
+            scoredSortedSet.add(score, waitingRoomId);
+
+            return waitingRoomId;
+        } catch (Exception e) {
+            log.error("getWaitingRoomId create room error", e);
+            return 0;
+        }
     }
 
     /**
