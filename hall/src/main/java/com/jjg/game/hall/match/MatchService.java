@@ -99,7 +99,7 @@ public class MatchService {
             log.debug("大厅创建新房间 gameType:{} roomConfigId:{} roomId:{}", gameType, roomConfigId, waitingRoomId);
 
             // 放入 Redis 等待列表
-            RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(matchRedisKey);
+            RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(matchRedisKey,LongCodec.INSTANCE);
             scoredSortedSet.add(score, waitingRoomId);
 
             return waitingRoomId;
