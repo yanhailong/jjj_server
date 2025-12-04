@@ -208,7 +208,8 @@ public class DailyRechargeController extends BaseActivityController implements G
         //发送礼包奖励
         long playerId = player.getId();
         DailyRechargeCfg dailyRechargeCfg = baseCfgBeanMap.get(giftId);
-        if (dailyRechargeCfg == null || CollectionUtil.isEmpty(dailyRechargeCfg.getAwardItem())) {
+        if (dailyRechargeCfg == null || dailyRechargeCfg.getType() != ActivityConstant.DailyRecharge.GIFT ||
+                CollectionUtil.isEmpty(dailyRechargeCfg.getAwardItem())) {
             log.error("每日充值礼包配置错误 playerId:{} activityId:{} giftId:{}", playerId, activityId, giftId);
             return;
         }
@@ -219,7 +220,8 @@ public class DailyRechargeController extends BaseActivityController implements G
         ResDailyRechargeGiftBuy res = new ResDailyRechargeGiftBuy(Code.SUCCESS);
 
         BigDecimal progress = countDao.incrementWithoutExpireRefresh(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted("dailyrecharge"),
-                String.valueOf(playerId), BigDecimal.ONE, TimeHelper.ONE_DAY_OF_MILLIS);
+                String.valueOf(playerId), dailyRechargeCfg.getCost(), TimeHelper.ONE_DAY_OF_MILLIS);
+        dailyRechargeDao.addBuyTimes(playerId, activityId, giftId);
         res.currentRecharge = progress.toPlainString();
         res.detailInfo = new ArrayList<>();
         res.detailInfo.add(buildPlayerActivityDetail(player, activityData, dailyRechargeCfg, null));
@@ -322,7 +324,7 @@ public class DailyRechargeController extends BaseActivityController implements G
             if (order.getRechargeType() != getRechargeType()) {
                 return;
             }
-            dealActivityRecharge(player, order, 1);
+            dealActivityRecharge(player, order, 2);
         }
     }
 
