@@ -221,6 +221,7 @@ public class DailyRechargeController extends BaseActivityController implements G
 
         BigDecimal progress = countDao.incrementWithoutExpireRefresh(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted("dailyrecharge"),
                 String.valueOf(playerId), dailyRechargeCfg.getCost(), TimeHelper.ONE_DAY_OF_MILLIS);
+        dailyRechargeDao.addBuyTimes(playerId, activityId, giftId);
         res.currentRecharge = progress.toPlainString();
         res.detailInfo = new ArrayList<>();
         res.detailInfo.add(buildPlayerActivityDetail(player, activityData, dailyRechargeCfg, null));
