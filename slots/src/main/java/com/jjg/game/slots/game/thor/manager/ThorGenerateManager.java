@@ -108,35 +108,35 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
         }
 
         //检查二选一
-        if (lib.getLibTypeSet().contains(ThorConstant.SpecialMode.FREE)
-                && !checkTriggerFree(lib)) {
-            log.warn("检查免费触发局失败");
-            return false;
-        }
-
-        //检查黄金列车
-        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN) && !checkGoldTrainIcon(lib.getIconArr())) {
-            log.warn("检查黄金列车失败");
-            return false;
-        }
-
-        //检查二选一
-        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_ALL_BOARD) && !checkAllBoard(lib.getIconArr())) {
-            log.warn("检查二选一失败");
-            return false;
-        }
-
-        //检查保险箱
-        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_SAFE_BOX) && !checkSafeBox(lib)) {
-            log.warn("检查保险箱失败");
-            return false;
-        }
-
-        //检查免费模式
-        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE) && !checkFreeIcon(lib.getIconArr())) {
-            log.warn("检查免费模式失败");
-            return false;
-        }
+//        if (lib.getLibTypeSet().contains(ThorConstant.SpecialMode.FREE)
+//                && !checkTriggerFree(lib)) {
+//            log.warn("检查免费触发局失败");
+//            return false;
+//        }
+//
+//        //检查黄金列车
+//        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN) && !checkGoldTrainIcon(lib.getIconArr())) {
+//            log.warn("检查黄金列车失败");
+//            return false;
+//        }
+//
+//        //检查二选一
+//        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_ALL_BOARD) && !checkAllBoard(lib.getIconArr())) {
+//            log.warn("检查二选一失败");
+//            return false;
+//        }
+//
+//        //检查保险箱
+//        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_SAFE_BOX) && !checkSafeBox(lib)) {
+//            log.warn("检查保险箱失败");
+//            return false;
+//        }
+//
+//        //检查免费模式
+//        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE) && !checkFreeIcon(lib.getIconArr())) {
+//            log.warn("检查免费模式失败");
+//            return false;
+//        }
         return true;
     }
 
@@ -146,6 +146,6 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
      * @return
      */
     private boolean checkTriggerFree(ThorResultLib lib){
-
+        return true;
     }
 }
