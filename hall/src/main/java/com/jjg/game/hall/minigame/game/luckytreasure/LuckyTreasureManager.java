@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 夺宝奇兵管理器
@@ -60,6 +61,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     private final HallPlayerService hallPlayerService;
     private final MinigameLogger minigameLogger;
 
+
+
     /**
      * 活动定时器映射：期号 -> 定时器事件
      */
@@ -69,6 +72,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      */
     private final Map<Long, TimerEvent<LuckyTreasureTimerEvent>> activityBuyTimers = new ConcurrentHashMap<>();
     private final AwardCodeManager awardCodeManager;
+
+    private AtomicBoolean isInit = new AtomicBoolean(false);
 
     public LuckyTreasureManager(LuckyTreasureDao luckyTreasureDao,
                                 LuckyTreasureRedisDao luckyTreasureRedisDao,
@@ -115,6 +120,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             //初始化机器人购买定时器
             initRobotTimer();
         }
+        //设置初始化标记
+        isInit.set(true);
     }
 
     /**
@@ -122,6 +129,10 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      */
     @Override
     public void isLeader() {
+        // 初始化标记未设置 不执行 以下步骤
+        if (!isInit.get()){
+            return;
+        }
         log.info("夺宝奇兵管理器成为主节点，开始启动活动管理");
         try{
             //检测服务器重启后是否有未处理数据
