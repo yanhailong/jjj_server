@@ -131,6 +131,7 @@ public class DailyRechargeController extends BaseActivityController implements G
         info.type = cfg.getType();
         info.extraParameters = cfg.getCost().toPlainString();
         if (cfg.getType() == ActivityConstant.DailyRecharge.GIFT) {
+            info.tag = cfg.getLabel1();
             if (buyTimesMap != null) {
                 info.currentBuyCount = buyTimesMap.getOrDefault(cfg.getId(), 0);
             } else {

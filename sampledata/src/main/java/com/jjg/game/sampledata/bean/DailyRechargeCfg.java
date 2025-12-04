@@ -29,6 +29,8 @@ public class DailyRechargeCfg extends BaseCfgBean {
   protected BigDecimal cost;
   /** 购买次数 */
   protected int count;
+  /** 标签1 */
+  protected int label1;
   /** 礼包名称 */
   protected int name;
   /** 购买类型 */
@@ -54,6 +56,11 @@ public class DailyRechargeCfg extends BaseCfgBean {
   /** 返回购买次数 */
   public int getCount() {
     return count;
+  }
+
+  /** 返回标签1 */
+  public int getLabel1() {
+    return label1;
   }
 
   /** 返回礼包名称 */

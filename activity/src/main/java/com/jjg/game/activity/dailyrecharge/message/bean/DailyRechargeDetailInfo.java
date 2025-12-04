@@ -19,4 +19,6 @@ public class DailyRechargeDetailInfo extends BaseActivityDetailInfo {
     public int maxBuyCount;
     @ProtoDesc("当前购买次数")
     public int currentBuyCount;
+    @ProtoDesc("标签")
+    public int tag;
 }
