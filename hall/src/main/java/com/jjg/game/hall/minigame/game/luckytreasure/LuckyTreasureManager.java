@@ -112,7 +112,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     public void init(MinigameReadyEvent event) {
         //幸运夺宝小游戏开启了才初始化
         if (event.getGameId() == LuckyTreasureConstant.Common.GAME_ID) {
-            if(marsCurator.isMaster()){
+            if (marsCurator.isMaster()) {
                 //检测服务器重启后是否有未处理数据
                 recoverUnsettledRounds();
                 //检查并启动缺失的活动
@@ -139,11 +139,11 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     @Override
     public void isLeader() {
         // 初始化标记未设置 不执行 以下步骤
-        if (!isInit.get()){
+        if (!isInit.get()) {
             return;
         }
         log.info("夺宝奇兵管理器成为主节点，开始启动活动管理");
-        try{
+        try {
             //检测服务器重启后是否有未处理数据
             recoverUnsettledRounds();
             //检查并启动缺失的活动
@@ -151,7 +151,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             // 启动新活动（只有主节点才执行）
             log.info("isLeader");
             startNewActivitiesIfNeeded();
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("夺宝奇兵管理器启动异常", e);
         }
     }
@@ -455,8 +455,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * 为指定配置启动新活动
      */
     private void startNewActivityForConfig(LuckyTreasureConfig config) {
-        if(!marsCurator.isMaster()){
-            log.warn("非主节点，无法开启幸运夺宝新活动 cfgIf = {}",config.getId());
+        if (!marsCurator.isMaster()) {
+            log.warn("非主节点，无法开启幸运夺宝新活动 cfgIf = {}", config.getId());
             return;
         }
 
@@ -543,8 +543,15 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * 保存活跃活动到Redis
      */
     private void saveActiveRoundToRedis(LuckyTreasure round) {
+        // 领奖时间
+        long rewardTime = 0L;
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
+        if (globalConfigCfg == null || globalConfigCfg.getIntValue() < 1) {
+            rewardTime = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+        }
+
         // 设置过期时间
-        int expireMinutes = round.getConfig().getTime() + round.getConfig().getCollectTime() + 10;
+        int expireMinutes = Math.toIntExact(round.getConfig().getTime() + rewardTime + round.getConfig().getCollectTime() + 10);
         luckyTreasureRedisDao.saveActiveRound(round, expireMinutes);
     }
 
@@ -685,10 +692,10 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             log.debug("获取配置的延迟开奖时间 rewardTime = {}", rewardTime);
         }
 
-        if(rewardTime < 1){
+        if (rewardTime < 1) {
             handleActivityRewardTimer(issueNumber);
-        }else {
-            RMapCache<Long,LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
+        } else {
+            RMapCache<Long, LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
             // 从redis获取活动数据
             LuckyTreasure round = activeTreasures.get(issueNumber);
             if (round == null || round.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
@@ -715,7 +722,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         // 移除定时器
         removeActivityTimer(issueNumber);
 
-        RMapCache<Long,LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
+        RMapCache<Long, LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
         // 从redis获取活动数据
         LuckyTreasure round = activeTreasures.get(issueNumber);
         if (round == null || (round.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY && round.getStatus() != LuckyTreasureStatusUtil.STATUS_WAIT_DRAW)) {
@@ -745,14 +752,14 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         //验证小游戏是否开启
         if (isOpen()) {
             List<LuckyTreasureConfig> configs = configManager.getConfigs(LuckyTreasureConfig.class);
-            if(configs == null || configs.isEmpty()){
+            if (configs == null || configs.isEmpty()) {
                 log.debug("配置为空 ");
             }
 
             configs.stream()
                     .filter(c -> c.getId() == configId && c.isRepeated())
                     .findFirst().ifPresent(this::startNewActivityForConfig);
-        }else {
+        } else {
             log.debug("活动未开启");
         }
     }
@@ -807,7 +814,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             //获取奖励邮件配置
             MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
             //发送邮件奖励
-            mailService.addCfgMail(player.getId(), mailCfg.getTitle(),mailCfg.getText(), ItemUtils.buildItemList(config.getItemId(), config.getItemNum()), Collections.emptyList());
+            mailService.addCfgMail(player.getId(), mailCfg.getTitle(), mailCfg.getText(), ItemUtils.buildItemList(config.getItemId(), config.getItemNum()), Collections.emptyList());
         }
         //更新状态
         luckyTreasure.setStatus(LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE);

@@ -60,7 +60,14 @@ public class LuckyTreasureStatusUtil {
         // 比如开奖后24小时内可以领奖
         long currentTime = System.currentTimeMillis();
         long endTime = treasure.getEndTime();
-        long receiveDeadline = endTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
+        // 领奖时间
+        long rewardTime = 0L;
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
+        if (globalConfigCfg == null || globalConfigCfg.getIntValue() < 1) {
+            rewardTime = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+        }
+
+        long receiveDeadline = endTime + rewardTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
 
         if (currentTime >= receiveDeadline) {
             return 0;

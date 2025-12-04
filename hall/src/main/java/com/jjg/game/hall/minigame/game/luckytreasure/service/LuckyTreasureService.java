@@ -30,6 +30,7 @@ import com.jjg.game.hall.minigame.game.luckytreasure.message.res.*;
 import com.jjg.game.hall.minigame.game.luckytreasure.util.LuckyTreasureStatusUtil;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.MailCfg;
 import org.redisson.api.RLock;
@@ -196,7 +197,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             }
 
             // 从Redis获取活跃的夺宝奇兵活动
-            RMapCache<Long,LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
+            RMapCache<Long, LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
 
             // 分页处理
             int totalCount = activeTreasures.size();
@@ -457,9 +458,9 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         info.setCountDown(LuckyTreasureStatusUtil.calculateRewardTimeSecond(treasure));
         info.setReceiveCountdown(LuckyTreasureStatusUtil.calculateReceiveCountdown(treasure));
 
-        if(treasure.getAwardPlayerId() > 0){
+        if (treasure.getAwardPlayerId() > 0) {
             Player winPlayer = playerService.get(treasure.getAwardPlayerId());
-            if(winPlayer != null){
+            if (winPlayer != null) {
                 info.setWinPlayerName(winPlayer.getNickName());
             }
         }
@@ -649,7 +650,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
             // 发放奖励道具
             LuckyTreasureConfig config = latestTreasure.getConfig();
-            if(mailCfg == null) {
+            if (mailCfg == null) {
                 Map<Integer, Long> rewardMap = new HashMap<>();
                 rewardMap.put(config.getItemId(), (long) config.getItemNum());
 
@@ -723,13 +724,19 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             return LuckyTreasureStatusUtil.STATUS_RECEIVED;
         }
 
-        if(treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_EXPIRED_WINNER){
+        if (treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_EXPIRED_WINNER) {
             return treasure.getStatus();
         }
 
         // 已开奖的情况
         // 检查领奖是否过期
-        long receiveDeadline = endTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
+        long rewardTime = 0L;
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
+        if (globalConfigCfg == null || globalConfigCfg.getIntValue() < 1) {
+            rewardTime = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+        }
+
+        long receiveDeadline = endTime + rewardTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
         if (currentTime > receiveDeadline) {
             treasure.setStatus(LuckyTreasureStatusUtil.STATUS_EXPIRED_WINNER);
 //            luckyTreasureDao.save(treasure);

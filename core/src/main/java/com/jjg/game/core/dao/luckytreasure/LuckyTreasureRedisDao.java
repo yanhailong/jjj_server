@@ -3,6 +3,8 @@ package com.jjg.game.core.dao.luckytreasure;
 import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.data.LuckyTreasure;
 import com.jjg.game.core.data.LuckyTreasureBuyRecord;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import org.redisson.api.*;
 import org.redisson.api.options.KeysScanParams;
 import org.springframework.stereotype.Component;
@@ -33,11 +35,11 @@ public class LuckyTreasureRedisDao {
         return getActiveConfigMap().containsKey(configId);
     }
 
-    public RMapCache<Long,LuckyTreasure> getActiveTreasures() {
+    public RMapCache<Long, LuckyTreasure> getActiveTreasures() {
         return redissonClient.getMapCache(LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_ROUND_DATA_ISSUE);
     }
 
-    public RMapCache<Integer,Long> getActiveConfigMap() {
+    public RMapCache<Integer, Long> getActiveConfigMap() {
         return redissonClient.getMapCache(LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_ACTIVE);
     }
 
@@ -47,11 +49,11 @@ public class LuckyTreasureRedisDao {
     public void saveActiveRound(LuckyTreasure luckyTreasure, int expireMinutes) {
         RMapCache<Long, LuckyTreasure> cacheMap = getActiveTreasures();
         //保存并且设置过期
-        cacheMap.put(luckyTreasure.getIssueNumber(),luckyTreasure,expireMinutes, TimeUnit.MINUTES);
+        cacheMap.put(luckyTreasure.getIssueNumber(), luckyTreasure, expireMinutes, TimeUnit.MINUTES);
 
         // 同时维护configId到期号的映射，用于按配置ID查询
-        RMapCache<Integer,Long> configMap = getActiveConfigMap();
-        configMap.put(luckyTreasure.getConfig().getId(),luckyTreasure.getIssueNumber(),expireMinutes, TimeUnit.MINUTES);
+        RMapCache<Integer, Long> configMap = getActiveConfigMap();
+        configMap.put(luckyTreasure.getConfig().getId(), luckyTreasure.getIssueNumber(), expireMinutes, TimeUnit.MINUTES);
 
         // 直接按期号存储活动数据，实现一次查询
 //        String issueKey = buildIssueMappingKey(luckyTreasure.getIssueNumber());
@@ -142,7 +144,14 @@ public class LuckyTreasureRedisDao {
                 buyRecord.setPlayerId(playerId);
                 buyRecord.setBuyTime(System.currentTimeMillis());
                 treasure.getBuyRecordList().add(buyRecord);
-                int expireMinutes = treasure.getConfig().getTime() + treasure.getConfig().getCollectTime();
+
+                long rewardTime = 0L;
+                GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
+                if (globalConfigCfg == null || globalConfigCfg.getIntValue() < 1) {
+                    rewardTime = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+                }
+
+                int expireMinutes = Math.toIntExact(rewardTime + treasure.getConfig().getTime() + treasure.getConfig().getCollectTime());
                 // 保存回Redis
                 updateActiveRound(treasure, expireMinutes);
                 return treasure;
