@@ -284,7 +284,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
     public AbstractResponse reqWealthRouletteBuyGood(Player player, ReqWealthRouletteBuyGood req) {
         ResWealthRouletteBuyGood res = new ResWealthRouletteBuyGood(Code.SUCCESS);
         long playerId = player.getId();
-        if (isClose(player)) {
+        if (isClose(player) || req.bugNum <= 0) {
             res.code = Code.ERROR_REQ;
             return res;
         }
@@ -296,22 +296,24 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         //购买商品
         RMap<Integer, Integer> playerBuyTimes = wealthRouletteDao.getPlayerBuyTimes(playerId);
         int buyTimes = playerBuyTimes.getOrDefault(req.goodId, 0);
-        if (buyTimes + 1 > cfg.getFrequency()) {
+        if (buyTimes + req.bugNum > cfg.getFrequency()) {
             res.code = Code.WEALTH_ROULETTE_BUY_LIMIT;
             return res;
         }
+        int needPoint = cfg.getPurchase() * req.bugNum;
         //扣除积分
-        BigDecimal remainPoint = countDao.decrementIfSufficient(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), CURRENT_POINT, BigDecimal.valueOf(cfg.getPurchase()));
+        BigDecimal remainPoint = countDao.decrementIfSufficient(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT,
+                BigDecimal.valueOf(needPoint));
         if (remainPoint == null) {
             res.code = Code.WEALTH_ROULETTE_NOT_POINT;
             return res;
         }
         //增加限购次数
-        Long result = wealthRouletteDao.incrementIfLessThan(playerId, req.goodId, cfg.getFrequency());
+        Long result = wealthRouletteDao.incrementIfLessThan(playerId, req.goodId, req.bugNum, cfg.getFrequency());
         if (result == null) {
             res.code = Code.WEALTH_ROULETTE_BUY_LIMIT;
             countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), getChildId(playerId, LocalDate.now()),
-                    BigDecimal.valueOf(cfg.getPurchase()));
+                    BigDecimal.valueOf(needPoint));
             return res;
         }
         //发送奖励
@@ -321,6 +323,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         }
         res.goodInfo = buildWealthRouletteGoodInfo(cfg, result.intValue());
         res.remainPoint = remainPoint.intValue();
+        res.bugNum = req.bugNum;
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(71);
         if (globalConfigCfg != null && globalConfigCfg.getIntValue() > 0) {
             if (remainPoint.intValue() < globalConfigCfg.getIntValue()) {

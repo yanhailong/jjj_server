@@ -13,6 +13,8 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.REQ_WEALTH_ROULETTE_BUY_GOOD)
 @ProtoDesc("财富轮盘购买商品")
 public class ReqWealthRouletteBuyGood extends AbstractMessage {
-    @ProtoDesc("商品id")
+    @ProtoDesc("购买数量")
+    public int bugNum;
+    @ProtoDesc("商品Id")
     public int goodId;
 }
