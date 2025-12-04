@@ -9,6 +9,8 @@ import org.redisson.api.RScoredSortedSet;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.LongCodec;
+import org.redisson.client.codec.StringCodec;
+import org.redisson.codec.JsonCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -170,7 +172,7 @@ public class MatchDataDao {
                         GET_NEW_WAIT_JOIN_ROOM_SCRIPT,
                         RScript.ReturnType.INTEGER,
                         Collections.singletonList(matchRedisKey),
-                        maxLimit, String.valueOf(oldRoomId));
+                        maxLimit, oldRoomId);
     }
 
     /**
@@ -178,8 +180,7 @@ public class MatchDataDao {
      */
     public boolean removeWaitJoinRoomId(int gameType, int roomConfigId, long roomId) {
         String redisKey = getMatchRedisKey(gameType, roomConfigId);
-        RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(redisKey);
-        scoredSortedSet.remove(roomId);
+        redissonClient.getScoredSortedSet(redisKey, LongCodec.INSTANCE).remove(roomId);
         return true;
     }
 
@@ -188,7 +189,7 @@ public class MatchDataDao {
      */
     public boolean addWaitJoinRoomId(int gameType, int roomConfigId, long roomId, long roomCreateTime) {
         String redisKey = getMatchRedisKey(gameType, roomConfigId);
-        RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(redisKey);
+        RScoredSortedSet<Object> scoredSortedSet = redissonClient.getScoredSortedSet(redisKey, LongCodec.INSTANCE);
         double score = RoomScoreUtil.computeScore(0, 0, (int) (roomCreateTime / 1000));
         scoredSortedSet.add(score, roomId);
         return true;
@@ -259,12 +260,16 @@ public class MatchDataDao {
 
         // 使用 Lua 脚本执行检查和更新，替代分布式锁
         // 返回值含义保持不变: 0=已修复或不存在, >diffCount=发现不一致但未修复, ==diffCount=正常
-        return redissonClient.getScript(LongCodec.INSTANCE)
+        Object eval = redissonClient.getScript(LongCodec.INSTANCE)
                 .eval(RScript.Mode.READ_WRITE,
                         CHECK_PLAYER_EXPIRED_SCRIPT,
                         RScript.ReturnType.INTEGER,
                         Collections.singletonList(matchRedisKey),
                         roomId, roomNum, waitingNum, diffCount);
+        if (eval instanceof Long result) {
+            return result.intValue();
+        }
+        return 0;
     }
 
 }
