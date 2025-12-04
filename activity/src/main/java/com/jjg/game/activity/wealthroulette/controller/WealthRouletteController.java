@@ -261,7 +261,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             return res;
         }
         //发送奖励
-        CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerId, finalRewardMap, AddType.WEALTH_ROULETTE_REWARDS);
+        CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerId, finalRewardMap, AddType.ACTIVITY_WEALTH_ROULETTE_REWARDS);
         if (!addItems.success()) {
             log.error("玩家添加财富转盘奖励失败 playerId:{} addItems:{}", playerId, finalRewardMap);
         }
@@ -316,7 +316,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             return res;
         }
         //发送奖励
-        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, cfg.getItem(), AddType.WEALTH_ROULETTE_BUY_REWARDS);
+        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, cfg.getItem(), AddType.ACTIVITY_WEALTH_ROULETTE_REWARDS);
         if (!addResult.success()) {
             log.error("财富转盘 购买商品后添加道具失败 playerId:{} goodId:{}", playerId, req.goodId);
         }

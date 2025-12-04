@@ -39,6 +39,10 @@ public enum RechargeType {
      * 成长基金
      */
     GROWTH_FUND(7),
+    /**
+     * 每日充值
+     */
+    DAILY_RECHARGE(8),
     ;
     private final int type;
 
