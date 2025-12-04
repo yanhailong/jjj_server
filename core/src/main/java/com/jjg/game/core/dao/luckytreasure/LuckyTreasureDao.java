@@ -32,9 +32,11 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
      * @return 指定endTime的LuckyTreasure列表
      */
     public List<LuckyTreasure> findAllNotEnd(int limit) {
-        Query query = new Query(Criteria.where("status").is(1));
+        Query query = new Query(Criteria.where("status").in(1,2));
         if (limit > 0) {
             query.limit(limit);
+            //倒叙排列
+            query.with(Sort.by("endTime").descending());
         }
         return mongoTemplate.find(query, LuckyTreasure.class);
     }
@@ -122,7 +124,7 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
             return new PageImpl<>(treasures, pageable, total);
         }
     }
-    
+
     public List<LuckyTreasure> find(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyList();
