@@ -71,6 +71,13 @@ public class LuckyTreasureHistory {
     private String awardPlayerNickName;
 
     /**
+     * 获奖者等级
+     */
+    @ProtoDesc("获奖者等级")
+    private int awardPlayerLevel;
+
+
+    /**
      * 获奖者头像
      */
     @ProtoDesc("获奖者头像id")
@@ -182,6 +189,15 @@ public class LuckyTreasureHistory {
 
     public void setAwardPlayerHeadFrameId(int awardPlayerHeadFrameId) {
         this.awardPlayerHeadFrameId = awardPlayerHeadFrameId;
+    }
+
+
+    public int getAwardPlayerLevel() {
+        return awardPlayerLevel;
+    }
+
+    public void setAwardPlayerLevel(int awardPlayerLevel) {
+        this.awardPlayerLevel = awardPlayerLevel;
     }
 
     public int getAwardPlayerNationalId() {

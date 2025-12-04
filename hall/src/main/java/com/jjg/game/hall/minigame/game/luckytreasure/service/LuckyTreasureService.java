@@ -59,7 +59,6 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
     private final SubscriptionManager subscriptionManager;
     private final ClusterSystem clusterSystem;
     private final HallPlayerService playerService;
-    private final MailService mailService;
 
     /**
      * 等待通知更新的期号列表
@@ -77,7 +76,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                                 TimerCenter timerCenter,
                                 SubscriptionManager subscriptionManager,
                                 ClusterSystem clusterSystem,
-                                PlayerPackService playerPackService, HallPlayerService playerService, MailService mailService) {
+                                PlayerPackService playerPackService, HallPlayerService playerService) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
         this.redisLock = redisLock;
@@ -86,7 +85,6 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         this.subscriptionManager = subscriptionManager;
         this.clusterSystem = clusterSystem;
         this.playerService = playerService;
-        this.mailService = mailService;
     }
 
     /**
@@ -602,6 +600,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         history.setAwardPlayerHeadImgId(treasure.getAwardPlayerHeadImgId());
         history.setAwardPlayerHeadFrameId(treasure.getAwardPlayerHeadFrameId());
         history.setAwardPlayerNickName(treasure.getAwardPlayerNickName());
+        history.setAwardPlayerLevel(treasure.getAwardPlayerLevel());
         history.setAwardPlayerNationalId(treasure.getAwardPlayerNationalId());
         history.setEndTime(treasure.getEndTime());
         return history;
@@ -650,7 +649,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
             // 发放奖励道具
             LuckyTreasureConfig config = latestTreasure.getConfig();
-            if(mailCfg == null){
+            if(mailCfg == null) {
                 Map<Integer, Long> rewardMap = new HashMap<>();
                 rewardMap.put(config.getItemId(), (long) config.getItemNum());
 
@@ -669,8 +668,6 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
 
                 log.info("夺宝奇兵奖励领取成功, 玩家ID:{}, 期号:{}, 领奖码:{}, 道具ID:{}, 数量:{}", playerId, latestTreasure.getIssueNumber(),
                         latestTreasure.getRewardCode(), config.getItemId(), config.getItemNum());
-            }else {
-                mailService.addCfgMail(player.getId(), mailCfg.getTitle(),mailCfg.getText(),ItemUtils.buildItemList(config.getItemId(), config.getItemNum()),Collections.emptyList());
             }
             broadcastUpdate(issueNumber);
             return true;

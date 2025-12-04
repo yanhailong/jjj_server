@@ -17,6 +17,8 @@ import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
 import com.jjg.game.core.data.LuckyTreasure;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.manager.AwardCodeManager;
+import com.jjg.game.core.service.MailService;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.logger.MinigameLogger;
 import com.jjg.game.hall.minigame.MinigameManager;
 import com.jjg.game.hall.minigame.event.MinigameReadyEvent;
@@ -26,6 +28,7 @@ import com.jjg.game.hall.minigame.game.luckytreasure.util.LuckyTreasureStatusUti
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import com.jjg.game.sampledata.bean.MailCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
 import org.redisson.api.RLock;
 import org.redisson.api.RMapCache;
@@ -36,6 +39,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +64,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     private final ConfigManager configManager;
     private final HallPlayerService hallPlayerService;
     private final MinigameLogger minigameLogger;
-
+    private final MailService mailService;
 
 
     /**
@@ -85,7 +89,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                                 MinigameManager minigameManager,
                                 HallPlayerService hallPlayerService,
                                 MinigameLogger minigameLogger,
-                                AwardCodeManager awardCodeManager) {
+                                AwardCodeManager awardCodeManager,
+                                MailService mailService) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
         this.redisLock = redisLock;
@@ -97,6 +102,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         this.hallPlayerService = hallPlayerService;
         this.minigameLogger = minigameLogger;
         this.awardCodeManager = awardCodeManager;
+        this.mailService = mailService;
     }
 
     /**
@@ -720,6 +726,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         reward(round);
         luckyTreasureDao.save(round);
 
+        luckyTreasureService.broadcastUpdate(issueNumber);
+
         log.info("夺宝奇兵活动结束并开奖完成，期号= {}, 中奖玩家= {}", issueNumber, round.getAwardPlayerId());
         LuckyTreasureConfig luckyTreasureConfig = round.getConfig();
         // 清理活跃状态
@@ -784,6 +792,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 luckyTreasure.setAwardPlayerNickName(player.getNickName());
                 luckyTreasure.setAwardPlayerHeadImgId(player.getHeadImgId());
                 luckyTreasure.setAwardPlayerNationalId(player.getNationalId());
+                luckyTreasure.setAwardPlayerLevel(player.getLevel());
             }
             luckyTreasure.setAwardPlayerId(winnerPlayerId);
             // 根据type类型处理奖励
@@ -794,6 +803,11 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             }
             //标记未领取
             luckyTreasure.setReceived(false);
+
+            //获取奖励邮件配置
+            MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
+            //发送邮件奖励
+            mailService.addCfgMail(player.getId(), mailCfg.getTitle(),mailCfg.getText(), ItemUtils.buildItemList(config.getItemId(), config.getItemNum()), Collections.emptyList());
         }
         //更新状态
         luckyTreasure.setStatus(LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE);

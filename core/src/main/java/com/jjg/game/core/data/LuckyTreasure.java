@@ -1,5 +1,6 @@
 package com.jjg.game.core.data;
 
+import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.core.config.bean.LuckyTreasureConfig;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -72,6 +73,11 @@ public class LuckyTreasure {
      * 国旗id
      */
     private int awardPlayerNationalId;
+
+    /**
+     * 获奖者等级
+     */
+    private int awardPlayerLevel;
 
     /**
      * 第三方领奖码
@@ -214,6 +220,14 @@ public class LuckyTreasure {
 
     public void setAwardPlayerNationalId(int awardPlayerNationalId) {
         this.awardPlayerNationalId = awardPlayerNationalId;
+    }
+
+    public int getAwardPlayerLevel() {
+        return awardPlayerLevel;
+    }
+
+    public void setAwardPlayerLevel(int awardPlayerLevel) {
+        this.awardPlayerLevel = awardPlayerLevel;
     }
 
     public int getStatus() {
