@@ -35,8 +35,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     protected Map<Integer, Integer> replaceIconMap = null;
     //rollerGroup -> column -> cfg
     protected Map<Integer, Map<Integer, BaseRollerCfg>> baseRollerCfgMap = null;
-    //lineId -> cfg
-    protected Map<Integer, BaseLineCfg> baseLineCfgMap = null;
+    //gameMode -> lineId -> cfg
+    protected Map<Integer,Map<Integer, BaseLineCfg>> baseLineCfgMap = null;
     //lineId -> 主元素id - > cfg
     protected Map<Integer, Map<Integer, BaseLineFreeInfo>> baseLineFreeCfgMap = null;
     //普通图标 lineType -> sid -> cfg
@@ -362,8 +362,18 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         log.debug("开始检查中奖线信息");
         List<A> awardLineInfoList = new ArrayList<>();
 
-        for (Map.Entry<Integer, BaseLineCfg> en : this.baseLineCfgMap.entrySet()) {
+        Map<Integer, BaseLineCfg> lineCfgMap = this.baseLineCfgMap.get(0);
+        if(lineCfgMap == null || lineCfgMap.isEmpty()){
+            if(freeModel){
+                lineCfgMap = this.baseLineCfgMap.get(2);
+            }else {
+                lineCfgMap = this.baseLineCfgMap.get(1);
+            }
+        }
+
+        for (Map.Entry<Integer, BaseLineCfg> en : lineCfgMap.entrySet()) {
             BaseLineCfg cfg = en.getValue();
+
             if (cfg.getGameMode() > 0) {
                 //免费模式对应 该配置表的gameMode = 2
                 if (freeModel && cfg.getGameMode() == 1) {
@@ -1099,8 +1109,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * 中奖线相关
      */
     protected void baseLineConfig() {
-        //column -> cfg
-        Map<Integer, BaseLineCfg> tmpBaseLineCfgMap = new HashMap<>();
+        //gameMode -> lineId -> cfg
+        Map<Integer,Map<Integer, BaseLineCfg>> tmpBaseLineCfgMap = new HashMap<>();
 
         //根据游戏type筛选
         for (Map.Entry<Integer, BaseLineCfg> en : GameDataManager.getBaseLineCfgMap().entrySet()) {
@@ -1109,7 +1119,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 continue;
             }
 
-            tmpBaseLineCfgMap.put(cfg.getLineId(), cfg);
+            Map<Integer, BaseLineCfg> tmpMap = tmpBaseLineCfgMap.computeIfAbsent(cfg.getGameMode(), k -> new HashMap<>());
+            tmpMap.put(cfg.getLineId(), cfg);
         }
 
         if (tmpBaseLineCfgMap.isEmpty()) {

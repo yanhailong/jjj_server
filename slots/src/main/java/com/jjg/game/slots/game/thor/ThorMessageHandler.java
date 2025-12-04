@@ -5,16 +5,12 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
-import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinEnterGame;
-import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinStartGame;
 import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
 import com.jjg.game.slots.game.thor.manager.ThorGameManager;
 import com.jjg.game.slots.game.thor.manager.ThorSendMessageManager;
+import com.jjg.game.slots.game.thor.pb.ReqThorFreeChooseOne;
 import com.jjg.game.slots.game.thor.pb.ReqThorEnterGame;
 import com.jjg.game.slots.game.thor.pb.ReqThorStartGame;
-import com.jjg.game.slots.game.thor.pb.ResThorEnterGame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +59,23 @@ public class ThorMessageHandler {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             ThorGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 免费模式二选一
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(ThorConstant.MsgBean.REQ_FREE_CHOOSE_ONE)
+    public void reqFreeChooseOne(PlayerController playerController, ReqThorFreeChooseOne req) {
+        try {
+            log.info("收到二选一 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+            ThorGameRunInfo gameRunInfo = this.gameManager.freeChooseOne(playerController, req.type);
+            sendMessageManager.sendFreeChooseOneMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

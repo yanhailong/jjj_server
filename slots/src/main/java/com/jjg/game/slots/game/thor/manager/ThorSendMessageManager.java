@@ -8,6 +8,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
+import com.jjg.game.slots.game.thor.pb.ResThorFreeChooseOne;
 import com.jjg.game.slots.game.thor.pb.ResThorEnterGame;
 import com.jjg.game.slots.game.thor.pb.ResThorStartGame;
 import com.jjg.game.slots.logger.SlotsLogger;
@@ -75,6 +76,26 @@ public class ThorSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回押注结果", false);
+    }
 
+
+    /**
+     * 发送二选一结果
+     *
+     * @param playerController
+     * @param gameRunInfo
+     */
+    public void sendFreeChooseOneMessage(PlayerController playerController, ThorGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+
+        ResThorFreeChooseOne res = new ResThorFreeChooseOne(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+        } else {
+            log.debug("二选一错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回二选一结果", false);
     }
 }
