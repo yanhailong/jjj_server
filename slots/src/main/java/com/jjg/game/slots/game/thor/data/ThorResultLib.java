@@ -9,4 +9,14 @@ import org.springframework.data.mongodb.core.mapping.Document;
  */
 @Document
 public class ThorResultLib extends SlotsResultLib<ThorAwardLineInfo> {
+    //本次触发的jackpotId
+    private int jackpotId;
+
+    public int getJackpotId() {
+        return jackpotId;
+    }
+
+    public void setJackpotId(int jackpotId) {
+        this.jackpotId = jackpotId;
+    }
 }

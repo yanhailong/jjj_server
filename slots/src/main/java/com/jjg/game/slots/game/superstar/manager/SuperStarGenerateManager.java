@@ -159,7 +159,12 @@ public class SuperStarGenerateManager extends AbstractSlotsGenerateManager<Super
         log.debug("开始检查中奖线信息 ");
         List<SuperStarAwardLineInfo> awardLineInfoList = new ArrayList<>();
 
-        for (Map.Entry<Integer, BaseLineCfg> en : this.baseLineCfgMap.entrySet()) {
+        Map<Integer, BaseLineCfg> lineCfgMap = this.baseLineCfgMap.get(0);
+        if(lineCfgMap == null || lineCfgMap.isEmpty()){
+            lineCfgMap = this.baseLineCfgMap.get(1);
+        }
+
+        for (Map.Entry<Integer, BaseLineCfg> en : lineCfgMap.entrySet()) {
             BaseLineCfg cfg = en.getValue();
             List<Integer> lineList = cfg.getPosLocation();
 
