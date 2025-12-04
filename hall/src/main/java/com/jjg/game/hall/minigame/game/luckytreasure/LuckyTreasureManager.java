@@ -678,6 +678,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             round.setStatus(LuckyTreasureStatusUtil.STATUS_WAIT_DRAW);
             activeTreasures.put(issueNumber, round);
             addActivityRewardTimer(round);
+            luckyTreasureService.broadcastUpdate(issueNumber);
             log.debug("finalRewardTime = {},添加开奖倒计时", rewardTime);
         }
     }

@@ -153,6 +153,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
             //创建结果库对象
             T lib = createResultLib();
+            lib.setId(RandomUtils.getUUid());
             lib.setRollerMode(specialModeCfg.getRollerMode());
 
             //生成所有的图标
@@ -182,7 +183,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             }
 
             //判断中奖，返回
-            return checkFreeAward(arr, lib);
+            return checkAward(arr, lib, true);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -198,11 +199,24 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * @throws Exception
      */
     public T checkAward(int[] arr, T lib) throws Exception {
+        return checkAward(arr, lib, false);
+    }
+
+    /**
+     * 检查奖励
+     *
+     * @param arr
+     * @param lib
+     * @param freeModel 是否为免费模式
+     * @return
+     * @throws Exception
+     */
+    public T checkAward(int[] arr, T lib, boolean freeModel) throws Exception {
         lib.setGameType(this.gameType);
         lib.setIconArr(arr);
 
         //检查连线
-        List<A> awardLineInfoList = winLines(lib, SlotsConst.BaseElementReward.LINE_TYPE_NORMAL);
+        List<A> awardLineInfoList = winLines(lib, freeModel);
         lib.setAwardLineInfoList(awardLineInfoList);
 
         //检查指定图案
@@ -228,18 +242,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         //计算倍数
         calTimes(lib);
         return lib;
-    }
-
-    /**
-     * 检查免费局奖励
-     *
-     * @param arr
-     * @param lib
-     * @return
-     * @throws Exception
-     */
-    public T checkFreeAward(int[] arr, T lib) throws Exception {
-        return checkAward(arr, lib);
     }
 
     /**
@@ -339,8 +341,12 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      *
      * @return
      */
-    public List<A> winLines(T lib, int lineType) {
-        return winLines(lib.getIconArr(), lineType);
+    public List<A> winLines(T lib) {
+        return winLines(lib, false);
+    }
+
+    public List<A> winLines(T lib, boolean freeModel) {
+        return winLines(lib.getIconArr(), freeModel);
     }
 
     /**
@@ -348,16 +354,23 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      *
      * @return
      */
-    public List<A> winLines(int[] arr, int lineType) {
+    public List<A> winLines(int[] arr, boolean freeModel) {
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
         if (baseInitCfg.getLineType() != SlotsConst.BaseInit.NEED_BASE_LINE) {
             return null;
         }
-        log.debug("开始检查中奖线信息 lineType = {}", lineType);
+        log.debug("开始检查中奖线信息");
         List<A> awardLineInfoList = new ArrayList<>();
 
         for (Map.Entry<Integer, BaseLineCfg> en : this.baseLineCfgMap.entrySet()) {
             BaseLineCfg cfg = en.getValue();
+            if (cfg.getGameMode() > 0) {
+                //免费模式对应 该配置表的gameMode = 2
+                if (freeModel && cfg.getGameMode() == 1) {
+                    continue;
+                }
+            }
+
             List<Integer> lineList = cfg.getPosLocation();
 
             SameInfo sameInfo = new SameInfo();
@@ -394,15 +407,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
                 //如果有连线
                 if (sameCount > 1) {
-                    log.debug("sameInfo = {}", JSON.toJSONString(sameInfo));
+                    log.debug("cfgId = {},sameCount = {},sameInfo = {}", cfg.getId(), sameCount, JSON.toJSONString(sameInfo));
                     Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_NORMAL);
                     for (Map.Entry<Integer, BaseElementRewardCfg> rewardEn : normalRewardCfgMap.entrySet()) {
                         BaseElementRewardCfg rewardCfg = rewardEn.getValue();
-                        //线类型
-                        if (lineType != SlotsConst.BaseElementReward.LINE_TYPE_ALL && rewardCfg.getLineType() != lineType) {
-                            continue;
-                        }
-
                         //匹配连线的元素id和个数
                         if (!rewardCfg.getElementId().contains(sameInfo.getBaseIconId()) || sameCount != rewardCfg.getRewardNum()) {
                             continue;
@@ -870,7 +878,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
             T t = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
             specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(t));
-            log.debug("--------------{}------------", i);
         }
     }
 
@@ -998,7 +1005,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         List<Integer> iconsList = cfg.getElementId();
 
         log.debug("iconList = {}", iconsList);
-
 
 
         // 记录所有连续列段

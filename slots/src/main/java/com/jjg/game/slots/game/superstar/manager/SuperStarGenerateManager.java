@@ -148,7 +148,7 @@ public class SuperStarGenerateManager extends AbstractSlotsGenerateManager<Super
     }
 
     @Override
-    public List<SuperStarAwardLineInfo> winLines(SuperStarResultLib lib, int lineType) {
+    public List<SuperStarAwardLineInfo> winLines(SuperStarResultLib lib) {
 
         int[] arr = lib.getIconArr();
 
@@ -156,7 +156,7 @@ public class SuperStarGenerateManager extends AbstractSlotsGenerateManager<Super
         if (baseInitCfg.getLineType() != SlotsConst.BaseInit.NEED_BASE_LINE) {
             return null;
         }
-        log.debug("开始检查中奖线信息 lineType = {}", lineType);
+        log.debug("开始检查中奖线信息 ");
         List<SuperStarAwardLineInfo> awardLineInfoList = new ArrayList<>();
 
         for (Map.Entry<Integer, BaseLineCfg> en : this.baseLineCfgMap.entrySet()) {
@@ -204,11 +204,6 @@ public class SuperStarGenerateManager extends AbstractSlotsGenerateManager<Super
                     Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_NORMAL);
                     for (Map.Entry<Integer, BaseElementRewardCfg> rewardEn : normalRewardCfgMap.entrySet()) {
                         BaseElementRewardCfg rewardCfg = rewardEn.getValue();
-                        //线类型
-                        if (lineType != SlotsConst.BaseElementReward.LINE_TYPE_ALL && rewardCfg.getLineType() != lineType) {
-                            continue;
-                        }
-
                         //匹配连线的元素id和个数
                         if (!rewardCfg.getElementId().contains(sameInfo.getBaseIconId()) || sameCount != rewardCfg.getRewardNum()) {
                             continue;

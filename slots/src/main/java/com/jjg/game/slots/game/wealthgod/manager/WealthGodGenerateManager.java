@@ -334,6 +334,7 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
             }
             //创建结果库对象
             WealthGodResultLib lib = createResultLib();
+            lib.setId(RandomUtils.getUUid());
             lib.setRollerMode(specialModeCfg.getRollerMode());
             lib.addLibType(specialModeType);
 

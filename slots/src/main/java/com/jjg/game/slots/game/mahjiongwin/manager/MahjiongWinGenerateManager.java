@@ -36,71 +36,69 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
     //
     private MahjiongWinAddFreeInfo mahjiongWinAddFreeInfo;
 
-
     @Override
-    public MahjiongWinResultLib checkAward(int[] arr, MahjiongWinResultLib lib) throws Exception {
-        lib.setGameType(this.gameType);
-        lib.setIconArr(arr);
+    public MahjiongWinResultLib checkAward(int[] arr, MahjiongWinResultLib lib, boolean freeModel) throws Exception {
+        if(freeModel){
+            lib.setGameType(this.gameType);
+            lib.setIconArr(arr);
 
-        //检查满线图案
-        List<MahjiongWinAwardLineInfo> fullLineInfoList = fullLine(lib);
-        lib.addAllAwardLineInfo(fullLineInfoList);
+            //检查满线图案
+            List<MahjiongWinAwardLineInfo> fullLineInfoList = fullLine(lib);
+            lib.addAllAwardLineInfo(fullLineInfoList);
 
-        //检查全局分散图案
-        List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
-        lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
+            //检查全局分散图案
+            List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
+            lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
 
-        //存储消除后添加的图标
-        List<MahjiongWinAddIconInfo> addIconInfoList = new ArrayList<>();
+            //存储消除后添加的图标
+            List<MahjiongWinAddIconInfo> addIconInfoList = new ArrayList<>();
 
-        //拷贝数组
-        int[] newArr = new int[arr.length];
-        System.arraycopy(arr, 0, newArr, 0, arr.length);
+            //拷贝数组
+            int[] newArr = new int[arr.length];
+            System.arraycopy(arr, 0, newArr, 0, arr.length);
 
-        if(lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
-            lib.getLibTypeSet().forEach(type -> {
-                //是否有消除
-                repairIcons(type, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
-            });
+            //是否有消除
+            repairIcons(MahjiongWinConstant.SpecialMode.FREE, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
+
+            if (!addIconInfoList.isEmpty()) {
+                lib.setAddIconInfos(addIconInfoList);
+            }
+
+            calTimes(lib);
+            return lib;
+        }else {
+            lib.setGameType(this.gameType);
+            lib.setIconArr(arr);
+
+            //检查满线图案
+            List<MahjiongWinAwardLineInfo> fullLineInfoList = fullLine(lib);
+            lib.addAllAwardLineInfo(fullLineInfoList);
+
+            //检查全局分散图案
+            List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
+            lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
+
+            //存储消除后添加的图标
+            List<MahjiongWinAddIconInfo> addIconInfoList = new ArrayList<>();
+
+            //拷贝数组
+            int[] newArr = new int[arr.length];
+            System.arraycopy(arr, 0, newArr, 0, arr.length);
+
+            if(lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
+                lib.getLibTypeSet().forEach(type -> {
+                    //是否有消除
+                    repairIcons(type, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
+                });
+            }
+
+            if (!addIconInfoList.isEmpty()) {
+                lib.setAddIconInfos(addIconInfoList);
+            }
+
+            calTimes(lib);
+            return lib;
         }
-
-        if (!addIconInfoList.isEmpty()) {
-            lib.setAddIconInfos(addIconInfoList);
-        }
-
-        calTimes(lib);
-        return lib;
-    }
-
-    @Override
-    public MahjiongWinResultLib checkFreeAward(int[] arr, MahjiongWinResultLib lib) throws Exception {
-        lib.setGameType(this.gameType);
-        lib.setIconArr(arr);
-
-        //检查满线图案
-        List<MahjiongWinAwardLineInfo> fullLineInfoList = fullLine(lib);
-        lib.addAllAwardLineInfo(fullLineInfoList);
-
-        //检查全局分散图案
-        List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
-        lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
-
-        //存储消除后添加的图标
-        List<MahjiongWinAddIconInfo> addIconInfoList = new ArrayList<>();
-
-        //拷贝数组
-        int[] newArr = new int[arr.length];
-        System.arraycopy(arr, 0, newArr, 0, arr.length);
-
-        //是否有消除
-        repairIcons(MahjiongWinConstant.SpecialMode.FREE, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
-
-        if (!addIconInfoList.isEmpty()) {
-            lib.setAddIconInfos(addIconInfoList);
-        }
-
-        calTimes(lib);
-        return lib;
     }
 
     @Override
@@ -168,7 +166,6 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
             lib.setAddFreeCount(addCount);
             remainFreeCount += addCount;
             specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
-            log.debug("--------------{}------------", remainFreeCount);
             remainFreeCount--;
         }
     }
