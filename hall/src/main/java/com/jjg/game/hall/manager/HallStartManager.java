@@ -64,9 +64,9 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     @Override
     public void start() {
         marsCoreStartService.init(this.context, Collections.emptySet());
+        configManager.loadAll();
         coreStartService.init(this.context);
         hallService.init();
-        configManager.loadAll();
         hallPlayerEventListener.init();
         marqueeManager.init();
         activityManager.initData();

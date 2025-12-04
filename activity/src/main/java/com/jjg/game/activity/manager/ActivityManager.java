@@ -7,6 +7,7 @@ import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.common.data.ActivityType;
+import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.ActivityBuilder;
 import com.jjg.game.activity.common.message.res.NotifyActivityChange;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -520,7 +521,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         try {
             //获取该玩家的活动详细信息
             ActivityData data = activityData.get(activityId);
-            if (data == null || !data.canRun()) {
+            if (!playerCanJoinActivity(data, player)) {
                 log.warn("玩家请求参加的活动未开始 playerId:{} activityId:{}  ", playerId, activityId);
                 return;
             }
@@ -804,15 +805,15 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         List<RedDotDetails> redDotDetails = new ArrayList<>();
         for (ActivityData data : activityDataMap.values()) {
-            //判断该活动是否有红点
+                //判断该活动是否有红点
             boolean redDot = data.getType().getController().hasRedDot(playerId, data);
-            if (redDot) {
-                RedDotDetails redDotDetailInfo = new RedDotDetails();
-                redDotDetailInfo.setRedDotModule(getModule());
-                redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
-                redDotDetailInfo.setCount(1);
-                redDotDetailInfo.setRedDotSubmodule(data.getType().getType());
-                redDotDetails.add(redDotDetailInfo);
+                if (redDot) {
+                    RedDotDetails redDotDetailInfo = new RedDotDetails();
+                    redDotDetailInfo.setRedDotModule(getModule());
+                    redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
+                    redDotDetailInfo.setCount(1);
+                    redDotDetailInfo.setRedDotSubmodule(data.getType().getType());
+                    redDotDetails.add(redDotDetailInfo);
             }
         }
         return redDotDetails;

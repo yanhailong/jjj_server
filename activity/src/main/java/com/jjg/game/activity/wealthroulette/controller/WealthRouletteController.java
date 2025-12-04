@@ -114,7 +114,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         if (isClose(player) || progress == 0) {
             return;
         }
-        countDao.incrementWithoutExpireRefresh(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(player.getId()), getChildId(LocalDate.now()),
+        countDao.incrementWithoutExpireRefresh(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), getChildId(player.getId(), LocalDate.now()),
                 BigDecimal.valueOf(Math.abs(progress)), TimeHelper.ONE_DAY_OF_MILLIS * 2);
     }
 
@@ -159,8 +159,8 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
      * 获取子id
      * @return 按日期的子id
      */
-    private String getChildId(LocalDate localDate) {
-        return PREFIX + localDate.format(TimeHelper.FORMATTER);
+    private String getChildId(long playerId, LocalDate localDate) {
+        return playerId + localDate.format(TimeHelper.FORMATTER);
     }
 
 
@@ -189,10 +189,10 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         for (WealthRouletteRewardCfg rewardCfg : GameDataManager.getWealthRouletteRewardCfgList()) {
             res.rouletteItemInfo.add(new WealthRouletteDrawItemInfo(rewardCfg.getId(), rewardCfg.getPicture()));
         }
-        res.totalPoint = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId),
-                getChildId(LocalDate.now().minusDays(-1))).intValue();
-        BigDecimal current = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId),
-                getChildId(LocalDate.now()));
+        res.totalPoint = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
+                getChildId(playerId, LocalDate.now().minusDays(-1))).intValue();
+        BigDecimal current = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
+                getChildId(playerId, LocalDate.now()));
         res.tomorrowPoint = getConversionValue(playerId, current.longValue(), false).toPlainString();
         return res;
     }
@@ -201,7 +201,6 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
      * 抽奖
      *
      * @param player 玩家信息
-     * @param req
      */
     public AbstractResponse reqWealthRouletteDraw(Player player, ReqWealthRouletteDraw req) {
         ResWealthRouletteDraw res = new ResWealthRouletteDraw(Code.SUCCESS);
@@ -261,7 +260,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             return res;
         }
         //发送奖励
-        CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerId, finalRewardMap, AddType.WEALTH_ROULETTE_REWARDS);
+        CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerId, finalRewardMap, AddType.ACTIVITY_WEALTH_ROULETTE_REWARDS);
         if (!addItems.success()) {
             log.error("玩家添加财富转盘奖励失败 playerId:{} addItems:{}", playerId, finalRewardMap);
         }
@@ -285,7 +284,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
     public AbstractResponse reqWealthRouletteBuyGood(Player player, ReqWealthRouletteBuyGood req) {
         ResWealthRouletteBuyGood res = new ResWealthRouletteBuyGood(Code.SUCCESS);
         long playerId = player.getId();
-        if (isClose(player)) {
+        if (isClose(player) || req.buyNum <= 0) {
             res.code = Code.ERROR_REQ;
             return res;
         }
@@ -297,31 +296,34 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         //购买商品
         RMap<Integer, Integer> playerBuyTimes = wealthRouletteDao.getPlayerBuyTimes(playerId);
         int buyTimes = playerBuyTimes.getOrDefault(req.goodId, 0);
-        if (buyTimes + 1 > cfg.getFrequency()) {
+        if (buyTimes + req.buyNum > cfg.getFrequency()) {
             res.code = Code.WEALTH_ROULETTE_BUY_LIMIT;
             return res;
         }
+        int needPoint = cfg.getPurchase() * req.buyNum;
         //扣除积分
-        BigDecimal remainPoint = countDao.decrementIfSufficient(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), CURRENT_POINT, BigDecimal.valueOf(cfg.getPurchase()));
+        BigDecimal remainPoint = countDao.decrementIfSufficient(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT,
+                BigDecimal.valueOf(needPoint));
         if (remainPoint == null) {
             res.code = Code.WEALTH_ROULETTE_NOT_POINT;
             return res;
         }
         //增加限购次数
-        Long result = wealthRouletteDao.incrementIfLessThan(playerId, req.goodId, cfg.getFrequency());
+        Long result = wealthRouletteDao.incrementIfLessThan(playerId, req.goodId, req.buyNum, cfg.getFrequency());
         if (result == null) {
             res.code = Code.WEALTH_ROULETTE_BUY_LIMIT;
-            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(player.getId()), getChildId(LocalDate.now()),
-                    BigDecimal.valueOf(cfg.getPurchase()));
+            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), getChildId(playerId, LocalDate.now()),
+                    BigDecimal.valueOf(needPoint));
             return res;
         }
         //发送奖励
-        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, cfg.getItem(), AddType.WEALTH_ROULETTE_BUY_REWARDS);
+        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, cfg.getItem(), AddType.ACTIVITY_WEALTH_ROULETTE_REWARDS);
         if (!addResult.success()) {
             log.error("财富转盘 购买商品后添加道具失败 playerId:{} goodId:{}", playerId, req.goodId);
         }
         res.goodInfo = buildWealthRouletteGoodInfo(cfg, result.intValue());
         res.remainPoint = remainPoint.intValue();
+        res.buyNum = req.buyNum;
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(71);
         if (globalConfigCfg != null && globalConfigCfg.getIntValue() > 0) {
             if (remainPoint.intValue() < globalConfigCfg.getIntValue()) {
@@ -365,12 +367,12 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     @Override
     public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
-        if (firstLogin) {
-            if (isClose(player)) {
-                return;
-            }
+//        if (firstLogin) {
+//            if (isClose(player)) {
+//                return;
+//            }
             resetData(player.getId());
-        }
+//        }
     }
 
     /**
@@ -385,7 +387,8 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         //清除数据
         wealthRouletteDao.getPlayerBuyTimes(playerId).delete();
         //计算当天积分
-        BigDecimal count = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), getChildId(LocalDate.now().minusDays(1)));
+        BigDecimal count = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
+                getChildId(playerId, LocalDate.now().minusDays(1)));
         BigDecimal add = getConversionValue(playerId, count.longValue(), true);
         if (add.compareTo(BigDecimal.ZERO) > 0) {
             countDao.setCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), CURRENT_POINT, add);
