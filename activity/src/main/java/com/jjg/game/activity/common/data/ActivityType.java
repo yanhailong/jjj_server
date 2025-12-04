@@ -3,6 +3,7 @@ package com.jjg.game.activity.common.data;
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.dailylogin.controller.DailyLoginController;
+import com.jjg.game.activity.dailyrecharge.controller.DailyRechargeController;
 import com.jjg.game.activity.firstpayment.controller.FirstPaymentController;
 import com.jjg.game.activity.growthfund.controller.GrowthFundController;
 import com.jjg.game.activity.officialawards.controller.OfficialAwardsController;
@@ -41,6 +42,9 @@ public enum ActivityType {
     //首充
     FIRST_PAYMENT(11, FirstPaymentController.class, false, false,
             ActivityTargetType.RECHARGE.getTargetKey(), false, false),
+    //每日充值
+    DAILY_RECHARGE(12, DailyRechargeController.class, false, false,
+            ActivityTargetType.NONE.getTargetKey(), false, false),
     //成长基金
     GROWTH_FUND(15, GrowthFundController.class, true, false,
             ActivityTargetType.LEVEL.getTargetKey(), false, false);

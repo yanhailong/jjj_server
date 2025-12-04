@@ -338,21 +338,33 @@ public abstract class BaseActivityController {
                 playerActivityDataMap = playerActivityData.getOrDefault(activityData.getId(), Map.of());
             }
             // 构建活动详情列表
-            List<BaseActivityDetailInfo> arrayList = new ArrayList<>();
-            allDetailInfoMap.put(activityData.getId(), arrayList);
-
-            for (Integer id : activityData.getValue()) {
-                BaseCfgBean baseCfgBean = baseCfgBeanMap.get(id);
-                if (baseCfgBean == null) {
-                    continue;
-                }
-                BaseActivityDetailInfo detail = buildPlayerActivityDetail(latestPlayer, activityData, baseCfgBean, playerActivityDataMap.get(id));
-                if (detail != null) {
-                    arrayList.add(detail);
-                }
-            }
+            allDetailInfoMap.put(activityData.getId(), getBaseActivityDetailInfos(activityData, baseCfgBeanMap, latestPlayer, playerActivityDataMap));
         }
         return getPlayerActivityInfoByTypeRes(latestPlayer, allDetailInfoMap);
+    }
+
+    /**
+     * 获取活动详细信息
+     * @param activityData 活动数据
+     * @param baseCfgBeanMap 配置信息
+     * @param player 玩家信息
+     * @param playerActivityDataMap 玩家活动数据
+     * @return 活动详细信息
+     */
+    public List<BaseActivityDetailInfo> getBaseActivityDetailInfos(ActivityData activityData, Map<Integer, ? extends BaseCfgBean> baseCfgBeanMap,
+                                                                   Player player, Map<Integer, PlayerActivityData> playerActivityDataMap) {
+        List<BaseActivityDetailInfo> arrayList = new ArrayList<>();
+        for (Integer id : activityData.getValue()) {
+            BaseCfgBean baseCfgBean = baseCfgBeanMap.get(id);
+            if (baseCfgBean == null) {
+                continue;
+            }
+            BaseActivityDetailInfo detail = buildPlayerActivityDetail(player, activityData, baseCfgBean, playerActivityDataMap.get(id));
+            if (detail != null) {
+                arrayList.add(detail);
+            }
+        }
+        return arrayList;
     }
 
 
