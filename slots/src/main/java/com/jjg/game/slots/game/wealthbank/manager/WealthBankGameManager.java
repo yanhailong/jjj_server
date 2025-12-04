@@ -952,7 +952,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
 
     @Override
     public int getGameType() {
-        return CoreConst.GameType.DOLLAR_EXPRESS;
+        return CoreConst.GameType.WEALTH_BANK;
     }
 
     @Override

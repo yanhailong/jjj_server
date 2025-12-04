@@ -15,8 +15,6 @@ import java.util.List;
 public class WealthRouletteDrawInfo {
     @ProtoDesc("配置Id")
     public int configId;
-    @ProtoDesc("奖励")
-    public List<ItemInfo> itemInfo;
     @ProtoDesc("次数")
     public int times;
 }

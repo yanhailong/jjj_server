@@ -67,7 +67,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
     private final CountDao countDao;
     private final GameFunctionService gameFunctionService;
     private final String PREFIX = "wealthroulette";
-    private final String CURRENT_POINT = PREFIX + ":now:%s";
+    private final String CURRENT_POINT = "now:%s";
     private final PlayerPackService playerPackService;
     private final WealthRouletteDao wealthRouletteDao;
     private final ClusterSystem clusterSystem;
@@ -187,7 +187,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         }
         res.rouletteItemInfo = new ArrayList<>();
         for (WealthRouletteRewardCfg rewardCfg : GameDataManager.getWealthRouletteRewardCfgList()) {
-            res.rouletteItemInfo.add(new WealthRouletteDrawItemInfo(rewardCfg.getId(), rewardCfg.getPicture()));
+            res.rouletteItemInfo.add(new WealthRouletteDrawItemInfo(rewardCfg.getId(), rewardCfg.getPicture(),ItemUtils.buildItemInfo(rewardCfg.getItem())));
         }
         res.totalPoint = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
                 getChildId(playerId, LocalDate.now().minusDays(-1))).intValue();
@@ -270,7 +270,6 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         for (Map.Entry<Integer, Integer> entry : rewardMap.entrySet()) {
             WealthRouletteDrawInfo drawInfo = new WealthRouletteDrawInfo();
             WealthRouletteRewardCfg rewardCfg = GameDataManager.getWealthRouletteRewardCfgMap().get(entry.getKey());
-            drawInfo.itemInfo = ItemUtils.buildItemInfo(rewardCfg.getItem());
             drawInfo.times = entry.getValue();
             drawInfo.configId = rewardCfg.getId();
             res.drawInfos.add(drawInfo);
