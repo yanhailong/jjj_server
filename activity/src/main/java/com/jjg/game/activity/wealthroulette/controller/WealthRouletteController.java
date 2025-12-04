@@ -67,7 +67,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
     private final CountDao countDao;
     private final GameFunctionService gameFunctionService;
     private final String PREFIX = "wealthroulette";
-    private final String CURRENT_POINT = PREFIX + ":now";
+    private final String CURRENT_POINT = PREFIX + ":now:%s";
     private final PlayerPackService playerPackService;
     private final WealthRouletteDao wealthRouletteDao;
     private final ClusterSystem clusterSystem;
@@ -180,7 +180,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             res.code = Code.ERROR_REQ;
             return res;
         }
-        res.currentPoint = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), CURRENT_POINT).intValue();
+        res.currentPoint = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId)).intValue();
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(71);
         if (globalConfigCfg != null) {
             res.drawNeedPoint = globalConfigCfg.getIntValue();
@@ -222,7 +222,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             return res;
         }
         //获取当日积分
-        BigDecimal count = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), CURRENT_POINT);
+        BigDecimal count = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId));
         int times = req.times == -1 ? Math.min(100, count.intValue() / cfg.getIntValue()) : req.times;
         if (times <= 0) {
             res.code = Code.WEALTH_ROULETTE_NOT_POINT;
@@ -254,7 +254,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             return res;
         }
         //扣除积分
-        BigDecimal result = countDao.decrementIfSufficient(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), CURRENT_POINT, BigDecimal.valueOf(needPoint));
+        BigDecimal result = countDao.decrementIfSufficient(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId), BigDecimal.valueOf(needPoint));
         if (result == null) {
             res.code = Code.WEALTH_ROULETTE_NOT_POINT;
             return res;
@@ -302,7 +302,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         }
         int needPoint = cfg.getPurchase() * req.buyNum;
         //扣除积分
-        BigDecimal remainPoint = countDao.decrementIfSufficient(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT,
+        BigDecimal remainPoint = countDao.decrementIfSufficient(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId),
                 BigDecimal.valueOf(needPoint));
         if (remainPoint == null) {
             res.code = Code.WEALTH_ROULETTE_NOT_POINT;
@@ -371,7 +371,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 //            if (isClose(player)) {
 //                return;
 //            }
-            resetData(player.getId());
+        resetData(player.getId());
 //        }
     }
 
@@ -391,7 +391,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
                 getChildId(playerId, LocalDate.now().minusDays(1)));
         BigDecimal add = getConversionValue(playerId, count.longValue(), true);
         if (add.compareTo(BigDecimal.ZERO) > 0) {
-            countDao.setCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), CURRENT_POINT, add);
+            countDao.setCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId), add);
             log.info("财富转盘 今日积分 playerOd:{} addPoint:{}", playerId, add.longValue());
         }
     }
@@ -442,7 +442,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     @Override
     public List<RedDotDetails> initialize(long playerId, int submodule) {
-        BigDecimal count = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), CURRENT_POINT);
+        BigDecimal count = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId));
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(71);
         int redCount = 0;
         if (globalConfigCfg != null && globalConfigCfg.getIntValue() > 0) {
