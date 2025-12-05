@@ -54,8 +54,9 @@ public class MatchService {
                 if result == 1 then
                     -- 计算新 score 并更新
                     local newScore = (1 * 4398046511104) + (1 * 4294967296) + seconds
-                    redis.call('ZADD', KEYS[1], newScore, ARGV[2])
-                    return tonumber(ARGV[2]);
+                    local createId = tonumber(ARGV[2])
+                    redis.call('ZADD', KEYS[1], newScore, createId)
+                    return createId);
                 else
                     return 0;
                 end
