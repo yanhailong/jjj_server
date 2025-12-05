@@ -10,6 +10,7 @@ import com.jjg.game.hall.dao.HallRoomDao;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.LongCodec;
+import org.redisson.client.codec.StringCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,7 @@ public class MatchService {
             -- 获取分数最小的一个房间
             local entries = redis.call('ZRANGE', KEYS[1], 0, 0, 'WITHSCORES')
             if not entries or #entries == 0 then
-                return 0
+                return nil
             end
             local roomId = entries[1]
             local score = tonumber(entries[2])
@@ -54,11 +55,10 @@ public class MatchService {
                 if result == 1 then
                     -- 计算新 score 并更新
                     local newScore = (1 * 4398046511104) + (1 * 4294967296) + seconds
-                    local createId = tonumber(ARGV[2])
-                    redis.call('ZADD', KEYS[1], newScore, createId)
-                    return createId;
+                    redis.call('ZADD', KEYS[1], newScore, ARGV[2])
+                    return ARGV[2];
                 else
-                    return 0;
+                    return nil;
                 end
             end
             
@@ -70,7 +70,7 @@ public class MatchService {
             local newScore = (newMax * 4398046511104) + (newReady * 4294967296) + seconds
             redis.call('ZADD', KEYS[1], newScore, roomId)
             
-            return tonumber(roomId)
+            return roomId
             """;
 
     public MatchService(MatchDataDao matchDataDao, RedisLock redisLock, HallRoomDao hallRoomDao, RedissonClient redissonClient) {
@@ -89,7 +89,7 @@ public class MatchService {
         if (preCreateData == null) {
             return 0;
         }
-        Long result = redissonClient.getScript(LongCodec.INSTANCE)
+        String result = redissonClient.getScript(StringCodec.INSTANCE)
                 .eval(RScript.Mode.READ_WRITE,
                         TRY_JOIN_ROOM_SCRIPT,
                         RScript.ReturnType.INTEGER,
@@ -98,10 +98,10 @@ public class MatchService {
         if (result == null) {
             return 0;
         }
-        if (result.equals(preCreateData.getFirst())) {
+        if (result.equals(String.valueOf(preCreateData.getFirst()))) {
             log.debug("创建房间是生成的房间id = {}", preCreateData.getFirst());
         }
-        return result;
+        return Long.parseLong(result);
     }
 
     private Pair<Long, String> getPreCreateRoomData(int gameType, int roomConfigId, int maxPlayer, String nodePath) {
