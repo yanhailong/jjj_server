@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 预留逻辑
@@ -74,39 +75,67 @@ public class MatchService {
      */
     public long getWaitingRoomId(int gameType, int roomConfigId, int maxPlayer, String nodePath) {
         String matchRedisKey = matchDataDao.getMatchRedisKey(gameType, roomConfigId);
+        // 最多重试5次，防止死循环
+        for (int i = 0; i < 5; i++) {
+            // 1. 尝试通过 Lua 脚本原子性地获取并加入现有房间
+            Long joinedRoomId = redissonClient.getScript(LongCodec.INSTANCE)
+                    .eval(RScript.Mode.READ_WRITE,
+                            TRY_JOIN_ROOM_SCRIPT,
+                            RScript.ReturnType.INTEGER,
+                            Collections.singletonList(matchRedisKey),
+                            maxPlayer);
+            if (joinedRoomId != null && joinedRoomId > 0) {
+                log.debug("加入现有房间 success roomId:{} gameType:{} roomConfigId:{}", joinedRoomId, gameType, roomConfigId);
+                return joinedRoomId;
+            }
+            // 2. 需要创建房间。使用“创建锁”来防止并发创建激增
+            // 锁粒度细化到具体的 roomConfigId
+            String createLockKey = "lock:create:" + matchRedisKey;
+            // 尝试获取锁，等待时间0，锁持有时间3秒
+            if (redisLock.tryLock(createLockKey, 0, 3000, TimeUnit.MILLISECONDS)) {
+                try {
+                    // 双重检查：拿到锁后，再试一次 Lua。防止“刚拿到锁，但其实前一个人已经创建好了”
+                    joinedRoomId = redissonClient.getScript(LongCodec.INSTANCE)
+                            .eval(RScript.Mode.READ_WRITE,
+                                    TRY_JOIN_ROOM_SCRIPT,
+                                    RScript.ReturnType.INTEGER,
+                                    Collections.singletonList(matchRedisKey),
+                                    maxPlayer);
+                    if (joinedRoomId != null && joinedRoomId > 0) {
+                        return joinedRoomId;
+                    }
 
-        // 1. 尝试通过 Lua 脚本原子性地获取并加入现有房间
-        // 如果成功，脚本内部会更新人数并返回 roomId
-        Long joinedRoomId = redissonClient.getScript(LongCodec.INSTANCE)
-                .eval(RScript.Mode.READ_WRITE,
-                        TRY_JOIN_ROOM_SCRIPT,
-                        RScript.ReturnType.INTEGER,
-                        Collections.singletonList(matchRedisKey),
-                        maxPlayer);
-        if (joinedRoomId != null && joinedRoomId > 0) {
-            log.debug("加入现有房间 success roomId:{} gameType:{} roomConfigId:{}", joinedRoomId, gameType, roomConfigId);
-            return joinedRoomId;
+                    // 真的需要创建了
+                    Room room = hallRoomDao.createRoom(gameType, roomConfigId, maxPlayer, nodePath);
+                    long waitingRoomId = room.getId();
+
+                    // 计算初始分值 (1人, 1准备)
+                    double score = RoomScoreUtil.computeScore(1, 1, (int) (System.currentTimeMillis() / 1000));
+                    log.debug("大厅创建新房间 gameType:{} roomConfigId:{} roomId:{}", gameType, roomConfigId, waitingRoomId);
+
+                    // 放入 Redis 等待列表
+                    RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(matchRedisKey, LongCodec.INSTANCE);
+                    scoredSortedSet.add(score, waitingRoomId);
+
+                    return waitingRoomId;
+                } catch (Exception e) {
+                    log.error("getWaitingRoomId create room error", e);
+                    return 0;
+                } finally {
+                    redisLock.tryUnlock(createLockKey);
+                }
+            } else {
+                // 3. 没抢到锁，说明有人正在创建。
+                // 稍微休眠一下，等待别人创建好，然后进入下一次循环重试 join
+                try {
+                    Thread.sleep(50 + (long) (Math.random() * 50)); // 随机休眠 50~100ms 避免共振
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return 0;
+                }
+            }
         }
-        // 2. 如果没有可用房间或房间已满，则创建新房间
-        // 这里移除了原有的分布式锁。虽然在极端高并发下可能导致瞬间创建多个房间，
-        // 但这避免了锁带来的全局阻塞，通常是可以接受的。
-        try {
-            Room room = hallRoomDao.createRoom(gameType, roomConfigId, maxPlayer, nodePath);
-            long waitingRoomId = room.getId();
-
-            // 计算初始分值 (1人, 1准备)
-            double score = RoomScoreUtil.computeScore(1, 1, (int) (System.currentTimeMillis() / 1000));
-            log.debug("大厅创建新房间 gameType:{} roomConfigId:{} roomId:{}", gameType, roomConfigId, waitingRoomId);
-
-            // 放入 Redis 等待列表
-            RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(matchRedisKey,LongCodec.INSTANCE);
-            scoredSortedSet.add(score, waitingRoomId);
-
-            return waitingRoomId;
-        } catch (Exception e) {
-            log.error("getWaitingRoomId create room error", e);
-            return 0;
-        }
+        return 0;
     }
 
     /**
