@@ -8,11 +8,6 @@ import com.jjg.game.common.constant.MessageConst;
  * @date 2025/7/2 10:28
  */
 public interface WealthBankConstant {
-    interface GameType{
-        //支持的游戏
-        int[] SUPPORT_GAME_TYPES = {CoreConst.GameType.WEALTH_BANK};
-    }
-
     interface Common{
         int MINI_POOL_ID = 100100101;
         int MINOR_POOL_ID = 100100102;
@@ -87,46 +82,27 @@ public interface WealthBankConstant {
         int TYPE_COLLECT_DOLLAR = 1;
         //投资3次中奖
         int TYPE_INVERS_ALL_WIN = 2;
-        //平均押分
-        int TYPE_BET_AVG = 3;
         //二选一
         int TYPE_ALL_BOARD = 7;
     }
 
-    interface SpecialGird{
-        int ID_COLLECT_DOLLAR = 3;
-        int ID_AGAIN_GOLD_TRAIN = 4;
-        int ID_NORMAL_GOLD_TRAIN = 5;
-    }
 
     interface SpecialAuxiliary{
         //绿火车
-        int TYPE_GREEN_TRAIN = 31001;
+        int TYPE_GREEN_TRAIN = 32401;
         //蓝火车
-        int TYPE_BLUE_TRAIN = 31002;
+        int TYPE_BLUE_TRAIN = 32402;
         //紫火车
-        int TYPE_PUEPLE_TRAIN = 31003;
+        int TYPE_PUEPLE_TRAIN = 32403;
         //红火车
-        int TYPE_RED_TRAIN = 31004;
+        int TYPE_RED_TRAIN = 32404;
 
-        //保险箱
-        int TYPE_SAFE_BOX = 31101;
         //黄金列车
-        int TYPE_GOLD_TRAIN = 31102;
+        int TYPE_GOLD_TRAIN = 32421;
 
         //免费模式-免费旋转
-        int TYPE_ALL_BOARD_FREE = 31201;
-        //免费模式-普通火车
-        int TYPE_ALL_BOARD_NORMAL_TRAIN = 31202;
-        //免费模式-黄金列车
-        int TYPE_ALL_BOARD_GOLD_TRAIN = 31203;
+        int TYPE_ALL_BOARD_FREE = 32431;
 
-        //投资地图-抽奖
-        int TYPE_INVERS_DRAW = 31301;
-        //投资地图-连续3次
-        int TYPE_INVERS_WIN = 31302;
-        //投资地图-地图全解锁
-        int TYPE_INVERS_ALL_UNLOCK = 31303;
     }
 
     interface MsgBean {

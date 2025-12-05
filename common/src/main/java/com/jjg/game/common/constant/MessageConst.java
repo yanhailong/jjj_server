@@ -137,6 +137,8 @@ public interface MessageConst {
         int STEAM_AGE = 0x3A;
         //财富银行
         int WEALTH_BANK = 0x3B;
+        //圣诞狂欢夜
+        int CHRISTMAS_NIGHT_TYPE = 0x2A;
     }
 
     interface ToClientConst {
