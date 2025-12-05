@@ -274,7 +274,7 @@ public class ChristmasBashNightGameManager extends AbstractSlotsGameManager<Chri
 
     @Override
     public int getGameType() {
-        return CoreConst.GameType.MAHJIONG_WIN;
+        return CoreConst.GameType.CHRISTMAS_PARTY;
     }
 
     @Override

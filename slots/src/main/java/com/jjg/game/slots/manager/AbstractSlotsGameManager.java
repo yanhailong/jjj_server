@@ -801,7 +801,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.getHasPlaySlots().set(true);
             playerGameData.setCreateTime(TimeHelper.nowInt());
 
-            log.debug("从db中获取的playerGameData = {}", JSON.toJSONString(playerGameData));
+            log.debug("从db中获取的 playerId = {}, playerGameData = {}",playerController.playerId(), JSON.toJSONString(playerGameData));
         }
         playerGameData.setOnline(true);
         playerGameData.setPlayerController(playerController);
