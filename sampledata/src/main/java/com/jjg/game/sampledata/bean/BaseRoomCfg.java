@@ -37,7 +37,7 @@ public class BaseRoomCfg extends BaseCfgBean {
   protected List<Integer> lineBetScore;
   /** 跑马触发金额 */
   protected List<Long> marqueeTrigger;
-  /** 上庄最低金额 */
+  /** 准备金最低金额 */
   protected List<Integer> minBankerAmount;
   /** 多语言表ID */
   protected int nameid;
@@ -89,7 +89,7 @@ public class BaseRoomCfg extends BaseCfgBean {
     return marqueeTrigger;
   }
 
-  /** 返回上庄最低金额 */
+  /** 返回准备金最低金额 */
   public List<Integer> getMinBankerAmount() {
     return minBankerAmount;
   }
