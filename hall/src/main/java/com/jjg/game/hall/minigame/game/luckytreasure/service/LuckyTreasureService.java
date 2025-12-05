@@ -30,6 +30,7 @@ import com.jjg.game.hall.minigame.game.luckytreasure.message.res.*;
 import com.jjg.game.hall.minigame.game.luckytreasure.util.LuckyTreasureStatusUtil;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.MailCfg;
 import org.redisson.api.RLock;
@@ -59,7 +60,6 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
     private final SubscriptionManager subscriptionManager;
     private final ClusterSystem clusterSystem;
     private final HallPlayerService playerService;
-    private final MailService mailService;
 
     /**
      * 等待通知更新的期号列表
@@ -77,7 +77,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                                 TimerCenter timerCenter,
                                 SubscriptionManager subscriptionManager,
                                 ClusterSystem clusterSystem,
-                                PlayerPackService playerPackService, HallPlayerService playerService, MailService mailService) {
+                                PlayerPackService playerPackService, HallPlayerService playerService) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
         this.redisLock = redisLock;
@@ -86,7 +86,6 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         this.subscriptionManager = subscriptionManager;
         this.clusterSystem = clusterSystem;
         this.playerService = playerService;
-        this.mailService = mailService;
     }
 
     /**
@@ -142,10 +141,35 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                     afterInfo.setBuyCount(treasure.getBuyMap().size());
                     afterInfo.setTotalCount(treasure.getConfig().getTotal());
                     afterInfo.setStatus(calculateStatus(treasure, playerId));
-                    notifyLuckyTreasureUpdate.getUpdateList().add(afterInfo);
+                    if(treasure.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY || treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_DRAW){
+                        notifyLuckyTreasureUpdate.getUpdateList().add(afterInfo);
+                    }
                     log.debug("推送订阅 topic = {},playerId = {}, LuckyTreasureUpdateInfo = {}", SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE, playerId, JSONObject.toJSONString(notifyLuckyTreasureUpdate));
                 });
                 return notifyLuckyTreasureUpdate;
+            });
+
+            subscriptionManager.publish(SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE, (playerId) -> {
+                NotifyLuckyTreasureRecordUpdate notifyLuckyTreasureRecordUpdate = new NotifyLuckyTreasureRecordUpdate();
+                luckyTreasureList.forEach(treasure -> {
+                    LuckyTreasureUpdateInfo afterInfo = new LuckyTreasureUpdateInfo();
+                    afterInfo.setIssueNumber(treasure.getIssueNumber());
+                    afterInfo.setAlreadyBuyCount(treasure.getBuyMap().getOrDefault(playerId, 0));
+                    afterInfo.setIssueNumber(treasure.getIssueNumber());
+                    afterInfo.setSoldCount(treasure.getSoldCount());
+                    afterInfo.setCountDown(LuckyTreasureStatusUtil.calculateRewardTimeSecond(treasure));
+                    afterInfo.setEndBuyCountDown(LuckyTreasureStatusUtil.calculateCountDown(treasure));
+                    afterInfo.setConfigId(treasure.getConfig().getId());
+                    afterInfo.setBuyCount(treasure.getBuyMap().size());
+                    afterInfo.setTotalCount(treasure.getConfig().getTotal());
+                    afterInfo.setStatus(calculateStatus(treasure, playerId));
+                    if(treasure.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY || treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_DRAW){
+                        notifyLuckyTreasureRecordUpdate.getUpdateList().add(afterInfo);
+                    }
+                    notifyLuckyTreasureRecordUpdate.getUpdateList().add(afterInfo);
+                    log.debug("推送订阅 topic = {},playerId = {}, LuckyTreasureUpdateRecordInfo = {}", SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE, playerId, JSONObject.toJSONString(notifyLuckyTreasureRecordUpdate));
+                });
+                return notifyLuckyTreasureRecordUpdate;
             });
         }
     }
@@ -198,7 +222,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             }
 
             // 从Redis获取活跃的夺宝奇兵活动
-            RMapCache<Long,LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
+            RMapCache<Long, LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
 
             // 分页处理
             int totalCount = activeTreasures.size();
@@ -459,9 +483,9 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         info.setCountDown(LuckyTreasureStatusUtil.calculateRewardTimeSecond(treasure));
         info.setReceiveCountdown(LuckyTreasureStatusUtil.calculateReceiveCountdown(treasure));
 
-        if(treasure.getAwardPlayerId() > 0){
+        if (treasure.getAwardPlayerId() > 0) {
             Player winPlayer = playerService.get(treasure.getAwardPlayerId());
-            if(winPlayer != null){
+            if (winPlayer != null) {
                 info.setWinPlayerName(winPlayer.getNickName());
             }
         }
@@ -602,6 +626,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         history.setAwardPlayerHeadImgId(treasure.getAwardPlayerHeadImgId());
         history.setAwardPlayerHeadFrameId(treasure.getAwardPlayerHeadFrameId());
         history.setAwardPlayerNickName(treasure.getAwardPlayerNickName());
+        history.setAwardPlayerLevel(treasure.getAwardPlayerLevel());
         history.setAwardPlayerNationalId(treasure.getAwardPlayerNationalId());
         history.setEndTime(treasure.getEndTime());
         return history;
@@ -650,7 +675,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
             // 发放奖励道具
             LuckyTreasureConfig config = latestTreasure.getConfig();
-            if(mailCfg == null){
+            if (mailCfg == null) {
                 Map<Integer, Long> rewardMap = new HashMap<>();
                 rewardMap.put(config.getItemId(), (long) config.getItemNum());
 
@@ -669,8 +694,6 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
 
                 log.info("夺宝奇兵奖励领取成功, 玩家ID:{}, 期号:{}, 领奖码:{}, 道具ID:{}, 数量:{}", playerId, latestTreasure.getIssueNumber(),
                         latestTreasure.getRewardCode(), config.getItemId(), config.getItemNum());
-            }else {
-                mailService.addCfgMail(player.getId(), mailCfg.getTitle(),mailCfg.getText(),ItemUtils.buildItemList(config.getItemId(), config.getItemNum()),Collections.emptyList());
             }
             broadcastUpdate(issueNumber);
             return true;
@@ -726,13 +749,20 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             return LuckyTreasureStatusUtil.STATUS_RECEIVED;
         }
 
-        if(treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_EXPIRED_WINNER){
+        if (treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_EXPIRED_WINNER) {
             return treasure.getStatus();
         }
 
         // 已开奖的情况
         // 检查领奖是否过期
-        long receiveDeadline = endTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
+        long rewardTime = 0L;
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
+        if (globalConfigCfg == null || globalConfigCfg.getIntValue() < 1) {
+            rewardTime = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+        }
+
+        long receiveDeadline = endTime + rewardTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
+
         if (currentTime > receiveDeadline) {
             treasure.setStatus(LuckyTreasureStatusUtil.STATUS_EXPIRED_WINNER);
 //            luckyTreasureDao.save(treasure);
