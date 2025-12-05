@@ -8,6 +8,7 @@ import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.Codec;
 import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.config.Config;
+import org.redisson.config.ReadMode;
 import org.redisson.connection.ConnectionListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,6 +110,8 @@ public class RedissonConfig {
                 .addSentinelAddress(nodeAddresses) // 设置哨兵节点列表
                 .setPassword(redisPassword)
                 .setDatabase(redisDb)
+                .setReadMode(ReadMode.SLAVE)
+                .setConnectTimeout(5000)
                 .setScanInterval(2000); // 哨兵节点状态扫描间隔
         return config;
     }
