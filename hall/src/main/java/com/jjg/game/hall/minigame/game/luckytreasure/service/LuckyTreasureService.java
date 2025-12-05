@@ -592,7 +592,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             // 从数据库查询所有已结束的夺宝奇兵活动
             Page<LuckyTreasure> finishedRecords = luckyTreasureDao.findAllRewardHistory(pageable, 100);
 
-            List<LuckyTreasureHistory> historyList = finishedRecords.stream().filter(treasure -> treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE).map(this::convertToHistory).toList();
+            List<LuckyTreasureHistory> historyList = finishedRecords.stream().map(this::convertToHistory).toList();
 
             ResLuckyTreasureHistory response = new ResLuckyTreasureHistory(Code.SUCCESS);
             response.setInfoList(historyList);
