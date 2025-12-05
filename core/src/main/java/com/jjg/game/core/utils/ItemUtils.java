@@ -186,7 +186,7 @@ public class ItemUtils {
             return mergeMap1;
         }
         HashMap<Integer, Long> map = new HashMap<>(mergeMap1);
-        map.forEach((key, value) -> map.merge(key, value, Long::sum));
+        mergeMap2.forEach((key, value) -> map.merge(key, value, Long::sum));
         return map;
     }
 
