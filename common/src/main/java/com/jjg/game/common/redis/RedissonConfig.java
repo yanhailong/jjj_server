@@ -8,6 +8,7 @@ import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.Codec;
 import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.config.Config;
+import org.redisson.config.ReadMode;
 import org.redisson.connection.ConnectionListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,11 +39,17 @@ public class RedissonConfig {
     private int redisDb;
     @Value("${spring.data.redis.cluster.nodes:}")
     private String clusterNodes;
+    @Value("${spring.data.redis.sentinel.master:}")
+    private String sentinelMaster;
+    @Value("${spring.data.redis.sentinel.nodes:}")
+    private String sentinelNodes;
 
     @Bean(destroyMethod = "shutdown")
     public RedissonClient redissonClient() {
         Config config;
-        if (StringUtils.isEmpty(clusterNodes)) {
+        if (!StringUtils.isEmpty(sentinelNodes)) {
+            config = configureSentinelMode();
+        }else if(StringUtils.isEmpty(clusterNodes)){
             config = configureSingleMode();
         }else {
             config = configureClusterMode();
@@ -80,9 +87,32 @@ public class RedissonConfig {
         }else {
             redissonAddr = "redis://" + redisAddress + ":" + redisPort;
         }
+
         config.useSingleServer().setAddress(redissonAddr)
                 .setPassword(redisPassword)
                 .setDatabase(redisDb);
+        return config;
+    }
+
+    /**
+     * 创建哨兵模式配置
+     * @return
+     */
+    private Config configureSentinelMode() {
+        Config config = new Config();
+        String[] nodes = sentinelNodes.split(",");
+        String[] nodeAddresses = Arrays.stream(nodes)
+                .map(node -> "redis://" + node.trim())
+                .toArray(String[]::new);
+
+        config.useSentinelServers()
+                .setMasterName(sentinelMaster) // 设置主节点名称
+                .addSentinelAddress(nodeAddresses) // 设置哨兵节点列表
+                .setPassword(redisPassword)
+                .setDatabase(redisDb)
+                .setReadMode(ReadMode.SLAVE)
+                .setConnectTimeout(5000)
+                .setScanInterval(2000); // 哨兵节点状态扫描间隔
         return config;
     }
 

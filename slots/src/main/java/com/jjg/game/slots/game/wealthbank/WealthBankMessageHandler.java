@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/6/12 17:15
  */
 @Component
-@MessageType(MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE)
+@MessageType(MessageConst.MessageTypeDef.WEALTH_BANK)
 public class WealthBankMessageHandler {
     private Logger log = LoggerFactory.getLogger(getClass());
 
