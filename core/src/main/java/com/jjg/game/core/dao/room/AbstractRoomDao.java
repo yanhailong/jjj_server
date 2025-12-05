@@ -49,7 +49,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         this.roomClazz = roomClazz;
     }
 
-    protected String getTableName(int gameType) {
+    public String getTableName(int gameType) {
         return this.tableName + gameType;
     }
 
@@ -77,7 +77,6 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
                 return null;
             }
             T room = fillBaseRoomData(nodeName, gameType, roomCfgId, maxLimit);
-            room.setRoomCfgId(roomCfgId);
             T temp = createRoom(room);
             if (temp != null) {
                 return temp;
@@ -98,10 +97,22 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     public T createRoom(int gameType, int roomCfgId, int maxLimit, String nodeName) {
         try {
             T room = fillBaseRoomData(nodeName, gameType, roomCfgId, maxLimit);
-            room.setRoomCfgId(roomCfgId);
             return createRoom(room);
         } catch (Exception e) {
             log.error("创建房间异常: {}", e.getMessage(), e);
+        }
+        return null;
+    }
+
+    /**
+     * 预创建房间
+     */
+    public T preCreateRoom(int gameType, int roomCfgId, int maxLimit, String nodeName) {
+        try {
+            T room = fillBaseRoomData(nodeName, gameType, roomCfgId, maxLimit);
+            return createRoom(room, false);
+        } catch (Exception e) {
+            log.error("预创建房间异常: {}", e.getMessage(), e);
         }
         return null;
     }
@@ -118,6 +129,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         room.setType(roomType);
         room.setGameType(gameType);
         room.setMaxLimit(maxLimit);
+        room.setRoomCfgId(gameCfgId);
         return room;
     }
 
@@ -149,14 +161,15 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     /**
      * 创建房间
      */
-    protected T createRoom(T room) {
+    protected T createRoom(T room, boolean save) {
         try {
             //随机房间号
             long roomId = snowflakeManager.nextId();
             room.setId(roomId);
-
+            if (!save) {
+                return room;
+            }
             log.debug("创建房间是生成的房间id = {}", roomId);
-
             boolean success = putIfAbsent(room);
             if (success) {
                 return room;
@@ -165,6 +178,13 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
             log.error("创建房间时异常: {}", e.getMessage(), e);
         }
         return null;
+    }
+
+    /**
+     * 创建房间
+     */
+    protected T createRoom(T room) {
+        return createRoom(room, true);
     }
 
     // 禁止向外部暴露可以直接操作房间的接口

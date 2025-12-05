@@ -189,7 +189,7 @@ public class MatchDataDao {
      */
     public boolean addWaitJoinRoomId(int gameType, int roomConfigId, long roomId, long roomCreateTime) {
         String redisKey = getMatchRedisKey(gameType, roomConfigId);
-        RScoredSortedSet<Object> scoredSortedSet = redissonClient.getScoredSortedSet(redisKey, LongCodec.INSTANCE);
+        RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(redisKey, LongCodec.INSTANCE);
         double score = RoomScoreUtil.computeScore(0, 0, (int) (roomCreateTime / 1000));
         scoredSortedSet.add(score, roomId);
         return true;
