@@ -267,7 +267,9 @@ public class MatchDataDao {
                         Collections.singletonList(matchRedisKey),
                         roomId, roomNum, waitingNum, diffCount);
         if (eval instanceof Long result) {
-            log.error("房间数据不一致 diffCount = {} gameType = {} roomId = {}", diffCount, gameType, roomId);
+            if(result.intValue() != diffCount){
+                log.error("房间数据不一致 diffCount = {} gameType = {} roomId = {}", diffCount, gameType, roomId);
+            }
             return result.intValue();
         }
         return 0;

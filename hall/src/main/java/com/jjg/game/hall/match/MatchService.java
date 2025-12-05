@@ -56,7 +56,7 @@ public class MatchService {
                     local newScore = (1 * 4398046511104) + (1 * 4294967296) + seconds
                     local createId = tonumber(ARGV[2])
                     redis.call('ZADD', KEYS[1], newScore, createId)
-                    return createId);
+                    return createId;
                 else
                     return 0;
                 end
