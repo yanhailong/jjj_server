@@ -111,12 +111,15 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 recoverUnsettledRounds();
                 //检查并启动缺失的活动
                 startMissingActivities();
+                // 启动新活动（只有主节点才执行）
+                startNewActivitiesIfNeeded();
             }
             //监听配置文件变化 如果有新增的夺宝奇兵配置则直接开始
             configManager.addUpdateConfigListener(LuckyTreasureConfig.class, (a, b, c) -> {
                 log.info("夺宝奇兵配置更新!检测是否需要新增!id={},b = {}", c.getId(), b);
                 startNewActivityForConfig(c);
             });
+
             //初始化机器人购买定时器
             initRobotTimer();
         }
@@ -140,6 +143,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             //检查并启动缺失的活动
             startMissingActivities();
             // 启动新活动（只有主节点才执行）
+            log.info("isLeader");
             startNewActivitiesIfNeeded();
         }catch (Exception e){
             log.error("夺宝奇兵管理器启动异常", e);
@@ -399,6 +403,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     public void startNewActivitiesIfNeeded() {
         List<LuckyTreasureConfig> configs = configManager.getConfigs(LuckyTreasureConfig.class);
         for (LuckyTreasureConfig config : configs) {
+            log.info("===============>检查配置 {} 是否需要启动新活动", config.getId());
             if (isOpen() && config.isRepeated() && !luckyTreasureRedisDao.hasActiveRound(config.getId())) {
                 startNewActivityForConfig(config);
             }

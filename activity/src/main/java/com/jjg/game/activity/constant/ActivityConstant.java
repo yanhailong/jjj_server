@@ -39,8 +39,6 @@ public interface ActivityConstant {
         int CAN_CLAIM = 2;
         //已领取
         int CLAIMED = 3;
-        //已购买
-        int ALREADY_BUG = 4;
     }
 
     //摇钱树
@@ -110,6 +108,13 @@ public interface ActivityConstant {
         int FREE = 1;
         int Charge = 2;
     }
+
+    //每日充值
+    interface DailyRecharge {
+        int GIFT = 1;
+        int PROGRESS = 2;
+    }
+
 
     interface MsgBean {
         int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.ACTIVITY << MessageConst.MessageCommon.RIGHT_MOVE;
@@ -253,5 +258,24 @@ public interface ActivityConstant {
         //玩家购买返回
         int RES_GROWTH_FUND_BUY_RESULT_INFO = BASE_MSG_PREFIX | 0x4E;
 
+        //财富转盘
+        //请求详细信息
+        int REQ_WEALTH_ROULETTE_DETAIL_INFO = BASE_MSG_PREFIX | 0x60;
+        int RES_WEALTH_ROULETTE_DETAIL_INFO = BASE_MSG_PREFIX | 0x61;
+        //抽取
+        int REQ_WEALTH_ROULETTE_DRAW = BASE_MSG_PREFIX | 0x62;
+        int RES_WEALTH_ROULETTE_DRAW = BASE_MSG_PREFIX | 0x63;
+
+        //商店
+        int REQ_WEALTH_ROULETTE_SHOP_INFOS = BASE_MSG_PREFIX | 0x64;
+        int RES_WEALTH_ROULETTE_SHOP_INFOS = BASE_MSG_PREFIX | 0x65;
+
+        int REQ_WEALTH_ROULETTE_BUY_GOOD = BASE_MSG_PREFIX | 0x66;
+        int RES_WEALTH_ROULETTE_BUY_GOOD = BASE_MSG_PREFIX | 0x67;
+
+        //每日充值
+        int RES_DAILY_RECHARGE_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x70;
+        int RES_DAILY_RECHARGE_GIFT_BUY = BASE_MSG_PREFIX | 0x71;
+        int RES_DAILY_RECHARGE_TYPE_INFO = BASE_MSG_PREFIX | 0x72;
     }
 }

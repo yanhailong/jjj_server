@@ -49,7 +49,7 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
         lib.setIconArr(arr);
 
         //检查连线
-        List<CleopatraAddColumnInfo> awardLineInfoList = winLines(lib, SlotsConst.BaseElementReward.LINE_TYPE_NORMAL);
+        List<CleopatraAddColumnInfo> awardLineInfoList = winLines(lib);
         lib.setAwardLineInfoList(awardLineInfoList);
 
         //检查指定图案

@@ -1,4 +1,4 @@
-package com.jjg.game.slots.game.dollarexpress.data;
+package com.jjg.game.slots.data;
 
 /**
  * @author 11

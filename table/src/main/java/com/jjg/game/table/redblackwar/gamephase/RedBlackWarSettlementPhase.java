@@ -122,7 +122,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     //总获得
                     BigDecimal canGetBigDecimal = backBet.multiply(BigDecimal.valueOf(cfg.getOdds()))
                             .divide(BigDecimal.valueOf(100), 4, RoundingMode.DOWN);
-                    long canGet = 0;
+                    long canGet = canGetBigDecimal.longValue();
                     if (cfg.getIsRatio() == 1) {
                         canGet = canGetBigDecimal.multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getEffectiveRatio()))
                                 .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN).longValue();

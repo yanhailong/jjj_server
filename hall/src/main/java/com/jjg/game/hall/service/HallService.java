@@ -19,6 +19,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.DropItemManager;
 import com.jjg.game.core.service.*;
+import com.jjg.game.core.utils.CoreUtil;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.dao.LikeGameDao;
@@ -200,7 +201,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        if (!HallTool.validPhoneNumber(data)) {
+        if (!CoreUtil.validPhoneNumber(data)) {
             result.code = Code.PARAM_ERROR;
             log.debug("手机号格式错误,获取绑定手机验证码失败 playerId = {},phone = {}", playerId, data);
             return result;

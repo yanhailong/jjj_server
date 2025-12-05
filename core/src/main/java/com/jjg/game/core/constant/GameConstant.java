@@ -33,11 +33,6 @@ public class GameConstant {
         public static final long defaultPlayerBeginId = 1000000;
     }
 
-    public interface AccountStatus {
-        int NORMAL = 0;
-        int BAN = 1;
-    }
-
     public interface Item {
         //可使用道具
         int TYPE_CAN_USE = 1;

@@ -4,9 +4,11 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.RechargeType;
@@ -28,6 +30,8 @@ public class BaseLogger {
     protected NodeConfig nodeConfig;
     @Autowired
     protected KafkaTemplate<String, String> kafkaTemplate;
+
+    protected final ObjectMapper objectMapper = new ObjectMapper();
 
     private final String GAME_LOGS_TOPIC = "game-logs";
 
@@ -427,7 +431,7 @@ public class BaseLogger {
      * @param shopProduct
      */
     public void shop(Player player, ShopProduct shopProduct, int registerChannel) {
-        long now = System.currentTimeMillis();
+        int now = TimeHelper.nowInt();
         shop(player, null, null, shopProduct.getType(), registerChannel, player.getChannel().getValue(), RechargeType.SHOP, shopProduct.getMoney().toPlainString(), now, now, OrderStatus.SUCCESS, shopProduct.getPayType(), null);
     }
 
@@ -530,7 +534,7 @@ public class BaseLogger {
     }
 
     public void shop(Player player, String orderId, String merchantOrderId, int shopProductType, int playerChannel, int payChannel, RechargeType rechargeType,
-                     String price, long createTime, long updateTime, OrderStatus orderStatus, int payType, String regionCode) {
+                     String price, int createTime, int updateTime, OrderStatus orderStatus, int payType, String regionCode) {
         try {
             JSONObject json = new JSONObject();
             json.put("orderId", orderId);

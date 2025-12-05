@@ -116,6 +116,27 @@ public interface MessageConst {
         int TASK_TYPE = 0x30;
         //积分大奖
         int POINTS_AWARD = 0x31;
+
+        //狼月
+        int WOLF_MOON = 0x32;
+        //热血足球
+        int HOT_SOCCER = 0x33;
+        //圣诞狂欢夜
+        int CHRISTMAS_PARTY = 0x34;
+        //篮球巨星
+        int BASKETBALL_STAR = 0x35;
+        //德古拉黑暗财富
+        int DEGULA_WEALTH = 0x36;
+        //宙斯VS哈迪斯
+        int ZEUS_VS_HADES = 0x37;
+        //杰克船长
+        int CAPTAIN_JACK = 0x38;
+        //雷神
+        int THOR = 0x39;
+        //蒸汽时代
+        int STEAM_AGE = 0x3A;
+        //财富银行
+        int WEALTH_BANK = 0x3B;
     }
 
     interface ToClientConst {

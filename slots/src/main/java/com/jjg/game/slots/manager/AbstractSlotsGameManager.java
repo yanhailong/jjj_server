@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.manager.ActivityManager;
+import com.jjg.game.activity.wealthroulette.controller.WealthRouletteController;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
@@ -42,7 +43,6 @@ import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.*;
-import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.service.SlotsPlayerService;
@@ -86,6 +86,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected GameEventManager gameEventManager;
     @Autowired
     protected TaskManager taskManager;
+    @Autowired
+    protected WealthRouletteController wealthRouletteController;
     //游戏类型
     protected int gameType;
     //在specualResultLib
@@ -1374,16 +1376,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 触发实际赢钱的task
      *
-     * @param playerId
+     * @param player 玩家数据
      */
-    protected void triggerWinTask(long playerId, long allWinGold, long bet) {
+    protected void triggerWinTask(Player player, long allWinGold, long bet) {
         long winValue = allWinGold - bet;
         if (winValue <= 0) {
+            wealthRouletteController.addProgress(player, winValue);
             return;
         }
         int gameType = getGameType();
         //触发任务
-        taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
+        taskManager.trigger(player.getId(), TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
             TaskConditionParam10003 param = new TaskConditionParam10003();
             param.setGameId(gameType);
             param.setAddValue(winValue);

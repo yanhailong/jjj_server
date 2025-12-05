@@ -169,7 +169,7 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
             }
 
             //触发实际赢钱的task
-            triggerWinTask(playerGameData.playerId(),gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerController.getPlayer(),gameRunInfo.getAllWinGold(),betValue);
 
             //添加大奖展示id
             int times = calWinTimes(gameRunInfo, playerGameData, betValue);
@@ -181,6 +181,7 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(player.getGold());
+            gameRunInfo.setResultLib(resultLib);
 
             return gameRunInfo;
         } catch (Exception e) {

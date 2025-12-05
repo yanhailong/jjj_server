@@ -1,6 +1,8 @@
 package com.jjg.game.sampledata.bean;
 
 import java.util.*;
+import java.math.BigDecimal;
+
 
 
 import javax.annotation.processing.Generated;
@@ -20,11 +22,15 @@ public class DailyRechargeCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "DailyRecharge";
 
   /** 道具数量 */
-  protected Map<Integer,Integer> awardItem;
+  protected Map<Integer,Long> awardItem;
+  /** 渠道商品ID */
+  protected Map<Integer,String> channelCommodity;
   /** 购买费用 */
-  protected int cost;
+  protected BigDecimal cost;
   /** 购买次数 */
   protected int count;
+  /** 标签1 */
+  protected int label1;
   /** 礼包名称 */
   protected int name;
   /** 购买类型 */
@@ -33,18 +39,28 @@ public class DailyRechargeCfg extends BaseCfgBean {
   protected int type;
 
   /** 返回道具数量 */
-  public Map<Integer,Integer> getAwardItem() {
+  public Map<Integer,Long> getAwardItem() {
     return awardItem;
   }
 
+  /** 返回渠道商品ID */
+  public Map<Integer,String> getChannelCommodity() {
+    return channelCommodity;
+  }
+
   /** 返回购买费用 */
-  public int getCost() {
+  public BigDecimal getCost() {
     return cost;
   }
 
   /** 返回购买次数 */
   public int getCount() {
     return count;
+  }
+
+  /** 返回标签1 */
+  public int getLabel1() {
+    return label1;
   }
 
   /** 返回礼包名称 */

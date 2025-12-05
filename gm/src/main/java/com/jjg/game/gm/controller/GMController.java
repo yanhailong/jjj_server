@@ -570,7 +570,8 @@ public class GMController extends AbstractController {
     public WebResult<String> banAccount(@RequestBody BanAccountDto dto) {
         try {
             log.info("收到后台封禁账号的请求 dto = {}", dto);
-            if (dto.type() != 1 && dto.type() != 2) {
+            AccountStatus accountStatus = AccountStatus.valueOf(dto.type());
+            if (accountStatus == null || accountStatus == AccountStatus.DELETE) {
                 log.debug("封禁类型错误 type = {}", dto.type());
                 return fail("common.paramerror");
             }
@@ -588,20 +589,20 @@ public class GMController extends AbstractController {
             for (String str : arr) {
                 long playerId = Long.parseLong(str);
 
-                if (dto.type() == 1) {  //封
+                if (accountStatus == AccountStatus.BAN) {  //封
                     delTokenList.add(playerId);
-                    accountDao.checkAndSave(playerId,a -> a.setStatus(GameConstant.AccountStatus.BAN));
+                    accountDao.checkAndSave(playerId, a -> a.setStatus(AccountStatus.BAN.getCode()));
                     PFSession session = playerSessionService.getSession(playerId);
                     if (session == null) {
                         continue;
                     }
                     session.send(notifyKickout);
                 } else {  //解
-                    accountDao.checkAndSave(playerId,a -> a.setStatus(GameConstant.AccountStatus.NORMAL));
+                    accountDao.checkAndSave(playerId, a -> a.setStatus(AccountStatus.NORMAL.getCode()));
                 }
             }
 
-            //如果是封禁账号，则要删除当前token
+            //如果是封禁或者删除账号，则要删除当前token
             playerSessionTokenDao.delTokens(delTokenList);
             //返回修改结果
             return success("common.success");
@@ -1078,13 +1079,13 @@ public class GMController extends AbstractController {
     public WebResult<String> delNotice(@RequestBody DelNoticeDto dto) {
         log.info("收到删除公告的请求 dto = {}", dto);
         try {
-            if(dto.ids() == null || dto.ids().isEmpty()){
+            if (dto.ids() == null || dto.ids().isEmpty()) {
                 return fail("common.paramerror");
             }
 
             long delCount = noticeDao.delNotice(dto.ids());
-            if(delCount < 1){
-                log.debug("删除公告条数小于1，不通知hall节点 delCount = {}",delCount);
+            if (delCount < 1) {
+                log.debug("删除公告条数小于1，不通知hall节点 delCount = {}", delCount);
                 return success("common.success");
             }
 

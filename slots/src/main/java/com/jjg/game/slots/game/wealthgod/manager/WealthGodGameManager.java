@@ -18,7 +18,7 @@ import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.SlotsResultLib;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
+import com.jjg.game.slots.data.TestLibData;
 import com.jjg.game.slots.game.wealthgod.WealthGodConstant;
 import com.jjg.game.slots.game.wealthgod.dao.WealthGodGameDataDao;
 import com.jjg.game.slots.game.wealthgod.dao.WealthGodResultLibDao;
@@ -32,7 +32,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Constructor;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -175,7 +178,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             }
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.playerId(),gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerController.getPlayer(),gameRunInfo.getAllWinGold(),betValue);
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
@@ -183,6 +186,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
 
             gameRunInfo.setAfterGold(player.getGold());
 
+            gameRunInfo.setResultLib(resultLib);
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             return gameRunInfo;
         } catch (Exception e) {

@@ -7,6 +7,7 @@ import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.common.data.ActivityType;
+import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.ActivityBuilder;
 import com.jjg.game.activity.common.message.res.NotifyActivityChange;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -124,6 +125,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 计数dao(用于判断活动是否开启过)
      */
     private final CountDao countDao;
+
 
     public ActivityManager(TimerCenter timerCenter, ClusterSystem clusterSystem,
                            CoreMarqueeManager marqueeManager,
@@ -519,7 +521,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         try {
             //获取该玩家的活动详细信息
             ActivityData data = activityData.get(activityId);
-            if (data == null || !data.canRun()) {
+            if (!playerCanJoinActivity(data, player)) {
                 log.warn("玩家请求参加的活动未开始 playerId:{} activityId:{}  ", playerId, activityId);
                 return;
             }
@@ -662,42 +664,42 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     private void onZeroEvent() {
         //获取在线玩家
-        List<Long> allPlayerIds = clusterSystem.getAllPlayerIds();
-        if (CollectionUtil.isEmpty(allPlayerIds)) {
+        List<PFSession> allPlayerPFSession = clusterSystem.getAllOnlinePlayerPFSession();
+        if (CollectionUtil.isEmpty(allPlayerPFSession)) {
             return;
         }
         //节点全部在线玩家
-        for (Long playerId : allPlayerIds) {
+        for (PFSession pfSession : allPlayerPFSession) {
+            long playerId = pfSession.playerId;
+            if (playerId <= 0 || !(pfSession.getReference() instanceof PlayerController playerController)) {
+                continue;
+            }
+            Player player = playerController.getPlayer();
+            if (player == null) {
+                continue;
+            }
             //分发到对应玩家线程处理
-            PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerId, 0, new BaseHandler<String>() {
+            PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(pfSession.getWorkId(), 0, new BaseHandler<String>() {
                 @Override
                 public void action() {
-                    PFSession session = clusterSystem.getSession(playerId);
-                    //判断玩家是否存在
-                    if (session != null && session.getReference() instanceof PlayerController playerController) {
-                        Player player = playerController.getPlayer();
-                        if (player == null) {
-                            return;
-                        }
-                        //确保极限情况下登录不多次触发
-                        if (Boolean.FALSE.equals(playerActivityDao.checkCanTargetFirstLogin(playerId))) {
-                            return;
-                        }
-                        log.info("玩家触发在线跨天 playerId:{}", player.getId());
-                        //全部活动
-                        for (ActivityData data : activityData.values()) {
-                            BaseActivityController controller = data.getType().getController();
-                            //检查是否能参加活动
-                            if (!playerCanJoinActivity(data, player)) {
-                                continue;
-                            }
-                            //重置活动数据
-                            controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
-                        }
-                        //触发登录活动
-                        addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
-                        log.info("玩家触发登陆行为完成 playerId:{}", player.getId());
+                    //确保极限情况下登录不多次触发
+                    if (Boolean.FALSE.equals(playerActivityDao.checkCanTargetFirstLogin(playerId))) {
+                        return;
                     }
+                    log.info("玩家触发在线跨天 playerId:{}", player.getId());
+                    //全部活动
+                    for (ActivityData data : activityData.values()) {
+                        BaseActivityController controller = data.getType().getController();
+                        //检查是否能参加活动
+                        if (!playerCanJoinActivity(data, player)) {
+                            continue;
+                        }
+                        //重置活动数据
+                        controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
+                    }
+                    //触发登录活动
+                    addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
+                    log.info("玩家触发登陆行为完成 playerId:{}", player.getId());
                 }
             }.setHandlerParamWithSelf("activity onZeroEvent"));
         }
@@ -803,15 +805,15 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         List<RedDotDetails> redDotDetails = new ArrayList<>();
         for (ActivityData data : activityDataMap.values()) {
-            //判断该活动是否有红点
+                //判断该活动是否有红点
             boolean redDot = data.getType().getController().hasRedDot(playerId, data);
-            if (redDot) {
-                RedDotDetails redDotDetailInfo = new RedDotDetails();
-                redDotDetailInfo.setRedDotModule(getModule());
-                redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
-                redDotDetailInfo.setCount(1);
-                redDotDetailInfo.setRedDotSubmodule(data.getType().getType());
-                redDotDetails.add(redDotDetailInfo);
+                if (redDot) {
+                    RedDotDetails redDotDetailInfo = new RedDotDetails();
+                    redDotDetailInfo.setRedDotModule(getModule());
+                    redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
+                    redDotDetailInfo.setCount(1);
+                    redDotDetailInfo.setRedDotSubmodule(data.getType().getType());
+                    redDotDetails.add(redDotDetailInfo);
             }
         }
         return redDotDetails;

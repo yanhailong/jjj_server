@@ -21,6 +21,8 @@ public class BaseLineCfg extends BaseCfgBean {
 
   /** 方向算法 */
   protected List<Integer> direction;
+  /** 指定适用模式 */
+  protected int gameMode;
   /** 玩法算法 */
   protected int gamePlayCalc;
   /** 游戏ID */
@@ -33,6 +35,11 @@ public class BaseLineCfg extends BaseCfgBean {
   /** 返回方向算法 */
   public List<Integer> getDirection() {
     return direction;
+  }
+
+  /** 返回指定适用模式 */
+  public int getGameMode() {
+    return gameMode;
   }
 
   /** 返回玩法算法 */

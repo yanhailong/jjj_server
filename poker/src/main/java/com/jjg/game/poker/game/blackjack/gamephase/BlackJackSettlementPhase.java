@@ -257,6 +257,8 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             } else {
                 if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(2);
+                } else {
+                    gameController.dealLose(gamePlayer, get);
                 }
             }
             if (totalGet > 0) {

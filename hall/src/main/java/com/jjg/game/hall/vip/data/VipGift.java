@@ -11,10 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.DayOfWeek;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -25,7 +22,7 @@ import java.util.function.Function;
 public enum VipGift {
     WEEKS(1, ViplevelCfg::getWeeklyRewards),
     BIRTHDAY(2, ViplevelCfg::getBirthdayReward),
-    PROMOTION(3, (viplevelCfg)-> ItemUtils.mergeItems(viplevelCfg.getAvatarType(),viplevelCfg.getLevelRewards())),
+    PROMOTION(3, (viplevelCfg) -> ItemUtils.mergeItemsOnCreate(viplevelCfg.getAvatarType(), viplevelCfg.getLevelRewards())),
     CUSTOMIZED(4, ViplevelCfg::getAnnualRewards),
     ;
     private static final Logger log = LoggerFactory.getLogger(VipGift.class);
@@ -50,11 +47,12 @@ public enum VipGift {
         return switch (this) {
             case WEEKS -> !TimeHelper.inSameWeek(lastClaim, timeMillis);
             case BIRTHDAY -> {
-                long epochMilli = LocalDateTime.ofInstant(Instant.ofEpochMilli(player.getCreateTime()), ZoneId.systemDefault())
-                        .plusYears(1).toLocalDate().atStartOfDay()
-                        .atZone(ZoneId.systemDefault())
-                        .toInstant().toEpochMilli();
-                yield !TimeHelper.inSameDay(lastClaim, epochMilli) && TimeHelper.inSameDay(timeMillis, epochMilli);
+                LocalDate birthDate = LocalDate.ofInstant(Instant.ofEpochSecond(player.getCreateTime()), ZoneId.systemDefault());
+                LocalDate today = LocalDate.now();
+                boolean isBirthday = birthDate.getMonthValue() == today.getMonthValue()
+                        && birthDate.getDayOfMonth() == today.getDayOfMonth();
+                boolean notClaimedThisYear = lastClaim == 0 || TimeHelper.getLocalDateTime(lastClaim).getYear() != today.getYear();
+                yield isBirthday && notClaimedThisYear;
             }
             case PROMOTION -> {
                 if (CollectionUtil.isEmpty(vip.getLvGiftGetTime())) {
@@ -149,8 +147,13 @@ public enum VipGift {
                 if (!time) {
                     yield 0;
                 }
-                yield LocalDateTime.ofInstant(Instant.ofEpochSecond(player.getCreateTime()), ZoneId.systemDefault())
-                        .plusYears(1).toLocalDate().atStartOfDay()
+                LocalDate birthDate = LocalDate.ofInstant(Instant.ofEpochSecond(player.getCreateTime()), ZoneId.systemDefault());
+                LocalDate now = LocalDate.now();
+                LocalDate nextBirthday = LocalDate.of(now.getYear(), birthDate.getMonth(), birthDate.getDayOfMonth());
+                if (nextBirthday.isBefore(now) || nextBirthday.isEqual(now)) {
+                    nextBirthday = nextBirthday.plusYears(1);
+                }
+                yield nextBirthday.atStartOfDay()
                         .atZone(ZoneId.systemDefault())
                         .toInstant().toEpochMilli();
             }

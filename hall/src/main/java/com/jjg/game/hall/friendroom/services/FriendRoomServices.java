@@ -136,7 +136,7 @@ public class FriendRoomServices {
         // 扣除道具
         CommonResult<ItemOperationResult> removeItem;
         if (req.predictCostGoldNum != 0) {
-            Map<Integer, Long> itemMap = ItemUtils.mergeItems(Map.of(reqItem.getId(), reqItem.getItemCount()),
+            Map<Integer, Long> itemMap = ItemUtils.mergeItemsOnCreate(Map.of(reqItem.getId(), reqItem.getItemCount()),
                     Map.of(ItemUtils.getDiamondItemId(), req.predictCostGoldNum));
             removeItem = playerPackService.removeItems(player, itemMap, AddType.CREATE_FRIEND_ROOM);
         } else {

@@ -11,7 +11,12 @@ public enum VerCodeType {
     //绑定邮箱
     MAIL_BIND_MAIL(1),
     //短信登录
-    SMS_LOGIN(2);
+    SMS_LOGIN(2),
+    //删除账号
+    DELETE_ACCOUNT(3),
+
+
+    ;
 
 
     private int value;

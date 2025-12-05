@@ -36,13 +36,4 @@ public class HallTool {
     public static long getNextId() {
         return SNOWFLAKE.nextId();
     }
-
-    public static boolean validPhoneNumber(String phoneNumber) {
-        try{
-            Phonenumber.PhoneNumber parse = PhoneNumberUtil.getInstance().parse(phoneNumber, "");
-            return PhoneNumberUtil.getInstance().isValidNumber(parse);
-        }catch (Exception e){
-            return false;
-        }
-    }
 }

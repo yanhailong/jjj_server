@@ -12,13 +12,18 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
+import com.jjg.game.sampledata.bean.SpecialGirdCfg;
+import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.data.*;
+import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
+import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressGameDataDao;
-import com.jjg.game.slots.game.dollarexpress.data.*;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressResultLibDao;
+import com.jjg.game.slots.game.dollarexpress.data.*;
 import com.jjg.game.slots.game.dollarexpress.pb.DollarsInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResultLineInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.TrainInfo;
@@ -212,7 +217,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             long betScore = 0;
             if (scoreType == SlotsConst.Common.SCORE_TYPE_ONE_BET) {
                 betScore = playerGameData.getOneBetScore();
-            } else if (scoreType == SlotsConst.Common.SCORE_TYPE_ONE_BET) {
+            } else if (scoreType == SlotsConst.Common.SCORE_TYPE_ALL_BET) {
                 betScore = playerGameData.getAllBetScore();
             } else {
                 //默认平均单线押分
@@ -473,7 +478,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.playerId(),gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerController.getPlayer(),gameRunInfo.getAllWinGold(),betValue);
 
             //添加美元收集进度
             if (gameRunInfo.getTotalDollars() < 1) {
@@ -551,6 +556,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
         gameRunInfo.setStatus(playerGameData.getStatus());
         gameRunInfo.setStake(betValue);
+        gameRunInfo.setResultLib(resultLib);
         return gameRunInfo;
     }
 
@@ -597,6 +603,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         gameRunInfo = calTrainReward(playerGameData, trainLib, gameRunInfo);
 
         gameRunInfo.setBigPoolTimes(trainLib.getTimes());
+        gameRunInfo.setResultLib(trainLib);
 
         log.debug("libId = {},train = {}", trainLib.getId(), JSON.toJSONString(trainLib));
         return gameRunInfo;
@@ -642,6 +649,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         gameRunInfo = checkDorllar(gameRunInfo, playerGameData, goldTrainLib);
 
         gameRunInfo.addBigPoolTimes(goldTrainLib.getTimes());
+        gameRunInfo.setResultLib(goldTrainLib);
 
         return gameRunInfo;
     }
@@ -679,6 +687,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
         gameRunInfo.setRemainFreeCount(afterCount);
+        gameRunInfo.setResultLib(freeGame);
 
         return gameRunInfo;
     }

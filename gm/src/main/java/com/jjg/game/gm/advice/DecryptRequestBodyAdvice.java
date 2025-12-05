@@ -1,5 +1,6 @@
 package com.jjg.game.gm.advice;
 
+import com.jjg.game.gm.controller.NoSignGmController;
 import com.jjg.game.gm.exception.DecryptException;
 import com.jjg.game.gm.util.CryptoUtils;
 import org.slf4j.Logger;
@@ -24,6 +25,10 @@ public class DecryptRequestBodyAdvice implements RequestBodyAdvice {
 
     @Override
     public boolean supports(MethodParameter methodParameter, Type targetType, Class<? extends HttpMessageConverter<?>> converterType) {
+        boolean noSign = methodParameter.getContainingClass().getSimpleName().equalsIgnoreCase(NoSignGmController.class.getSimpleName());
+        if(noSign){
+            return false;
+        }
         return true; // 全局启用，也可以判断注解开关
     }
 

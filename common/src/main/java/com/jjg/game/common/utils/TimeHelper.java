@@ -63,7 +63,7 @@ public final class TimeHelper {
     /**
      * 时间格式,默认值为yyyy/MM/dd
      */
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
+    public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     /**
      * 根据传入的目标时间返回1970年1月1日到目标时间的秒数，如果传入的时间格式不对，则返回-1
@@ -771,6 +771,7 @@ public final class TimeHelper {
         // 拼接 00000 并转成 long
         return Long.parseLong(dateStr + "00000");
     }
+
 
     /**
      * 获取到明天凌晨的剩余时间(毫秒)

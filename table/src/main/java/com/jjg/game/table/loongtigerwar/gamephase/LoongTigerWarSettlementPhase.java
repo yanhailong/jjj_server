@@ -65,12 +65,12 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         //玩家获得
         Map<Long, DefaultKeyValue<Long, Long>> playerGet = new HashMap<>();
         //获取押注区域
-        List<WinPosWeightCfg> weightCfgs = cfgMap.get(next);
+        List<WinPosWeightCfg> weightCfgList = cfgMap.get(next);
         Map<Integer, Map<Long, List<Integer>>> betInfo = gameDataVo.getBetInfo();
         // 庄家变化的钱
         RoomBankerChangeParam changeParam = getRoomBankerChangeParam(betInfo);
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
-        for (WinPosWeightCfg weightCfg : weightCfgs) {
+        for (WinPosWeightCfg weightCfg : weightCfgList) {
             for (Integer areaId : weightCfg.getBetArea()) {
                 Map<Long, List<Integer>> playerBetInfo = betInfo.get(areaId);
                 if (Objects.isNull(playerBetInfo)) {
@@ -95,7 +95,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                     BigDecimal canGetBigDecimal = backBet.multiply(BigDecimal.valueOf(weightCfg.getOdds()))
                             .divide(BigDecimal.valueOf(100), 4, RoundingMode.DOWN);
                     long totalGet = canGetBigDecimal.longValue();
-                    long canGet = 0;
+                    long canGet = canGetBigDecimal.longValue();
                     if (weightCfg.getIsRatio() == 1) {
                         canGet = canGetBigDecimal.multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getEffectiveRatio()))
                                 .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN).longValue();
@@ -128,8 +128,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         NotifyLoongTigerWarSettleInfo warSettleInfo = new NotifyLoongTigerWarSettleInfo();
         warSettleInfo.loongCard = twoSpecificCard.getFirst();
         warSettleInfo.tigerCard = twoSpecificCard.getSecond();
-        warSettleInfo.playerSettleInfos =
-                TableMessageBuilder.getPlayerSettleInfos(gameController, playerGet, gameDataVo);
+        warSettleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(gameController, playerGet, gameDataVo);
         warSettleInfo.winState = next;
         warSettleInfo.waitEndTime = gameDataVo.getPhaseEndTime();
         //更新房间记录
