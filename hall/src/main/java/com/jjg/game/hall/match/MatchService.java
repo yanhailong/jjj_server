@@ -7,9 +7,9 @@ import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.hall.dao.HallRoomDao;
+import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
-import org.redisson.client.codec.LongCodec;
 import org.redisson.client.codec.StringCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +70,7 @@ public class MatchService {
             local newScore = (newMax * 4398046511104) + (newReady * 4294967296) + seconds
             redis.call('ZADD', KEYS[1], newScore, roomId)
             
-            return roomId
+            return tonumber(roomId);
             """;
 
     public MatchService(MatchDataDao matchDataDao, RedisLock redisLock, HallRoomDao hallRoomDao, RedissonClient redissonClient) {
@@ -95,9 +95,13 @@ public class MatchService {
                         RScript.ReturnType.INTEGER,
                         List.of(matchRedisKey, hallRoomDao.getTableName(gameType)), // 传入两个 KEY
                         maxPlayer, preCreateData.getFirst(), preCreateData.getSecond());
-        if (result == null) {
+        if (result == null || StringUtils.isEmpty(result)) {
             return 0;
         }
+
+        // 清理字符串：移除所有引号
+        result = result.replace("\"", "").trim();
+
         if (result.equals(String.valueOf(preCreateData.getFirst()))) {
             log.debug("创建房间是生成的房间id = {}", preCreateData.getFirst());
         }
