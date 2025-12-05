@@ -151,7 +151,7 @@ public class LuckyTreasureRedisDao {
                     rewardTime = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
                 }
 
-                int expireMinutes = Math.toIntExact(rewardTime + treasure.getConfig().getTime() + treasure.getConfig().getCollectTime());
+                int expireMinutes = Math.toIntExact(treasure.getConfig().getTime() + rewardTime + treasure.getConfig().getCollectTime());
                 // 保存回Redis
                 updateActiveRound(treasure, expireMinutes);
                 return treasure;

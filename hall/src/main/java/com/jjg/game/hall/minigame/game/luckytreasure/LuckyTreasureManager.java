@@ -550,7 +550,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             rewardTime = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
         }
 
-        // 设置过期时间
+//         设置过期时间
         int expireMinutes = Math.toIntExact(round.getConfig().getTime() + rewardTime + round.getConfig().getCollectTime() + 10);
         luckyTreasureRedisDao.saveActiveRound(round, expireMinutes);
     }
