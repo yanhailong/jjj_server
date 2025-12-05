@@ -433,31 +433,25 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
                 log.warn("玩家[{}]领取[{}]任务奖励失败!任务状态[{}]", playerId, taskId, taskDetail == null ? "null" : taskDetail.getStatus());
                 return false;
             }
-            try {
-                //修改任务状态
-                taskDetail.setRewardTime(System.currentTimeMillis());
-                taskDetail.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
-                List<Integer> getItem = taskCfg.getGetItem();
-                int integralNum = taskCfg.getIntegralNum();
-                //如果有积分奖励通知大厅
-                if (integralNum > TaskConstant.TimeConstants.MIN_INTEGRAL_REWARD) {
-                    taskService.addPlayerPoints(playerId, integralNum, true);
-                }
-                List<Item> itemList = new ArrayList<>();
-                if (!getItem.isEmpty()) {
-                    itemList = ItemUtils.buildItems(getItem);
-                    playerPackService.addItems(playerId, itemList, AddType.TASKAWARD);
-                }
-                //记录日志
-                taskLogger.receiveTaskAward(playerId, taskId, itemList, integralNum);
-                log.info("玩家[{}]成功领取任务[{}]奖励", playerId, taskId);
-                updateRedDot(playerId);
-                return true;
-            } catch (Exception e) {
-                log.error("领取任务奖励过程中发生异常 playerId={}, taskId={}, error={}",
-                        playerId, taskId, e.getMessage(), e);
-                return false;
+            //修改任务状态
+            taskDetail.setRewardTime(System.currentTimeMillis());
+            taskDetail.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
+            List<Integer> getItem = taskCfg.getGetItem();
+            int integralNum = taskCfg.getIntegralNum();
+            //如果有积分奖励通知大厅
+            if (integralNum > TaskConstant.TimeConstants.MIN_INTEGRAL_REWARD) {
+                taskService.addPlayerPoints(playerId, integralNum, true);
             }
+            List<Item> itemList = new ArrayList<>();
+            if (!getItem.isEmpty()) {
+                itemList = ItemUtils.buildItems(getItem);
+                playerPackService.addItems(playerId, itemList, AddType.TASKAWARD);
+            }
+            //记录日志
+            taskLogger.receiveTaskAward(playerId, taskId, itemList, integralNum);
+            log.info("玩家[{}]成功领取任务[{}]奖励", playerId, taskId);
+            updateRedDot(playerId);
+            return true;
         } catch (Exception e) {
             log.error("领取任务奖励失败 playerId={}, taskId={}, error={}", playerId, taskId, e.getMessage(), e);
             return false;
