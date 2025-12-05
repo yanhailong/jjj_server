@@ -100,6 +100,7 @@ public class MinigameMessageHandler {
     @Command(LuckyTreasureConstant.Message.REQ_LUCKY_TREASURE_RECORD)
     public void record(PlayerController playerController, ReqLuckyTreasureRecord msg) {
         ResLuckyTreasureRecord response = luckyTreasureService.getLuckyTreasureRecord(playerController, msg.getCurrPage(), msg.getPageSize());
+        log.debug("请求查看自己参加的所有的幸运夺宝(包含已结束的) res = {}", JSON.toJSONString(response));
         playerController.send(response);
     }
 
@@ -109,6 +110,7 @@ public class MinigameMessageHandler {
     @Command(LuckyTreasureConstant.Message.REQ_LUCKY_TREASURE_AWARD_HISTORY)
     public void history(PlayerController playerController, ReqLuckyTreasureHistory msg) {
         ResLuckyTreasureHistory response = luckyTreasureService.getLuckyTreasureHistory(msg.getCurrPage(), msg.getPageSize());
+        log.debug("请求查看夺宝奇兵所有的开奖历史记录 res = {}", JSON.toJSONString(response));
         playerController.send(response);
     }
 

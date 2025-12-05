@@ -59,6 +59,11 @@ public class LuckyTreasure {
     private String awardPlayerNickName;
 
     /**
+     * 玩家等级
+     */
+    private int awardPlayerLevel;
+
+    /**
      * 获奖者头像
      */
     private int awardPlayerHeadImgId;
@@ -72,6 +77,7 @@ public class LuckyTreasure {
      * 国旗id
      */
     private int awardPlayerNationalId;
+
 
     /**
      * 第三方领奖码
@@ -214,6 +220,14 @@ public class LuckyTreasure {
 
     public void setAwardPlayerNationalId(int awardPlayerNationalId) {
         this.awardPlayerNationalId = awardPlayerNationalId;
+    }
+
+    public int getAwardPlayerLevel() {
+        return awardPlayerLevel;
+    }
+
+    public void setAwardPlayerLevel(int awardPlayerLevel) {
+        this.awardPlayerLevel = awardPlayerLevel;
     }
 
     public int getStatus() {

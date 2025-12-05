@@ -25,6 +25,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author 11
@@ -370,6 +371,8 @@ public class PlayerPackService implements IPlayerRegister {
             }
             result.data.setChangeEndItemNum(changeAfterNum);
             result.data.setChangeBeforeItemNum(changeBefore);
+            Map<Integer, Long> map = removeItemList.stream().collect(Collectors.toMap(Item::getId, Item::getItemCount, Long::sum));
+            coreLogger.consumeItem(playerId, changeBefore, map, changeAfterNum, addType);
             return result;
         } catch (Exception e) {
             log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
@@ -475,7 +478,7 @@ public class PlayerPackService implements IPlayerRegister {
         }
 
         if (removeResult.success()) {
-            coreLogger.consumeItem(playerId, removeResult.data.getChangeBeforeItemNum(), useItemId, useItemCount, removeResult.data.getChangeEndItemNum(), addType);
+            coreLogger.consumeItem(playerId, removeResult.data.getChangeBeforeItemNum(), Map.of(useItemId, useItemCount), removeResult.data.getChangeEndItemNum(), addType);
         }
 
         CommonResult<ItemOperationResult> addResult = addItems(playerId, addItemsMap, addType);

@@ -330,23 +330,20 @@ public class BaseLogger {
      * 消耗道具
      *
      * @param playerId
-     * @param itemId
-     * @param count
      * @param addType
      */
-    public void consumeItem(long playerId, Map<Integer, Long> beforeMap, int itemId, long count, Map<Integer, Long> afterMap, AddType addType) {
+    public void consumeItem(long playerId, Map<Integer, Long> beforeMap, Map<Integer, Long> costMap, Map<Integer, Long> afterMap, AddType addType) {
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
             //道具表  logType  1.获得   2.消耗
             json.put("logType", 2);
-
             //前
             JSONArray beforeJsonArray = itemMapToJsonArray(beforeMap);
             json.put("before", beforeJsonArray);
 
             //变化值
-            JSONArray jsonArray = itemToJsonArray(itemId, count);
+            JSONArray jsonArray = itemMapToJsonArray(costMap);
             json.put("items", jsonArray);
 
             //后

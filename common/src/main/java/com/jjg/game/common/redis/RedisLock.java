@@ -96,11 +96,15 @@ public class RedisLock {
      * @param leaseTime 超时锁释放时间
      * @param timeUnit  时间格式
      * @return 是否成功
-     * @throws InterruptedException e
      */
-    public boolean tryLock(String key, long waitTime, long leaseTime, TimeUnit timeUnit) throws InterruptedException {
-        RLock redissonLock = redissonClient.getLock(getKey(key));
-        return redissonLock.tryLock(waitTime, leaseTime, timeUnit);
+    public boolean tryLock(String key, long waitTime, long leaseTime, TimeUnit timeUnit) {
+        try {
+            RLock redissonLock = redissonClient.getLock(getKey(key));
+            return redissonLock.tryLock(waitTime, leaseTime, timeUnit);
+        } catch (InterruptedException e) {
+            log.error("获取锁失败 key:{} waitTime:{} leaseTime:{} timeUnit:{}", key, waitTime, leaseTime, timeUnit, e);
+        }
+        return false;
     }
 
     /**

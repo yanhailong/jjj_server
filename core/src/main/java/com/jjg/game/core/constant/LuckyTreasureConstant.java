@@ -129,5 +129,10 @@ public interface LuckyTreasureConstant {
          * 通知更新夺宝奇兵库存信息
          */
         int NOTIFY_LUCKY_TREASURE_UPDATE = BASE_MSG_MASK | 0x1A;
+
+        /**
+         * 通知更新夺宝奇兵自己参与信息
+         */
+        int NOTIFY_LUCKY_TREASURE_RECORD_UPDATE = BASE_MSG_MASK | 0x1B;
     }
 }
