@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 通知更新夺宝奇兵库存
+ * 通知更新夺宝奇兵库存个人纪录信息
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = LuckyTreasureConstant.Message.NOTIFY_LUCKY_TREASURE_RECORD_UPDATE, resp = true)
 @ProtoDesc("通知更新夺宝奇兵库存个人纪录信息")

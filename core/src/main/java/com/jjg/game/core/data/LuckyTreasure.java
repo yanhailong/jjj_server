@@ -60,6 +60,11 @@ public class LuckyTreasure {
     private String awardPlayerNickName;
 
     /**
+     * 玩家等级
+     */
+    private int awardPlayerLevel;
+
+    /**
      * 获奖者头像
      */
     private int awardPlayerHeadImgId;
@@ -73,6 +78,7 @@ public class LuckyTreasure {
      * 国旗id
      */
     private int awardPlayerNationalId;
+
 
     /**
      * 获奖者等级
