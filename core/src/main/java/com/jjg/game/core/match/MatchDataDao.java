@@ -1,6 +1,5 @@
 package com.jjg.game.core.match;
 
-import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.match.data.MatchDataRedisKey;
 import com.jjg.game.core.utils.RoomScoreUtil;
@@ -9,8 +8,6 @@ import org.redisson.api.RScoredSortedSet;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.LongCodec;
-import org.redisson.client.codec.StringCodec;
-import org.redisson.codec.JsonCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -30,7 +27,6 @@ public class MatchDataDao {
     private final RedissonClient redissonClient;
     // 玩家等待key
     private final String PLAYER_WAIT_KEY = "match:playerWait:%s";
-    private final RedisLock redisLock;
     // 解析规则参考 RoomScoreUtil: maxPlayers(10bit) | readyPlayers(10bit) | seconds(32bit)
     // 2^32 = 4294967296
     // 2^42 = 4398046511104
@@ -141,9 +137,8 @@ public class MatchDataDao {
             return diffCount
             """;
 
-    public MatchDataDao(RedissonClient redissonClient, RedisLock redisLock) {
+    public MatchDataDao(RedissonClient redissonClient) {
         this.redissonClient = redissonClient;
-        this.redisLock = redisLock;
     }
 
     public String getPlayerWaitKey(long roomId) {
@@ -152,10 +147,6 @@ public class MatchDataDao {
 
     public String getMatchRedisKey(int gameType, int roomConfigId) {
         return MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
-    }
-
-    public String getLockMatchRedisKey(int gameType, int roomConfigId) {
-        return "lock:" + MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
     }
 
     /**
@@ -178,21 +169,19 @@ public class MatchDataDao {
     /**
      * 将房间ID从房间中移除
      */
-    public boolean removeWaitJoinRoomId(int gameType, int roomConfigId, long roomId) {
+    public void removeWaitJoinRoomId(int gameType, int roomConfigId, long roomId) {
         String redisKey = getMatchRedisKey(gameType, roomConfigId);
         redissonClient.getScoredSortedSet(redisKey, LongCodec.INSTANCE).remove(roomId);
-        return true;
     }
 
     /**
      * 添加房间等待ID
      */
-    public boolean addWaitJoinRoomId(int gameType, int roomConfigId, long roomId, long roomCreateTime) {
+    public void addWaitJoinRoomId(int gameType, int roomConfigId, long roomId, long roomCreateTime) {
         String redisKey = getMatchRedisKey(gameType, roomConfigId);
         RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(redisKey, LongCodec.INSTANCE);
         double score = RoomScoreUtil.computeScore(0, 0, (int) (roomCreateTime / 1000));
         scoredSortedSet.add(score, roomId);
-        return true;
     }
 
 
