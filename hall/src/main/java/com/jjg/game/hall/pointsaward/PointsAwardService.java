@@ -610,7 +610,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         }
 
         //获取玩家积分
-        long points = getPoints(playerId);
+        long points = getTimePoints(playerId);
 
         //获取领取列表
         RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
@@ -631,7 +631,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     @Override
     public void initSampleCallbackCollector() {
         // global表监听
-        addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initConfig);
+        addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initConfig)
+                .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initConfig);
     }
 
     private void initConfig() {
