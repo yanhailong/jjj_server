@@ -714,7 +714,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
      * 通知所有的大厅和游戏节点
      */
     public void notifyHallAndGameNode(PFMessage pfMessage) {
-        notifyNode(pfMessage, Set.of(NodeType.GATE.toString(), NodeType.HALL.toString())::contains);
+        notifyNode(pfMessage, Set.of(NodeType.GAME.toString(), NodeType.HALL.toString())::contains);
     }
 
     /**

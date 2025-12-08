@@ -17,6 +17,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.TaskConditionParam10003;
@@ -43,10 +44,7 @@ import org.apache.kafka.common.utils.PrimitiveRef.LongRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Supplier;
 
 /**
@@ -619,10 +617,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param winValue 增加的钱
      * @param coinId   货币id
      */
-    public void triggerTask(long playerId, int gameType, long effectiveWaterFlow, long winValue, int coinId) {
-        //触发任务
+    public void triggerSettlementAction(long playerId, int gameType, long effectiveWaterFlow, long winValue, int coinId) {
         try {
             if (winValue > 0) {
+                //触发任务
                 taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
                     TaskConditionParam10003 param = new TaskConditionParam10003();
                     param.setGameId(gameType);
@@ -630,6 +628,15 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                     param.setCoinId(coinId);
                     return param;
                 }, false);
+                //触发跑马灯
+                List<Long> marqueeTrigger = gameDataVo.getRoomCfg().getMarqueeTrigger();
+                if (marqueeTrigger != null && marqueeTrigger.size() >= 2 && winValue >= marqueeTrigger.getFirst()) {
+                    CoreMarqueeManager manager = getRoomController().getRoomManager().getCoreMarqueeManager();
+                    GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+                    if (gamePlayer != null) {
+                        manager.playerWinMarquee(gamePlayer.getNickName(), marqueeTrigger.getLast().intValue(), gameDataVo.getRoomCfg().getNameid(), winValue);
+                    }
+                }
             }
             if (effectiveWaterFlow > 0) {
                 //触发任务
