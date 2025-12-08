@@ -5,6 +5,7 @@ import com.jjg.game.activity.activitylog.data.ScratchCardsResult;
 import com.jjg.game.activity.activitylog.data.SharePromoteWeekRank;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.piggybank.data.PiggyBankData;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
@@ -406,6 +407,56 @@ public class ActivityLogger extends BaseLogger {
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendLevelPackClaimLog error:", e);
+        }
+    }
+
+
+    /**
+     * 成长基金购买
+     * @param player 玩家数据
+     * @param activityData 活动数据
+     * @param cost 购买金额
+     * @param rewards 奖励
+     * @param result 奖励结果
+     */
+    public void sendGrowthFundBuyLog(Player player, ActivityData activityData, BigDecimal cost, Map<Integer, Long> rewards, ItemOperationResult result) {
+        try {
+            JSONObject json = buildBaseInfo(activityData, 0);
+            json.put("cost", cost.toPlainString());
+            if (rewards != null) {
+                json.put("rewards", objectMapper.writeValueAsString(rewards));
+            }
+            if (result != null) {
+                json.put("result", objectMapper.writeValueAsString(result));
+            }
+            sendLog(TOPIC, player, json);
+        } catch (Exception e) {
+            log.error("sendGrowthFundBuyLog error:", e);
+        }
+    }
+
+    /**
+     * 成长基金领取奖励
+     * @param player 玩家数据
+     * @param activityData 活动数据
+     * @param levels  领取的等级
+     * @param rewards 奖励
+     * @param result 奖励结果
+     */
+    public void sendGrowthFundReceiveLog(Player player, ActivityData activityData,List<Integer> levels,
+                                         Map<Integer, Long> rewards, CommonResult<ItemOperationResult> result) {
+        try {
+            JSONObject json = buildBaseInfo(activityData, 0);
+            if (levels != null) {
+                json.put("levels", objectMapper.writeValueAsString(levels));
+            }
+            json.put("rewards", objectMapper.writeValueAsString(rewards));
+            if (result != null && result.success()) {
+                json.put("result", objectMapper.writeValueAsString(result.data));
+            }
+            sendLog(TOPIC, player, json);
+        } catch (Exception e) {
+            log.error("sendGrowthFundReceiveLog error:", e);
         }
     }
 }

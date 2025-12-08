@@ -28,7 +28,6 @@ public class MatchService {
 
     private final Logger log = LoggerFactory.getLogger(MatchService.class);
     private final MatchDataDao matchDataDao;
-    private final RedisLock redisLock;
     private final HallRoomDao hallRoomDao;
     private final RedissonClient redissonClient;
     private static final String TRY_JOIN_ROOM_SCRIPT = """
@@ -73,9 +72,8 @@ public class MatchService {
             return roomId
             """;
 
-    public MatchService(MatchDataDao matchDataDao, RedisLock redisLock, HallRoomDao hallRoomDao, RedissonClient redissonClient) {
+    public MatchService(MatchDataDao matchDataDao, HallRoomDao hallRoomDao, RedissonClient redissonClient) {
         this.matchDataDao = matchDataDao;
-        this.redisLock = redisLock;
         this.hallRoomDao = hallRoomDao;
         this.redissonClient = redissonClient;
     }

@@ -33,10 +33,10 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
      */
     public List<LuckyTreasure> findAllNotEnd(int limit) {
         Query query = new Query(Criteria.where("status").in(1,2));
+        //倒叙排列
+        query.with(Sort.by("endTime").descending());
         if (limit > 0) {
             query.limit(limit);
-            //倒叙排列
-            query.with(Sort.by("endTime").descending());
         }
         return mongoTemplate.find(query, LuckyTreasure.class);
     }
