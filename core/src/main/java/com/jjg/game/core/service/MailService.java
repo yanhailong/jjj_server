@@ -2,6 +2,7 @@ package com.jjg.game.core.service;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.NumberUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
@@ -74,6 +75,10 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             }
         }
         return read;
+    }
+
+    public void updateRedDot(long playerId) {
+        redDotManager.setRedDotData(getModule(), getSubmodule(), playerId, (int) mailDao.getItemsMailsCount(playerId), true);
     }
 
     /**
@@ -338,6 +343,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             if (count == null) {
                 continue;
             }
+            redDotManager.incrementRedDotDataAndUpdate(getModule(), session.playerId, 1);
             updateRedDot(count, session);
         }
     }
@@ -557,11 +563,11 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             }
         }
 
-        if(!mailIdsToDelete.isEmpty()){
+        if (!mailIdsToDelete.isEmpty()) {
             // 批量删除邮件
             long deletedCount = mailDao.batchRemoveMails(mailIdsToDelete);
 
-            log.info("批量删除过期自动领取邮件 {} 封",deletedCount);
+            log.info("批量删除过期自动领取邮件 {} 封", deletedCount);
         }
     }
 
