@@ -13,7 +13,10 @@ import com.jjg.game.slots.game.wealthbank.WealthBankConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.WEALTH_BANK, cmd = WealthBankConstant.MsgBean.RES_WEALTH_BANK_CHOOSE_FREE_MODEL,resp = true)
 @ProtoDesc("返回选择免费模式的游戏")
 public class ResWealthBankChooseFreeModel extends AbstractResponse {
-
+    @ProtoDesc("选择类型  3.普通火车  4.黄金火车   5.免费游戏")
+    public int status;
+    @ProtoDesc("免费次数")
+    public int freeCount;
     public ResWealthBankChooseFreeModel(int code) {
         super(code);
     }

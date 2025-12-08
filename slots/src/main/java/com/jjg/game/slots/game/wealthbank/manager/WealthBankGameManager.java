@@ -153,6 +153,8 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
                 gameRunInfo.setCode(code);
                 return gameRunInfo;
             }
+            gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
+            gameRunInfo.setStatus(playerGameData.getStatus());
             log.info("[Wealth Bank] 玩家进行二选一，playerId = {},gameType = {},roomCfgId = {},chooseStatus = {}", playerController.playerId(), playerGameData.getGameType(), playerController.getPlayer().getRoomCfgId(), chooseStatus);
             return gameRunInfo;
         } catch (Exception e) {
@@ -408,7 +410,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
     public WealthBankGameRunInfo autoStartGame(WealthBankPlayerGameData playerGameData, long betValue) {
         log.debug("[Wealth Bank] 系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
 
-        return startGame(new PlayerController(null,null), playerGameData, betValue, true);
+        return startGame(new PlayerController(null, null), playerGameData, betValue, true);
     }
 
     /**
@@ -478,7 +480,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(),gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue);
 
             //添加美元收集进度
             if (gameRunInfo.getTotalDollars() < 1) {
@@ -519,7 +521,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
      * @return
      */
     private WealthBankGameRunInfo normal(WealthBankGameRunInfo gameRunInfo, WealthBankPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<WealthBankResultLib,Long>> libResult = normalGetLib(playerGameData, betValue, WealthBankConstant.SpecialMode.TYPE_NORMAL);
+        CommonResult<Pair<WealthBankResultLib, Long>> libResult = normalGetLib(playerGameData, betValue, WealthBankConstant.SpecialMode.TYPE_NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
@@ -1159,7 +1161,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
 
         playerGameData.setOnline(false);
         offlineSaveGameDataDto(playerGameData);
-        removePlayerGameData(playerController.playerId(),playerGameData.getRoomCfgId());
+        removePlayerGameData(playerController.playerId(), playerGameData.getRoomCfgId());
         return playerGameData;
     }
 

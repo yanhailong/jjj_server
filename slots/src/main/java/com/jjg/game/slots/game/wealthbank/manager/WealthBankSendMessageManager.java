@@ -50,7 +50,7 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
         if (config != null) {
             List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
             res.stakeList = new ArrayList<>(list.size());
-            for(long[] arr : list){
+            for (long[] arr : list) {
                 res.stakeList.add(arr[1]);
             }
 
@@ -118,13 +118,13 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
             //大奖展示id
             res.bigWinShow = gameRunInfo.getBigShowId();
             //高亮展示
-            res.highlightList = highlight(res,gameRunInfo);
+            res.highlightList = highlight(res, gameRunInfo);
 
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
 
-            logger.gameResult(playerController.getPlayer(), gameRunInfo,res);
+            logger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("[Wealth Bank] 开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
@@ -145,7 +145,8 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
     public void sendChooseOneMessage(PlayerController playerController, WealthBankGameRunInfo gameRunInfo) {
         SendInfo sendInfo = new SendInfo();
         ResWealthBankChooseFreeModel res = new ResWealthBankChooseFreeModel(gameRunInfo.getCode());
-
+        res.freeCount = gameRunInfo.getStatus();
+        res.status = gameRunInfo.getRemainFreeCount();
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回二选一结果", false);
@@ -234,10 +235,10 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
             //现金奖励
             boolean safeBox = res.wealthBankDollarsInfo != null && res.wealthBankDollarsInfo.coinIndexId > 0;
             //找出所有的all board图标
-            return getIconIndex(gameRunInfo,normalTrain,goldTrain,safeBox,false);
+            return getIconIndex(gameRunInfo, normalTrain, goldTrain, safeBox, false);
         } else if (res.status == WealthBankConstant.Status.NOTMAL_ALL_BOARD || res.status == WealthBankConstant.Status.GOLD_ALL_BOARD) {  //二选一
             //找出所有的all board图标
-            return getIconIndex(gameRunInfo,false,false,false,true);
+            return getIconIndex(gameRunInfo, false, false, false, true);
         }
         return null;
     }
@@ -251,12 +252,12 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
      * @return
      */
     private List<Integer> getIconIndex(WealthBankGameRunInfo gameRunInfo, boolean normalTrain,
-                                       boolean goldTrain, boolean safeBox, boolean allBoard){
+                                       boolean goldTrain, boolean safeBox, boolean allBoard) {
         List<Integer> highlightList = new ArrayList<>();
         for (int i = 1; i < gameRunInfo.getIconArr().length; i++) {
             int icon = gameRunInfo.getIconArr()[i];
             //添加普通火车对应图标坐标
-            if(normalTrain){
+            if (normalTrain) {
                 if (icon == WealthBankConstant.BaseElement.ID_GREEN_TRAIN || icon == WealthBankConstant.BaseElement.ID_RED_TRAIN ||
                         icon == WealthBankConstant.BaseElement.ID_BLUE_TRAIN || icon == WealthBankConstant.BaseElement.ID_PURPLE_TRAIN ||
                         icon == WealthBankConstant.BaseElement.ID_SAFE_BOX) {
@@ -265,21 +266,21 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
             }
 
             //添加黄金火车对应图标坐标
-            if(goldTrain){
+            if (goldTrain) {
                 if (icon == WealthBankConstant.BaseElement.ID_DOLLAR || icon == WealthBankConstant.BaseElement.ID_DOLLAR_2 || icon == WealthBankConstant.BaseElement.ID_GOLD_TRAIN) {
                     highlightList.add(i);
                 }
             }
 
             //添加现金奖励对应图标坐标
-            if(safeBox){
+            if (safeBox) {
                 if (icon == WealthBankConstant.BaseElement.ID_DOLLAR || icon == WealthBankConstant.BaseElement.ID_DOLLAR_2 || icon == WealthBankConstant.BaseElement.ID_SAFE_BOX) {
                     highlightList.add(i);
                 }
             }
 
             //添加二选一对应图标坐标
-            if(allBoard){
+            if (allBoard) {
                 if (icon == WealthBankConstant.BaseElement.ID_ALL_ABOARD) {
                     highlightList.add(i);
                 }
