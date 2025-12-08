@@ -381,6 +381,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         //查询数据库中是否存在上次未开奖的
         List<LuckyTreasure> luckyTreasures = luckyTreasureDao.findAllNotEnd(intValue);
         for (LuckyTreasure luckyTreasure : luckyTreasures) {
+            log.info("夺宝奇兵 查看是否有关服前未处理数据 luckyTreasure{}",luckyTreasure);
             long now = System.currentTimeMillis();
             long endTime = luckyTreasure.getEndTime();
             if (isExpired(endTime, now)) {
