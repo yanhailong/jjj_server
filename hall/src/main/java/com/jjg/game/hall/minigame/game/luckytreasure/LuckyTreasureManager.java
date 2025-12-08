@@ -1,5 +1,6 @@
 package com.jjg.game.hall.minigame.game.luckytreasure;
 
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.redis.RedisLock;
@@ -381,7 +382,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         //查询数据库中是否存在上次未开奖的
         List<LuckyTreasure> luckyTreasures = luckyTreasureDao.findAllNotEnd(intValue);
         for (LuckyTreasure luckyTreasure : luckyTreasures) {
-            log.info("夺宝奇兵 查看是否有关服前未处理数据 luckyTreasure{}",luckyTreasure);
+            log.info("夺宝奇兵 查看是否有关服前未处理数据 luckyTreasure{}", JSONObject.toJSONString(luckyTreasure));
             long now = System.currentTimeMillis();
             long endTime = luckyTreasure.getEndTime();
             if (isExpired(endTime, now)) {
