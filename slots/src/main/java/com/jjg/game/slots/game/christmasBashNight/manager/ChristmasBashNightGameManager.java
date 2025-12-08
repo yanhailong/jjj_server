@@ -19,6 +19,9 @@ import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightGameRun
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightPlayerGameData;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightPlayerGameDataDTO;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightResultLib;
+import com.jjg.game.slots.game.christmasBashNight.pb.ResChristmasBashNightPoolInfo;
+import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.LoggerFactory;
@@ -312,5 +315,24 @@ public class ChristmasBashNightGameManager extends AbstractSlotsGameManager<Chri
         }
     }
 
+    /**
+     * 获取奖池 信息
+     *
+     * @param playerController 玩家控制类
+     * @return
+     */
+    public ChristmasBashNightGameRunInfo getPoolValue(PlayerController playerController, long stake) {
+        ChristmasBashNightGameRunInfo gameRunInfo  = new ChristmasBashNightGameRunInfo(Code.SUCCESS, playerController.playerId());
+        try {
+            gameRunInfo.setMini(getPoolValueByPoolId(ChristmasBashNightConstant.Common.MINI_POOL_ID, stake));
+            gameRunInfo.setMinor(getPoolValueByPoolId(ChristmasBashNightConstant.Common.MINOR_POOL_ID, stake));
+            gameRunInfo.setMajor(getPoolValueByPoolId(ChristmasBashNightConstant.Common.MAJOR_POOL_ID, stake));
+            gameRunInfo.setGrand(getPoolValueByPoolId(ChristmasBashNightConstant.Common.GRAND_POOL_ID, stake));
+        } catch (Exception e) {
+            log.error("", e);
+            gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
+    }
 
 }

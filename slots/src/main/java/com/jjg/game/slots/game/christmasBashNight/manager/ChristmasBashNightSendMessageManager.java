@@ -15,7 +15,9 @@ import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAwardLi
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightGameRunInfo;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightResultLib;
 import com.jjg.game.slots.game.christmasBashNight.pb.*;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.PoolInfo;
+import com.jjg.game.slots.game.dollarexpress.pb.ResPoolValue;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -216,5 +218,29 @@ public class ChristmasBashNightSendMessageManager extends BaseSendMessageManager
             list.add(mahjiongCascade);
         }
         return list;
+    }
+
+    /**
+     * 返回奖池结果
+     *
+     * @param playerController
+     * @param gameRunInfo
+     */
+    public void sendPoolValue(PlayerController playerController, ChristmasBashNightGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+
+        ResChristmasBashNightPoolInfo res = new ResChristmasBashNightPoolInfo(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+            res.mini = gameRunInfo.getMini();
+            res.minor = gameRunInfo.getMinor();
+            res.major = gameRunInfo.getMajor();
+            res.grand = gameRunInfo.getGrand();
+        } else {
+            log.debug("奖池结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回奖池结果", false);
     }
 }
