@@ -85,7 +85,7 @@ public class GrowthFundController extends BaseActivityController implements Game
         //需要更新的详情信息
         Set<GrowthFundCfg> updateDetailId = new HashSet<>();
         Map<Integer, PlayerActivityData> playerActivityData = null;
-        CommonResult<ItemOperationResult> addItems;
+        CommonResult<ItemOperationResult> addItems = null;
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         boolean lock = false;
         try {
@@ -113,12 +113,17 @@ public class GrowthFundController extends BaseActivityController implements Game
                 playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, playerActivityData);
             }
             //道具奖励
+            boolean addItemsSuccess = false;
             if (CollectionUtil.isNotEmpty(rewards)) {
                 addItems = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_GROWTH_FUND_BUY);
                 if (!addItems.success()) {
                     log.error("成长基金购买增加发奖失败 playerId:{} activityId:{}", playerId, activityId);
+                } else {
+                    addItemsSuccess = true;
                 }
             }
+            activityLogger.sendGrowthFundBuyLog(player, activityData, activityData.getBigDecimalParam().getLast(),
+                    addItemsSuccess ? rewards : null, addItemsSuccess ? addItems.data : null);
         } catch (Exception e) {
             log.error("成长基金购买增加进度异常 playerId:{} activityId:{}", playerId, activityId, e);
         } finally {
@@ -240,9 +245,11 @@ public class GrowthFundController extends BaseActivityController implements Game
         }
         ResGrowthFundClaimRewards res = new ResGrowthFundClaimRewards(Code.SUCCESS);
         List<Pair<GrowthFundCfg, PlayerActivityData>> dataPair = new ArrayList<>();
-        CommonResult<ItemOperationResult> addedItems;
+        CommonResult<ItemOperationResult> addedItems = null;
         Map<Integer, Long> rewards = new HashMap<>();
         Map<Integer, PlayerActivityData> dataMap = new HashMap<>();
+        //记录日志
+        List<Integer> levels = new ArrayList<>();
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         // 加锁，保证领取操作原子性
         boolean lock = false;
@@ -271,6 +278,7 @@ public class GrowthFundController extends BaseActivityController implements Game
                 fundCfg.getGetItem().forEach((key, value) -> rewards.merge(key, value, Long::sum));
                 playerActivityData.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
                 dataPair.add(Pair.newPair(fundCfg, playerActivityData));
+                levels.add(fundCfg.getLevel());
             }
             if (CollectionUtil.isEmpty(rewards)) {
                 res.code = Code.REPEAT_OP;
@@ -278,7 +286,7 @@ public class GrowthFundController extends BaseActivityController implements Game
             }
             // 更新状态
             playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
-            // 发放每日奖励
+            // 发放成长基金奖励
             addedItems = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_GROWTH_FUND_CLAIM_REWARDS);
             if (!addedItems.success()) {
                 res.code = Code.UNKNOWN_ERROR;
@@ -295,6 +303,10 @@ public class GrowthFundController extends BaseActivityController implements Game
         res.activityId = activityId;
         res.detailId = detailId;
         if (CollectionUtil.isNotEmpty(rewards)) {
+            //发送日志
+            if (!levels.isEmpty()) {
+                activityLogger.sendGrowthFundReceiveLog(player, activityData, levels, rewards, addedItems);
+            }
             res.infoList = ItemUtils.buildItemInfo(rewards);
             res.detailInfo = new ArrayList<>(dataPair.size());
             for (Pair<GrowthFundCfg, PlayerActivityData> pair : dataPair) {
