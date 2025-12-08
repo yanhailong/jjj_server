@@ -81,11 +81,6 @@ public class LuckyTreasure {
 
 
     /**
-     * 获奖者等级
-     */
-    private int awardPlayerLevel;
-
-    /**
      * 第三方领奖码
      */
     private String rewardCode;
