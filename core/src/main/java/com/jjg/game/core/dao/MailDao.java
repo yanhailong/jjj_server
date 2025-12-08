@@ -17,6 +17,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -189,6 +190,24 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
     }
 
     /**
+     * 批量删除邮件
+     *
+     * @param mailIds 邮件ID列表
+     * @return 删除的邮件数量
+     */
+    public long batchRemoveMails(Set<Long> mailIds) {
+        if (mailIds == null || mailIds.isEmpty()) {
+            return 0;
+        }
+
+        Criteria criteria = Criteria.where("id").in(mailIds);
+        Query query = new Query(criteria);
+
+        DeleteResult result = mongoTemplate.remove(query, Mail.class);
+        return result.getDeletedCount();
+    }
+
+    /**
      * 保存邮件
      */
     public void addMail(Mail mail) {
@@ -279,13 +298,42 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
 
     /**
      * 清除过期邮件
+     * 逻辑：
+     * 1. 没有附件的邮件：只要是过期的就删除
+     * 2. 有附件的邮件：
+     *    - 玩家已领取的（status = STATUS_GET_ITEMS）：删除
+     *    - 玩家未领取的：返回给Service层处理自动领取
      */
-    public void cleanMails() {
+    public CleanMailsResult cleanMails() {
         int now = TimeHelper.nowInt();
-        //清除已到期的
-        DeleteResult deleteResult = mongoTemplate.remove(Query.query(Criteria.where("timeout").lt(now).gt(0)), Mail.class);// 删除没有附件且超时的邮件
+        CleanMailsResult result = new CleanMailsResult();
 
-        //清除系统邮件
+        // 1. 删除没有附件且过期的邮件
+        Criteria noItemsCriteria = Criteria.where("timeout").lt(now).gt(0)
+                .andOperator(
+                        new Criteria().orOperator(
+                                Criteria.where("items").size(0),
+                                Criteria.where("items").is(null)
+                        )
+                );
+        DeleteResult noItemsDeleteResult = mongoTemplate.remove(Query.query(noItemsCriteria), Mail.class);
+        result.setNoItemsDeletedCount(noItemsDeleteResult.getDeletedCount());
+
+        // 2. 删除有附件、已领取且过期的邮件
+        Criteria hasItemsAndClaimedCriteria = Criteria.where("timeout").lt(now).gt(0)
+                .and("status").is(GameConstant.Mail.STATUS_GET_ITEMS)
+                .and("items").exists(true).ne(null).not().size(0);
+        DeleteResult claimedItemsDeleteResult = mongoTemplate.remove(Query.query(hasItemsAndClaimedCriteria), Mail.class);
+        result.setClaimedItemsDeletedCount(claimedItemsDeleteResult.getDeletedCount());
+
+        // 3. 查询有附件、未领取且过期的邮件（需要自动领取）
+        Criteria hasItemsAndNotClaimedCriteria = Criteria.where("timeout").lt(now).gt(0)
+                .and("status").ne(GameConstant.Mail.STATUS_GET_ITEMS)
+                .and("items").exists(true).ne(null).not().size(0);
+        List<Mail> mailsToAutoClaim = mongoTemplate.find(Query.query(hasItemsAndNotClaimedCriteria), Mail.class);
+        result.setMailsToAutoClaim(mailsToAutoClaim);
+
+        // 4. 清除系统邮件
         Set<Long> removeSet = new HashSet<>();
         List<Mail> mailList = getServerMails();
         for (Mail mail : mailList) {
@@ -298,7 +346,13 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
         if (!removeSet.isEmpty()) {
             deletedServermails = redisTemplate.opsForHash().delete(serverMailTableName, removeSet.toArray());
         }
-        log.info("删除玩家过期邮件数 : {} , 删除过期全服邮件数: {}", deleteResult.getDeletedCount(), deletedServermails);
+        result.setServerMailsDeletedCount(deletedServermails);
+
+        log.info("删除无附件过期邮件数: {}, 删除已领取附件过期邮件数: {}, 需要自动领取的邮件数: {}, 删除过期全服邮件数: {}",
+                noItemsDeleteResult.getDeletedCount(), claimedItemsDeleteResult.getDeletedCount(),
+                mailsToAutoClaim.size(), deletedServermails);
+
+        return result;
     }
 
     /**
@@ -348,5 +402,55 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
      */
     public boolean playerHasServerMail(long playerId, long mailId) {
         return redisTemplate.opsForSet().isMember(getPlayerServerMailTableName(mailId), playerId);
+    }
+
+    /**
+     * 清理邮件结果类
+     */
+    public static class CleanMailsResult {
+        private long noItemsDeletedCount;          // 无附件删除数量
+        private long claimedItemsDeletedCount;     // 已领取附件删除数量
+        private List<Mail> mailsToAutoClaim;       // 需要自动领取的邮件
+        private long serverMailsDeletedCount;      // 全服邮件删除数量
+
+        public CleanMailsResult() {
+            this.mailsToAutoClaim = new ArrayList<>();
+        }
+
+        public long getNoItemsDeletedCount() {
+            return noItemsDeletedCount;
+        }
+
+        public void setNoItemsDeletedCount(long noItemsDeletedCount) {
+            this.noItemsDeletedCount = noItemsDeletedCount;
+        }
+
+        public long getClaimedItemsDeletedCount() {
+            return claimedItemsDeletedCount;
+        }
+
+        public void setClaimedItemsDeletedCount(long claimedItemsDeletedCount) {
+            this.claimedItemsDeletedCount = claimedItemsDeletedCount;
+        }
+
+        public List<Mail> getMailsToAutoClaim() {
+            return mailsToAutoClaim;
+        }
+
+        public void setMailsToAutoClaim(List<Mail> mailsToAutoClaim) {
+            this.mailsToAutoClaim = mailsToAutoClaim;
+        }
+
+        public long getServerMailsDeletedCount() {
+            return serverMailsDeletedCount;
+        }
+
+        public void setServerMailsDeletedCount(long serverMailsDeletedCount) {
+            this.serverMailsDeletedCount = serverMailsDeletedCount;
+        }
+
+        public long getTotalDeletedCount() {
+            return noItemsDeletedCount + claimedItemsDeletedCount;
+        }
     }
 }
