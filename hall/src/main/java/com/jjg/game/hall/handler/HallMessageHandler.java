@@ -575,7 +575,9 @@ public class HallMessageHandler implements GmListener {
                     res.mails.add(info);
                 });
             }
-
+            if (req.page == 0) {
+                mailService.updateRedDot(playerController.playerId());
+            }
             log.debug("玩家获取邮件列表 playerId = {},page = {},size = {}", playerController.playerId(), req.page, res.mails == null ? 0 : res.mails.size());
         } catch (Exception e) {
             log.error("", e);
