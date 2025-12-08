@@ -40,6 +40,9 @@ public class SlotsPoolDao extends AbstractPoolDao {
     public void initPool() {
         for (Map.Entry<Integer, BaseRoomCfg> en : GameDataManager.getBaseRoomCfgMap().entrySet()) {
             BaseRoomCfg cfg = en.getValue();
+            if (cfg.getRoomName() >= 10) {
+                continue;
+            }
             this.redisTemplate.opsForHash().putIfAbsent(tableName(cfg.getGameType()), cfg.getId(), cfg.getInitBasePool());
             this.redisTemplate.opsForHash().putIfAbsent(smallTableName(cfg.getGameType()), cfg.getId(), 0);
             this.redisTemplate.opsForHash().putIfAbsent(fakeSmallTableName(cfg.getGameType()), cfg.getId(), cfg.getFakePool());
