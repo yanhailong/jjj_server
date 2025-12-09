@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
@@ -15,6 +16,8 @@ import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightResultL
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAddIconInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAwardLineInfo;
+import com.jjg.game.slots.game.thor.ThorConstant;
+import com.jjg.game.slots.game.thor.data.ThorResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
@@ -38,6 +41,63 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
     //
     private ChristmasBashNightAddFreeInfo mahjiongWinAddFreeInfo;
 
+
+    @Override
+    protected List<SpecialAuxiliaryInfo> overallDisperse(ChristmasBashNightResultLib lib) {
+        //获取全局分散图案的配置
+        Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE_GLOBAL);
+        if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
+            return null;
+        }
+
+        //获取每个图标出现的次数
+        Map<Integer, Integer> showCountMap = checkIconShowCount(lib.getIconArr());
+        //已经出现的小游戏id
+        Set<Integer> showAuxiliaryIdSet = new HashSet<>();
+        addShowAuxiliaryId(lib, showAuxiliaryIdSet);
+
+        log.debug("检查全局分散");
+
+        //小游戏
+        List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = new ArrayList<>();
+
+        for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
+            BaseElementRewardCfg cfg = en.getValue();
+
+            //检查出现的个数是否满足
+            int elementsCount = 0;
+            for (int iconId : cfg.getElementId()) {
+                Integer count = showCountMap.get(iconId);
+                if (count != null) {
+                    elementsCount += count;
+                }
+            }
+            if (elementsCount != cfg.getRewardNum()) {
+                continue;
+            }
+
+            //是否触发小游戏
+            if (cfg.getFeatureTriggerId() != null && !cfg.getFeatureTriggerId().isEmpty()) {
+                cfg.getFeatureTriggerId().forEach(miniGameId -> {
+                    if (!showAuxiliaryIdSet.contains(miniGameId)) { //如果没出现过的小游戏可以触发
+                        lib.getLibTypeSet().forEach(libType -> {
+                            SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
+                            if (specialAuxiliaryInfo != null) {
+                                showAuxiliaryIdSet.add(miniGameId);
+                                specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
+                            }
+                        });
+                    }
+
+                });
+            }
+
+            if(lib.getJackpotId() < 1){
+                lib.setJackpotId(cfg.getJackpotID());
+            }
+        }
+        return specialAuxiliaryInfoList;
+    }
 
     @Override
     public ChristmasBashNightResultLib checkAward(int[] arr, ChristmasBashNightResultLib lib, boolean freeModel) throws Exception {
@@ -378,6 +438,10 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
 
     @Override
     public void calTimes(ChristmasBashNightResultLib lib) throws Exception {
+        if (!checkElement(lib)) {
+            throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
+        }
+
         if (lib.getSpecialAuxiliaryInfoList() != null && !lib.getSpecialAuxiliaryInfoList().isEmpty()) {
             for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
                 if (specialAuxiliaryInfo.getFreeGames() != null && !specialAuxiliaryInfo.getFreeGames().isEmpty()) {
@@ -538,4 +602,88 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         }
         System.out.println(sb);
     }
+
+    /**
+     * 添加已经出现的小游戏id
+     *
+     * @param lib
+     * @param set
+     */
+    private void addShowAuxiliaryId(ChristmasBashNightResultLib lib, Set<Integer> set) {
+        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            return;
+        }
+
+        lib.getSpecialAuxiliaryInfoList().forEach(info -> {
+            set.add(info.getCfgId());
+        });
+    }
+
+    /**
+     * 检查奖池模式
+     *
+     * @param lib
+     * @return
+     */
+    private boolean checkJackpool(ChristmasBashNightResultLib lib) {
+        if(lib.getJackpotId() < 1){
+            return false;
+        }
+
+        int count = 0;
+        int jackpool = 0;
+        for (int i = 0; i < lib.getIconArr().length; i++) {
+            int icon = lib.getIconArr()[i];
+            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
+                count++;
+            } else if (icon == ThorConstant.BaseElement.ID_MINI || icon == ThorConstant.BaseElement.ID_MINOR ||
+                    icon == ThorConstant.BaseElement.ID_MAJOR || icon == ThorConstant.BaseElement.ID_GRAND) {
+                jackpool++;
+            }
+        }
+        return count >= 2 && jackpool > 0;
+    }
+    /**
+     * 检查免费触发局
+     *
+     * @param lib
+     * @return
+     */
+    private boolean checkTriggerFree(ChristmasBashNightResultLib lib) {
+        int count = 0;
+        for (int i = 0; i < lib.getIconArr().length; i++) {
+            int icon = lib.getIconArr()[i];
+            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
+                count++;
+            }
+        }
+        return count >= 3;
+    }
+
+    /**
+     * 检查元素与小游戏所需要的参数是否匹配
+     *
+     * @param lib
+     */
+    private boolean checkElement(ChristmasBashNightResultLib lib) {
+        if (lib.getLibTypeSet() == null || lib.getLibTypeSet().isEmpty()) {
+            return true;
+        }
+
+        //检查二选一
+        if (lib.getLibTypeSet().contains(ChristmasBashNightConstant.SpecialMode.FREE)
+                && !checkTriggerFree(lib)) {
+            log.warn("检查免费触发局失败");
+            return false;
+        }
+
+        //检查jackpool模式
+        if (lib.getLibTypeSet().contains(ChristmasBashNightConstant.SpecialMode.JACKPOOL) && !checkJackpool(lib)) {
+            log.warn("检查jackpool模式失败");
+            return false;
+        }
+
+        return true;
+    }
+
 }
