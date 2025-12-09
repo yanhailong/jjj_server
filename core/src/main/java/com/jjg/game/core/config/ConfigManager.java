@@ -222,7 +222,6 @@ public class ConfigManager {
      * @return 返回指定类型的配置列表
      */
     public <T extends AbstractExcelConfig> List<T> getConfigs(String name) {
-        log.debug("获取时打印本地缓存 localCache = {}",JSON.toJSONString(localCache));
         Map<Integer, AbstractExcelConfig> excelConfigMap = localCache.get(name);
         if (excelConfigMap == null) {
             return Collections.emptyList();
