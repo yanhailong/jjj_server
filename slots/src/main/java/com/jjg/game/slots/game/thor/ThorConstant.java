@@ -34,27 +34,19 @@ public interface ThorConstant {
     /**
      * 基础元素
      */
+    interface Common{
+        //免费模式最后一局修改格子
+        int FREE_LAST_ONE_UPDATE_GIRD = 10220099;
+    }
+
     interface BaseElement{
-        //金火车
-        int ID_GOLD_TRAIN = 15;
-        //保险箱
-        int ID_SAFE_BOX = 16;
-        //all board
-        int ID_ALL_ABOARD = 17;
-        //美金
-        int ID_DOLLAR = 18;
-        //绿火车
-        int ID_GREEN_TRAIN = 19;
-        //蓝火车
-        int ID_BLUE_TRAIN = 20;
-        //紫火车
-        int ID_PURPLE_TRAIN = 21;
-        //红火车
-        int ID_RED_TRAIN = 22;
-        //美金2
-        int ID_DOLLAR_2 = 28;
-        //触发免费
-        int ID_FREE = 30;
+        int ID_WILD = 11;
+        int ID_HEIMDALL = 8;
+        int ID_SCATTER = 14;
+        int ID_MINI = 15;
+        int ID_MINOR = 16;
+        int ID_MAJOR = 17;
+        int ID_GRAND = 18;
     }
 
     interface MsgBean {

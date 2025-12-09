@@ -1,24 +1,23 @@
 package com.jjg.game.slots.game.thor.manager;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
 import com.jjg.game.sampledata.bean.BaseLineCfg;
+import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
+import com.jjg.game.sampledata.bean.SpecialModeCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.data.SpecialGirdInfo;
-import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressAwardLineInfo;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.game.thor.data.ThorAwardLineInfo;
 import com.jjg.game.slots.game.thor.data.ThorResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author 11
@@ -61,8 +60,14 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
 
         //获取每个图标出现的次数
         Map<Integer, Integer> showCountMap = checkIconShowCount(lib.getIconArr());
+        //已经出现的小游戏id
+        Set<Integer> showAuxiliaryIdSet = new HashSet<>();
+        addShowAuxiliaryId(lib, showAuxiliaryIdSet);
 
         log.debug("检查全局分散");
+
+        //小游戏
+        List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = new ArrayList<>();
 
         for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
             BaseElementRewardCfg cfg = en.getValue();
@@ -79,21 +84,280 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
                 continue;
             }
 
+            //是否触发小游戏
+            if (cfg.getFeatureTriggerId() != null && !cfg.getFeatureTriggerId().isEmpty()) {
+                cfg.getFeatureTriggerId().forEach(miniGameId -> {
+                    if (!showAuxiliaryIdSet.contains(miniGameId)) { //如果没出现过的小游戏可以触发
+                        lib.getLibTypeSet().forEach(libType -> {
+                            SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
+                            if (specialAuxiliaryInfo != null) {
+                                showAuxiliaryIdSet.add(miniGameId);
+                                specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
+                            }
+                        });
+                    }
+
+                });
+            }
             lib.setJackpotId(cfg.getJackpotID());
             break;
+        }
+        return specialAuxiliaryInfoList;
+    }
+
+    @Override
+    protected void triggerFree(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig, SpecialAuxiliaryInfo specialAuxiliaryInfo) {
+        if (specialAuxiliaryPropConfig.getTriggerCountPropInfo() == null) {
+            return;
+        }
+
+        //检查是否有免费旋转次数，免费旋转的结果，通过specialMode生成
+        Integer freeCount = specialAuxiliaryPropConfig.getTriggerCountPropInfo().getRandKey();
+        if (freeCount == null || freeCount < 1) {
+            return;
+        }
+
+        //最后一局
+        int lastOne = freeCount - 1;
+        //倒数第二局
+        int lastSecondOne = lastOne - 1;
+        Set<Integer> wildSet = null;
+
+        for (int i = 0; i < freeCount; i++) {
+            //检查是否有修改图案策略组id
+            int specialGroupGirdID = 0;
+            if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
+                Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
+                if (randKey != null && randKey > 0) {
+                    specialGroupGirdID = randKey;
+                }
+            }
+
+            ThorResultLib lib;
+            if (specialModeType == ThorConstant.SpecialMode.FIRE) {  //火焰模式
+                if (i == lastOne) {
+                    lib = generateLastFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+                } else {
+                    lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+                }
+            } else {  //冰雪模式
+                if (i == lastOne) {
+                    //如果是最后一局，检查wild有没有出现在7，8位置上
+                    if (wildSet != null && (wildSet.contains(7) || wildSet.contains(8))) {
+                        i--;
+                        lib = generateIceFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, wildSet);
+                        wildSet = addWild(lib.getIconArr());
+                    }else {
+                        lib = generateLastFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+                    }
+                } else {
+                    lib = generateIceFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, wildSet);
+                    wildSet = addWild(lib.getIconArr());
+                }
+            }
+
+            specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
+        }
+    }
+
+    public ThorResultLib generateIceFreeOne(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, int specialGroupGirdID, Set<Integer> wildSet) {
+        try {
+            //获取模式配置
+            SpecialModeCfg specialModeCfg = this.specialModeCfgMap.get(specialModeType);
+            if (specialModeCfg == null) {
+                log.warn("生成免费游戏图标时，specialModeCfg 配置为空 gameType = {},specialModeType = {}", this.gameType, specialModeType);
+                return null;
+            }
+
+            //创建结果库对象
+            ThorResultLib lib = createResultLib();
+            lib.setId(RandomUtils.getUUid());
+            lib.setRollerMode(specialModeCfg.getRollerMode());
+
+            //生成所有的图标
+            int[] arr = generateAllIcons(specialModeCfg.getRollerMode(), specialModeCfg.getCols(), specialModeCfg.getRows());
+            if (arr == null) {
+                return null;
+            }
+
+            log.debug("生成免费游戏图标 arr = {}", Arrays.toString(arr));
+
+            //修改格子策略组
+            if (specialGroupGirdID > 0) {
+                SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGroupGirdID, arr);
+                if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
+                    lib.addSpecialGirdInfo(specialGirdInfo);
+                }
+            }
+
+            //修改格子
+            if (specialAuxiliaryCfg.getSpecialGirdID() != null && !specialAuxiliaryCfg.getSpecialGirdID().isEmpty()) {
+                for (int specialGirdCfgId : specialAuxiliaryCfg.getSpecialGirdID()) {
+                    SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGirdCfgId, arr);
+                    if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
+                        lib.addSpecialGirdInfo(specialGirdInfo);
+                    }
+                }
+            }
+
+            if (wildSet != null && !wildSet.isEmpty()) {
+                for (int wildIndex : wildSet) {
+                    arr[wildIndex] = ThorConstant.BaseElement.ID_WILD;
+                }
+            }
+
+            //判断中奖，返回
+            return checkAward(arr, lib, true);
+        } catch (Exception e) {
+            log.error("", e);
         }
         return null;
     }
 
+    /**
+     * 生成免费模式的最后一局结果
+     *
+     * @param specialModeType
+     * @param specialAuxiliaryCfg
+     * @param specialGroupGirdID
+     * @return
+     */
+    private ThorResultLib generateLastFreeOne(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, int specialGroupGirdID) {
+        try {
+            //获取模式配置
+            SpecialModeCfg specialModeCfg = this.specialModeCfgMap.get(specialModeType);
+            if (specialModeCfg == null) {
+                log.warn("生成免费游戏图标时，specialModeCfg 配置为空 gameType = {},specialModeType = {}", this.gameType, specialModeType);
+                return null;
+            }
+
+            //创建结果库对象
+            ThorResultLib lib = createResultLib();
+            lib.setId(RandomUtils.getUUid());
+            lib.setRollerMode(specialModeCfg.getRollerMode());
+
+            //生成所有的图标
+            int[] arr = generateAllIcons(specialModeCfg.getRollerMode(), specialModeCfg.getCols(), specialModeCfg.getRows());
+            if (arr == null) {
+                return null;
+            }
+
+            log.debug("生成免费游戏图标 arr = {}", Arrays.toString(arr));
+
+            //修改格子策略组
+            if (specialGroupGirdID > 0) {
+                SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGroupGirdID, arr);
+                if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
+                    lib.addSpecialGirdInfo(specialGirdInfo);
+                }
+            }
+
+            //修改格子
+            if (specialAuxiliaryCfg.getSpecialGirdID() != null && !specialAuxiliaryCfg.getSpecialGirdID().isEmpty()) {
+                for (int specialGirdCfgId : specialAuxiliaryCfg.getSpecialGirdID()) {
+                    SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGirdCfgId, arr);
+                    if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
+                        lib.addSpecialGirdInfo(specialGirdInfo);
+                    }
+                }
+            }
+
+            //修改格子
+            SpecialGirdInfo specialGirdInfo = gridUpdate(lib, ThorConstant.Common.FREE_LAST_ONE_UPDATE_GIRD, arr);
+            if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
+                lib.addSpecialGirdInfo(specialGirdInfo);
+            }
+
+            //判断中奖，返回
+            return checkAward(arr, lib, true);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        return null;
+    }
+
+    /**
+     * 获取所有的wild坐标
+     *
+     * @param arr
+     * @return
+     */
+    private Set<Integer> addWild(int[] arr) {
+        Set<Integer> set = null;
+        for (int i = 0; i < arr.length; i++) {
+            int icon = arr[i];
+            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
+                if (set == null) {
+                    set = new HashSet<>();
+                }
+                set.add(i);
+            }
+        }
+        return set;
+    }
+
     @Override
     public void calTimes(ThorResultLib lib) throws Exception {
-        if(!checkElement(lib)){
-            log.warn("lib = {}", JSONObject.toJSONString(lib));
-            throw new IllegalArgumentException("检查结果有错误");
+        if (!checkElement(lib)) {
+            throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
+        }
+        //中奖线
+        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        //保险箱
+//        lib.addTimes(calSafeBox(lib));
+        //免费
+        lib.addTimes(calFree(lib));
+    }
+
+    /**
+     * 计算中奖线的倍数
+     *
+     * @param list
+     * @return
+     */
+    private int calLineTimes(List<ThorAwardLineInfo> list) {
+        if (list == null || list.isEmpty()) {
+            return 0;
         }
 
+        int times = 0;
+        for (ThorAwardLineInfo awardLineInfo : list) {
+            if (awardLineInfo.getOtherIconAwardInfoMap() == null || awardLineInfo.getOtherIconAwardInfoMap().isEmpty()) {
+                times += awardLineInfo.getBaseTimes();
+                continue;
+            }
+            for (Map.Entry<Integer, Integer> en : awardLineInfo.getOtherIconAwardInfoMap().entrySet()) {
+                int tmpTimes = awardLineInfo.getBaseTimes() * en.getValue();
+                times += tmpTimes;
+            }
+        }
+        return times;
+    }
 
-        super.calTimes(lib);
+    /**
+     * 计算免费游戏的总倍数
+     *
+     * @param lib
+     * @return
+     */
+    private long calFree(ThorResultLib lib) throws Exception {
+        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            return 0;
+        }
+
+        long times = 0;
+        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+            if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
+                continue;
+            }
+
+            for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
+                ThorResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), ThorResultLib.class);
+                calTimes(tmpLib);
+                times += tmpLib.getTimes();
+            }
+        }
+        return times;
     }
 
 
@@ -108,44 +372,110 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
         }
 
         //检查二选一
-//        if (lib.getLibTypeSet().contains(ThorConstant.SpecialMode.FREE)
-//                && !checkTriggerFree(lib)) {
-//            log.warn("检查免费触发局失败");
-//            return false;
-//        }
-//
-//        //检查黄金列车
-//        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN) && !checkGoldTrainIcon(lib.getIconArr())) {
-//            log.warn("检查黄金列车失败");
-//            return false;
-//        }
-//
-//        //检查二选一
-//        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_ALL_BOARD) && !checkAllBoard(lib.getIconArr())) {
-//            log.warn("检查二选一失败");
-//            return false;
-//        }
-//
-//        //检查保险箱
-//        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_SAFE_BOX) && !checkSafeBox(lib)) {
-//            log.warn("检查保险箱失败");
-//            return false;
-//        }
-//
-//        //检查免费模式
-//        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE) && !checkFreeIcon(lib.getIconArr())) {
-//            log.warn("检查免费模式失败");
-//            return false;
-//        }
+        if (lib.getLibTypeSet().contains(ThorConstant.SpecialMode.FREE)
+                && !checkTriggerFree(lib)) {
+            log.warn("检查免费触发局失败");
+            return false;
+        }
+
+        //检查jackpool模式
+        if (lib.getLibTypeSet().contains(ThorConstant.SpecialMode.JACKPOOL) && !checkJackpool(lib)) {
+            log.warn("检查jackpool模式失败");
+            return false;
+        }
+
+        //检查免费模式
+        if ((lib.getLibTypeSet().contains(ThorConstant.SpecialMode.FIRE) || lib.getLibTypeSet().contains(ThorConstant.SpecialMode.ICE)) && !checkFreeModel(lib)) {
+            log.warn("检查免费模式失败");
+            return false;
+        }
         return true;
     }
 
     /**
      * 检查免费触发局
+     *
      * @param lib
      * @return
      */
-    private boolean checkTriggerFree(ThorResultLib lib){
+    private boolean checkTriggerFree(ThorResultLib lib) {
+        int count = 0;
+        for (int i = 0; i < lib.getIconArr().length; i++) {
+            int icon = lib.getIconArr()[i];
+            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
+                count++;
+            }
+        }
+        return count >= 3;
+    }
+
+    /**
+     * 检查奖池模式
+     *
+     * @param lib
+     * @return
+     */
+    private boolean checkJackpool(ThorResultLib lib) {
+        int count = 0;
+        int jackpool = 0;
+        for (int i = 0; i < lib.getIconArr().length; i++) {
+            int icon = lib.getIconArr()[i];
+            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
+                count++;
+            } else if (icon == ThorConstant.BaseElement.ID_MINI || icon == ThorConstant.BaseElement.ID_MINOR ||
+                    icon == ThorConstant.BaseElement.ID_MAJOR || icon == ThorConstant.BaseElement.ID_GRAND) {
+                jackpool++;
+            }
+        }
+        return count >= 2 && jackpool > 0;
+    }
+
+    private boolean checkFreeModel(ThorResultLib lib) {
+        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+            if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
+                continue;
+            }
+
+            int len = specialAuxiliaryInfo.getFreeGames().size();
+            int lastIndex = len - 1;
+            for (int i = 0; i < len; i++) {
+                JSONObject jsonObject = specialAuxiliaryInfo.getFreeGames().get(i);
+                ThorResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), ThorResultLib.class);
+
+                int icon7 = tmpLib.getIconArr()[7];
+                int icon8 = tmpLib.getIconArr()[8];
+
+                boolean iconLast = (icon7 == ThorConstant.BaseElement.ID_HEIMDALL && icon8 == ThorConstant.BaseElement.ID_HEIMDALL);
+                if (i == lastIndex) {
+                    if (!iconLast) {
+                        log.debug("免费最后一局没有海姆达尔");
+                        return false;
+                    }
+                } else {
+                    if (iconLast) {
+                        log.debug("免费中途不能有海姆达尔");
+                        return false;
+                    }
+                }
+            }
+
+        }
         return true;
+    }
+
+    /**
+     * 添加已经出现的小游戏id
+     *
+     * @param lib
+     * @param set
+     */
+    private void addShowAuxiliaryId(ThorResultLib lib, Set<Integer> set) {
+        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            return;
+        }
+
+        lib.getSpecialAuxiliaryInfoList().forEach(info -> {
+            set.add(info.getCfgId());
+        });
     }
 }
