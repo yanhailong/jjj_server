@@ -404,7 +404,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             if (gamePlayer != null && !(gamePlayer instanceof GameRobotPlayer)) {
                 if (info.betValue > 0) {
                     //触发任务
-                    gameController.triggerTask(gamePlayer.getId(), gameController.getRoom().getGameType(), 0,
+                    gameController.triggerSettlementAction(gamePlayer.getId(), gameController.getRoom().getGameType(), 0,
                             info.betValue, gameController.getGameTransactionItemId());
                 } else {
                     gameController.dealLose(gamePlayer, info.betValue);

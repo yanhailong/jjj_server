@@ -242,7 +242,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                         dealEffectiveBet(gamePlayer, finalBetValue);
                     }
                 }.setHandlerParamWithSelf("texas dealEffectiveBet"));
-                triggerTask(playerId, gameControlType().getGameTypeId(), finalBetValue, 0, getGameTransactionItemId());
+                triggerSettlementAction(playerId, gameControlType().getGameTypeId(), finalBetValue, 0, getGameTransactionItemId());
             }
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasBet));
         } else {
@@ -255,7 +255,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                             dealEffectiveBet(gamePlayer, finalBetValue);
                         }
                     }.setHandlerParamWithSelf("texas dealEffectiveBet"));
-                    triggerTask(playerId, gameControlType().getGameTypeId(), finalBetValue, 0, getGameTransactionItemId());
+                    triggerSettlementAction(playerId, gameControlType().getGameTypeId(), finalBetValue, 0, getGameTransactionItemId());
                 }
             }
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasBet));
