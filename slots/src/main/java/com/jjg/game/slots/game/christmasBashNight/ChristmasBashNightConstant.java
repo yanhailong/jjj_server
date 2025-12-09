@@ -35,6 +35,13 @@ public interface ChristmasBashNightConstant {
         int FREE = 1;
     }
 
+    interface BaseElement{
+        //金色图标最小id
+        int GOLD_MIN = 11;
+        //金色图标最大id
+        int GOLD_MAX = 18;
+    }
+
     interface SpecialMode{
         int NORMAL = 1;
         int FREE = 2;
