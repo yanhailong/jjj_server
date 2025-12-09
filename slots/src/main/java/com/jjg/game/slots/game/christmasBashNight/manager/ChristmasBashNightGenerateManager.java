@@ -12,6 +12,9 @@ import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAddFree
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAddIconInfo;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAwardLineInfo;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightResultLib;
+import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
+import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAddIconInfo;
+import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAwardLineInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
@@ -37,70 +40,70 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
 
 
     @Override
-    public ChristmasBashNightResultLib checkAward(int[] arr, ChristmasBashNightResultLib lib) throws Exception {
-        lib.setGameType(this.gameType);
-        lib.setIconArr(arr);
+    public ChristmasBashNightResultLib checkAward(int[] arr, ChristmasBashNightResultLib lib, boolean freeModel) throws Exception {
+        if (freeModel) {
+            lib.setGameType(this.gameType);
+            lib.setIconArr(arr);
 
-        //检查满线图案
-        List<ChristmasBashNightAwardLineInfo> fullLineInfoList = fullLine(lib);
-        lib.addAllAwardLineInfo(fullLineInfoList);
+            //检查满线图案
+            List<ChristmasBashNightAwardLineInfo> fullLineInfoList = fullLine(lib);
+            lib.addAllAwardLineInfo(fullLineInfoList);
 
-        //检查全局分散图案
-        List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
-        lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
+            //检查全局分散图案
+            List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
+            lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
 
-        //存储消除后添加的图标
-        List<ChristmasBashNightAddIconInfo> addIconInfoList = new ArrayList<>();
+            //存储消除后添加的图标
+            List<ChristmasBashNightAddIconInfo> addIconInfoList = new ArrayList<>();
 
-        //拷贝数组
-        int[] newArr = new int[arr.length];
-        System.arraycopy(arr, 0, newArr, 0, arr.length);
+            //拷贝数组
+            int[] newArr = new int[arr.length];
+            System.arraycopy(arr, 0, newArr, 0, arr.length);
 
-        if(lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
-            lib.getLibTypeSet().forEach(type -> {
-                //是否有消除
-                repairIcons(type, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
-            });
+            //是否有消除
+            repairIcons(MahjiongWinConstant.SpecialMode.FREE, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
+
+            if (!addIconInfoList.isEmpty()) {
+                lib.setAddIconInfos(addIconInfoList);
+            }
+
+            calTimes(lib);
+            return lib;
+        } else {
+            lib.setGameType(this.gameType);
+            lib.setIconArr(arr);
+
+            //检查满线图案
+            List<ChristmasBashNightAwardLineInfo> fullLineInfoList = fullLine(lib);
+            lib.addAllAwardLineInfo(fullLineInfoList);
+
+            //检查全局分散图案
+            List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
+            lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
+
+            //存储消除后添加的图标
+            List<ChristmasBashNightAddIconInfo> addIconInfoList = new ArrayList<>();
+
+            //拷贝数组
+            int[] newArr = new int[arr.length];
+            System.arraycopy(arr, 0, newArr, 0, arr.length);
+
+            if (lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
+                lib.getLibTypeSet().forEach(type -> {
+                    //是否有消除
+                    repairIcons(type, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
+                });
+            }
+
+            if (!addIconInfoList.isEmpty()) {
+                lib.setAddIconInfos(addIconInfoList);
+            }
+
+            calTimes(lib);
+
+            return lib;
         }
-
-        if (!addIconInfoList.isEmpty()) {
-            lib.setAddIconInfos(addIconInfoList);
-        }
-
-        calTimes(lib);
-        return lib;
     }
-
-//    @Override
-//    public ChristmasBashNightResultLib checkFreeAward(int[] arr, ChristmasBashNightResultLib lib) throws Exception {
-//        lib.setGameType(this.gameType);
-//        lib.setIconArr(arr);
-//
-//        //检查满线图案
-//        List<ChristmasBashNightAwardLineInfo> fullLineInfoList = fullLine(lib);
-//        lib.addAllAwardLineInfo(fullLineInfoList);
-//
-//        //检查全局分散图案
-//        List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
-//        lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
-//
-//        //存储消除后添加的图标
-//        List<ChristmasBashNightAddIconInfo> addIconInfoList = new ArrayList<>();
-//
-//        //拷贝数组
-//        int[] newArr = new int[arr.length];
-//        System.arraycopy(arr, 0, newArr, 0, arr.length);
-//
-//        //是否有消除
-//        repairIcons(ChristmasBashNightConstant.SpecialMode.FREE, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
-//
-//        if (!addIconInfoList.isEmpty()) {
-//            lib.setAddIconInfos(addIconInfoList);
-//        }
-//
-//        calTimes(lib);
-//        return lib;
-//    }
 
     @Override
     protected ChristmasBashNightAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
@@ -109,27 +112,27 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         info.setSameIconSet(sameIconIndexSet);
         info.setSameIcon(cfg.getElementId().getFirst() % 10);
 
-        if(info.getSameIconSet() != null && !info.getSameIconSet().isEmpty()) {
+        if (info.getSameIconSet() != null && !info.getSameIconSet().isEmpty()) {
             //记录每一列中奖的个数
             BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
 
-            Map<Integer,Integer> columIconCountMap = new HashMap<>();
-            for(int index : info.getSameIconSet()) {
+            Map<Integer, Integer> columIconCountMap = new HashMap<>();
+            for (int index : info.getSameIconSet()) {
                 //根据坐标，计算它在哪一列
                 int colId = index / baseInitCfg.getRows();
-                if((index % baseInitCfg.getRows()) != 0){
+                if ((index % baseInitCfg.getRows()) != 0) {
                     colId++;
                 }
                 columIconCountMap.merge(colId, 1, Integer::sum);
             }
 
             int addTimes = 1;
-            for(Map.Entry<Integer,Integer> en : columIconCountMap.entrySet()){
+            for (Map.Entry<Integer, Integer> en : columIconCountMap.entrySet()) {
                 addTimes *= en.getValue();
             }
 
             info.setBaseTimes(cfg.getBet() * addTimes);
-        }else {
+        } else {
             info.setBaseTimes(cfg.getBet());
         }
         return info;
@@ -234,13 +237,13 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
 
                 int icon = arr[index];
 
-//                //判断消除的图标是不是金色图标
-//                if (icon >= ChristmasBashNightConstant.BaseElement.GOLD_MIN && icon <= ChristmasBashNightConstant.BaseElement.GOLD_MAX) {
-//                    Integer replaceIcon = this.replaceIconMap.get(icon);
-//                    if (replaceIcon != null) {
-//                        replaceWildIndexs.add(index);
-//                    }
-//                }
+                //判断消除的图标是不是金色图标
+                if (icon >= ChristmasBashNightConstant.BaseElement.GOLD_MIN && icon <= ChristmasBashNightConstant.BaseElement.GOLD_MAX) {
+                    Integer replaceIcon = this.replaceIconMap.get(icon);
+                    if (replaceIcon != null) {
+                        replaceWildIndexs.add(index);
+                    }
+                }
             });
 
             info.setReplaceWildIndexs(replaceWildIndexs);
@@ -316,13 +319,13 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         for (int i = beginIndex; i <= endIndex; i++) {
             int icon = arr[i];
             if (removedIndexes.contains(i)) {
-//                //判断消除的图标是不是金色图标
-//                if (icon >= ChristmasBashNightConstant.BaseElement.GOLD_MIN && icon <= ChristmasBashNightConstant.BaseElement.GOLD_MAX) {
-//                    Integer replaceIcon = this.replaceIconMap.get(icon);
-//                    if (replaceIcon != null) {
-//                        validIndexes.add(replaceIcon);
-//                    }
-//                }
+                //判断消除的图标是不是金色图标
+                if (icon >= ChristmasBashNightConstant.BaseElement.GOLD_MIN && icon <= ChristmasBashNightConstant.BaseElement.GOLD_MAX) {
+                    Integer replaceIcon = this.replaceIconMap.get(icon);
+                    if (replaceIcon != null) {
+                        validIndexes.add(replaceIcon);
+                    }
+                }
             } else {
                 validIndexes.add(icon);
             }
@@ -375,9 +378,9 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
 
     @Override
     public void calTimes(ChristmasBashNightResultLib lib) throws Exception {
-        if(lib.getSpecialAuxiliaryInfoList() != null && !lib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            for(SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()){
-                if(specialAuxiliaryInfo.getFreeGames() != null && !specialAuxiliaryInfo.getFreeGames().isEmpty()) {
+        if (lib.getSpecialAuxiliaryInfoList() != null && !lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+                if (specialAuxiliaryInfo.getFreeGames() != null && !specialAuxiliaryInfo.getFreeGames().isEmpty()) {
                     Set<Integer> libTypeSet = new HashSet<>();
                     libTypeSet.add(ChristmasBashNightConstant.SpecialMode.FREE);
                     lib.setLibTypeSet(libTypeSet);
