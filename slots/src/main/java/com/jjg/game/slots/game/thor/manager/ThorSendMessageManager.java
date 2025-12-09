@@ -7,6 +7,8 @@ import com.jjg.game.core.manager.BaseSendMessageManager;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
+import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.game.dollarexpress.pb.PoolInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResPoolValue;
 import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
 import com.jjg.game.slots.game.thor.pb.ResThorFreeChooseOne;
@@ -17,7 +19,10 @@ import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * @author 11
@@ -48,7 +53,12 @@ public class ThorSendMessageManager extends BaseSendMessageManager {
         ResThorEnterGame res = new ResThorEnterGame(Code.SUCCESS);
         if (config != null) {
             List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
+            res.stakeList = new ArrayList<>(list.size());
+            for(long[] arr : list){
+                res.stakeList.add(arr[1]);
+            }
 
+            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -69,6 +79,22 @@ public class ThorSendMessageManager extends BaseSendMessageManager {
 
         ResThorStartGame res = new ResThorStartGame(gameRunInfo.getCode());
         if (gameRunInfo.success()) {
+            //玩家当前金币
+            res.allGold = gameRunInfo.getAfterGold();
+            //总计获得金币
+            res.allWinGold = gameRunInfo.getAllWinGold();
+            //当前状态
+            res.status = gameRunInfo.getStatus();
+            //图标信息
+            res.iconList = IntStream.range(1, gameRunInfo.getIconArr().length).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
+            //中奖线信息
+            res.winIconInfoList = gameRunInfo.getAwardLineInfos();
+            //大奖展示id
+            res.bigWinShow = gameRunInfo.getBigShowId();
+            //等级信息
+            res.level = playerController.getPlayer().getLevel();
+            res.exp = playerController.getPlayer().getExp();
+            res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
 
             logger.gameResult(playerController.getPlayer(), gameRunInfo,res);
         } else {
