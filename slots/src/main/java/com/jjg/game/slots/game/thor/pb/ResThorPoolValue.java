@@ -6,7 +6,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.slots.game.thor.ThorConstant;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.THOR, cmd = ThorConstant.MsgBean.REQ_POOL_VALUE, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.THOR, cmd = ThorConstant.MsgBean.RES_POOL_VALUE, resp = true)
 @ProtoDesc("返回奖池")
 public class ResThorPoolValue extends AbstractResponse {
     public long mini;
