@@ -10,6 +10,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
@@ -177,6 +178,25 @@ public class ThorGameManager extends AbstractSlotsGameManager<ThorPlayerGameData
         return gameRunInfo;
     }
 
+    /**
+     * 获取奖池
+     *
+     * @param playerController
+     */
+    public ThorGameRunInfo getPoolValue(PlayerController playerController, long stake) {
+        ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerController.playerId());
+        try {
+            gameRunInfo.setMini(getPoolValueByPoolId(ThorConstant.Common.MINI_POOL_ID, stake));
+            gameRunInfo.setMinor(getPoolValueByPoolId(ThorConstant.Common.MINOR_POOL_ID, stake));
+            gameRunInfo.setMajor(getPoolValueByPoolId(ThorConstant.Common.MAJOR_POOL_ID, stake));
+            gameRunInfo.setGrand(getPoolValueByPoolId(ThorConstant.Common.GRAND_POOL_ID, stake));
+        } catch (Exception e) {
+            log.error("", e);
+            gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
+    }
+
 
     /**
      * 普通正常流程
@@ -261,7 +281,27 @@ public class ThorGameManager extends AbstractSlotsGameManager<ThorPlayerGameData
             return gameRunInfo;
         }
 
+        try {
+            PoolCfg poolCfg = randWinPool(playerGameData, resultLib.getJackpotId());
+            if (poolCfg == null) {
+                log.warn("未找到对应的奖池配置 poolId = {}", resultLib.getJackpotId());
+                return gameRunInfo;
+            }
 
+            long poolValue = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), poolCfg.getDelayTime());
+            //给玩家加钱
+            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), poolValue, AddType.SLOTS_TRAIN, resultLib.getJackpotId() + "");
+            if (!result.success()) {
+                log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
+                return gameRunInfo;
+            }
+            playerGameData.addSmallPoolReward(poolValue);
+            gameRunInfo.addSmallPoolGold(poolValue);
+
+            log.info("玩家奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), resultLib.getJackpotId(), poolValue);
+        } catch (Exception e) {
+            log.error("", e);
+        }
         return gameRunInfo;
     }
 

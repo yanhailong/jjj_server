@@ -37,6 +37,11 @@ public interface ThorConstant {
     interface Common{
         //免费模式最后一局修改格子
         int FREE_LAST_ONE_UPDATE_GIRD = 10220099;
+
+        int MINI_POOL_ID = 101800101;
+        int MINOR_POOL_ID = 101800102;
+        int MAJOR_POOL_ID = 101800103;
+        int GRAND_POOL_ID = 101800104;
     }
 
     interface BaseElement{
@@ -62,5 +67,9 @@ public interface ThorConstant {
         //二选一
         int REQ_FREE_CHOOSE_ONE = BASE_MSG_PREFIX | 0x5;
         int RES_FREE_CHOOSE_ONE = BASE_MSG_PREFIX | 0x6;
+
+        //获取奖池
+        int REQ_POOL_VALUE = BASE_MSG_PREFIX | 0x7;
+        int RES_POOL_VALUE = BASE_MSG_PREFIX | 0x8;
     }
 }

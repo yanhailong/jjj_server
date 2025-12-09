@@ -338,6 +338,12 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
             lib.setRollerMode(specialModeCfg.getRollerMode());
             lib.addLibType(specialModeType);
 
+            //获取rollerMode
+            int rollerMode = specialAuxiliaryCfg.getRollerMode();
+            if (rollerMode < 1) {
+                rollerMode = specialModeCfg.getRollerMode();
+            }
+
             //生成所有的图标
             int[] arr = generateAllIcons(specialModeCfg.getRollerMode(), specialModeCfg.getCols(), specialModeCfg.getRows());
             if (arr == null) {
