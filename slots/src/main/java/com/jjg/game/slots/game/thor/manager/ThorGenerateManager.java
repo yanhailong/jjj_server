@@ -99,8 +99,10 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
 
                 });
             }
-            lib.setJackpotId(cfg.getJackpotID());
-            break;
+
+            if(lib.getJackpotId() < 1){
+                lib.setJackpotId(cfg.getJackpotID());
+            }
         }
         return specialAuxiliaryInfoList;
     }
@@ -119,8 +121,6 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
 
         //最后一局
         int lastOne = freeCount - 1;
-        //倒数第二局
-        int lastSecondOne = lastOne - 1;
         Set<Integer> wildSet = null;
 
         for (int i = 0; i < freeCount; i++) {
@@ -173,6 +173,12 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
             ThorResultLib lib = createResultLib();
             lib.setId(RandomUtils.getUUid());
             lib.setRollerMode(specialModeCfg.getRollerMode());
+
+            //获取rollerMode
+            int rollerMode = specialAuxiliaryCfg.getRollerMode();
+            if (rollerMode < 1) {
+                rollerMode = specialModeCfg.getRollerMode();
+            }
 
             //生成所有的图标
             int[] arr = generateAllIcons(specialModeCfg.getRollerMode(), specialModeCfg.getCols(), specialModeCfg.getRows());
@@ -236,6 +242,12 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
             lib.setId(RandomUtils.getUUid());
             lib.setRollerMode(specialModeCfg.getRollerMode());
 
+            //获取rollerMode
+            int rollerMode = specialAuxiliaryCfg.getRollerMode();
+            if (rollerMode < 1) {
+                rollerMode = specialModeCfg.getRollerMode();
+            }
+
             //生成所有的图标
             int[] arr = generateAllIcons(specialModeCfg.getRollerMode(), specialModeCfg.getCols(), specialModeCfg.getRows());
             if (arr == null) {
@@ -296,6 +308,16 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
         return set;
     }
 
+    private boolean hasWild(int[] arr) {
+        for (int i = 0; i < arr.length; i++) {
+            int icon = arr[i];
+            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public void calTimes(ThorResultLib lib) throws Exception {
         if (!checkElement(lib)) {
@@ -303,8 +325,6 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
         }
         //中奖线
         lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
-        //保险箱
-//        lib.addTimes(calSafeBox(lib));
         //免费
         lib.addTimes(calFree(lib));
     }
@@ -354,7 +374,13 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
             for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
                 ThorResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), ThorResultLib.class);
                 calTimes(tmpLib);
+                if(lib.getLibTypeSet().contains(ThorConstant.SpecialMode.ICE)){
+                    if(hasWild(tmpLib.getIconArr())){
+                        tmpLib.setTimes(tmpLib.getTimes() * 3);
+                    }
+                }
                 times += tmpLib.getTimes();
+
             }
         }
         return times;
@@ -416,6 +442,10 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
      * @return
      */
     private boolean checkJackpool(ThorResultLib lib) {
+        if(lib.getJackpotId() < 1){
+            return false;
+        }
+
         int count = 0;
         int jackpool = 0;
         for (int i = 0; i < lib.getIconArr().length; i++) {

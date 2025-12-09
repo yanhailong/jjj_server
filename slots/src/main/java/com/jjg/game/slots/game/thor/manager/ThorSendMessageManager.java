@@ -7,9 +7,11 @@ import com.jjg.game.core.manager.BaseSendMessageManager;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
+import com.jjg.game.slots.game.dollarexpress.pb.ResPoolValue;
 import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
 import com.jjg.game.slots.game.thor.pb.ResThorFreeChooseOne;
 import com.jjg.game.slots.game.thor.pb.ResThorEnterGame;
+import com.jjg.game.slots.game.thor.pb.ResThorPoolValue;
 import com.jjg.game.slots.game.thor.pb.ResThorStartGame;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,5 +99,29 @@ public class ThorSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回二选一结果", false);
+    }
+
+    /**
+     * 发送奖池结果
+     *
+     * @param playerController
+     * @param gameRunInfo
+     */
+    public void sendPoolMessage(PlayerController playerController, ThorGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+
+        ResThorPoolValue res = new ResThorPoolValue(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+            res.mini = gameRunInfo.getMini();
+            res.minor = gameRunInfo.getMinor();
+            res.major = gameRunInfo.getMajor();
+            res.grand = gameRunInfo.getGrand();
+        } else {
+            log.debug("奖池结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回奖池结果", false);
     }
 }
