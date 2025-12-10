@@ -470,6 +470,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
         Integer nowId = type.getGetter().apply(player);
         if (nowId == id) {
+            result.data = player;
             return result;
         }
         boolean has;
