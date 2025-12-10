@@ -39,7 +39,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
     //连续中奖增加倍数时，最大连续中奖次数
     private int maxWinCount;
     //
-    private ChristmasBashNightAddFreeInfo mahjiongWinAddFreeInfo;
+    private ChristmasBashNightAddFreeInfo christmasBashNightAddFreeInfo;
 
 
     @Override
@@ -242,7 +242,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
      * @return
      */
     private int checkAddFreeCount(ChristmasBashNightResultLib lib) {
-        if (this.mahjiongWinAddFreeInfo.getLibType() != ChristmasBashNightConstant.SpecialMode.FREE) {
+        if (this.christmasBashNightAddFreeInfo.getLibType() != ChristmasBashNightConstant.SpecialMode.FREE) {
             return 0;
         }
 
@@ -250,12 +250,12 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         for (int i = 1; i < lib.getIconArr().length; i++) {
             int icon = lib.getIconArr()[i];
             //是否出现了目标图标
-            if (icon != this.mahjiongWinAddFreeInfo.getTargetIcon()) {
+            if (icon != this.christmasBashNightAddFreeInfo.getTargetIcon()) {
                 continue;
             }
-            boolean flag = SlotsUtil.calProp(this.mahjiongWinAddFreeInfo.getProp());
+            boolean flag = SlotsUtil.calProp(this.christmasBashNightAddFreeInfo.getProp());
             if (flag) {
-                addCount += this.mahjiongWinAddFreeInfo.getAddFreeCount();
+                addCount += this.christmasBashNightAddFreeInfo.getAddFreeCount();
             }
         }
         return addCount;
@@ -571,7 +571,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
                 tmpChristmasBashNightAddFreeInfo.setAddFreeCount(Integer.parseInt(arr[2]));
                 tmpChristmasBashNightAddFreeInfo.setProp(Integer.parseInt(arr[3]));
 
-                this.mahjiongWinAddFreeInfo = tmpChristmasBashNightAddFreeInfo;
+                this.christmasBashNightAddFreeInfo = tmpChristmasBashNightAddFreeInfo;
             }
         }
         this.addTimesMap = tmpAddTimesMap;
