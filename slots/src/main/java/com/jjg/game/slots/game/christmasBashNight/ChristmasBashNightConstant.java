@@ -45,6 +45,7 @@ public interface ChristmasBashNightConstant {
     interface SpecialMode{
         int NORMAL = 1;
         int FREE = 2;
+        int JACKPOOL = 3;
     }
 
     interface SpecialPlay{

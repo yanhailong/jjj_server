@@ -10,6 +10,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
@@ -22,6 +23,10 @@ import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightResultL
 import com.jjg.game.slots.game.christmasBashNight.pb.ResChristmasBashNightPoolInfo;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
+import com.jjg.game.slots.game.thor.ThorConstant;
+import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
+import com.jjg.game.slots.game.thor.data.ThorPlayerGameData;
+import com.jjg.game.slots.game.thor.data.ThorResultLib;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.LoggerFactory;
@@ -229,6 +234,9 @@ public class ChristmasBashNightGameManager extends AbstractSlotsGameManager<Chri
 
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
 
+        //检查是否中大奖
+        jackpool(gameRunInfo, playerGameData, resultLib);
+
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
         gameRunInfo.setStake(betValue);
@@ -331,6 +339,44 @@ public class ChristmasBashNightGameManager extends AbstractSlotsGameManager<Chri
         } catch (Exception e) {
             log.error("", e);
             gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
+    }
+
+
+    /**
+     * 检查中大奖
+     *
+     * @param gameRunInfo
+     * @param playerGameData
+     * @param resultLib
+     * @return
+     */
+    private ChristmasBashNightGameRunInfo jackpool(ChristmasBashNightGameRunInfo gameRunInfo, ChristmasBashNightPlayerGameData playerGameData, ChristmasBashNightResultLib resultLib) {
+        if (!resultLib.getLibTypeSet().contains(ThorConstant.SpecialMode.JACKPOOL)) {
+            return gameRunInfo;
+        }
+
+        try {
+            PoolCfg poolCfg = randWinPool(playerGameData, resultLib.getJackpotId());
+            if (poolCfg == null) {
+                log.warn("未找到对应的奖池配置 poolId = {}", resultLib.getJackpotId());
+                return gameRunInfo;
+            }
+
+            long poolValue = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), poolCfg.getDelayTime());
+            //给玩家加钱
+            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), poolValue, AddType.SLOTS_TRAIN, resultLib.getJackpotId() + "");
+            if (!result.success()) {
+                log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
+                return gameRunInfo;
+            }
+            playerGameData.addSmallPoolReward(poolValue);
+            gameRunInfo.addSmallPoolGold(poolValue);
+
+            log.info("玩家奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), resultLib.getJackpotId(), poolValue);
+        } catch (Exception e) {
+            log.error("", e);
         }
         return gameRunInfo;
     }
