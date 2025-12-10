@@ -133,8 +133,14 @@ public class RpcServerService {
         method.setAccessible(true);
         // 调用provider中的方法
         Object o = method.invoke(provider, args);
-        // 序列化后返回
-        resp.responseData = JSON.toJSONString(o);
+
+        // 只有非void方法才设置responseData
+        if (!method.getReturnType().equals(Void.TYPE)) {
+            resp.responseData = JSON.toJSONString(o);
+        } else {
+            resp.responseData = null;
+        }
+
         resp.success = true;
         clusterConnect.write(new ClusterMessage(resp));
         log.debug("向发送方：{} 返回调用RPC结果:{}", clusterConnect.address(), resp);

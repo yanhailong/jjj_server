@@ -23,6 +23,8 @@ public enum RoomType {
     POKER_ROOM(PokerRoom.class),
     //扑克类主动创建房间，组队
     POKER_TEAM_UP_ROOM(PokerFriendRoom.class),
+    //SLOTS类主动创建房间，组队
+    SLOTS_TEAM_UP_ROOM(SlotsFriendRoom.class),
     ;
 
     private final Class<? extends Room> roomDataType;
@@ -52,6 +54,8 @@ public enum RoomType {
                 roomType = RoomType.BET_TEAM_UP_ROOM;
             } else if (gameType == CoreConst.GameMajorType.POKER) {
                 roomType = RoomType.POKER_TEAM_UP_ROOM;
+            } else if(gameType == CoreConst.GameMajorType.SLOTS){
+                roomType = RoomType.SLOTS_TEAM_UP_ROOM;
             }
         }
         return roomType;

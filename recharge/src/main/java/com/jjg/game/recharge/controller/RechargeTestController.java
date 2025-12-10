@@ -29,7 +29,6 @@ public class RechargeTestController extends AbstractCallbackController {
     /**
      * gm通过订单调用充值
      */
-    //
     @RequestMapping("rechargeByOrder/{orderId}")
     public ResponseEntity<String> rechargeByOrder(@PathVariable("orderId") String orderId) {
         try {
