@@ -1,7 +1,5 @@
 package com.jjg.game.slots.game.captainjack.data;
 
-import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAwardLineInfo;
-
 import java.util.List;
 import java.util.Map;
 

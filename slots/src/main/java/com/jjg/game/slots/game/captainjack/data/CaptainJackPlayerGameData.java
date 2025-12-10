@@ -39,13 +39,4 @@ public class CaptainJackPlayerGameData extends SlotsPlayerGameData {
         this.resultLib = resultLib;
     }
 
-    @Override
-    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
-        T dto = super.converToDto(cla);
-        if (dto instanceof CaptainJackPlayerGameDTO gameDTO) {
-            gameDTO.setAlreadyDigCount(this.alreadyDigCount.get());
-            gameDTO.setResultLibJson(JSON.toJSONString(this.resultLib));
-        }
-        return dto;
-    }
 }
