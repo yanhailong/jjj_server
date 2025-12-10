@@ -24,7 +24,10 @@ public abstract class AbstractPoolDao {
     //小奖池(假)
     protected final String fake_small_pool_prefix = "fakeSmallPool:";
 
-    public abstract void initPool();
+    //房间标准池
+    protected final String room_pool_prefix = "roomPool:standard";
+    //房间累计准备金
+    protected final String room_pool_reserve_prefix = "roomPool:reserve";
 
     /**
      * 根据场次id获取池子
