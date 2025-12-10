@@ -273,6 +273,8 @@ public class BaseLogger {
                 });
 
                 json.put("items", jsonArray);
+            }else {
+                json.put("items", null);
             }
             sendLog("levelChange", player, json);
         } catch (Exception e) {

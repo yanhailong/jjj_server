@@ -12,21 +12,28 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressAwardLineInfo;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
+import com.jjg.game.slots.game.dollarexpress.pb.ResultLineInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameData;
 import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.game.thor.dao.ThorGameDataDao;
 import com.jjg.game.slots.game.thor.dao.ThorResultLibDao;
+import com.jjg.game.slots.game.thor.data.ThorAwardLineInfo;
 import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
 import com.jjg.game.slots.game.thor.data.ThorPlayerGameData;
 import com.jjg.game.slots.game.thor.data.ThorResultLib;
+import com.jjg.game.slots.game.thor.pb.ThorWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author 11
@@ -232,6 +239,7 @@ public class ThorGameManager extends AbstractSlotsGameManager<ThorPlayerGameData
         //检查是否中大奖
         jackpool(gameRunInfo, playerGameData, resultLib);
 
+        gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(),playerGameData.getOneBetScore()));
         gameRunInfo.setStatus(playerGameData.getStatus());
         gameRunInfo.setStake(betValue);
         gameRunInfo.setResultLib(resultLib);
@@ -261,6 +269,7 @@ public class ThorGameManager extends AbstractSlotsGameManager<ThorPlayerGameData
             playerGameData.getFreeIndex().set(0);
         }
 
+        gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(),playerGameData.getOneBetScore()));
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
         gameRunInfo.setRemainFreeCount(afterCount);
@@ -303,6 +312,30 @@ public class ThorGameManager extends AbstractSlotsGameManager<ThorPlayerGameData
             log.error("", e);
         }
         return gameRunInfo;
+    }
+
+    /**
+     * 将库里面的中将线信息转化为消息
+     *
+     * @param infoList
+     * @param oneBetScore 单线押分值
+     * @return
+     */
+    private List<ThorWinIconInfo> transAwardLinePbInfo(List<ThorAwardLineInfo> infoList, long oneBetScore) {
+        if (infoList == null || infoList.isEmpty()) {
+            return null;
+        }
+
+        List<ThorWinIconInfo> list = new ArrayList<>(infoList.size());
+        for (ThorAwardLineInfo lineInfo : infoList) {
+            ThorWinIconInfo resultLineInfo = new ThorWinIconInfo();
+            resultLineInfo.id = lineInfo.getId();
+            resultLineInfo.iconIndexs = getIconIndexsByLineId(lineInfo.getId()).subList(0, lineInfo.getSameCount());
+//            resultLineInfo.times = lineInfo.getBaseTimes();
+            resultLineInfo.winGold = oneBetScore * lineInfo.getBaseTimes();
+            list.add(resultLineInfo);
+        }
+        return list;
     }
 
 

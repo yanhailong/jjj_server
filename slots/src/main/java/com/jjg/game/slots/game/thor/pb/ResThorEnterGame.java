@@ -6,6 +6,8 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.slots.game.thor.ThorConstant;
 
+import java.util.List;
+
 /**
  * @author 11
  * @date 2025/12/1 18:13
@@ -13,6 +15,11 @@ import com.jjg.game.slots.game.thor.ThorConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.THOR, cmd = ThorConstant.MsgBean.RES_ENTER_GAME, resp = true)
 @ProtoDesc("进入游戏，返回配置信息")
 public class ResThorEnterGame extends AbstractResponse {
+    @ProtoDesc("押注列表")
+    public List<Long> stakeList;
+    @ProtoDesc("默认押注")
+    public long defaultBet;
+
     public ResThorEnterGame(int code) {
         super(code);
     }
