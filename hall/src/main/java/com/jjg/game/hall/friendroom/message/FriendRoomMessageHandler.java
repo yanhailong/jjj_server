@@ -178,7 +178,6 @@ public class FriendRoomMessageHandler {
     @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_JOIN_FRIEND_ROOM)
     public void reqJoinFriendRoom(PlayerController playerController, ReqJoinFriendRoom req) {
         try {
-            req.roomId = 1998591115485257728l;
             friendRoomServices.reqJoinFriendRoom(playerController, req);
         } catch (Exception e) {
             log.error("请求刷新关注好友列表异常，{}", e.getMessage(), e);
