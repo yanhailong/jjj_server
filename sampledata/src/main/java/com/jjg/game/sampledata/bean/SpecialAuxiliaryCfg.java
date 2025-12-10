@@ -24,7 +24,7 @@ public class SpecialAuxiliaryCfg extends BaseCfgBean {
   /** 奖励类型B */
   protected String awardTypeB;
   /** 单线押分倍数，中奖权重，最大出现次数，根据配置额外增加 */
-  protected Map<Integer,Integer> awardTypeC;
+  protected List<List<Integer>> awardTypeC;
   /** 赋予值类型 */
   protected List<Integer> awardTypeC_value;
   /** 游戏ID */
@@ -53,7 +53,7 @@ public class SpecialAuxiliaryCfg extends BaseCfgBean {
   }
 
   /** 返回单线押分倍数，中奖权重，最大出现次数，根据配置额外增加 */
-  public Map<Integer,Integer> getAwardTypeC() {
+  public List<List<Integer>> getAwardTypeC() {
     return awardTypeC;
   }
 

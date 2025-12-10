@@ -1198,7 +1198,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             //修改图案策略组
             config.setSpecialGroupGirdIDPropInfo(SlotsUtil.converMapToPropInfo(cfg.getSpecialGroupGirdID()));
             //奖励c
-            config.setAwardTypeCPropInfo(SlotsUtil.converMapToPropInfo(cfg.getAwardTypeC()));
+            config.setAwardTypeCPropInfo(SlotsUtil.converMapToLimitPropInfo(cfg.getAwardTypeC()));
 
             tmpSpecialAuxiliaryPropConfigMap.put(config.getId(), config);
         }

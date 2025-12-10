@@ -119,6 +119,7 @@ public class SharePromoteController extends BaseActivityController {
         if (playerInfoData == null) {
             return false;
         }
+        countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted("sharePromote"), String.valueOf(playerId), RedisUtils.fromLong(progress));
         BigDecimal magnification = BigDecimal.ONE;
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(53);
         if (globalConfigCfg != null) {
@@ -131,6 +132,7 @@ public class SharePromoteController extends BaseActivityController {
                 .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
                 .longValue();
         if (addValue > 0) {
+            //添加充值计数
             sharePromoteDao.addPlayerIncome(playerId, beneficiaryPlayerId, addValue);
             Player beneficiaryPlayer = corePlayerService.get(beneficiaryPlayerId);
             //发送日志
@@ -535,7 +537,8 @@ public class SharePromoteController extends BaseActivityController {
             res.rankInfoList = new ArrayList<>(playerIncomeRank.size());
             //获取排行榜玩家信息数据
             Map<Long, Player> playerMap = corePlayerService.multiGetPlayerMap(playerIncomeRank.keySet());
-            Map<String, BigDecimal> counts = countDao.getCounts(CountDao.CountType.RECHARGE.getParam(), playerIncomeRank.keySet().stream().map(String::valueOf).toList());
+            Map<String, BigDecimal> counts = countDao.getCounts(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted("sharePromote"),
+                    playerIncomeRank.keySet().stream().map(String::valueOf).toList());
             for (Map.Entry<Long, Double> entry : playerIncomeRank.entrySet()) {
                 Player player = playerMap.get(entry.getKey());
                 if (player == null) {

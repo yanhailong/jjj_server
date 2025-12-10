@@ -31,6 +31,9 @@ public class HallFriendRoomDao extends AbstractFriendRoomDao<FriendRoom, RoomPla
             case POKER_ROOM, POKER_TEAM_UP_ROOM -> {
                 return new PokerFriendRoom();
             }
+            case SLOTS_TEAM_UP_ROOM -> {
+                return new SlotsFriendRoom();
+            }
         }
         return null;
     }

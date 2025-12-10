@@ -36,7 +36,6 @@ public class SlotsPoolDao extends AbstractPoolDao {
     /**
      * 初始化水池
      */
-    @Override
     public void initPool() {
         for (Map.Entry<Integer, BaseRoomCfg> en : GameDataManager.getBaseRoomCfgMap().entrySet()) {
             BaseRoomCfg cfg = en.getValue();

@@ -206,7 +206,7 @@ public class FriendRoomServices {
         }
         // 检查游戏功能是否开放
         if (!gameFunctionService.checkGameFunctionOpen(player, EFunctionType.FRIEND_ROOM)) {
-            return FriendRoomErrorCode.CREATE_ROOM_VIP_NOT_ENOUGH;
+            return Code.FORBID;
         }
         // 房间名检查
         if (checkRoomName(reqCreateFriendsRoom.roomAliasName) != Code.SUCCESS) {
