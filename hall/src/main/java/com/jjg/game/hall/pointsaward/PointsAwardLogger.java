@@ -54,13 +54,12 @@ public class PointsAwardLogger extends BaseLogger {
      * @param points     本次获得积分
      * @param afterValue 当前总积分
      */
-    public void signInLog(long playerId, int signCount, int points, long afterValue) {
+    public void signInLog(Player player, int signCount, int points, long afterValue) {
         try {
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("signCount", signCount);
             jsonObject.put("points", points);
             jsonObject.put("afterValue", afterValue);
-            Player player = hallPlayerService.get(playerId);
             sendLog("pointsAwardSignIn", player, jsonObject);
         } catch (Exception e) {
             log.error("记录签到日志错误!", e);
@@ -71,14 +70,17 @@ public class PointsAwardLogger extends BaseLogger {
      * 转盘抽奖日志
      *
      */
-    public void turntableLog(long playerId, int changeCount,int afterCount) {
+    public void turntableLog(long playerId, int changeCount, int afterCount, int consumePoints, int getPoints, long afterValue) {
         try {
             JSONObject jsonObject = new JSONObject();
+            jsonObject.put("consumePoints", consumePoints);
+            jsonObject.put("getPoints", getPoints);
+            jsonObject.put("afterValue", afterValue);
+            jsonObject.put("beforeCount", afterCount - changeCount);
             jsonObject.put("changeCount", changeCount);
             jsonObject.put("afterCount", afterCount);
-            jsonObject.put("type","turn_count");
-            jsonObject.put("playerId",playerId);
-            sendLog("turntime", null, jsonObject);
+            jsonObject.put("playerId", playerId);
+            sendLog("pointsAwardTurntable", null, jsonObject);
         } catch (Exception e) {
             log.error("记录转盘日志错误!", e);
         }
@@ -114,7 +116,7 @@ public class PointsAwardLogger extends BaseLogger {
             json.put("afterGold", afterGold);
             json.put("autoRecive", autoRecive);  //自动领取
             json.put("playerId", playerId);
-            json.put("type","time_process");
+            json.put("type", "time_process");
             sendLog("turntime", null, json);
         } catch (Exception e) {
             log.error("记录领取阶段奖励日志异常", e);
