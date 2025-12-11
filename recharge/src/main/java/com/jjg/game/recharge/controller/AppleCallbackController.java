@@ -31,7 +31,8 @@ import java.util.Base64;
 @RequestMapping(method = {RequestMethod.POST}, value = "applepay")
 public class AppleCallbackController extends AbstractCallbackController {
 
-    private static final long CLOCK_SKEW = 300; // 5分钟时钟偏差
+    private static final long CLOCK_SKEW_SECOND = 600; // 10分钟时钟偏差
+    private static final long CLOCK_SKEW_MILLS = CLOCK_SKEW_SECOND * 1000;
 
     @Autowired
     private ThirdServiceInfo thirdServiceInfo;
@@ -39,17 +40,18 @@ public class AppleCallbackController extends AbstractCallbackController {
 
     /**
      * 接收App Store Server Notifications V2格式的回调通知
+     *
      * @param rawBody
      * @return
      * @throws Exception
      */
     @RequestMapping("callback")
     public ResponseEntity<String> callback(@RequestBody String rawBody) throws Exception {
-        try{
-            log.debug("收到apple充值回调 rawBody = {}", rawBody);
+        try {
+            log.info("收到apple充值回调 rawBody = {}", rawBody);
 
             //安全验证
-            if(!verifyAppleNotificationSignature(rawBody)){
+            if (!verifyAppleNotificationSignature(rawBody)) {
                 log.warn("Apple回调签名验证失败");
                 return ResponseEntity.status(403).body("Invalid signature");
             }
@@ -60,13 +62,13 @@ public class AppleCallbackController extends AbstractCallbackController {
                 return ResponseEntity.status(400).body("Invalid notification data");
             }
 
-            log.debug("验证后的通知数据: {}", notificationNode);
+//            log.debug("验证后的通知数据: {}", notificationNode);
 
             // ===== 3. 处理不同类型的通知 =====
-            String notificationType = notificationNode.get("notificationType").asText();
-            String notificationUUID = notificationNode.get("notificationUUID").asText();
+//            String notificationType = notificationNode.get("notificationType").asText();
+//            String notificationUUID = notificationNode.get("notificationUUID").asText();
 
-            log.info("处理Apple通知 type={}, uuid={}", notificationType, notificationUUID);
+//            log.info("处理Apple通知 type={}, uuid={}", notificationType, notificationUUID);
 
             // 解析 signedTransactionInfo
             JsonNode transactionInfo = verifyAndDecodeTransactionInfo(notificationNode);
@@ -78,29 +80,29 @@ public class AppleCallbackController extends AbstractCallbackController {
             log.debug("解析后的交易信息: {}", transactionInfo);
 
             JsonNode appAccountTokenNode = transactionInfo.get("appAccountToken");
-            if(appAccountTokenNode == null){
+            if (appAccountTokenNode == null) {
                 log.warn("缺少 appAccountToken 信息");
                 return ResponseEntity.status(400).body("no appAccountToken");
             }
 
             Order order = orderService.getOrderByUUid(appAccountTokenNode.asText());
-            if(order == null){
-                log.debug("未找到该订单 uuid = {}", appAccountTokenNode.asText());
+            if (order == null) {
+                log.warn("未找到该订单 uuid = {}", appAccountTokenNode.asText());
                 return ResponseEntity.status(400).body("not found order");
             }
 
             String transactionId = transactionInfo.get("transactionId").asText();
             order.setChannelOrderId(transactionId);
             order = checkOrder(order);
-            if(order == null){
-                log.debug("检查订单失败 uuid = {}", appAccountTokenNode.asText());
+            if (order == null) {
+                log.warn("检查订单失败 uuid = {}", appAccountTokenNode.asText());
                 return ResponseEntity.status(400).body("check order failed");
             }
             String money = transactionInfo.get("price").asText();
             String currency = transactionInfo.get("currency").asText();
 
             payCallback(order, money, currency);
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("处理Apple充值回调异常", e);
             return ResponseEntity.status(500).body("Error processing callback");
         }
@@ -215,22 +217,21 @@ public class AppleCallbackController extends AbstractCallbackController {
 
             long signedDate = payloadNode.get("signedDate").asLong();
             long now = System.currentTimeMillis();
-            long clockSkewMillis = CLOCK_SKEW * 100000; // 5 分钟延迟
-            if (signedDate < (now - clockSkewMillis)) {
+            if (signedDate < (now - CLOCK_SKEW_MILLS)) {  // 5 分钟延迟
                 log.warn("通知已过期: signedDate={}, now={}", signedDate, now);
                 return false;
             }
-            if (signedDate > (now + clockSkewMillis)) {
+            if (signedDate > (now + CLOCK_SKEW_MILLS)) {
                 log.warn("通知尚未生效: signedDate={}, now={}", signedDate, now);
                 return false;
             }
 
             JsonNode dataNode = payloadNode.get("data");
-            if(!thirdServiceInfo.getAppleBundleId().equals(dataNode.get("bundleId").asText())){
+            if (!thirdServiceInfo.getAppleBundleId().equals(dataNode.get("bundleId").asText())) {
                 log.warn("bundleId 匹配不上 : jwtBundleId={}, cfgBundleId={}", dataNode.get("bundleId").asText(), thirdServiceInfo.getAppleBundleId());
                 return false;
             }
-            if(thirdServiceInfo.getAppleAppId() != dataNode.get("appAppleId").asLong()){
+            if (thirdServiceInfo.getAppleAppId() != dataNode.get("appAppleId").asLong()) {
                 log.warn("apple app id 匹配不上 : jwtAppid={}, cfgAppid={}", dataNode.get("appAppleId").asText(), thirdServiceInfo.getAppleAppId());
                 return false;
             }
@@ -277,7 +278,7 @@ public class AppleCallbackController extends AbstractCallbackController {
             // 创建验证器并验证签名
             Algorithm algorithm = Algorithm.ECDSA256(publicKey, null);
             JWTVerifier verifier = JWT.require(algorithm)
-                    .acceptLeeway(CLOCK_SKEW)
+                    .acceptLeeway(CLOCK_SKEW_SECOND)
                     .build();
 
             verifier.verify(jwt.getToken());
