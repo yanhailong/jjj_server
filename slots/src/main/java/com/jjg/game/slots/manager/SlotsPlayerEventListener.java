@@ -10,6 +10,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.slots.dao.SlotsFriendRoomDao;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -40,6 +41,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     private SlotsFactoryManager slotsFactoryManager;
     @Autowired
     private PlayerSessionTokenDao playerSessionTokenDao;
+    @Autowired
+    private SlotsFriendRoomDao slotsFriendRoomDao;
 
 
     @Override
@@ -59,21 +62,12 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 return;
             }
 
-            //先检查是否为断线重连
-            Optional<PlayerLastGameInfo> op = playerLastGameInfoDao.findById(playerId);
-            if (op.isPresent()) {
-                PlayerLastGameInfo playerLastGameInfo = op.get();
-                if (playerLastGameInfo.isHalfwayOffline() && StringUtils.isNotEmpty(playerLastGameInfo.getNodePath())) {
-                    info.setGameType(playerLastGameInfo.getGameType());
-                    info.setRoomCfgId(playerLastGameInfo.getRoomCfgId());
-                }
-            } else {
-                if (info.getGameType() < 1) {
-                    log.warn("sessionEnter时 PlayerSessionInfo 中的gameType小于1 playerId = {}", playerId);
-                    return;
-                }
+            if(info.getGameType() < 1){
+                log.warn("sessionEnter时 PlayerSessionInfo中gameType小于1 playerId = {}", playerId);
+                return;
             }
 
+            //检查slots游戏管理器
             AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(info.getGameType());
             if (gameManager == null) {
                 log.debug("sessionEnter时，获取游戏管理器失败 playerId = {},gameType = {}", playerId, info.getGameType());
@@ -89,14 +83,27 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
 
             playerSessionService.enterGameServer(player);
 
+            //先检查是否为断线重连(单人模式)
+            Optional<PlayerLastGameInfo> op = playerLastGameInfoDao.findById(playerId);
+            if (op.isPresent()) {
+                PlayerLastGameInfo playerLastGameInfo = op.get();
+                if (playerLastGameInfo.isHalfwayOffline() && StringUtils.isNotEmpty(playerLastGameInfo.getNodePath())) {
+                    info.setGameType(playerLastGameInfo.getGameType());
+                    info.setRoomCfgId(playerLastGameInfo.getRoomCfgId());
+                }
+            } else {
+                if (info.getGameType() < 1) {
+                    log.warn("sessionEnter时 PlayerSessionInfo 中的gameType小于1 playerId = {}", playerId);
+                    return;
+                }
+            }
+
             PlayerController playerController = new PlayerController(session, player);
             session.setReference(playerController);
 
             //创建 PlayerGameData
             gameManager.createPlayerGameData(playerController);
-
             slotsFactoryManager.clearPlayerEvent(playerId);
-
             PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
             logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), playerSessionToken.getDevice());
             log.debug("玩家进入slots 游戏 playerId = {},gameType = {}", playerId, player.getGameType());

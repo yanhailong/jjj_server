@@ -426,7 +426,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         //给池子加钱
-        CommonResult<Pair<Player, Long>> poolResult = goldToPool(playerGameData, betValue, baseRoomCfg);
+        CommonResult<Pair<Player, Long>> poolResult = moneyToPool(playerGameData, betValue, baseRoomCfg);
         if (!result.success()) {
             result.code = poolResult.code;
             return result;
@@ -553,7 +553,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param betValue
      * @return player对象和税收
      */
-    protected CommonResult<Pair<Player, Long>> goldToPool(T gameData, long betValue, BaseRoomCfg baseRoomCfg) {
+    protected CommonResult<Pair<Player, Long>> moneyToPool(T gameData, long betValue, BaseRoomCfg baseRoomCfg) {
         CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, true, AddType.SLOTS_BET);
         if (!result.success()) {
             log.debug("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.playerId(), betValue, result.code);
@@ -801,7 +801,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.getHasPlaySlots().set(true);
             playerGameData.setCreateTime(TimeHelper.nowInt());
 
-            log.debug("从db中获取的 playerId = {}, playerGameData = {}",playerController.playerId(), JSON.toJSONString(playerGameData));
+            log.debug("从db中获取的 playerId = {}, playerGameData = {}", playerController.playerId(), JSON.toJSONString(playerGameData));
         }
         playerGameData.setOnline(true);
         playerGameData.setPlayerController(playerController);

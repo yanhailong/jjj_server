@@ -262,6 +262,10 @@ public class SlotsPlayerGameData {
         }
     }
 
+    public long getRoomId(){
+        return this.playerController.roomId();
+    }
+
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception{
         Constructor<T> constructor = cla.getConstructor();
         T t = constructor.newInstance();
