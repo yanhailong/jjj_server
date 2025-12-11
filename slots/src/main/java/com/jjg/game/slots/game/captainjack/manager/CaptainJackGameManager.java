@@ -3,7 +3,6 @@ package com.jjg.game.slots.game.captainjack.manager;
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
@@ -21,7 +20,6 @@ import com.jjg.game.slots.game.captainjack.dao.CaptainJackResultLibDao;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackPlayerGameData;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
-import com.jjg.game.slots.game.captainjack.pb.req.ReqCaptainJackTreasureChest;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.stereotype.Component;
 
@@ -34,15 +32,13 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
     private final CaptainJackGameGenerateManager gameGenerateManager;
     private final CaptainJackGameDataDao gameDataDao;
     private final CaptainJackResultLibDao captainJackResultLibDao;
-    private final ClusterSystem clusterSystem;
 
     public CaptainJackGameManager(CaptainJackGameGenerateManager gameGenerateManager,
-                                  CaptainJackGameDataDao gameDataDao, CaptainJackResultLibDao captainJackResultLibDao, ClusterSystem clusterSystem) {
+                                  CaptainJackGameDataDao gameDataDao, CaptainJackResultLibDao captainJackResultLibDao) {
         super(CaptainJackPlayerGameData.class, CaptainJackResultLib.class);
         this.gameGenerateManager = gameGenerateManager;
         this.gameDataDao = gameDataDao;
         this.captainJackResultLibDao = captainJackResultLibDao;
-        this.clusterSystem = clusterSystem;
     }
 
 
@@ -99,6 +95,8 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
                 normal(gameRunInfo, playerGameData, betValue);
             } else if (status == CaptainJackConstant.Status.FREE) {
                 free(gameRunInfo, playerGameData);
+            } else if (status == CaptainJackConstant.Status.TREASURE_CHEST) {
+                treasureChest(gameRunInfo, playerGameData);
             } else {
                 gameRunInfo.setCode(Code.FAIL);
                 log.warn("当前状态错误 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
@@ -153,6 +151,35 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
             log.error("", e);
         }
         return gameRunInfo;
+    }
+
+    /**
+     * 挖宝
+     */
+    private void treasureChest(CaptainJackGameRunInfo gameRunInfo, CaptainJackPlayerGameData playerGameData) {
+        CaptainJackResultLib treasureChestLib = playerGameData.getResultLib();
+        if (treasureChestLib == null || playerGameData.getAlreadyDigCount() >= treasureChestLib.getDigTimes()) {
+            gameRunInfo.setCode(Code.FAIL);
+            return;
+        }
+        //增加挖宝次数
+        int afterCount = playerGameData.addAlreadyDigCount(1);
+        if (afterCount == treasureChestLib.getDigTimes()) {
+            //重新计算总赔率
+            int sum = treasureChestLib.getDigTimesMultiplier().stream().mapToInt(Integer::intValue).sum();
+            gameRunInfo.setBigPoolTimes(sum);
+            if (playerGameData.getRemainFreeCount().get() > 0) {
+                playerGameData.setStatus(CaptainJackConstant.Status.FREE);
+            } else {
+                playerGameData.setStatus(CaptainJackConstant.Status.NORMAL);
+            }
+            playerGameData.setResultLib(null);
+            playerGameData.setAlreadyDigCount(null);
+            log.debug("挖宝游戏次数结束，回归之前状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+        }
+        gameRunInfo.setRemainDigCount(treasureChestLib.getDigTimes() - afterCount);
+        gameRunInfo.setDigTimesMultiplier(treasureChestLib.getDigTimesMultiplier().get(afterCount - 1));
+        gameRunInfo.setStatus(CaptainJackConstant.Status.TREASURE_CHEST);
     }
 
     /**
@@ -220,7 +247,6 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
                     playerGameData.getRemainFreeCount().get(), times);
         } else if (resultLib.getLibTypeSet().contains(CaptainJackConstant.SpecialMode.MINI_GAME)) {
             playerGameData.setStatus(CaptainJackConstant.Status.TREASURE_CHEST);
-            playerGameData.addAlreadyDigCount(resultLib.getDigTimes());
             playerGameData.setResultLib(resultLib);
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         } else {
@@ -255,7 +281,6 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
             afterCount = playerGameData.getRemainFreeCount().addAndGet(freeGame.getAddFreeCount());
             log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(), afterCount);
         }
-
         if (afterCount == 0) {
             if (playerGameData.getFreeLib() instanceof CaptainJackResultLib lib) {
                 gameRunInfo.addBigPoolTimes(lib.getTimes());
@@ -267,48 +292,15 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
         } else {
             gameRunInfo.addBigPoolTimes(gameGenerateManager.getAddTimes());
         }
+        //免费触发挖宝
+        if (freeGame.getDigTimes() > 0 && CollectionUtil.isNotEmpty(freeGame.getDigTimesMultiplier())) {
+            playerGameData.setStatus(CaptainJackConstant.Status.TREASURE_CHEST);
+            playerGameData.setResultLib(freeGame);
+        }
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);
         gameRunInfo.setStatus(CaptainJackConstant.Status.FREE);
-    }
-
-    public CaptainJackGameRunInfo treasureChest(PlayerController playerController, ReqCaptainJackTreasureChest req) {
-        CaptainJackGameRunInfo gameRunInfo = new CaptainJackGameRunInfo(Code.SUCCESS, playerController.playerId());
-        //获取玩家数据
-        CaptainJackPlayerGameData playerGameData = getPlayerGameData(playerController);
-        //判断玩家是否正在寻宝当中
-        if (playerGameData.getStatus() != CaptainJackConstant.Status.TREASURE_CHEST || playerGameData.getResultLib() == null) {
-            gameRunInfo.setCode(Code.ERROR_REQ);
-            return gameRunInfo;
-        }
-        //获取结果库
-        CaptainJackResultLib resultLib = playerGameData.getResultLib();
-        if (resultLib.getDigTimes() <= playerGameData.getAlreadyDigCount()) {
-            gameRunInfo.setCode(Code.ERROR_REQ);
-            return gameRunInfo;
-        }
-        int alreadyDigCount = playerGameData.addAlreadyDigCount(1);
-        gameRunInfo.setAlreadyDigCount(alreadyDigCount);
-        gameRunInfo.addDigTimesMultiplier(resultLib.getDigTimesMultiplier().get(alreadyDigCount));
-        //如果是最后一次进行结算
-        if (alreadyDigCount == resultLib.getDigTimes()) {
-            long addGold = playerGameData.getOneBetScore() * gameRunInfo.getDigTimesMultiplier();
-            if (addGold > 0) {
-                CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_INVEST_REWARD);
-                if (!result.success()) {
-                    log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                    gameRunInfo.setCode(result.code);
-                    return gameRunInfo;
-                }
-                playerGameData.setStatus(CaptainJackConstant.Status.NORMAL);
-                playerGameData.setResultLib(null);
-                playerGameData.setAlreadyDigCount(null);
-                gameRunInfo.setAllWinGold(addGold);
-            }
-            gameRunInfo.setStatus(CaptainJackConstant.Status.TREASURE_CHEST);
-        }
-        return gameRunInfo;
     }
 
 

@@ -7,9 +7,6 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
 import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackCascade;
 import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackWinIconInfo;
-import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
-import com.jjg.game.slots.game.mahjiongwin.pb.MahjiongCascade;
-import com.jjg.game.slots.game.mahjiongwin.pb.MahjiongWinIconInfo;
 
 import java.util.List;
 
@@ -17,7 +14,7 @@ import java.util.List;
  * @author 11
  * @date 2025/8/1 17:50
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE, cmd = CaptainJackConstant.MsgBean.RES_CAPTAIN_JACK_START_GAME,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CAPTAIN_JACK, cmd = CaptainJackConstant.MsgBean.RES_CAPTAIN_JACK_START_GAME,resp = true)
 @ProtoDesc("开始游戏结果返回")
 public class ResCaptainJackStartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")
@@ -26,7 +23,7 @@ public class ResCaptainJackStartGame extends AbstractResponse {
     public long allWinGold;
     @ProtoDesc("累计中奖金币")
     public long totalWinGold;
-    @ProtoDesc("当前状态 0.正常  1.免费")
+    @ProtoDesc("当前状态 0.正常  1.免费 2.探宝")
     public int status;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
@@ -42,7 +39,10 @@ public class ResCaptainJackStartGame extends AbstractResponse {
     public CaptainJackWinIconInfo rewardIconInfo;
     @ProtoDesc("消除后添加图标的信息")
     public List<CaptainJackCascade> addIconInfoList;
-
+    @ProtoDesc("本次探宝触发的倍率")
+    public int currentRate;
+    @ProtoDesc("剩余探宝次数")
+    public int remainDigCount;
 
     public ResCaptainJackStartGame(int code) {
         super(code);

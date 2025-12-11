@@ -11,7 +11,6 @@ import com.jjg.game.slots.game.captainjack.manager.CaptainJackGameManager;
 import com.jjg.game.slots.game.captainjack.manager.CaptainJackGameSendMessageManager;
 import com.jjg.game.slots.game.captainjack.pb.req.ReqCaptainJackEnterGame;
 import com.jjg.game.slots.game.captainjack.pb.req.ReqCaptainJackStartGame;
-import com.jjg.game.slots.game.captainjack.pb.req.ReqCaptainJackTreasureChest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -58,20 +57,6 @@ public class CaptainJackMessageHandler {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             CaptainJackGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeValue);
             sendMessageManager.reqCaptainJackStartGame(playerController, gameRunInfo);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    /**
-     * 请求探宝
-     */
-    @Command(CaptainJackConstant.MsgBean.REQ_CAPTAIN_JACK_START_GAME)
-    public void reqCaptainJackTreasureChest(PlayerController playerController, ReqCaptainJackTreasureChest req) {
-        try {
-            log.info("收到玩家请求探宝 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            CaptainJackGameRunInfo gameRunInfo = this.gameManager.treasureChest(playerController, req);
-            sendMessageManager.reqCaptainJackTreasureChest(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

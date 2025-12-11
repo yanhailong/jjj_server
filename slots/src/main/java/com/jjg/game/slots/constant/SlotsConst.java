@@ -1,6 +1,7 @@
 package com.jjg.game.slots.constant;
 
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.utils.TimeHelper;
 
 /**
  * @author 11
@@ -27,6 +28,9 @@ public interface SlotsConst {
         int SCORE_TYPE_ALL_BET = 2;
         //平均单线押分
         int SCORE_TYPE_AVG_ONE_BET = 3;
+
+        //最大离线时间
+        int MAX_OFFLINE_TIME = 5 * TimeHelper.ONE_MINUTE_OF_MILLIS;
     }
 
     //结果库变更类型

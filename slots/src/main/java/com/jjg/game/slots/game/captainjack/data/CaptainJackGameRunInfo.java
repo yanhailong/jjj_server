@@ -1,10 +1,6 @@
 package com.jjg.game.slots.game.captainjack.data;
 
 import com.jjg.game.slots.data.GameRunInfo;
-import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameData;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author 11
@@ -16,25 +12,26 @@ public class CaptainJackGameRunInfo extends GameRunInfo<CaptainJackPlayerGameDat
         super(code, playerId);
     }
 
-    //已经探宝次数
-    private int alreadyDigCount;
-    //累计探宝倍率
+    //剩余探宝次数
+    private int remainDigCount;
+    //本次探宝倍率
     private int digTimesMultiplier;
 
-    public int getAlreadyDigCount() {
-        return alreadyDigCount;
+
+    public int getRemainDigCount() {
+        return remainDigCount;
     }
 
-    public void setAlreadyDigCount(int alreadyDigCount) {
-        this.alreadyDigCount = alreadyDigCount;
+    public void setRemainDigCount(int remainDigCount) {
+        this.remainDigCount = remainDigCount;
     }
 
     public int getDigTimesMultiplier() {
         return digTimesMultiplier;
     }
 
-    public void addDigTimesMultiplier(int addValue) {
-         digTimesMultiplier += addValue;
+    public void setDigTimesMultiplier(int digTimesMultiplier) {
+        this.digTimesMultiplier = digTimesMultiplier;
     }
 
 }

@@ -18,20 +18,19 @@ public interface CaptainJackConstant {
         //开始游戏
         int REQ_CAPTAIN_JACK_START_GAME = BASE_MSG_PREFIX | 0x3;
         int RES_CAPTAIN_JACK_START_GAME = BASE_MSG_PREFIX | 0x4;
-        //探宝
-        int REQ_CAPTAIN_JACK_TREASURE_CHEST = BASE_MSG_PREFIX | 0x5;
-        int RES_CAPTAIN_JACK_TREASURE_CHEST = BASE_MSG_PREFIX | 0x6;
+
     }
 
     interface BaseElement {
-        //金色图标最小id
-        int GOLD_MIN = 11;
-        //金色图标最大id
-        int GOLD_MAX = 18;
+        //免费图标
+        int FREE_ICON = 12;
+        //宝箱图标
+        int TREASURE_ICON = 10;
     }
 
     interface Status {
         int NORMAL = 0;
+        //免费
         int FREE = 1;
         //宝箱
         int TREASURE_CHEST = 2;

@@ -1134,10 +1134,11 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * 退出游戏
      *
      * @param playerController
+     * @param initiativeExit
      * @return 返回值来标记是否可以进行断线重连
      */
     @Override
-    public DollarExpressPlayerGameData exit(PlayerController playerController) {
+    public DollarExpressPlayerGameData exit(PlayerController playerController, boolean initiativeExit) {
         DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
             return null;

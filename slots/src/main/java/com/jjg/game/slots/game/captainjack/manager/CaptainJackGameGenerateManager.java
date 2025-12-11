@@ -101,17 +101,14 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
             if (CollectionUtil.isEmpty(cfg.getFeatureTriggerId())) {
                 continue;
             }
+            Integer icon = cfg.getElementId().getFirst();
             cfg.getFeatureTriggerId().forEach(miniGameId -> {
+                if (libTypeSet == null) {
+                    targetSpecialAuxiliary(lib, miniGameId, icon, specialAuxiliaryInfoList);
+                    return;
+                }
                 libTypeSet.forEach(libType -> {
-                    if (libType == CaptainJackConstant.SpecialMode.FREE) {
-                        SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, arr, miniGameId, specialGirdInfoList);
-                        if (specialAuxiliaryInfo != null) {
-                            specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
-                        }
-                    }
-                    if (libType == CaptainJackConstant.SpecialMode.MINI_GAME) {
-                        triggerTreasureHuntMiniGame(lib, miniGameId);
-                    }
+                    targetSpecialAuxiliary(lib, miniGameId, icon, specialAuxiliaryInfoList);
                 });
 
             });
@@ -120,6 +117,63 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
         return specialAuxiliaryInfoList;
     }
 
+    private void targetSpecialAuxiliary(CaptainJackResultLib lib, Integer miniGameId, Integer icon, List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList) {
+        if (icon == CaptainJackConstant.BaseElement.FREE_ICON) {
+            SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerFree(lib, CaptainJackConstant.SpecialMode.FREE, miniGameId);
+            if (specialAuxiliaryInfo != null) {
+                if (specialAuxiliaryInfo.getFreeGames() != null && CollectionUtil.isEmpty(lib.getLibTypeSet())) {
+                    if (lib.getSpecialAuxiliaryInfoList() == null) {
+                        specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
+                        return;
+                    }
+                    //寻找第一个免费的specialAuxiliaryInfo
+                    for (SpecialAuxiliaryInfo auxiliaryInfo : specialAuxiliaryInfoList) {
+                        if (CollectionUtil.isNotEmpty(auxiliaryInfo.getFreeGames())) {
+                            for (JSONObject freeGame : specialAuxiliaryInfo.getFreeGames()) {
+                                specialAuxiliaryInfo.addFreeGame(freeGame);
+                            }
+                            break;
+                        }
+                    }
+                    specialAuxiliaryInfo.setFreeGames(null);
+                    lib.setAddFreeCount(specialAuxiliaryInfo.getFreeGames().size());
+                    return;
+                }
+                specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
+            }
+        }
+        if (icon == CaptainJackConstant.BaseElement.TREASURE_ICON) {
+            triggerTreasureHuntMiniGame(lib, miniGameId);
+        }
+    }
+
+    /**
+     * 触发小游戏
+     *
+     * @param miniGameId
+     * @return
+     */
+    public SpecialAuxiliaryInfo triggerFree(CaptainJackResultLib lib, int specialModeType, int miniGameId) {
+        log.debug("触发小游戏 miniGameId = {}", miniGameId);
+        //根据小游戏id去找相关配置
+        SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(miniGameId);
+        if (specialAuxiliaryCfg == null) {
+            log.warn("未找到该小游戏的配置 miniGameId = {}", miniGameId);
+            return null;
+        }
+
+        SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(miniGameId);
+        if (specialAuxiliaryPropConfig == null) {
+            log.warn("未找到该小游戏小关的权重信息配置 miniGameId = {}", miniGameId);
+            return null;
+        }
+
+        SpecialAuxiliaryInfo specialAuxiliaryInfo = new SpecialAuxiliaryInfo();
+        specialAuxiliaryInfo.setCfgId(miniGameId);
+        //检查免费旋转
+        triggerFree(lib, specialModeType, specialAuxiliaryCfg, specialAuxiliaryPropConfig, specialAuxiliaryInfo);
+        return specialAuxiliaryInfo;
+    }
 
     /**
      * 触发探宝小游戏
@@ -173,9 +227,8 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
         return info;
     }
 
-    @Override
-    protected void triggerFree(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg,
-                               SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig, SpecialAuxiliaryInfo specialAuxiliaryInfo) {
+    private void triggerFree(CaptainJackResultLib superiorLib, int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg,
+                             SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig, SpecialAuxiliaryInfo specialAuxiliaryInfo) {
         if (specialAuxiliaryPropConfig.getTriggerCountPropInfo() == null) {
             return;
         }
@@ -184,7 +237,7 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
         if (freeCount == null || freeCount < 1) {
             return;
         }
-
+        superiorLib.setAddFreeCount(freeCount);
         log.debug("增加免费游戏次数 addCount = {}", freeCount);
         for (int i = 0; i < freeCount; i++) {
             //检查是否有修改图案策略组id
@@ -196,18 +249,20 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
                 }
             }
             CaptainJackResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
-            if (i == 0) {
-                lib.setAddFreeCount(freeCount);
-            }
-            specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
-            if (!CollectionUtil.isEmpty(lib.getSpecialAuxiliaryInfoList())) {
-                for (SpecialAuxiliaryInfo auxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+            List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = lib.getSpecialAuxiliaryInfoList();
+            if (lib.getLibTypeSet() == null && CollectionUtil.isNotEmpty(specialAuxiliaryInfoList)) {
+                lib.setSpecialAuxiliaryInfoList(null);
+                specialAuxiliaryInfoList = List.copyOf(specialAuxiliaryInfoList);
+                specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
+                for (SpecialAuxiliaryInfo auxiliaryInfo : specialAuxiliaryInfoList) {
                     if (CollectionUtil.isNotEmpty(auxiliaryInfo.getFreeGames())) {
                         for (JSONObject freeGame : auxiliaryInfo.getFreeGames()) {
                             specialAuxiliaryInfo.addFreeGame(freeGame);
                         }
                     }
                 }
+            } else {
+                specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
             }
         }
 
@@ -318,6 +373,9 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
 
     @Override
     public void calTimes(CaptainJackResultLib lib) throws Exception {
+        if (CollectionUtil.isEmpty(lib.getLibTypeSet())) {
+            return;
+        }
         if (CollectionUtil.isEmpty(lib.getSpecialAuxiliaryInfoList())) {
             //中奖线
             lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
@@ -366,7 +424,7 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
             for (int i = 0; i < endIndex; i++) {
                 JSONObject jsonObject = info.getFreeGames().get(i);
                 CaptainJackResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), CaptainJackResultLib.class);
-                if (tmpLib.getTimes() <= 0) {
+                if (CollectionUtil.isEmpty(tmpLib.getAddIconInfos())) {
                     continue;
                 }
                 count += tmpLib.getAddIconInfos().size();

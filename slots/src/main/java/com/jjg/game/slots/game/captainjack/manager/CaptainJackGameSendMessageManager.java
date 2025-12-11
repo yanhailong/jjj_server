@@ -17,7 +17,6 @@ import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackCascade;
 import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackWinIconInfo;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackEnterGame;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackStartGame;
-import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackTreasureChest;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.stereotype.Component;
 
@@ -70,6 +69,15 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
                     res.freeMultiplier = (int) generateManager.calFree(lib, freeIndex.get());
                 }
             }
+            if (gameRunInfo.getStatus() == CaptainJackConstant.Status.TREASURE_CHEST) {
+                CaptainJackResultLib treasureResults = gameRunInfo.getData().getResultLib();
+                if (treasureResults != null) {
+                    res.accumulationRate = treasureResults.getDigTimesMultiplier().subList(0, gameRunInfo.getData().getAlreadyDigCount())
+                            .stream()
+                            .mapToInt(Integer::intValue)
+                            .sum();
+                }
+            }
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -113,7 +121,8 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
 
             res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
-
+            res.currentRate = gameRunInfo.getDigTimesMultiplier();
+            res.remainDigCount = gameRunInfo.getRemainDigCount();
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
@@ -180,21 +189,4 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
         return list;
     }
 
-    /**
-     * 请求开宝箱
-     */
-    public void reqCaptainJackTreasureChest(PlayerController playerController, CaptainJackGameRunInfo gameRunInfo) {
-        SendInfo sendInfo = new SendInfo();
-        ResCaptainJackTreasureChest res = new ResCaptainJackTreasureChest(gameRunInfo.getCode());
-        if (gameRunInfo.success()) {
-            //玩家倍率
-            res.rate = gameRunInfo.getDigTimesMultiplier();
-            res.amount = gameRunInfo.getAllWinGold();
-            slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
-        }
-        sendInfo.addPlayerMsg(playerController.playerId(), res);
-        sendInfo.getLogMessage().add(res);
-        sendRun(playerController, sendInfo, "返回开宝箱结果", false);
-
-    }
 }

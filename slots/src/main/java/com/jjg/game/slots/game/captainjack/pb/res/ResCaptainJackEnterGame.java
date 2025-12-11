@@ -12,7 +12,7 @@ import java.util.List;
  * @author 11
  * @date 2025/8/1 17:48
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE, cmd = CaptainJackConstant.MsgBean.RES_CAPTAIN_JACK_ENTER_GAME, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CAPTAIN_JACK, cmd = CaptainJackConstant.MsgBean.RES_CAPTAIN_JACK_ENTER_GAME, resp = true)
 @ProtoDesc("返回配置信息")
 public class ResCaptainJackEnterGame extends AbstractResponse {
     @ProtoDesc("押注列表")
@@ -21,13 +21,14 @@ public class ResCaptainJackEnterGame extends AbstractResponse {
     public long defaultBet;
     @ProtoDesc("累计中奖金币")
     public long totalWinGold;
-    @ProtoDesc("当前状态 0.正常  1.免费")
+    @ProtoDesc("当前状态 0.正常  1.免费 2.探宝")
     public int status;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
     @ProtoDesc("当前免费倍率")
     public int freeMultiplier;
-
+    @ProtoDesc("累计探宝触发的倍率")
+    public int accumulationRate;
     public ResCaptainJackEnterGame(int code) {
         super(code);
     }

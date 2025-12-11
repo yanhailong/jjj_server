@@ -147,8 +147,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         getResultLibDao().init(this.gameType);
         getGenerateManager().init(this.gameType);
         initConfig();
-
-//        addCheckOffLineEvent();
+        addCheckOffLineEvent();
     }
 
     /**
@@ -329,7 +328,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
     }
 
-    public <G extends GameRunInfo> G enterGame(PlayerController playerController) {
+    public <G extends GameRunInfo<T>> G enterGame(PlayerController playerController) {
         return null;
     }
 
@@ -775,6 +774,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (playerGameData != null) {
             playerGameData.setCreateTime(TimeHelper.nowInt());
             playerGameData.setOnline(true);
+            playerGameData.setOfflineTime(0);
             playerGameData.setPlayerController(playerController);
             return playerGameData;
         }
@@ -989,7 +989,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     @Override
     public void onTimer(TimerEvent e) {
         if (this.checkOffLineEvent == e) {
-//            checkOffLine();
+            checkOffLine();
         } else if (this.gameUpdatePoolEvent == e) {
             gameUpdatePool();
         } else if (this.clearAllLibEvent == e) {
@@ -1000,6 +1000,46 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             generate(this.generateLibEvent.getParameter());
             this.generateLibEvent = null;
         }
+    }
+
+    /**
+     * 离线玩家检查
+     */
+    private void checkOffLine() {
+        long timeMillis = System.currentTimeMillis();
+        for (Map<Long, T> playerGameDataMap : gameDataMap.values()) {
+            for (Map.Entry<Long, T> gameData : playerGameDataMap.entrySet()) {
+                T gameDataValue = gameData.getValue();
+                //是否需要回存
+                if (gameDataValue.isOnline() || gameDataValue.getOfflineTime() + SlotsConst.Common.MAX_OFFLINE_TIME <= timeMillis) {
+                    continue;
+                }
+                final PlayerController playerController = gameDataValue.getPlayerController();
+                //分发到对应的线程
+                PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(gameData.getKey()
+                        , 0, new BaseHandler<String>() {
+                            @Override
+                            public void action() {
+                                T playerGameData = getPlayerGameData(playerController);
+                                long newTimeMillis = System.currentTimeMillis();
+                                if (playerGameData.isOnline() || playerGameData.getOfflineTime() + SlotsConst.Common.MAX_OFFLINE_TIME <= newTimeMillis) {
+                                    return;
+                                }
+                                onAutoExitAction(playerGameData);
+                                offlineSaveGameDataDto(playerGameData);
+                                removePlayerGameData(playerGameData.playerId(), playerGameData.getRoomCfgId());
+                            }
+                        }.setHandlerParamWithSelf("slots checkOffLine"));
+            }
+        }
+    }
+
+    /**
+     * 离线自动踢出玩家
+     * @param gameData 玩家数据
+     */
+    protected void onAutoExitAction(T gameData) {
+
     }
 
     protected abstract <D extends AbstractResultLibDao> D getResultLibDao();
@@ -1166,14 +1206,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
 
-    public T exit(PlayerController playerController) {
+    public T exit(PlayerController playerController, boolean initiativeExit) {
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
             return null;
         }
         playerGameData.setOnline(false);
-        offlineSaveGameDataDto(playerGameData);
-        removePlayerGameData(playerController.playerId(), playerGameData.getRoomCfgId());
+        if (initiativeExit) {
+            offlineSaveGameDataDto(playerGameData);
+            removePlayerGameData(playerController.playerId(), playerGameData.getRoomCfgId());
+        }
         return playerGameData;
     }
 
