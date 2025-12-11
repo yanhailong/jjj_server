@@ -228,7 +228,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             //更新token过期时间
             playerSessionTokenDao.updateExpire(playerSessionToken);
-
+            Account account = accountDao.queryAccountByPlayerId(player.getId());
+            boolean dayOfFirstLogin = !TimeHelper.inSameDay(account.getLastLoginTime(), timeMillis) &&
+                    !TimeHelper.inSameDay(account.getLastOfflineTime(), timeMillis);
             //更新最近登录时间
             accountDao.checkAndSave(player.getId(), a -> a.setLastLoginTime(timeMillis));
             //检查重连
@@ -247,7 +249,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 PlayerController playerController = new PlayerController(session, player);
                 session.setReference(playerController);
                 SystemInterfaceHolder.callGameSysAction(
-                        IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, register[0]));
+                        IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, dayOfFirstLogin));
                 return;
             }
 
@@ -270,7 +272,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             // 调用登录接口类
             SystemInterfaceHolder.callGameSysAction(
-                    IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, register[0]));
+                    IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, dayOfFirstLogin));
 
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
