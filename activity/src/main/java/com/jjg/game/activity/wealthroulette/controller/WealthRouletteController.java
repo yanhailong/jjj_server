@@ -115,7 +115,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             return;
         }
         countDao.incrementWithoutExpireRefresh(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), getChildId(player.getId(), LocalDate.now()),
-                BigDecimal.valueOf(Math.abs(progress)), TimeHelper.ONE_DAY_OF_MILLIS * 2);
+                BigDecimal.valueOf(Math.abs(progress)), TimeHelper.DAY_SECOND * 2);
     }
 
     /**
@@ -187,7 +187,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         }
         res.rouletteItemInfo = new ArrayList<>();
         for (WealthRouletteRewardCfg rewardCfg : GameDataManager.getWealthRouletteRewardCfgList()) {
-            res.rouletteItemInfo.add(new WealthRouletteDrawItemInfo(rewardCfg.getId(), rewardCfg.getPicture(),ItemUtils.buildItemInfo(rewardCfg.getItem())));
+            res.rouletteItemInfo.add(new WealthRouletteDrawItemInfo(rewardCfg.getId(), rewardCfg.getPicture(), ItemUtils.buildItemInfo(rewardCfg.getItem())));
         }
         res.totalPoint = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
                 getChildId(playerId, LocalDate.now().minusDays(-1))).intValue();
@@ -316,7 +316,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             return res;
         }
         //发送奖励
-        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, cfg.getItem(), AddType.ACTIVITY_WEALTH_ROULETTE_REWARDS);
+        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, ItemUtils.expendItems(cfg.getItem(), req.buyNum), AddType.ACTIVITY_WEALTH_ROULETTE_REWARDS);
         if (!addResult.success()) {
             log.error("财富转盘 购买商品后添加道具失败 playerId:{} goodId:{}", playerId, req.goodId);
         }

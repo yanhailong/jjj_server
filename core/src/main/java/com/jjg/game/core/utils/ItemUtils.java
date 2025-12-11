@@ -26,7 +26,7 @@ public class ItemUtils {
      * 获取金币道具ID
      */
     public static int getGoldItemId() {
-        if(GOLD_ITEM_ID < 1){
+        if (GOLD_ITEM_ID < 1) {
             GOLD_ITEM_ID = GameDataManager.getItemCfgList().stream().filter(
                     itemCfg -> itemCfg.getType() == GameConstant.Item.TYPE_GOLD
             ).map(ItemCfg::getId).findFirst().orElse(0);
@@ -38,7 +38,7 @@ public class ItemUtils {
      * 获取钻石道具ID
      */
     public static int getDiamondItemId() {
-        if(DIAMOND_ITEM_ID < 1){
+        if (DIAMOND_ITEM_ID < 1) {
             DIAMOND_ITEM_ID = GameDataManager.getItemCfgList().stream().filter(
                     itemCfg -> itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND
             ).map(ItemCfg::getId).findFirst().orElse(0);
@@ -87,7 +87,7 @@ public class ItemUtils {
         item.setItemCount(count);
 
         List<Item> list = new ArrayList<>();
-        list.add( item);
+        list.add(item);
         return list;
     }
 
@@ -210,5 +210,17 @@ public class ItemUtils {
             }
         }
         return itemsMap.keySet().iterator().next();
+    }
+
+    /**
+     * 扩大奖励倍数
+     * @param itemsMap 奖励道具
+     * @param count 扩大倍数
+     * @return 扩大后的奖励道具
+     */
+    public static Map<Integer, Long> expendItems(Map<Integer, Long> itemsMap, int count) {
+        Map<Integer, Long> map = new HashMap<>(itemsMap);
+        itemsMap.forEach((key, value) -> map.put(key, value * count));
+        return map;
     }
 }

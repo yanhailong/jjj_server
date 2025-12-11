@@ -264,10 +264,6 @@ public class RedDotManager {
         if (module == null) {
             return;
         }
-        List<RedDotDetails> load = load(module, submodule, playerId);
-        if (CollectionUtil.isEmpty(load)) {
-            return;
-        }
         updateRedDot(List.of(buildRedDotDetails(module, submodule, redCount)), playerId);
     }
 
