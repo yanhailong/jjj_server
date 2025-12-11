@@ -837,11 +837,11 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
                         long times = awardInfo.getRandCount() * gameRunInfo.getDollarsGoldTimes();
 
-                        gameRunInfo.addBigPoolTimes(times);
+//                        gameRunInfo.addBigPoolTimes(times);
 
                         TrainInfo goldTrainInfo = goldTrainPbInfo(awardInfo.getRandCount(), gameRunInfo.getDollarsGoldTimes() * gameData.getOneBetScore());
                         gameRunInfo.addTrainInfo(goldTrainInfo);
-                        log.debug("添加黄金列车倍数 playerId = {},times = {},oneBetScore = {},train = {}", gameData.playerId(), times, gameData.getOneBetScore(), JSON.toJSONString(goldTrainInfo));
+                        log.debug("触发黄金列车 playerId = {},times = {},oneBetScore = {},train = {}", gameData.playerId(), times, gameData.getOneBetScore(), JSON.toJSONString(goldTrainInfo));
                     }
                     break;
                 }
@@ -850,8 +850,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
         //设置保险箱倍数
         if (dollarsInfo.coinIndexId > 0) {
-            gameRunInfo.addBigPoolTimes(gameRunInfo.getDollarsGoldTimes());
-            log.debug("添加保险箱倍数 playerId = {},times = {}", gameData.playerId(), gameRunInfo.getDollarsGoldTimes());
+//            gameRunInfo.addBigPoolTimes(gameRunInfo.getDollarsGoldTimes());
+            log.debug("触发保险箱 playerId = {},times = {}", gameData.playerId(), gameRunInfo.getDollarsGoldTimes());
         }
 
         gameRunInfo.setDollarsInfo(dollarsInfo);

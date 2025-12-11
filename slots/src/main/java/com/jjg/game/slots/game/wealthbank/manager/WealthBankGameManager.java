@@ -839,11 +839,11 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
 
                         long times = awardInfo.getRandCount() * gameRunInfo.getDollarsGoldTimes();
 
-                        gameRunInfo.addBigPoolTimes(times);
+//                        gameRunInfo.addBigPoolTimes(times);
 
                         WealthBankTrainInfo goldWealthBankTrainInfo = goldTrainPbInfo(awardInfo.getRandCount(), gameRunInfo.getDollarsGoldTimes() * gameData.getOneBetScore());
                         gameRunInfo.addTrainInfo(goldWealthBankTrainInfo);
-                        log.debug("[Wealth Bank] 添加黄金列车倍数 playerId = {},times = {},oneBetScore = {},train = {}", gameData.playerId(), times, gameData.getOneBetScore(), JSON.toJSONString(goldWealthBankTrainInfo));
+                        log.debug("[Wealth Bank] 触发黄金列车 playerId = {},times = {},oneBetScore = {},train = {}", gameData.playerId(), times, gameData.getOneBetScore(), JSON.toJSONString(goldWealthBankTrainInfo));
                     }
                     break;
                 }
@@ -852,8 +852,8 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
 
         //设置保险箱倍数
         if (wealthBankDollarsInfo.coinIndexId > 0) {
-            gameRunInfo.addBigPoolTimes(gameRunInfo.getDollarsGoldTimes());
-            log.debug("[Wealth Bank] 添加保险箱倍数 playerId = {},times = {}", gameData.playerId(), gameRunInfo.getDollarsGoldTimes());
+//            gameRunInfo.addBigPoolTimes(gameRunInfo.getDollarsGoldTimes());
+            log.debug("[Wealth Bank] 触发保险箱 playerId = {},times = {}", gameData.playerId(), gameRunInfo.getDollarsGoldTimes());
         }
 
         gameRunInfo.setDollarsInfo(wealthBankDollarsInfo);
