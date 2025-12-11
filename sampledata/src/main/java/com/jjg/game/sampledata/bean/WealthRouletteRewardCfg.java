@@ -23,7 +23,7 @@ public class WealthRouletteRewardCfg extends BaseCfgBean {
   protected Map<Integer,Long> item;
   /** 客户端图片资源 */
   protected String picture;
-  /** 权重（千分比） */
+  /** 权重（万分比） */
   protected int weight;
 
   /** 返回金币档位 */
@@ -36,7 +36,7 @@ public class WealthRouletteRewardCfg extends BaseCfgBean {
     return picture;
   }
 
-  /** 返回权重（千分比） */
+  /** 返回权重（万分比） */
   public int getWeight() {
     return weight;
   }
