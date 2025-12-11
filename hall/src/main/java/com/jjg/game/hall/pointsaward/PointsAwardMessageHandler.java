@@ -93,7 +93,7 @@ public class PointsAwardMessageHandler {
     @Command(PointsAwardConstant.Message.REQ_SIGN)
     public void singIn(PlayerController playerController, ReqPointsAwardSignIn message) {
         ResPointsAwardSignIn res = new ResPointsAwardSignIn(Code.SUCCESS);
-        pointsAwardSignInService.signIn(playerController.playerId(), message.getDayOfMonth());
+        pointsAwardSignInService.signIn(playerController.getPlayer(), message.getDayOfMonth());
         List<PointsAwardSignInConfig> configList = pointsAwardSignInService.getConfigList(playerController.playerId());
         res.setConfigList(configList);
         res.setDayOfMonth(message.getDayOfMonth());

@@ -234,17 +234,17 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
     /**
      * 玩家请求签到
      *
-     * @param playerId 玩家id
+     * @param player 玩家
      * @return true 签到成功
      */
-    public void signIn(long playerId, int dayOfMonth) {
+    public void signIn(Player player, int dayOfMonth) {
         PointsAwardSigninCfg signInCfg = manager.getSignInCfg(dayOfMonth);
         if (signInCfg == null) {
             return;
         }
         //检测条件
         Supplier<Boolean> condition = () -> {
-            RSet<Integer> unlockSet = getUnlockSet(playerId);
+            RSet<Integer> unlockSet = getUnlockSet(player.getId());
             if (unlockSet == null) {
                 return false;
             }
@@ -252,33 +252,33 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
             if (!unlockSet.contains(dayOfMonth)) {
                 return false;
             }
-            RSet<Integer> signSet = getSignSet(playerId);
+            RSet<Integer> signSet = getSignSet(player.getId());
             //重复领取
             return !signSet.contains(dayOfMonth);
         };
         if (!condition.get()) {
             return;
         }
-        boolean success = redisLock.tryLockAndGet(signLock(playerId), () -> {
+        boolean success = redisLock.tryLockAndGet(signLock(player.getId()), () -> {
             if (!condition.get()) {
                 return false;
             }
             //记录签到奖励领取数据
-            getSignSet(playerId).add(dayOfMonth);
+            getSignSet(player.getId()).add(dayOfMonth);
             return true;
         }, false);
         if (success) {
             if (signInCfg.getIntegralNum() > 0) {
-                pointsAwardService.add(playerId, signInCfg.getIntegralNum(), PointsAwardType.SIGN);
+                pointsAwardService.add(player.getId(), signInCfg.getIntegralNum(), PointsAwardType.SIGN);
             }
             //发送道具奖励
             if (signInCfg.getGetItem() != null && !signInCfg.getGetItem().isEmpty()) {
-                playerPackService.addItems(playerId, ItemUtils.buildItems(signInCfg.getGetItem()), AddType.POINTS_AWARD_SIGN_REWARDS);
+                playerPackService.addItems(player.getId(), ItemUtils.buildItems(signInCfg.getGetItem()), AddType.POINTS_AWARD_SIGN_REWARDS);
             }
             //记录日志
-            pointsAwardLogger.signInLog(playerId, getSignSet(playerId).size(), signInCfg.getIntegralNum(), pointsAwardService.getPoints(playerId));
+            pointsAwardLogger.signInLog(player, getSignSet(player.getId()).size(), signInCfg.getIntegralNum(), pointsAwardService.getPoints(player.getId()));
             //更新红点
-            redDotManager.updateRedDotByInitialize(getModule(), getSubmodule(), playerId);
+            redDotManager.updateRedDotByInitialize(getModule(), getSubmodule(), player.getId());
         }
     }
 

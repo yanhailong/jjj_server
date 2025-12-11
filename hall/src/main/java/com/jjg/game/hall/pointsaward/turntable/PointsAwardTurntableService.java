@@ -286,7 +286,7 @@ public class PointsAwardTurntableService implements IRedDotService {
 
             int afterCount = maxCount - useCount;
             //转盘日志
-            pointsAwardLogger.turntableLog(playerId, -1, afterCount);
+            pointsAwardLogger.turntableLog(playerId, -1, afterCount, consume, integralPoints, pointsAwardService.getPoints(playerId));
         }
 
         return result;
@@ -353,7 +353,7 @@ public class PointsAwardTurntableService implements IRedDotService {
 
         int afterCount = getMaxCount(playerId) - getCount(playerId);
         //转盘日志
-        pointsAwardLogger.turntableLog(playerId, addCount, afterCount);
+        pointsAwardLogger.turntableLog(playerId, addCount, afterCount, 0, 0, pointsAwardService.getPoints(playerId));
     }
 
     /**
