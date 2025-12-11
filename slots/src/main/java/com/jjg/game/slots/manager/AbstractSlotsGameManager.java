@@ -870,7 +870,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         return result;
     }
 
-    public long getPoolValueByPoolId(int poolId, long stake) throws Exception {
+    public long getPoolValueByPoolId(int poolId, long stake) {
         PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
         return calPoolValue(stake, poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax());
     }

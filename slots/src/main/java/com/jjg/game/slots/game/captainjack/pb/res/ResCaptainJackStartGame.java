@@ -39,10 +39,6 @@ public class ResCaptainJackStartGame extends AbstractResponse {
     public CaptainJackWinIconInfo rewardIconInfo;
     @ProtoDesc("消除后添加图标的信息")
     public List<CaptainJackCascade> addIconInfoList;
-    @ProtoDesc("本次探宝触发的倍率")
-    public int currentRate;
-    @ProtoDesc("剩余探宝次数")
-    public int remainDigCount;
 
     public ResCaptainJackStartGame(int code) {
         super(code);

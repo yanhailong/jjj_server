@@ -10,7 +10,9 @@ import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
 import com.jjg.game.slots.game.captainjack.manager.CaptainJackGameManager;
 import com.jjg.game.slots.game.captainjack.manager.CaptainJackGameSendMessageManager;
 import com.jjg.game.slots.game.captainjack.pb.req.ReqCaptainJackEnterGame;
+import com.jjg.game.slots.game.captainjack.pb.req.ReqCaptainJackPoolValue;
 import com.jjg.game.slots.game.captainjack.pb.req.ReqCaptainJackStartGame;
+import com.jjg.game.slots.game.captainjack.pb.req.ReqCaptainJackTreasureHunting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -61,6 +63,34 @@ public class CaptainJackMessageHandler {
             log.error("", e);
         }
     }
+    /**
+     * 奖池
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(CaptainJackConstant.MsgBean.REQ_CAPTAIN_JACK_POOL_VALUE)
+    public void reqCaptainJackPoolValue(PlayerController playerController, ReqCaptainJackPoolValue req) {
+        try {
+            CaptainJackGameRunInfo gameRunInfo = this.gameManager.getPoolValue(playerController, req.stakeValue);
+            sendMessageManager.sendPoolMessage(playerController, gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
 
+    /**
+     * 请求探宝
+     *
+     */
+    @Command(CaptainJackConstant.MsgBean.REQ_CAPTAIN_JACK_TREASURE_HUNTING)
+    public void reqCaptainJackTreasureHunting(PlayerController playerController, ReqCaptainJackTreasureHunting req) {
+        try {
+            CaptainJackGameRunInfo gameRunInfo = this.gameManager.treasureHunting(playerController);
+            sendMessageManager.sendTreasureHunting(playerController, gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
 
 }

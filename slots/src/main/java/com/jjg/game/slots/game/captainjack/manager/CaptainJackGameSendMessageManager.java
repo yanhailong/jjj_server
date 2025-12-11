@@ -16,7 +16,9 @@ import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
 import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackCascade;
 import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackWinIconInfo;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackEnterGame;
+import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackPoolValue;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackStartGame;
+import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackTreasureHunting;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.stereotype.Component;
 
@@ -121,8 +123,6 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
 
             res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
-            res.currentRate = gameRunInfo.getDigTimesMultiplier();
-            res.remainDigCount = gameRunInfo.getRemainDigCount();
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
@@ -136,9 +136,6 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
 
     /**
      * 添加中奖图标信息
-     * @param awardLineInfoList
-     * @param oneBetScore
-     * @return
      */
     private CaptainJackWinIconInfo addRewardIcons(List<CaptainJackAwardLineInfo> awardLineInfoList, long oneBetScore) {
         if (CollectionUtil.isEmpty(awardLineInfoList)) {
@@ -162,9 +159,6 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
 
     /**
      * 添加消除图标后，补齐的图标信息
-     * @param lib
-     * @param gameRunInfo
-     * @return
      */
     private List<CaptainJackCascade> addIconInfos(CaptainJackResultLib lib, CaptainJackGameRunInfo gameRunInfo) {
         if (lib == null || lib.getAddIconInfos() == null || lib.getAddIconInfos().isEmpty()) {
@@ -189,4 +183,37 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
         return list;
     }
 
+    public void sendPoolMessage(PlayerController playerController, CaptainJackGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+        ResCaptainJackPoolValue res = new ResCaptainJackPoolValue(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+            res.mini = gameRunInfo.getMini();
+            res.minor = gameRunInfo.getMinor();
+            res.major = gameRunInfo.getMajor();
+            res.grand = gameRunInfo.getGrand();
+        } else {
+            log.debug("奖池结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回奖池结果", false);
+    }
+
+    public void sendTreasureHunting(PlayerController playerController, CaptainJackGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+        ResCaptainJackTreasureHunting res = new ResCaptainJackTreasureHunting(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+            if (gameRunInfo.getRemainDigCount() == 0) {
+                res.allGold = gameRunInfo.getAfterGold();
+                res.totalWinGold = gameRunInfo.getAllWinGold();
+            }
+            res.currentRate = gameRunInfo.getDigTimesMultiplier();
+            res.remainDigCount = gameRunInfo.getRemainDigCount();
+        } else {
+            log.debug("挖宝结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回挖宝结果", false);
+    }
 }
