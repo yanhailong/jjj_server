@@ -24,6 +24,7 @@ import com.jjg.game.hall.pointsaward.pb.res.NotifySyncPlayerPoint;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import org.redisson.api.*;
+import org.redisson.client.codec.LongCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -90,7 +91,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     public void init() {
         // 初始化充值数据记录map
         redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
-                () -> rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RECHARGE));
+                () -> rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RECHARGE,LongCodec.INSTANCE));
         //查看是否需要清除旧数据
         clear();
         RBucket<Long> bucket = redissonClient.getBucket(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME);
@@ -109,7 +110,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             // 初始化充值数据记录map
             redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
                     () -> {
-                        rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RECHARGE);
+                        rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RECHARGE, LongCodec.INSTANCE);
                         if (rechargeMap != null) {
                             rechargeMap.clear();
                         }
@@ -482,15 +483,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * @param order 订单信息
      */
     public void recharge(Order order) {
-        long playerId = order.getPlayerId();
-        BigDecimal price = order.getPrice();
-        RLock lock = rechargeMap.getReadWriteLock(playerId).writeLock();
-        if (lock.tryLock()) {
-            long resultValue = RedisUtils.toLong(getRecharge(playerId).add(price));
-            //增加玩家充值金额
-            rechargeMap.fastPut(playerId, resultValue);
-            lock.unlock();
-        }
+        rechargeMap.addAndGet(order.getPlayerId(),RedisUtils.toLong(order.getPrice()));
     }
 
     /**
