@@ -20,6 +20,9 @@ import com.jjg.game.slots.game.captainjack.dao.CaptainJackResultLibDao;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackPlayerGameData;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
+import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
+import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightGameRunInfo;
+import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.stereotype.Component;
 
@@ -345,4 +348,28 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
     }
 
 
+    public CaptainJackGameRunInfo getPoolValue(PlayerController playerController, long stakeValue) {
+        CaptainJackGameRunInfo gameRunInfo  = new CaptainJackGameRunInfo(Code.SUCCESS, playerController.playerId());
+        try {
+            gameRunInfo.setMini(getPoolValueByPoolId(CaptainJackConstant.Common.MINI_POOL_ID, stakeValue));
+            gameRunInfo.setMinor(getPoolValueByPoolId(CaptainJackConstant.Common.MINOR_POOL_ID, stakeValue));
+            gameRunInfo.setMajor(getPoolValueByPoolId(CaptainJackConstant.Common.MAJOR_POOL_ID, stakeValue));
+            gameRunInfo.setGrand(getPoolValueByPoolId(CaptainJackConstant.Common.GRAND_POOL_ID, stakeValue));
+        } catch (Exception e) {
+            log.error("", e);
+            gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
+    }
+
+    public CaptainJackGameRunInfo treasureHunting(PlayerController playerController) {
+        //获取玩家游戏数据
+        CaptainJackPlayerGameData playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.debug("获取玩家游戏数据失败，开始挖宝失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+            return new CaptainJackGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+        }
+        startGame(playerController, playerGameData, playerGameData.getOneBetScore(), false);
+        return null;
+    }
 }

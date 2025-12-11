@@ -9,6 +9,7 @@ import com.jjg.game.slots.game.thor.ThorConstant;
  */
 public interface CaptainJackConstant {
 
+
     interface MsgBean {
         int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.CAPTAIN_JACK << MessageConst.MessageCommon.RIGHT_MOVE;
         //请求配置
@@ -18,7 +19,12 @@ public interface CaptainJackConstant {
         //开始游戏
         int REQ_CAPTAIN_JACK_START_GAME = BASE_MSG_PREFIX | 0x3;
         int RES_CAPTAIN_JACK_START_GAME = BASE_MSG_PREFIX | 0x4;
-
+        //获取奖池
+        int REQ_CAPTAIN_JACK_POOL_VALUE = BASE_MSG_PREFIX | 0x7;
+        int RES_CAPTAIN_JACK_POOL_VALUE = BASE_MSG_PREFIX | 0x8;
+        //请求探宝
+        int REQ_CAPTAIN_JACK_TREASURE_HUNTING = BASE_MSG_PREFIX | 0x7;
+        int RES_CAPTAIN_JACK_TREASURE_HUNTING = BASE_MSG_PREFIX | 0x8;
     }
 
     interface BaseElement {
@@ -49,5 +55,12 @@ public interface CaptainJackConstant {
         //免费游戏倍率配置id
         int FREE_GAME_CONFIG_ID = 502100;
 
+    }
+
+    interface Common {
+        int MINI_POOL_ID = 102500101;
+        int MINOR_POOL_ID = 102500102;
+        int MAJOR_POOL_ID = 102500103;
+        int GRAND_POOL_ID = 102500104;
     }
 }
