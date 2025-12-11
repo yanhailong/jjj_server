@@ -43,6 +43,8 @@ public class Room_BetCfg extends RoomCfg {
   protected List<Integer> betList;
   /** 游戏ID */
   protected int gameID;
+  /** 初始化标准池 */
+  protected long initBasePool;
   /** 跑马触发金额 */
   protected List<Long> marqueeTrigger;
   /** 上庄最低金额 */
@@ -118,6 +120,11 @@ public class Room_BetCfg extends RoomCfg {
   /** 返回游戏ID */
   public int getGameID() {
     return gameID;
+  }
+
+  /** 返回初始化标准池 */
+  public long getInitBasePool() {
+    return initBasePool;
   }
 
   /** 返回跑马触发金额 */
