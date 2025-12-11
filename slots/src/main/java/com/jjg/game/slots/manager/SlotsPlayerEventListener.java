@@ -1,5 +1,7 @@
 package com.jjg.game.slots.manager;
 
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
@@ -47,7 +49,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
 
     @Override
     public void sessionClose(PFSession session) {
-        exitGame(session);
+        exitGame(session, false);
     }
 
     @Override
@@ -98,11 +100,16 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 }
             }
 
-            PlayerController playerController = new PlayerController(session, player);
-            session.setReference(playerController);
-
-            //创建 PlayerGameData
-            gameManager.createPlayerGameData(playerController);
+            //放入玩家对应线程中处理避免和回存冲突
+            PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
+                @Override
+                public void action() throws Exception {
+                    PlayerController playerController = new PlayerController(session, player);
+                    session.setReference(playerController);
+                    //创建 PlayerGameData
+                    gameManager.createPlayerGameData(playerController);
+                }
+            });
             slotsFactoryManager.clearPlayerEvent(playerId);
             PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
             logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), playerSessionToken.getDevice());
@@ -112,7 +119,12 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         }
     }
 
-    public void exitGame(PFSession session) {
+    /**
+     * 退出游戏
+     * @param session PFSession
+     * @param initiativeExit 是否主动退出
+     */
+    public void exitGame(PFSession session, boolean initiativeExit) {
         PlayerController playerController = (PlayerController) session.getReference();
         if (playerController == null) {
             log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(),
@@ -126,7 +138,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             return;
         }
 
-        SlotsPlayerGameData playerGameData = gameManager.exit(playerController);
+        SlotsPlayerGameData playerGameData = gameManager.exit(playerController, initiativeExit);
         playerSessionService.offline(playerController.getPlayer(), false);
 
         //计算玩游戏的时长

@@ -187,7 +187,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                     }
                 }
             }
-
             //判断中奖，返回
             return checkAward(arr, lib, true);
         } catch (Exception e) {
@@ -621,7 +620,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
             return null;
         }
-
         //获取每个图标出现的次数
         Map<Integer, Integer> showCountMap = checkIconShowCount(arr);
 
@@ -659,9 +657,12 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 });
 
             });
+
         }
         return specialAuxiliaryInfoList;
     }
+
+
 
     /**
      * 检查满线图案_数量

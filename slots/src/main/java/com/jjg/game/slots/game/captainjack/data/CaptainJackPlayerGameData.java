@@ -3,6 +3,7 @@ package com.jjg.game.slots.game.captainjack.data;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
+import com.jjg.game.slots.game.captainjack.dao.CaptainJackPlayerGameDataDTO;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -39,4 +40,13 @@ public class CaptainJackPlayerGameData extends SlotsPlayerGameData {
         this.resultLib = resultLib;
     }
 
+    @Override
+    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
+        T t = super.converToDto(cla);
+        if (t instanceof CaptainJackPlayerGameDataDTO dataDTO) {
+            dataDTO.setAlreadyDigCount(getAlreadyDigCount());
+            dataDTO.setDigLibJson(JSON.toJSONString(getResultLib()));
+        }
+        return t;
+    }
 }

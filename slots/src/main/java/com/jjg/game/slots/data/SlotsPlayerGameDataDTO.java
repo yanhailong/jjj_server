@@ -1,5 +1,6 @@
 package com.jjg.game.slots.data;
 
+import com.alibaba.fastjson.JSON;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -41,6 +42,8 @@ public class SlotsPlayerGameDataDTO {
     protected int remainFreeCount;
     //当前的免费游戏数组中的下标值
     protected int freeIndex;
+    //当前依赖的lib的json字符串
+    protected String relyLibJson;
 
     public long getPlayerId() {
         return playerId;
@@ -154,12 +157,17 @@ public class SlotsPlayerGameDataDTO {
         this.freeIndex = freeIndex;
     }
 
-    public <T extends SlotsPlayerGameData> T converToGameData(Class<T> cla) throws Exception{
+    public void setRelyLibJson(String relyLibJson) {
+        this.relyLibJson = relyLibJson;
+    }
+
+    public <T extends SlotsPlayerGameData> T converToGameData(Class<T> cla) throws Exception {
         Constructor<T> constructor = cla.getConstructor();
         T t = constructor.newInstance();
-        BeanUtils.copyProperties(this,t);
+        BeanUtils.copyProperties(this, t);
         t.setRemainFreeCount(new AtomicInteger(this.remainFreeCount));
         t.setFreeIndex(new AtomicInteger(this.freeIndex));
+        t.setFreeLib(JSON.parseObject(this.relyLibJson));
         return t;
     }
 }

@@ -1,5 +1,6 @@
 package com.jjg.game.slots.data;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import org.springframework.beans.BeanUtils;
@@ -54,7 +55,8 @@ public class SlotsPlayerGameData {
     protected LinkedList<TestLibData> testLibDataList;
     //创建该对象的时间(及进入游戏的时间)
     protected int createTime;
-
+    //离线时间
+    protected int offlineTime;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -266,6 +268,14 @@ public class SlotsPlayerGameData {
         return this.playerController.roomId();
     }
 
+    public int getOfflineTime() {
+        return offlineTime;
+    }
+
+    public void setOfflineTime(int offlineTime) {
+        this.offlineTime = offlineTime;
+    }
+
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception{
         Constructor<T> constructor = cla.getConstructor();
         T t = constructor.newInstance();
@@ -274,6 +284,7 @@ public class SlotsPlayerGameData {
         t.setRoomCfgId(this.getRoomCfgId());
         t.setRemainFreeCount(this.remainFreeCount.get());
         t.setFreeIndex(this.freeIndex.get());
+        t.setRelyLibJson(JSON.toJSONString(this.freeLib));
         return t;
     }
 }

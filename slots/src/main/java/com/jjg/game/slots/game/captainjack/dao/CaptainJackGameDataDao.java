@@ -2,7 +2,6 @@ package com.jjg.game.slots.game.captainjack.dao;
 
 import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameDataDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Repository;
