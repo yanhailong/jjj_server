@@ -23,8 +23,8 @@ public interface CaptainJackConstant {
         int REQ_CAPTAIN_JACK_POOL_VALUE = BASE_MSG_PREFIX | 0x7;
         int RES_CAPTAIN_JACK_POOL_VALUE = BASE_MSG_PREFIX | 0x8;
         //请求探宝
-        int REQ_CAPTAIN_JACK_TREASURE_HUNTING = BASE_MSG_PREFIX | 0x7;
-        int RES_CAPTAIN_JACK_TREASURE_HUNTING = BASE_MSG_PREFIX | 0x8;
+        int REQ_CAPTAIN_JACK_TREASURE_HUNTING = BASE_MSG_PREFIX | 0x9;
+        int RES_CAPTAIN_JACK_TREASURE_HUNTING = BASE_MSG_PREFIX | 0x10;
     }
 
     interface BaseElement {
