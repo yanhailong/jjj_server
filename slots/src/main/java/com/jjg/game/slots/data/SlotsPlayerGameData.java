@@ -265,7 +265,10 @@ public class SlotsPlayerGameData {
     }
 
     public long getRoomId(){
-        return this.playerController.roomId();
+        if(this.playerController != null){
+            return this.playerController.roomId();
+        }
+        return 0;
     }
 
     public int getOfflineTime() {
