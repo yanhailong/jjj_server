@@ -12,7 +12,7 @@ import java.util.List;
  * @author 11
  * @date 2025/8/1 17:48
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE, cmd = CaptainJackConstant.MsgBean.RES_CAPTAIN_JACK_ENTER_GAME, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CAPTAIN_JACK, cmd = CaptainJackConstant.MsgBean.RES_CAPTAIN_JACK_ENTER_GAME, resp = true)
 @ProtoDesc("返回配置信息")
 public class ResCaptainJackEnterGame extends AbstractResponse {
     @ProtoDesc("押注列表")

@@ -14,7 +14,7 @@ import java.util.List;
  * @author 11
  * @date 2025/8/1 17:50
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE, cmd = CaptainJackConstant.MsgBean.RES_CAPTAIN_JACK_START_GAME,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CAPTAIN_JACK, cmd = CaptainJackConstant.MsgBean.RES_CAPTAIN_JACK_START_GAME,resp = true)
 @ProtoDesc("开始游戏结果返回")
 public class ResCaptainJackStartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")
