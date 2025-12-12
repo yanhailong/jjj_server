@@ -256,7 +256,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         // 当前售出的数量
         int soldCount = activeTreasure.getSoldCount();
         //库存限制 机器人不能在低于这个库存的时候再进行购买逻辑
-        int limitCount =  (int) (((double) robotHaveMax / 10000) * total);
+        int limitCount = (int) (((double) robotHaveMax / 10000) * total);
         //不买了
         return soldCount <= limitCount;
     }
@@ -789,21 +789,22 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 luckyTreasure.setAwardPlayerHeadImgId(player.getHeadImgId());
                 luckyTreasure.setAwardPlayerNationalId(player.getNationalId());
                 luckyTreasure.setAwardPlayerLevel(player.getLevel());
-            }
-            luckyTreasure.setAwardPlayerId(winnerPlayerId);
-            // 根据type类型处理奖励
-            if (config.getType() == 1) {
-                String rewardCode = awardCodeManager.generateCode(winnerPlayerId, AwardCodeType.LUCK_TREASURE);
-                log.info("夺宝奇兵[{}]结束,玩家[{}]中奖,生成领奖码[{}]", luckyTreasure.getIssueNumber(), winnerPlayerId, rewardCode);
-                luckyTreasure.setRewardCode(rewardCode);
-            }
-            //标记未领取
-            luckyTreasure.setReceived(false);
 
-            //获取奖励邮件配置
-            MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
-            //发送邮件奖励
-            mailService.addCfgMail(player.getId(), mailCfg.getTitle(), mailCfg.getText(), ItemUtils.buildItemList(config.getItemId(), config.getItemNum()), Collections.emptyList());
+                luckyTreasure.setAwardPlayerId(winnerPlayerId);
+                // 根据type类型处理奖励
+                if (config.getType() == 1) {
+                    String rewardCode = awardCodeManager.generateCode(winnerPlayerId, AwardCodeType.LUCK_TREASURE);
+                    log.info("夺宝奇兵[{}]结束,玩家[{}]中奖,生成领奖码[{}]", luckyTreasure.getIssueNumber(), winnerPlayerId, rewardCode);
+                    luckyTreasure.setRewardCode(rewardCode);
+                }
+                //标记未领取
+                luckyTreasure.setReceived(false);
+
+                //获取奖励邮件配置
+                MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
+                //发送邮件奖励
+                mailService.addCfgMail(player.getId(), mailCfg.getTitle(), mailCfg.getText(), ItemUtils.buildItemList(config.getItemId(), config.getItemNum()), Collections.emptyList());
+            }
         }
         //更新状态
         luckyTreasure.setStatus(LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE);
