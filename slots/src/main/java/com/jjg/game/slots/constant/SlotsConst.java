@@ -9,11 +9,16 @@ import com.jjg.game.common.utils.TimeHelper;
  */
 public interface SlotsConst {
 
-    interface GameType{
+    interface GameType {
         //支持的游戏
         Integer[] SUPPORT_GAME_TYPES = {CoreConst.GameType.DOLLAR_EXPRESS};
     }
 
+    interface Status {
+        int NORMAL = 0;
+        //免费
+        int FREE = 1;
+    }
 
     interface Common {
         //首次玩某个slots游戏，应该使用的模式id
@@ -34,21 +39,21 @@ public interface SlotsConst {
     }
 
     //结果库变更类型
-    interface LibChangeType{
+    interface LibChangeType {
         //结果库变更
         int LIB_CHANGE = 0;
         //配置变更
         int CONFIG_CHANGE = 1;
     }
 
-    interface BaseLine{
+    interface BaseLine {
         //从左至右
         int DIRECTION_LEFT = 1;
         //从右至左
         int DIRECTION_RIGHT = 2;
     }
 
-    interface BaseElement{
+    interface BaseElement {
         //普通图标类型
         int TYPE_NORMAL = 0;
         //wild图标
@@ -61,7 +66,7 @@ public interface SlotsConst {
         int TYPE_DISPERSE_WILD = 4;
     }
 
-    interface BigWinShow{
+    interface BigWinShow {
         int SWEET = 1;
         int BIG = 2;
         int MEGA = 3;
@@ -69,7 +74,7 @@ public interface SlotsConst {
         int LEGENDARY = 5;
     }
 
-    interface BaseElementReward{
+    interface BaseElementReward {
         //所有
         int LINE_TYPE_ALL = 0;
         //连线类型
@@ -86,14 +91,14 @@ public interface SlotsConst {
         int LINE_TYPE_DISPERSE = 6;
     }
 
-    interface BaseInit{
+    interface BaseInit {
         //需要走baseline
         int NEED_BASE_LINE = 1;
         //不需要走baseline
         int NOT_NEED_BASE_LINE = 0;
     }
 
-    interface RoomSlotsPool{
+    interface RoomSlotsPool {
         //标准池
         int TYPE_STANDARD = 1;
         //累计添加的保证金
@@ -102,7 +107,7 @@ public interface SlotsConst {
         int TYPE_ALL_INCOME = 3;
     }
 
-    interface GlobalConfig{
+    interface GlobalConfig {
         //创建房间功能基础收益万分比
         int ID_ROOM_INCOME_PROP = 12;
     }
