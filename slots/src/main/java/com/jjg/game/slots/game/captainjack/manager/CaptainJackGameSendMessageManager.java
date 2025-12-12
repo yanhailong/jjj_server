@@ -65,13 +65,13 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
             res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
             //计算当前免费倍率
-            if (gameRunInfo.getStatus() == CaptainJackConstant.Status.FREE) {
+            if (gameRunInfo.getData().getStatus() == CaptainJackConstant.Status.FREE) {
                 AtomicInteger freeIndex = gameRunInfo.getData().getFreeIndex();
                 if (gameRunInfo.getData().getFreeLib() instanceof CaptainJackResultLib lib) {
                     res.freeMultiplier = (int) generateManager.calFree(lib, freeIndex.get());
                 }
             }
-            if (gameRunInfo.getStatus() == CaptainJackConstant.Status.TREASURE_CHEST) {
+            if (gameRunInfo.getData().getStatus() == CaptainJackConstant.Status.TREASURE_CHEST) {
                 CaptainJackResultLib treasureResults = gameRunInfo.getData().getResultLib();
                 if (treasureResults != null) {
                     res.accumulationRate = treasureResults.getDigTimesMultiplier().subList(0, gameRunInfo.getData().getAlreadyDigCount())

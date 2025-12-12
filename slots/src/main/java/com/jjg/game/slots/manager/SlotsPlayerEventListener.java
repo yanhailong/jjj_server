@@ -105,21 +105,6 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
      * @param gameManager
      */
     private void enterSlotsGame(PFSession session, Player player, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
-        //先检查是否为断线重连(单人模式)
-        Optional<PlayerLastGameInfo> op = playerLastGameInfoDao.findById(player.getId());
-        if (op.isPresent()) {
-            PlayerLastGameInfo playerLastGameInfo = op.get();
-            if (playerLastGameInfo.isHalfwayOffline() && StringUtils.isNotEmpty(playerLastGameInfo.getNodePath())) {
-                playerSessionInfo.setGameType(playerLastGameInfo.getGameType());
-                playerSessionInfo.setRoomCfgId(playerLastGameInfo.getRoomCfgId());
-            }
-        } else {
-            if (playerSessionInfo.getGameType() < 1) {
-                log.warn("sessionEnter时 PlayerSessionInfo 中的gameType小于1 playerId = {}", player.getId());
-                return;
-            }
-        }
-
         //放入玩家对应线程中处理避免和回存冲突
         PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
             @Override
