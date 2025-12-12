@@ -436,9 +436,9 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     /**
      * 玩家获取全服邮件
      *
-     * @param playerId
+     * @param player
      */
-    public void playerGetServerMails(long playerId) {
+    public void playerGetServerMails(Player player) {
         List<Mail> serverMail = mailDao.getServerMails();
         if (serverMail == null || serverMail.isEmpty()) {
             return;
@@ -450,8 +450,12 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         int now = TimeHelper.nowInt();
         for (Mail mail : serverMail) {
             try {
+                if(player.getCreateTime() > mail.getSendTime()){
+                    continue;
+                }
+
                 //是否接收邮件
-                boolean reve = mailDao.playerHasServerMail(playerId, mail.getId());
+                boolean reve = mailDao.playerHasServerMail(player.getId(), mail.getId());
                 //检查邮件是否过期
                 if (mail.getTimeout() < now) {
                     log.info("检测到系统邮件到期 mailId = {},title = {},timeout = {}", mail.getId(), mail.getTitle(),
@@ -465,22 +469,22 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
                 if (reve) {
                     continue;
                 }
-                mailDao.addPlayerServerMail(playerId, mail.getId());
+                mailDao.addPlayerServerMail(player.getId(), mail.getId());
 
                 Mail getMail = mail.clone();
                 getMail.setId(IdUtil.getSnowflakeNextId());
                 getMail.setServerMail(false);
-                getMail.setPlayerId(playerId);
+                getMail.setPlayerId(player.getId());
                 getMails.add(getMail);
             } catch (Exception e) {
-                log.error("领取全服邮件异常 playerId = {},mailId = {}", playerId, mail.getId(), e);
+                log.error("领取全服邮件异常 playerId = {},mailId = {}", player.getId(), mail.getId(), e);
             }
         }
 
         if (!getMails.isEmpty()) {
             long count = mailDao.batchSaveMails(getMails);
-            log.info("玩家接收全服邮件成功 playerId = {},count = {}", playerId, count);
-            redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, getMails.size());
+            log.info("玩家接收全服邮件成功 playerId = {},count = {}", player.getId(), count);
+            redDotManager.incrementRedDotDataAndUpdate(getModule(), player.getId(), getMails.size());
         }
     }
 
@@ -599,7 +603,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
 
     @Override
     public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
-        playerGetServerMails(player.getId());
+        playerGetServerMails(player);
     }
 
     @Override
