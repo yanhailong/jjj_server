@@ -7,18 +7,22 @@ import com.jjg.game.core.data.SendInfo;
 import com.jjg.game.core.manager.BaseSendMessageManager;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackAddIconInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackAwardLineInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
 import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackCascade;
+import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackPoolInfo;
 import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackWinIconInfo;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackEnterGame;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackPoolValue;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackStartGame;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackTreasureHunting;
+import com.jjg.game.slots.game.christmasBashNight.pb.ChristmasBashNightPoolInfo;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.stereotype.Component;
 
@@ -50,9 +54,9 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
      */
     public void reqCaptainJackEnterGame(PlayerController playerController, CaptainJackGameRunInfo gameRunInfo) {
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
-
+        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
+        List<Integer> prizePoolIdList = baseInitCfg.getPrizePoolIdList();
         SendInfo sendInfo = new SendInfo();
-
         ResCaptainJackEnterGame res = new ResCaptainJackEnterGame(Code.SUCCESS);
         if (config != null) {
             List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
@@ -79,6 +83,20 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
                             .mapToInt(Integer::intValue)
                             .sum();
                 }
+            }
+            res.poolList = new ArrayList<>();
+            for (int poolId : prizePoolIdList) {
+                PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+                if (poolCfg == null) {
+                    continue;
+                }
+                CaptainJackPoolInfo poolInfo = new CaptainJackPoolInfo();
+                poolInfo.id = poolId;
+                poolInfo.initTimes = poolCfg.getFakePoolInitTimes();
+                poolInfo.maxTimes = poolCfg.getFakePoolMax();
+                poolInfo.perSomeSec = poolCfg.getGrowthRate().get(0);
+                poolInfo.updateProp = poolCfg.getGrowthRate().get(1);
+                res.poolList.add(poolInfo);
             }
         } else {
             res.code = Code.NOT_FOUND;
