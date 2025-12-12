@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.captainjack.constant;
 
 import com.jjg.game.common.constant.MessageConst;
-import com.jjg.game.slots.game.thor.ThorConstant;
 
 /**
  * @author 11

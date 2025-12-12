@@ -110,7 +110,7 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
             //当前状态
             res.status = gameRunInfo.getStatus();
             //图标信息
-            res.iconList = Arrays.stream(gameRunInfo.getIconArr(), 1, 21).boxed().collect(Collectors.toList());
+            res.iconList = Arrays.stream(gameRunInfo.getIconArr(), 1, gameRunInfo.getIconArr().length).boxed().collect(Collectors.toList());
             //剩余免费次数
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
             //大奖展示id

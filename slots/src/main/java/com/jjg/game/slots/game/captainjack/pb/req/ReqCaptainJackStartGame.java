@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
  * @author 11
  * @date 2025/8/1 17:50
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CAPTAIN_JACK, cmd = CaptainJackConstant.MsgBean.REQ_CAPTAIN_JACK_ENTER_GAME)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CAPTAIN_JACK, cmd = CaptainJackConstant.MsgBean.REQ_CAPTAIN_JACK_START_GAME)
 @ProtoDesc("请求开始游戏")
 public class ReqCaptainJackStartGame extends AbstractMessage {
     @ProtoDesc("下注金额")

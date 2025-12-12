@@ -1528,4 +1528,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
         return (int) (gameRunInfo.getAllWinGold() / betValue);
     }
+
+    public boolean canExit(SlotsPlayerGameData playerGameData) {
+        return playerGameData.getStatus() == 0;
+    }
 }

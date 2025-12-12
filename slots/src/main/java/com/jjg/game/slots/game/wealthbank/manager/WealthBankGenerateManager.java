@@ -805,7 +805,9 @@ public class WealthBankGenerateManager extends AbstractSlotsGenerateManager<Weal
     public Map<Integer, int[]> getSpecialPlayAllBoardMap() {
         return specialPlayAllBoardMap;
     }
-
+    public Map<Integer, SpecialAuxiliaryPropConfig> getSpecialAuxiliaryPropConfigMap() {
+        return specialAuxiliaryPropConfigMap;
+    }
     public int getAllBoardMinCount() {
         return allBoardMinCount;
     }

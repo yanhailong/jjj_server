@@ -6,6 +6,7 @@ import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
@@ -171,27 +172,31 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
 
     /**
      * 退出游戏
-     *
-     * @param session        PFSession
+     * @param session PFSession
      * @param initiativeExit 是否主动退出
      */
-    public void exitGame(PFSession session, boolean initiativeExit) {
+    public int exitGame(PFSession session, boolean initiativeExit) {
         PlayerController playerController = (PlayerController) session.getReference();
         if (playerController == null) {
             log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(),
                     session.sessionId());
-            return;
+            return Code.SUCCESS;
         }
 
         AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType());
         if (gameManager == null) {
             log.debug("退出游戏时，获取游戏管理器失败 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
-            return;
+            return Code.SUCCESS;
         }
-
-        SlotsPlayerGameData playerGameData = gameManager.exit(playerController, initiativeExit);
-        playerSessionService.offline(playerController.getPlayer(), playerGameData != null && playerGameData.isHalfOffLine());
-
+        SlotsPlayerGameData playerGameData = gameManager.getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            return Code.SUCCESS;
+        }
+        if (!gameManager.canExit(playerGameData)) {
+            return Code.FAIL;
+        }
+        playerGameData = gameManager.exit(playerController, initiativeExit);
+        playerSessionService.offline(playerController.getPlayer(), true);
         //计算玩游戏的时长
         int onlineTimeLen = 0;
         if (playerGameData != null) {
@@ -200,6 +205,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         session.setReference(null);
         logger.exitGame(playerController.getPlayer(), onlineTimeLen, playerController.getPlayer().getDeviceType());
         log.debug("退出游戏结算 playerId = {}", playerController.playerId());
+        return Code.SUCCESS;
     }
 
 }
