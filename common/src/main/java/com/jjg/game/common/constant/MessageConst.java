@@ -139,6 +139,8 @@ public interface MessageConst {
         int WEALTH_BANK = 0x3B;
         //圣诞狂欢夜
         int CHRISTMAS_NIGHT_TYPE = 0x2A;
+        //篮球巨星
+        int BASKETBALL_SUPERSTAR = 0x2B;
     }
 
     interface ToClientConst {
