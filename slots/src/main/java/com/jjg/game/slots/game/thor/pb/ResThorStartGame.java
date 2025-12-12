@@ -32,7 +32,7 @@ public class ResThorStartGame extends AbstractResponse {
     public List<ThorWinIconInfo> winIconInfoList;
     @ProtoDesc("从奖池获得的奖励")
     public long rewardPoolValue;
-    @ProtoDesc("状态  1.普通   2.二选一   3.火焰   4.冰冻")
+    @ProtoDesc("状态  0.普通   1.二选一   2.火焰   3.冰冻")
     public int status;
 
     public ResThorStartGame(int code) {

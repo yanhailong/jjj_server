@@ -48,6 +48,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.openxmlformats.schemas.drawingml.x2006.main.STTextTabAlignType.L;
+
 /**
  * 夺宝奇兵管理器
  */
@@ -254,9 +256,9 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         // 当前售出的数量
         int soldCount = activeTreasure.getSoldCount();
         //库存限制 机器人不能在低于这个库存的时候再进行购买逻辑
-        int limitCount = robotHaveMax * total / 10000;
+        int limitCount = (int) (((double) robotHaveMax / 10000) * total);
         //不买了
-        return soldCount >= limitCount;
+        return soldCount <= limitCount;
     }
 
     /**
@@ -290,18 +292,17 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         //机器人购买上限万分比
         int robotHaveMax = config.getRobotHaveMax();
         //库存限制 机器人不能在低于这个库存的时候再进行购买逻辑
-        int limitCount = robotHaveMax * total / 10000;
+        int limitCount = (int) (((double) robotHaveMax / 10000) * total);
         //随机购买数量万分比
         int buyCountPr = RandomUtils.randomMinMax(robotSinglePurchase.getFirst(), robotSinglePurchase.getLast());
         //当前总购买数量
-        int totalBuy = buyCountPr * total / 10000;
-        // 使用读写锁确保购买的一致性
-//        String lockKey = LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_BUY + issueNumber;
-//        try {
-//            // 获取写锁进行购买操作
-//            RLock writeLock = redisLock.getWriteLock(lockKey, 100);
-//            if (writeLock != null) {
-//                try {
+        int totalBuy = (int) (((double) buyCountPr / 10000) * total);
+        //机器人购买数量
+        int soldCount = treasureDetails.getSoldCount();
+        //购买数量超出限制
+        if (soldCount + totalBuy > limitCount) {
+            return;
+        }
         //在写锁中重新获取最新数据
         LuckyTreasure latestTreasure = luckyTreasureRedisDao.getTreasureByIssueNumber(issueNumber);
         //购买
@@ -309,40 +310,9 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         if (resultCode == Code.SUCCESS) {
             //购买成功通知更新 广播到所有节点
             luckyTreasureService.broadcastUpdate(latestTreasure.getIssueNumber());
+            //购买成功的话继续添加定时器
+            addRobotBuyTimer(treasureDetails);
         }
-//                } finally {
-//                    writeLock.unlock();
-//                }
-//            }
-//        } catch (Exception e) {
-//            log.error("夺宝奇兵 机器人购买失败!", e);
-//        }
-        // 使用读写锁确保购买的一致性
-//        try {
-//            // 获取写锁进行购买操作
-//            RLock readLock = redisLock.getReadLock(lockKey);
-//            if (readLock != null) {
-//                try {
-//                    readLock.lock();
-//                    //在写锁中重新获取最新数据
-//                    LuckyTreasure latestTreasure = luckyTreasureRedisDao.getTreasureByIssueNumber(issueNumber);
-//                    // 当前售出的数量
-//                    int soldCount = latestTreasure.getSoldCount();
-//                    //不买了
-//                    if (soldCount >= limitCount) {
-//                        return;
-//                    }
-//                    //继续出发机器人购买
-//                    addRobotBuyTimer(latestTreasure);
-//                } finally {
-//                    readLock.unlock();
-//                }
-//            }
-//        } catch (Exception e) {
-//            log.error("夺宝奇兵 机器人购买失败!", e);
-//        }
-        //购买失败的话继续添加定时器
-        addRobotBuyTimer(treasureDetails);
     }
 
     /**
@@ -819,21 +789,22 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 luckyTreasure.setAwardPlayerHeadImgId(player.getHeadImgId());
                 luckyTreasure.setAwardPlayerNationalId(player.getNationalId());
                 luckyTreasure.setAwardPlayerLevel(player.getLevel());
-            }
-            luckyTreasure.setAwardPlayerId(winnerPlayerId);
-            // 根据type类型处理奖励
-            if (config.getType() == 1) {
-                String rewardCode = awardCodeManager.generateCode(winnerPlayerId, AwardCodeType.LUCK_TREASURE);
-                log.info("夺宝奇兵[{}]结束,玩家[{}]中奖,生成领奖码[{}]", luckyTreasure.getIssueNumber(), winnerPlayerId, rewardCode);
-                luckyTreasure.setRewardCode(rewardCode);
-            }
-            //标记未领取
-            luckyTreasure.setReceived(false);
 
-            //获取奖励邮件配置
-            MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
-            //发送邮件奖励
-            mailService.addCfgMail(player.getId(), mailCfg.getTitle(), mailCfg.getText(), ItemUtils.buildItemList(config.getItemId(), config.getItemNum()), Collections.emptyList());
+                luckyTreasure.setAwardPlayerId(winnerPlayerId);
+                // 根据type类型处理奖励
+                if (config.getType() == 1) {
+                    String rewardCode = awardCodeManager.generateCode(winnerPlayerId, AwardCodeType.LUCK_TREASURE);
+                    log.info("夺宝奇兵[{}]结束,玩家[{}]中奖,生成领奖码[{}]", luckyTreasure.getIssueNumber(), winnerPlayerId, rewardCode);
+                    luckyTreasure.setRewardCode(rewardCode);
+                }
+                //标记未领取
+                luckyTreasure.setReceived(false);
+
+                //获取奖励邮件配置
+                MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
+                //发送邮件奖励
+                mailService.addCfgMail(player.getId(), mailCfg.getTitle(), mailCfg.getText(), ItemUtils.buildItemList(config.getItemId(), config.getItemNum()), Collections.emptyList());
+            }
         }
         //更新状态
         luckyTreasure.setStatus(LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE);
