@@ -1,15 +1,19 @@
 package com.jjg.game.slots.manager;
 
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.slots.dao.SlotsFriendRoomDao;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -40,11 +44,13 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     private SlotsFactoryManager slotsFactoryManager;
     @Autowired
     private PlayerSessionTokenDao playerSessionTokenDao;
+    @Autowired
+    private SlotsFriendRoomDao slotsFriendRoomDao;
 
 
     @Override
     public void sessionClose(PFSession session) {
-        exitGame(session);
+        exitGame(session, false);
     }
 
     @Override
@@ -59,21 +65,12 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 return;
             }
 
-            //先检查是否为断线重连
-            Optional<PlayerLastGameInfo> op = playerLastGameInfoDao.findById(playerId);
-            if (op.isPresent()) {
-                PlayerLastGameInfo playerLastGameInfo = op.get();
-                if (playerLastGameInfo.isHalfwayOffline() && StringUtils.isNotEmpty(playerLastGameInfo.getNodePath())) {
-                    info.setGameType(playerLastGameInfo.getGameType());
-                    info.setRoomCfgId(playerLastGameInfo.getRoomCfgId());
-                }
-            } else {
-                if (info.getGameType() < 1) {
-                    log.warn("sessionEnter时 PlayerSessionInfo 中的gameType小于1 playerId = {}", playerId);
-                    return;
-                }
+            if (info.getGameType() < 1) {
+                log.warn("sessionEnter时 PlayerSessionInfo中gameType小于1 playerId = {}", playerId);
+                return;
             }
 
+            //检查slots游戏管理器
             AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(info.getGameType());
             if (gameManager == null) {
                 log.debug("sessionEnter时，获取游戏管理器失败 playerId = {},gameType = {}", playerId, info.getGameType());
@@ -89,39 +86,119 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
 
             playerSessionService.enterGameServer(player);
 
-            PlayerController playerController = new PlayerController(session, player);
-            session.setReference(playerController);
-
-            //创建 PlayerGameData
-            gameManager.createPlayerGameData(playerController);
-
-            slotsFactoryManager.clearPlayerEvent(playerId);
-
-            PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
-            logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), playerSessionToken.getDevice());
-            log.debug("玩家进入slots 游戏 playerId = {},gameType = {}", playerId, player.getGameType());
+            if (player.getRoomId() < 1) {
+                enterSlotsGame(session, player, info, gameManager);
+            } else {
+                enterRoomSlotsGame(session, player, info, gameManager);
+            }
         } catch (Exception e) {
             log.error("", e);
         }
     }
 
-    public void exitGame(PFSession session) {
+    /**
+     * 进入slots游戏
+     *
+     * @param session
+     * @param player
+     * @param playerSessionInfo
+     * @param gameManager
+     */
+    private void enterSlotsGame(PFSession session, Player player, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
+        //先检查是否为断线重连(单人模式)
+        Optional<PlayerLastGameInfo> op = playerLastGameInfoDao.findById(player.getId());
+        if (op.isPresent()) {
+            PlayerLastGameInfo playerLastGameInfo = op.get();
+            if (playerLastGameInfo.isHalfwayOffline() && StringUtils.isNotEmpty(playerLastGameInfo.getNodePath())) {
+                playerSessionInfo.setGameType(playerLastGameInfo.getGameType());
+                playerSessionInfo.setRoomCfgId(playerLastGameInfo.getRoomCfgId());
+            }
+        } else {
+            if (playerSessionInfo.getGameType() < 1) {
+                log.warn("sessionEnter时 PlayerSessionInfo 中的gameType小于1 playerId = {}", player.getId());
+                return;
+            }
+        }
+
+        //放入玩家对应线程中处理避免和回存冲突
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
+            @Override
+            public void action() throws Exception {
+                PlayerController playerController = new PlayerController(session, player);
+                session.setReference(playerController);
+                //创建 PlayerGameData
+                gameManager.createPlayerGameData(playerController);
+            }
+        });
+        slotsFactoryManager.clearPlayerEvent(player.getId());
+        PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(player.getId());
+        logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), playerSessionToken.getDevice());
+        log.debug("玩家进入slots 游戏 playerId = {},gameType = {}", player.getId(), player.getGameType());
+    }
+
+    /**
+     * 进入好友房slots游戏
+     *
+     * @param session
+     * @param player
+     * @param playerSessionInfo
+     * @param gameManager
+     */
+    private void enterRoomSlotsGame(PFSession session, Player player, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
+        SlotsFriendRoom room = slotsFriendRoomDao.getRoom(player.getGameType(), player.getRoomId());
+        if (room == null) {
+            log.warn("进入好友房slots时，未找到该房间数据 playerId = {},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
+            playerService.doSave(player.getId(), p -> {
+                p.setRoomId(0);
+            });
+            return;
+        }
+
+        //放入玩家对应线程中处理避免和回存冲突
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
+            @Override
+            public void action() throws Exception {
+                PlayerController playerController = new PlayerController(session, player);
+                session.setReference(playerController);
+                //创建 PlayerGameData
+                gameManager.createPlayerGameData(playerController, RoomType.SLOTS_TEAM_UP_ROOM);
+            }
+        });
+        slotsFactoryManager.clearPlayerEvent(player.getId());
+        PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(player.getId());
+        logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), playerSessionToken.getDevice());
+        log.debug("玩家进入好友房slots 游戏 playerId = {},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
+    }
+
+    /**
+     * 退出游戏
+     *
+     * @param session        PFSession
+     * @param initiativeExit 是否主动退出
+     */
+    public int exitGame(PFSession session, boolean initiativeExit) {
         PlayerController playerController = (PlayerController) session.getReference();
         if (playerController == null) {
             log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(),
                     session.sessionId());
-            return;
+            return Code.SUCCESS;
         }
 
         AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType());
         if (gameManager == null) {
             log.debug("退出游戏时，获取游戏管理器失败 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
-            return;
+            return Code.SUCCESS;
         }
-
-        SlotsPlayerGameData playerGameData = gameManager.exit(playerController);
-        playerSessionService.offline(playerController.getPlayer(), false);
-
+        SlotsPlayerGameData playerGameData = gameManager.getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            return Code.SUCCESS;
+        }
+        boolean isInSpecialModel = !gameManager.canExit(playerGameData);
+        if (initiativeExit && isInSpecialModel) {
+            return Code.FAIL;
+        }
+        playerGameData = gameManager.exit(playerController, initiativeExit);
+        playerSessionService.offline(playerController.getPlayer(), isInSpecialModel);
         //计算玩游戏的时长
         int onlineTimeLen = 0;
         if (playerGameData != null) {
@@ -130,6 +207,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         session.setReference(null);
         logger.exitGame(playerController.getPlayer(), onlineTimeLen, playerController.getPlayer().getDeviceType());
         log.debug("退出游戏结算 playerId = {}", playerController.playerId());
+        return Code.SUCCESS;
     }
 
 }

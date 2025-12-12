@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.mahjiongwin;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.slots.constant.SlotsConst;
 
 /**
  * @author 11
@@ -19,24 +20,24 @@ public interface MahjiongWinConstant {
         int RES_START_GAME = BASE_MSG_PREFIX | 0x4;
     }
 
-    interface BaseElement{
+    interface BaseElement {
         //金色图标最小id
         int GOLD_MIN = 11;
         //金色图标最大id
         int GOLD_MAX = 18;
     }
 
-    interface Status{
-        int NORMAL = 0;
-        int FREE = 1;
+    interface Status {
+        int NORMAL = SlotsConst.Status.NORMAL;
+        int FREE = SlotsConst.Status.FREE;
     }
 
-    interface SpecialMode{
+    interface SpecialMode {
         int NORMAL = 1;
         int FREE = 2;
     }
 
-    interface SpecialPlay{
+    interface SpecialPlay {
         //连续中奖倍数
         int TYPE_CONSECUTIVE_WINS = 4;
         //增加免费次数

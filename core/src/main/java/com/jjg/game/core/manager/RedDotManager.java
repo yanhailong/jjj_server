@@ -126,6 +126,17 @@ public class RedDotManager {
     }
 
     /**
+     * 设置红点数量并更新
+     *
+     */
+    public void setRedDotData(RedDotDetails.RedDotModule module, int submodule, long playerId, int count, boolean notify) {
+        redDotDao.setValue(playerId, module.getType(), submodule, count);
+        if (notify) {
+            updateRedDot(module, submodule, playerId, count);
+        }
+    }
+
+    /**
      * 更新活动红点
      * @param playerId 玩家id
      * @param activityType 活动类型
@@ -251,10 +262,6 @@ public class RedDotManager {
      */
     public void updateRedDot(RedDotDetails.RedDotModule module, int submodule, long playerId, int redCount) {
         if (module == null) {
-            return;
-        }
-        List<RedDotDetails> load = load(module, submodule, playerId);
-        if (CollectionUtil.isEmpty(load)) {
             return;
         }
         updateRedDot(List.of(buildRedDotDetails(module, submodule, redCount)), playerId);

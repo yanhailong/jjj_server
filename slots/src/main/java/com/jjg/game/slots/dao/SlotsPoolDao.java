@@ -2,13 +2,9 @@ package com.jjg.game.slots.dao;
 
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.AbstractPoolDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
-import com.jjg.game.core.task.manager.TaskManager;
-import com.jjg.game.core.task.param.TaskConditionParam10003;
-import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.slots.service.SlotsPlayerService;
@@ -29,17 +25,17 @@ public class SlotsPoolDao extends AbstractPoolDao {
 
     @Autowired
     private SlotsPlayerService slotsPlayerService;
-    @Autowired
-    private TaskManager taskManager;
     protected BigDecimal tenThousandBigDecimal = BigDecimal.valueOf(10000);
 
     /**
      * 初始化水池
      */
-    @Override
     public void initPool() {
         for (Map.Entry<Integer, BaseRoomCfg> en : GameDataManager.getBaseRoomCfgMap().entrySet()) {
             BaseRoomCfg cfg = en.getValue();
+            if (cfg.getRoomName() >= 10) {
+                continue;
+            }
             this.redisTemplate.opsForHash().putIfAbsent(tableName(cfg.getGameType()), cfg.getId(), cfg.getInitBasePool());
             this.redisTemplate.opsForHash().putIfAbsent(smallTableName(cfg.getGameType()), cfg.getId(), 0);
             this.redisTemplate.opsForHash().putIfAbsent(fakeSmallTableName(cfg.getGameType()), cfg.getId(), cfg.getFakePool());

@@ -20,6 +20,7 @@ import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialGirdInfo;
+import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.wealthbank.WealthBankConstant;
 import com.jjg.game.slots.game.wealthbank.dao.WealthBankGameDataDao;
 import com.jjg.game.slots.game.wealthbank.dao.WealthBankResultLibDao;
@@ -52,12 +53,6 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
     private WealthBankGameDataDao gameDataDao;
 
     private WealthBankCollectDollarConfig wealthBankCollectDollarConfig;
-
-    //玩家自动二选一定时任务
-    private Map<Long, TimerEvent<String>> autoChooseFreeModeEventMap = new HashMap<>();
-    //玩家投资游戏定时任务
-    private Map<Long, TimerEvent<String>> autoInversEventMap = new HashMap<>();
-
 
     public WealthBankGameManager() {
         super(WealthBankPlayerGameData.class, WealthBankResultLib.class);
@@ -100,7 +95,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
             } else if (playerGameData.getStatus() == WealthBankConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == WealthBankConstant.Status.ALL_BOARD_GOLD_TRAIN) {
                 autoStartGame(playerGameData, playerGameData.getAllBetScore());
             }
-
+            gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
             gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
         } catch (Exception e) {
             log.error("[Wealth Bank] ", e);
@@ -153,6 +148,8 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
                 gameRunInfo.setCode(code);
                 return gameRunInfo;
             }
+            gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
+            gameRunInfo.setStatus(playerGameData.getStatus());
             log.info("[Wealth Bank] 玩家进行二选一，playerId = {},gameType = {},roomCfgId = {},chooseStatus = {}", playerController.playerId(), playerGameData.getGameType(), playerController.getPlayer().getRoomCfgId(), chooseStatus);
             return gameRunInfo;
         } catch (Exception e) {
@@ -408,7 +405,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
     public WealthBankGameRunInfo autoStartGame(WealthBankPlayerGameData playerGameData, long betValue) {
         log.debug("[Wealth Bank] 系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
 
-        return startGame(new PlayerController(null,null), playerGameData, betValue, true);
+        return startGame(new PlayerController(null, null), playerGameData, betValue, true);
     }
 
     /**
@@ -478,7 +475,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(),gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue);
 
             //添加美元收集进度
             if (gameRunInfo.getTotalDollars() < 1) {
@@ -519,7 +516,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
      * @return
      */
     private WealthBankGameRunInfo normal(WealthBankGameRunInfo gameRunInfo, WealthBankPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<WealthBankResultLib,Long>> libResult = normalGetLib(playerGameData, betValue, WealthBankConstant.SpecialMode.TYPE_NORMAL);
+        CommonResult<Pair<WealthBankResultLib, Long>> libResult = normalGetLib(playerGameData, betValue, WealthBankConstant.SpecialMode.TYPE_NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
@@ -842,11 +839,11 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
 
                         long times = awardInfo.getRandCount() * gameRunInfo.getDollarsGoldTimes();
 
-                        gameRunInfo.addBigPoolTimes(times);
+//                        gameRunInfo.addBigPoolTimes(times);
 
                         WealthBankTrainInfo goldWealthBankTrainInfo = goldTrainPbInfo(awardInfo.getRandCount(), gameRunInfo.getDollarsGoldTimes() * gameData.getOneBetScore());
                         gameRunInfo.addTrainInfo(goldWealthBankTrainInfo);
-                        log.debug("[Wealth Bank] 添加黄金列车倍数 playerId = {},times = {},oneBetScore = {},train = {}", gameData.playerId(), times, gameData.getOneBetScore(), JSON.toJSONString(goldWealthBankTrainInfo));
+                        log.debug("[Wealth Bank] 触发黄金列车 playerId = {},times = {},oneBetScore = {},train = {}", gameData.playerId(), times, gameData.getOneBetScore(), JSON.toJSONString(goldWealthBankTrainInfo));
                     }
                     break;
                 }
@@ -855,8 +852,8 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
 
         //设置保险箱倍数
         if (wealthBankDollarsInfo.coinIndexId > 0) {
-            gameRunInfo.addBigPoolTimes(gameRunInfo.getDollarsGoldTimes());
-            log.debug("[Wealth Bank] 添加保险箱倍数 playerId = {},times = {}", gameData.playerId(), gameRunInfo.getDollarsGoldTimes());
+//            gameRunInfo.addBigPoolTimes(gameRunInfo.getDollarsGoldTimes());
+            log.debug("[Wealth Bank] 触发保险箱 playerId = {},times = {}", gameData.playerId(), gameRunInfo.getDollarsGoldTimes());
         }
 
         gameRunInfo.setDollarsInfo(wealthBankDollarsInfo);
@@ -1130,73 +1127,26 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
         return 0;
     }
 
-    /**
-     * 退出游戏
-     *
-     * @param playerController
-     * @return 返回值来标记是否可以进行断线重连
-     */
+
     @Override
-    public WealthBankPlayerGameData exit(PlayerController playerController) {
-        WealthBankPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            return null;
-        }
+    protected void onAutoExitAction(WealthBankPlayerGameData playerGameData) {
 
         if (playerGameData.getStatus() == WealthBankConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == WealthBankConstant.Status.GOLD_ALL_BOARD) {
-            TimerEvent<String> autoChooseEvent = new TimerEvent<>(this, 60, WealthBankConstant.EventName.AUTO_CHOOSE_FREEMODEL_TYPE + "_" + playerController.playerId() + "_" + playerController.getPlayer().getRoomCfgId()).withTimeUnit(TimeUnit.SECONDS);
-            this.timerCenter.add(autoChooseEvent);
-            this.autoChooseFreeModeEventMap.put(playerController.playerId(), autoChooseEvent);
-            log.debug("[Wealth Bank] 添加自动二选一事件 playerId = {}", playerController.playerId());
-        }
-
-        if (playerGameData.getInvers().get()) {
-            TimerEvent<String> autoInversEvent = new TimerEvent<>(this, 60, WealthBankConstant.EventName.AUTO_INVERS + "_" + playerController.playerId() + "_" + playerController.getPlayer().getRoomCfgId()).withTimeUnit(TimeUnit.SECONDS);
-            this.timerCenter.add(autoInversEvent);
-            this.autoInversEventMap.put(playerController.playerId(), autoInversEvent);
-            log.debug("[Wealth Bank] 添加自动投资游戏事件 playerId = {}", playerController.playerId());
-        }
-
-        playerGameData.setOnline(false);
-        offlineSaveGameDataDto(playerGameData);
-        removePlayerGameData(playerController.playerId(),playerGameData.getRoomCfgId());
-        return playerGameData;
-    }
-
-    @Override
-    public void onTimer(TimerEvent e) {
-        super.onTimer(e);
-
-        String[] arr = e.getParameter().toString().split("_");
-        if (WealthBankConstant.EventName.AUTO_CHOOSE_FREEMODEL_TYPE.equals(arr[0])) {
-            long playerId = Long.parseLong(arr[1]);
-            int roomCfgId = Integer.parseInt(arr[2]);
-            this.autoChooseFreeModeEventMap.remove(playerId);
-            WealthBankPlayerGameData playerGameData = getPlayerGameData(playerId, roomCfgId);
-            if (playerGameData == null) {
-                log.debug("[Wealth Bank] 自动二选一事件，获取 playerGameData 为空 playerId = {},roomCfgId = {}", playerId, roomCfgId);
-                return;
-            }
+            log.debug("[Wealth Bank] 添加自动投资游戏事件 playerId = {}", playerGameData.playerId());
             autoChooseFreeModelType(playerGameData);
             //检查当前是否处于特殊模式
-            if (playerGameData.getStatus() == WealthBankConstant.Status.ALL_BOARD_FREE) {
+            if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_FREE) {
                 int forCount = playerGameData.getRemainFreeCount().get();
                 for (int i = 0; i < forCount; i++) {
                     autoStartGame(playerGameData, playerGameData.getAllBetScore());
                 }
-            } else if (playerGameData.getStatus() == WealthBankConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == WealthBankConstant.Status.ALL_BOARD_GOLD_TRAIN) {
+            } else if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == WealthBankConstant.Status.ALL_BOARD_GOLD_TRAIN) {
                 autoStartGame(playerGameData, playerGameData.getAllBetScore());
             }
-        } else if (WealthBankConstant.EventName.AUTO_INVERS.equals(arr[0])) {
-            long playerId = Long.parseLong(arr[1]);
-            int roomCfgId = Integer.parseInt(arr[2]);
-            this.autoInversEventMap.remove(playerId);
-            WealthBankPlayerGameData playerGameData = getPlayerGameData(playerId, roomCfgId);
-            if (playerGameData == null) {
-                log.debug("[Wealth Bank] 自动投资事件，获取 playerGameData 为空 playerId = {},roomCfgId = {}", playerId, roomCfgId);
-                return;
-            }
+        }
+        if (playerGameData.getInvers().get()) {
             autoInvest(playerGameData);
+            log.debug("[Wealth Bank] 添加自动二选一事件 playerId = {}", playerGameData.playerId());
         }
     }
 

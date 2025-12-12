@@ -9,7 +9,10 @@ import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightGameRun
 import com.jjg.game.slots.game.christmasBashNight.manager.ChristmasBashNightGameManager;
 import com.jjg.game.slots.game.christmasBashNight.manager.ChristmasBashNightSendMessageManager;
 import com.jjg.game.slots.game.christmasBashNight.pb.ReqChristmasBashNightEnterGame;
+import com.jjg.game.slots.game.christmasBashNight.pb.ReqChristmasBashNightPoolInfo;
 import com.jjg.game.slots.game.christmasBashNight.pb.ReqChristmasBashNightStartGame;
+import com.jjg.game.slots.game.christmasBashNight.pb.ResChristmasBashNightPoolInfo;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,4 +65,23 @@ public class ChristmasBashNightMessageHandler {
             log.error("", e);
         }
     }
+
+
+    /**
+     * 获取奖池
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(ChristmasBashNightConstant.MsgBean.REQ_POOL_INFO)
+    public void reqGetPoolInfo(PlayerController playerController, ReqChristmasBashNightPoolInfo req) {
+        try {
+            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+            ChristmasBashNightGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+            sendMessageManager.sendPoolValue(playerController, gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
 }

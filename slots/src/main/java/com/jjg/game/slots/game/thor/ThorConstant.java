@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.thor;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.slots.constant.SlotsConst;
 
 /**
  * @author 11
@@ -22,7 +23,7 @@ public interface ThorConstant {
 
     interface Status{
         //普通旋转
-        int NORMAL = 1;
+        int NORMAL = SlotsConst.Status.NORMAL;
         //免费触发局
         int CHOOSE_ONE = 2;
         //火焰免费
@@ -34,27 +35,24 @@ public interface ThorConstant {
     /**
      * 基础元素
      */
+    interface Common{
+        //免费模式最后一局修改格子
+        int FREE_LAST_ONE_UPDATE_GIRD = 10220099;
+
+        int MINI_POOL_ID = 101800101;
+        int MINOR_POOL_ID = 101800102;
+        int MAJOR_POOL_ID = 101800103;
+        int GRAND_POOL_ID = 101800104;
+    }
+
     interface BaseElement{
-        //金火车
-        int ID_GOLD_TRAIN = 15;
-        //保险箱
-        int ID_SAFE_BOX = 16;
-        //all board
-        int ID_ALL_ABOARD = 17;
-        //美金
-        int ID_DOLLAR = 18;
-        //绿火车
-        int ID_GREEN_TRAIN = 19;
-        //蓝火车
-        int ID_BLUE_TRAIN = 20;
-        //紫火车
-        int ID_PURPLE_TRAIN = 21;
-        //红火车
-        int ID_RED_TRAIN = 22;
-        //美金2
-        int ID_DOLLAR_2 = 28;
-        //触发免费
-        int ID_FREE = 30;
+        int ID_WILD = 11;
+        int ID_HEIMDALL = 8;
+        int ID_SCATTER = 14;
+        int ID_MINI = 15;
+        int ID_MINOR = 16;
+        int ID_MAJOR = 17;
+        int ID_GRAND = 18;
     }
 
     interface MsgBean {
@@ -70,5 +68,9 @@ public interface ThorConstant {
         //二选一
         int REQ_FREE_CHOOSE_ONE = BASE_MSG_PREFIX | 0x5;
         int RES_FREE_CHOOSE_ONE = BASE_MSG_PREFIX | 0x6;
+
+        //获取奖池
+        int REQ_POOL_VALUE = BASE_MSG_PREFIX | 0x7;
+        int RES_POOL_VALUE = BASE_MSG_PREFIX | 0x8;
     }
 }

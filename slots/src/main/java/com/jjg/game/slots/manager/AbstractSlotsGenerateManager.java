@@ -36,7 +36,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     //rollerGroup -> column -> cfg
     protected Map<Integer, Map<Integer, BaseRollerCfg>> baseRollerCfgMap = null;
     //gameMode -> lineId -> cfg
-    protected Map<Integer,Map<Integer, BaseLineCfg>> baseLineCfgMap = null;
+    protected Map<Integer, Map<Integer, BaseLineCfg>> baseLineCfgMap = null;
     //lineId -> 主元素id - > cfg
     protected Map<Integer, Map<Integer, BaseLineFreeInfo>> baseLineFreeCfgMap = null;
     //普通图标 lineType -> sid -> cfg
@@ -156,8 +156,14 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             lib.setId(RandomUtils.getUUid());
             lib.setRollerMode(specialModeCfg.getRollerMode());
 
+            //获取rollerMode
+            int rollerMode = specialAuxiliaryCfg.getRollerMode();
+            if (rollerMode < 1) {
+                rollerMode = specialModeCfg.getRollerMode();
+            }
+
             //生成所有的图标
-            int[] arr = generateAllIcons(specialModeCfg.getRollerMode(), specialModeCfg.getCols(), specialModeCfg.getRows());
+            int[] arr = generateAllIcons(rollerMode, specialModeCfg.getCols(), specialModeCfg.getRows());
             if (arr == null) {
                 return null;
             }
@@ -181,7 +187,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                     }
                 }
             }
-
             //判断中奖，返回
             return checkAward(arr, lib, true);
         } catch (Exception e) {
@@ -363,10 +368,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         List<A> awardLineInfoList = new ArrayList<>();
 
         Map<Integer, BaseLineCfg> lineCfgMap = this.baseLineCfgMap.get(0);
-        if(lineCfgMap == null || lineCfgMap.isEmpty()){
-            if(freeModel){
+        if (lineCfgMap == null || lineCfgMap.isEmpty()) {
+            if (freeModel) {
                 lineCfgMap = this.baseLineCfgMap.get(2);
-            }else {
+            } else {
                 lineCfgMap = this.baseLineCfgMap.get(1);
             }
         }
@@ -615,7 +620,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
             return null;
         }
-
         //获取每个图标出现的次数
         Map<Integer, Integer> showCountMap = checkIconShowCount(arr);
 
@@ -653,9 +657,12 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 });
 
             });
+
         }
         return specialAuxiliaryInfoList;
     }
+
+
 
     /**
      * 检查满线图案_数量
@@ -1110,7 +1117,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      */
     protected void baseLineConfig() {
         //gameMode -> lineId -> cfg
-        Map<Integer,Map<Integer, BaseLineCfg>> tmpBaseLineCfgMap = new HashMap<>();
+        Map<Integer, Map<Integer, BaseLineCfg>> tmpBaseLineCfgMap = new HashMap<>();
 
         //根据游戏type筛选
         for (Map.Entry<Integer, BaseLineCfg> en : GameDataManager.getBaseLineCfgMap().entrySet()) {
@@ -1192,7 +1199,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             //修改图案策略组
             config.setSpecialGroupGirdIDPropInfo(SlotsUtil.converMapToPropInfo(cfg.getSpecialGroupGirdID()));
             //奖励c
-            config.setAwardTypeCPropInfo(SlotsUtil.converMapToPropInfo(cfg.getAwardTypeC()));
+            config.setAwardTypeCPropInfo(SlotsUtil.converMapToLimitPropInfo(cfg.getAwardTypeC()));
 
             tmpSpecialAuxiliaryPropConfigMap.put(config.getId(), config);
         }

@@ -121,6 +121,9 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
 
     private void register() {
         try {
+            // 检查whiteIpList和whiteIdList是否为空或空数组
+            nodeConfig.setWhiteIpList(checkNull(nodeConfig.getWhiteIpList()));
+            nodeConfig.setWhiteIdList(checkNull(nodeConfig.getWhiteIdList()));
             String path = CoreConst.Common.SEPARATOR + nodeConfig.getParentPath() + CoreConst.Common.SEPARATOR +
                     nodeConfig.getType() + CoreConst.Common.SEPARATOR +
                     nodeConfig.getName();
@@ -135,6 +138,10 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
 
     public void update() {
         try {
+            // 检查whiteIpList和whiteIdList是否为空或空数组
+            nodeConfig.setWhiteIpList(checkNull(nodeConfig.getWhiteIpList()));
+            nodeConfig.setWhiteIdList(checkNull(nodeConfig.getWhiteIdList()));
+
             String path = CoreConst.Common.SEPARATOR +
                 nodeConfig.getParentPath() +
                 CoreConst.Common.SEPARATOR +
@@ -289,6 +296,32 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
 
     public String getNodePath() {
         return nodePath;
+    }
+
+    /**
+     * 检查空串
+     * @param arr
+     * @return
+     */
+    private String[] checkNull(String[] arr) {
+        if (arr == null || arr.length == 0) {
+            return null;
+        }
+
+        List<String> list = null;
+        for (String s : arr) {
+            if (StringUtils.isNotBlank(s)) {
+                if(list == null){
+                    list = new ArrayList<>();
+                }
+                list.add(s);
+            }
+        }
+
+        if(list == null || list.isEmpty()){
+            return null;
+        }
+        return list.toArray(new String[0]);
     }
 
     @Override

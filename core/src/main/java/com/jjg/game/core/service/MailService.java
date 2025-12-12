@@ -2,6 +2,7 @@ package com.jjg.game.core.service;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.NumberUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
@@ -74,6 +75,10 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             }
         }
         return read;
+    }
+
+    public void updateRedDot(long playerId) {
+        redDotManager.setRedDotData(getModule(), getSubmodule(), playerId, (int) mailDao.getItemsMailsCount(playerId), true);
     }
 
     /**
@@ -338,6 +343,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             if (count == null) {
                 continue;
             }
+            redDotManager.incrementRedDotDataAndUpdate(getModule(), session.playerId, 1);
             updateRedDot(count, session);
         }
     }
@@ -430,9 +436,9 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     /**
      * 玩家获取全服邮件
      *
-     * @param playerId
+     * @param player
      */
-    public void playerGetServerMails(long playerId) {
+    public void playerGetServerMails(Player player) {
         List<Mail> serverMail = mailDao.getServerMails();
         if (serverMail == null || serverMail.isEmpty()) {
             return;
@@ -444,8 +450,12 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         int now = TimeHelper.nowInt();
         for (Mail mail : serverMail) {
             try {
+                if(player.getCreateTime() > mail.getSendTime()){
+                    continue;
+                }
+
                 //是否接收邮件
-                boolean reve = mailDao.playerHasServerMail(playerId, mail.getId());
+                boolean reve = mailDao.playerHasServerMail(player.getId(), mail.getId());
                 //检查邮件是否过期
                 if (mail.getTimeout() < now) {
                     log.info("检测到系统邮件到期 mailId = {},title = {},timeout = {}", mail.getId(), mail.getTitle(),
@@ -459,22 +469,22 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
                 if (reve) {
                     continue;
                 }
-                mailDao.addPlayerServerMail(playerId, mail.getId());
+                mailDao.addPlayerServerMail(player.getId(), mail.getId());
 
                 Mail getMail = mail.clone();
                 getMail.setId(IdUtil.getSnowflakeNextId());
                 getMail.setServerMail(false);
-                getMail.setPlayerId(playerId);
+                getMail.setPlayerId(player.getId());
                 getMails.add(getMail);
             } catch (Exception e) {
-                log.error("领取全服邮件异常 playerId = {},mailId = {}", playerId, mail.getId(), e);
+                log.error("领取全服邮件异常 playerId = {},mailId = {}", player.getId(), mail.getId(), e);
             }
         }
 
         if (!getMails.isEmpty()) {
             long count = mailDao.batchSaveMails(getMails);
-            log.info("玩家接收全服邮件成功 playerId = {},count = {}", playerId, count);
-            redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, getMails.size());
+            log.info("玩家接收全服邮件成功 playerId = {},count = {}", player.getId(), count);
+            redDotManager.incrementRedDotDataAndUpdate(getModule(), player.getId(), getMails.size());
         }
     }
 
@@ -507,7 +517,62 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     }
 
     public void cleanMails() {
-        mailDao.cleanMails();
+        MailDao.CleanMailsResult result = mailDao.cleanMails();
+
+        // 处理需要自动领取附件的邮件
+        if (!result.getMailsToAutoClaim().isEmpty()) {
+            processAutoClaimMails(result.getMailsToAutoClaim());
+        }
+
+        log.info("邮件清理完成: 删除无附件邮件{}封, 删除已领取附件邮件{}封, 自动领取附件邮件{}封, 删除全服邮件{}封",
+                result.getNoItemsDeletedCount(), result.getClaimedItemsDeletedCount(),
+                result.getMailsToAutoClaim().size(), result.getServerMailsDeletedCount());
+    }
+
+    /**
+     * 自动领取邮件附件并删除邮件
+     */
+    private void processAutoClaimMails(List<Mail> mails) {
+        // 按玩家ID分组，便于批量处理
+        Map<Long, List<Mail>> playerMailsMap = mails.stream()
+                .collect(Collectors.groupingBy(Mail::getPlayerId));
+
+        Set<Long> mailIdsToDelete = new HashSet<>();
+        for (Map.Entry<Long, List<Mail>> entry : playerMailsMap.entrySet()) {
+            long playerId = entry.getKey();
+            List<Mail> playerMails = entry.getValue();
+
+            try {
+                // 批量领取附件
+                Map<Integer, Long> itemsToAdd = new HashMap<>();
+
+
+                for (Mail mail : playerMails) {
+                    if (mail.getItems() != null && !mail.getItems().isEmpty()) {
+                        // 收集附件
+                        for (Item item : mail.getItems()) {
+                            itemsToAdd.merge(item.getId(), item.getItemCount(), Long::sum);
+                        }
+                        mailIdsToDelete.add(mail.getId());
+                    }
+                }
+
+                if (!itemsToAdd.isEmpty()) {
+                    // 添加道具到玩家背包
+                    playerPackService.addItems(playerId, itemsToAdd, AddType.GET_MAIL_ITEMS);
+                    log.debug("玩家{}自动领取{}封邮件的附件，获得道具: {}", playerId, mailIdsToDelete.size(), itemsToAdd);
+                }
+            } catch (Exception e) {
+                log.error("处理玩家{}自动领取邮件附件时发生错误", playerId, e);
+            }
+        }
+
+        if (!mailIdsToDelete.isEmpty()) {
+            // 批量删除邮件
+            long deletedCount = mailDao.batchRemoveMails(mailIdsToDelete);
+
+            log.info("批量删除过期自动领取邮件 {} 封", deletedCount);
+        }
     }
 
     /**
@@ -538,7 +603,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
 
     @Override
     public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
-        playerGetServerMails(player.getId());
+        playerGetServerMails(player);
     }
 
     @Override

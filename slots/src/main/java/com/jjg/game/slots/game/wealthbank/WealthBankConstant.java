@@ -2,20 +2,21 @@ package com.jjg.game.slots.game.wealthbank;
 
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.slots.constant.SlotsConst;
 
 /**
  * @author 11
  * @date 2025/7/2 10:28
  */
 public interface WealthBankConstant {
-    interface Common{
-        int MINI_POOL_ID = 100100101;
-        int MINOR_POOL_ID = 100100102;
-        int MAJOR_POOL_ID = 100100103;
-        int GRAND_POOL_ID = 100100104;
+    interface Common {
+        int MINI_POOL_ID = 102400101;
+        int MINOR_POOL_ID = 102400102;
+        int MAJOR_POOL_ID = 102400103;
+        int GRAND_POOL_ID = 102400104;
     }
 
-    interface Status{
+    interface Status {
         int NORMAL = 0;
         //处于普通二选一
         int NOTMAL_ALL_BOARD = 1;
@@ -29,9 +30,9 @@ public interface WealthBankConstant {
         int ALL_BOARD_FREE = 5;
     }
 
-    interface SpecialMode{
+    interface SpecialMode {
         //普通旋转
-        int TYPE_NORMAL = 1;
+        int TYPE_NORMAL = SlotsConst.Status.NORMAL;
         //拉火车触发局
         int TYPE_TRIGGER_NORMAL_TRAIN = 2;
         //黄金火车触发局
@@ -44,17 +45,11 @@ public interface WealthBankConstant {
         int TYPE_TRIGGER_FREE = 6;
     }
 
-    interface EventName{
-        //自动二选一
-        String AUTO_CHOOSE_FREEMODEL_TYPE = "autoChooseFreeModelTypeEvent";
-        //自动投资游戏
-        String AUTO_INVERS = "autoInvestEvent";
-    }
 
     /**
      * 基础元素
      */
-    interface BaseElement{
+    interface BaseElement {
         //金火车
         int ID_GOLD_TRAIN = 15;
         //保险箱
@@ -77,7 +72,7 @@ public interface WealthBankConstant {
         int ID_FREE = 30;
     }
 
-    interface SpecialPlay{
+    interface SpecialPlay {
         //美元收集
         int TYPE_COLLECT_DOLLAR = 1;
         //投资3次中奖
@@ -87,7 +82,7 @@ public interface WealthBankConstant {
     }
 
 
-    interface SpecialAuxiliary{
+    interface SpecialAuxiliary {
         //绿火车
         int TYPE_GREEN_TRAIN = 32401;
         //蓝火车
@@ -103,6 +98,8 @@ public interface WealthBankConstant {
         //免费模式-免费旋转
         int TYPE_ALL_BOARD_FREE = 32431;
 
+        //二选一免费次数配置表id
+        int FREE_COUNT_CONFIG_ID = 30240007;
     }
 
     interface MsgBean {

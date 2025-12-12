@@ -15,7 +15,9 @@ import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAwardLi
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightGameRunInfo;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightResultLib;
 import com.jjg.game.slots.game.christmasBashNight.pb.*;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.PoolInfo;
+import com.jjg.game.slots.game.dollarexpress.pb.ResPoolValue;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -67,14 +69,14 @@ public class ChristmasBashNightSendMessageManager extends BaseSendMessageManager
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
 
             //连续中奖倍数信息
-            if(generateManager.getAddTimesMap() != null && !generateManager.getAddTimesMap().isEmpty()){
+            if (generateManager.getAddTimesMap() != null && !generateManager.getAddTimesMap().isEmpty()) {
                 res.timesInfoList = new ArrayList<>(generateManager.getAddTimesMap().size());
                 generateManager.getAddTimesMap().forEach((k, v) -> {
                     ChristmasBashNightAddTimesInfo info = new ChristmasBashNightAddTimesInfo();
                     info.status = (k == ChristmasBashNightConstant.SpecialMode.FREE ? 1 : 0);
                     info.times = new ArrayList<>(v.size());
 
-                    v.forEach((k1,v1) -> {
+                    v.forEach((k1, v1) -> {
                         KVInfo kv = new KVInfo();
                         kv.key = k1;
                         kv.value = v1;
@@ -142,10 +144,10 @@ public class ChristmasBashNightSendMessageManager extends BaseSendMessageManager
 
             ChristmasBashNightResultLib lib = (ChristmasBashNightResultLib) gameRunInfo.getResultLib();
 
-            res.rewardIconInfo = addRewardIcons(lib.getIconArr(),lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
+            res.rewardIconInfo = addRewardIcons(lib.getIconArr(), lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
 
-            slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
+            slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
@@ -158,6 +160,7 @@ public class ChristmasBashNightSendMessageManager extends BaseSendMessageManager
 
     /**
      * 添加中奖图标信息
+     *
      * @param awardLineInfoList
      * @param oneBetScore
      * @return
@@ -176,7 +179,7 @@ public class ChristmasBashNightSendMessageManager extends BaseSendMessageManager
         awardLineInfoList.forEach(info -> {
             indexSet.addAll(info.getSameIconSet());
             winIconSet.add(info.getSameIcon());
-            if(info.getReplaceWildIndexs() != null && !info.getReplaceWildIndexs().isEmpty()){
+            if (info.getReplaceWildIndexs() != null && !info.getReplaceWildIndexs().isEmpty()) {
                 replaceWildIndexs.addAll(info.getReplaceWildIndexs());
             }
             iconInfo.win += info.getBaseTimes() * oneBetScore;
@@ -190,31 +193,58 @@ public class ChristmasBashNightSendMessageManager extends BaseSendMessageManager
 
     /**
      * 添加消除图标后，补齐的图标信息
+     *
      * @param lib
      * @param gameRunInfo
      * @return
      */
     private List<ChristmasBashNightCascade> addIconInfos(ChristmasBashNightResultLib lib, ChristmasBashNightGameRunInfo gameRunInfo) {
+        if (gameRunInfo.getStatus() == 1) {
+            log.info("免费转 {}", gameRunInfo.getIconArr());
+        }
         if (lib == null || lib.getAddIconInfos() == null || lib.getAddIconInfos().isEmpty()) {
             return null;
         }
-
         List<ChristmasBashNightCascade> list = new ArrayList<>();
-        for(ChristmasBashNightAddIconInfo mahjiongWinAddIconInfo : lib.getAddIconInfos()){
-            ChristmasBashNightCascade mahjiongCascade = new ChristmasBashNightCascade();
+        for (ChristmasBashNightAddIconInfo christmasBashNightAddIconInfo : lib.getAddIconInfos()) {
+            ChristmasBashNightCascade christmasBashNightCascade = new ChristmasBashNightCascade();
             List<KVInfo> addIconInfos = new ArrayList<>();
 
-            mahjiongWinAddIconInfo.getAddIconMap().forEach((k,v) -> {
+            christmasBashNightAddIconInfo.getAddIconMap().forEach((k, v) -> {
                 KVInfo kv = new KVInfo();
                 kv.key = k;
                 kv.value = v;
                 addIconInfos.add(kv);
             });
-            mahjiongCascade.rewardIconInfo = addRewardIcons(lib.getIconArr(),mahjiongWinAddIconInfo.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
-            mahjiongCascade.addIconInfos = addIconInfos;
+            christmasBashNightCascade.rewardIconInfo = addRewardIcons(lib.getIconArr(), christmasBashNightAddIconInfo.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
+            christmasBashNightCascade.addIconInfos = addIconInfos;
 
-            list.add(mahjiongCascade);
+            list.add(christmasBashNightCascade);
         }
         return list;
+    }
+
+    /**
+     * 返回奖池结果
+     *
+     * @param playerController
+     * @param gameRunInfo
+     */
+    public void sendPoolValue(PlayerController playerController, ChristmasBashNightGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+
+        ResChristmasBashNightPoolInfo res = new ResChristmasBashNightPoolInfo(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+            res.mini = gameRunInfo.getMini();
+            res.minor = gameRunInfo.getMinor();
+            res.major = gameRunInfo.getMajor();
+            res.grand = gameRunInfo.getGrand();
+        } else {
+            log.debug("奖池结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回奖池结果", false);
     }
 }

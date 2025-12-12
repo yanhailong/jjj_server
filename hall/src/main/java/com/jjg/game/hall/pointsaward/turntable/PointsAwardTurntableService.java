@@ -286,7 +286,7 @@ public class PointsAwardTurntableService implements IRedDotService {
 
             int afterCount = maxCount - useCount;
             //转盘日志
-            pointsAwardLogger.turntableLog(playerId, -1, afterCount);
+            pointsAwardLogger.turntableLog(playerId, afterCount + 1, -1, afterCount, consume, integralPoints, pointsAwardService.getPoints(playerId));
         }
 
         return result;
@@ -344,7 +344,8 @@ public class PointsAwardTurntableService implements IRedDotService {
      * @param playerId    玩家id
      * @param resultCount 最终次数
      */
-    public void replaceCount(long playerId, int resultCount, int addCount) {
+    public void replaceCount(long playerId, int resultCount) {
+        int beforeCount = getMaxCount(playerId) - getCount(playerId);
         RLock lock = addCountMap.getReadWriteLock(playerId).writeLock();
         if (lock.tryLock()) {
             addCountMap.fastPut(playerId, resultCount);
@@ -353,7 +354,7 @@ public class PointsAwardTurntableService implements IRedDotService {
 
         int afterCount = getMaxCount(playerId) - getCount(playerId);
         //转盘日志
-        pointsAwardLogger.turntableLog(playerId, addCount, afterCount);
+        pointsAwardLogger.turntableLog(playerId, beforeCount, afterCount - beforeCount, afterCount, 0, 0, pointsAwardService.getPoints(playerId));
     }
 
     /**
@@ -391,9 +392,8 @@ public class PointsAwardTurntableService implements IRedDotService {
             return;
         }
         int resultCount = recharge.divide(needValue, 2, RoundingMode.DOWN).intValue();
-        int addCount = order.getPrice().divide(needValue, 2, RoundingMode.DOWN).intValue();
         if (resultCount > 0) {
-            replaceCount(playerId, resultCount, addCount);
+            replaceCount(playerId, resultCount);
         }
         redDotManager.updateRedDotByInitialize(getModule(), getSubmodule(), playerId);
     }

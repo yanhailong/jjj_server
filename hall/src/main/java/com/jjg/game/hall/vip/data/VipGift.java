@@ -50,7 +50,8 @@ public enum VipGift {
                 LocalDate birthDate = LocalDate.ofInstant(Instant.ofEpochSecond(player.getCreateTime()), ZoneId.systemDefault());
                 LocalDate today = LocalDate.now();
                 boolean isBirthday = birthDate.getMonthValue() == today.getMonthValue()
-                        && birthDate.getDayOfMonth() == today.getDayOfMonth();
+                        && birthDate.getDayOfMonth() == today.getDayOfMonth()
+                        && today.getYear() > birthDate.getYear();
                 boolean notClaimedThisYear = lastClaim == 0 || TimeHelper.getLocalDateTime(lastClaim).getYear() != today.getYear();
                 yield isBirthday && notClaimedThisYear;
             }

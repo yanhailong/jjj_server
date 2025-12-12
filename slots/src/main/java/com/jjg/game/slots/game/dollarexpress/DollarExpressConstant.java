@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.dollarexpress;
 
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.slots.constant.SlotsConst;
 
 /**
  * @author 11
@@ -21,7 +22,7 @@ public interface DollarExpressConstant {
     }
 
     interface Status{
-        int NORMAL = 0;
+        int NORMAL = SlotsConst.Status.NORMAL;
         //处于普通二选一
         int NOTMAL_ALL_BOARD = 1;
         //处于黄金列车二选一
@@ -49,12 +50,6 @@ public interface DollarExpressConstant {
         int TYPE_TRIGGER_FREE = 6;
     }
 
-    interface EventName{
-        //自动二选一
-        String AUTO_CHOOSE_FREEMODEL_TYPE = "autoChooseFreeModelTypeEvent";
-        //自动投资游戏
-        String AUTO_INVERS = "autoInvestEvent";
-    }
 
     /**
      * 基础元素

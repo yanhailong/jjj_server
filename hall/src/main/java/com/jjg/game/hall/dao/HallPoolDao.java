@@ -9,8 +9,4 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class HallPoolDao extends AbstractPoolDao {
-    @Override
-    public void initPool() {
-
-    }
 }

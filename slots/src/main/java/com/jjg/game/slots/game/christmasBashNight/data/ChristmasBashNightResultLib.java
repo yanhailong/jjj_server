@@ -11,10 +11,20 @@ import java.util.List;
  */
 @Document
 public class ChristmasBashNightResultLib extends SlotsResultLib<ChristmasBashNightAwardLineInfo> {
+    //本次触发的jackpotId
+    private int jackpotId;
     //消除补齐的信息
     private List<ChristmasBashNightAddIconInfo> addIconInfos;
     //增加的免费次数
     private int addFreeCount;
+
+    public int getJackpotId() {
+        return jackpotId;
+    }
+
+    public void setJackpotId(int jackpotId) {
+        this.jackpotId = jackpotId;
+    }
 
     public List<ChristmasBashNightAddIconInfo> getAddIconInfos() {
         return addIconInfos;

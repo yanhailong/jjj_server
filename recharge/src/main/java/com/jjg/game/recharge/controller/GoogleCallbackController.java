@@ -100,7 +100,7 @@ public class GoogleCallbackController extends AbstractCallbackController {
     public ResponseEntity<String> callback(@RequestBody Map<String, Object> payload,
                                            @RequestHeader("Authorization") String authHeader) {
         try {
-            log.debug("收到谷歌充值回调 payload = {}", payload);
+            log.info("收到谷歌充值回调 payload = {}", payload);
             // ===== 1. 安全验证=====
             if (!verifyJwtToken(authHeader, thirdServiceInfo.getGoogleAud())) {
                 return ResponseEntity.status(403).body("Invalid Authorization header");
@@ -111,7 +111,7 @@ public class GoogleCallbackController extends AbstractCallbackController {
             String decodedData = new String(Base64.getDecoder().decode(base64Data));
             JsonNode jsonNode = objectMapper.readTree(decodedData);
 
-            log.debug("Decoded notification: " + jsonNode.toString());
+//            log.debug("Decoded notification: " + jsonNode.toString());
 
             //订阅相关
             JsonNode subscriptionNotificationNode = jsonNode.get("subscriptionNotification");

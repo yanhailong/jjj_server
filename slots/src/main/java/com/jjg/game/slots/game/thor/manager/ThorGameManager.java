@@ -10,22 +10,30 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressAwardLineInfo;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
+import com.jjg.game.slots.game.dollarexpress.pb.ResultLineInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameData;
 import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.game.thor.dao.ThorGameDataDao;
 import com.jjg.game.slots.game.thor.dao.ThorResultLibDao;
+import com.jjg.game.slots.game.thor.data.ThorAwardLineInfo;
 import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
 import com.jjg.game.slots.game.thor.data.ThorPlayerGameData;
 import com.jjg.game.slots.game.thor.data.ThorResultLib;
+import com.jjg.game.slots.game.thor.pb.ThorWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author 11
@@ -177,6 +185,25 @@ public class ThorGameManager extends AbstractSlotsGameManager<ThorPlayerGameData
         return gameRunInfo;
     }
 
+    /**
+     * 获取奖池
+     *
+     * @param playerController
+     */
+    public ThorGameRunInfo getPoolValue(PlayerController playerController, long stake) {
+        ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerController.playerId());
+        try {
+            gameRunInfo.setMini(getPoolValueByPoolId(ThorConstant.Common.MINI_POOL_ID, stake));
+            gameRunInfo.setMinor(getPoolValueByPoolId(ThorConstant.Common.MINOR_POOL_ID, stake));
+            gameRunInfo.setMajor(getPoolValueByPoolId(ThorConstant.Common.MAJOR_POOL_ID, stake));
+            gameRunInfo.setGrand(getPoolValueByPoolId(ThorConstant.Common.GRAND_POOL_ID, stake));
+        } catch (Exception e) {
+            log.error("", e);
+            gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
+    }
+
 
     /**
      * 普通正常流程
@@ -212,6 +239,7 @@ public class ThorGameManager extends AbstractSlotsGameManager<ThorPlayerGameData
         //检查是否中大奖
         jackpool(gameRunInfo, playerGameData, resultLib);
 
+        gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(),playerGameData.getOneBetScore()));
         gameRunInfo.setStatus(playerGameData.getStatus());
         gameRunInfo.setStake(betValue);
         gameRunInfo.setResultLib(resultLib);
@@ -241,6 +269,7 @@ public class ThorGameManager extends AbstractSlotsGameManager<ThorPlayerGameData
             playerGameData.getFreeIndex().set(0);
         }
 
+        gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(),playerGameData.getOneBetScore()));
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
         gameRunInfo.setRemainFreeCount(afterCount);
@@ -261,10 +290,58 @@ public class ThorGameManager extends AbstractSlotsGameManager<ThorPlayerGameData
             return gameRunInfo;
         }
 
+        try {
+            PoolCfg poolCfg = randWinPool(playerGameData, resultLib.getJackpotId());
+            if (poolCfg == null) {
+                log.warn("未找到对应的奖池配置 poolId = {}", resultLib.getJackpotId());
+                return gameRunInfo;
+            }
 
+            long poolValue = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), poolCfg.getDelayTime());
+            //给玩家加钱
+            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), poolValue, AddType.SLOTS_TRAIN, resultLib.getJackpotId() + "");
+            if (!result.success()) {
+                log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
+                return gameRunInfo;
+            }
+            playerGameData.addSmallPoolReward(poolValue);
+            gameRunInfo.addSmallPoolGold(poolValue);
+
+            log.info("玩家奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), resultLib.getJackpotId(), poolValue);
+        } catch (Exception e) {
+            log.error("", e);
+        }
         return gameRunInfo;
     }
 
+    /**
+     * 将库里面的中将线信息转化为消息
+     *
+     * @param infoList
+     * @param oneBetScore 单线押分值
+     * @return
+     */
+    private List<ThorWinIconInfo> transAwardLinePbInfo(List<ThorAwardLineInfo> infoList, long oneBetScore) {
+        if (infoList == null || infoList.isEmpty()) {
+            return null;
+        }
+
+        List<ThorWinIconInfo> list = new ArrayList<>(infoList.size());
+        for (ThorAwardLineInfo lineInfo : infoList) {
+            ThorWinIconInfo resultLineInfo = new ThorWinIconInfo();
+            resultLineInfo.id = lineInfo.getId();
+            resultLineInfo.iconIndexs = getIconIndexsByLineId(lineInfo.getId()).subList(0, lineInfo.getSameCount());
+//            resultLineInfo.times = lineInfo.getBaseTimes();
+            resultLineInfo.winGold = oneBetScore * lineInfo.getBaseTimes();
+            list.add(resultLineInfo);
+        }
+        return list;
+    }
+
+    @Override
+    protected void onAutoExitAction(ThorPlayerGameData gameData) {
+        //TODO
+    }
 
     @Override
     protected ThorResultLibDao getResultLibDao() {

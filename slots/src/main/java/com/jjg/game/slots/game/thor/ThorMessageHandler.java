@@ -10,6 +10,7 @@ import com.jjg.game.slots.game.thor.manager.ThorGameManager;
 import com.jjg.game.slots.game.thor.manager.ThorSendMessageManager;
 import com.jjg.game.slots.game.thor.pb.ReqThorFreeChooseOne;
 import com.jjg.game.slots.game.thor.pb.ReqThorEnterGame;
+import com.jjg.game.slots.game.thor.pb.ReqThorPoolValue;
 import com.jjg.game.slots.game.thor.pb.ReqThorStartGame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,6 +77,22 @@ public class ThorMessageHandler {
             log.info("收到二选一 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             ThorGameRunInfo gameRunInfo = this.gameManager.freeChooseOne(playerController, req.type);
             sendMessageManager.sendFreeChooseOneMessage(playerController, gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 奖池
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(ThorConstant.MsgBean.REQ_POOL_VALUE)
+    public void reqFreeChooseOne(PlayerController playerController, ReqThorPoolValue req) {
+        try {
+            ThorGameRunInfo gameRunInfo = this.gameManager.getPoolValue(playerController, req.stakeVlue);
+            sendMessageManager.sendPoolMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

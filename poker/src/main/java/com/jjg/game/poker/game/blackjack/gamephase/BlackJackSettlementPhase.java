@@ -263,7 +263,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             }
             if (totalGet > 0) {
                 if (!(gamePlayer instanceof GameRobotPlayer)) {
-                    gameController.triggerTask(playerId, gameController.gameControlType().getGameTypeId(), 0, totalGet, controller.getGameTransactionItemId());
+                    gameController.triggerSettlementAction(playerId, gameController.gameControlType().getGameTypeId(), 0, totalGet, controller.getGameTransactionItemId());
                 }
                 gameController.addItem(playerId, totalGet, AddType.GAME_SETTLEMENT);
             }

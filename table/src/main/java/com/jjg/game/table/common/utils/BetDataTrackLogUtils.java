@@ -55,7 +55,7 @@ public class BetDataTrackLogUtils {
                 controller.getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
                     @Override
                     public void action() {
-                        SaveLogUtil.dealEffectiveWaterFlow(controller, gamePlayer, settlementData.getBetTotal(), settlementData.getBetWin());
+                        SaveLogUtil.dealEffectiveWaterFlow(controller, gamePlayer, effectiveWaterFlow, settlementData.getBetTotal());
                         if (settlementData.getTotalWin() <= 0) {
                             controller.dealLose(gamePlayer, settlementData.getBetTotal());
                         }
