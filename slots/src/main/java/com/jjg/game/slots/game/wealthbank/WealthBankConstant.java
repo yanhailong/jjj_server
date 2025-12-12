@@ -17,7 +17,7 @@ public interface WealthBankConstant {
     }
 
     interface Status {
-        int NORMAL = 0;
+        int NORMAL = SlotsConst.Status.NORMAL;
         //处于普通二选一
         int NOTMAL_ALL_BOARD = 1;
         //处于黄金列车二选一
@@ -32,7 +32,7 @@ public interface WealthBankConstant {
 
     interface SpecialMode {
         //普通旋转
-        int TYPE_NORMAL = SlotsConst.Status.NORMAL;
+        int TYPE_NORMAL = 1;
         //拉火车触发局
         int TYPE_TRIGGER_NORMAL_TRAIN = 2;
         //黄金火车触发局
