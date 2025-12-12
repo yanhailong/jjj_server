@@ -83,7 +83,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
             int incremented = officialAwardsDao.incrementPlayerProgress(playerId, addValue);
             activityLogger.sendOfficialAwardsLog(player, activityData, 1, 0
                     , addValue, incremented, 0, null, null);
-            return true;
+            return hasRedDot(playerId, activityData);
         }
         return false;
     }
