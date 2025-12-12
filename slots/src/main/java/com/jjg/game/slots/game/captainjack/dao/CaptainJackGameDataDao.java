@@ -11,8 +11,8 @@ import org.springframework.stereotype.Repository;
  * @date 2025/8/27 10:46
  */
 @Repository
-public class CaptainJackGameDataDao extends AbstractGameDataDao<SlotsPlayerGameDataDTO> {
+public class CaptainJackGameDataDao extends AbstractGameDataDao<CaptainJackPlayerGameDataDTO> {
     public CaptainJackGameDataDao(@Autowired MongoTemplate mongoTemplate) {
-        super(SlotsPlayerGameDataDTO.class, mongoTemplate);
+        super(CaptainJackPlayerGameDataDTO.class, mongoTemplate);
     }
 }
