@@ -58,6 +58,7 @@ import java.util.Map;
 
 /**
  * 财富轮盘
+ *
  * @author lm
  * @date 2025/12/1 09:37
  */
@@ -107,7 +108,8 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     /**
      * 添加进度
-     * @param player 玩家数据
+     *
+     * @param player   玩家数据
      * @param progress 进度
      */
     public void addProgress(Player player, long progress) {
@@ -120,7 +122,8 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     /**
      * 获取转换后的积分
-     * @param playerId 玩家id
+     *
+     * @param playerId        玩家id
      * @param conversionValue 需要转换值
      */
     private BigDecimal getConversionValue(long playerId, long conversionValue, boolean realConversion) {
@@ -157,6 +160,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     /**
      * 获取子id
+     *
      * @return 按日期的子id
      */
     private String getChildId(long playerId, LocalDate localDate) {
@@ -166,6 +170,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     /**
      * 是否开放
+     *
      * @param player 玩家数据
      * @return 是否开放
      */
@@ -366,16 +371,17 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     @Override
     public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
-//        if (firstLogin) {
-//            if (isClose(player)) {
-//                return;
-//            }
-        resetData(player.getId());
-//        }
+        if (firstLogin) {
+            if (isClose(player)) {
+                return;
+            }
+            resetData(player.getId());
+        }
     }
 
     /**
      * 重置数据
+     *
      * @param playerId 玩家id
      */
     private void resetData(long playerId) {
