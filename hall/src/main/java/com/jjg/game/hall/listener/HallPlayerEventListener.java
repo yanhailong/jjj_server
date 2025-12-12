@@ -365,6 +365,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                     return false;
                 }
             }
+            playerSessionInfo.setGameType(playerLastGameInfo.getGameType());
+            playerSessionInfo.setRoomCfgId(playerLastGameInfo.getRoomCfgId());
         }
         log.info("玩家重连开始切换节点 playerId={},gameType={},toNode = {}",
                 player.getId(), player.getGameType(), node.getNodePath());

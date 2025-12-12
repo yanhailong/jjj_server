@@ -16,6 +16,7 @@ import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackGameDataDao;
+import com.jjg.game.slots.game.captainjack.dao.CaptainJackPlayerGameDataDTO;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackResultLibDao;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackPlayerGameData;
@@ -79,6 +80,9 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
             return new CaptainJackGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
+        if (playerGameData.getStatus() == CaptainJackConstant.Status.TREASURE_CHEST) {
+            return new CaptainJackGameRunInfo(Code.ERROR_REQ, playerController.playerId());
+        }
         return startGame(playerController, playerGameData, stake, false);
     }
 
@@ -234,19 +238,10 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(CaptainJackConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(CaptainJackConstant.Status.FREE);
-            int addCount;
-            if (CollectionUtil.isNotEmpty(resultLib.getSpecialAuxiliaryInfoList())) {
-                SpecialAuxiliaryInfo first = resultLib.getSpecialAuxiliaryInfoList().getFirst();
-                if (CollectionUtil.isNotEmpty(first.getFreeGames())) {
-                    JSONObject object = first.getFreeGames().getFirst();
-                    addCount = object.getInteger("addFreeCount");
-                    playerGameData.getRemainFreeCount().addAndGet(addCount);
-                }
-            }
             long times = gameGenerateManager.calLineTimes(resultLib.getAwardLineInfoList());
             times += gameGenerateManager.calAfterAddIcons(resultLib.getAddIconInfos());
             playerGameData.setFreeLib(resultLib);
-
+            playerGameData.getRemainFreeCount().set(resultLib.getAddFreeCount());
             gameRunInfo.addBigPoolTimes(times);
             log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(),
                     playerGameData.getRemainFreeCount().get(), times);
@@ -317,7 +312,7 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
     @Override
     protected void offlineSaveGameDataDto(CaptainJackPlayerGameData gameData) {
         try {
-            SlotsPlayerGameDataDTO dto = gameData.converToDto(SlotsPlayerGameDataDTO.class);
+            CaptainJackPlayerGameDataDTO dto = gameData.converToDto(CaptainJackPlayerGameDataDTO.class);
             gameDataDao.saveGameData(dto);
         } catch (Exception e) {
             log.error("", e);
@@ -367,12 +362,11 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
     public CaptainJackGameRunInfo treasureHunting(PlayerController playerController) {
         //获取玩家游戏数据
         CaptainJackPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
+        if (playerGameData == null || playerGameData.getStatus() != CaptainJackConstant.Status.TREASURE_CHEST) {
             log.debug("获取玩家游戏数据失败，开始挖宝失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new CaptainJackGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
-        startGame(playerController, playerGameData, playerGameData.getAllBetScore(), false);
-        return null;
+        return startGame(playerController, playerGameData, playerGameData.getAllBetScore(), false);
     }
 
     @Override

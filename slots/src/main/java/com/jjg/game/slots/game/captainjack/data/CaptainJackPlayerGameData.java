@@ -1,10 +1,6 @@
 package com.jjg.game.slots.game.captainjack.data;
 
-import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.game.captainjack.dao.CaptainJackPlayerGameDataDTO;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

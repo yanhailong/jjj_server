@@ -249,7 +249,6 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
     }
 
     public void changeGameType(long playerId, int gameType, int roomCfgId) {
-        //TODO
         PlayerSessionInfo info = getInfo(playerId);
         info.setGameType(gameType);
         info.setRoomCfgId(roomCfgId);

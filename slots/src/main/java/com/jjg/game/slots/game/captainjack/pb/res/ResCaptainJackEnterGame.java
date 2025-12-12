@@ -5,6 +5,8 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
+import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackPoolInfo;
+import com.jjg.game.slots.game.christmasBashNight.pb.ChristmasBashNightPoolInfo;
 
 import java.util.List;
 
@@ -29,6 +31,8 @@ public class ResCaptainJackEnterGame extends AbstractResponse {
     public int freeMultiplier;
     @ProtoDesc("累计探宝触发的倍率")
     public int accumulationRate;
+    @ProtoDesc("奖池信息")
+    public List<CaptainJackPoolInfo> poolList;
     public ResCaptainJackEnterGame(int code) {
         super(code);
     }
