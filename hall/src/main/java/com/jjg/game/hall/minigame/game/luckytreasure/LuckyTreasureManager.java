@@ -120,6 +120,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 startMissingActivities();
                 // 启动新活动（只有主节点才执行）
                 startNewActivitiesIfNeeded();
+                //初始化机器人购买定时器
+                initRobotTimer();
             }
             //监听配置文件变化 如果有新增的夺宝奇兵配置则直接开始
             configManager.addUpdateConfigListener(LuckyTreasureConfig.class, (a, b, c) -> {
@@ -127,8 +129,6 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 startNewActivityForConfig(c);
             });
 
-            //初始化机器人购买定时器
-            initRobotTimer();
         }
         //设置初始化标记
         isInit.set(true);
@@ -150,8 +150,9 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             //检查并启动缺失的活动
             startMissingActivities();
             // 启动新活动（只有主节点才执行）
-            log.info("isLeader");
             startNewActivitiesIfNeeded();
+            //初始化机器人购买定时器
+            initRobotTimer();
         } catch (Exception e) {
             log.error("夺宝奇兵管理器启动异常", e);
         }
@@ -179,27 +180,26 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         long issueNumber = event.issueNumber();
         LuckyTreasureTimerEvent.TimerType timerType = event.timerType();
         try {
-            //机器人购买
-            if (timerType == LuckyTreasureTimerEvent.TimerType.ROBOT_BUY) {
-                robotBuy(issueNumber);
+            // 只有主节点才处理定时器事件
+            if (!marsCurator.isMaster()) {
+                return;
+            }
+            //结束
+            if (timerType == LuckyTreasureTimerEvent.TimerType.ACTIVITY_REWARD) {
+                handleActivityRewardTimer(issueNumber);
+            } else if (timerType == LuckyTreasureTimerEvent.TimerType.ACTIVITY_END) {
+                handleActivityEndTimer(issueNumber);
+            } else if (timerType == LuckyTreasureTimerEvent.TimerType.ROBOT_BUY) {
+                //机器人购买
+                handleActivityRobotBuyTimer(issueNumber);
             } else {
-                // 只有主节点才处理定时器事件
-                if (!marsCurator.isMaster()) {
-                    return;
-                }
-                //结束
-                if (timerType == LuckyTreasureTimerEvent.TimerType.ACTIVITY_REWARD) {
-                    handleActivityRewardTimer(issueNumber);
-                } else if (timerType == LuckyTreasureTimerEvent.TimerType.ACTIVITY_END) {
-                    handleActivityEndTimer(issueNumber);
-                } else {
-                    log.warn("未知的夺宝奇兵定时器事件类型: {}", timerType);
-                }
+                log.warn("未知的夺宝奇兵定时器事件类型: {}", timerType);
             }
         } catch (Exception e) {
             log.error("处理夺宝奇兵定时器事件失败，期号: {}, 类型: {}", issueNumber, timerType, e);
         }
     }
+
 
     /**
      * 初始化机器人购买定时器
@@ -296,51 +296,51 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         //当前总购买数量
         int totalBuy = buyCountPr * total / 10000;
         // 使用读写锁确保购买的一致性
-        String lockKey = LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_BUY + issueNumber;
-        try {
-            // 获取写锁进行购买操作
-            RLock writeLock = redisLock.getWriteLock(lockKey, 100);
-            if (writeLock != null) {
-                try {
-                    //在写锁中重新获取最新数据
-                    LuckyTreasure latestTreasure = luckyTreasureRedisDao.getTreasureByIssueNumber(issueNumber);
-                    //购买
-                    int resultCode = robotBuyWithoutLock(robotCfg.getId(), latestTreasure, totalBuy);
-                    if (resultCode == Code.SUCCESS) {
-                        //购买成功通知更新 广播到所有节点
-                        luckyTreasureService.broadcastUpdate(latestTreasure.getIssueNumber());
-                    }
-                } finally {
-                    writeLock.unlock();
-                }
-            }
-        } catch (Exception e) {
-            log.error("夺宝奇兵 机器人购买失败!", e);
+//        String lockKey = LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_BUY + issueNumber;
+//        try {
+//            // 获取写锁进行购买操作
+//            RLock writeLock = redisLock.getWriteLock(lockKey, 100);
+//            if (writeLock != null) {
+//                try {
+        //在写锁中重新获取最新数据
+        LuckyTreasure latestTreasure = luckyTreasureRedisDao.getTreasureByIssueNumber(issueNumber);
+        //购买
+        int resultCode = robotBuyWithoutLock(robotCfg.getId(), latestTreasure, totalBuy);
+        if (resultCode == Code.SUCCESS) {
+            //购买成功通知更新 广播到所有节点
+            luckyTreasureService.broadcastUpdate(latestTreasure.getIssueNumber());
         }
+//                } finally {
+//                    writeLock.unlock();
+//                }
+//            }
+//        } catch (Exception e) {
+//            log.error("夺宝奇兵 机器人购买失败!", e);
+//        }
         // 使用读写锁确保购买的一致性
-        try {
-            // 获取写锁进行购买操作
-            RLock readLock = redisLock.getReadLock(lockKey);
-            if (readLock != null) {
-                try {
-                    readLock.lock();
-                    //在写锁中重新获取最新数据
-                    LuckyTreasure latestTreasure = luckyTreasureRedisDao.getTreasureByIssueNumber(issueNumber);
-                    // 当前售出的数量
-                    int soldCount = latestTreasure.getSoldCount();
-                    //不买了
-                    if (soldCount >= limitCount) {
-                        return;
-                    }
-                    //继续出发机器人购买
-                    addRobotBuyTimer(latestTreasure);
-                } finally {
-                    readLock.unlock();
-                }
-            }
-        } catch (Exception e) {
-            log.error("夺宝奇兵 机器人购买失败!", e);
-        }
+//        try {
+//            // 获取写锁进行购买操作
+//            RLock readLock = redisLock.getReadLock(lockKey);
+//            if (readLock != null) {
+//                try {
+//                    readLock.lock();
+//                    //在写锁中重新获取最新数据
+//                    LuckyTreasure latestTreasure = luckyTreasureRedisDao.getTreasureByIssueNumber(issueNumber);
+//                    // 当前售出的数量
+//                    int soldCount = latestTreasure.getSoldCount();
+//                    //不买了
+//                    if (soldCount >= limitCount) {
+//                        return;
+//                    }
+//                    //继续出发机器人购买
+//                    addRobotBuyTimer(latestTreasure);
+//                } finally {
+//                    readLock.unlock();
+//                }
+//            }
+//        } catch (Exception e) {
+//            log.error("夺宝奇兵 机器人购买失败!", e);
+//        }
         //购买失败的话继续添加定时器
         addRobotBuyTimer(treasureDetails);
     }
@@ -355,16 +355,17 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             }
             // 检查剩余数量
             int remainingCount = latestTreasure.getConfig().getTotal() - latestTreasure.getSoldCount();
-            if (remainingCount < count) {
+            if (count <= 0 || remainingCount < count) {
                 return Code.FAIL;
             }
+
             // 执行购买
             latestTreasure = luckyTreasureRedisDao.buyTreasure(latestTreasure.getIssueNumber(), playerId, count);
             if (latestTreasure == null) {
                 return Code.FAIL;
             }
             // 购买成功，更新数据库
-//            luckyTreasureDao.save(latestTreasure);
+            luckyTreasureDao.save(latestTreasure);
             log.info("夺宝奇兵机器人购买成功, 机器人ID:{}, 期号:{}, 购买数量:{}", playerId, latestTreasure.getIssueNumber(), count);
             return Code.SUCCESS;
         } catch (Exception e) {
@@ -478,6 +479,11 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         //通知更新
         luckyTreasureService.broadcastUpdate(newRound.getIssueNumber());
         log.info("启动新的夺宝奇兵活动，配置ID: {}, 期号: {}", config.getId(), newRound.getIssueNumber());
+
+        //添加机器人购买定时器
+        if (checkRobotBuy(newRound)) {
+            addRobotBuyTimer(newRound);
+        }
     }
 
     /**
@@ -744,6 +750,16 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         luckyTreasureRedisDao.removeActiveRoundByIssueNumber(issueNumber);
         // 立即启动下一期活动
         startNextRoundForConfig(luckyTreasureConfig.getId());
+    }
+
+    /**
+     * 处理活动机器人购买
+     *
+     * @param issueNumber 期号
+     */
+    private void handleActivityRobotBuyTimer(long issueNumber) {
+        robotBuy(issueNumber);
+
     }
 
     /**
