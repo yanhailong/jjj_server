@@ -95,7 +95,7 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
             } else if (playerGameData.getStatus() == WealthBankConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == WealthBankConstant.Status.ALL_BOARD_GOLD_TRAIN) {
                 autoStartGame(playerGameData, playerGameData.getAllBetScore());
             }
-
+            gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
             gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
         } catch (Exception e) {
             log.error("[Wealth Bank] ", e);
@@ -1127,46 +1127,27 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
         return 0;
     }
 
-    /**
-     * 退出游戏
-     *
-     * @param playerController
-     * @param initiativeExit
-     * @return 返回值来标记是否可以进行断线重连
-     */
+
     @Override
-    public WealthBankPlayerGameData exit(PlayerController playerController, boolean initiativeExit) {
-        WealthBankPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            return null;
+    protected void onAutoExitAction(WealthBankPlayerGameData playerGameData) {
+        if (playerGameData.getInvers().get()) {
+            autoInvest(playerGameData);
+            log.debug("[Wealth Bank] 添加自动二选一事件 playerId = {}", playerGameData.playerId());
         }
-        if (initiativeExit) {
-            if (playerGameData.getInvers().get()) {
-                autoInvest(playerGameData);
-                log.debug("[Wealth Bank] 添加自动二选一事件 playerId = {}", playerController.playerId());
-            }
-            if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD) {
-                log.debug("[Wealth Bank] 添加自动投资游戏事件 playerId = {}", playerController.playerId());
-                autoChooseFreeModelType(playerGameData);
-                //检查当前是否处于特殊模式
-                if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_FREE) {
-                    int forCount = playerGameData.getRemainFreeCount().get();
-                    for (int i = 0; i < forCount; i++) {
-                        autoStartGame(playerGameData, playerGameData.getAllBetScore());
-                    }
-                } else if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {
+        if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD) {
+            log.debug("[Wealth Bank] 添加自动投资游戏事件 playerId = {}", playerGameData.playerId());
+            autoChooseFreeModelType(playerGameData);
+            //检查当前是否处于特殊模式
+            if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_FREE) {
+                int forCount = playerGameData.getRemainFreeCount().get();
+                for (int i = 0; i < forCount; i++) {
                     autoStartGame(playerGameData, playerGameData.getAllBetScore());
                 }
+            } else if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {
+                autoStartGame(playerGameData, playerGameData.getAllBetScore());
             }
-            playerGameData.setOnline(false);
-            offlineSaveGameDataDto(playerGameData);
-            removePlayerGameData(playerGameData.playerId(), playerGameData.getRoomCfgId());
-            return playerGameData;
         }
-        playerGameData.setOnline(false);
-        return playerGameData;
     }
-
 
     public WealthBankCollectDollarConfig getDollarExpressCollectDollarConfig() {
         return wealthBankCollectDollarConfig;

@@ -8,6 +8,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.game.wealthbank.WealthBankConstant;
 import com.jjg.game.slots.game.wealthbank.data.WealthBankGameRunInfo;
 import com.jjg.game.slots.game.wealthbank.pb.*;
@@ -77,6 +78,11 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
             res.dollarTargetCount = gameManager.getDollarExpressCollectDollarConfig().getMax();
             res.collectMinStake = gameManager.getDollarExpressCollectDollarConfig().getStakeAllBetScoreMin();
             res.dollarCollectedCount = gameRunInfo.getTotalDollars();
+            SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig = generateManager.getSpecialAuxiliaryPropConfigMap().get(WealthBankConstant.SpecialAuxiliary.FREE_COUNT_CONFIG_ID);
+            if (specialAuxiliaryPropConfig != null) {
+                res.freeCount = specialAuxiliaryPropConfig.getTriggerCountPropInfo().getRandKey();
+            }
+            res.remainFreeCount = gameRunInfo.getRemainFreeCount();
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("[Wealth Bank] 未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -145,8 +151,8 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
     public void sendChooseOneMessage(PlayerController playerController, WealthBankGameRunInfo gameRunInfo) {
         SendInfo sendInfo = new SendInfo();
         ResWealthBankChooseFreeModel res = new ResWealthBankChooseFreeModel(gameRunInfo.getCode());
-        res.freeCount = gameRunInfo.getStatus();
-        res.status = gameRunInfo.getRemainFreeCount();
+        res.freeCount = gameRunInfo.getRemainFreeCount();
+        res.status = gameRunInfo.getStatus();
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回二选一结果", false);
@@ -245,6 +251,7 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
 
     /**
      * 获取坐标
+     *
      * @param gameRunInfo
      * @param normalTrain
      * @param goldTrain

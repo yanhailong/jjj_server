@@ -1,6 +1,7 @@
 package com.jjg.game.slots.data;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import org.springframework.beans.BeanUtils;
@@ -90,7 +91,7 @@ public class SlotsPlayerGameData {
         this.hasPlaySlots = hasPlaySlots;
     }
 
-    public long playerId(){
+    public long playerId() {
         return playerController.playerId();
     }
 
@@ -180,13 +181,14 @@ public class SlotsPlayerGameData {
 
     /**
      * 获取玩家对奖池的累计贡献金额
+     *
      * @return
      */
     public long getAllContribtPoolGold() {
         return this.contribtPoolGold - this.rewardPoolGold;
     }
 
-    public long addContribtPoolGold(long value){
+    public long addContribtPoolGold(long value) {
         this.contribtPoolGold += value;
         return this.contribtPoolGold;
     }
@@ -216,20 +218,20 @@ public class SlotsPlayerGameData {
     }
 
     public void addTestIconsData(TestLibData testLibData) {
-        if(this.testLibDataList == null){
+        if (this.testLibDataList == null) {
             this.testLibDataList = new LinkedList<>();
         }
         this.testLibDataList.add(testLibData);
     }
 
     public TestLibData pollTestLibData() {
-        if(this.testLibDataList == null || this.testLibDataList.isEmpty()){
+        if (this.testLibDataList == null || this.testLibDataList.isEmpty()) {
             return null;
         }
         return this.testLibDataList.poll();
     }
 
-    public long addSmallPoolReward(long gold){
+    public long addSmallPoolReward(long gold) {
         this.rewardPoolGold += gold;
         return this.rewardPoolGold;
     }
@@ -258,14 +260,14 @@ public class SlotsPlayerGameData {
         this.createTime = createTime;
     }
 
-    public void updatePlayer(Player player){
-        if(this.playerController != null){
+    public void updatePlayer(Player player) {
+        if (this.playerController != null) {
             this.playerController.setPlayer(player);
         }
     }
 
-    public long getRoomId(){
-        if(this.playerController != null){
+    public long getRoomId() {
+        if (this.playerController != null) {
             return this.playerController.roomId();
         }
         return 0;
@@ -279,15 +281,12 @@ public class SlotsPlayerGameData {
         this.offlineTime = offlineTime;
     }
 
-    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception{
+    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
         Constructor<T> constructor = cla.getConstructor();
         T t = constructor.newInstance();
-        BeanUtils.copyProperties(this,t);
+        BeanUtils.copyProperties(this, t);
         t.setPlayerId(this.playerId());
         t.setRoomCfgId(this.getRoomCfgId());
-        t.setRemainFreeCount(this.remainFreeCount.get());
-        t.setFreeIndex(this.freeIndex.get());
-        t.setRelyLibJson(JSON.toJSONString(this.freeLib));
         return t;
     }
 }

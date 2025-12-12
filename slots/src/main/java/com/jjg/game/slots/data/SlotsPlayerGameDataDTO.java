@@ -1,6 +1,7 @@
 package com.jjg.game.slots.data;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.utils.ObjectMapperUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -38,12 +39,6 @@ public class SlotsPlayerGameDataDTO {
     protected long contribtPoolGold;
     //免费游戏中累计获得的金币
     protected long freeAllWin;
-    //剩余的免费次数
-    protected int remainFreeCount;
-    //当前的免费游戏数组中的下标值
-    protected int freeIndex;
-    //当前依赖的lib的json字符串
-    protected String relyLibJson;
 
     public long getPlayerId() {
         return playerId;
@@ -141,33 +136,10 @@ public class SlotsPlayerGameDataDTO {
         this.freeAllWin = freeAllWin;
     }
 
-    public int getRemainFreeCount() {
-        return remainFreeCount;
-    }
-
-    public void setRemainFreeCount(int remainFreeCount) {
-        this.remainFreeCount = remainFreeCount;
-    }
-
-    public int getFreeIndex() {
-        return freeIndex;
-    }
-
-    public void setFreeIndex(int freeIndex) {
-        this.freeIndex = freeIndex;
-    }
-
-    public void setRelyLibJson(String relyLibJson) {
-        this.relyLibJson = relyLibJson;
-    }
-
     public <T extends SlotsPlayerGameData> T converToGameData(Class<T> cla) throws Exception {
         Constructor<T> constructor = cla.getConstructor();
         T t = constructor.newInstance();
         BeanUtils.copyProperties(this, t);
-        t.setRemainFreeCount(new AtomicInteger(this.remainFreeCount));
-        t.setFreeIndex(new AtomicInteger(this.freeIndex));
-        t.setFreeLib(JSON.parseObject(this.relyLibJson));
         return t;
     }
 }

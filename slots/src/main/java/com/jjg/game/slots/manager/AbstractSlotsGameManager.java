@@ -1036,6 +1036,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 离线自动踢出玩家
+     *
      * @param gameData 玩家数据
      */
     protected void onAutoExitAction(T gameData) {
@@ -1451,5 +1452,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return (int) (gameRunInfo.getAllWinGold() / playerGameData.getAllBetScore());
         }
         return (int) (gameRunInfo.getAllWinGold() / betValue);
+    }
+
+    public boolean canExit(SlotsPlayerGameData playerGameData) {
+        return playerGameData.getStatus() == 0;
     }
 }

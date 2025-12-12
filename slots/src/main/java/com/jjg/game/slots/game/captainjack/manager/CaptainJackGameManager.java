@@ -26,6 +26,8 @@ import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 /**
  * @author lm
  * @date 2025/12/8 17:24
@@ -349,7 +351,7 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
 
 
     public CaptainJackGameRunInfo getPoolValue(PlayerController playerController, long stakeValue) {
-        CaptainJackGameRunInfo gameRunInfo  = new CaptainJackGameRunInfo(Code.SUCCESS, playerController.playerId());
+        CaptainJackGameRunInfo gameRunInfo = new CaptainJackGameRunInfo(Code.SUCCESS, playerController.playerId());
         try {
             gameRunInfo.setMini(getPoolValueByPoolId(CaptainJackConstant.Common.MINI_POOL_ID, stakeValue));
             gameRunInfo.setMinor(getPoolValueByPoolId(CaptainJackConstant.Common.MINOR_POOL_ID, stakeValue));
@@ -369,7 +371,38 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
             log.debug("获取玩家游戏数据失败，开始挖宝失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new CaptainJackGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
-        startGame(playerController, playerGameData, playerGameData.getOneBetScore(), false);
+        startGame(playerController, playerGameData, playerGameData.getAllBetScore(), false);
         return null;
+    }
+
+    @Override
+    protected void onAutoExitAction(CaptainJackPlayerGameData gameData) {
+        //发放免费模式和探宝奖励
+        if (gameData.getStatus() == CaptainJackConstant.Status.FREE) {
+            Object freeLib = gameData.getFreeLib();
+            if (freeLib instanceof CaptainJackResultLib lib) {
+                List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = lib.getSpecialAuxiliaryInfoList();
+                int totalSize = 0;
+                for (SpecialAuxiliaryInfo auxiliaryInfo : specialAuxiliaryInfoList) {
+                    if (auxiliaryInfo.getFreeGames() != null) {
+                        totalSize = auxiliaryInfo.getFreeGames().size();
+                    }
+                }
+                int index = gameData.getFreeIndex().get();
+                for (int i = index; i < totalSize; i++) {
+                    startGame(new PlayerController(null, null), gameData, gameData.getAllBetScore(), true);
+                }
+            }
+        }
+        if (gameData.getStatus() == CaptainJackConstant.Status.TREASURE_CHEST) {
+            CaptainJackResultLib resultLib = gameData.getResultLib();
+            if (resultLib == null) {
+                return;
+            }
+            int remainCount = resultLib.getDigTimes() - gameData.getAlreadyDigCount();
+            for (int i = 0; i < remainCount; i++) {
+                startGame(new PlayerController(null, null), gameData, gameData.getAllBetScore(), true);
+            }
+        }
     }
 }

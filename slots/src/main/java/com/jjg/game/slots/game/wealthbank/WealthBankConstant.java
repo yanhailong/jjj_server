@@ -103,6 +103,8 @@ public interface WealthBankConstant {
         //免费模式-免费旋转
         int TYPE_ALL_BOARD_FREE = 32431;
 
+        //二选一免费次数配置表id
+        int FREE_COUNT_CONFIG_ID = 30240007;
     }
 
     interface MsgBean {
