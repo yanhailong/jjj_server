@@ -1,6 +1,7 @@
 package com.jjg.game.activity.wealthroulette.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.activity.activitylog.ActivityLogger;
 import com.jjg.game.activity.wealthroulette.dao.WealthRouletteDao;
 import com.jjg.game.activity.wealthroulette.message.bean.WealthRouletteDrawInfo;
 import com.jjg.game.activity.wealthroulette.message.bean.WealthRouletteDrawItemInfo;
@@ -58,6 +59,7 @@ import java.util.Map;
 
 /**
  * 财富轮盘
+ *
  * @author lm
  * @date 2025/12/1 09:37
  */
@@ -72,16 +74,18 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
     private final WealthRouletteDao wealthRouletteDao;
     private final ClusterSystem clusterSystem;
     private final RedDotManager redDotManager;
+    private final ActivityLogger activityLogger;
     private Map<Integer, RouletteShopCfg> dataCache = new HashMap<>();
 
     public WealthRouletteController(CountDao countDao, GameFunctionService gameFunctionService, PlayerPackService playerPackService,
-                                    WealthRouletteDao wealthRouletteDao, ClusterSystem clusterSystem, RedDotManager redDotManager) {
+                                    WealthRouletteDao wealthRouletteDao, ClusterSystem clusterSystem, RedDotManager redDotManager, ActivityLogger activityLogger) {
         this.countDao = countDao;
         this.gameFunctionService = gameFunctionService;
         this.playerPackService = playerPackService;
         this.wealthRouletteDao = wealthRouletteDao;
         this.clusterSystem = clusterSystem;
         this.redDotManager = redDotManager;
+        this.activityLogger = activityLogger;
     }
 
     @Override
@@ -107,7 +111,8 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     /**
      * 添加进度
-     * @param player 玩家数据
+     *
+     * @param player   玩家数据
      * @param progress 进度
      */
     public void addProgress(Player player, long progress) {
@@ -120,7 +125,8 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     /**
      * 获取转换后的积分
-     * @param playerId 玩家id
+     *
+     * @param playerId        玩家id
      * @param conversionValue 需要转换值
      */
     private BigDecimal getConversionValue(long playerId, long conversionValue, boolean realConversion) {
@@ -157,6 +163,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     /**
      * 获取子id
+     *
      * @return 按日期的子id
      */
     private String getChildId(long playerId, LocalDate localDate) {
@@ -166,6 +173,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     /**
      * 是否开放
+     *
      * @param player 玩家数据
      * @return 是否开放
      */
@@ -264,6 +272,10 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         if (!addItems.success()) {
             log.error("玩家添加财富转盘奖励失败 playerId:{} addItems:{}", playerId, finalRewardMap);
         }
+        //发送日志
+        int toDayMax = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
+                getChildId(playerId, LocalDate.now().minusDays(-1))).intValue();
+        activityLogger.sendWealthRouletteLog(player, toDayMax, needPoint, result.intValue(), 1, finalRewardMap, addItems);
         //构建响应信息
         res.remainPoint = result.intValue();
         res.drawInfos = new ArrayList<>();
@@ -316,10 +328,16 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             return res;
         }
         //发送奖励
-        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, ItemUtils.expendItems(cfg.getItem(), req.buyNum), AddType.ACTIVITY_WEALTH_ROULETTE_REWARDS);
+        Map<Integer, Long> addItemMap = ItemUtils.expendItems(cfg.getItem(), req.buyNum);
+        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, addItemMap, AddType.ACTIVITY_WEALTH_ROULETTE_REWARDS);
         if (!addResult.success()) {
             log.error("财富转盘 购买商品后添加道具失败 playerId:{} goodId:{}", playerId, req.goodId);
         }
+        //发送日志
+        int toDayMax = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
+                getChildId(playerId, LocalDate.now().minusDays(-1))).intValue();
+        activityLogger.sendWealthRouletteLog(player, toDayMax, needPoint, remainPoint.intValue(), 2, addItemMap, addResult);
+
         res.goodInfo = buildWealthRouletteGoodInfo(cfg, result.intValue());
         res.remainPoint = remainPoint.intValue();
         res.buyNum = req.buyNum;
@@ -366,16 +384,17 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     @Override
     public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
-//        if (firstLogin) {
-//            if (isClose(player)) {
-//                return;
-//            }
-        resetData(player.getId());
-//        }
+        if (firstLogin) {
+            if (isClose(player)) {
+                return;
+            }
+            resetData(player.getId());
+        }
     }
 
     /**
      * 重置数据
+     *
      * @param playerId 玩家id
      */
     private void resetData(long playerId) {
