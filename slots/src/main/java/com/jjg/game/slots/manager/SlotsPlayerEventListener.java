@@ -172,7 +172,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
 
     /**
      * 退出游戏
-     * @param session PFSession
+     *
+     * @param session        PFSession
      * @param initiativeExit 是否主动退出
      */
     public int exitGame(PFSession session, boolean initiativeExit) {
@@ -192,11 +193,12 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         if (playerGameData == null) {
             return Code.SUCCESS;
         }
-        if (!gameManager.canExit(playerGameData)) {
+        boolean isInSpecialModel = !gameManager.canExit(playerGameData);
+        if (initiativeExit && isInSpecialModel) {
             return Code.FAIL;
         }
         playerGameData = gameManager.exit(playerController, initiativeExit);
-        playerSessionService.offline(playerController.getPlayer(), true);
+        playerSessionService.offline(playerController.getPlayer(), isInSpecialModel);
         //计算玩游戏的时长
         int onlineTimeLen = 0;
         if (playerGameData != null) {

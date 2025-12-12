@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.thor;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.slots.constant.SlotsConst;
 
 /**
  * @author 11
@@ -22,7 +23,7 @@ public interface ThorConstant {
 
     interface Status{
         //普通旋转
-        int NORMAL = 1;
+        int NORMAL = SlotsConst.Status.NORMAL;
         //免费触发局
         int CHOOSE_ONE = 2;
         //火焰免费

@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.captainjack.constant;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.slots.constant.SlotsConst;
 
 /**
  * @author 11
@@ -34,9 +35,9 @@ public interface CaptainJackConstant {
     }
 
     interface Status {
-        int NORMAL = 0;
+        int NORMAL = SlotsConst.Status.NORMAL;
         //免费
-        int FREE = 1;
+        int FREE = SlotsConst.Status.FREE;
         //宝箱
         int TREASURE_CHEST = 2;
     }

@@ -1130,11 +1130,8 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
 
     @Override
     protected void onAutoExitAction(WealthBankPlayerGameData playerGameData) {
-        if (playerGameData.getInvers().get()) {
-            autoInvest(playerGameData);
-            log.debug("[Wealth Bank] 添加自动二选一事件 playerId = {}", playerGameData.playerId());
-        }
-        if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD) {
+
+        if (playerGameData.getStatus() == WealthBankConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == WealthBankConstant.Status.GOLD_ALL_BOARD) {
             log.debug("[Wealth Bank] 添加自动投资游戏事件 playerId = {}", playerGameData.playerId());
             autoChooseFreeModelType(playerGameData);
             //检查当前是否处于特殊模式
@@ -1143,9 +1140,13 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
                 for (int i = 0; i < forCount; i++) {
                     autoStartGame(playerGameData, playerGameData.getAllBetScore());
                 }
-            } else if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {
+            } else if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == WealthBankConstant.Status.ALL_BOARD_GOLD_TRAIN) {
                 autoStartGame(playerGameData, playerGameData.getAllBetScore());
             }
+        }
+        if (playerGameData.getInvers().get()) {
+            autoInvest(playerGameData);
+            log.debug("[Wealth Bank] 添加自动二选一事件 playerId = {}", playerGameData.playerId());
         }
     }
 

@@ -401,7 +401,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     public DollarExpressGameRunInfo autoStartGame(DollarExpressPlayerGameData playerGameData, long betValue) {
         log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
 
-        return startGame(new PlayerController(null,null), playerGameData, betValue, true);
+        return startGame(new PlayerController(null, null), playerGameData, betValue, true);
     }
 
     /**
@@ -471,7 +471,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(),gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue);
 
             //添加美元收集进度
             if (gameRunInfo.getTotalDollars() < 1) {
@@ -512,7 +512,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @return
      */
     private DollarExpressGameRunInfo normal(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<DollarExpressResultLib,Long>> libResult = normalGetLib(playerGameData, betValue, DollarExpressConstant.SpecialMode.TYPE_NORMAL);
+        CommonResult<Pair<DollarExpressResultLib, Long>> libResult = normalGetLib(playerGameData, betValue, DollarExpressConstant.SpecialMode.TYPE_NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
@@ -1161,6 +1161,31 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
         playerGameData.setOnline(false);
         return playerGameData;
+    }
+
+    @Override
+    protected void onAutoExitAction(DollarExpressPlayerGameData playerGameData) {
+        if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD) {
+            autoChooseFreeModelType(playerGameData);
+            //检查当前是否处于特殊模式
+            if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_FREE) {
+                int forCount = playerGameData.getRemainFreeCount().get();
+                for (int i = 0; i < forCount; i++) {
+                    autoStartGame(playerGameData, playerGameData.getAllBetScore());
+                }
+            } else if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {
+                autoStartGame(playerGameData, playerGameData.getAllBetScore());
+            }
+        }
+        if (playerGameData.getInvers().get()) {
+            autoInvest(playerGameData);
+        }
+    }
+
+
+    @Override
+    protected int getOfflineImplementTime() {
+        return 30 * 1000;
     }
 
     public DollarExpressCollectDollarConfig getDollarExpressCollectDollarConfig() {

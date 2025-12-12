@@ -1,5 +1,6 @@
 package com.jjg.game.slots.manager;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.common.data.ActivityTargetType;
@@ -19,6 +20,7 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
 import com.jjg.game.core.constant.AddType;
@@ -41,6 +43,8 @@ import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.*;
 import com.jjg.game.slots.data.*;
+import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
+import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightResultLib;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.service.SlotsPlayerService;
@@ -55,6 +59,7 @@ import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -123,8 +128,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     //更新获取奖池的事件
     private TimerEvent<String> gameUpdatePoolEvent;
-    //检查离线玩家事件
-    private TimerEvent<String> checkOffLineEvent;
+
     //总押分 roomCfgId -> [0] = 单线押分  [1] = 总押分
     protected Map<Integer, List<long[]>> allStakeMap;
 
@@ -148,7 +152,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         getResultLibDao().init(this.gameType);
         getGenerateManager().init(this.gameType);
         initConfig();
-        addCheckOffLineEvent();
+        //初始化离线处理定时器
+        WheelTimerUtil.scheduleAtFixedRate(this::checkOffLine, 1, 1, TimeUnit.SECONDS);
     }
 
     /**
@@ -637,7 +642,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (warehouseCfg.getTransactionItemId() == ItemUtils.getDiamondItemId()) {
             result = slotsPlayerService.deductDiamond(gameData.playerId(), betValue, AddType.SLOTS_BET, String.valueOf(gameData.getRoomId()));
         } else {
-            result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, AddType.SLOTS_BET,true,false,String.valueOf(gameData.getRoomId()));
+            result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, AddType.SLOTS_BET, true, false, String.valueOf(gameData.getRoomId()));
         }
 
         if (!result.success()) {
@@ -659,12 +664,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(SlotsConst.GlobalConfig.ID_ROOM_INCOME_PROP);
         long roomCreatorIncome = 0;
-        if(globalConfigCfg.getIntValue() > 0){
+        if (globalConfigCfg.getIntValue() > 0) {
             //房主收益
-            BigDecimal roomCreatorIncomeBigDecimal = systemIncomeBigDecimal.multiply(BigDecimal.valueOf(globalConfigCfg.getIntValue())).divide(tenThousandBigDecimal,2, RoundingMode.HALF_UP);
+            BigDecimal roomCreatorIncomeBigDecimal = systemIncomeBigDecimal.multiply(BigDecimal.valueOf(globalConfigCfg.getIntValue())).divide(tenThousandBigDecimal, 2, RoundingMode.HALF_UP);
             roomCreatorIncome = roomCreatorIncomeBigDecimal.longValue();
 
-            if(roomCreatorIncome > 0){
+            if (roomCreatorIncome > 0) {
                 long poolCoin = roomSlotsPoolDao.addToReversePool(gameData.getRoomId(), roomCreatorIncome);
                 log.info("给房间收益池加钱成功 gameType = {},roomId = {},roomCfgId = {},add = {},afterGold = {}", gameData.getGameType(), gameData.getRoomId(), gameData.getRoomCfgId(), roomCreatorIncome, poolCoin);
             }
@@ -682,15 +687,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
-     * 添加检查离线的定时任务
-     */
-    protected void addCheckOffLineEvent() {
-        this.checkOffLineEvent = new TimerEvent<>(this, "offLineEvent", 1).withTimeUnit(TimeUnit.MINUTES);
-        timerCenter.add(this.checkOffLineEvent);
-    }
-
-    /**
-     * 添加检查离线的定时任务
+     * 添加更新奖池事件
      */
     protected void addUpdatePoolEvent() {
         this.gameUpdatePoolEvent = new TimerEvent<>(this, "gameUpdatePoolEvent", 20).withTimeUnit(TimeUnit.SECONDS);
@@ -1063,9 +1060,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     @Override
     public void onTimer(TimerEvent e) {
-        if (this.checkOffLineEvent == e) {
-            checkOffLine();
-        } else if (this.gameUpdatePoolEvent == e) {
+        if (this.gameUpdatePoolEvent == e) {
             gameUpdatePool();
         } else if (this.clearAllLibEvent == e) {
             getResultLibDao().clearRedisLib(this.gameType);
@@ -1082,31 +1077,79 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     private void checkOffLine() {
         long timeMillis = System.currentTimeMillis();
-        for (Map<Long, T> playerGameDataMap : gameDataMap.values()) {
+        HashMap<Integer, Map<Long, T>> tempGameDataMap = new HashMap<>(this.gameDataMap);
+        for (Map<Long, T> playerGameDataMap : tempGameDataMap.values()) {
             for (Map.Entry<Long, T> gameData : playerGameDataMap.entrySet()) {
                 T gameDataValue = gameData.getValue();
                 //是否需要回存
-                if (gameDataValue.isOnline() || gameDataValue.getOfflineTime() + SlotsConst.Common.MAX_OFFLINE_TIME <= timeMillis) {
+                if (gameDataValue.isOnline()) {
                     continue;
                 }
                 final PlayerController playerController = gameDataValue.getPlayerController();
-                //分发到对应的线程
-                PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(gameData.getKey()
-                        , 0, new BaseHandler<String>() {
-                            @Override
-                            public void action() {
-                                T playerGameData = getPlayerGameData(playerController);
-                                long newTimeMillis = System.currentTimeMillis();
-                                if (playerGameData.isOnline() || playerGameData.getOfflineTime() + SlotsConst.Common.MAX_OFFLINE_TIME <= newTimeMillis) {
-                                    return;
-                                }
-                                onAutoExitAction(playerGameData);
-                                offlineSaveGameDataDto(playerGameData);
-                                removePlayerGameData(playerGameData.playerId(), playerGameData.getRoomCfgId());
-                            }
-                        }.setHandlerParamWithSelf("slots checkOffLine"));
+                //离线多少秒执行特殊处理
+                if (getOfflineImplementTime() >= 0 && gameDataValue.getOfflineTime() + getOfflineImplementTime() > timeMillis) {
+                    offlineImplement(gameData.getKey(), playerController);
+                }
+                //离线多少秒执行数据删除
+                if (getOfflineDeleteTime() >= 0 && gameDataValue.getOfflineTime() + getOfflineImplementTime() > timeMillis) {
+                    offlineDelete(gameData.getKey(), playerController);
+                }
             }
         }
+    }
+
+    /**
+     * 离线执行
+     *
+     * @param playerId         玩家id
+     * @param playerController 玩家控制器
+     */
+    private void offlineImplement(long playerId, PlayerController playerController) {
+        //分发到对应的线程
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerId
+                , 0, new BaseHandler<String>() {
+                    @Override
+                    public void action() {
+                        T playerGameData = getPlayerGameData(playerController);
+                        long newTimeMillis = System.currentTimeMillis();
+                        if (playerGameData.isOnline() || playerGameData.getOfflineTime() + getOfflineImplementTime() <= newTimeMillis) {
+                            return;
+                        }
+                        onAutoExitAction(playerGameData);
+                    }
+                }.setHandlerParamWithSelf("slots offlineImplement"));
+    }
+
+    /**
+     * 离线删除
+     *
+     * @param playerId         玩家id
+     * @param playerController 玩家数据
+     */
+    protected void offlineDelete(long playerId, PlayerController playerController) {
+        //分发到对应的线程
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerId
+                , 0, new BaseHandler<String>() {
+                    @Override
+                    public void action() {
+                        T playerGameData = getPlayerGameData(playerController);
+                        long newTimeMillis = System.currentTimeMillis();
+                        if (playerGameData.isOnline() || playerGameData.getOfflineTime() + getOfflineDeleteTime() <= newTimeMillis) {
+                            return;
+                        }
+                        onAutoExitAction(playerGameData);
+                        offlineSaveGameDataDto(playerGameData);
+                        removePlayerGameData(playerGameData.playerId(), playerGameData.getRoomCfgId());
+                    }
+                }.setHandlerParamWithSelf("slots offlineDelete"));
+    }
+
+    protected int getOfflineImplementTime() {
+        return -1;
+    }
+
+    protected int getOfflineDeleteTime() {
+        return SlotsConst.Common.MAX_OFFLINE_TIME;
     }
 
     /**
@@ -1115,7 +1158,23 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param gameData 玩家数据
      */
     protected void onAutoExitAction(T gameData) {
+    }
 
+    /**
+     * 免费状态退出处理
+     */
+    protected void freeStateAction(T t, Consumer<T> consumer) {
+        if (t.getFreeLib() instanceof SlotsResultLib<?> lib && CollectionUtil.isNotEmpty(lib.getSpecialAuxiliaryInfoList())) {
+            for (SpecialAuxiliaryInfo info : lib.getSpecialAuxiliaryInfoList()) {
+                //计算剩余次数
+                if (CollectionUtil.isNotEmpty(info.getFreeGames())) {
+                    int remainTimes = info.getFreeGames().size() - t.getFreeIndex().get();
+                    for (int i = 0; i < remainTimes; i++) {
+                        consumer.accept(t);
+                    }
+                }
+            }
+        }
     }
 
     protected abstract <D extends AbstractResultLibDao> D getResultLibDao();
@@ -1530,6 +1589,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     public boolean canExit(SlotsPlayerGameData playerGameData) {
-        return playerGameData.getStatus() == 0;
+        return playerGameData.getStatus() == SlotsConst.Status.NORMAL;
     }
 }

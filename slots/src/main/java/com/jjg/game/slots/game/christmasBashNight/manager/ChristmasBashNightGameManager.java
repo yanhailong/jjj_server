@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.christmasBashNight.manager;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
@@ -134,7 +135,7 @@ public class ChristmasBashNightGameManager extends AbstractSlotsGameManager<Chri
                 return gameRunInfo;
             }
 
-            if(!gameRunInfo.success()){
+            if (!gameRunInfo.success()) {
                 return gameRunInfo;
             }
 
@@ -152,9 +153,9 @@ public class ChristmasBashNightGameManager extends AbstractSlotsGameManager<Chri
                 }
 
                 //如果是免费模式，要累计记录中奖金额
-                if(status == ChristmasBashNightConstant.Status.FREE) {
+                if (status == ChristmasBashNightConstant.Status.FREE) {
                     playerGameData.setFreeAllWin(playerGameData.getFreeAllWin() + addGold);
-                }else {
+                } else {
                     playerGameData.setFreeAllWin(0);
                 }
             }
@@ -162,7 +163,7 @@ public class ChristmasBashNightGameManager extends AbstractSlotsGameManager<Chri
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(player,gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(player, gameRunInfo.getAllWinGold(), betValue);
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
@@ -195,7 +196,7 @@ public class ChristmasBashNightGameManager extends AbstractSlotsGameManager<Chri
      * @return
      */
     private ChristmasBashNightGameRunInfo normal(ChristmasBashNightGameRunInfo gameRunInfo, ChristmasBashNightPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<ChristmasBashNightResultLib,Long>> libResult = normalGetLib(playerGameData, betValue, ChristmasBashNightConstant.SpecialMode.NORMAL);
+        CommonResult<Pair<ChristmasBashNightResultLib, Long>> libResult = normalGetLib(playerGameData, betValue, ChristmasBashNightConstant.SpecialMode.NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
@@ -330,7 +331,7 @@ public class ChristmasBashNightGameManager extends AbstractSlotsGameManager<Chri
      * @return
      */
     public ChristmasBashNightGameRunInfo getPoolValue(PlayerController playerController, long stake) {
-        ChristmasBashNightGameRunInfo gameRunInfo  = new ChristmasBashNightGameRunInfo(Code.SUCCESS, playerController.playerId());
+        ChristmasBashNightGameRunInfo gameRunInfo = new ChristmasBashNightGameRunInfo(Code.SUCCESS, playerController.playerId());
         try {
             gameRunInfo.setMini(getPoolValueByPoolId(ChristmasBashNightConstant.Common.MINI_POOL_ID, stake));
             gameRunInfo.setMinor(getPoolValueByPoolId(ChristmasBashNightConstant.Common.MINOR_POOL_ID, stake));
@@ -381,4 +382,11 @@ public class ChristmasBashNightGameManager extends AbstractSlotsGameManager<Chri
         return gameRunInfo;
     }
 
+    @Override
+    protected void onAutoExitAction(ChristmasBashNightPlayerGameData gameData) {
+        if (gameData.getStatus() == ChristmasBashNightConstant.Status.FREE) {
+            freeStateAction(gameData, (playerGameData) ->
+                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
+        }
+    }
 }

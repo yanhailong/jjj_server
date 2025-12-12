@@ -338,6 +338,10 @@ public class ThorGameManager extends AbstractSlotsGameManager<ThorPlayerGameData
         return list;
     }
 
+    @Override
+    protected void onAutoExitAction(ThorPlayerGameData gameData) {
+        //TODO
+    }
 
     @Override
     protected ThorResultLibDao getResultLibDao() {
