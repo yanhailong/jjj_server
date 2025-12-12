@@ -25,11 +25,11 @@ public interface ThorConstant {
         //普通旋转
         int NORMAL = SlotsConst.Status.NORMAL;
         //免费触发局
-        int CHOOSE_ONE = 2;
+        int CHOOSE_ONE = 1;
         //火焰免费
-        int FIRE = 3;
+        int FIRE = 2;
         //冰冻免费
-        int ICE = 4;
+        int ICE = 3;
     }
 
     /**
