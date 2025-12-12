@@ -334,7 +334,6 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             log.error("财富转盘 购买商品后添加道具失败 playerId:{} goodId:{}", playerId, req.goodId);
         }
         //发送日志
-        //发送日志
         int toDayMax = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
                 getChildId(playerId, LocalDate.now().minusDays(-1))).intValue();
         activityLogger.sendWealthRouletteLog(player, toDayMax, needPoint, remainPoint.intValue(), 2, addItemMap, addResult);
