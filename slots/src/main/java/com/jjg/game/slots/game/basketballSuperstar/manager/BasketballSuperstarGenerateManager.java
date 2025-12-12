@@ -2,14 +2,18 @@ package com.jjg.game.slots.game.basketballSuperstar.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
+import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarAddFreeInfo;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarAwardLineInfo;
+import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarFreeStickyWildInfo;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarResultLib;
 import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
@@ -24,12 +28,16 @@ import java.util.*;
  */
 @Component
 public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateManager<BasketballSuperstarAwardLineInfo, BasketballSuperstarResultLib> {
-    public BasketballSuperstarGenerateManager() {
+    private final ConfigManager configManager;
+
+    public BasketballSuperstarGenerateManager(ConfigManager configManager) {
         super(BasketballSuperstarResultLib.class);
+        this.configManager = configManager;
     }
 
     private BasketballSuperstarAddFreeInfo basketballSuperstarAddFreeInfo;
 
+    private BasketballSuperstarFreeStickyWildInfo basketballSuperstarFreeStickyWildInfo;
 
     @Override
     protected List<SpecialAuxiliaryInfo> overallDisperse(BasketballSuperstarResultLib lib) {
@@ -81,7 +89,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
                 });
             }
 
-            if(lib.getJackpotId() < 1){
+            if (lib.getJackpotId() < 1) {
                 lib.setJackpotId(cfg.getJackpotID());
             }
         }
@@ -166,6 +174,9 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
             return;
         }
 
+        //根据权重选取 变成wild 图标
+        Integer stickyIcon = selectByWeight(this.basketballSuperstarFreeStickyWildInfo.getIconWeightMap());
+
         //检查是否有免费旋转次数，免费旋转的结果，通过specialMode生成
         Integer freeCount = specialAuxiliaryPropConfig.getTriggerCountPropInfo().getRandKey();
         if (freeCount == null || freeCount < 1) {
@@ -175,7 +186,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
         log.debug("增加免费游戏次数 addCount = {}", freeCount);
 
         int remainFreeCount = freeCount;
-
+        BasketballSuperstarResultLib lastLib = null;
         while (remainFreeCount > 0) {
             //检查是否有修改图案策略组id
             int specialGroupGirdID = 0;
@@ -185,15 +196,128 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
                     specialGroupGirdID = randKey;
                 }
             }
-
-            BasketballSuperstarResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+            BasketballSuperstarResultLib lib;
+            if (lastLib == null) {
+                lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+            } else {
+                lib = generateFreeOneHaveLastLib(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, lastLib);
+            }
             int addCount = checkAddFreeCount(lib);
             lib.setAddFreeCount(addCount);
+            lib.setStickyIcon(stickyIcon);
             remainFreeCount += addCount;
             specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
             log.debug("--------------{}------------", remainFreeCount);
             remainFreeCount--;
+            lastLib = lib;
         }
+    }
+
+    /**
+     * 生成一个免费结果（有上盘结果）
+     *
+     * @param specialAuxiliaryCfg
+     * @return
+     */
+    public BasketballSuperstarResultLib generateFreeOneHaveLastLib(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, int specialGroupGirdID, BasketballSuperstarResultLib lastLib) {
+        try {
+            //获取模式配置
+            SpecialModeCfg specialModeCfg = this.specialModeCfgMap.get(specialModeType);
+            if (specialModeCfg == null) {
+                log.warn("生成免费游戏图标时，specialModeCfg 配置为空 gameType = {},specialModeType = {}", this.gameType, specialModeType);
+                return null;
+            }
+
+            //创建结果库对象
+            BasketballSuperstarResultLib lib = createResultLib();
+            lib.setId(RandomUtils.getUUid());
+            lib.setRollerMode(specialModeCfg.getRollerMode());
+
+            //获取rollerMode
+            int rollerMode = specialAuxiliaryCfg.getRollerMode();
+            if (rollerMode < 1) {
+                rollerMode = specialModeCfg.getRollerMode();
+            }
+
+            //生成所有的图标
+            int[] arr = generateAllIcons(rollerMode, specialModeCfg.getCols(), specialModeCfg.getRows());
+            if (arr == null) {
+                return null;
+            }
+
+            log.debug("生成免费游戏图标 arr = {}", Arrays.toString(arr));
+
+            //修改格子策略组
+            if (specialGroupGirdID > 0) {
+                SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGroupGirdID, arr);
+                if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
+                    lib.addSpecialGirdInfo(specialGirdInfo);
+                }
+            }
+
+            //修改格子
+            if (specialAuxiliaryCfg.getSpecialGirdID() != null && !specialAuxiliaryCfg.getSpecialGirdID().isEmpty()) {
+                for (int specialGirdCfgId : specialAuxiliaryCfg.getSpecialGirdID()) {
+                    SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGirdCfgId, arr);
+                    if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
+                        lib.addSpecialGirdInfo(specialGirdInfo);
+                    }
+                }
+            }
+
+            //上盘结果  wild图标保存
+            SpecialGirdInfo lastInfo = gridUpdate(lastLib.getIconArr(), arr);
+            if (lastInfo.getValueMap() != null && !lastInfo.getValueMap().isEmpty()) {
+                lib.addSpecialGirdInfo(lastInfo);
+            }
+
+            //权重选取的图标 变成wild 图标
+            SpecialGirdInfo wildInfo = gridUpdate(lastLib.getStickyIcon(), arr);
+            if (lastInfo.getValueMap() != null && !wildInfo.getValueMap().isEmpty()) {
+                lib.addSpecialGirdInfo(wildInfo);
+            }
+
+            //判断中奖，返回
+            return checkAward(arr, lib, true);
+
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        return null;
+    }
+
+    /**
+     * 获取 修改棋子原因 上次是wild 粘性
+     *
+     * @return
+     */
+    private SpecialGirdInfo gridUpdate(int[] LastArr, int[] arr) {
+        SpecialGirdInfo info = new SpecialGirdInfo();
+
+        for (int i = 0; i < LastArr.length; i++) {
+            if (LastArr[i] == BasketballSuperstarConstant.Element.WILD && arr[i] != BasketballSuperstarConstant.Element.WILD) {
+                info.addValue(i, BasketballSuperstarConstant.Element.WILD);
+            }
+        }
+
+        return info;
+    }
+
+    /**
+     * 获取 修改棋子原因 粘性图标变成wild
+     *
+     * @return
+     */
+    private SpecialGirdInfo gridUpdate(int stickyIcon, int[] arr) {
+
+        SpecialGirdInfo info = new SpecialGirdInfo();
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i] == stickyIcon) {
+                info.addValue(i, BasketballSuperstarConstant.Element.WILD);
+            }
+        }
+
+        return info;
     }
 
     /**
@@ -335,7 +459,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
      * @return
      */
     private boolean checkJackpool(BasketballSuperstarResultLib lib) {
-        if(lib.getJackpotId() < 1){
+        if (lib.getJackpotId() < 1) {
             return false;
         }
 
@@ -352,6 +476,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
         }
         return count >= 2 && jackpool > 0;
     }
+
     /**
      * 检查免费触发局
      *
@@ -393,6 +518,87 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
         }
 
         return true;
+    }
+
+    @Override
+    protected void specialPlayConfig() {
+        for (Map.Entry<Integer, SpecialPlayCfg> en : GameDataManager.getSpecialPlayCfgMap().entrySet()) {
+            SpecialPlayCfg cfg = en.getValue();
+            if (cfg.getGameType() != this.gameType) {
+                continue;
+            }
+            //免费游戏出现在2、3、4、5轴时变成百搭，并一直粘连，直至退出此模式
+            if (cfg.getPlayType() == BasketballSuperstarConstant.SpecialPlay.TYPE_STICKY_WILD) {
+                BasketballSuperstarFreeStickyWildInfo tmpBasketballSuperstarFreeStickyWildInfo = new BasketballSuperstarFreeStickyWildInfo();
+                String[] modeArr = cfg.getValue().split(",");
+                int mode = Integer.parseInt(modeArr[0]);
+                tmpBasketballSuperstarFreeStickyWildInfo.setLibType(mode);
+                String[] iconWeight = modeArr[1].split("\\|");
+                Map<Integer, Integer> iconWeightMap = new HashMap<>();
+                for (String s : iconWeight) {
+                    String[] arr = s.split("_");
+                    int icon = Integer.parseInt(arr[0]);
+                    int weight = Integer.parseInt(arr[1]);
+                    iconWeightMap.put(icon, weight);
+                }
+                tmpBasketballSuperstarFreeStickyWildInfo.setIconWeightMap(iconWeightMap);
+
+                this.basketballSuperstarFreeStickyWildInfo = tmpBasketballSuperstarFreeStickyWildInfo;
+            } else
+                //增加免费次数
+                if (cfg.getPlayType() == BasketballSuperstarConstant.SpecialPlay.TYPE_ADD_FREE_COUNT) {
+                    BasketballSuperstarAddFreeInfo tmpBasketballSuperstarAddFreeInfo = new BasketballSuperstarAddFreeInfo();
+                    String[] arr = cfg.getValue().split("_");
+
+                    tmpBasketballSuperstarAddFreeInfo.setLibType(Integer.parseInt(arr[0]));
+                    tmpBasketballSuperstarAddFreeInfo.setTargetIcon(Integer.parseInt(arr[1]));
+                    tmpBasketballSuperstarAddFreeInfo.setAddFreeCount(Integer.parseInt(arr[2]));
+                    tmpBasketballSuperstarAddFreeInfo.setProp(Integer.parseInt(arr[3]));
+
+                    this.basketballSuperstarAddFreeInfo = tmpBasketballSuperstarAddFreeInfo;
+                }
+        }
+    }
+
+    /**
+     * 根据权重随机选择一个图标
+     *
+     * @param iconWeightMap 图标权重映射，key为图标ID，value为权重
+     * @return 随机选中的图标ID
+     */
+    private Integer selectByWeight(Map<Integer, Integer> iconWeightMap) {
+        if (iconWeightMap == null || iconWeightMap.isEmpty()) {
+            throw new IllegalArgumentException("权重映射不能为空");
+        }
+
+        // 计算总权重
+        int totalWeight = 0;
+        for (int weight : iconWeightMap.values()) {
+            if (weight < 0) {
+                throw new IllegalArgumentException("权重不能为负数: " + weight);
+            }
+            totalWeight += weight;
+        }
+
+        if (totalWeight == 0) {
+            throw new IllegalArgumentException("总权重不能为0");
+        }
+
+        // 生成随机数 [0, totalWeight)
+        Random random = new Random();
+        int randomWeight = random.nextInt(totalWeight);
+
+        // 遍历查找对应的图标
+        int cumulativeWeight = 0;
+        for (Map.Entry<Integer, Integer> entry : iconWeightMap.entrySet()) {
+            cumulativeWeight += entry.getValue();
+            if (randomWeight < cumulativeWeight) {
+                return entry.getKey();
+            }
+        }
+
+        // 理论上不会执行到这里，但为了编译安全返回最后一个
+        return iconWeightMap.keySet().iterator().next();
     }
 
 }
