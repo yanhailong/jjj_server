@@ -3,6 +3,7 @@ package com.jjg.game.slots.data;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.RoomType;
 import org.springframework.beans.BeanUtils;
 
 import java.lang.reflect.Constructor;
@@ -57,6 +58,10 @@ public class SlotsPlayerGameData {
     protected int createTime;
     //离线时间
     protected int offlineTime;
+    //房间类型
+    protected RoomType roomType;
+    //掉线
+    protected boolean halfOffLine;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -277,6 +282,22 @@ public class SlotsPlayerGameData {
 
     public void setOfflineTime(int offlineTime) {
         this.offlineTime = offlineTime;
+    }
+
+    public RoomType getRoomType() {
+        return roomType;
+    }
+
+    public void setRoomType(RoomType roomType) {
+        this.roomType = roomType;
+    }
+
+    public boolean isHalfOffLine() {
+        return halfOffLine;
+    }
+
+    public void setHalfOffLine(boolean halfOffLine) {
+        this.halfOffLine = halfOffLine;
     }
 
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception{

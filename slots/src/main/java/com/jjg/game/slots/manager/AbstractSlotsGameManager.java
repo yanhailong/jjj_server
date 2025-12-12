@@ -28,6 +28,7 @@ import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.RoomType;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.task.manager.TaskManager;
@@ -38,10 +39,7 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.dao.AbstractGameDataDao;
-import com.jjg.game.slots.dao.AbstractResultLibDao;
-import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
-import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.dao.*;
 import com.jjg.game.slots.data.*;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
@@ -88,6 +86,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected TaskManager taskManager;
     @Autowired
     protected WealthRouletteController wealthRouletteController;
+    @Autowired
+    protected RoomSlotsPoolDao roomSlotsPoolDao;
+
     //游戏类型
     protected int gameType;
     //在specualResultLib
@@ -553,63 +554,127 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return player对象和税收
      */
     protected CommonResult<Pair<Player, Long>> moneyToPool(T gameData, long betValue, BaseRoomCfg baseRoomCfg) {
-        CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, true, AddType.SLOTS_BET);
+        if (gameData.getRoomType() == null) {
+            CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, true, AddType.SLOTS_BET);
+            if (!result.success()) {
+                log.debug("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.playerId(), betValue, result.code);
+                return new CommonResult<>(result.code);
+            }
+
+            Player player = result.data;
+            PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(player.getId(), 0, new BaseHandler<String>() {
+                @Override
+                public void action() {
+                    activityManager.addActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
+                    activityManager.addPlayerActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
+                    // 触发有效流水事件
+                    gameEventManager.triggerEvent(new PlayerEffectiveFlowingEvent(player, gameData.getRoomCfgId(), betValue, 0));
+                }
+            }.setHandlerParamWithSelf("goldToPool"));
+            //触发任务
+            taskManager.trigger(player.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
+                TaskConditionParam12001 param = new TaskConditionParam12001();
+                param.setGameId(getGameType());
+                param.setAddValue(betValue);
+                return param;
+            }, false);
+            //触发下注
+            taskManager.trigger(player.getId(), TaskConstant.ConditionType.BET_COUNT, () -> {
+                TaskConditionParam10001 param = new TaskConditionParam10001();
+                param.setAddValue(betValue);
+                param.setGameId(getGameType());
+                return param;
+            }, false);
+            BigDecimal bet = BigDecimal.valueOf(betValue);
+            log.info("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.playerId(), betValue, result.data.getGold());
+
+            //给标准池子加钱
+            BigDecimal toBigPoolProp = BigDecimal.valueOf(baseRoomCfg.getInitBasePoolProportion()).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+            long toBigPoolGold = bet.multiply(toBigPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
+            if (toBigPoolGold > 0) {
+                long poolCoin = slotsPoolDao.addToBigPool(this.gameType, gameData.getRoomCfgId(), toBigPoolGold);
+                log.info("给标准池加钱成功 gameType = {},roomCfgId = {},add = {},afterGold = {}", gameData.getGameType(), gameData.getRoomCfgId(), toBigPoolGold, poolCoin);
+            }
+
+            //给小池子加钱
+            BigDecimal toSmallPoolProp = BigDecimal.valueOf(baseRoomCfg.getCommissionProp()).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+            long toSmallPoolGold = bet.multiply(toSmallPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
+            if (toSmallPoolGold > 0) {
+                long poolCoin = slotsPoolDao.addToSmallPool(this.gameType, gameData.getRoomCfgId(), toSmallPoolGold);
+                gameData.addAllBet(poolCoin);
+                long contribtGold = gameData.addContribtPoolGold(poolCoin);
+                log.info("给小池子加钱成功 gameType = {},roomCfgId = {},add = {},afterGold = {},contribtGold={}", gameData.getGameType(), gameData.getRoomCfgId(), toSmallPoolGold, poolCoin, contribtGold);
+            }
+
+            CommonResult<Pair<Player, Long>> commonResult = new CommonResult<>(Code.SUCCESS);
+
+            long tax = betValue - toBigPoolGold - toSmallPoolGold;
+            if (tax < 1) {
+                commonResult.data = new Pair<>(result.data, 0L);
+                log.warn("tax 小于1， gameType = {},roomCfgId = {},betValue = {},toBigPoolGold = {},toSmallPoolGold = {}", gameData.getGameType(), gameData.getRoomCfgId(), betValue, toBigPoolGold, toSmallPoolGold);
+            } else {
+                commonResult.data = new Pair<>(result.data, tax);
+            }
+            return commonResult;
+        } else if (gameData.getRoomType() == RoomType.SLOTS_TEAM_UP_ROOM) { //slots好友房
+            return roomMoneyToPool(gameData, betValue, baseRoomCfg);
+        } else {
+            log.warn("moneyToPool 不支持的房间类型 roomType = {}", gameData.getRoomType());
+            return new CommonResult<>(Code.FAIL);
+        }
+    }
+
+    /**
+     * 给房间池子加钱
+     *
+     * @param gameData
+     * @param betValue
+     * @return player对象和税收
+     */
+    protected CommonResult<Pair<Player, Long>> roomMoneyToPool(T gameData, long betValue, BaseRoomCfg baseRoomCfg) {
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(gameData.getRoomCfgId());
+        CommonResult<Player> result;
+        if (warehouseCfg.getTransactionItemId() == ItemUtils.getDiamondItemId()) {
+            result = slotsPlayerService.deductDiamond(gameData.playerId(), betValue, AddType.SLOTS_BET, String.valueOf(gameData.getRoomId()));
+        } else {
+            result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, AddType.SLOTS_BET,true,false,String.valueOf(gameData.getRoomId()));
+        }
+
         if (!result.success()) {
-            log.debug("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.playerId(), betValue, result.code);
+            log.warn("把钱添加到房间池子失败,扣除玩家金额失败 playerId = {},betValue = {},roomId = {},code = {}", gameData.playerId(), betValue, gameData.getRoomId(), result.code);
             return new CommonResult<>(result.code);
         }
 
-        Player player = result.data;
-        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(player.getId(), 0, new BaseHandler<String>() {
-            @Override
-            public void action() {
-                activityManager.addActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
-                activityManager.addPlayerActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
-                // 触发有效流水事件
-                gameEventManager.triggerEvent(new PlayerEffectiveFlowingEvent(player, gameData.getRoomCfgId(), betValue, 0));
-            }
-        }.setHandlerParamWithSelf("goldToPool"));
-        //触发任务
-        taskManager.trigger(player.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
-            TaskConditionParam12001 param = new TaskConditionParam12001();
-            param.setGameId(getGameType());
-            param.setAddValue(betValue);
-            return param;
-        }, false);
-        //触发下注
-        taskManager.trigger(player.getId(), TaskConstant.ConditionType.BET_COUNT, () -> {
-            TaskConditionParam10001 param = new TaskConditionParam10001();
-            param.setAddValue(betValue);
-            param.setGameId(getGameType());
-            return param;
-        }, false);
         BigDecimal bet = BigDecimal.valueOf(betValue);
-        log.info("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.playerId(), betValue, result.data.getGold());
-
         //给标准池子加钱
         BigDecimal toBigPoolProp = BigDecimal.valueOf(baseRoomCfg.getInitBasePoolProportion()).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
         long toBigPoolGold = bet.multiply(toBigPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
         if (toBigPoolGold > 0) {
-            long poolCoin = slotsPoolDao.addToBigPool(this.gameType, gameData.getRoomCfgId(), toBigPoolGold);
-            log.info("给标准池加钱成功 gameType = {},roomCfgId = {},add = {},afterGold = {}", gameData.getGameType(), gameData.getRoomCfgId(), toBigPoolGold, poolCoin);
+            long poolCoin = roomSlotsPoolDao.addToBigPool(gameData.getRoomId(), toBigPoolGold);
+            log.info("给房间标准池加钱成功 gameType = {},roomId = {},roomCfgId = {},add = {},afterGold = {}", gameData.getGameType(), gameData.getRoomId(), gameData.getRoomCfgId(), toBigPoolGold, poolCoin);
         }
 
-        //给小池子加钱
-        BigDecimal toSmallPoolProp = BigDecimal.valueOf(baseRoomCfg.getCommissionProp()).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
-        long toSmallPoolGold = bet.multiply(toSmallPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
-        if (toSmallPoolGold > 0) {
-            long poolCoin = slotsPoolDao.addToSmallPool(this.gameType, gameData.getRoomCfgId(), toSmallPoolGold);
-            gameData.addAllBet(poolCoin);
-            long contribtGold = gameData.addContribtPoolGold(poolCoin);
-            log.info("给小池子加钱成功 gameType = {},roomCfgId = {},add = {},afterGold = {},contribtGold={}", gameData.getGameType(), gameData.getRoomCfgId(), toSmallPoolGold, poolCoin, contribtGold);
+        //扣除加入水池的钱之后，剩余的钱
+        BigDecimal systemIncomeBigDecimal = bet.subtract(toBigPoolProp);
+
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(SlotsConst.GlobalConfig.ID_ROOM_INCOME_PROP);
+        long roomCreatorIncome = 0;
+        if(globalConfigCfg.getIntValue() > 0){
+            //房主收益
+            BigDecimal roomCreatorIncomeBigDecimal = systemIncomeBigDecimal.multiply(BigDecimal.valueOf(globalConfigCfg.getIntValue())).divide(tenThousandBigDecimal,2, RoundingMode.HALF_UP);
+            roomCreatorIncome = roomCreatorIncomeBigDecimal.longValue();
+
+            if(roomCreatorIncome > 0){
+                long poolCoin = roomSlotsPoolDao.addToReversePool(gameData.getRoomId(), roomCreatorIncome);
+                log.info("给房间收益池加钱成功 gameType = {},roomId = {},roomCfgId = {},add = {},afterGold = {}", gameData.getGameType(), gameData.getRoomId(), gameData.getRoomCfgId(), roomCreatorIncome, poolCoin);
+            }
         }
 
         CommonResult<Pair<Player, Long>> commonResult = new CommonResult<>(Code.SUCCESS);
-
-        long tax = betValue - toBigPoolGold - toSmallPoolGold;
+        long tax = betValue - toBigPoolGold - roomCreatorIncome;
         if (tax < 1) {
             commonResult.data = new Pair<>(result.data, 0L);
-            log.warn("tax 小于1， gameType = {},roomCfgId = {},betValue = {},toBigPoolGold = {},toSmallPoolGold = {}", gameData.getGameType(), gameData.getRoomCfgId(), betValue, toBigPoolGold, toSmallPoolGold);
+            log.warn("tax 小于1， gameType = {},roomCfgId = {},roomId = {},betValue = {},toBigPoolGold = {}", gameData.getGameType(), gameData.getRoomCfgId(), gameData.getRoomId(), betValue, toBigPoolGold);
         } else {
             commonResult.data = new Pair<>(result.data, tax);
         }
@@ -762,7 +827,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         temMap.remove(playerId);
     }
 
-
     /**
      * 创建玩家玩游戏的数据存储对象
      *
@@ -770,6 +834,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     public <DT extends SlotsPlayerGameDataDTO> T createPlayerGameData(PlayerController playerController) throws Exception {
+        return createPlayerGameData(playerController, null);
+    }
+
+    /**
+     * 创建玩家玩游戏的数据存储对象
+     *
+     * @param playerController
+     * @return
+     */
+    public <DT extends SlotsPlayerGameDataDTO> T createPlayerGameData(PlayerController playerController, RoomType roomType) throws Exception {
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData != null) {
             playerGameData.setCreateTime(TimeHelper.nowInt());
@@ -804,6 +878,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             log.debug("从db中获取的 playerId = {}, playerGameData = {}", playerController.playerId(), JSON.toJSONString(playerGameData));
         }
         playerGameData.setOnline(true);
+        playerGameData.setRoomType(roomType);
         playerGameData.setPlayerController(playerController);
         return putGameData(playerController, playerGameData);
     }
@@ -1036,6 +1111,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 离线自动踢出玩家
+     *
      * @param gameData 玩家数据
      */
     protected void onAutoExitAction(T gameData) {

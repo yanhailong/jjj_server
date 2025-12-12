@@ -5,7 +5,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AbstractPoolDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
-import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.service.SlotsPlayerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -15,8 +15,19 @@ import org.springframework.stereotype.Component;
 public class RoomSlotsPoolDao extends AbstractPoolDao {
     @Autowired
     private SlotsPlayerService slotsPlayerService;
-    @Autowired
-    private TaskManager taskManager;
+
+    /**
+     * 初始化房间水池
+     * @param roomId
+     * @param reserveValue
+     */
+    public void initRoomPool(long roomId,long reserveValue){
+        String tableName = roomPoolTableName(roomId);
+
+        this.redisTemplate.opsForHash().putIfAbsent(tableName, SlotsConst.RoomSlotsPool.TYPE_STANDARD, reserveValue);
+        this.redisTemplate.opsForHash().putIfAbsent(tableName, SlotsConst.RoomSlotsPool.TYPE_ALL_REVERSE, reserveValue);
+        this.redisTemplate.opsForHash().putIfAbsent(tableName, SlotsConst.RoomSlotsPool.TYPE_ALL_INCOME, 0);
+    }
 
     /**
      * 给房间添加准备金
@@ -29,8 +40,11 @@ public class RoomSlotsPoolDao extends AbstractPoolDao {
         if (addReserveValue < 0) {
             return null;
         }
-        long afterStandardValue = this.redisTemplate.opsForHash().increment(room_pool_prefix, roomId, addReserveValue);
-        long afterReserveValue = this.redisTemplate.opsForHash().increment(room_pool_reserve_prefix, roomId, addReserveValue);
+
+        String tableName = roomPoolTableName(roomId);
+
+        long afterStandardValue = this.redisTemplate.opsForHash().increment(tableName, SlotsConst.RoomSlotsPool.TYPE_STANDARD, addReserveValue);
+        long afterReserveValue = this.redisTemplate.opsForHash().increment(tableName, SlotsConst.RoomSlotsPool.TYPE_ALL_REVERSE, addReserveValue);
         return new long[]{afterStandardValue, afterReserveValue};
     }
 
@@ -44,7 +58,20 @@ public class RoomSlotsPoolDao extends AbstractPoolDao {
         if (value == 0) {
             return null;
         }
-        return this.redisTemplate.opsForHash().increment(room_pool_prefix, roomId, value);
+        return this.redisTemplate.opsForHash().increment(roomPoolTableName(roomId), SlotsConst.RoomSlotsPool.TYPE_STANDARD, value);
+    }
+
+    /**
+     * 给收益池加钱
+     *
+     * @param roomId
+     * @param value
+     */
+    public Long addToReversePool(long roomId, long value) {
+        if (value < 1) {
+            return null;
+        }
+        return this.redisTemplate.opsForHash().increment(roomPoolTableName(roomId), SlotsConst.RoomSlotsPool.TYPE_ALL_INCOME, value);
     }
 
     /**

@@ -93,7 +93,17 @@ public interface SlotsConst {
         int NOT_NEED_BASE_LINE = 0;
     }
 
-    interface GM{
+    interface RoomSlotsPool{
+        //标准池
+        int TYPE_STANDARD = 1;
+        //累计添加的保证金
+        int TYPE_ALL_REVERSE = 2;
+        //累计收益
+        int TYPE_ALL_INCOME = 3;
+    }
 
+    interface GlobalConfig{
+        //创建房间功能基础收益万分比
+        int ID_ROOM_INCOME_PROP = 12;
     }
 }

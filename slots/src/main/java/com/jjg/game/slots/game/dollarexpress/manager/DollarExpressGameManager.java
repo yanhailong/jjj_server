@@ -1158,6 +1158,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             log.debug("添加自动投资游戏事件 playerId = {}", playerController.playerId());
         }
 
+        if(playerGameData.getRemainFreeCount().get() > 0){
+            playerGameData.setHalfOffLine(true);
+        }
+
         playerGameData.setOnline(false);
         offlineSaveGameDataDto(playerGameData);
         removePlayerGameData(playerController.playerId(),playerGameData.getRoomCfgId());
