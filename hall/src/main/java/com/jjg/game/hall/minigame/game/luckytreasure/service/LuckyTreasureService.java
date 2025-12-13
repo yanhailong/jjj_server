@@ -144,6 +144,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                     if(treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY || treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_DRAW){
                         notifyLuckyTreasureUpdate.getUpdateList().add(afterInfo);
                     }
+
                 });
                 if (notifyLuckyTreasureUpdate.getUpdateList().isEmpty()) {
                     return null;
@@ -166,12 +167,15 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                     afterInfo.setBuyCount(treasure.getBuyMap().size());
                     afterInfo.setTotalCount(treasure.getConfig().getTotal());
                     afterInfo.setStatus(calculateStatus(treasure, playerId));
+                    if(treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY || treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_DRAW){
+                        notifyLuckyTreasureRecordUpdate.getUpdateList().add(afterInfo);
+                    }
                     notifyLuckyTreasureRecordUpdate.getUpdateList().add(afterInfo);
                 });
+                log.debug("推送订阅 topic = {},playerId = {}, LuckyTreasureUpdateRecordInfo = {}", SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE, playerId, JSONObject.toJSONString(notifyLuckyTreasureRecordUpdate));
                 if (notifyLuckyTreasureRecordUpdate.getUpdateList().isEmpty()) {
                     return null;
                 }
-                log.debug("推送订阅 topic = {},playerId = {}, LuckyTreasureUpdateRecordInfo = {}", SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE, playerId, JSONObject.toJSONString(notifyLuckyTreasureRecordUpdate));
                 return notifyLuckyTreasureRecordUpdate;
             });
         }

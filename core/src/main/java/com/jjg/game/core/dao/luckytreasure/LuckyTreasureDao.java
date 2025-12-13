@@ -124,7 +124,7 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
             return new PageImpl<>(treasures, pageable, total);
         }
     }
-    
+
     public List<LuckyTreasure> find(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyList();

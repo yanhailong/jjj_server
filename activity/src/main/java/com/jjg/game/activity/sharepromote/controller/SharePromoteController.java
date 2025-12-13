@@ -743,6 +743,8 @@ public class SharePromoteController extends BaseActivityController {
             if (!result.success()) {
                 log.error("领取推广分享绑定玩家奖励失败 playerId:{} count:{}", playerId, count);
             }
+            activityLogger.sendSharePromoteAddRewards(playerController.getPlayer(), activityData, 8, totalRewards, 0,
+                    totalRewards, 0, result.data.getGoldNum(), 0);
             //添加记录
             addRecord(playerInfoData, totalRewards);
             sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);

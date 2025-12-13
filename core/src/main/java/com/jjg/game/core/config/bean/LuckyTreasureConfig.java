@@ -130,6 +130,7 @@ public class LuckyTreasureConfig extends AbstractExcelConfig {
     }
 
     public int getCollectTime() {
+
         return collectTime;
     }
 
