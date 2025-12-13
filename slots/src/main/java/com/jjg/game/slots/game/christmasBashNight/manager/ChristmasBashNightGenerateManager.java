@@ -634,10 +634,10 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         int jackpool = 0;
         for (int i = 0; i < lib.getIconArr().length; i++) {
             int icon = lib.getIconArr()[i];
-            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
+            if (icon == ChristmasBashNightConstant.BaseElement.ID_SCATTER) {
                 count++;
-            } else if (icon == ThorConstant.BaseElement.ID_MINI || icon == ThorConstant.BaseElement.ID_MINOR ||
-                    icon == ThorConstant.BaseElement.ID_MAJOR || icon == ThorConstant.BaseElement.ID_GRAND) {
+            } else if (icon == ChristmasBashNightConstant.BaseElement.ID_MINI || icon == ChristmasBashNightConstant.BaseElement.ID_MINOR ||
+                    icon == ChristmasBashNightConstant.BaseElement.ID_MAJOR || icon == ChristmasBashNightConstant.BaseElement.ID_GRAND) {
                 jackpool++;
             }
         }
@@ -653,11 +653,11 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         int count = 0;
         for (int i = 0; i < lib.getIconArr().length; i++) {
             int icon = lib.getIconArr()[i];
-            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
+            if (icon == ChristmasBashNightConstant.BaseElement.ID_SCATTER) {
                 count++;
             }
         }
-        return count >= 3;
+        return count >= 0;
     }
 
     /**

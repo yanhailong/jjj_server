@@ -35,13 +35,19 @@ public interface ChristmasBashNightConstant {
         int NORMAL = SlotsConst.Status.NORMAL;
         int FREE = SlotsConst.Status.FREE;
     }
-
-    interface BaseElement {
+    interface BaseElement{
+        int ID_WILD = 11;
+        int ID_SCATTER = 14;
+        int ID_MINI = 19;
+        int ID_MINOR = 20;
+        int ID_MAJOR = 21;
+        int ID_GRAND = 22;
         //金色图标最小id
         int GOLD_MIN = 11;
         //金色图标最大id
         int GOLD_MAX = 18;
     }
+
 
     interface SpecialMode {
         int NORMAL = 1;
