@@ -14,8 +14,6 @@ import java.util.List;
 public class BasketballSuperstarIconInfo {
     @ProtoDesc("坐标")
     public List<Integer> iconIndexs;
-    @ProtoDesc("替换成wild的坐标id")
-    public List<Integer> replaceWildIndexs;
     @ProtoDesc("中奖金额")
     public long win;
     @ProtoDesc("中奖的图标id")

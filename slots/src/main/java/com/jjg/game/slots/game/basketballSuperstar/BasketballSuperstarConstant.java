@@ -24,10 +24,10 @@ public interface BasketballSuperstarConstant {
     }
 
     interface Common{
-        int MINI_POOL_ID = 101700101;
-        int MINOR_POOL_ID = 101700102;
-        int MAJOR_POOL_ID = 101700103;
-        int GRAND_POOL_ID = 101700104;
+        int MINI_POOL_ID = 101800101;
+        int MINOR_POOL_ID = 101800102;
+        int MAJOR_POOL_ID = 101800103;
+        int GRAND_POOL_ID = 101800104;
     }
 
     interface Status{

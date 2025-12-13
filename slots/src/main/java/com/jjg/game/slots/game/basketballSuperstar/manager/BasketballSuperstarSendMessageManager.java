@@ -8,6 +8,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarAwardLineInfo;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarGameRunInfo;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarResultLib;
@@ -109,7 +110,7 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
             //当前状态
             res.status = gameRunInfo.getStatus();
             //图标信息
-            res.iconList = IntStream.range(1, 21).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
+            res.iconList = IntStream.range(1, 25).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
             //剩余免费次数
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
             //大奖展示id
@@ -119,8 +120,17 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
             res.exp = playerController.getPlayer().getExp();
 
             BasketballSuperstarResultLib lib = (BasketballSuperstarResultLib) gameRunInfo.getResultLib();
-
-            res.rewardIconInfo = addRewardIcons(lib.getIconArr(), lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
+            int[] iconArr = lib.getIconArr();
+            //如果是免费转 可能需要修改
+            if(res.status == BasketballSuperstarConstant.Status.FREE
+                    && gameRunInfo.getChangeStickyIconSet() != null
+                    && !gameRunInfo.getChangeStickyIconSet().isEmpty()){
+                Set<Integer> changeStickyIconSet = gameRunInfo.getChangeStickyIconSet();
+                for (Integer i : changeStickyIconSet) {
+                    iconArr[i] = gameRunInfo.getStickyIcon();
+                }
+            }
+            res.rewardIconInfo = addRewardIcons(iconArr, lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
             //根据权重选取 变成wild 图标 免费转结束，才取消
             res.stickyIcon = gameRunInfo.getStickyIcon();
             //免费转  图标变成wild  变化的图案， key -> 图标id
@@ -158,15 +168,11 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
         awardLineInfoList.forEach(info -> {
             indexSet.addAll(info.getSameIconSet());
             winIconSet.add(info.getSameIcon());
-            if (info.getReplaceWildIndexs() != null && !info.getReplaceWildIndexs().isEmpty()) {
-                replaceWildIndexs.addAll(info.getReplaceWildIndexs());
-            }
             iconInfo.win += info.getBaseTimes() * oneBetScore;
         });
 
         iconInfo.iconIndexs = new ArrayList<>(indexSet);
         iconInfo.winIcons = new ArrayList<>(winIconSet);
-        iconInfo.replaceWildIndexs = new ArrayList<>(replaceWildIndexs);
         return iconInfo;
     }
 
