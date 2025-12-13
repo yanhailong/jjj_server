@@ -37,7 +37,7 @@ public interface ChristmasBashNightConstant {
     }
     interface BaseElement{
         int ID_WILD = 11;
-        int ID_SCATTER = 14;
+        int ID_SCATTER = 10;
         int ID_MINI = 19;
         int ID_MINOR = 20;
         int ID_MAJOR = 21;
