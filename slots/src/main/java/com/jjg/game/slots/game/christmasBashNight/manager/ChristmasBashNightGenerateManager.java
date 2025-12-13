@@ -678,7 +678,8 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         }
 
         //检查jackpool模式
-        if (lib.getLibTypeSet().contains(ChristmasBashNightConstant.SpecialMode.JACKPOOL) && !checkJackpool(lib)) {
+        if (lib.getLibTypeSet().contains(ChristmasBashNightConstant.SpecialMode.JACKPOOL)
+                && !checkJackpool(lib)) {
             log.warn("检查jackpool模式失败");
             return false;
         }

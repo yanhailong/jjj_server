@@ -354,7 +354,7 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
      * @return
      */
     private BasketballSuperstarGameRunInfo jackpool(BasketballSuperstarGameRunInfo gameRunInfo, BasketballSuperstarPlayerGameData playerGameData, BasketballSuperstarResultLib resultLib) {
-        if (!resultLib.getLibTypeSet().contains(ThorConstant.SpecialMode.JACKPOOL)) {
+        if (!resultLib.getLibTypeSet().contains(BasketballSuperstarConstant.SpecialMode.JACKPOOL)) {
             return gameRunInfo;
         }
 

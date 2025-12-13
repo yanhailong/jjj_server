@@ -21,13 +21,7 @@ import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightGameRun
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightPlayerGameData;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightPlayerGameDataDTO;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightResultLib;
-import com.jjg.game.slots.game.christmasBashNight.pb.ResChristmasBashNightPoolInfo;
-import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
-import com.jjg.game.slots.game.thor.ThorConstant;
-import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
-import com.jjg.game.slots.game.thor.data.ThorPlayerGameData;
-import com.jjg.game.slots.game.thor.data.ThorResultLib;
+
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.LoggerFactory;
@@ -354,7 +348,7 @@ public class ChristmasBashNightGameManager extends AbstractSlotsGameManager<Chri
      * @return
      */
     private ChristmasBashNightGameRunInfo jackpool(ChristmasBashNightGameRunInfo gameRunInfo, ChristmasBashNightPlayerGameData playerGameData, ChristmasBashNightResultLib resultLib) {
-        if (!resultLib.getLibTypeSet().contains(ThorConstant.SpecialMode.JACKPOOL)) {
+        if (!resultLib.getLibTypeSet().contains(ChristmasBashNightConstant.SpecialMode.JACKPOOL)) {
             return gameRunInfo;
         }
 
