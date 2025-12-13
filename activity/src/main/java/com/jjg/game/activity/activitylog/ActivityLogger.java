@@ -230,7 +230,7 @@ public class ActivityLogger extends BaseLogger {
      *
      * @param player       玩家数据
      * @param activityData 活动数据
-     * @param logType      类型 (1.下级充值 2绑定玩家 3.分享收益领取 4.人数收益领取 5.人数变化 6.绑定下级充值 7.周榜)
+     * @param logType      类型 (1.下级充值 2绑定玩家 3.分享收益领取 4.人数收益领取 5.人数变化 6.绑定下级充值 7.周榜 8.绑定玩家奖励领取)
      * @param totalGoldAdd 总收益增加
      * @param addBindNum   绑定人数增加
      * @param addGold      领取金币增加
