@@ -413,11 +413,12 @@ public class ActivityLogger extends BaseLogger {
 
     /**
      * 成长基金购买
-     * @param player 玩家数据
+     *
+     * @param player       玩家数据
      * @param activityData 活动数据
-     * @param cost 购买金额
-     * @param rewards 奖励
-     * @param result 奖励结果
+     * @param cost         购买金额
+     * @param rewards      奖励
+     * @param result       奖励结果
      */
     public void sendGrowthFundBuyLog(Player player, ActivityData activityData, BigDecimal cost, Map<Integer, Long> rewards, ItemOperationResult result) {
         try {
@@ -437,13 +438,14 @@ public class ActivityLogger extends BaseLogger {
 
     /**
      * 成长基金领取奖励
-     * @param player 玩家数据
+     *
+     * @param player       玩家数据
      * @param activityData 活动数据
-     * @param levels  领取的等级
-     * @param rewards 奖励
-     * @param result 奖励结果
+     * @param levels       领取的等级
+     * @param rewards      奖励
+     * @param result       奖励结果
      */
-    public void sendGrowthFundReceiveLog(Player player, ActivityData activityData,List<Integer> levels,
+    public void sendGrowthFundReceiveLog(Player player, ActivityData activityData, List<Integer> levels,
                                          Map<Integer, Long> rewards, CommonResult<ItemOperationResult> result) {
         try {
             JSONObject json = buildBaseInfo(activityData, 0);
@@ -457,6 +459,36 @@ public class ActivityLogger extends BaseLogger {
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendGrowthFundReceiveLog error:", e);
+        }
+    }
+
+    /**
+     * 财富轮盘日志
+     *
+     * @param player      玩家数据
+     * @param todayMax    今日最大积分
+     * @param cost        花费积分
+     * @param remainPoint 剩余积分
+     * @param sourceType  来源类型 1转盘 2兑换
+     * @param rewards     奖励
+     * @param result      奖励后道具数据
+     */
+    public void sendWealthRouletteLog(Player player, int todayMax, int cost, int remainPoint, int sourceType,
+                                      Map<Integer, Long> rewards, CommonResult<ItemOperationResult> result) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("rewards", objectMapper.writeValueAsString(rewards));
+            json.put("functionType", 4);
+            json.put("todayMax", todayMax);
+            json.put("cost", cost);
+            json.put("remainPoint", remainPoint);
+            json.put("sourceType", sourceType);
+            if (result != null && result.success()) {
+                json.put("result", objectMapper.writeValueAsString(result.data));
+            }
+            sendLog("function", player, json);
+        } catch (Exception e) {
+            log.error("sendWealthRouletteLog error:", e);
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.jjg.game.activity.wealthroulette.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.activity.activitylog.ActivityLogger;
 import com.jjg.game.activity.wealthroulette.dao.WealthRouletteDao;
 import com.jjg.game.activity.wealthroulette.message.bean.WealthRouletteDrawInfo;
 import com.jjg.game.activity.wealthroulette.message.bean.WealthRouletteDrawItemInfo;
@@ -73,16 +74,18 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
     private final WealthRouletteDao wealthRouletteDao;
     private final ClusterSystem clusterSystem;
     private final RedDotManager redDotManager;
+    private final ActivityLogger activityLogger;
     private Map<Integer, RouletteShopCfg> dataCache = new HashMap<>();
 
     public WealthRouletteController(CountDao countDao, GameFunctionService gameFunctionService, PlayerPackService playerPackService,
-                                    WealthRouletteDao wealthRouletteDao, ClusterSystem clusterSystem, RedDotManager redDotManager) {
+                                    WealthRouletteDao wealthRouletteDao, ClusterSystem clusterSystem, RedDotManager redDotManager, ActivityLogger activityLogger) {
         this.countDao = countDao;
         this.gameFunctionService = gameFunctionService;
         this.playerPackService = playerPackService;
         this.wealthRouletteDao = wealthRouletteDao;
         this.clusterSystem = clusterSystem;
         this.redDotManager = redDotManager;
+        this.activityLogger = activityLogger;
     }
 
     @Override
@@ -269,6 +272,10 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         if (!addItems.success()) {
             log.error("玩家添加财富转盘奖励失败 playerId:{} addItems:{}", playerId, finalRewardMap);
         }
+        //发送日志
+        int toDayMax = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
+                getChildId(playerId, LocalDate.now().minusDays(-1))).intValue();
+        activityLogger.sendWealthRouletteLog(player, toDayMax, needPoint, result.intValue(), 1, finalRewardMap, addItems);
         //构建响应信息
         res.remainPoint = result.intValue();
         res.drawInfos = new ArrayList<>();
@@ -300,7 +307,8 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         //购买商品
         RMap<Integer, Integer> playerBuyTimes = wealthRouletteDao.getPlayerBuyTimes(playerId);
         int buyTimes = playerBuyTimes.getOrDefault(req.goodId, 0);
-        if (buyTimes + req.buyNum > cfg.getFrequency()) {
+        boolean noLimit = cfg.getFrequency() != -1;
+        if (noLimit && buyTimes + req.buyNum > cfg.getFrequency()) {
             res.code = Code.WEALTH_ROULETTE_BUY_LIMIT;
             return res;
         }
@@ -312,19 +320,28 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             res.code = Code.WEALTH_ROULETTE_NOT_POINT;
             return res;
         }
-        //增加限购次数
-        Long result = wealthRouletteDao.incrementIfLessThan(playerId, req.goodId, req.buyNum, cfg.getFrequency());
-        if (result == null) {
-            res.code = Code.WEALTH_ROULETTE_BUY_LIMIT;
-            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), getChildId(playerId, LocalDate.now()),
-                    BigDecimal.valueOf(needPoint));
-            return res;
+        Long result = -1L;
+        if (noLimit) {
+            //增加限购次数
+            result = wealthRouletteDao.incrementIfLessThan(playerId, req.goodId, req.buyNum, cfg.getFrequency());
+            if (result == null) {
+                res.code = Code.WEALTH_ROULETTE_BUY_LIMIT;
+                countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), getChildId(playerId, LocalDate.now()),
+                        BigDecimal.valueOf(needPoint));
+                return res;
+            }
         }
         //发送奖励
-        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, ItemUtils.expendItems(cfg.getItem(), req.buyNum), AddType.ACTIVITY_WEALTH_ROULETTE_REWARDS);
+        Map<Integer, Long> addItemMap = ItemUtils.expendItems(cfg.getItem(), req.buyNum);
+        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, addItemMap, AddType.ACTIVITY_WEALTH_ROULETTE_REWARDS);
         if (!addResult.success()) {
             log.error("财富转盘 购买商品后添加道具失败 playerId:{} goodId:{}", playerId, req.goodId);
         }
+        //发送日志
+        int toDayMax = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
+                getChildId(playerId, LocalDate.now().minusDays(-1))).intValue();
+        activityLogger.sendWealthRouletteLog(player, toDayMax, needPoint, remainPoint.intValue(), 2, addItemMap, addResult);
+
         res.goodInfo = buildWealthRouletteGoodInfo(cfg, result.intValue());
         res.remainPoint = remainPoint.intValue();
         res.buyNum = req.buyNum;

@@ -577,6 +577,7 @@ public class BaseLogger {
                 json.put("result", JSON.toJSONString(result, SerializerFeature.WriteNonStringKeyAsString));
             }
             json.put("addExp", addExp);
+            json.put("vipLevel", player.getVipLevel());
             sendLog("function", player, json);
         } catch (Exception e) {
             log.error("sendVipLog", e);
