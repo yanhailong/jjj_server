@@ -187,7 +187,7 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
         }
         gameRunInfo.setRemainDigCount(treasureChestLib.getDigTimes() - afterCount);
         gameRunInfo.setDigTimesMultiplier(treasureChestLib.getDigTimesMultiplier().get(afterCount - 1));
-        gameRunInfo.setStatus(CaptainJackConstant.Status.TREASURE_CHEST);
+        gameRunInfo.setStatus(playerGameData.getStatus());
         gameRunInfo.setAllWinGold(playerGameData.getOneBetScore() * gameRunInfo.getDigTimesMultiplier());
     }
 
@@ -259,7 +259,7 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
         gameRunInfo.setResultLib(resultLib);
         gameRunInfo.setStake(betValue);
         gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
-        gameRunInfo.setStatus(CaptainJackConstant.Status.NORMAL);
+        gameRunInfo.setStatus(playerGameData.getStatus());
     }
 
     /**
@@ -300,7 +300,7 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);
-        gameRunInfo.setStatus(CaptainJackConstant.Status.FREE);
+        gameRunInfo.setStatus(playerGameData.getStatus());
     }
 
 
