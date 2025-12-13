@@ -238,6 +238,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 gameRunInfo.setInvestRewardGoldList(rewardGoldList);
                 player = result.data;
                 log.debug("投资游戏玩家添加金币 gameType = {},roomCfgId = {},addGold = {}", this.gameType, playerGameData.getRoomCfgId(), allAddGold);
+            } else {
+                gameRunInfo.setInvestRewardGoldList(List.of(0L, 0L, 0L));
             }
 
             //3次全部中奖的金火车
