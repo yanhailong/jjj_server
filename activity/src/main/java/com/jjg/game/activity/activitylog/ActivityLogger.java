@@ -13,6 +13,7 @@ import com.jjg.game.core.logger.BaseLogger;
 import com.jjg.game.sampledata.bean.FirstpaymentCfg;
 import com.jjg.game.sampledata.bean.PlayerLevelPackCfg;
 import com.jjg.game.sampledata.bean.PrivilegeCardCfg;
+import org.springframework.scheduling.Trigger;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -237,13 +238,14 @@ public class ActivityLogger extends BaseLogger {
      * @param sharingRatio 当前分享比例
      * @param remainGold   账户余数
      */
-    public void sendSharePromoteAddRewards(Player player, ActivityData activityData, int logType, long totalGoldAdd, int addBindNum
+    public void sendSharePromoteAddRewards(Player player, ActivityData activityData, long subordinateId, int logType, long totalGoldAdd, int addBindNum
             , long addGold, int sharingRatio, long remainGold, int bindType) {
         try {
             JSONObject json = buildBaseInfo(activityData, 0);
             json.put("totalAdd", totalGoldAdd);
             json.put("addGold", addGold);
             json.put("addBindNum", addBindNum);
+            json.put("subordinateId", subordinateId);
             json.put("sharingRatio", sharingRatio);
             json.put("logType", logType);
             if (remainGold > 0) {
@@ -269,9 +271,9 @@ public class ActivityLogger extends BaseLogger {
      * @param addGold      领取金币增加
      * @param sharingRatio 当前分享比例
      */
-    public void sendSharePromoteAddRewards(Player player, ActivityData activityData, int type, long totalGoldAdd, int addBindNum
+    public void sendSharePromoteAddRewards(Player player, ActivityData activityData, long subordinateId, int type, long totalGoldAdd, int addBindNum
             , long addGold, int sharingRatio) {
-        sendSharePromoteAddRewards(player, activityData, type, totalGoldAdd, addBindNum, addGold, sharingRatio, 0, 0);
+        sendSharePromoteAddRewards(player, activityData, subordinateId, type, totalGoldAdd, addBindNum, addGold, sharingRatio, 0, 0);
     }
 
     /**

@@ -11,10 +11,7 @@ import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
-import com.jjg.game.slots.game.captainjack.data.CaptainJackAddIconInfo;
-import com.jjg.game.slots.game.captainjack.data.CaptainJackAwardLineInfo;
-import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
-import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
+import com.jjg.game.slots.game.captainjack.data.*;
 import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackCascade;
 import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackPoolInfo;
 import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackWinIconInfo;
@@ -65,23 +62,15 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
                 res.stakeList.add(arr[1]);
             }
             res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().getFirst());
-            res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
-            res.status = gameRunInfo.getData().getStatus();
-            res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
+            CaptainJackPlayerGameData playerGameData = gameRunInfo.getData();
+            res.totalWinGold = playerGameData.getFreeAllWin();
+            res.status = playerGameData.getStatus();
+            res.remainFreeCount = playerGameData.getRemainFreeCount().get();
             //计算当前免费倍率
-            if (gameRunInfo.getData().getStatus() == CaptainJackConstant.Status.FREE) {
-                AtomicInteger freeIndex = gameRunInfo.getData().getFreeIndex();
-                if (gameRunInfo.getData().getFreeLib() instanceof CaptainJackResultLib lib) {
-                    res.freeMultiplier = (int) generateManager.calFree(lib, freeIndex.get());
-                }
-            }
-            if (gameRunInfo.getData().getStatus() == CaptainJackConstant.Status.TREASURE_CHEST) {
-                CaptainJackResultLib treasureResults = gameRunInfo.getData().getResultLib();
-                if (treasureResults != null) {
-                    res.accumulationRate = treasureResults.getDigTimesMultiplier().subList(0, gameRunInfo.getData().getAlreadyDigCount())
-                            .stream()
-                            .mapToInt(Integer::intValue)
-                            .sum();
+            if (playerGameData.getStatus() == CaptainJackConstant.Status.FREE) {
+                AtomicInteger freeIndex = playerGameData.getFreeIndex();
+                if (playerGameData.getFreeLib() instanceof CaptainJackResultLib lib) {
+                    res.freeAmount = generateManager.calFree(lib, freeIndex.get()) * playerGameData.getOneBetScore();
                 }
             }
             res.poolList = new ArrayList<>();
@@ -123,8 +112,6 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
             res.allGold = gameRunInfo.getAfterGold();
             //本局获得金币
             res.allWinGold = gameRunInfo.getAllWinGold();
-            //免费游戏中累计获得金币
-            res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
             //当前状态
             res.status = gameRunInfo.getStatus();
             //图标信息

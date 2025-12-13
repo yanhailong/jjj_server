@@ -27,10 +27,8 @@ public class ResCaptainJackEnterGame extends AbstractResponse {
     public int status;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
-    @ProtoDesc("当前免费倍率")
-    public int freeMultiplier;
-    @ProtoDesc("累计探宝触发的倍率")
-    public int accumulationRate;
+    @ProtoDesc("当前累计免费金额")
+    public long freeAmount;
     @ProtoDesc("奖池信息")
     public List<CaptainJackPoolInfo> poolList;
     public ResCaptainJackEnterGame(int code) {

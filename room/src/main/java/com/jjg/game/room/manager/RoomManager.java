@@ -1,7 +1,7 @@
 package com.jjg.game.room.manager;
 
 import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.listener.OnServerAutoShoutDown;
+import com.jjg.game.common.listener.OnServerAutoShutDown;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
@@ -35,7 +35,7 @@ import java.util.*;
  * @author 2CL
  */
 @Component
-public class RoomManager extends AbstractRoomManager implements GmListener, HallRoomBridge, OnServerAutoShoutDown {
+public class RoomManager extends AbstractRoomManager implements GmListener, HallRoomBridge, OnServerAutoShutDown {
 
     public RoomManager() {
         super();
