@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -235,6 +236,9 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
         gameRunInfo.setStake(betValue);
         gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
         gameRunInfo.setStatus(BasketballSuperstarConstant.Status.NORMAL);
+
+        gameRunInfo.setChangeStickyIconSet(new HashSet<>());
+        gameRunInfo.setStickyIcon(0);
         return gameRunInfo;
     }
 
@@ -273,6 +277,10 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);
         gameRunInfo.setStatus(BasketballSuperstarConstant.Status.FREE);
+
+        gameRunInfo.setChangeStickyIconSet(freeGame.getChangeStickyIconSet());
+        gameRunInfo.setStickyIcon(freeGame.getStickyIcon());
+
         return gameRunInfo;
     }
 

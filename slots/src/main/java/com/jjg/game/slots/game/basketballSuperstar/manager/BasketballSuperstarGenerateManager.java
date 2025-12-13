@@ -15,7 +15,6 @@ import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarAddFr
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarAwardLineInfo;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarFreeStickyWildInfo;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarResultLib;
-import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
@@ -23,7 +22,7 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 
 /**
- * @author lihaocao
+ * @auBasketballSuperstar lihaocao
  * @date 2025/12/2 17:33
  */
 @Component
@@ -101,18 +100,19 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
         if (freeModel) {
             lib.setGameType(this.gameType);
             lib.setIconArr(arr);
-
+            //拷贝数组
+            int[] newArr = new int[arr.length];
+            System.arraycopy(arr, 0, newArr, 0, arr.length);
+            for (Integer i : lib.getChangeStickyIconSet()) {
+                newArr[i] = BasketballSuperstarConstant.BaseElement.ID_WILD;
+            }
             //检查满线图案
-            List<BasketballSuperstarAwardLineInfo> fullLineInfoList = fullLine(lib);
+            List<BasketballSuperstarAwardLineInfo> fullLineInfoList = fullLine(newArr);
             lib.addAllAwardLineInfo(fullLineInfoList);
 
             //检查全局分散图案
             List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
             lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
-
-            //拷贝数组
-            int[] newArr = new int[arr.length];
-            System.arraycopy(arr, 0, newArr, 0, arr.length);
 
             calTimes(lib);
             return lib;
@@ -176,7 +176,6 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
 
         //根据权重选取 变成wild 图标
         Integer stickyIcon = selectByWeight(this.basketballSuperstarFreeStickyWildInfo.getIconWeightMap());
-
         //检查是否有免费旋转次数，免费旋转的结果，通过specialMode生成
         Integer freeCount = specialAuxiliaryPropConfig.getTriggerCountPropInfo().getRandKey();
         if (freeCount == null || freeCount < 1) {
@@ -188,6 +187,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
         int remainFreeCount = freeCount;
         BasketballSuperstarResultLib lastLib = null;
         while (remainFreeCount > 0) {
+            log.debug("免费转 权重变成wild 图标 stickyIcon = {}", stickyIcon);
             //检查是否有修改图案策略组id
             int specialGroupGirdID = 0;
             if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
@@ -196,12 +196,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
                     specialGroupGirdID = randKey;
                 }
             }
-            BasketballSuperstarResultLib lib;
-            if (lastLib == null) {
-                lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
-            } else {
-                lib = generateFreeOneHaveLastLib(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, lastLib);
-            }
+            BasketballSuperstarResultLib lib = generateFreeOneHaveLastLib(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, lastLib,stickyIcon);
             int addCount = checkAddFreeCount(lib);
             lib.setAddFreeCount(addCount);
             lib.setStickyIcon(stickyIcon);
@@ -219,7 +214,11 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
      * @param specialAuxiliaryCfg
      * @return
      */
-    public BasketballSuperstarResultLib generateFreeOneHaveLastLib(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, int specialGroupGirdID, BasketballSuperstarResultLib lastLib) {
+    public BasketballSuperstarResultLib generateFreeOneHaveLastLib(int specialModeType,
+                                                                   SpecialAuxiliaryCfg specialAuxiliaryCfg,
+                                                                   int specialGroupGirdID,
+                                                                   BasketballSuperstarResultLib lastLib,
+                                                                   int stickyIcon) {
         try {
             //获取模式配置
             SpecialModeCfg specialModeCfg = this.specialModeCfgMap.get(specialModeType);
@@ -265,17 +264,35 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
                 }
             }
 
-            //上盘结果  wild图标保存
-            SpecialGirdInfo lastInfo = gridUpdate(lastLib.getIconArr(), arr);
-            if (lastInfo.getValueMap() != null && !lastInfo.getValueMap().isEmpty()) {
-                lib.addSpecialGirdInfo(lastInfo);
+            //权重随机出来需要改变位置的格子
+            Set<Integer> icons = new HashSet<>();
+            //遍历格子 ，把 是stickyIcon添加进去
+            for (int i = 0; i < arr.length; i++) {
+                if (arr[i] == stickyIcon) {
+                    icons.add(i);
+                }
             }
+            log.info("新增需要格子变成 wild{}", JSONObject.toJSONString(icons));
 
-            //权重选取的图标 变成wild 图标
-            SpecialGirdInfo wildInfo = gridUpdate(lastLib.getStickyIcon(), arr);
-            if (lastInfo.getValueMap() != null && !wildInfo.getValueMap().isEmpty()) {
-                lib.addSpecialGirdInfo(wildInfo);
+            //如果上一轮有修改图标记录 直接加入进来
+            if (lastLib != null && lastLib.getChangeStickyIconSet() != null && !lastLib.getChangeStickyIconSet().isEmpty()) {
+                icons.addAll(lastLib.getChangeStickyIconSet());
+                log.info("需要格子变成 wild{}", JSONObject.toJSONString(icons));
             }
+            lib.setChangeStickyIconSet(icons);
+
+
+            //上盘结果  wild图标保存
+//            SpecialGirdInfo lastInfo = gridUpdate(lastLib.getIconArr(), arr);
+//            if (lastInfo.getValueMap() != null && !lastInfo.getValueMap().isEmpty()) {
+//                lib.addSpecialGirdInfo(lastInfo);
+//            }
+//
+//            //权重选取的图标 变成wild 图标
+//            SpecialGirdInfo wildInfo = gridUpdate(lastLib.getStickyIcon(), arr);
+//            if (wildInfo.getValueMap() != null && !wildInfo.getValueMap().isEmpty()) {
+//                lib.addSpecialGirdInfo(wildInfo);
+//            }
 
             //判断中奖，返回
             return checkAward(arr, lib, true);
@@ -285,40 +302,47 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
         }
         return null;
     }
-
-    /**
-     * 获取 修改棋子原因 上次是wild 粘性
-     *
-     * @return
-     */
-    private SpecialGirdInfo gridUpdate(int[] LastArr, int[] arr) {
-        SpecialGirdInfo info = new SpecialGirdInfo();
-
-        for (int i = 0; i < LastArr.length; i++) {
-            if (LastArr[i] == BasketballSuperstarConstant.Element.WILD && arr[i] != BasketballSuperstarConstant.Element.WILD) {
-                info.addValue(i, BasketballSuperstarConstant.Element.WILD);
-            }
-        }
-
-        return info;
-    }
-
-    /**
-     * 获取 修改棋子原因 粘性图标变成wild
-     *
-     * @return
-     */
-    private SpecialGirdInfo gridUpdate(int stickyIcon, int[] arr) {
-
-        SpecialGirdInfo info = new SpecialGirdInfo();
-        for (int i = 0; i < arr.length; i++) {
-            if (arr[i] == stickyIcon) {
-                info.addValue(i, BasketballSuperstarConstant.Element.WILD);
-            }
-        }
-
-        return info;
-    }
+//
+//    /**
+//     * 获取 修改棋子原因 上次是wild 粘性
+//     *
+//     * @return
+//     */
+//    private SpecialGirdInfo gridUpdate(int[] LastArr, int[] arr) {
+//        SpecialGirdInfo info = new SpecialGirdInfo();
+//
+//        for (int i = 0; i < LastArr.length; i++) {
+//            if (LastArr[i] == BasketballSuperstarConstant.BaseElement.ID_WILD && arr[i] != BasketballSuperstarConstant.BaseElement.ID_WILD) {
+//                arr[i] = BasketballSuperstarConstant.BaseElement.ID_WILD;
+//                info.addValue(i, BasketballSuperstarConstant.BaseElement.ID_WILD);
+//            }
+//        }
+//        if(info.getValueMap()!=null && !info.getValueMap().isEmpty()){
+//            log.debug("上盘是粘性wild 继续保留 修改后的图标 arr = {}", Arrays.toString(arr));
+//        }
+//
+//        return info;
+//    }
+//
+//    /**
+//     * 获取 修改棋子原因 粘性图标变成wild
+//     *
+//     * @return
+//     */
+//    private SpecialGirdInfo gridUpdate(int stickyIcon, int[] arr) {
+//
+//        SpecialGirdInfo info = new SpecialGirdInfo();
+//        for (int i = 0; i < arr.length; i++) {
+//            if (arr[i] == stickyIcon) {
+//                arr[i] = BasketballSuperstarConstant.BaseElement.ID_WILD;
+//                info.addValue(i, BasketballSuperstarConstant.BaseElement.ID_WILD);
+//            }
+//        }
+//        if(info.getValueMap()!=null && !info.getValueMap().isEmpty()){
+//            log.debug("粘性图标变成wild arr = {}", Arrays.toString(arr));
+//        }
+//        return info;
+//    }
 
     /**
      * 检查是否增加免费次数
@@ -467,10 +491,10 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
         int jackpool = 0;
         for (int i = 0; i < lib.getIconArr().length; i++) {
             int icon = lib.getIconArr()[i];
-            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
+            if (icon == BasketballSuperstarConstant.BaseElement.ID_SCATTER) {
                 count++;
-            } else if (icon == ThorConstant.BaseElement.ID_MINI || icon == ThorConstant.BaseElement.ID_MINOR ||
-                    icon == ThorConstant.BaseElement.ID_MAJOR || icon == ThorConstant.BaseElement.ID_GRAND) {
+            } else if (icon == BasketballSuperstarConstant.BaseElement.ID_MINI || icon == BasketballSuperstarConstant.BaseElement.ID_MINOR ||
+                    icon == BasketballSuperstarConstant.BaseElement.ID_MAJOR || icon == BasketballSuperstarConstant.BaseElement.ID_GRAND) {
                 jackpool++;
             }
         }
@@ -487,11 +511,11 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
         int count = 0;
         for (int i = 0; i < lib.getIconArr().length; i++) {
             int icon = lib.getIconArr()[i];
-            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
+            if (icon == BasketballSuperstarConstant.BaseElement.ID_SCATTER) {
                 count++;
             }
         }
-        return count >= 3;
+        return count >= 0;
     }
 
     /**

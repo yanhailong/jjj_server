@@ -35,8 +35,13 @@ public interface BasketballSuperstarConstant {
         int FREE = 1;
     }
 
-    interface Element{
-        int WILD = 11;
+    interface BaseElement{
+        int ID_WILD = 11;
+        int ID_SCATTER = 13;
+        int ID_MINI = 14;
+        int ID_MINOR = 15;
+        int ID_MAJOR = 16;
+        int ID_GRAND = 17;
     }
 
     interface SpecialMode{

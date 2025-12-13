@@ -121,6 +121,10 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
             BasketballSuperstarResultLib lib = (BasketballSuperstarResultLib) gameRunInfo.getResultLib();
 
             res.rewardIconInfo = addRewardIcons(lib.getIconArr(), lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
+            //根据权重选取 变成wild 图标 免费转结束，才取消
+            res.stickyIcon = gameRunInfo.getStickyIcon();
+            //免费转  图标变成wild  变化的图案， key -> 图标id
+            res.changeStickyIconSet = gameRunInfo.getChangeStickyIconSet();
 
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
