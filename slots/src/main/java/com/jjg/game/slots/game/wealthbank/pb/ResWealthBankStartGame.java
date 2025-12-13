@@ -43,7 +43,8 @@ public class ResWealthBankStartGame extends AbstractResponse {
     public int level;
     @ProtoDesc("经验")
     public long exp;
-
+    @ProtoDesc("免费模式累计奖励")
+    public long freeModeTotalReward;
 
     public ResWealthBankStartGame(int code) {
         super(code);

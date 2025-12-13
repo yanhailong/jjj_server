@@ -471,6 +471,12 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
                         return gameRunInfo;
                     }
                     gameRunInfo.setAllWinGold(addGold);
+                    if (gameRunInfo.getStatus() == WealthBankConstant.Status.ALL_BOARD_FREE) {
+                        playerGameData.addFreeModeTotalReward(addGold);
+                        if (gameRunInfo.getRemainFreeCount() == 0) {
+                            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeModeTotalReward());
+                        }
+                    }
                 }
             }
 
@@ -681,7 +687,10 @@ public class WealthBankGameManager extends AbstractSlotsGameManager<WealthBankPl
 
         //计算火车奖励
         gameRunInfo = calTrainReward(playerGameData, freeGame, gameRunInfo);
-
+        //奖池金额
+        if (gameRunInfo.getSmallPoolGold() > 0) {
+            playerGameData.addFreeModeTotalReward(gameRunInfo.getSmallPoolGold());
+        }
         //添加中奖线信息
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
