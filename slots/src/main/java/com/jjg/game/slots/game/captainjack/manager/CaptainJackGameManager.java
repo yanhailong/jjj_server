@@ -134,7 +134,6 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
                     }
                     gameRunInfo.setAllWinGold(addGold);
                 }
-
             }
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
@@ -189,6 +188,7 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
         gameRunInfo.setRemainDigCount(treasureChestLib.getDigTimes() - afterCount);
         gameRunInfo.setDigTimesMultiplier(treasureChestLib.getDigTimesMultiplier().get(afterCount - 1));
         gameRunInfo.setStatus(CaptainJackConstant.Status.TREASURE_CHEST);
+        gameRunInfo.setAllWinGold(playerGameData.getOneBetScore() * gameRunInfo.getDigTimesMultiplier());
     }
 
     /**

@@ -307,7 +307,8 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         //购买商品
         RMap<Integer, Integer> playerBuyTimes = wealthRouletteDao.getPlayerBuyTimes(playerId);
         int buyTimes = playerBuyTimes.getOrDefault(req.goodId, 0);
-        if (buyTimes + req.buyNum > cfg.getFrequency()) {
+        boolean noLimit = cfg.getFrequency() != -1;
+        if (noLimit && buyTimes + req.buyNum > cfg.getFrequency()) {
             res.code = Code.WEALTH_ROULETTE_BUY_LIMIT;
             return res;
         }
@@ -319,13 +320,16 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             res.code = Code.WEALTH_ROULETTE_NOT_POINT;
             return res;
         }
-        //增加限购次数
-        Long result = wealthRouletteDao.incrementIfLessThan(playerId, req.goodId, req.buyNum, cfg.getFrequency());
-        if (result == null) {
-            res.code = Code.WEALTH_ROULETTE_BUY_LIMIT;
-            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), getChildId(playerId, LocalDate.now()),
-                    BigDecimal.valueOf(needPoint));
-            return res;
+        Long result = -1L;
+        if (noLimit) {
+            //增加限购次数
+            result = wealthRouletteDao.incrementIfLessThan(playerId, req.goodId, req.buyNum, cfg.getFrequency());
+            if (result == null) {
+                res.code = Code.WEALTH_ROULETTE_BUY_LIMIT;
+                countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), getChildId(playerId, LocalDate.now()),
+                        BigDecimal.valueOf(needPoint));
+                return res;
+            }
         }
         //发送奖励
         Map<Integer, Long> addItemMap = ItemUtils.expendItems(cfg.getItem(), req.buyNum);
