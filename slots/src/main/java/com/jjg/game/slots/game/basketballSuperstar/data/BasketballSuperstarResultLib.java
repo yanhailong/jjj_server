@@ -15,6 +15,16 @@ public class BasketballSuperstarResultLib extends SlotsResultLib<BasketballSuper
     private int jackpotId;
     //增加的免费次数
     private int addFreeCount;
+    //根据权重选取 变成wild 图标 免费转结束，才取消
+    private int stickyIcon;
+
+    public int getStickyIcon() {
+        return stickyIcon;
+    }
+
+    public void setStickyIcon(int stickyIcon) {
+        this.stickyIcon = stickyIcon;
+    }
 
     public int getJackpotId() {
         return jackpotId;

@@ -278,7 +278,7 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
 
     @Override
     public int getGameType() {
-        return CoreConst.GameType.CHRISTMAS_PARTY;
+        return CoreConst.GameType.BASKETBALL_STAR;
     }
 
     @Override
