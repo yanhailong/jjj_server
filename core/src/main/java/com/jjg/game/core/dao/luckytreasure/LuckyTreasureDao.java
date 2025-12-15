@@ -78,8 +78,10 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
      */
     public Page<LuckyTreasure> findAllRewardHistory(Pageable pageable, int limit) {
         // 构建查询条件：endTime > 0 表示已结束
-        Criteria criteria = Criteria.where("endTime").gt(0);
-
+        Criteria criteria = new Criteria().andOperator(
+                Criteria.where("endTime").gt(0),
+                Criteria.where("status").nin(1, 2)
+        );
         if (limit > 0) {
             // 当有limit限制时，先查询出限定数量的记录，然后在内存中分页
             Query limitQuery = new Query(criteria);
