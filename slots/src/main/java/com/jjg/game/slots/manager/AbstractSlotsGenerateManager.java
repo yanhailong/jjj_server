@@ -663,7 +663,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     }
 
 
-
     /**
      * 检查满线图案_数量
      *
@@ -1560,6 +1559,21 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         for (int i = 1; i < arr.length; i++) {
             int icon = arr[i];
             map.merge(icon, 1, Integer::sum);
+        }
+        return map;
+    }
+
+    /**
+     * 计算每个图标出现的位置
+     *
+     * @param arr
+     * @return
+     */
+    protected Map<Integer, Set<Integer>> checkIconShowIndex(int[] arr) {
+        Map<Integer, Set<Integer>> map = new HashMap<>();
+        for (int i = 1; i < arr.length; i++) {
+            int icon = arr[i];
+            map.computeIfAbsent(icon, k -> new HashSet<>()).add(i);
         }
         return map;
     }

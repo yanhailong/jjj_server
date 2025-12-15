@@ -180,7 +180,6 @@ public class GameDataManager {
     containerMap.put(RouletteShopCfg.class, new RouletteShopCfgContainer());
     containerMap.put(ScratchCardsCfg.class, new ScratchCardsCfgContainer());
     containerMap.put(SharePromoteCfg.class, new SharePromoteCfgContainer());
-    containerMap.put(ShopConfigCfg.class, new ShopConfigCfgContainer());
     containerMap.put(SouthernMoneyCfg.class, new SouthernMoneyCfgContainer());
     containerMap.put(SpecialAuxiliaryCfg.class, new SpecialAuxiliaryCfgContainer());
     containerMap.put(SpecialGirdCfg.class, new SpecialGirdCfgContainer());
@@ -1339,18 +1338,6 @@ public class GameDataManager {
     return getInstance().getCfgContainer(SharePromoteCfg.class).getCfgBeanList();
   }
 
-  public static ShopConfigCfg getShopConfigCfg(int key) {
-    return getInstance().getCfgContainer(ShopConfigCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, ShopConfigCfg> getShopConfigCfgMap() {
-    return getInstance().getCfgContainer(ShopConfigCfg.class).getCfgBeanMap();
-  }
-
-  public static List<ShopConfigCfg> getShopConfigCfgList() {
-    return getInstance().getCfgContainer(ShopConfigCfg.class).getCfgBeanList();
-  }
-
   public static SouthernMoneyCfg getSouthernMoneyCfg(int key) {
     return getInstance().getCfgContainer(SouthernMoneyCfg.class).getCfgBeanMap().get(key);
   }
@@ -1535,6 +1522,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\workspace\\gamedoc\\游戏配置表");
+    loadAllData("D:\\java\\gamedoc\\游戏配置表");
   }
 }
