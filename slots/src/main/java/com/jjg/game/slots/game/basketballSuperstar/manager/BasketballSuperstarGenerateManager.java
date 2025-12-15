@@ -90,7 +90,9 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
 
             if (lib.getJackpotId() < 1) {
                 lib.setJackpotId(cfg.getJackpotID());
+                log.info("lib.getJackpotId()  {}",lib.getJackpotId());
             }
+
         }
         return specialAuxiliaryInfoList;
     }
@@ -196,7 +198,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
                     specialGroupGirdID = randKey;
                 }
             }
-            BasketballSuperstarResultLib lib = generateFreeOneHaveLastLib(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, lastLib,stickyIcon);
+            BasketballSuperstarResultLib lib = generateFreeOneHaveLastLib(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, lastLib, stickyIcon);
             int addCount = checkAddFreeCount(lib);
             lib.setAddFreeCount(addCount);
             lib.setStickyIcon(stickyIcon);
@@ -486,11 +488,17 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
         if (lib.getJackpotId() < 1) {
             return false;
         }
-
+        int[] newArr = new int[lib.getIconArr().length];
+        System.arraycopy(lib.getIconArr(), 0, newArr, 0, lib.getIconArr().length);
+        if (lib.getChangeStickyIconSet() != null && !lib.getChangeStickyIconSet().isEmpty()) {
+            for (Integer i : lib.getChangeStickyIconSet()) {
+                newArr[i] = BasketballSuperstarConstant.BaseElement.ID_WILD;
+            }
+        }
         int count = 0;
         int jackpool = 0;
-        for (int i = 0; i < lib.getIconArr().length; i++) {
-            int icon = lib.getIconArr()[i];
+        for (int i = 0; i < newArr.length; i++) {
+            int icon = newArr[i];
             if (icon == BasketballSuperstarConstant.BaseElement.ID_SCATTER) {
                 count++;
             } else if (icon == BasketballSuperstarConstant.BaseElement.ID_MINI || icon == BasketballSuperstarConstant.BaseElement.ID_MINOR ||
@@ -508,14 +516,22 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
      * @return
      */
     private boolean checkTriggerFree(BasketballSuperstarResultLib lib) {
+        //拷贝数组
+        int[] newArr = new int[lib.getIconArr().length];
+        System.arraycopy(lib.getIconArr(), 0, newArr, 0, lib.getIconArr().length);
+        if (lib.getChangeStickyIconSet() != null && !lib.getChangeStickyIconSet().isEmpty()) {
+            for (Integer i : lib.getChangeStickyIconSet()) {
+                newArr[i] = BasketballSuperstarConstant.BaseElement.ID_WILD;
+            }
+        }
         int count = 0;
-        for (int i = 0; i < lib.getIconArr().length; i++) {
-            int icon = lib.getIconArr()[i];
-            if (icon == BasketballSuperstarConstant.BaseElement.ID_SCATTER) {
+        for (int i = 0; i < newArr.length; i++) {
+            int icon = newArr[i];
+            if (icon == BasketballSuperstarConstant.BaseElement.ID_ADDFREEE) {
                 count++;
             }
         }
-        return count >= 3;
+        return count >= 0;
     }
 
     /**

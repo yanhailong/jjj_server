@@ -2,14 +2,12 @@ package com.jjg.game.slots.game.frozenThrone.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
-import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneAddFreeInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneAwardLineInfo;
@@ -175,26 +173,24 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
         log.debug("增加免费游戏次数 addCount = {}", freeCount);
 
         int remainFreeCount = freeCount;
-        FrozenThroneResultLib lastLib = null;
+
         while (remainFreeCount > 0) {
-//            log.debug("免费转 权重变成wild 图标 stickyIcon = {}", stickyIcon);
-//            //检查是否有修改图案策略组id
-//            int specialGroupGirdID = 0;
-//            if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
-//                Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
-//                if (randKey != null && randKey > 0) {
-//                    specialGroupGirdID = randKey;
-//                }
-//            }
-//            FrozenThroneResultLib lib = generateFreeOneHaveLastLib(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, lastLib, stickyIcon);
-//            int addCount = checkAddFreeCount(lib);
-//            lib.setAddFreeCount(addCount);
-//            lib.setStickyIcon(stickyIcon);
-//            remainFreeCount += addCount;
-//            specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
+            //检查是否有修改图案策略组id
+            int specialGroupGirdID = 0;
+            if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
+                Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
+                if (randKey != null && randKey > 0) {
+                    specialGroupGirdID = randKey;
+                }
+            }
+
+            FrozenThroneResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+            int addCount = checkAddFreeCount(lib);
+            lib.setAddFreeCount(addCount);
+            remainFreeCount += addCount;
+            specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
             log.debug("--------------{}------------", remainFreeCount);
             remainFreeCount--;
-//            lastLib = lib;
         }
     }
 
@@ -205,23 +201,24 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
      * @return
      */
     private int checkAddFreeCount(FrozenThroneResultLib lib) {
-        if (this.frozenThroneAddFreeInfo.getLibType() != FrozenThroneConstant.SpecialMode.FREE) {
+
+        if (frozenThroneAddFreeInfo.getLibType() != FrozenThroneConstant.SpecialMode.FREE) {
             return 0;
         }
-
-        int addCount = 0;
+        int times = 0;
         for (int i = 1; i < lib.getIconArr().length; i++) {
             int icon = lib.getIconArr()[i];
             //是否出现了目标图标
-            if (icon != this.frozenThroneAddFreeInfo.getTargetIcon()) {
+            if (icon != frozenThroneAddFreeInfo.getTargetIcon()) {
                 continue;
             }
-            boolean flag = SlotsUtil.calProp(this.frozenThroneAddFreeInfo.getProp());
-            if (flag) {
-                addCount += this.frozenThroneAddFreeInfo.getAddFreeCount();
-            }
+            times++;
         }
-        return addCount;
+
+        int addFreeCount = frozenThroneAddFreeInfo.getAddFreeCount(times);
+        //
+        log.info("增加免费次数 addCount = {}", addFreeCount);
+        return addFreeCount;
     }
 
 
@@ -409,12 +406,22 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
             //增加免费次数
             if (cfg.getPlayType() == FrozenThroneConstant.SpecialPlay.TYPE_ADD_FREE_COUNT) {
                 FrozenThroneAddFreeInfo tmpFrozenThroneAddFreeInfo = new FrozenThroneAddFreeInfo();
-                String[] arr = cfg.getValue().split("_");
 
-                tmpFrozenThroneAddFreeInfo.setLibType(Integer.parseInt(arr[0]));
-                tmpFrozenThroneAddFreeInfo.setTargetIcon(Integer.parseInt(arr[1]));
-                tmpFrozenThroneAddFreeInfo.setAddFreeCount(Integer.parseInt(arr[2]));
-                tmpFrozenThroneAddFreeInfo.setProp(Integer.parseInt(arr[3]));
+                String[] arr0 = cfg.getValue().split(",");
+
+                tmpFrozenThroneAddFreeInfo.setLibType(Integer.parseInt(arr0[0]));
+                tmpFrozenThroneAddFreeInfo.setTargetIcon(Integer.parseInt(arr0[1]));
+
+                String[] arr1 = arr0[2].split("\\|");
+                for (String frozenThroneAddFreeInfoStr : arr1) {
+                    String[] arr2 = frozenThroneAddFreeInfoStr.split("_");
+
+                    int times = Integer.parseInt(arr2[0]);
+                    int addFreeCount = Integer.parseInt(arr2[1]);
+                    int prop = Integer.parseInt(arr2[2]);
+
+                    tmpFrozenThroneAddFreeInfo.addTimesInfo(times, addFreeCount, prop);
+                }
 
                 this.frozenThroneAddFreeInfo = tmpFrozenThroneAddFreeInfo;
             }
