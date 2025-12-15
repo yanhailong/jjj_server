@@ -43,9 +43,10 @@ public enum VipGift {
     }
 
     public boolean isCanClaim(Player player, Vip vip, long timeMillis) {
+        long dateZeroMilliTime = TimeHelper.getDateZeroMilliTime(timeMillis);
         long lastClaim = vip.getGiftGetTime().getOrDefault(type, 0L);
         return switch (this) {
-            case WEEKS -> !TimeHelper.inSameWeek(lastClaim, timeMillis);
+            case WEEKS -> !TimeHelper.inSameWeek(lastClaim, dateZeroMilliTime);
             case BIRTHDAY -> {
                 LocalDate birthDate = LocalDate.ofInstant(Instant.ofEpochSecond(player.getCreateTime()), ZoneId.systemDefault());
                 LocalDate today = LocalDate.now();
@@ -66,7 +67,7 @@ public enum VipGift {
                 }
                 yield false;
             }
-            case CUSTOMIZED -> !TimeHelper.inSameDay(lastClaim, timeMillis) && canClaimCustomized();
+            case CUSTOMIZED -> !TimeHelper.inSameDay(lastClaim, dateZeroMilliTime) && canClaimCustomized();
         };
     }
 
