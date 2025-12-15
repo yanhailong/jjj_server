@@ -16,21 +16,11 @@ public class CaptainJackGameRunInfo extends GameRunInfo<CaptainJackPlayerGameDat
     private int remainDigCount;
     //本次探宝倍率
     private int digTimesMultiplier;
-    //免费游戏累计获得金币
-    private long freeAmount;
 
     private long mini;
     private long minor;
     private long major;
     private long grand;
-
-    public long getFreeAmount() {
-        return freeAmount;
-    }
-
-    public void setFreeAmount(long freeAmount) {
-        this.freeAmount = freeAmount;
-    }
 
     public int getRemainDigCount() {
         return remainDigCount;
