@@ -9,7 +9,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Calendar;
@@ -342,22 +341,29 @@ public final class TimeHelper {
      * 获取当天凌晨时间 秒
      */
     public static int getCurrentDateZeroSecondTime() {
-        int second = (int) (getCurrentDateZeroMileTime() / 1000);
+        int second = (int) (getCurrentDateZeroMilliTime() / 1000);
         return second;
     }
 
     /**
      * 获取当天凌晨时间 毫秒
      */
-    public static long getCurrentDateZeroMileTime() {
-        GregorianCalendar cd = new GregorianCalendar();
-        cd.setTimeZone(TimeZone.getTimeZone(timeZone));
-        cd.set(Calendar.HOUR_OF_DAY, 0);
-        cd.set(Calendar.MINUTE, 0);
-        cd.set(Calendar.SECOND, 0);
-        cd.set(Calendar.MILLISECOND, 0);
-        cd.add(GregorianCalendar.DATE, 0);
-        return cd.getTimeInMillis();
+    public static long getCurrentDateZeroMilliTime() {
+        // 获取当天的开始时间（00:00:00）
+        ZonedDateTime startOfDay = LocalDate.now().atStartOfDay(DEFAULT_ZONE);
+        // 转换为时间戳（毫秒）
+        return startOfDay.toInstant().toEpochMilli();
+    }
+
+    /**
+     * 获取指定时间当天凌晨时间 毫秒
+     */
+    public static long getDateZeroMilliTime(long time) {
+        LocalDateTime localDateTime = getLocalDateTime(time);
+        // 获取当天的开始时间（00:00:00）
+        ZonedDateTime startOfDay = localDateTime.toLocalDate().atStartOfDay(DEFAULT_ZONE);
+        // 转换为时间戳（毫秒）
+        return startOfDay.toInstant().toEpochMilli();
     }
 
     /**
@@ -656,8 +662,11 @@ public final class TimeHelper {
     public static boolean inSameWeek(long t1, long t2, ZoneId zone) {
         LocalDate d1 = Instant.ofEpochMilli(t1).atZone(zone).toLocalDate();
         LocalDate d2 = Instant.ofEpochMilli(t2).atZone(zone).toLocalDate();
-        return d1.get(ChronoField.ALIGNED_WEEK_OF_YEAR) == d2.get(ChronoField.ALIGNED_WEEK_OF_YEAR)
-                && d1.getYear() == d2.getYear();
+        // 找到各自所在周的周一
+        LocalDate monday1 = d1.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate monday2 = d2.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+        return monday1.equals(monday2);
     }
 
     /**

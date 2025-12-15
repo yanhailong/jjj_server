@@ -63,7 +63,7 @@ public class FriendRoomRedisDao {
             int invitationCode = Integer.MIN_VALUE, tryTimes = 5;
             while (tryTimes-- > 0) {
                 long curTime = System.currentTimeMillis();
-                long currentDateZeroMileTime = TimeHelper.getCurrentDateZeroMileTime();
+                long currentDateZeroMileTime = TimeHelper.getCurrentDateZeroMilliTime();
                 // 如果想让邀请码最低从 1000_0000 开始，将随机值的最低位设置为 1000_0000
                 int maskData = RandomUtils.randomMinMax(0, CODE_MASK);
                 // 是否需要判断重复创建的问题
