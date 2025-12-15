@@ -657,7 +657,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
                 count++;
             }
         }
-        return count >= 0;
+        return count >= 3;
     }
 
     /**

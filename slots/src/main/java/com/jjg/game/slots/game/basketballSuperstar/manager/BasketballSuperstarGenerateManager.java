@@ -515,7 +515,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
                 count++;
             }
         }
-        return count >= 0;
+        return count >= 3;
     }
 
     /**
