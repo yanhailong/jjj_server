@@ -19,7 +19,6 @@ import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackEnterGame;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackPoolValue;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackStartGame;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackTreasureHunting;
-import com.jjg.game.slots.game.christmasBashNight.pb.ChristmasBashNightPoolInfo;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.stereotype.Component;
 
@@ -126,7 +125,7 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
 
             CaptainJackResultLib lib = (CaptainJackResultLib) gameRunInfo.getResultLib();
 
-            res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
+            res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData());
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
@@ -142,7 +141,7 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
     /**
      * 添加中奖图标信息
      */
-    private CaptainJackWinIconInfo addRewardIcons(List<CaptainJackAwardLineInfo> awardLineInfoList, long oneBetScore) {
+    private CaptainJackWinIconInfo addRewardIcons(List<CaptainJackAwardLineInfo> awardLineInfoList, CaptainJackPlayerGameData gameData) {
         if (CollectionUtil.isEmpty(awardLineInfoList)) {
             return null;
         }
@@ -151,10 +150,15 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
 
         Set<Integer> indexSet = new HashSet<>();
         Set<Integer> winIconSet = new HashSet<>();
+        long oneBetScore = gameData.getOneBetScore();
         awardLineInfoList.forEach(info -> {
             indexSet.addAll(info.getSameIconSet());
             winIconSet.add(info.getSameIcon());
-            iconInfo.win += info.getBaseTimes() * oneBetScore;
+            if (gameData.getRemainFreeCount().get() == 0) {
+                iconInfo.win += info.getBaseTimes() * oneBetScore;
+            } else {
+                iconInfo.win += generateManager.getAddTimes() * oneBetScore;
+            }
         });
 
         iconInfo.iconIndexes = new ArrayList<>(indexSet);
@@ -180,7 +184,7 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
                 kv.value = v;
                 addIconInfos.add(kv);
             });
-            captainJackCascade.rewardIconInfo = addRewardIcons(captainJackAddIconInfo.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
+            captainJackCascade.rewardIconInfo = addRewardIcons(captainJackAddIconInfo.getAwardLineInfoList(), gameRunInfo.getData());
             captainJackCascade.addIconInfos = addIconInfos;
 
             list.add(captainJackCascade);
