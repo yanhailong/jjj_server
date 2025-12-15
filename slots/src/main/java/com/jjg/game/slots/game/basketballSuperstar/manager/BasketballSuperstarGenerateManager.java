@@ -90,7 +90,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
 
             if (lib.getJackpotId() < 1) {
                 lib.setJackpotId(cfg.getJackpotID());
-                log.info("lib.getJackpotId()  {}",lib.getJackpotId());
+                log.info("lib.getJackpotId()  {}", lib.getJackpotId());
             }
 
         }
@@ -270,7 +270,8 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
             Set<Integer> icons = new HashSet<>();
             //遍历格子 ，把 是stickyIcon添加进去
             for (int i = 0; i < arr.length; i++) {
-                if (arr[i] == stickyIcon) {
+                //第一列不能为 改变wild的格子 0 1 2 3 4
+                if (arr[i] == stickyIcon && i >= 5) {
                     icons.add(i);
                 }
             }

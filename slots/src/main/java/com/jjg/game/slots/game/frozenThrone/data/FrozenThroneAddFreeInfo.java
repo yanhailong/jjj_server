@@ -27,7 +27,7 @@ public class FrozenThroneAddFreeInfo {
         //概率
         private int prop;
 
-        public TimeInfo(int prop, int addFreeCount, int times) {
+        public TimeInfo(int times, int addFreeCount, int prop) {
             this.prop = prop;
             this.addFreeCount = addFreeCount;
             this.times = times;
@@ -104,7 +104,7 @@ public class FrozenThroneAddFreeInfo {
             if (timeInfo.getTimes() == times) {
                 return timeInfo.getAddFreeCount();
             }
-            if (bigCount < timeInfo.getAddFreeCount()) {
+            if (times >= timeInfo.getTimes() && bigCount < timeInfo.getAddFreeCount()) {
                 bigCount = timeInfo.getAddFreeCount();
             }
         }

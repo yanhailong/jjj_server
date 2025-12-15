@@ -70,6 +70,12 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
 
             //是否触发小游戏
             if (cfg.getFeatureTriggerId() != null && !cfg.getFeatureTriggerId().isEmpty()) {
+                int count = checkAddFreeCount(lib);
+                if (count > 0) {
+                    Set<Integer> libTypeSet = new HashSet<>();
+                    libTypeSet.add(FrozenThroneConstant.SpecialMode.FREE);
+                    lib.setLibTypeSet(libTypeSet);
+                }
                 cfg.getFeatureTriggerId().forEach(miniGameId -> {
                     if (!showAuxiliaryIdSet.contains(miniGameId)) { //如果没出现过的小游戏可以触发
                         lib.getLibTypeSet().forEach(libType -> {
@@ -99,6 +105,9 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
             //检查满线图案
             List<FrozenThroneAwardLineInfo> fullLineInfoList = fullLine(arr);
             lib.addAllAwardLineInfo(fullLineInfoList);
+
+            //新增 检查并创建玩法
+
 
             //检查全局分散图案
             List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
@@ -186,6 +195,7 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
 
             FrozenThroneResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
             int addCount = checkAddFreeCount(lib);
+            log.debug("免费转新加 {}",addCount);
             lib.setAddFreeCount(addCount);
             remainFreeCount += addCount;
             specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
@@ -216,8 +226,6 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
         }
 
         int addFreeCount = frozenThroneAddFreeInfo.getAddFreeCount(times);
-        //
-        log.info("增加免费次数 addCount = {}", addFreeCount);
         return addFreeCount;
     }
 
