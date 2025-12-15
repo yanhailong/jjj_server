@@ -246,11 +246,11 @@ public class SharePromoteController extends BaseActivityController {
             res.code = Code.CODE_ERROR;
             return res;
         }
+        //绑定之前的收益率
+        int bindBefore = getPlayerProportion(playerId, activityData);
         //绑定玩家
         CommonResult<Long> result = sharePromoteDao.bindPlayer(playerId, req.invitationCode);
         res.code = result.code;
-        //绑定之前的收益率
-        int bindBefore = getPlayerProportion(playerId, activityData);
         if (res.code == Code.SUCCESS) {
             //修改玩家数据
             String lock = sharePromoteDao.getLock(playerId);
