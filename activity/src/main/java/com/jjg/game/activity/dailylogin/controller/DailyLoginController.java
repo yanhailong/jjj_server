@@ -310,7 +310,7 @@ public class DailyLoginController extends BaseActivityController {
         }
         //获取上次领取时间
         long claimTime = dailyLoginDao.getClaimTime(activityData.getId(), playerId);
-        long currentTimeMillis = System.currentTimeMillis();
+        long currentTimeMillis = TimeHelper.getCurrentDateZeroMilliTime();
         long calculated = TimeHelper.calculateDifference(ChronoUnit.DAYS, claimTime, currentTimeMillis);
         //3.未连续登陆清除连续登录数据
         if (!clearContinuousDays) {
