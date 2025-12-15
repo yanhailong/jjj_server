@@ -297,6 +297,7 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
             playerGameData.setStatus(CaptainJackConstant.Status.TREASURE_CHEST);
             playerGameData.setResultLib(freeGame);
         }
+        gameRunInfo.setFreeAmount(gameGenerateManager.calFree(freeGame, playerGameData.getFreeIndex().get()) * playerGameData.getOneBetScore());
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);

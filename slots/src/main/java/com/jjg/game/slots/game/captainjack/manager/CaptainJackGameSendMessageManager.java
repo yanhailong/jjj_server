@@ -19,7 +19,6 @@ import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackEnterGame;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackPoolValue;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackStartGame;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackTreasureHunting;
-import com.jjg.game.slots.game.christmasBashNight.pb.ChristmasBashNightPoolInfo;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.stereotype.Component;
 
@@ -123,7 +122,7 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
-
+            res.freeAmount = gameRunInfo.getFreeAmount();
             CaptainJackResultLib lib = (CaptainJackResultLib) gameRunInfo.getResultLib();
 
             res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());

@@ -21,6 +21,8 @@ public class ResCaptainJackStartGame extends AbstractResponse {
     public List<Integer> iconList;
     @ProtoDesc("本局中奖金币")
     public long allWinGold;
+    @ProtoDesc("当前累计免费金额")
+    public long freeAmount;
     @ProtoDesc("当前状态 0.正常  1.免费 2.探宝")
     public int status;
     @ProtoDesc("剩余免费次数")
