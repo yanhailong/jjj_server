@@ -13,6 +13,7 @@ import com.jjg.game.core.logger.BaseLogger;
 import com.jjg.game.sampledata.bean.FirstpaymentCfg;
 import com.jjg.game.sampledata.bean.PlayerLevelPackCfg;
 import com.jjg.game.sampledata.bean.PrivilegeCardCfg;
+import org.springframework.scheduling.Trigger;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -230,20 +231,21 @@ public class ActivityLogger extends BaseLogger {
      *
      * @param player       玩家数据
      * @param activityData 活动数据
-     * @param logType      类型 (1.下级充值 2绑定玩家 3.分享收益领取 4.人数收益领取 5.人数变化 6.绑定下级充值 7.周榜)
+     * @param logType      类型 (1.下级充值 2绑定玩家 3.分享收益领取 4.人数收益领取 5.人数变化 6.绑定下级充值 7.周榜 8.绑定玩家奖励领取)
      * @param totalGoldAdd 总收益增加
      * @param addBindNum   绑定人数增加
      * @param addGold      领取金币增加
      * @param sharingRatio 当前分享比例
      * @param remainGold   账户余数
      */
-    public void sendSharePromoteAddRewards(Player player, ActivityData activityData, int logType, long totalGoldAdd, int addBindNum
+    public void sendSharePromoteAddRewards(Player player, ActivityData activityData, long subordinateId, int logType, long totalGoldAdd, int addBindNum
             , long addGold, int sharingRatio, long remainGold, int bindType) {
         try {
             JSONObject json = buildBaseInfo(activityData, 0);
             json.put("totalAdd", totalGoldAdd);
             json.put("addGold", addGold);
             json.put("addBindNum", addBindNum);
+            json.put("subordinateId", subordinateId);
             json.put("sharingRatio", sharingRatio);
             json.put("logType", logType);
             if (remainGold > 0) {
@@ -269,9 +271,9 @@ public class ActivityLogger extends BaseLogger {
      * @param addGold      领取金币增加
      * @param sharingRatio 当前分享比例
      */
-    public void sendSharePromoteAddRewards(Player player, ActivityData activityData, int type, long totalGoldAdd, int addBindNum
+    public void sendSharePromoteAddRewards(Player player, ActivityData activityData, long subordinateId, int type, long totalGoldAdd, int addBindNum
             , long addGold, int sharingRatio) {
-        sendSharePromoteAddRewards(player, activityData, type, totalGoldAdd, addBindNum, addGold, sharingRatio, 0, 0);
+        sendSharePromoteAddRewards(player, activityData, subordinateId, type, totalGoldAdd, addBindNum, addGold, sharingRatio, 0, 0);
     }
 
     /**

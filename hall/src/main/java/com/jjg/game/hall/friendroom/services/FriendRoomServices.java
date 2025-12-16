@@ -115,7 +115,7 @@ public class FriendRoomServices {
             // 生成邀请码
             invitationCode = friendRoomRedisDao.genInvitationCode();
             if (invitationCode <= 0) {
-                log.error("创建房间时，申请邀请码失败，时间：{}", TimeHelper.getCurrentDateZeroMileTime());
+                log.error("创建房间时，申请邀请码失败，时间：{}", TimeHelper.getCurrentDateZeroMilliTime());
                 return Code.FAIL;
             }
         }
@@ -1336,7 +1336,7 @@ public class FriendRoomServices {
         }
         int newInvitationCode = friendRoomRedisDao.genInvitationCode();
         if (newInvitationCode <= 0) {
-            log.error("重置邀请码时，生成邀请码失败，时间：{}", TimeHelper.getCurrentDateZeroMileTime());
+            log.error("重置邀请码时，生成邀请码失败，时间：{}", TimeHelper.getCurrentDateZeroMilliTime());
             res.code = Code.FAIL;
             playerController.send(res);
             return;

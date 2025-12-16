@@ -1,6 +1,7 @@
 package com.jjg.game.activity.dailylogin.dao;
 
 import com.jjg.game.activity.constant.ActivityConstant;
+import com.jjg.game.common.utils.TimeHelper;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -47,7 +48,7 @@ public class DailyLoginDao {
      * 更新领取时间
      */
     public void updateClaimTime(long activityId, long playerId) {
-        redisTemplate.opsForValue().set(REDIS_DAILY_LOGIN_CLAIM_TIME.formatted(activityId, playerId), String.valueOf(System.currentTimeMillis()));
+        redisTemplate.opsForValue().set(REDIS_DAILY_LOGIN_CLAIM_TIME.formatted(activityId, playerId), String.valueOf(TimeHelper.getCurrentDateZeroMilliTime()));
     }
 
     /**
