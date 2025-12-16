@@ -24,6 +24,7 @@ import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.pb.ResExitGame;
@@ -109,6 +110,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected MailService mailService;
     @Autowired
     protected CoreMarqueeManager coreMarqueeManager;
+    @Autowired
+    protected CoreLogger coreLogger;
     // 不同类型的房间roomDao
     protected Map<Class<? extends Room>, AbstractRoomDao<? extends Room, ? extends RoomPlayer>> roomDaoMap
             = new HashMap<>();
@@ -1145,4 +1148,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         return taskManager;
     }
 
+    public CoreLogger getCoreLogger() {
+        return coreLogger;
+    }
 }

@@ -19,6 +19,7 @@ import com.jjg.game.core.dao.room.AbstractFriendRoomDao.CreateFriendsRoom;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao.GameBillResult;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.rpc.HallRoomBridge;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
@@ -95,6 +96,8 @@ public class FriendRoomServices {
     private final Map<Long, Long> roomPauseTimeRec = new ConcurrentHashMap<>();
     @Autowired
     private RobotUtil robotUtil;
+    @Autowired
+    private CoreLogger coreLogger;
 
     /**
      * 创建好友房
@@ -135,11 +138,13 @@ public class FriendRoomServices {
         }
         // 扣除道具
         CommonResult<ItemOperationResult> removeItem;
+        Map<Integer, Long> itemMap;
         if (req.predictCostGoldNum != 0) {
-            Map<Integer, Long> itemMap = ItemUtils.mergeItemsOnCreate(Map.of(reqItem.getId(), reqItem.getItemCount()),
+            itemMap = ItemUtils.mergeItemsOnCreate(Map.of(reqItem.getId(), reqItem.getItemCount()),
                     Map.of(ItemUtils.getDiamondItemId(), req.predictCostGoldNum));
             removeItem = playerPackService.removeItems(player, itemMap, AddType.CREATE_FRIEND_ROOM);
         } else {
+            itemMap = Map.of(reqItem.getId(), reqItem.getItemCount());
             removeItem = playerPackService.removeItem(player.getId(), reqItem, AddType.CREATE_FRIEND_ROOM);
         }
         // 移除道具失败
@@ -174,6 +179,7 @@ public class FriendRoomServices {
         res.roomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
         playerController.send(res);
         log.info("玩家：{} 创建好友房成功：{}", player.getId(), JSON.toJSONString(res));
+        coreLogger.roomOperate(friendRoom, 1, roomExpendCfg.getDurationTime(), itemMap, removeItem.data.getChangeEndItemNumIncludeMoney());
         // 通知前端房间创建
         return Code.SUCCESS;
     }
@@ -503,6 +509,10 @@ public class FriendRoomServices {
                 return true;
             }
         });
+
+        Map<Integer, Long> itemMap = Map.of(requiredMoney.get(0), (long) itemNum);
+        Map<Integer, Long> afterItemMap = Map.of(requiredMoney.get(0), friendRoom.getPredictCostGoldNum());
+        coreLogger.roomOperate(friendRoom, 2, roomExpendCfg.getDurationTime(), itemMap, afterItemMap);
     }
 
     /**
@@ -873,11 +883,14 @@ public class FriendRoomServices {
         if (node.getNodeConfig().waitClose()) {
             return Code.WAIT_CLOSE_NOT_MODIFICATION;
         }
+        RoomExpendCfg roomExpendCfg = null;
+        Map<Integer, Long> itemMap = null;
+        CommonResult<ItemOperationResult> removeItem = null;
         // 添加时间
         int addTime = 0;
         if (updateFriendRoom.timeOfOpenRoom != 0 || updateFriendRoom.predictCostGoldNum > 0) {
-            Map<Integer, Long> itemMap = new HashMap<>();
-            RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(updateFriendRoom.timeOfOpenRoom);
+            itemMap = new HashMap<>();
+            roomExpendCfg = GameDataManager.getRoomExpendCfg(updateFriendRoom.timeOfOpenRoom);
             if (roomExpendCfg != null) {
                 List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
                 itemMap.put(requiredMoney.getFirst(), Long.valueOf(requiredMoney.get(1)));
@@ -888,7 +901,7 @@ public class FriendRoomServices {
                         itemMap.getOrDefault(diamondItemId, 0L) + updateFriendRoom.predictCostGoldNum);
             }
             // 扣除道具
-            CommonResult<ItemOperationResult> removeItem = playerPackService.removeItems(player, itemMap,
+            removeItem = playerPackService.removeItems(player, itemMap,
                     AddType.MANAGE_FRIEND_ROOM);
             // 移除道具失败
             if (!removeItem.success()) {
@@ -944,6 +957,10 @@ public class FriendRoomServices {
         playerController.send(res);
         log.info("请求更新房间数据成功，req: {} roomData: {}",
                 JSON.toJSONString(updateFriendRoom), JSON.toJSONString(result.data));
+
+        if (addTime > 0) {
+            coreLogger.roomOperate(friendRoom, 3, roomExpendCfg.getDurationTime(), itemMap, removeItem.data.getChangeEndItemNumIncludeMoney());
+        }
         return Code.SUCCESS;
     }
 

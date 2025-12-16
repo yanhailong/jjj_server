@@ -244,7 +244,10 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(room.getRoomCfgId());
         params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
         params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
-        roomManager.getMailService().addCfgMail(playerId, 35, List.of(new Item(gameTransactionItemId, gainGold)), params);
+
+        List<Item> returnItems = List.of(new Item(gameTransactionItemId, gainGold));
+        Mail mail = roomManager.getMailService().addCfgMail(playerId, 35, returnItems, params);
+        roomManager.getCoreLogger().roomDisband(this.room,mail.getId(),returnItems);
     }
 
     /**
@@ -339,6 +342,10 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             });
             if (result.success()) {
                 this.room = result.data;
+
+                Map<Integer, Long> itemMap = Map.of(requiredMoney.get(0), (long) itemNum);
+                Map<Integer, Long> afterItemMap = Map.of(requiredMoney.get(0), this.room.getPredictCostGoldNum());
+                roomManager.getCoreLogger().roomOperate(this.room, 2, roomExpendCfg.getDurationTime(), itemMap, afterItemMap);
                 log.info("房间：{} 自动续费成功, 过期时间：{} 总花费：{}", room.logStr(), overdueTime, totalTake);
             }
         }

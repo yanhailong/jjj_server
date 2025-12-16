@@ -12,6 +12,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.RechargeType;
+import com.jjg.game.core.utils.ItemUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -273,7 +274,7 @@ public class BaseLogger {
                 });
 
                 json.put("items", jsonArray);
-            }else {
+            } else {
                 json.put("items", null);
             }
             sendLog("levelChange", player, json);
@@ -341,15 +342,15 @@ public class BaseLogger {
             //道具表  logType  1.获得   2.消耗
             json.put("logType", 2);
             //前
-            JSONArray beforeJsonArray = itemMapToJsonArray(beforeMap);
+            JSONArray beforeJsonArray = ItemUtils.itemMapToJsonArray(beforeMap);
             json.put("before", beforeJsonArray);
 
             //变化值
-            JSONArray jsonArray = itemMapToJsonArray(costMap);
+            JSONArray jsonArray = ItemUtils.itemMapToJsonArray(costMap);
             json.put("items", jsonArray);
 
             //后
-            JSONArray afterJsonArray = itemMapToJsonArray(afterMap);
+            JSONArray afterJsonArray = ItemUtils.itemMapToJsonArray(afterMap);
             json.put("after", afterJsonArray);
 
             json.put("addType", addType.getValue());
@@ -372,13 +373,13 @@ public class BaseLogger {
             //道具表  logType  1.获得   2.消耗
             json.put("logType", 1);
 
-            JSONArray beforeJsonArray = itemMapToJsonArray(beforeMap);
+            JSONArray beforeJsonArray = ItemUtils.itemMapToJsonArray(beforeMap);
             json.put("before", beforeJsonArray);
 
-            JSONArray jsonArray = itemMapToJsonArray(map);
+            JSONArray jsonArray = ItemUtils.itemMapToJsonArray(map);
             json.put("items", jsonArray);
 
-            JSONArray afterJsonArray = itemMapToJsonArray(afterMap);
+            JSONArray afterJsonArray = ItemUtils.itemMapToJsonArray(afterMap);
             json.put("after", afterJsonArray);
 
             json.put("addType", addType.getValue());
@@ -584,28 +585,50 @@ public class BaseLogger {
         }
     }
 
-    private JSONObject itemToJson(int id, long count) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("itemId", id);
-        jsonObject.put("count", count);
-        return jsonObject;
+    /**
+     * 房间操作日志
+     */
+    public void roomOperate(FriendRoom friendRoom, int operateType, int operateTimeLen, Map<Integer,Long> spendItemMap, Map<Integer,Long> remainItemMap) {
+        try {
+            JSONObject json = new JSONObject();
+            //1.创建房间  2.自动续费  3.手动续费
+            json.put("operateType", operateType);
+            json.put("functionType", 5);
+            json.put("roomId", friendRoom.getId());
+            json.put("gameType", friendRoom.getGameType());
+            json.put("roomCfgId", friendRoom.getRoomCfgId());
+            //时长(分钟)
+            json.put("timeLen", operateTimeLen);
+            //自动续费
+            json.put("autoRenewal", friendRoom.isAutoRenewal());
+            //消耗
+            json.put("spend", ItemUtils.itemMapToJsonArray(spendItemMap));
+            //消耗
+            json.put("remain", ItemUtils.itemMapToJsonArray(remainItemMap));
+            json.put("playerId",friendRoom.getCreator());
+            sendLog("function", null, json);
+        } catch (Exception e) {
+            log.error("sendVipLog", e);
+        }
     }
 
-    private JSONArray itemToJsonArray(int id, long count) {
-        JSONArray jsonArray = new JSONArray();
-        jsonArray.add(itemToJson(id, count));
-        return jsonArray;
-    }
-
-    private JSONArray itemMapToJsonArray(Map<Integer, Long> items) {
-        if (items == null || items.isEmpty()) {
-            return null;
+    /**
+     * 房间解散日志
+     */
+    public void roomDisband(FriendRoom friendRoom, long mailId,List<Item> returnItems) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("functionType", 6);
+            json.put("roomId", friendRoom.getId());
+            json.put("gameType", friendRoom.getGameType());
+            json.put("roomCfgId", friendRoom.getRoomCfgId());
+            json.put("mailId", mailId);
+            //返还道具
+            json.put("returnItems", ItemUtils.itemListToJson(returnItems));
+            json.put("playerId",friendRoom.getCreator());
+            sendLog("function", null, json);
+        } catch (Exception e) {
+            log.error("sendVipLog", e);
         }
-        JSONArray jsonArray = new JSONArray();
-
-        for (Map.Entry<Integer, Long> en : items.entrySet()) {
-            jsonArray.add(itemToJson(en.getKey(), en.getValue()));
-        }
-        return jsonArray;
     }
 }
