@@ -2,6 +2,9 @@ package com.jjg.game.slots.game.frozenThrone.data;
 
 import com.jjg.game.slots.data.AwardLineInfo;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -15,6 +18,25 @@ public class FrozenThroneAwardLineInfo extends AwardLineInfo {
     private Set<Integer> sameIconSet;
     //元素id
     private int sameIcon;
+
+    /**
+     * 线id
+     */
+    private int lineId;
+
+
+    public int getSameCount() {
+        return sameIconSet == null ? 0 : sameIconSet.size();
+    }
+
+
+    public int getLineId() {
+        return lineId;
+    }
+
+    public void setLineId(int lineId) {
+        this.lineId = lineId;
+    }
 
 
     public int getBaseTimes() {
@@ -41,4 +63,11 @@ public class FrozenThroneAwardLineInfo extends AwardLineInfo {
         this.sameIcon = sameIcon;
     }
 
+    public void addSameIconIndexSet(int icon) {
+
+        if (sameIconSet == null) {
+            sameIconSet = new HashSet<>();
+        }
+        sameIconSet.add(icon);
+    }
 }

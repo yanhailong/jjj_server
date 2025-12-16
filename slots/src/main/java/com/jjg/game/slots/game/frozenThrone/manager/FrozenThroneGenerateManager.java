@@ -12,6 +12,8 @@ import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneAddFreeInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneAwardLineInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneResultLib;
+import com.jjg.game.slots.game.superstar.data.SuperStarAwardLineInfo;
+import com.jjg.game.slots.game.thor.data.ThorAwardLineInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
@@ -32,6 +34,25 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
     }
 
     private FrozenThroneAddFreeInfo frozenThroneAddFreeInfo;
+
+    @Override
+    protected FrozenThroneAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
+        FrozenThroneAwardLineInfo awardLineInfo = new FrozenThroneAwardLineInfo();
+        awardLineInfo.addSameIconIndexSet(baseIconId);
+        awardLineInfo.setSameIcon(rewardCfg.getElementId().getFirst() % 10);
+        awardLineInfo.setLineId(baseLineCfg.getLineId());
+        awardLineInfo.setBaseTimes(rewardCfg.getBet());
+//        for (List<Integer> otherIconList : rewardCfg.getBetTimes()) {
+//            int iconId = otherIconList.get(0);
+//            //该元素在这条线上出现的次数
+//            long showCount = lineList.stream().filter(tmpId -> arr[tmpId] == iconId).count();
+//            if (showCount == otherIconList.get(1)) {
+//                int addTimes = otherIconList.get(2);
+//                awardLineInfo.addSpecialAwardInfo(iconId, addTimes);
+//            }
+//        }
+        return awardLineInfo;
+    }
 
 
     @Override
@@ -97,74 +118,74 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
         return specialAuxiliaryInfoList;
     }
 
-    @Override
-    public FrozenThroneResultLib checkAward(int[] arr, FrozenThroneResultLib lib, boolean freeModel) throws Exception {
-        if (freeModel) {
-            lib.setGameType(this.gameType);
-            lib.setIconArr(arr);
-            //检查满线图案
-            List<FrozenThroneAwardLineInfo> fullLineInfoList = fullLine(arr);
-            lib.addAllAwardLineInfo(fullLineInfoList);
+//    @Override
+//    public FrozenThroneResultLib checkAward(int[] arr, FrozenThroneResultLib lib, boolean freeModel) throws Exception {
+//        if (freeModel) {
+//            lib.setGameType(this.gameType);
+//            lib.setIconArr(arr);
+//            //检查满线图案
+//            List<FrozenThroneAwardLineInfo> fullLineInfoList = fullLine(arr);
+//            lib.addAllAwardLineInfo(fullLineInfoList);
+//
+//            //新增 检查并创建玩法
+//
+//
+//            //检查全局分散图案
+//            List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
+//            lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
+//
+//            calTimes(lib);
+//            return lib;
+//        } else {
+//            lib.setGameType(this.gameType);
+//            lib.setIconArr(arr);
+//
+//            //检查满线图案
+//            List<FrozenThroneAwardLineInfo> fullLineInfoList = fullLine(lib);
+//            lib.addAllAwardLineInfo(fullLineInfoList);
+//
+//            //检查全局分散图案
+//            List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
+//            lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
+//
+//            calTimes(lib);
+//
+//            return lib;
+//        }
+//    }
 
-            //新增 检查并创建玩法
-
-
-            //检查全局分散图案
-            List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
-            lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
-
-            calTimes(lib);
-            return lib;
-        } else {
-            lib.setGameType(this.gameType);
-            lib.setIconArr(arr);
-
-            //检查满线图案
-            List<FrozenThroneAwardLineInfo> fullLineInfoList = fullLine(lib);
-            lib.addAllAwardLineInfo(fullLineInfoList);
-
-            //检查全局分散图案
-            List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
-            lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
-
-            calTimes(lib);
-
-            return lib;
-        }
-    }
-
-    @Override
-    protected FrozenThroneAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
-        FrozenThroneAwardLineInfo info = new FrozenThroneAwardLineInfo();
-
-        info.setSameIconSet(sameIconIndexSet);
-        info.setSameIcon(cfg.getElementId().getFirst() % 10);
-
-        if (info.getSameIconSet() != null && !info.getSameIconSet().isEmpty()) {
-            //记录每一列中奖的个数
-            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-
-            Map<Integer, Integer> columIconCountMap = new HashMap<>();
-            for (int index : info.getSameIconSet()) {
-                //根据坐标，计算它在哪一列
-                int colId = index / baseInitCfg.getRows();
-                if ((index % baseInitCfg.getRows()) != 0) {
-                    colId++;
-                }
-                columIconCountMap.merge(colId, 1, Integer::sum);
-            }
-
-            int addTimes = 1;
-            for (Map.Entry<Integer, Integer> en : columIconCountMap.entrySet()) {
-                addTimes *= en.getValue();
-            }
-
-            info.setBaseTimes(cfg.getBet() * addTimes);
-        } else {
-            info.setBaseTimes(cfg.getBet());
-        }
-        return info;
-    }
+//    @Override
+//    protected FrozenThroneAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
+//        FrozenThroneAwardLineInfo info = new FrozenThroneAwardLineInfo();
+//
+//        info.setSameIconSet(sameIconIndexSet);
+//        info.setSameIcon(cfg.getElementId().getFirst() % 10);
+//
+//        if (info.getSameIconSet() != null && !info.getSameIconSet().isEmpty()) {
+//            //记录每一列中奖的个数
+//            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+//
+//            Map<Integer, Integer> columIconCountMap = new HashMap<>();
+//            for (int index : info.getSameIconSet()) {
+//                //根据坐标，计算它在哪一列
+//                int colId = index / baseInitCfg.getRows();
+//                if ((index % baseInitCfg.getRows()) != 0) {
+//                    colId++;
+//                }
+//                columIconCountMap.merge(colId, 1, Integer::sum);
+//            }
+//
+//            int addTimes = 1;
+//            for (Map.Entry<Integer, Integer> en : columIconCountMap.entrySet()) {
+//                addTimes *= en.getValue();
+//            }
+//
+//            info.setBaseTimes(cfg.getBet() * addTimes);
+//        } else {
+//            info.setBaseTimes(cfg.getBet());
+//        }
+//        return info;
+//    }
 
     @Override
     protected void triggerFree(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg,
