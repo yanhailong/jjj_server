@@ -295,6 +295,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         int buyCountPr = RandomUtils.randomMinMax(robotSinglePurchase.getFirst(), robotSinglePurchase.getLast());
         //当前总购买数量
         int totalBuy = (int) (((double) buyCountPr / 10000) * total);
+        //已经购买数
         int soldCount = treasureDetails.getSoldCount();
         if (soldCount + totalBuy > limitCount) {
             return;
