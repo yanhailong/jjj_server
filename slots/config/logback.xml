@@ -31,6 +31,8 @@
         <logger name="com.jjg.game.slots.game.wealthgod.manager.WealthGodGenerateManager" level="error"/>
         <logger name="com.jjg.game.slots.game.thor.manager.ThorGenerateManager" level="error"/>
         <logger name="com.jjg.game.slots.game.christmasBashNight.manager.ChristmasBashNightGenerateManager" level="error"/>
+        <logger name="com.jjg.game.slots.game.basketballSuperstar.manager.BasketballSuperstarGenerateManager" level="error"/>
+        <logger name="com.jjg.game.slots.game.frozenThrone.manager.FrozenThroneGenerateManager" level="error"/>
 
         <root level="info">
                 <appender-ref ref="console" />
