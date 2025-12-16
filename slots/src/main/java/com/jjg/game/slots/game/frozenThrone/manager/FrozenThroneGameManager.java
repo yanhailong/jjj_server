@@ -281,7 +281,7 @@ public class FrozenThroneGameManager extends AbstractSlotsGameManager<FrozenThro
 
     @Override
     public int getGameType() {
-        return CoreConst.GameType.BASKETBALL_STAR;
+        return CoreConst.GameType.FROZEN_THRONE;
     }
 
     @Override
