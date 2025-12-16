@@ -256,7 +256,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         //库存限制 机器人不能在低于这个库存的时候再进行购买逻辑
         int limitCount = (int) (((double) robotHaveMax / 10000) * total);
         //不买了
-        return soldCount >= limitCount;
+        return soldCount <= limitCount;
     }
 
     /**
@@ -295,7 +295,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         int buyCountPr = RandomUtils.randomMinMax(robotSinglePurchase.getFirst(), robotSinglePurchase.getLast());
         //当前总购买数量
         int totalBuy = (int) (((double) buyCountPr / 10000) * total);
-        if (limitCount + buyCountPr <= total) {
+        int soldCount = treasureDetails.getSoldCount();
+        if (soldCount + totalBuy > limitCount) {
             return;
         }
         //在写锁中重新获取最新数据
