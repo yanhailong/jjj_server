@@ -26,11 +26,9 @@ import java.util.*;
  */
 @Component
 public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<FrozenThroneAwardLineInfo, FrozenThroneResultLib> {
-    private final ConfigManager configManager;
 
-    public FrozenThroneGenerateManager(ConfigManager configManager) {
+    public FrozenThroneGenerateManager() {
         super(FrozenThroneResultLib.class);
-        this.configManager = configManager;
     }
 
     private FrozenThroneAddFreeInfo frozenThroneAddFreeInfo;

@@ -27,11 +27,9 @@ import java.util.*;
  */
 @Component
 public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateManager<BasketballSuperstarAwardLineInfo, BasketballSuperstarResultLib> {
-    private final ConfigManager configManager;
 
-    public BasketballSuperstarGenerateManager(ConfigManager configManager) {
+    public BasketballSuperstarGenerateManager() {
         super(BasketballSuperstarResultLib.class);
-        this.configManager = configManager;
     }
 
     private BasketballSuperstarAddFreeInfo basketballSuperstarAddFreeInfo;
