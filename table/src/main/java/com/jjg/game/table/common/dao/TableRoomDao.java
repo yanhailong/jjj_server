@@ -30,12 +30,8 @@ public class TableRoomDao extends AbstractGoldRoomDao<BetTableRoom, RoomPlayer> 
         if (modifyValue == 0) {
             return 0;
         }
-        if (modifyValue > 0) {
-            Long increment = redisTemplate.opsForValue().increment(getRoomPoolKey(gameType, roomCfgId), modifyValue);
-            return increment == null ? 0 : increment;
-        }
-        Long decrement = redisTemplate.opsForValue().decrement(getRoomPoolKey(gameType, roomCfgId), modifyValue);
-        return decrement == null ? 0 : decrement;
+        Long increment = redisTemplate.opsForValue().increment(getRoomPoolKey(gameType, roomCfgId), modifyValue);
+        return increment == null ? 0 : increment;
     }
 
     /**
