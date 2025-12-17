@@ -89,7 +89,7 @@ public class DailyRechargeController extends BaseActivityController implements G
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        ClaimRewardsResult claimRewardsResult = claimActivityRewards(playerId, activityData, detailId, AddType.ACTIVITY_CASHCOW_REWARDS, cfg.getAwardItem());
+        ClaimRewardsResult claimRewardsResult = claimActivityRewards(playerId, activityData, detailId, AddType.ACTIVITY_DAILY_RECHARGE_PROGRESS, cfg.getAwardItem());
         if (claimRewardsResult != null) {
             // 记录日志并构建返回值
             if (claimRewardsResult.itemOperationResult() != null) {
