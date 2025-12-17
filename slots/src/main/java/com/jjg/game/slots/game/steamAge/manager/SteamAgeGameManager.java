@@ -1,4 +1,4 @@
-package com.jjg.game.slots.game.basketballSuperstar.manager;
+package com.jjg.game.slots.game.steamAge.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -13,21 +13,19 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
-import com.jjg.game.slots.game.basketballSuperstar.dao.BasketballSuperstarGameDataDao;
-import com.jjg.game.slots.game.basketballSuperstar.dao.BasketballSuperstarResultLibDao;
-import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarGameRunInfo;
-import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarPlayerGameData;
-import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarPlayerGameDataDTO;
-import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarResultLib;
-import com.jjg.game.slots.game.thor.ThorConstant;
+import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
+import com.jjg.game.slots.game.steamAge.dao.SteamAgeGameDataDao;
+import com.jjg.game.slots.game.steamAge.dao.SteamAgeResultLibDao;
+import com.jjg.game.slots.game.steamAge.data.SteamAgeGameRunInfo;
+import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameData;
+import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameDataDTO;
+import com.jjg.game.slots.game.steamAge.data.SteamAgeResultLib;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -37,26 +35,26 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2025/12/2 17:25
  */
 @Component
-public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<BasketballSuperstarPlayerGameData, BasketballSuperstarResultLib> {
+public class SteamAgeGameManager extends AbstractSlotsGameManager<SteamAgePlayerGameData, SteamAgeResultLib> {
     @Autowired
-    private BasketballSuperstarResultLibDao libDao;
+    private SteamAgeResultLibDao libDao;
     @Autowired
-    private BasketballSuperstarGenerateManager generateManager;
+    private SteamAgeGenerateManager generateManager;
     @Autowired
     private SlotsPoolDao slotsPoolDao;
     @Autowired
     private SlotsLogger logger;
     @Autowired
-    private BasketballSuperstarGameDataDao gameDataDao;
+    private SteamAgeGameDataDao gameDataDao;
 
-    public BasketballSuperstarGameManager() {
-        super(BasketballSuperstarPlayerGameData.class, BasketballSuperstarResultLib.class);
+    public SteamAgeGameManager() {
+        super(SteamAgePlayerGameData.class, SteamAgeResultLib.class);
         this.log = LoggerFactory.getLogger(getClass());
     }
 
     @Override
     public void init() {
-        log.info("启动篮球巨星游戏管理器...");
+        log.info("启动蒸汽时代游戏管理器...");
         super.init();
 
 //        Map<Integer, Integer> map = new HashMap<>();
@@ -66,15 +64,15 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
     }
 
     @Override
-    public BasketballSuperstarGameRunInfo enterGame(PlayerController playerController) {
+    public SteamAgeGameRunInfo enterGame(PlayerController playerController) {
         //获取玩家游戏数据
-        BasketballSuperstarPlayerGameData playerGameData = getPlayerGameData(playerController);
+        SteamAgePlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new BasketballSuperstarGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+            return new SteamAgeGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
 
-        BasketballSuperstarGameRunInfo gameRunInfo = new BasketballSuperstarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        SteamAgeGameRunInfo gameRunInfo = new SteamAgeGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
     }
@@ -86,12 +84,12 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
      * @param stake
      * @return
      */
-    public BasketballSuperstarGameRunInfo playerStartGame(PlayerController playerController, long stake) {
+    public SteamAgeGameRunInfo playerStartGame(PlayerController playerController, long stake) {
         //获取玩家游戏数据
-        BasketballSuperstarPlayerGameData playerGameData = getPlayerGameData(playerController);
+        SteamAgePlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
             log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new BasketballSuperstarGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+            return new SteamAgeGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
 
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
@@ -106,8 +104,8 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
      * @param auto
      * @return
      */
-    public BasketballSuperstarGameRunInfo startGame(PlayerController playerController, BasketballSuperstarPlayerGameData playerGameData, long betValue, boolean auto) {
-        BasketballSuperstarGameRunInfo gameRunInfo = new BasketballSuperstarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+    public SteamAgeGameRunInfo startGame(PlayerController playerController, SteamAgePlayerGameData playerGameData, long betValue, boolean auto) {
+        SteamAgeGameRunInfo gameRunInfo = new SteamAgeGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
 
@@ -119,9 +117,9 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
 
             //获取当前处于哪种状态
             int status = playerGameData.getStatus();
-            if (status == BasketballSuperstarConstant.Status.NORMAL) {
+            if (status == SteamAgeConstant.Status.NORMAL) {
                 gameRunInfo = normal(gameRunInfo, playerGameData, betValue);
-            } else if (status == BasketballSuperstarConstant.Status.FREE) {
+            } else if (status == SteamAgeConstant.Status.FREE) {
                 gameRunInfo = free(gameRunInfo, playerGameData);
             } else {
                 gameRunInfo.setCode(Code.FAIL);
@@ -147,7 +145,7 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
                 }
 
                 //如果是免费模式，要累计记录中奖金额
-                if(status == BasketballSuperstarConstant.Status.FREE) {
+                if(status == SteamAgeConstant.Status.FREE) {
                     playerGameData.setFreeAllWin(playerGameData.getFreeAllWin() + addGold);
                 }else {
                     playerGameData.setFreeAllWin(0);
@@ -189,18 +187,18 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
      * @param betValue
      * @return
      */
-    private BasketballSuperstarGameRunInfo normal(BasketballSuperstarGameRunInfo gameRunInfo, BasketballSuperstarPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<BasketballSuperstarResultLib,Long>> libResult = normalGetLib(playerGameData, betValue, BasketballSuperstarConstant.SpecialMode.NORMAL);
+    private SteamAgeGameRunInfo normal(SteamAgeGameRunInfo gameRunInfo, SteamAgePlayerGameData playerGameData, long betValue) {
+        CommonResult<Pair<SteamAgeResultLib,Long>> libResult = normalGetLib(playerGameData, betValue, SteamAgeConstant.SpecialMode.NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
         }
-        BasketballSuperstarResultLib resultLib = libResult.data.getFirst();
+        SteamAgeResultLib resultLib = libResult.data.getFirst();
         gameRunInfo.setTax(libResult.data.getSecond());
 
         //根据结果库类型不同，从不同地方获取icon
-        if (resultLib.getLibTypeSet().contains(BasketballSuperstarConstant.SpecialMode.FREE)) {  //是否会触发免费
-            playerGameData.setStatus(BasketballSuperstarConstant.Status.FREE);
+        if (resultLib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.FREE)) {  //是否会触发免费
+            playerGameData.setStatus(SteamAgeConstant.Status.FREE);
             int againFreeCount = 0;
             int allCount = 0;
             for (SpecialAuxiliaryInfo info : resultLib.getSpecialAuxiliaryInfoList()) {
@@ -235,10 +233,8 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
         gameRunInfo.setResultLib(resultLib);
         gameRunInfo.setStake(betValue);
         gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
-        gameRunInfo.setStatus(BasketballSuperstarConstant.Status.NORMAL);
+        gameRunInfo.setStatus(SteamAgeConstant.Status.NORMAL);
 
-        gameRunInfo.setChangeStickyIconSet(new HashSet<>());
-        gameRunInfo.setStickyIcon(0);
         return gameRunInfo;
     }
 
@@ -249,8 +245,8 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
      * @param playerGameData
      * @return
      */
-    private BasketballSuperstarGameRunInfo free(BasketballSuperstarGameRunInfo gameRunInfo, BasketballSuperstarPlayerGameData playerGameData) {
-        CommonResult<BasketballSuperstarResultLib> libResult = freeGetLib(playerGameData, BasketballSuperstarConstant.SpecialMode.FREE);
+    private SteamAgeGameRunInfo free(SteamAgeGameRunInfo gameRunInfo, SteamAgePlayerGameData playerGameData) {
+        CommonResult<SteamAgeResultLib> libResult = freeGetLib(playerGameData, SteamAgeConstant.SpecialMode.FREE);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
@@ -259,14 +255,14 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
         //扣除免费次数
         int afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
 
-        BasketballSuperstarResultLib freeGame = libResult.data;
+        SteamAgeResultLib freeGame = libResult.data;
         if (freeGame.getAddFreeCount() > 0) {
             afterCount = playerGameData.getRemainFreeCount().addAndGet(freeGame.getAddFreeCount());
             log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(), afterCount);
         }
 
         if (afterCount < 1) {
-            playerGameData.setStatus(BasketballSuperstarConstant.Status.NORMAL);
+            playerGameData.setStatus(SteamAgeConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
             log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
@@ -276,23 +272,20 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
         gameRunInfo.addBigPoolTimes(freeGame.getTimes());
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);
-        gameRunInfo.setStatus(BasketballSuperstarConstant.Status.FREE);
-
-        gameRunInfo.setChangeStickyIconSet(freeGame.getChangeStickyIconSet());
-        gameRunInfo.setStickyIcon(freeGame.getStickyIcon());
+        gameRunInfo.setStatus(SteamAgeConstant.Status.FREE);
 
         return gameRunInfo;
     }
 
     @Override
     public int getGameType() {
-        return CoreConst.GameType.BASKETBALL_STAR;
+        return CoreConst.GameType.FROZEN_THRONE;
     }
 
     @Override
-    protected void offlineSaveGameDataDto(BasketballSuperstarPlayerGameData gameData) {
+    protected void offlineSaveGameDataDto(SteamAgePlayerGameData gameData) {
         try {
-            BasketballSuperstarPlayerGameDataDTO dto = gameData.converToDto(BasketballSuperstarPlayerGameDataDTO.class);
+            SteamAgePlayerGameDataDTO dto = gameData.converToDto(SteamAgePlayerGameDataDTO.class);
             gameDataDao.saveGameData(dto);
         } catch (Exception e) {
             log.error("", e);
@@ -300,17 +293,17 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
     }
 
     @Override
-    protected BasketballSuperstarResultLibDao getResultLibDao() {
+    protected SteamAgeResultLibDao getResultLibDao() {
         return this.libDao;
     }
 
     @Override
-    protected BasketballSuperstarGenerateManager getGenerateManager() {
+    protected SteamAgeGenerateManager getGenerateManager() {
         return this.generateManager;
     }
 
     @Override
-    protected BasketballSuperstarGameDataDao getGameDataDao() {
+    protected SteamAgeGameDataDao getGameDataDao() {
         return this.gameDataDao;
     }
 
@@ -330,13 +323,13 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
      * @param playerController 玩家控制类
      * @return
      */
-    public BasketballSuperstarGameRunInfo getPoolValue(PlayerController playerController, long stake) {
-        BasketballSuperstarGameRunInfo gameRunInfo  = new BasketballSuperstarGameRunInfo(Code.SUCCESS, playerController.playerId());
+    public SteamAgeGameRunInfo getPoolValue(PlayerController playerController, long stake) {
+        SteamAgeGameRunInfo gameRunInfo  = new SteamAgeGameRunInfo(Code.SUCCESS, playerController.playerId());
         try {
-            gameRunInfo.setMini(getPoolValueByPoolId(BasketballSuperstarConstant.Common.MINI_POOL_ID, stake));
-            gameRunInfo.setMinor(getPoolValueByPoolId(BasketballSuperstarConstant.Common.MINOR_POOL_ID, stake));
-            gameRunInfo.setMajor(getPoolValueByPoolId(BasketballSuperstarConstant.Common.MAJOR_POOL_ID, stake));
-            gameRunInfo.setGrand(getPoolValueByPoolId(BasketballSuperstarConstant.Common.GRAND_POOL_ID, stake));
+            gameRunInfo.setMini(getPoolValueByPoolId(SteamAgeConstant.Common.MINI_POOL_ID, stake));
+            gameRunInfo.setMinor(getPoolValueByPoolId(SteamAgeConstant.Common.MINOR_POOL_ID, stake));
+            gameRunInfo.setMajor(getPoolValueByPoolId(SteamAgeConstant.Common.MAJOR_POOL_ID, stake));
+            gameRunInfo.setGrand(getPoolValueByPoolId(SteamAgeConstant.Common.GRAND_POOL_ID, stake));
         } catch (Exception e) {
             log.error("", e);
             gameRunInfo.setCode(Code.EXCEPTION);
@@ -353,8 +346,8 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
      * @param resultLib
      * @return
      */
-    private BasketballSuperstarGameRunInfo jackpool(BasketballSuperstarGameRunInfo gameRunInfo, BasketballSuperstarPlayerGameData playerGameData, BasketballSuperstarResultLib resultLib) {
-        if (!resultLib.getLibTypeSet().contains(BasketballSuperstarConstant.SpecialMode.JACKPOOL)) {
+    private SteamAgeGameRunInfo jackpool(SteamAgeGameRunInfo gameRunInfo, SteamAgePlayerGameData playerGameData, SteamAgeResultLib resultLib) {
+        if (!resultLib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.JACKPOOL)) {
             return gameRunInfo;
         }
 

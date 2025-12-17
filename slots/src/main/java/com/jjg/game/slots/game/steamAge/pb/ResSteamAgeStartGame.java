@@ -1,21 +1,21 @@
-package com.jjg.game.slots.game.frozenThrone.pb;
+package com.jjg.game.slots.game.steamAge.pb;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
+import com.jjg.game.slots.game.christmasBashNight.pb.ChristmasBashNightCascade;
+import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author lihaocao
  * @date 2025/12/2 17:50
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = FrozenThroneConstant.MsgBean.RES_START_GAME,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = SteamAgeConstant.MsgBean.RES_START_GAME,resp = true)
 @ProtoDesc("开始游戏结果返回")
-public class ResFrozenThroneStartGame extends AbstractResponse {
+public class ResSteamAgeStartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")
     public List<Integer> iconList;
     @ProtoDesc("本局中奖金币")
@@ -35,9 +35,13 @@ public class ResFrozenThroneStartGame extends AbstractResponse {
     @ProtoDesc("经验")
     public long exp;
     @ProtoDesc("中奖图标信息")
-    public List<FrozenThroneIconInfo> rewardIconInfo;
+    public SteamAgeIconInfo rewardIconInfo;
+    @ProtoDesc("扩列图标的信息")
+    public List<SteamAgeExpand> addIconInfoList;
 
-    public ResFrozenThroneStartGame(int code) {
+
+
+    public ResSteamAgeStartGame(int code) {
         super(code);
     }
 }

@@ -40,15 +40,6 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
         awardLineInfo.setSameIcon(rewardCfg.getElementId().getFirst() % 10);
         awardLineInfo.setLineId(baseLineCfg.getLineId());
         awardLineInfo.setBaseTimes(rewardCfg.getBet());
-//        for (List<Integer> otherIconList : rewardCfg.getBetTimes()) {
-//            int iconId = otherIconList.get(0);
-//            //该元素在这条线上出现的次数
-//            long showCount = lineList.stream().filter(tmpId -> arr[tmpId] == iconId).count();
-//            if (showCount == otherIconList.get(1)) {
-//                int addTimes = otherIconList.get(2);
-//                awardLineInfo.addSpecialAwardInfo(iconId, addTimes);
-//            }
-//        }
         return awardLineInfo;
     }
 

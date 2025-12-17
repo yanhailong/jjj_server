@@ -1,4 +1,4 @@
-package com.jjg.game.slots.game.christmasBashNight.manager;
+package com.jjg.game.slots.game.steamAge.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -8,11 +8,13 @@ import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
-import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
-import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAddFreeInfo;
-import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAddIconInfo;
-import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAwardLineInfo;
-import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightResultLib;
+import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
+import com.jjg.game.slots.game.steamAge.data.*;
+import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
+import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
+import com.jjg.game.slots.game.steamAge.data.SteamAgeAddFreeInfo;
+import com.jjg.game.slots.game.steamAge.data.SteamAgeAwardLineInfo;
+import com.jjg.game.slots.game.steamAge.data.SteamAgeResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
@@ -20,25 +22,22 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 
 /**
- * @author lihaocao
+ * @auSteamAge lihaocao
  * @date 2025/12/2 17:33
  */
 @Component
-public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateManager<ChristmasBashNightAwardLineInfo, ChristmasBashNightResultLib> {
-    public ChristmasBashNightGenerateManager() {
-        super(ChristmasBashNightResultLib.class);
+public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamAgeAwardLineInfo, SteamAgeResultLib> {
+
+    public SteamAgeGenerateManager() {
+        super(SteamAgeResultLib.class);
     }
 
-    //连续中奖增加倍数  libType -> count -> times
-    private Map<Integer, Map<Integer, Integer>> addTimesMap;
-    //连续中奖增加倍数时，最大连续中奖次数
-    private int maxWinCount;
-    //
-    private ChristmasBashNightAddFreeInfo christmasBashNightAddFreeInfo;
+    private SteamAgeAddFreeInfo steamAgeAddFreeInfo;
 
+    private Map<Integer, Map<Integer, SteamAgeExpandRollerInfo>> steamAgeExpandRollerInfoMap;
 
     @Override
-    protected List<SpecialAuxiliaryInfo> overallDisperse(ChristmasBashNightResultLib lib) {
+    protected List<SpecialAuxiliaryInfo> overallDisperse(SteamAgeResultLib lib) {
         //获取全局分散图案的配置
         Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE_GLOBAL);
         if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
@@ -87,7 +86,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
                 });
             }
 
-            if(lib.getJackpotId() < 1){
+            if (lib.getJackpotId() < 1) {
                 lib.setJackpotId(cfg.getJackpotID());
             }
         }
@@ -95,13 +94,13 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
     }
 
     @Override
-    public ChristmasBashNightResultLib checkAward(int[] arr, ChristmasBashNightResultLib lib, boolean freeModel) throws Exception {
+    public SteamAgeResultLib checkAward(int[] arr, SteamAgeResultLib lib, boolean freeModel) throws Exception {
         if (freeModel) {
             lib.setGameType(this.gameType);
             lib.setIconArr(arr);
 
             //检查满线图案
-            List<ChristmasBashNightAwardLineInfo> fullLineInfoList = fullLine(lib);
+            List<SteamAgeAwardLineInfo> fullLineInfoList = fullLine(lib);
             lib.addAllAwardLineInfo(fullLineInfoList);
 
             //检查全局分散图案
@@ -109,14 +108,14 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
             lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
 
             //存储消除后添加的图标
-            List<ChristmasBashNightAddIconInfo> addIconInfoList = new ArrayList<>();
+            List<SteamAgeExpandIconInfo> addIconInfoList = new ArrayList<>();
 
             //拷贝数组
             int[] newArr = new int[arr.length];
             System.arraycopy(arr, 0, newArr, 0, arr.length);
 
             //是否有消除
-            repairIcons(ChristmasBashNightConstant.SpecialMode.FREE, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
+            repairIcons(SteamAgeConstant.SpecialMode.FREE, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
 
             if (!addIconInfoList.isEmpty()) {
                 lib.setAddIconInfos(addIconInfoList);
@@ -129,7 +128,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
             lib.setIconArr(arr);
 
             //检查满线图案
-            List<ChristmasBashNightAwardLineInfo> fullLineInfoList = fullLine(lib);
+            List<SteamAgeAwardLineInfo> fullLineInfoList = fullLine(lib);
             lib.addAllAwardLineInfo(fullLineInfoList);
 
             //检查全局分散图案
@@ -137,7 +136,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
             lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
 
             //存储消除后添加的图标
-            List<ChristmasBashNightAddIconInfo> addIconInfoList = new ArrayList<>();
+            List<SteamAgeExpandIconInfo> addIconInfoList = new ArrayList<>();
 
             //拷贝数组
             int[] newArr = new int[arr.length];
@@ -161,8 +160,8 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
     }
 
     @Override
-    protected ChristmasBashNightAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
-        ChristmasBashNightAwardLineInfo info = new ChristmasBashNightAwardLineInfo();
+    protected SteamAgeAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
+        SteamAgeAwardLineInfo info = new SteamAgeAwardLineInfo();
 
         info.setSameIconSet(sameIconIndexSet);
         info.setSameIcon(cfg.getElementId().getFirst() % 10);
@@ -220,7 +219,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
                 }
             }
 
-            ChristmasBashNightResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+            SteamAgeResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
             int addCount = checkAddFreeCount(lib);
             lib.setAddFreeCount(addCount);
             remainFreeCount += addCount;
@@ -236,8 +235,8 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
      * @param lib
      * @return
      */
-    private int checkAddFreeCount(ChristmasBashNightResultLib lib) {
-        if (this.christmasBashNightAddFreeInfo.getLibType() != ChristmasBashNightConstant.SpecialMode.FREE) {
+    private int checkAddFreeCount(SteamAgeResultLib lib) {
+        if (this.steamAgeAddFreeInfo.getLibType() != SteamAgeConstant.SpecialMode.FREE) {
             return 0;
         }
 
@@ -245,12 +244,12 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         for (int i = 1; i < lib.getIconArr().length; i++) {
             int icon = lib.getIconArr()[i];
             //是否出现了目标图标
-            if (icon != this.christmasBashNightAddFreeInfo.getTargetIcon()) {
+            if (icon != this.steamAgeAddFreeInfo.getTargetIcon()) {
                 continue;
             }
-            boolean flag = SlotsUtil.calProp(this.christmasBashNightAddFreeInfo.getProp());
+            boolean flag = SlotsUtil.calProp(this.steamAgeAddFreeInfo.getProp());
             if (flag) {
-                addCount += this.christmasBashNightAddFreeInfo.getAddFreeCount();
+                addCount += this.steamAgeAddFreeInfo.getAddFreeCount();
             }
         }
         return addCount;
@@ -259,65 +258,25 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
     /**
      * 修补图标
      */
-    public void repairIcons(int libType, int[] arr, List<ChristmasBashNightAwardLineInfo> list, List<ChristmasBashNightAddIconInfo> addIconInfoList, int winCount) {
+    public void repairIcons(int libType, int[] arr, List<SteamAgeAwardLineInfo> list, List<SteamAgeExpandIconInfo> addIconInfoList, int winCount) {
         if (list == null || list.isEmpty()) {
             return;
         }
-
         winCount++;
 
         //连续中奖后重置中奖倍数
         resetLineRewardTimes(libType, winCount, list);
 
-        ChristmasBashNightAddIconInfo addIconInfo = new ChristmasBashNightAddIconInfo();
-
-        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-
-        //将所有需要消除的图标进行汇总
-        Map<Integer, Set<Integer>> allSameMap = new HashMap<>();
-        for (ChristmasBashNightAwardLineInfo info : list) {
-            if (info.getSameIconSet() == null || info.getSameIconSet().isEmpty()) {
-                continue;
-            }
-
-            //替换成wild的坐标
-            Set<Integer> replaceWildIndexs = new HashSet<>();
-
-            info.getSameIconSet().forEach(index -> {
-                int columnId = index / baseInitCfg.getRows();
-                if ((index % baseInitCfg.getRows()) != 0) {
-                    columnId++;
-                }
-                allSameMap.computeIfAbsent(columnId, k -> new HashSet<>()).add(index);
-
-                int icon = arr[index];
-
-                //判断消除的图标是不是金色图标
-                if (icon >= ChristmasBashNightConstant.BaseElement.GOLD_MIN && icon <= ChristmasBashNightConstant.BaseElement.GOLD_MAX) {
-                    Integer replaceIcon = this.replaceIconMap.get(icon);
-                    if (replaceIcon != null) {
-                        replaceWildIndexs.add(index);
-                    }
-                }
-            });
-
-            info.setReplaceWildIndexs(replaceWildIndexs);
-        }
+        SteamAgeExpandIconInfo addIconInfo = new SteamAgeExpandIconInfo();
 
         //坐标对应添加的
-        Map<Integer, Integer> addIconMap = new HashMap<>();
+        List addIconList = new ArrayList<>();
 
-        for (Map.Entry<Integer, Set<Integer>> en : allSameMap.entrySet()) {
-            int colIndex = en.getKey();
-            Set<Integer> set = en.getValue();
-            //处理图标消除、下落和补充
-            processIcons(colIndex, set, arr, addIconMap);
-        }
-
-        addIconInfo.setAddIconMap(addIconMap);
+        processIcons(libType, winCount, arr, addIconList);
+        addIconInfo.setAddIconList(addIconList);
 
         //检查中奖
-        List<ChristmasBashNightAwardLineInfo> newAwardInfoList = fullLine(arr);
+        List<SteamAgeAwardLineInfo> newAwardInfoList = fullLine(arr);
 
         addIconInfo.setAwardLineInfoList(newAwardInfoList);
         addIconInfoList.add(addIconInfo);
@@ -325,114 +284,162 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         repairIcons(libType, arr, newAwardInfoList, addIconInfoList, winCount);
     }
 
-    private void resetLineRewardTimes(int libType, int winCount, List<ChristmasBashNightAwardLineInfo> list) {
-        Map<Integer, Integer> temMap = this.addTimesMap.get(libType);
-        if (temMap == null || temMap.isEmpty()) {
+    private void resetLineRewardTimes(int libType, int winCount, List<SteamAgeAwardLineInfo> list) {
+        if (steamAgeExpandRollerInfoMap.get(libType) == null || steamAgeExpandRollerInfoMap.get(libType).get(winCount) == null) {
             return;
         }
-
-        Integer times;
-        if (winCount > this.maxWinCount) {
-            times = temMap.get(this.maxWinCount);
-        } else {
-            times = temMap.get(winCount);
-        }
-
-        if (times == null) {
-            return;
-        }
-
+        SteamAgeExpandRollerInfo steamAgeExpandRollerInfo = steamAgeExpandRollerInfoMap.get(libType).get(winCount);
+        Integer times = steamAgeExpandRollerInfo.getWinTimes();
         list.forEach(info -> {
             info.setBaseTimes(info.getBaseTimes() * times);
         });
     }
 
     /**
-     * 处理图标消除、下落和补充
+     * 处理图标新增列和补充
      *
-     * @param colIndex
-     * @param removedIndexes 被消除的图标索引集合
+     * @param winTimes
      * @param arr
      * @return 新增的图标id
      */
-    public void processIcons(int colIndex, Set<Integer> removedIndexes, int[] arr,
-                             Map<Integer, Integer> addIconMap) {
+    public void processIcons(int libType, int winTimes, int[] arr,
+                             List<Integer> addIconList) {
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-        int rows = baseInitCfg.getRows();
 
-//        System.out.println("需要消除的坐标 removedIndexes = " + removedIndexes);
-//        System.out.println("消除前打印 ");
-//        printResult(arr);
 
-        //这一列开始坐标
-        int beginIndex = (colIndex - 1) * rows + 1;
-        //这一列结束坐标
-        int endIndex = beginIndex + rows - 1;
-
-        //找到这一列，消除后应该剩余的图标
-        List<Integer> validIndexes = new ArrayList<>(baseInitCfg.getRows() - removedIndexes.size());
-        for (int i = beginIndex; i <= endIndex; i++) {
-            int icon = arr[i];
-            if (removedIndexes.contains(i)) {
-                //判断消除的图标是不是金色图标
-                if (icon >= ChristmasBashNightConstant.BaseElement.GOLD_MIN && icon <= ChristmasBashNightConstant.BaseElement.GOLD_MAX) {
-                    Integer replaceIcon = this.replaceIconMap.get(icon);
-                    if (replaceIcon != null) {
-                        validIndexes.add(replaceIcon);
-                    }
-                }
-            } else {
-                validIndexes.add(icon);
-            }
-            arr[i] = -1;
+        if (steamAgeExpandRollerInfoMap.get(libType) == null || steamAgeExpandRollerInfoMap.get(libType).get(winTimes) == null) {
+            return;
         }
-
-        validIndexes = validIndexes.reversed();
-
-        //将剩余的图标重新填充回去
-        int curIndex = endIndex;
-        for (int i = 0; i < validIndexes.size(); i++) {
-            arr[curIndex] = validIndexes.get(i);
-            curIndex--;
-        }
-
-//        System.out.println("消除后打印 ");
-//        printResult(arr);
-
-        Map<Integer, BaseRollerCfg> rollerCfgMap = this.baseRollerCfgMap.entrySet().stream().findFirst().get().getValue();
-        BaseRollerCfg baseRollerCfg = rollerCfgMap.get(colIndex);
+        SteamAgeExpandRollerInfo steamAgeExpandRollerInfo = steamAgeExpandRollerInfoMap.get(libType).get(winTimes);
+        BaseRollerCfg baseRollerCfg = GameDataManager.getBaseRollerCfg(steamAgeExpandRollerInfo.getRollerId());
 
         int first = baseRollerCfg.getAxleCountScope().get(0) - 1;
         int last = baseRollerCfg.getAxleCountScope().get(1) - 1;
         int scopeIndex = RandomUtils.randomMinMax(first, last);
 
-        // 从顶部开始补充新图标
-        for (int i = 0; i < baseInitCfg.getRows(); i++) {
-            if (scopeIndex > last) {
-                scopeIndex = first;
+        int[] newArr = new int[arr.length];
+        System.arraycopy(arr, 0, newArr, 0, arr.length);
+//        for (int i = 0; i < addIconList.size(); i++) {
+//            newArr[i] = addIconList.get(i);
+//        }
+        //后移动 补充图标
+        for (int i = 0; i < arr.length; i++) {
+            //第一列是补充的新图标
+            if (i > 4) {
+                newArr[i] = arr[i - 4];
             }
-            int index = beginIndex + i;
-            int oldIcon = arr[index];
-            if (oldIcon > 0) {
-                continue;
+        }
+        //100次确认是否权重中奖，权重不一致弹出
+        for (int i = 0; i < 100; i++) {
+            //根据权重是否中奖
+            int weight = steamAgeExpandRollerInfo.getWeight();
+            Random random = new Random();
+            int randomNumber = random.nextInt(10000);
+            //中奖
+            if (weight >= randomNumber){
+
             }
 
-            int elementId = baseRollerCfg.getElements().get(scopeIndex);
-            arr[index] = elementId;
-            addIconMap.put(index, elementId);
-            log.debug("补充新图标 index = {}, icon = {}", index, elementId);
 
-            scopeIndex++;
+                // 补充新图标 只补充第一列
+                for (int j = 1; j <= baseInitCfg.getRows(); j++) {
+                    if (scopeIndex > last) {
+                        scopeIndex = first;
+                    }
+
+                    int index = j;
+                    int elementId = baseRollerCfg.getElements().get(scopeIndex);
+                    newArr[index] = elementId;
+                    addIconList.add(elementId);
+                    log.debug("补充新图标 index = {}, icon = {}", index, elementId);
+
+                    scopeIndex++;
+                }
         }
 
-//        System.out.println("补充后打印 ");
-//        printResult(arr);
-//        System.out.println();
+
+        arr = newArr;
+        log.info("新增列 变newArr{}", JSONObject.toJSONString(newArr));
+
+//        //拷贝数组
+//        int[] newArr = new int[arr.length];
+//        System.arraycopy(arr, 0, newArr, 0, arr.length);
+//        for (int i = 0; i < addIconList.size(); i++) {
+//            newArr[i] = addIconList.get(i);
+//        }
+
+
+//        int rollerId = steamAgeExpandRollerInfo.getRollerId();
+//        int rows = baseInitCfg.getRows();
+//
+//
+//        //这一列开始坐标
+//        int beginIndex = (colIndex - 1) * rows + 1;
+//        //这一列结束坐标
+//        int endIndex = beginIndex + rows - 1;
+//
+//        //找到这一列，消除后应该剩余的图标
+//        List<Integer> validIndexes = new ArrayList<>(baseInitCfg.getRows() - removedIndexes.size());
+//        for (int i = beginIndex; i <= endIndex; i++) {
+//            int icon = arr[i];
+//            if (removedIndexes.contains(i)) {
+//                //判断消除的图标是不是金色图标
+//                if (icon >= SteamAgeConstant.BaseElement.GOLD_MIN && icon <= SteamAgeConstant.BaseElement.GOLD_MAX) {
+//                    Integer replaceIcon = this.replaceIconMap.get(icon);
+//                    if (replaceIcon != null) {
+//                        validIndexes.add(replaceIcon);
+//                    }
+//                }
+//            } else {
+//                validIndexes.add(icon);
+//            }
+//            arr[i] = -1;
+//        }
+//
+//        validIndexes = validIndexes.reversed();
+//
+//        //将剩余的图标重新填充回去
+//        int curIndex = endIndex;
+//        for (int i = 0; i < validIndexes.size(); i++) {
+//            arr[curIndex] = validIndexes.get(i);
+//            curIndex--;
+//        }
+//
+////        System.out.println("消除后打印 ");
+////        printResult(arr);
+//
+//        Map<Integer, BaseRollerCfg> rollerCfgMap = this.baseRollerCfgMap.entrySet().stream().findFirst().get().getValue();
+//        BaseRollerCfg baseRollerCfg = rollerCfgMap.get(colIndex);
+//
+//        int first = baseRollerCfg.getAxleCountScope().get(0) - 1;
+//        int last = baseRollerCfg.getAxleCountScope().get(1) - 1;
+//        int scopeIndex = RandomUtils.randomMinMax(first, last);
+//
+//        // 从顶部开始补充新图标
+//        for (int i = 0; i < baseInitCfg.getRows(); i++) {
+//            if (scopeIndex > last) {
+//                scopeIndex = first;
+//            }
+//            int index = beginIndex + i;
+//            int oldIcon = arr[index];
+//            if (oldIcon > 0) {
+//                continue;
+//            }
+//
+//            int elementId = baseRollerCfg.getElements().get(scopeIndex);
+//            arr[index] = elementId;
+//            addIconMap.put(index, elementId);
+//            log.debug("补充新图标 index = {}, icon = {}", index, elementId);
+//
+//            scopeIndex++;
+//        }
+
+
     }
 
 
     @Override
-    public void calTimes(ChristmasBashNightResultLib lib) throws Exception {
+    public void calTimes(SteamAgeResultLib lib) throws Exception {
         if (!checkElement(lib)) {
             throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
         }
@@ -441,7 +448,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
             for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
                 if (specialAuxiliaryInfo.getFreeGames() != null && !specialAuxiliaryInfo.getFreeGames().isEmpty()) {
                     Set<Integer> libTypeSet = new HashSet<>();
-                    libTypeSet.add(ChristmasBashNightConstant.SpecialMode.FREE);
+                    libTypeSet.add(SteamAgeConstant.SpecialMode.FREE);
                     lib.setLibTypeSet(libTypeSet);
                     break;
                 }
@@ -462,13 +469,13 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
      * @param list
      * @return
      */
-    public int calLineTimes(List<ChristmasBashNightAwardLineInfo> list) {
+    public int calLineTimes(List<SteamAgeAwardLineInfo> list) {
         if (list == null || list.isEmpty()) {
             return 0;
         }
 
         int times = 0;
-        for (ChristmasBashNightAwardLineInfo awardLineInfo : list) {
+        for (SteamAgeAwardLineInfo awardLineInfo : list) {
             times += awardLineInfo.getBaseTimes();
         }
         return times;
@@ -480,7 +487,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
      * @param lib
      * @return
      */
-    private long calFree(ChristmasBashNightResultLib lib) throws Exception {
+    private long calFree(SteamAgeResultLib lib) throws Exception {
         if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
             return 0;
         }
@@ -492,7 +499,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
             }
 
             for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
-                ChristmasBashNightResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), ChristmasBashNightResultLib.class);
+                SteamAgeResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), SteamAgeResultLib.class);
                 calTimes(tmpLib);
                 times += tmpLib.getTimes();
             }
@@ -506,18 +513,18 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
      * @param addIconInfos
      * @return
      */
-    public long calAfterAddIcons(List<ChristmasBashNightAddIconInfo> addIconInfos) {
+    public long calAfterAddIcons(List<SteamAgeExpandIconInfo> addIconInfos) {
         if (addIconInfos == null || addIconInfos.isEmpty()) {
             return 0;
         }
 
         long times = 0;
-        for (ChristmasBashNightAddIconInfo info : addIconInfos) {
+        for (SteamAgeExpandIconInfo info : addIconInfos) {
             if (info.getAwardLineInfoList() == null || info.getAwardLineInfoList().isEmpty()) {
                 continue;
             }
 
-            for (ChristmasBashNightAwardLineInfo awardLineInfo : info.getAwardLineInfoList()) {
+            for (SteamAgeAwardLineInfo awardLineInfo : info.getAwardLineInfoList()) {
                 times += awardLineInfo.getBaseTimes();
             }
         }
@@ -535,47 +542,61 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
                 continue;
             }
 
-            //连续中奖
-            if (cfg.getPlayType() == ChristmasBashNightConstant.SpecialPlay.TYPE_CONSECUTIVE_WINS) {
-                String[] arr = cfg.getValue().split(";");
-                for (String s : arr) {
-                    String[] arr1 = s.split(",");
-                    int libType = Integer.parseInt(arr1[0]);
-
-                    Map<Integer, Integer> temMap = tmpAddTimesMap.computeIfAbsent(libType, k -> new HashMap<>());
-
-                    String[] arr2 = arr1[1].split("\\|");
-                    for (String s2 : arr2) {
-                        String[] arr3 = s2.split("_");
-                        int count = Integer.parseInt(arr3[0]);
-                        int times = Integer.parseInt(arr3[1]);
-
-                        temMap.put(count, times);
-
-                        if (count > tmpMaxWinCount) {
-                            tmpMaxWinCount = count;
-                        }
-                    }
-                }
-            } else if (cfg.getPlayType() == ChristmasBashNightConstant.SpecialPlay.TYPE_ADD_FREE_COUNT) {  //增加免费次数
-                ChristmasBashNightAddFreeInfo tmpChristmasBashNightAddFreeInfo = new ChristmasBashNightAddFreeInfo();
+            if (cfg.getPlayType() == SteamAgeConstant.SpecialPlay.TYPE_ADD_FREE_COUNT) {  //增加免费次数
+                SteamAgeAddFreeInfo tmpSteamAgeAddFreeInfo = new SteamAgeAddFreeInfo();
                 String[] arr = cfg.getValue().split("_");
 
-                tmpChristmasBashNightAddFreeInfo.setLibType(Integer.parseInt(arr[0]));
-                tmpChristmasBashNightAddFreeInfo.setTargetIcon(Integer.parseInt(arr[1]));
-                tmpChristmasBashNightAddFreeInfo.setAddFreeCount(Integer.parseInt(arr[2]));
-                tmpChristmasBashNightAddFreeInfo.setProp(Integer.parseInt(arr[3]));
+                tmpSteamAgeAddFreeInfo.setLibType(Integer.parseInt(arr[0]));
+                tmpSteamAgeAddFreeInfo.setTargetIcon(Integer.parseInt(arr[1]));
+                tmpSteamAgeAddFreeInfo.setAddFreeCount(Integer.parseInt(arr[2]));
+                tmpSteamAgeAddFreeInfo.setProp(Integer.parseInt(arr[3]));
 
-                this.christmasBashNightAddFreeInfo = tmpChristmasBashNightAddFreeInfo;
+                this.steamAgeAddFreeInfo = tmpSteamAgeAddFreeInfo;
+            } else if (cfg.getPlayType() == SteamAgeConstant.SpecialPlay.TYPE_EXTEND_ICON_NORMAL) {  //新增一列进行摇奖 正常
+                if (this.steamAgeExpandRollerInfoMap == null) {
+                    this.steamAgeExpandRollerInfoMap = new HashMap<>();
+                }
+
+                String[] arr = cfg.getValue().split(",");
+                String[] arr1 = arr[1].split("\\|");
+                Map<Integer, SteamAgeExpandRollerInfo> trmpSteamAgeExpandRollerInfoMap = new HashMap<>();
+                for (String str : arr1) {
+                    SteamAgeExpandRollerInfo trmpSteamAgeExpandRollerInfo = new SteamAgeExpandRollerInfo();
+                    String[] arr3 = str.split("_");
+                    trmpSteamAgeExpandRollerInfo.setLibType(SteamAgeConstant.SpecialMode.NORMAL);
+                    trmpSteamAgeExpandRollerInfo.setWinTimes(Integer.parseInt(arr3[0]));
+                    trmpSteamAgeExpandRollerInfo.setRollerId(Integer.parseInt(arr3[1]));
+                    trmpSteamAgeExpandRollerInfo.setWeight(Integer.parseInt(arr3[2]));
+                    trmpSteamAgeExpandRollerInfo.setBaseTimes(Integer.parseInt(arr3[3]));
+                    trmpSteamAgeExpandRollerInfoMap.put(trmpSteamAgeExpandRollerInfo.getWinTimes(), trmpSteamAgeExpandRollerInfo);
+                }
+
+
+                this.steamAgeExpandRollerInfoMap.put(SteamAgeConstant.SpecialMode.NORMAL, trmpSteamAgeExpandRollerInfoMap);
+            } else if (cfg.getPlayType() == SteamAgeConstant.SpecialPlay.TYPE_EXTEND_ICON_FREE) {  //新增一列进行摇奖 免费转
+                if (this.steamAgeExpandRollerInfoMap == null) {
+                    this.steamAgeExpandRollerInfoMap = new HashMap<>();
+                }
+                String[] arr = cfg.getValue().split(",");
+                String[] arr1 = arr[1].split("\\|");
+                Map<Integer, SteamAgeExpandRollerInfo> trmpSteamAgeExpandRollerInfoMap = new HashMap<>();
+                for (String str : arr1) {
+                    SteamAgeExpandRollerInfo trmpSteamAgeExpandRollerInfo = new SteamAgeExpandRollerInfo();
+                    String[] arr3 = str.split("_");
+                    trmpSteamAgeExpandRollerInfo.setLibType(SteamAgeConstant.SpecialMode.FREE);
+                    trmpSteamAgeExpandRollerInfo.setWinTimes(Integer.parseInt(arr3[0]));
+                    trmpSteamAgeExpandRollerInfo.setRollerId(Integer.parseInt(arr3[1]));
+                    trmpSteamAgeExpandRollerInfo.setWeight(Integer.parseInt(arr3[2]));
+                    trmpSteamAgeExpandRollerInfo.setBaseTimes(Integer.parseInt(arr3[3]));
+                    trmpSteamAgeExpandRollerInfoMap.put(trmpSteamAgeExpandRollerInfo.getWinTimes(), trmpSteamAgeExpandRollerInfo);
+                }
+
+
+                this.steamAgeExpandRollerInfoMap.put(SteamAgeConstant.SpecialMode.FREE, trmpSteamAgeExpandRollerInfoMap);
             }
         }
-        this.addTimesMap = tmpAddTimesMap;
-        this.maxWinCount = tmpMaxWinCount;
     }
 
-    public Map<Integer, Map<Integer, Integer>> getAddTimesMap() {
-        return addTimesMap;
-    }
 
     protected void printResult(int[] arr) {
         BaseInitCfg cfg = GameDataManager.getBaseInitCfg(this.gameType);
@@ -604,7 +625,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
      * @param lib
      * @param set
      */
-    private void addShowAuxiliaryId(ChristmasBashNightResultLib lib, Set<Integer> set) {
+    private void addShowAuxiliaryId(SteamAgeResultLib lib, Set<Integer> set) {
         if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
             return;
         }
@@ -620,8 +641,8 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
      * @param lib
      * @return
      */
-    private boolean checkJackpool(ChristmasBashNightResultLib lib) {
-        if(lib.getJackpotId() < 1){
+    private boolean checkJackpool(SteamAgeResultLib lib) {
+        if (lib.getJackpotId() < 1) {
             return false;
         }
 
@@ -629,30 +650,31 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         int jackpool = 0;
         for (int i = 0; i < lib.getIconArr().length; i++) {
             int icon = lib.getIconArr()[i];
-            if (icon == ChristmasBashNightConstant.BaseElement.ID_SCATTER) {
+            if (icon == SteamAgeConstant.BaseElement.ID_SCATTER) {
                 count++;
-            } else if (icon == ChristmasBashNightConstant.BaseElement.ID_MINI || icon == ChristmasBashNightConstant.BaseElement.ID_MINOR ||
-                    icon == ChristmasBashNightConstant.BaseElement.ID_MAJOR || icon == ChristmasBashNightConstant.BaseElement.ID_GRAND) {
+            } else if (icon == SteamAgeConstant.BaseElement.ID_MINI || icon == SteamAgeConstant.BaseElement.ID_MINOR ||
+                    icon == SteamAgeConstant.BaseElement.ID_MAJOR || icon == SteamAgeConstant.BaseElement.ID_GRAND) {
                 jackpool++;
             }
         }
         return count >= 2 && jackpool > 0;
     }
+
     /**
      * 检查免费触发局
      *
      * @param lib
      * @return
      */
-    private boolean checkTriggerFree(ChristmasBashNightResultLib lib) {
+    private boolean checkTriggerFree(SteamAgeResultLib lib) {
         int count = 0;
         for (int i = 0; i < lib.getIconArr().length; i++) {
             int icon = lib.getIconArr()[i];
-            if (icon == ChristmasBashNightConstant.BaseElement.ID_SCATTER) {
+            if (icon == SteamAgeConstant.BaseElement.ID_SCATTER) {
                 count++;
             }
         }
-        return count >= 3;
+        return count >= 0;
     }
 
     /**
@@ -660,20 +682,20 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
      *
      * @param lib
      */
-    private boolean checkElement(ChristmasBashNightResultLib lib) {
+    private boolean checkElement(SteamAgeResultLib lib) {
         if (lib.getLibTypeSet() == null || lib.getLibTypeSet().isEmpty()) {
             return true;
         }
 
         //检查二选一
-        if (lib.getLibTypeSet().contains(ChristmasBashNightConstant.SpecialMode.FREE)
+        if (lib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.FREE)
                 && !checkTriggerFree(lib)) {
             log.warn("检查免费触发局失败");
             return false;
         }
 
         //检查jackpool模式
-        if (lib.getLibTypeSet().contains(ChristmasBashNightConstant.SpecialMode.JACKPOOL)
+        if (lib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.JACKPOOL)
                 && !checkJackpool(lib)) {
             log.warn("检查jackpool模式失败");
             return false;
@@ -681,5 +703,6 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
 
         return true;
     }
+
 
 }

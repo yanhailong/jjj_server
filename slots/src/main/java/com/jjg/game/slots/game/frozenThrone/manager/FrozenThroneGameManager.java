@@ -56,7 +56,7 @@ public class FrozenThroneGameManager extends AbstractSlotsGameManager<FrozenThro
 
     @Override
     public void init() {
-        log.info("启动圣诞狂欢夜游戏管理器...");
+        log.info("启动寒冰王座游戏管理器...");
         super.init();
 
 //        Map<Integer, Integer> map = new HashMap<>();

@@ -1,4 +1,4 @@
-package com.jjg.game.slots.game.frozenThrone.pb;
+package com.jjg.game.slots.game.steamAge.pb;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
@@ -11,13 +11,13 @@ import java.util.List;
  */
 @ProtobufMessage
 @ProtoDesc("图标中奖的信息")
-public class FrozenThroneIconInfo {
+public class SteamAgeIconInfo {
     @ProtoDesc("坐标")
     public List<Integer> iconIndexs;
+    @ProtoDesc("连续倍数")
+    public int baseTimes;
     @ProtoDesc("中奖金额")
     public long win;
     @ProtoDesc("中奖的图标id")
-    public Integer winIcons;
-    @ProtoDesc("线Id")
-    public int linId;
+    public List<Integer> winIcons;
 }

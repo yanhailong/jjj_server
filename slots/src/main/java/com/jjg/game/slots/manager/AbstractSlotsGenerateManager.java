@@ -263,7 +263,12 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
         int[] arr = new int[cols * rows + 1];
 
+        //蒸汽时代 列（滚轴） 配置 数量多余 列数量
+        int addCols = 0;
         for (Map.Entry<Integer, BaseRollerCfg> en : rollerCfgMap.entrySet()) {
+            if (addCols >= cols) {
+                return arr;
+            }
             BaseRollerCfg cfg = en.getValue();
             if (cfg.getAxleCountScope() == null || cfg.getAxleCountScope().isEmpty()) {
                 log.warn("没有该滚轴的范围,生成结果集失败 gameType = {},rollerCfgId = {}", this.gameType, cfg.getId());
@@ -290,6 +295,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 iconIndex++;
                 scopeIndex++;
             }
+            addCols++;
         }
         return arr;
     }

@@ -1,4 +1,4 @@
-package com.jjg.game.slots.game.frozenThrone.manager;
+package com.jjg.game.slots.game.steamAge.manager;
 
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
@@ -8,10 +8,10 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
-import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneAwardLineInfo;
-import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneGameRunInfo;
-import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneResultLib;
-import com.jjg.game.slots.game.frozenThrone.pb.*;
+import com.jjg.game.slots.game.steamAge.data.SteamAgeAwardLineInfo;
+import com.jjg.game.slots.game.steamAge.data.SteamAgeGameRunInfo;
+import com.jjg.game.slots.game.steamAge.data.SteamAgeResultLib;
+import com.jjg.game.slots.game.steamAge.pb.*;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -28,20 +28,20 @@ import java.util.stream.IntStream;
  * @date 2025/12/2 17:40
  */
 @Component
-public class FrozenThroneSendMessageManager extends BaseSendMessageManager {
+public class SteamAgeSendMessageManager extends BaseSendMessageManager {
     @Autowired
-    private FrozenThroneGameManager gameManager;
+    private SteamAgeGameManager gameManager;
     @Autowired
     private SlotsLogger slotsLogger;
     @Autowired
-    private FrozenThroneGenerateManager generateManager;
+    private SteamAgeGenerateManager generateManager;
 
     /**
      * 发送游戏配置
      *
      * @param playerController
      */
-    public void sendConfigMessage(PlayerController playerController, FrozenThroneGameRunInfo gameRunInfo) {
+    public void sendConfigMessage(PlayerController playerController, SteamAgeGameRunInfo gameRunInfo) {
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
 
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
@@ -49,7 +49,7 @@ public class FrozenThroneSendMessageManager extends BaseSendMessageManager {
 
         SendInfo sendInfo = new SendInfo();
 
-        ResFrozenThroneEnterGame res = new ResFrozenThroneEnterGame(Code.SUCCESS);
+        ResSteamAgeEnterGame res = new ResSteamAgeEnterGame(Code.SUCCESS);
         if (config != null) {
             List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
             res.stakeList = new ArrayList<>(list.size());
@@ -71,7 +71,7 @@ public class FrozenThroneSendMessageManager extends BaseSendMessageManager {
                     if (poolCfg == null) {
                         continue;
                     }
-                    FrozenThronePoolInfo poolInfo = new FrozenThronePoolInfo();
+                    SteamAgePoolInfo poolInfo = new SteamAgePoolInfo();
                     poolInfo.id = poolId;
                     poolInfo.initTimes = poolCfg.getFakePoolInitTimes();
                     poolInfo.maxTimes = poolCfg.getFakePoolMax();
@@ -96,9 +96,9 @@ public class FrozenThroneSendMessageManager extends BaseSendMessageManager {
      * @param playerController
      * @param gameRunInfo
      */
-    public void sendStartGameMessage(PlayerController playerController, FrozenThroneGameRunInfo gameRunInfo) {
+    public void sendStartGameMessage(PlayerController playerController, SteamAgeGameRunInfo gameRunInfo) {
         SendInfo sendInfo = new SendInfo();
-        ResFrozenThroneStartGame res = new ResFrozenThroneStartGame(gameRunInfo.getCode());
+        ResSteamAgeStartGame res = new ResSteamAgeStartGame(gameRunInfo.getCode());
         if (gameRunInfo.success()) {
             //玩家当前金币
             res.allGold = gameRunInfo.getAfterGold();
@@ -118,7 +118,7 @@ public class FrozenThroneSendMessageManager extends BaseSendMessageManager {
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
 
-            FrozenThroneResultLib lib = (FrozenThroneResultLib) gameRunInfo.getResultLib();
+            SteamAgeResultLib lib = (SteamAgeResultLib) gameRunInfo.getResultLib();
 
             res.rewardIconInfo = addRewardIcons(lib.getIconArr(), lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
 
@@ -140,24 +140,27 @@ public class FrozenThroneSendMessageManager extends BaseSendMessageManager {
      * @param oneBetScore
      * @return
      */
-    private List<FrozenThroneIconInfo> addRewardIcons(int[] arr, List<FrozenThroneAwardLineInfo> awardLineInfoList, long oneBetScore) {
+    private SteamAgeIconInfo addRewardIcons(int[] arr, List<SteamAgeAwardLineInfo> awardLineInfoList, long oneBetScore) {
         if (awardLineInfoList == null || awardLineInfoList.isEmpty()) {
             return null;
         }
 
-        List<FrozenThroneIconInfo> iconInfolist = new ArrayList<>();
-        for (FrozenThroneAwardLineInfo awardLineInfo : awardLineInfoList) {
-            FrozenThroneIconInfo iconInfo = new FrozenThroneIconInfo();
-            List<Integer> indexList = new ArrayList<>();
-            indexList.addAll(awardLineInfo.getSameIconSet());
-            iconInfo.iconIndexs= indexList;
-            iconInfo.winIcons = awardLineInfo.getSameIcon();
-            iconInfo.linId = awardLineInfo.getLineId();
-            iconInfo.win = awardLineInfo.getBaseTimes() * oneBetScore;
-            iconInfolist.add(iconInfo);
-        }
+        SteamAgeIconInfo iconInfo = new SteamAgeIconInfo();
 
-        return iconInfolist;
+        Set<Integer> indexSet = new HashSet<>();
+        Set<Integer> winIconSet = new HashSet<>();
+//        Set<Integer> replaceWildIndexs = new HashSet<>();
+
+        awardLineInfoList.forEach(info -> {
+            indexSet.addAll(info.getSameIconSet());
+            winIconSet.add(info.getSameIcon());
+            iconInfo.win += info.getBaseTimes() * oneBetScore;
+        });
+
+        iconInfo.iconIndexs = new ArrayList<>(indexSet);
+        iconInfo.winIcons = new ArrayList<>(winIconSet);
+//        iconInfo.replaceWildIndexs = new ArrayList<>(replaceWildIndexs);
+        return iconInfo;
     }
 
 
@@ -167,10 +170,10 @@ public class FrozenThroneSendMessageManager extends BaseSendMessageManager {
      * @param playerController
      * @param gameRunInfo
      */
-    public void sendPoolValue(PlayerController playerController, FrozenThroneGameRunInfo gameRunInfo) {
+    public void sendPoolValue(PlayerController playerController, SteamAgeGameRunInfo gameRunInfo) {
         SendInfo sendInfo = new SendInfo();
 
-        ResFrozenThronePoolInfo res = new ResFrozenThronePoolInfo(gameRunInfo.getCode());
+        ResSteamAgePoolInfo res = new ResSteamAgePoolInfo(gameRunInfo.getCode());
         if (gameRunInfo.success()) {
             res.mini = gameRunInfo.getMini();
             res.minor = gameRunInfo.getMinor();
