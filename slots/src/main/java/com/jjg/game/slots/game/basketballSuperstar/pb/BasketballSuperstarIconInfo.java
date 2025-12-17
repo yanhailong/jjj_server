@@ -17,5 +17,5 @@ public class BasketballSuperstarIconInfo {
     @ProtoDesc("中奖金额")
     public long win;
     @ProtoDesc("中奖的图标id")
-    public List<Integer> winIcons;
+    public Integer winIcons;
 }
