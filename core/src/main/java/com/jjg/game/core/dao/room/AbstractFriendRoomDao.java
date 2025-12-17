@@ -82,6 +82,7 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
             }
             friendRoom.setAutoRenewal(req.autoRenewal);
             friendRoom.setPredictCostGoldNum(req.predictCostGoldNum);
+            friendRoom.setPool(req.predictCostGoldNum);
             friendRoom.setCreator(playerId);
             friendRoom.setRoomExpendId(req.roomExpandId);
             FriendRoom savedRoom = createRoom(friendRoom);

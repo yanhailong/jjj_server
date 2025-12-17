@@ -1,6 +1,7 @@
 package com.jjg.game.table.birdsanimals.gamephase;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.EGameType;
@@ -26,6 +27,8 @@ import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 /**
@@ -57,10 +60,25 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                     weightMap.getOrDefault(winPosWeightCfg.getWinPosID(), 0) + winPosWeightCfg.getPosWeight());
             winPosOfWeightCfgs.computeIfAbsent(winPosWeightCfg.getWinPosID(), k -> new ArrayList<>()).add(winPosWeightCfg);
         }
-        Set<Integer> winPosIds = RandomUtils.getRandomByWeight(weightMap, 1);
-        int randomRewardPosId = winPosIds.iterator().next();
         // 中奖区域，应该是一个动物和对应他的分类
-        List<WinPosWeightCfg> winPosWeightCfgs = winPosOfWeightCfgs.get(randomRewardPosId);
+        List<WinPosWeightCfg> winPosWeightCfgs = null;
+        int randomRewardPosId = 0;
+        long currentPool = canTriggerRecycling();
+        if (currentPool > 0) {
+            Pair<Integer, List<WinPosWeightCfg>> result = generateRecyclingResults(winPosOfWeightCfgs);
+            if (result == null) {
+                log.error("飞禽走兽回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            } else {
+                winPosWeightCfgs = result.getSecond();
+                randomRewardPosId = result.getFirst();
+                log.info("飞禽走兽回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            }
+        }
+        if (winPosWeightCfgs == null) {
+            Set<Integer> winPosIds = RandomUtils.getRandomByWeight(weightMap, 1);
+            randomRewardPosId = winPosIds.iterator().next();
+            winPosWeightCfgs = winPosOfWeightCfgs.get(randomRewardPosId);
+        }
         // 添加中奖记录
         AnimalsHistoryBean historyBean = addAnimalsHistory(randomRewardPosId, winPosWeightCfgs);
         NotifyAnimalsSettlement settlement =
@@ -97,6 +115,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             calculationFinalBankerChange(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);
         }
+        dealRoomPool(settlementDataMap);
         // 场上玩家金币变化
         settlement.settlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
@@ -112,6 +131,58 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
         // 保存记录
         gameDataVo.setAnimalsSettlementInfo(settlement.settlementInfo);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
+    }
+
+    private Pair<Integer, List<WinPosWeightCfg>> generateRecyclingResults(Map<Integer, List<WinPosWeightCfg>> winPosOfWeightCfgMap) {
+        Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo = gameDataVo.getRealPlayerBetInfo();
+        if (realPlayerBetInfo == null) {
+            return null;
+        }
+        List<Integer> keys = new ArrayList<>(winPosOfWeightCfgMap.keySet());
+        Collections.shuffle(keys);
+        for (Integer key : keys) {
+            List<WinPosWeightCfg> winPosWeightCfgs = winPosOfWeightCfgMap.get(key);
+            long totalWin = 0;
+            long totalLose = 0;
+            A:
+            for (Map.Entry<Long, Map<Integer, List<Integer>>> mapEntry : realPlayerBetInfo.entrySet()) {
+                SettlementData settlementData = new SettlementData();
+                for (WinPosWeightCfg winPosWeightCfg : winPosWeightCfgs) {
+                    if (winPosWeightCfg.getWinType() == 1 || winPosWeightCfg.getWinType() == 2) {
+                        break A;
+                    }
+                    List<Integer> betAreas = winPosWeightCfg.getBetArea();
+                    if (betAreas == null || betAreas.isEmpty()) {
+                        continue;
+                    }
+                    for (Integer betAreaId : betAreas) {
+                        Map<Integer, List<Integer>> playerBetInfo = mapEntry.getValue();
+                        if (!playerBetInfo.containsKey(betAreaId)) {
+                            continue;
+                        }
+                        List<Integer> playerBetGoldList = playerBetInfo.get(betAreaId);
+                        // 玩家总押注
+                        long playerBetGoldTotal = playerBetGoldList.stream().mapToInt(Integer::intValue).sum();
+                        SettlementData calcGold = calcGold(null, winPosWeightCfg.getOdds(), winPosWeightCfg.getReturnRate(), winPosWeightCfg, playerBetGoldTotal);
+                        settlementData.increaseBySettlementData(calcGold);
+                    }
+                }
+                settlementData.setBetTotal(mapEntry.getValue().values().stream()
+                        .mapToLong(a -> a.stream().mapToInt(b -> b).sum())
+                        .sum());
+                totalLose += settlementData.getTotalWin() + settlementData.getTaxation();
+                BigDecimal totalGet = BigDecimal.valueOf(settlementData.getBetTotal() - settlementData.getBankerWind())
+                        .multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getWinRatio())))
+                        .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
+                totalWin += settlementData.getBankerWind() + totalGet.longValue();
+            }
+            if (totalWin > 0 && totalWin >= totalLose) {
+                System.out.println("totalWin " + totalWin + " totalLose " + totalLose + " key " + key + " winPosWeightCfgs " + winPosWeightCfgs.toString());
+                return Pair.newPair(key, winPosWeightCfgs);
+            }
+
+        }
+        return null;
     }
 
     /**
@@ -149,7 +220,8 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
     /**
      * 结算金币
      */
-    private SettlementData calcSettlementGold(GamePlayer gamePlayer, List<WinPosWeightCfg> winPosWeightCfgs,
+    @Override
+    public SettlementData calcSettlementGold(GamePlayer gamePlayer, List<WinPosWeightCfg> winPosWeightCfgs,
                                               Map<Integer, List<Integer>> playerBetInfo, RoomBankerChangeParam changeParam) {
         SettlementData settlementData = new SettlementData();
         for (WinPosWeightCfg winPosWeightCfg : winPosWeightCfgs) {
@@ -178,6 +250,9 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                         odds = betAreaCfg.getBaseBet();
                         returnRate = betAreaCfg.getBaseReturnRate();
                     }
+                } else {
+                    odds = winPosWeightCfg.getOdds();
+                    returnRate = winPosWeightCfg.getReturnRate();
                 }
                 SettlementData calcGold = calcGold(gamePlayer, odds, returnRate, winPosWeightCfg, playerBetGoldTotal);
                 settlementData.increaseBySettlementData(calcGold);
@@ -206,4 +281,5 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
     public boolean equals(Object o) {
         return super.equals(o);
     }
+
 }

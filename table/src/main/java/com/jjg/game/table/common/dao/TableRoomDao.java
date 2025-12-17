@@ -12,8 +12,70 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class TableRoomDao extends AbstractGoldRoomDao<BetTableRoom, RoomPlayer> {
+    private final String KEY_NAME = ":pool:%s";
 
     public TableRoomDao() {
         super(BetTableRoom.class, RoomPlayer.class);
     }
+
+    /**
+     * 修改房间奖池
+     *
+     * @param gameType    游戏类型
+     * @param roomCfgId   房间场次类型
+     * @param modifyValue 修改的值
+     * @return 修改后的值
+     */
+    public long modifyRoomPool(int gameType, int roomCfgId, long modifyValue) {
+        if (modifyValue == 0) {
+            return 0;
+        }
+        if (modifyValue > 0) {
+            Long increment = redisTemplate.opsForValue().increment(getRoomPoolKey(gameType, roomCfgId), modifyValue);
+            return increment == null ? 0 : increment;
+        }
+        Long decrement = redisTemplate.opsForValue().decrement(getRoomPoolKey(gameType, roomCfgId), modifyValue);
+        return decrement == null ? 0 : decrement;
+    }
+
+    /**
+     * 获取当前奖池
+     *
+     * @param gameType  游戏类型
+     * @param roomCfgId 游戏场次类型
+     * @return 当前奖池数量
+     */
+    public long getRoomPool(int gameType, int roomCfgId, long initRoomPool) {
+        Object object = redisTemplate.opsForValue().get(getRoomPoolKey(gameType, roomCfgId));
+        switch (object) {
+            case null -> {
+                Boolean absent = redisTemplate.opsForValue().setIfAbsent(getRoomPoolKey(gameType, roomCfgId), initRoomPool);
+                if (Boolean.FALSE.equals(absent)) {
+                    log.error("初始化房间池失败，gameType: {}, roomCfgId: {}", gameType, roomCfgId);
+                }
+                return initRoomPool;
+            }
+            case Integer pool -> {
+                return pool;
+            }
+            case Long poolLong -> {
+                return poolLong;
+            }
+            default -> {
+                return 0;
+            }
+        }
+    }
+
+    /**
+     * 获取 redis房间池数据
+     *
+     * @param gameType  游戏类型
+     * @param roomCfgId 房间场次类型
+     * @return key
+     */
+    private String getRoomPoolKey(int gameType, int roomCfgId) {
+        return getTableName(gameType) + KEY_NAME.formatted(roomCfgId);
+    }
+
 }

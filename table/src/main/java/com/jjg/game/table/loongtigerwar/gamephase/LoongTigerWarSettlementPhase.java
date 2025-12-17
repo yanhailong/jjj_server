@@ -24,12 +24,7 @@ import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * 进入结算阶段
@@ -46,26 +41,39 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         loongTigerWarSampleManager = CommonUtil.getContext().getBean(LoongTigerWarSampleManager.class);
     }
 
-
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
         Map<Integer, List<WinPosWeightCfg>> cfgMap = loongTigerWarSampleManager.getCfgMap();
-        WeightRandom<Integer> random = new WeightRandom<>();
-        for (Map.Entry<Integer, List<WinPosWeightCfg>> entry : cfgMap.entrySet()) {
-            //计算权重
-            int total = 0;
-            for (WinPosWeightCfg posWeightCfg : entry.getValue()) {
-                total += posWeightCfg.getPosWeight();
-            }
-            random.add(entry.getKey(), total);
-        }
         //随机
-        Integer next = random.next();
+        Integer next = null;
+        long currentPool = canTriggerRecycling();
+        if (currentPool > 0) {
+            Integer result = generateRecyclingResults(cfgMap);
+            if (result == null) {
+                log.error("龙虎斗回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            } else {
+                next = result;
+                log.info("龙虎斗回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            }
+        }
+        if (next == null) {
+            WeightRandom<Integer> random = new WeightRandom<>();
+            for (Map.Entry<Integer, List<WinPosWeightCfg>> entry : cfgMap.entrySet()) {
+                //计算权重
+                int total = 0;
+                for (WinPosWeightCfg posWeightCfg : entry.getValue()) {
+                    total += posWeightCfg.getPosWeight();
+                }
+                random.add(entry.getKey(), total);
+            }
+            next = random.next();
+        }
         //玩家获得
         Map<Long, DefaultKeyValue<Long, Long>> playerGet = new HashMap<>();
         //获取押注区域
         List<WinPosWeightCfg> weightCfgList = cfgMap.get(next);
+
         Map<Integer, Map<Long, List<Integer>>> betInfo = gameDataVo.getBetInfo();
         // 庄家变化的钱
         RoomBankerChangeParam changeParam = getRoomBankerChangeParam(betInfo);
@@ -87,32 +95,17 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                     if (gamePlayer == null) {
                         continue;
                     }
-                    //返还押分
-                    BigDecimal backBet = BigDecimal.valueOf(totalBet)
-                            .multiply(BigDecimal.valueOf(weightCfg.getReturnRate()))
-                            .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
-                    //总获得
-                    BigDecimal canGetBigDecimal = backBet.multiply(BigDecimal.valueOf(weightCfg.getOdds()))
-                            .divide(BigDecimal.valueOf(100), 4, RoundingMode.DOWN);
-                    long totalGet = canGetBigDecimal.longValue();
-                    long canGet = canGetBigDecimal.longValue();
-                    if (weightCfg.getIsRatio() == 1) {
-                        canGet = canGetBigDecimal.multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getEffectiveRatio()))
-                                .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN).longValue();
-                    }
-                    canGet += backBet.longValue();
-                    SettlementData settlementData = new SettlementData(canGet - backBet.longValue(), backBet.longValue(), canGet,
-                            totalBet, totalGet + backBet.longValue() - canGet);
+                    SettlementData settlementData = calcGold(gamePlayer, weightCfg.getOdds(), weightCfg.getReturnRate(), weightCfg, totalBet);
                     if (!settlementDataMap.containsKey(playerId)) {
                         settlementDataMap.put(playerId, settlementData);
                     } else {
                         settlementDataMap.get(playerId).increaseBySettlementData(settlementData);
                     }
                     // 给玩家添加金币
-                    gameController.addItem(gamePlayer.getId(), canGet, AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+                    gameController.addItem(gamePlayer.getId(), settlementData.getTotalWin(), AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
                     DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
                     keyValue.setKey(keyValue.getKey() + totalBet);
-                    keyValue.setValue(keyValue.getValue() + canGet);
+                    keyValue.setValue(keyValue.getValue() + settlementData.getTotalWin());
                 }
             }
         }
@@ -124,6 +117,14 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
             calculationFinalBankerChange(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);
         }
+        //计算所有玩家的结算信息
+        for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : gameDataVo.getPlayerBetInfo().entrySet()) {
+            SettlementData data = settlementDataMap.computeIfAbsent(entry.getKey(), key -> new SettlementData());
+            data.setBetTotal(entry.getValue().values().stream()
+                    .mapToLong(a -> a.stream().mapToInt(b -> b).sum())
+                    .sum());
+        }
+        dealRoomPool(settlementDataMap);
         Pair<Integer, Integer> twoSpecificCard = PokerCardUtils.getTwoSpecificCard(next);
         NotifyLoongTigerWarSettleInfo warSettleInfo = new NotifyLoongTigerWarSettleInfo();
         warSettleInfo.loongCard = twoSpecificCard.getFirst();
@@ -147,6 +148,23 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         }
         //发送通知
         broadcastMsgToRoom(warSettleInfo);
+    }
+
+    private Integer generateRecyclingResults(Map<Integer, List<WinPosWeightCfg>> cfgMap) {
+        Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo = gameDataVo.getRealPlayerBetInfo();
+        if (realPlayerBetInfo == null) {
+            return null;
+        }
+        List<Integer> keySet = new ArrayList<>(cfgMap.keySet());
+        Collections.shuffle(keySet);
+        for (Integer key : keySet) {
+            List<WinPosWeightCfg> winPosWeightCfgList = cfgMap.get(key);
+            Pair<Long, Long> result = getWinOrLoseResult(realPlayerBetInfo, winPosWeightCfgList);
+            if (result.getFirst() > 0 && result.getFirst() >= result.getSecond()) {
+                return key;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -189,4 +207,5 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         gameDataTracker.addGameLogData("tigerCard", tigerCard);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
+
 }

@@ -38,7 +38,20 @@ public class DiceTreasureSettlementPhase extends BaseDiceSettlementPhase<DiceTre
     public void phaseDoAction() {
         super.phaseDoAction();
         // 随机三个1-6的骰子点数
-        List<Integer> randomNumDice = DiceUtils.randomDice(3, 1, 6);
+        List<Integer> randomNumDice = null;
+        long currentPool = canTriggerRecycling();
+        if (currentPool > 0) {
+            List<Integer> result = generateRecyclingResults(3, 1, 6, EGameType.DICE_TREASURE);
+            if (result == null) {
+                log.error("骰宝回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            } else {
+                randomNumDice = result;
+                log.info("骰宝回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            }
+        }
+        if (randomNumDice == null) {
+            randomNumDice = DiceUtils.randomDice(3, 1, 6);
+        }
         if (CollectionUtil.isNotEmpty(gameDataVo.getGmResult())) {
             randomNumDice = gameDataVo.getGmResult();
         }
@@ -75,6 +88,7 @@ public class DiceTreasureSettlementPhase extends BaseDiceSettlementPhase<DiceTre
         gameDataVo.setAnimalsSettlementInfo(settlement.settlementInfo);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
+
 
     /**
      * 添加骰宝的中奖历史记录

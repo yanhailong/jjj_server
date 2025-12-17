@@ -611,11 +611,11 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 触发任务的方法。用于根据指定的玩家ID、游戏类型和任务参数触发任务。
      *
-     * @param playerId 玩家ID
-     * @param gameType 游戏类型
+     * @param playerId           玩家ID
+     * @param gameType           游戏类型
      * @param effectiveWaterFlow 有效流水
-     * @param winValue 增加的钱
-     * @param coinId   货币id
+     * @param winValue           增加的钱
+     * @param coinId             货币id
      */
     public void triggerSettlementAction(long playerId, int gameType, long effectiveWaterFlow, long winValue, int coinId) {
         try {

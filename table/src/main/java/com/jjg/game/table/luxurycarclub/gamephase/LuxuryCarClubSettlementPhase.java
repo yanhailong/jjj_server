@@ -1,6 +1,7 @@
 package com.jjg.game.table.luxurycarclub.gamephase;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.EGameType;
@@ -24,6 +25,8 @@ import com.jjg.game.table.luxurycarclub.data.LuxuryCarClubGameDataVo;
 import com.jjg.game.table.luxurycarclub.message.LuxuryCarClubMessageBuilder;
 import com.jjg.game.table.luxurycarclub.message.NotifyLuxuryCarClubSettlement;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 /**
@@ -40,7 +43,20 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
-        WinPosWeightCfg winPosWeightCfg = randomRewardCfgByWeight();
+        WinPosWeightCfg winPosWeightCfg = null;
+        long currentPool = canTriggerRecycling();
+        if (currentPool > 0) {
+            WinPosWeightCfg result = generateRecyclingResults();
+            if (result == null) {
+                log.error("豪车俱乐部回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            } else {
+                winPosWeightCfg = result;
+                log.info("豪车俱乐部回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            }
+        }
+        if (winPosWeightCfg == null) {
+            winPosWeightCfg = randomRewardCfgByWeight();
+        }
         // 获取区域所有的权重值
         int clientShowPosId = winPosWeightCfg.getWinPosID();
         // 对应的下注区域ID
@@ -64,7 +80,9 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
                 continue;
             }
             if (!playerBetInfo.containsKey(betAreaId)) {
-                BetDataTrackLogUtils.recordBetLog(new SettlementData(), gamePlayer, gameController, playerBetInfo);
+                SettlementData settlementData = new SettlementData();
+                BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameController, playerBetInfo);
+                settlementDataMap.put(playerId, settlementData);
                 continue;
             }
             List<Integer> playerBetArea = playerBetInfo.get(betAreaId);
@@ -82,9 +100,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
                 BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
             }
             // 给玩家添加金币
-            gameController.addItem(
-                    gamePlayer.getId(), playerSettlementData.getTotalWin(),
-                    AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+            gameController.addItem(gamePlayer.getId(), playerSettlementData.getTotalWin(), AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
             playerChangedGold.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
             playerChangedGolds.add(playerChangedGold);
             if (changeParam != null) {
@@ -98,6 +114,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             calculationFinalBankerChange(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);
         }
+        dealRoomPool(settlementDataMap);
         // 场上玩家金币变化
         settlement.settlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
@@ -117,6 +134,54 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
         // 保存记录
         gameDataVo.setAnimalsSettlementInfo(settlement.settlementInfo);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
+    }
+
+    private WinPosWeightCfg generateRecyclingResults() {
+        Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo = gameDataVo.getRealPlayerBetInfo();
+        if (realPlayerBetInfo == null) {
+            return null;
+        }
+        // 获取区域所有的权重值
+        Map<Integer, WinPosWeightCfg> winPosWeightCfgMap = GameDataManager.getWinPosWeightCfgMap();
+        List<WinPosWeightCfg> winPosWeightCfgList = winPosWeightCfgMap.values().stream().filter(w -> w.getGameID() == EGameType.LUXURY_CAR_CLUB.getGameTypeId()).toList();
+        List<WinPosWeightCfg> keys = new ArrayList<>(winPosWeightCfgList);
+        Collections.shuffle(keys);
+        for (WinPosWeightCfg winPosWeightCfg : keys) {
+            long totalWin = 0;
+            long totalLose = 0;
+            for (Map.Entry<Long, Map<Integer, List<Integer>>> mapEntry : realPlayerBetInfo.entrySet()) {
+                SettlementData settlementData = new SettlementData();
+                List<Integer> betAreas = winPosWeightCfg.getBetArea();
+                if (betAreas == null || betAreas.isEmpty()) {
+                    continue;
+                }
+                for (Integer betAreaId : betAreas) {
+                    Map<Integer, List<Integer>> playerBetInfo = mapEntry.getValue();
+                    if (!playerBetInfo.containsKey(betAreaId)) {
+                        continue;
+                    }
+                    List<Integer> playerBetGoldList = playerBetInfo.get(betAreaId);
+                    // 玩家总押注
+                    long playerBetGoldTotal = playerBetGoldList.stream().mapToInt(Integer::intValue).sum();
+                    SettlementData calcGold = calcGold(null, winPosWeightCfg.getOdds(), winPosWeightCfg.getReturnRate(), winPosWeightCfg, playerBetGoldTotal);
+                    settlementData.increaseBySettlementData(calcGold);
+                }
+                settlementData.setBetTotal(mapEntry.getValue().values().stream()
+                        .mapToLong(a -> a.stream().mapToInt(b -> b).sum())
+                        .sum());
+                totalLose += settlementData.getTotalWin() + settlementData.getTaxation();
+                BigDecimal totalGet = BigDecimal.valueOf(settlementData.getBetTotal() - settlementData.getBankerWind())
+                        .multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getWinRatio())))
+                        .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
+                totalWin += settlementData.getBankerWind() + totalGet.longValue();
+            }
+            if (totalWin > 0 && totalWin >= totalLose) {
+                System.out.println("totalWin " + totalWin + " totalLose " + totalLose + " key " + JSONObject.toJSONString(winPosWeightCfg));
+                return winPosWeightCfg;
+            }
+
+        }
+        return null;
     }
 
     /**
@@ -150,4 +215,6 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
     public boolean equals(Object o) {
         return super.equals(o);
     }
+
+
 }
