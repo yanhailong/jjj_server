@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/12/2 17:37
  */
 @Component
-@MessageType(MessageConst.MessageTypeDef.BASKETBALL_SUPERSTAR)
+@MessageType(MessageConst.MessageTypeDef.STEAM_AGE)
 public class SteamAgeMessageHandler {
     private Logger log = LoggerFactory.getLogger(getClass());
 

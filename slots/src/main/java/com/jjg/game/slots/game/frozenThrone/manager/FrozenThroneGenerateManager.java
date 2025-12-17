@@ -14,6 +14,7 @@ import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneAwardLineInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneResultLib;
 import com.jjg.game.slots.game.superstar.data.SuperStarAwardLineInfo;
 import com.jjg.game.slots.game.thor.data.ThorAwardLineInfo;
+import com.jjg.game.slots.game.wealthgod.data.WealthGodAwardLineInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
@@ -36,7 +37,9 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
     @Override
     protected FrozenThroneAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
         FrozenThroneAwardLineInfo awardLineInfo = new FrozenThroneAwardLineInfo();
-        awardLineInfo.addSameIconIndexSet(baseIconId);
+        Set<Integer> icons = new HashSet<>();
+        icons.addAll(baseLineCfg.getPosLocation());
+        awardLineInfo.setSameIconSet(icons);
         awardLineInfo.setSameIcon(rewardCfg.getElementId().getFirst() % 10);
         awardLineInfo.setLineId(baseLineCfg.getLineId());
         awardLineInfo.setBaseTimes(rewardCfg.getBet());

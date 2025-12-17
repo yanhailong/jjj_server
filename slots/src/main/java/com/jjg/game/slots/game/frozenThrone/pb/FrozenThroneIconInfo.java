@@ -2,6 +2,8 @@ package com.jjg.game.slots.game.frozenThrone.pb;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.slots.game.wealthgod.pb.WealthGodIconChangeInfo;
+import com.jjg.game.slots.game.wealthgod.pb.WealthGodResultLineInfo;
 
 import java.util.List;
 

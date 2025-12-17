@@ -10,8 +10,7 @@ import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 import com.jjg.game.slots.game.steamAge.data.*;
-import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
-import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
+
 import com.jjg.game.slots.game.steamAge.data.SteamAgeAddFreeInfo;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeAwardLineInfo;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeResultLib;
@@ -142,9 +141,9 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
             int[] newArr = new int[arr.length];
             System.arraycopy(arr, 0, newArr, 0, arr.length);
 
-            if (lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
+            if (lib.getAwardLineInfoList() != null && !lib.getAwardLineInfoList().isEmpty()) {
                 lib.getLibTypeSet().forEach(type -> {
-                    //是否有消除
+                    //是否新增列
                     repairIcons(type, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
                 });
             }
@@ -281,7 +280,10 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
         addIconInfo.setAwardLineInfoList(newAwardInfoList);
         addIconInfoList.add(addIconInfo);
 
-        repairIcons(libType, arr, newAwardInfoList, addIconInfoList, winCount);
+        if (newAwardInfoList != null && !newAwardInfoList.isEmpty()) {
+            repairIcons(libType, arr, newAwardInfoList, addIconInfoList, winCount);
+        }
+
     }
 
     private void resetLineRewardTimes(int libType, int winCount, List<SteamAgeAwardLineInfo> list) {
@@ -305,10 +307,12 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
     public void processIcons(int libType, int winTimes, int[] arr,
                              List<Integer> addIconList) {
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-
-
+        //jackPool 玩法其实免费转 默认 1
+        if (libType == SteamAgeConstant.SpecialMode.JACKPOOL) {
+            libType = 1;
+        }
         if (steamAgeExpandRollerInfoMap.get(libType) == null || steamAgeExpandRollerInfoMap.get(libType).get(winTimes) == null) {
-            return;
+            throw new RuntimeException(libType + ":玩法" + winTimes + ":赢次数，SpecialPlay.xlsx 配置没有");
         }
         SteamAgeExpandRollerInfo steamAgeExpandRollerInfo = steamAgeExpandRollerInfoMap.get(libType).get(winTimes);
         BaseRollerCfg baseRollerCfg = GameDataManager.getBaseRollerCfg(steamAgeExpandRollerInfo.getRollerId());
@@ -317,8 +321,8 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
         int last = baseRollerCfg.getAxleCountScope().get(1) - 1;
         int scopeIndex = RandomUtils.randomMinMax(first, last);
 
-        int[] newArr = new int[arr.length];
-        System.arraycopy(arr, 0, newArr, 0, arr.length);
+        int[] bakArr = new int[arr.length];
+        System.arraycopy(arr, 0, bakArr, 0, arr.length);
 //        for (int i = 0; i < addIconList.size(); i++) {
 //            newArr[i] = addIconList.get(i);
 //        }
@@ -326,115 +330,44 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
         for (int i = 0; i < arr.length; i++) {
             //第一列是补充的新图标
             if (i > 4) {
-                newArr[i] = arr[i - 4];
+                arr[i] = bakArr[i - 4];
             }
         }
+        //根据权重是否中奖
+        int weight = steamAgeExpandRollerInfo.getWeight();
+        Random random = new Random();
+        int randomNumber = random.nextInt(10000);
+
         //100次确认是否权重中奖，权重不一致弹出
         for (int i = 0; i < 100; i++) {
-            //根据权重是否中奖
-            int weight = steamAgeExpandRollerInfo.getWeight();
-            Random random = new Random();
-            int randomNumber = random.nextInt(10000);
-            //中奖
-            if (weight >= randomNumber){
-
-            }
-
-
-                // 补充新图标 只补充第一列
-                for (int j = 1; j <= baseInitCfg.getRows(); j++) {
-                    if (scopeIndex > last) {
-                        scopeIndex = first;
-                    }
-
-                    int index = j;
-                    int elementId = baseRollerCfg.getElements().get(scopeIndex);
-                    newArr[index] = elementId;
-                    addIconList.add(elementId);
-                    log.debug("补充新图标 index = {}, icon = {}", index, elementId);
-
-                    scopeIndex++;
+            addIconList.clear();
+            // 补充新图标 只补充第一列
+            for (int j = 1; j <= baseInitCfg.getRows(); j++) {
+                if (scopeIndex > last) {
+                    scopeIndex = first;
                 }
+                int index = j;
+                int elementId = baseRollerCfg.getElements().get(scopeIndex);
+                arr[index] = elementId;
+                addIconList.add(elementId);
+                log.debug("补充新图标 index = {}, icon = {}", index, elementId);
+                scopeIndex++;
+            }
+            log.debug("weight >= randomNumber {} ,weight {},randomNumber {}", weight >= randomNumber, weight, randomNumber);
+            if (weight >= randomNumber) {
+                List<SteamAgeAwardLineInfo> steamAgeAwardLineInfos = fullLine(arr);
+                if (steamAgeAwardLineInfos != null && !steamAgeAwardLineInfos.isEmpty()) {
+                    break;
+                }
+            } else {
+                List<SteamAgeAwardLineInfo> steamAgeAwardLineInfos = fullLine(arr);
+                if (steamAgeAwardLineInfos == null || steamAgeAwardLineInfos.isEmpty()) {
+                    break;
+                }
+            }
         }
 
-
-        arr = newArr;
-        log.info("新增列 变newArr{}", JSONObject.toJSONString(newArr));
-
-//        //拷贝数组
-//        int[] newArr = new int[arr.length];
-//        System.arraycopy(arr, 0, newArr, 0, arr.length);
-//        for (int i = 0; i < addIconList.size(); i++) {
-//            newArr[i] = addIconList.get(i);
-//        }
-
-
-//        int rollerId = steamAgeExpandRollerInfo.getRollerId();
-//        int rows = baseInitCfg.getRows();
-//
-//
-//        //这一列开始坐标
-//        int beginIndex = (colIndex - 1) * rows + 1;
-//        //这一列结束坐标
-//        int endIndex = beginIndex + rows - 1;
-//
-//        //找到这一列，消除后应该剩余的图标
-//        List<Integer> validIndexes = new ArrayList<>(baseInitCfg.getRows() - removedIndexes.size());
-//        for (int i = beginIndex; i <= endIndex; i++) {
-//            int icon = arr[i];
-//            if (removedIndexes.contains(i)) {
-//                //判断消除的图标是不是金色图标
-//                if (icon >= SteamAgeConstant.BaseElement.GOLD_MIN && icon <= SteamAgeConstant.BaseElement.GOLD_MAX) {
-//                    Integer replaceIcon = this.replaceIconMap.get(icon);
-//                    if (replaceIcon != null) {
-//                        validIndexes.add(replaceIcon);
-//                    }
-//                }
-//            } else {
-//                validIndexes.add(icon);
-//            }
-//            arr[i] = -1;
-//        }
-//
-//        validIndexes = validIndexes.reversed();
-//
-//        //将剩余的图标重新填充回去
-//        int curIndex = endIndex;
-//        for (int i = 0; i < validIndexes.size(); i++) {
-//            arr[curIndex] = validIndexes.get(i);
-//            curIndex--;
-//        }
-//
-////        System.out.println("消除后打印 ");
-////        printResult(arr);
-//
-//        Map<Integer, BaseRollerCfg> rollerCfgMap = this.baseRollerCfgMap.entrySet().stream().findFirst().get().getValue();
-//        BaseRollerCfg baseRollerCfg = rollerCfgMap.get(colIndex);
-//
-//        int first = baseRollerCfg.getAxleCountScope().get(0) - 1;
-//        int last = baseRollerCfg.getAxleCountScope().get(1) - 1;
-//        int scopeIndex = RandomUtils.randomMinMax(first, last);
-//
-//        // 从顶部开始补充新图标
-//        for (int i = 0; i < baseInitCfg.getRows(); i++) {
-//            if (scopeIndex > last) {
-//                scopeIndex = first;
-//            }
-//            int index = beginIndex + i;
-//            int oldIcon = arr[index];
-//            if (oldIcon > 0) {
-//                continue;
-//            }
-//
-//            int elementId = baseRollerCfg.getElements().get(scopeIndex);
-//            arr[index] = elementId;
-//            addIconMap.put(index, elementId);
-//            log.debug("补充新图标 index = {}, icon = {}", index, elementId);
-//
-//            scopeIndex++;
-//        }
-
-
+        log.info("新增列 变newArr{}", JSONObject.toJSONString(arr));
     }
 
 
@@ -461,6 +394,9 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
         lib.addTimes(calAfterAddIcons(lib.getAddIconInfos()));
         //免费
         lib.addTimes(calFree(lib));
+
+        log.info("lib = {}", JSONObject.toJSONString(lib));
+        log.info("times = {}", JSONObject.toJSONString(lib.getTimes()));
     }
 
     /**

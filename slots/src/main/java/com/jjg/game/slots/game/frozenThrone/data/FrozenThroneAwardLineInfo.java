@@ -25,11 +25,6 @@ public class FrozenThroneAwardLineInfo extends AwardLineInfo {
     private int lineId;
 
 
-    public int getSameCount() {
-        return sameIconSet == null ? 0 : sameIconSet.size();
-    }
-
-
     public int getLineId() {
         return lineId;
     }
@@ -61,13 +56,5 @@ public class FrozenThroneAwardLineInfo extends AwardLineInfo {
 
     public void setSameIcon(int sameIcon) {
         this.sameIcon = sameIcon;
-    }
-
-    public void addSameIconIndexSet(int icon) {
-
-        if (sameIconSet == null) {
-            sameIconSet = new HashSet<>();
-        }
-        sameIconSet.add(icon);
     }
 }

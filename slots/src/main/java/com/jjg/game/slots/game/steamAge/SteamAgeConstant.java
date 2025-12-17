@@ -24,10 +24,10 @@ public interface SteamAgeConstant {
     }
 
     interface Common{
-        int MINI_POOL_ID = 102500101;
-        int MINOR_POOL_ID = 102500102;
-        int MAJOR_POOL_ID = 102500103;
-        int GRAND_POOL_ID = 102500104;
+        int MINI_POOL_ID = 102300101;
+        int MINOR_POOL_ID = 102300102;
+        int MAJOR_POOL_ID = 102300103;
+        int GRAND_POOL_ID = 102300104;
     }
 
     interface Status{
