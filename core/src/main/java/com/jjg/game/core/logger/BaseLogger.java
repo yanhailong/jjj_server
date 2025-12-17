@@ -572,10 +572,10 @@ public class BaseLogger {
             json.put("rewardsType", rewardsType);
             json.put("functionType", 1);
             if (rewards != null) {
-                json.put("rewards", JSON.toJSONString(rewards, SerializerFeature.WriteNonStringKeyAsString));
+                json.put("rewards", objectMapper.writeValueAsString(rewards));
             }
             if (result != null) {
-                json.put("result", JSON.toJSONString(result, SerializerFeature.WriteNonStringKeyAsString));
+                json.put("result", objectMapper.writeValueAsString(result));
             }
             json.put("addExp", addExp);
             json.put("vipLevel", player.getVipLevel());
