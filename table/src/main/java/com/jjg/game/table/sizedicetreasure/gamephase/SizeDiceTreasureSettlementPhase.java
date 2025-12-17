@@ -37,7 +37,20 @@ public class SizeDiceTreasureSettlementPhase extends BaseDiceSettlementPhase<Siz
     public void phaseDoAction() {
         super.phaseDoAction();
         // 随机3个1-6的骰子点数
-        List<Integer> randomNumDice = DiceUtils.randomDice(3, 1, 6);
+        List<Integer> randomNumDice = null;
+        long currentPool = canTriggerRecycling();
+        if (currentPool > 0) {
+            List<Integer> result = generateRecyclingResults(3, 1, 6, EGameType.SIZE_DICE_TREASURE);
+            if (result == null) {
+                log.error("大小骰宝回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            } else {
+                randomNumDice = result;
+                log.info("大小骰宝回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            }
+        }
+        if (randomNumDice == null) {
+            randomNumDice = DiceUtils.randomDice(3, 1, 6);
+        }
         // 通过骰子点数获取对应的配置
         List<WinPosWeightCfg> winPosWeightCfgs =
             DiceDataHolder.getWinPosWeightCfg(EGameType.SIZE_DICE_TREASURE, randomNumDice);

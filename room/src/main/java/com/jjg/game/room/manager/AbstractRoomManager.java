@@ -271,7 +271,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             log.error("通过房间ID：{} 获取房间为空, 房间类型：{} 房间配置ID：{}", roomId, roomType, roomCfgId);
             return null;
         }
-
         // 按道理房间不会有玩家
         if (existedRoom.getRoomPlayers() != null && !existedRoom.getRoomPlayers().isEmpty()) {
             log.error("初始化新房间中,有玩家：{}",

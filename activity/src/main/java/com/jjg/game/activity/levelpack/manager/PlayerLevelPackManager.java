@@ -379,7 +379,8 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         }
 
         coreSendMessageManager.buildBaseInfoChangeMessage(player);
-        activityLogger.level(player, oldLevel, newLevel, items, result);
+        activityLogger.level(player, oldLevel, newLevel, items, result
+        );
     }
 
     @Override

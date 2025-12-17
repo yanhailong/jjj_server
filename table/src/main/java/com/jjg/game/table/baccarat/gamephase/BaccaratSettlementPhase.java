@@ -1,8 +1,10 @@
 package com.jjg.game.table.baccarat.gamephase;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -25,6 +27,8 @@ import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 /**
@@ -35,6 +39,7 @@ import java.util.*;
 public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDataVo> {
 
     private static final Logger log = LoggerFactory.getLogger(BaccaratSettlementPhase.class);
+    private static final List<Integer> WIN_STATE = List.of(1, 2, 3);
 
     public BaccaratSettlementPhase(BaseTableGameController<BaccaratGameDataVo> gameController) {
         super(gameController);
@@ -43,8 +48,21 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
+        List<Byte> cardList = null;
+        long currentPool = canTriggerRecycling();
+        if (currentPool > 0) {
+            List<Byte> bytes = generateRecyclingResults();
+            if (bytes == null) {
+                log.error("百家乐奖池回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            } else {
+                cardList = bytes;
+                log.info("百家乐奖池回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            }
+        }
+        if (cardList == null) {
+            cardList = gameDataVo.getCardList();
+        }
         // 进行结算
-        ArrayList<Byte> cardList = gameDataVo.getCardList();
         BaccaratSettlementInfo baccaratSettlementInfo = new BaccaratSettlementInfo();
         // 初始闲家和庄家手牌
         baccaratSettlementInfo.playerCardIds = new ArrayList<>();
@@ -85,15 +103,13 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, baccaratSettlementInfo);
         List<PlayerChangedGold> playerChangedGolds = new ArrayList<>(changedGolds.values());
         NotifyBaccaratSettlementInfo baccaratTableInfo =
-                BaccaratMessageBuilder.buildNotifySettlementMessage(
-                        gameController, gameDataVo, playerChangedGolds, baccaratSettlementInfo);
+                BaccaratMessageBuilder.buildNotifySettlementMessage(gameController, gameDataVo, playerChangedGolds, baccaratSettlementInfo);
         // 将结算信息写入到场上，方便中途加入的玩家读取
         gameDataVo.setBaccaratSettlementInfo(baccaratTableInfo);
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             // 获取每个玩家的信息
-            baccaratTableInfo.baccaratTableInfo.tableAreaInfos =
-                    BaccaratMessageBuilder.buildPlayerBetInfo(
-                            baccaratTableInfo.baccaratTableInfo, gameDataVo, entry.getKey());
+            baccaratTableInfo.baccaratTableInfo.tableAreaInfos = BaccaratMessageBuilder.buildPlayerBetInfo(baccaratTableInfo.baccaratTableInfo,
+                    gameDataVo, entry.getKey());
             //log.debug("玩家：{} 结算数据: {}", entry.getKey(), JSON.toJSONString(baccaratTableInfo));
             PlayerChangedGold changedGold = changedGolds.get(entry.getKey());
             // 玩家有赢钱且大于0
@@ -105,8 +121,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 entry.getValue().getTableGameData().addBetRecord(0);
             }
             // 向每个玩家发送通知消息
-            broadcastBuilderToRoom(
-                    RoomMessageBuilder.newBuilder().setData(baccaratTableInfo).setPlayerIds(Collections.singleton(entry.getKey())));
+            broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(baccaratTableInfo).setPlayerIds(Collections.singleton(entry.getKey())));
             if (gameDataVo.getPlayerBetInfo().containsKey(entry.getKey())) {
                 gameDataTracker.addPlayerLogData(
                         entry.getValue(), DataTrackNameConstant.AREA_DATA,
@@ -139,7 +154,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         return gameDataVo.isFillCard() ? super.getPhaseRunTime() + 1 : super.getPhaseRunTime();
     }
 
-    private byte removeFirst(ArrayList<Byte> cardList) {
+    private byte removeFirst(List<Byte> cardList) {
         return cardList.removeFirst();
     }
 
@@ -229,6 +244,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             calculationFinalBankerChange(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);
         }
+        dealRoomPool(settlementDataMap);
         // 处理庄家输赢金币
         return playerChangedGolds;
     }
@@ -346,6 +362,216 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         return pokerPointId >= PokerCardUtils.POKER_POINT_J ? 0 : pokerPointId;
     }
 
+
+    private List<Byte> generateRecyclingResults() {
+        //1.庄赢  2.闲赢 3.和
+        Map<Long, Map<Integer, List<Integer>>> playerBetInfo = gameDataVo.getRealPlayerBetInfo();
+        if (CollectionUtil.isEmpty(playerBetInfo)) {
+            return null;
+        }
+        Map<Integer, WinPosWeightCfg> weightCfgMap =
+                GameDataManager.getWinPosWeightCfgList()
+                        .stream()
+                        .filter(cfg -> cfg.getGameID() == EGameType.BACCARAT.getGameTypeId())
+                        .collect(HashMap::new, (map, cfg) -> map.put(cfg.getWinPosID(), cfg), HashMap::putAll);
+        List<Integer> tempWinState = new ArrayList<>(WIN_STATE);
+        Collections.shuffle(tempWinState);
+        for (Integer winState : tempWinState) {
+            long totalWin = 0;
+            long totalLose = 0;
+            for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : playerBetInfo.entrySet()) {
+                Map<Integer, List<Integer>> betValueList = entry.getValue();
+                for (Map.Entry<Integer, List<Integer>> areaBet : betValueList.entrySet()) {
+                    long areaTotal = areaBet.getValue().stream().mapToInt(Integer::intValue).sum();
+                    SettlementData settlementData = null;
+                    switch (areaBet.getKey()) {
+                        case 2:
+                            if (winState == 3) {
+                                settlementData = calcGold(null, weightCfgMap.get(areaBet.getKey()), areaTotal);
+                            }
+                            break;
+                        case 4:
+                            if (winState == 2) {
+                                settlementData = calcGold(null, weightCfgMap.get(areaBet.getKey()), areaTotal);
+                            }
+                            break;
+                        case 5:
+                            if (winState == 1) {
+                                settlementData = calcGold(null, weightCfgMap.get(areaBet.getKey()), areaTotal);
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                    if (settlementData == null) {
+                        BigDecimal multiAdd = BigDecimal.valueOf(areaTotal).multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getWinRatio())))
+                                .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
+                        totalWin += multiAdd.longValue();
+                    } else {
+                        totalLose += settlementData.getBetWin();
+                    }
+                }
+            }
+            if (totalLose < totalWin) {
+                // 1：庄赢，2：闲赢，3：和
+                // 1闲对 2庄对 3都有
+                int[] indexCardArr = findCardIds(gameDataVo.getCardList(), winState);
+                if (indexCardArr != null) {
+                    List<Byte> cardList = new ArrayList<>();
+                    for (int i : indexCardArr) {
+                        if (i >= 0) {
+                            cardList.add(gameDataVo.getCardList().get(i));
+                        }
+                    }
+                    Arrays.sort(indexCardArr);
+                    for (int i = indexCardArr.length - 1; i >= 0; i--) {
+                        int index = indexCardArr[i];
+                        if (index >= 0) {
+                            gameDataVo.getCardList().remove(index);
+                        }
+                    }
+                    if (!cardList.isEmpty()) {
+                        return cardList;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 找到符合获胜状态的牌 id
+     *
+     * @param cardIds  临时牌 ID
+     * @param winState 获胜状态
+     * @return 生成的牌 ID
+     */
+    private int[] findCardIds(List<Byte> cardIds, int winState) {
+        //点数->位置索引
+        Map<Byte, List<Integer>> pointIdMap = new HashMap<>();
+        for (int i = 0; i < cardIds.size(); i++) {
+            int pointId = PokerCardUtils.getPointId(cardIds.get(i)) % 10;
+            pointIdMap.computeIfAbsent((byte) pointId, k -> new ArrayList<>()).add(i);
+        }
+        //多次循环遍历寻找符合条件的
+        //临时map
+        byte[] cardArr;
+        int[] indexCardArr = new int[6];
+        List<Byte> keysList1 = new ArrayList<>(pointIdMap.keySet());
+        List<Byte> keysList2 = new ArrayList<>(pointIdMap.keySet());
+        List<Byte> keysList3 = new ArrayList<>(pointIdMap.keySet());
+        List<Byte> keysList4 = new ArrayList<>(pointIdMap.keySet());
+        List<Byte> keysList5 = new ArrayList<>(pointIdMap.keySet());
+        List<Byte> keysList6 = new ArrayList<>(pointIdMap.keySet());
+        Collections.shuffle(keysList1);
+        Collections.shuffle(keysList2);
+        Collections.shuffle(keysList3);
+        Collections.shuffle(keysList4);
+        Collections.shuffle(keysList5);
+        Collections.shuffle(keysList6);
+        for (Byte key1 : keysList1) {
+            cardArr = new byte[6];
+            Arrays.fill(indexCardArr, -1);
+            Integer index = pointIdMap.get(key1).getFirst();
+            indexCardArr[0] = index;
+            cardArr[0] = key1;
+            for (Byte key2 : keysList2) {
+                if (pointIdMap.get(key2).isEmpty() || cardArr[0] == key2) {
+                    continue;
+                }
+                int index1 = getIndex(pointIdMap.get(key2), indexCardArr);
+                if (index1 == -1) {
+                    continue;
+                }
+                cardArr[1] = key2;
+                indexCardArr[1] = index1;
+                for (Byte key3 : keysList3) {
+                    if (pointIdMap.get(key3).isEmpty() || cardArr[1] == key3) {
+                        continue;
+                    }
+                    int index2 = getIndex(pointIdMap.get(key3), indexCardArr);
+                    if (index2 == -1) {
+                        continue;
+                    }
+                    indexCardArr[2] = index2;
+                    cardArr[2] = key3;
+                    for (Byte key4 : keysList4) {
+                        if (pointIdMap.get(key4).isEmpty() || cardArr[2] == key4) {
+                            continue;
+                        }
+                        int index3 = getIndex(pointIdMap.get(key4), indexCardArr);
+                        if (index3 == -1) {
+                            continue;
+                        }
+                        indexCardArr[3] = index3;
+                        cardArr[3] = key4;
+                        //判断需要补牌不
+                        // 检查闲家是否补牌
+                        int frist = (cardArr[0] + cardArr[1]) % 10;
+                        int second = (cardArr[2] + cardArr[3]) % 10;
+                        if (frist < 8 && checkNeedFillCard(List.of(cardArr[2], cardArr[3]), true, (byte) 0)) {
+                            for (Byte key5 : keysList5) {
+                                if (pointIdMap.get(key5).isEmpty()) {
+                                    continue;
+                                }
+                                int index4 = getIndex(pointIdMap.get(key5), indexCardArr);
+                                if (index4 == -1) {
+                                    continue;
+                                }
+                                indexCardArr[4] = index4;
+                                cardArr[4] = key5;
+                            }
+                        }
+                        // 检查庄家是否补牌
+                        if (second < 8 && checkNeedFillCard(List.of(cardArr[0], cardArr[1]), false, cardArr[4])) {
+                            for (Byte key6 : keysList6) {
+                                if (pointIdMap.get(key6).isEmpty()) {
+                                    continue;
+                                }
+                                int index5 = getIndex(pointIdMap.get(key6), indexCardArr);
+                                if (index5 == -1) {
+                                    continue;
+                                }
+                                indexCardArr[5] = index5;
+                                cardArr[5] = key6;
+                            }
+                        }
+                        //计算结果
+                        frist = (cardArr[0] + cardArr[1] + cardArr[5]) % 10;
+                        second = (cardArr[2] + cardArr[3] + cardArr[4]) % 10;
+                        if (frist > second && winState == 1) {
+                            return indexCardArr;
+                        }
+                        if (frist < second && winState == 2) {
+                            return indexCardArr;
+                        }
+                        if (frist == second && winState == 3) {
+                            return indexCardArr;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private int getIndex(List<Integer> indexList, int[] indexCardArr) {
+        int index = -1;
+        for (Integer tempIndex1 : indexList) {
+            boolean flag = false;
+            for (int oldIndex : indexCardArr) {
+                if (oldIndex == tempIndex1) {
+                    flag = true;
+                    break;
+                }
+            }
+            if (!flag) {
+                return tempIndex1;
+            }
+        }
+        return index;
+    }
+
     @Override
     public boolean equals(Object o) {
         return super.equals(o);
@@ -355,4 +581,6 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     public int hashCode() {
         return super.hashCode();
     }
+
+
 }

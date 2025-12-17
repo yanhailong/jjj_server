@@ -925,6 +925,7 @@ public class FriendRoomServices {
                             dataEntity.setAliasName(updateFriendRoom.roomAliasName);
                         }
                         dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum() + updateFriendRoom.predictCostGoldNum);
+                        dataEntity.setPool(dataEntity.getPool() + updateFriendRoom.predictCostGoldNum);
                         dataEntity.setAutoRenewal(updateFriendRoom.autoRenewal);
                         if (finalAddTime > 0) {
                             long curTime = System.currentTimeMillis();

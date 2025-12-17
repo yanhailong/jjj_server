@@ -38,6 +38,8 @@ public class FriendRoom extends Room {
     protected long creatorIncome;
     // 房间是否处于游戏中
     protected boolean inGaming;
+    //标准池
+    protected long pool;
 
     /**
      * 场上是否有庄家
@@ -65,6 +67,14 @@ public class FriendRoom extends Room {
             return 0L;
         }
         return bankerPredicateMap.firstEntry().getValue();
+    }
+
+    public long getPool() {
+        return pool;
+    }
+
+    public void setPool(long pool) {
+        this.pool = pool;
     }
 
     /**
@@ -200,6 +210,7 @@ public class FriendRoom extends Room {
             log.info("增加房间准备金：{} 剩余：{}", addValue, predictCostGoldNum);
         } else {
             Long addAfter = bankerPredicateMap.merge(bankerInf.getKey(), addValue, Long::sum);
+            pool += addValue;
             log.info("增加庄家:{} 准备金：{} 剩余：{} ", bankerInf.getKey(), addValue, addAfter);
         }
     }
