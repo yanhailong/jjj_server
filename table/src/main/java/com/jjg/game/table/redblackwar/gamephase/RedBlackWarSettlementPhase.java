@@ -55,7 +55,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
     public void phaseDoAction() {
         super.phaseDoAction();
         //根据牌型获得牌
-        List<Integer> joker = PokerCardUtils.getPokerIntIdExceptJoker();
+        List<Integer> joker = null;
         long currentPool = canTriggerRecycling();
         if (currentPool > 0) {
             List<Integer> result = generateRecyclingResults();
