@@ -245,7 +245,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     /**
      * 添加系统配置邮件
      */
-    public void addCfgMail(
+    public Mail addCfgMail(
             long playerId, int titleLanId, int contentId, List<Item> items, List<LanguageParamData> params) {
         LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, "");
         LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, "");
@@ -259,32 +259,33 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         mailDao.save(mail);
         //邮件变化时通知客户端刷新小红点
         redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, 1);
+        return mail;
     }
 
 
     /**
      * 添加系统配置邮件
      */
-    public void addCfgMail(long playerId, int mailCfgId) {
+    public Mail addCfgMail(long playerId, int mailCfgId) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), Collections.emptyList(), Collections.emptyList());
+        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), Collections.emptyList(), Collections.emptyList());
     }
 
     /**
      * 添加系统配置邮件
      */
-    public void addCfgMail(long playerId, int mailCfgId, List<Item> items) {
+    public Mail addCfgMail(long playerId, int mailCfgId, List<Item> items) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, Collections.emptyList());
+        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, Collections.emptyList());
     }
 
 
     /**
      * 添加系统配置邮件
      */
-    public void addCfgMail(long playerId, int mailCfgId, List<Item> items, List<LanguageParamData> params) {
+    public Mail addCfgMail(long playerId, int mailCfgId, List<Item> items, List<LanguageParamData> params) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, params);
+        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, params);
     }
 
 
