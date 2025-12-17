@@ -249,8 +249,8 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
         }
         AbstractRoomDao<? extends Room, ? extends RoomPlayer> roomDao = gameController.getRoomController().getRoomDao();
         Room_BetCfg roomCfg = gameDataVo.getRoomCfg();
-        long roomPool = 0;
-        long basePool = 0;
+        Long roomPool = null;
+        Long basePool = null;
         if (roomDao instanceof TableRoomDao tableRoomDao) {
             roomPool = tableRoomDao.getRoomPool(roomCfg.getGameID(), roomCfg.getId(), roomCfg.getInitBasePool());
             basePool = roomCfg.getInitBasePool();
@@ -266,13 +266,13 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
                 }
             }
         }
-        if (roomPool == 0 || basePool == 0) {
+        if (roomPool == null) {
             return 0;
         }
         int pro = BigDecimal.valueOf(10000)
                 .subtract(BigDecimal.valueOf(10000)
-                        .multiply(BigDecimal.valueOf(roomPool))
-                        .divide(BigDecimal.valueOf(basePool), 0, RoundingMode.DOWN))
+                        .multiply(BigDecimal.valueOf(Math.max(roomPool, 1)))
+                        .divide(BigDecimal.valueOf(Math.max(basePool, 1)), 0, RoundingMode.DOWN))
                 .intValue();
         if (RandomUtils.getRandomNumInt10000() <= pro) {
             return roomPool;
