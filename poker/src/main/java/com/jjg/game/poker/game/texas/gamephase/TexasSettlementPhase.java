@@ -220,8 +220,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 // 添加账单记录
                 settlementDataMap.put(
                         playerId, settlementDataMap.getOrDefault(playerId, new SettlementData())
-                                .increaseBySettlementData(new SettlementData(
-                                        afterRatio, bet, totalGet, bet, tempTotalGet.longValue() - afterRatio)));
+                                .increaseBySettlementData(new SettlementData(afterRatio, totalGet, bet, tempTotalGet.longValue() - afterRatio)));
                 if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(1);
                 }
@@ -245,7 +244,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
 
     /**
      * 添加房主记录
-     * @param controller 游戏控制器
+     *
+     * @param controller        游戏控制器
      * @param settlementDataMap 结算数据
      */
     private void addCreateRecord(TexasGameController controller, Map<Long, SettlementData> settlementDataMap) {
@@ -371,8 +371,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         // 添加账单记录
         settlementDataMap.put(
                 playerId, settlementDataMap.getOrDefault(playerId, new SettlementData())
-                        .increaseBySettlementData(new SettlementData(
-                                get, allBet, beforeRatio, allBet, beforeRatio - get)));
+                        .increaseBySettlementData(new SettlementData(get, beforeRatio, allBet, beforeRatio - get)));
 
         addCreateRecord(controller, settlementDataMap);
         pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);

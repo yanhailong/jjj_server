@@ -1,5 +1,7 @@
 package com.jjg.game.table.redblackwar.gamephase;
 
+import cn.hutool.core.util.RandomUtil;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.Card;
@@ -23,12 +25,11 @@ import com.jjg.game.table.redblackwar.message.bean.RedBlackWarHistory;
 import com.jjg.game.table.redblackwar.message.resp.NotifyRedBlackWarSettleInfo;
 import com.jjg.game.table.redblackwar.room.data.RedBlackWarGameDataVo;
 import com.jjg.game.table.redblackwar.util.CardComparatorUtil;
+import com.jjg.game.table.redblackwar.util.PokerHandGenerator;
 import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -55,7 +56,20 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         super.phaseDoAction();
         //根据牌型获得牌
         List<Integer> joker = PokerCardUtils.getPokerIntIdExceptJoker();
-        Collections.shuffle(joker);
+        long currentPool = canTriggerRecycling();
+        if (currentPool > 0) {
+            List<Integer> result = generateRecyclingResults();
+            if (result == null) {
+                log.error("红黑大战回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            } else {
+                joker = result;
+                log.info("红黑大战回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            }
+        }
+        if (joker == null) {
+            joker = PokerCardUtils.getPokerIntIdExceptJoker();
+            Collections.shuffle(joker);
+        }
         //取红方的牌
         List<Card> redCard = joker.subList(0, 3).stream().map(Card::new).collect(Collectors.toList());
         if (Objects.nonNull(gameDataVo.getRed()) && gameDataVo.getRed().size() == 3) {
@@ -115,31 +129,17 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     if (gamePlayer == null) {
                         continue;
                     }
-                    //返还押分
-                    BigDecimal backBet = BigDecimal.valueOf(totalBet)
-                            .multiply(BigDecimal.valueOf(cfg.getReturnRate()))
-                            .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
-                    //总获得
-                    BigDecimal canGetBigDecimal = backBet.multiply(BigDecimal.valueOf(cfg.getOdds()))
-                            .divide(BigDecimal.valueOf(100), 4, RoundingMode.DOWN);
-                    long canGet = canGetBigDecimal.longValue();
-                    if (cfg.getIsRatio() == 1) {
-                        canGet = canGetBigDecimal.multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getEffectiveRatio()))
-                                .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN).longValue();
-                    }
-                    canGet += backBet.longValue();
-                    // 给玩家添加金币
-                    gameController.addItem(gamePlayer.getId(), canGet, AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
-                    DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
-                    keyValue.setKey(keyValue.getKey() + totalBet);
-                    keyValue.setValue(keyValue.getValue() + canGet);
-                    SettlementData settlementData = new SettlementData(canGet - backBet.longValue(), backBet.longValue(), canGet, totalBet,
-                            canGetBigDecimal.longValue() + backBet.longValue() - canGet);
+                    SettlementData settlementData = calcGold(gamePlayer, cfg.getOdds(), cfg.getReturnRate(), cfg, totalBet);
                     if (!settlementDataMap.containsKey(playerId)) {
                         settlementDataMap.put(playerId, settlementData);
                     } else {
                         settlementDataMap.get(playerId).increaseBySettlementData(settlementData);
                     }
+                    // 给玩家添加金币
+                    gameController.addItem(gamePlayer.getId(), settlementData.getTotalWin(), AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+                    DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
+                    keyValue.setKey(keyValue.getKey() + totalBet);
+                    keyValue.setValue(keyValue.getValue() + settlementData.getTotalWin());
                 }
                 if (changeParam != null) {
                     changeParam.removeArea(betAreaCfg.getId());
@@ -155,6 +155,14 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
             calculationFinalBankerChange(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);
         }
+        //计算所有玩家的结算信息
+        for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : gameDataVo.getPlayerBetInfo().entrySet()) {
+            SettlementData data = settlementDataMap.computeIfAbsent(entry.getKey(), key -> new SettlementData());
+            data.setBetTotal(entry.getValue().values().stream()
+                    .mapToLong(a -> a.stream().mapToInt(b -> b).sum())
+                    .sum());
+        }
+        dealRoomPool(settlementDataMap);
         //通知
         int winState = result > 0 ? 1 : 2;
         NotifyRedBlackWarSettleInfo settleInfo = new NotifyRedBlackWarSettleInfo();
@@ -183,6 +191,94 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         }
         //发送通知
         broadcastMsgToRoom(settleInfo);
+    }
+
+    private List<Integer> generateRecyclingResults() {
+        //根据结果生成排序
+        Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo = gameDataVo.getRealPlayerBetInfo();
+        if (realPlayerBetInfo == null) {
+            return null;
+        }
+        //根据4种情况生成牌 0 有幸运 1没幸运
+        List<Integer> cardList = new ArrayList<>(PokerCardUtils.getPokerIntIdExceptJoker());
+        for (int i = 0; i < 2; i++) {
+            List<Card> tempCard1 = null;
+            List<Card> tempCard2 = null;
+            switch (i) {
+                case 0 -> {
+                    //有幸运
+                    int rank = RandomUtil.randomInt(2, 7);
+                    HandType handType = HandType.getHandType(rank);
+                    tempCard1 = new ArrayList<>(PokerHandGenerator.dealHand(handType, cardList));
+                    rank = RandomUtil.randomInt(2, 7);
+                    handType = HandType.getHandType(rank);
+                    tempCard2 = new ArrayList<>(PokerHandGenerator.dealHand(handType, cardList));
+
+                }
+                case 1 -> {
+                    //没幸运
+                    tempCard1 = new ArrayList<>(PokerHandGenerator.dealHand(HandType.HIGH_CARD, cardList));
+                    tempCard2 = new ArrayList<>(PokerHandGenerator.dealHand(HandType.HIGH_CARD, cardList));
+                }
+
+            }
+            //取一方的牌
+            Card[] redCardArr = tempCard1.toArray(CardComparatorUtil.SAMPLE);
+            //牌型
+            HandType redHandType = CardComparatorUtil.getCardType(redCardArr);
+            //取另一方的牌
+            Card[] blackCardArr = tempCard2.toArray(CardComparatorUtil.SAMPLE);
+            //黑方牌型
+            HandType blackHandType = CardComparatorUtil.getCardType(blackCardArr);
+            //比较牌大小
+            int result = CardComparatorUtil.compareCards(redHandType, redCardArr, blackHandType, blackCardArr);
+            Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> winMap = redBlackWarSampleManager.getWinMap();
+            List<WinPosWeightCfg> weightCfgList;
+            for (int j = 0; j < 2; j++) {
+                if (j > 0) {
+                    weightCfgList = winMap.get(RedBlackWarConstant.Camp.RED).get(redHandType);
+                } else {
+                    weightCfgList = winMap.get(RedBlackWarConstant.Camp.BLACK).get(blackHandType);
+                }
+                List<WinPosWeightCfg> keySet = new ArrayList<>(weightCfgList);
+                //没有幸运一击删掉
+                if (i != 0) {
+                    keySet.removeIf(cfg -> {
+                        BetAreaCfg betAreaCfg = redBlackWarSampleManager.getBetAreaMap().get(cfg.getBetArea().getFirst());
+                        return betAreaCfg.getAreaID() == RedBlackWarConstant.Common.LUCK_AREA;
+                    });
+                }
+                Pair<Long, Long> generateResultResult = getWinOrLoseResult(realPlayerBetInfo, keySet);
+                if (generateResultResult.getFirst() > 0 && generateResultResult.getFirst() >= generateResultResult.getSecond()) {
+                    List<Integer> list = new ArrayList<>(6);
+                    //前面的大
+                    if (result > 0) {
+                        if (j == 0) {
+                            //黑方胜利
+                            list.addAll(tempCard2.stream().map(Card::getValue).toList());
+                            list.addAll(tempCard1.stream().map(Card::getValue).toList());
+                        } else {
+                            list.addAll(tempCard1.stream().map(Card::getValue).toList());
+                            list.addAll(tempCard2.stream().map(Card::getValue).toList());
+                        }
+                        return list;
+                    } else {
+                        if (j == 0) {
+                            //黑方胜利
+                            list.addAll(tempCard1.stream().map(Card::getValue).toList());
+                            list.addAll(tempCard2.stream().map(Card::getValue).toList());
+
+                        } else {
+                            list.addAll(tempCard2.stream().map(Card::getValue).toList());
+                            list.addAll(tempCard1.stream().map(Card::getValue).toList());
+                        }
+                        return list;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     @Override

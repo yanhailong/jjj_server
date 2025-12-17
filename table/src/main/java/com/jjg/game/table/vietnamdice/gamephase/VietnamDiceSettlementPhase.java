@@ -38,35 +38,47 @@ public class VietnamDiceSettlementPhase extends BaseDiceSettlementPhase<VietnamD
     public void phaseDoAction() {
         super.phaseDoAction();
         // 随机四个1-2的骰子点数
-        List<Integer> randomNumDice = DiceUtils.randomDice(4, 1, 2);
+        List<Integer> randomNumDice = null;
+        long currentPool = canTriggerRecycling();
+        if (currentPool > 0) {
+            List<Integer> result = generateRecyclingResults(4, 1, 2, EGameType.VIETNAM_DICE);
+            if (result == null) {
+                log.error("越南色碟回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            } else {
+                randomNumDice = result;
+                log.info("越南色碟回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            }
+        }
+        if (randomNumDice == null) {
+            randomNumDice = DiceUtils.randomDice(4, 1, 2);
+        }
         // 通过骰子点数获取对应的配置
-        List<WinPosWeightCfg> winPosWeightCfgs =
-            DiceDataHolder.getWinPosWeightCfg(EGameType.VIETNAM_DICE, randomNumDice);
+        List<WinPosWeightCfg> winPosWeightCfgs = DiceDataHolder.getWinPosWeightCfg(EGameType.VIETNAM_DICE, randomNumDice);
         if (winPosWeightCfgs == null || winPosWeightCfgs.isEmpty()) {
             log.error("越南色碟结算异常，随机奖励的区域为空，骰子：{}", randomNumDice);
             return;
         }
         // 中奖的区域列表
         List<BetAreaCfg> betAreaCfgs =
-            winPosWeightCfgs.stream()
-                .map(WinPosWeightCfg::getBetArea)
-                .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll)
-                .stream()
-                .distinct()
-                .map(a -> GameDataManager.getBetAreaCfg((Integer) a)).toList();
+                winPosWeightCfgs.stream()
+                        .map(WinPosWeightCfg::getBetArea)
+                        .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll)
+                        .stream()
+                        .distinct()
+                        .map(a -> GameDataManager.getBetAreaCfg((Integer) a)).toList();
         log.debug("{} 摇中越南骰子：{}, 区域ID: {} 对应的中奖区域：{}",
-            gameDataVo.roomLogInfo(),
-            randomNumDice.stream().map(dice -> dice == 2 ? "红" : "黑").collect(Collectors.joining("")),
-            winPosWeightCfgs.stream().map(WinPosWeightCfg::getId).collect(Collectors.toList()),
-            betAreaCfgs.stream().map(BetAreaCfg::getId).map(String::valueOf).collect(Collectors.joining(",")));
+                gameDataVo.roomLogInfo(),
+                randomNumDice.stream().map(dice -> dice == 2 ? "红" : "黑").collect(Collectors.joining("")),
+                winPosWeightCfgs.stream().map(WinPosWeightCfg::getId).collect(Collectors.toList()),
+                betAreaCfgs.stream().map(BetAreaCfg::getId).map(String::valueOf).collect(Collectors.joining(",")));
         // 添加中奖记录
         VietnamDiceHistoryBean historyBean = addVietnamDiceHistory(randomNumDice, betAreaCfgs);
         gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, historyBean);
         NotifyVietnamDiceSettlement settlement =
-            VietnamDiceMessageBuilder.notifyVietnamDiceSettlement(historyBean);
+                VietnamDiceMessageBuilder.notifyVietnamDiceSettlement(historyBean);
         // 构建结算信息
         settlement.settlementInfo.diceSettlementInfo =
-            BaseDiceMessageBuilder.buildDiceSettlementInfo(gameDataVo);
+                BaseDiceMessageBuilder.buildDiceSettlementInfo(gameDataVo);
         // 通用骰子结算逻辑
         settlementDice(settlement.settlementInfo.diceSettlementInfo, winPosWeightCfgs, settlement);
         log.debug("越南色碟房间：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));

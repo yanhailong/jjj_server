@@ -8,33 +8,32 @@ package com.jjg.game.room.data.room;
 public class SettlementData {
     // 玩家压分的净赢值
     private long betWin;
-    // 返还压分
-    private long betReturn;
     // 赢的总值
     private long totalWin;
-    // 压的总值
+    // 压的总值 必须自己设置值
     private long betTotal;
     // 税收
     private long taxation;
+    //庄家实际赢的值
+    private long bankerWind;
 
     public SettlementData() {
     }
 
-    public SettlementData(long betWin, long betReturn, long totalWin, long betTotal, long taxation) {
+    public SettlementData(long betWin, long totalWin, long betTotal, long taxation) {
         this.betWin = betWin;
-        this.betReturn = betReturn;
         this.totalWin = totalWin;
         this.betTotal = betTotal;
         this.taxation = taxation;
+        if (betWin > 0) {
+            this.bankerWind += betTotal;
+        }
     }
 
     public long getBetWin() {
         return betWin;
     }
 
-    public long getBetReturn() {
-        return betReturn;
-    }
 
     public long getTotalWin() {
         return totalWin;
@@ -57,10 +56,13 @@ public class SettlementData {
      */
     public SettlementData increaseBySettlementData(SettlementData settlementData) {
         this.betWin += settlementData.betWin;
-        this.betReturn += settlementData.betReturn;
         this.totalWin += settlementData.totalWin;
-        this.betTotal += settlementData.betTotal;
         this.taxation += settlementData.taxation;
+        this.bankerWind += settlementData.bankerWind;
         return this;
+    }
+
+    public long getBankerWind() {
+        return bankerWind;
     }
 }

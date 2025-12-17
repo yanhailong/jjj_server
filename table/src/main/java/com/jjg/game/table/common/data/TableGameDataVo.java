@@ -1,6 +1,8 @@
 package com.jjg.game.table.common.data;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.sampledata.GameDataManager;
@@ -31,6 +33,21 @@ public class TableGameDataVo extends GameDataVo<Room_BetCfg> {
 
     public Map<Long, Map<Integer, List<Integer>>> getPlayerBetInfo() {
         return playerBetInfo;
+    }
+
+    public Map<Long, Map<Integer, List<Integer>>> getRealPlayerBetInfo() {
+        Map<Long, Map<Integer, List<Integer>>> bet = new HashMap<>();
+        for (GamePlayer gamePlayer : getGamePlayerMap().values()) {
+            if (gamePlayer instanceof GameRobotPlayer) {
+                continue;
+            }
+            Map<Integer, List<Integer>> map = playerBetInfo.get(gamePlayer.getId());
+            if (CollectionUtil.isEmpty(map)) {
+                continue;
+            }
+            bet.put(gamePlayer.getId(), map);
+        }
+        return bet;
     }
 
     public void updatePlayerBetInfo(long playerId, Map<Integer, List<Integer>> betInfo) {
