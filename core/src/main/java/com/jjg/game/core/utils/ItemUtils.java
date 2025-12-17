@@ -1,6 +1,8 @@
 package com.jjg.game.core.utils;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Item;
@@ -222,5 +224,39 @@ public class ItemUtils {
         Map<Integer, Long> map = new HashMap<>(itemsMap);
         itemsMap.forEach((key, value) -> map.put(key, value * count));
         return map;
+    }
+
+    public static JSONArray itemMapToJsonArray(Map<Integer, Long> items) {
+        if (items == null || items.isEmpty()) {
+            return null;
+        }
+        JSONArray jsonArray = new JSONArray();
+
+        for (Map.Entry<Integer, Long> en : items.entrySet()) {
+            jsonArray.add(itemToJson(en.getKey(), en.getValue()));
+        }
+        return jsonArray;
+    }
+
+    public static JSONArray itemToJsonArray(int id, long count) {
+        JSONArray jsonArray = new JSONArray();
+        jsonArray.add(itemToJson(id, count));
+        return jsonArray;
+    }
+
+    public static JSONObject itemToJson(int id, long count) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("itemId", id);
+        jsonObject.put("count", count);
+        return jsonObject;
+    }
+
+    public static JSONArray itemListToJson(List<Item> items) {
+        if(items == null || items.isEmpty()) {
+            return null;
+        }
+        JSONArray jsonArray = new JSONArray();
+        items.forEach(item -> jsonArray.add(itemToJson(item.getId(), item.getItemCount())));
+        return jsonArray;
     }
 }
