@@ -198,7 +198,7 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
         }
         if (gameController.getRoom() instanceof FriendRoom room) {
             Map.Entry<Long, Long> longLongEntry = room.getBankerPredicateMap().firstEntry();
-            if (longLongEntry == null) {
+            if (longLongEntry != null) {
                 return;
             }
         }
