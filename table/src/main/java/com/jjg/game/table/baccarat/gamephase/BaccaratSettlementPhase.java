@@ -48,7 +48,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
-        List<Byte> cardList = gameDataVo.getCardList();
+        List<Byte> cardList = null;
         long currentPool = canTriggerRecycling();
         if (currentPool > 0) {
             List<Byte> bytes = generateRecyclingResults();
@@ -58,6 +58,9 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 cardList = bytes;
                 log.info("百家乐奖池回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
             }
+        }
+        if (cardList == null) {
+            cardList = gameDataVo.getCardList();
         }
         // 进行结算
         BaccaratSettlementInfo baccaratSettlementInfo = new BaccaratSettlementInfo();
