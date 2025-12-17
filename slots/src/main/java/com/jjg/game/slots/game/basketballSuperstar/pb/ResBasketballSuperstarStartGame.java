@@ -35,7 +35,7 @@ public class ResBasketballSuperstarStartGame extends AbstractResponse {
     @ProtoDesc("经验")
     public long exp;
     @ProtoDesc("中奖图标信息")
-    public BasketballSuperstarIconInfo rewardIconInfo;
+    public List<BasketballSuperstarIconInfo> rewardIconInfo;
     @ProtoDesc("免费转，随机图标 变成 wild 图标id  没开启默认为0")
     public int stickyIcon;
     @ProtoDesc("免费转，需要变成wild的 格子id 并保留到下一次免费转")

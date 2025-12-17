@@ -154,26 +154,22 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
      * @param oneBetScore
      * @return
      */
-    private BasketballSuperstarIconInfo addRewardIcons(int[] arr, List<BasketballSuperstarAwardLineInfo> awardLineInfoList, long oneBetScore) {
+    private List<BasketballSuperstarIconInfo> addRewardIcons(int[] arr, List<BasketballSuperstarAwardLineInfo> awardLineInfoList, long oneBetScore) {
         if (awardLineInfoList == null || awardLineInfoList.isEmpty()) {
             return null;
         }
-
-        BasketballSuperstarIconInfo iconInfo = new BasketballSuperstarIconInfo();
-
-        Set<Integer> indexSet = new HashSet<>();
-        Set<Integer> winIconSet = new HashSet<>();
-        Set<Integer> replaceWildIndexs = new HashSet<>();
+        List<BasketballSuperstarIconInfo> iconInfos = new ArrayList<>();
 
         awardLineInfoList.forEach(info -> {
-            indexSet.addAll(info.getSameIconSet());
-            winIconSet.add(info.getSameIcon());
-            iconInfo.win += info.getBaseTimes() * oneBetScore;
+            BasketballSuperstarIconInfo iconInfo = new BasketballSuperstarIconInfo();
+            List<Integer> iconIndexs = new ArrayList<>();
+            iconIndexs.addAll(info.getSameIconSet());
+            iconInfo.iconIndexs =iconIndexs;
+            iconInfo.winIcons = info.getSameIcon();
+            iconInfo.win = info.getBaseTimes() * oneBetScore;
+            iconInfos.add(iconInfo);
         });
-
-        iconInfo.iconIndexs = new ArrayList<>(indexSet);
-        iconInfo.winIcons = new ArrayList<>(winIconSet);
-        return iconInfo;
+        return iconInfos;
     }
 
 
