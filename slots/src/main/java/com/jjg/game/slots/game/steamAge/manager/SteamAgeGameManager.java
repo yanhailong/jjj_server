@@ -279,7 +279,7 @@ public class SteamAgeGameManager extends AbstractSlotsGameManager<SteamAgePlayer
 
     @Override
     public int getGameType() {
-        return CoreConst.GameType.FROZEN_THRONE;
+        return CoreConst.GameType.STEAM_AGE;
     }
 
     @Override
