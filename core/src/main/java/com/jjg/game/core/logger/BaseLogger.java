@@ -1,6 +1,5 @@
 package com.jjg.game.core.logger;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
@@ -254,8 +253,9 @@ public class BaseLogger {
      * @param player
      * @param beforeLevel
      * @param level
+     * @param result
      */
-    public void level(Player player, int beforeLevel, int level, List<ItemInfo> items) {
+    public void level(Player player, int beforeLevel, int level, List<ItemInfo> items, CommonResult<ItemOperationResult> result) {
         if (player instanceof RobotPlayer) {
             return;
         }
@@ -263,7 +263,9 @@ public class BaseLogger {
             JSONObject json = new JSONObject();
             json.put("beforeLevel", beforeLevel);
             json.put("currentLevel", level);
-
+            if (result != null) {
+                json.put("result", objectMapper.writeValueAsString(result.data));
+            }
             if (items != null && !items.isEmpty()) {
                 JSONArray jsonArray = new JSONArray();
                 items.forEach(item -> {
@@ -588,7 +590,7 @@ public class BaseLogger {
     /**
      * 房间操作日志
      */
-    public void roomOperate(FriendRoom friendRoom, int operateType, int operateTimeLen, Map<Integer,Long> spendItemMap, Map<Integer,Long> remainItemMap) {
+    public void roomOperate(FriendRoom friendRoom, int operateType, int operateTimeLen, Map<Integer, Long> spendItemMap, Map<Integer, Long> remainItemMap) {
         try {
             JSONObject json = new JSONObject();
             //1.创建房间  2.自动续费  3.手动续费
@@ -605,7 +607,7 @@ public class BaseLogger {
             json.put("spend", ItemUtils.itemMapToJsonArray(spendItemMap));
             //消耗
             json.put("remain", ItemUtils.itemMapToJsonArray(remainItemMap));
-            json.put("playerId",friendRoom.getCreator());
+            json.put("playerId", friendRoom.getCreator());
             sendLog("function", null, json);
         } catch (Exception e) {
             log.error("sendVipLog", e);
@@ -615,7 +617,7 @@ public class BaseLogger {
     /**
      * 房间解散日志
      */
-    public void roomDisband(FriendRoom friendRoom, long mailId,List<Item> returnItems) {
+    public void roomDisband(FriendRoom friendRoom, long mailId, List<Item> returnItems) {
         try {
             JSONObject json = new JSONObject();
             json.put("functionType", 6);
@@ -625,7 +627,7 @@ public class BaseLogger {
             json.put("mailId", mailId);
             //返还道具
             json.put("returnItems", ItemUtils.itemListToJson(returnItems));
-            json.put("playerId",friendRoom.getCreator());
+            json.put("playerId", friendRoom.getCreator());
             sendLog("function", null, json);
         } catch (Exception e) {
             log.error("sendVipLog", e);
