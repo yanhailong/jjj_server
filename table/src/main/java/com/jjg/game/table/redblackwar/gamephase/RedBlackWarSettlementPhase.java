@@ -93,8 +93,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         //押注信息
         Map<Integer, Map<Long, List<Integer>>> betInfo = gameDataVo.getBetInfo();
         boolean luckBet;
-        Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> winMap =
-                redBlackWarSampleManager.getWinMap();
+        Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> winMap = redBlackWarSampleManager.getWinMap();
         Map<Long, DefaultKeyValue<Long, Long>> playerGet = new HashMap<>();
         List<WinPosWeightCfg> weightCfgList;
         if (result > 0) {
@@ -146,7 +145,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                 }
             }
         }
-        //计算最终的bankerChangeGold
+        // 计算最终的bankerChangeGold
         if (changeParam != null) {
             for (SettlementData data : settlementDataMap.values()) {
                 changeParam.addTotalTaxRevenue(data.getTaxation());
@@ -194,91 +193,76 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
     }
 
     private List<Integer> generateRecyclingResults() {
-        //根据结果生成排序
         Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo = gameDataVo.getRealPlayerBetInfo();
         if (realPlayerBetInfo == null) {
             return null;
         }
-        //根据4种情况生成牌 0 有幸运 1没幸运
-        List<Integer> cardList = new ArrayList<>(PokerCardUtils.getPokerIntIdExceptJoker());
-        for (int i = 0; i < 2; i++) {
-            List<Card> tempCard1 = null;
-            List<Card> tempCard2 = null;
-            switch (i) {
-                case 0 -> {
-                    //有幸运
-                    int rank = RandomUtil.randomInt(2, 7);
-                    HandType handType = HandType.getHandType(rank);
-                    tempCard1 = new ArrayList<>(PokerHandGenerator.dealHand(handType, cardList));
-                    rank = RandomUtil.randomInt(2, 7);
-                    handType = HandType.getHandType(rank);
-                    tempCard2 = new ArrayList<>(PokerHandGenerator.dealHand(handType, cardList));
 
-                }
-                case 1 -> {
-                    //没幸运
-                    tempCard1 = new ArrayList<>(PokerHandGenerator.dealHand(HandType.HIGH_CARD, cardList));
-                    tempCard2 = new ArrayList<>(PokerHandGenerator.dealHand(HandType.HIGH_CARD, cardList));
-                }
+        List<Integer> cardPool = PokerCardUtils.getPokerIntIdExceptJoker();
+        // 尝试两种策略：0-生成带幸运牌型，1-仅生成高牌（无幸运）
+        for (int strategy = 0; strategy < 2; strategy++) {
+            List<Card> handA;
+            List<Card> handB;
 
+            if (strategy == 0) {
+                // 策略0：随机生成幸运范围内的牌型 (Rank 2-6)
+                handA = PokerHandGenerator.dealHand(HandType.getHandType(RandomUtil.randomInt(2, 7)), cardPool);
+                handB = PokerHandGenerator.dealHand(HandType.getHandType(RandomUtil.randomInt(2, 7)), cardPool);
+            } else {
+                // 策略1：强制生成高牌
+                handA = PokerHandGenerator.dealHand(HandType.HIGH_CARD, cardPool);
+                handB = PokerHandGenerator.dealHand(HandType.HIGH_CARD, cardPool);
             }
-            //取一方的牌
-            Card[] redCardArr = tempCard1.toArray(CardComparatorUtil.SAMPLE);
-            //牌型
-            HandType redHandType = CardComparatorUtil.getCardType(redCardArr);
-            //取另一方的牌
-            Card[] blackCardArr = tempCard2.toArray(CardComparatorUtil.SAMPLE);
-            //黑方牌型
-            HandType blackHandType = CardComparatorUtil.getCardType(blackCardArr);
-            //比较牌大小
-            int result = CardComparatorUtil.compareCards(redHandType, redCardArr, blackHandType, blackCardArr);
+
+            Card[] cardsA = handA.toArray(CardComparatorUtil.SAMPLE);
+            HandType typeA = CardComparatorUtil.getCardType(cardsA);
+            Card[] cardsB = handB.toArray(CardComparatorUtil.SAMPLE);
+            HandType typeB = CardComparatorUtil.getCardType(cardsB);
+
+            // 比较两手牌的大小
+            int comparison = CardComparatorUtil.compareCards(typeA, cardsA, typeB, cardsB);
             Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> winMap = redBlackWarSampleManager.getWinMap();
-            List<WinPosWeightCfg> weightCfgList;
-            for (int j = 0; j < 2; j++) {
-                if (j > 0) {
-                    weightCfgList = winMap.get(RedBlackWarConstant.Camp.RED).get(redHandType);
-                } else {
-                    weightCfgList = winMap.get(RedBlackWarConstant.Camp.BLACK).get(blackHandType);
-                }
-                List<WinPosWeightCfg> keySet = new ArrayList<>(weightCfgList);
-                //没有幸运一击删掉
-                if (i != 0) {
-                    keySet.removeIf(cfg -> {
-                        BetAreaCfg betAreaCfg = redBlackWarSampleManager.getBetAreaMap().get(cfg.getBetArea().getFirst());
-                        return betAreaCfg.getAreaID() == RedBlackWarConstant.Common.LUCK_AREA;
+            // 轮流假设 A赢 或 B赢，校验系统损益
+            for (int side = 0; side < 2; side++) {
+                HandType winnerType = (side == 0) ? typeB : typeA;
+                RedBlackWarConstant.Camp camp = (side == 0) ? RedBlackWarConstant.Camp.BLACK : RedBlackWarConstant.Camp.RED;
+
+                List<WinPosWeightCfg> weightCfgList = new ArrayList<>(winMap.get(camp).get(winnerType));
+
+                // 如果是非幸运策略，移除幸运区域的权重配置，避免产生意外赔付
+                if (strategy != 0) {
+                    weightCfgList.removeIf(cfg -> {
+                        BetAreaCfg area = redBlackWarSampleManager.getBetAreaMap().get(cfg.getBetArea().getFirst());
+                        return area.getAreaID() == RedBlackWarConstant.Common.LUCK_AREA;
                     });
                 }
-                Pair<Long, Long> generateResultResult = getWinOrLoseResult(realPlayerBetInfo, keySet);
-                if (generateResultResult.getFirst() > 0 && generateResultResult.getFirst() >= generateResultResult.getSecond()) {
-                    List<Integer> list = new ArrayList<>(6);
-                    //前面的大
-                    if (result > 0) {
-                        if (j == 0) {
-                            //黑方胜利
-                            list.addAll(tempCard2.stream().map(Card::getValue).toList());
-                            list.addAll(tempCard1.stream().map(Card::getValue).toList());
-                        } else {
-                            list.addAll(tempCard1.stream().map(Card::getValue).toList());
-                            list.addAll(tempCard2.stream().map(Card::getValue).toList());
-                        }
-                        return list;
-                    } else {
-                        if (j == 0) {
-                            //黑方胜利
-                            list.addAll(tempCard1.stream().map(Card::getValue).toList());
-                            list.addAll(tempCard2.stream().map(Card::getValue).toList());
 
-                        } else {
-                            list.addAll(tempCard2.stream().map(Card::getValue).toList());
-                            list.addAll(tempCard1.stream().map(Card::getValue).toList());
-                        }
-                        return list;
-                    }
+                Pair<Long, Long> result = getWinOrLoseResult(realPlayerBetInfo, weightCfgList);
+                // 校验是否满足系统回收条件 (盈利 > 0 且 满足特定阈值)
+                if (result.getFirst() > 0 && result.getFirst() >= result.getSecond()) {
+                    return assembleResultList(handA, handB, comparison, side);
                 }
             }
         }
-
         return null;
+    }
+    /**
+     * 组装最终发牌顺序：前3张为红方，后3张为黑方
+     * side: 0 代表假设黑方赢, 1 代表假设红方赢
+     * comparison: >0 代表 handA > handB
+     */
+    private List<Integer> assembleResultList(List<Card> handA, List<Card> handB, int comparison, int side) {
+        List<Integer> finalCards = new ArrayList<>(6);
+        // 判定哪一手牌应该是胜者，哪一手应该是败者
+        boolean aShouldWin = (side != 0); // side=1(红) -> A赢; side=0(黑) -> B赢
+        boolean aIsActuallyStronger = (comparison > 0);
+
+        List<Card> redHand = (aShouldWin == aIsActuallyStronger) ? handA : handB;
+        List<Card> blackHand = (aShouldWin == aIsActuallyStronger) ? handB : handA;
+
+        redHand.forEach(c -> finalCards.add(c.getValue()));
+        blackHand.forEach(c -> finalCards.add(c.getValue()));
+        return finalCards;
     }
 
     @Override

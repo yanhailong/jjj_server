@@ -26,7 +26,8 @@ public class TableRoomDao extends AbstractGoldRoomDao<BetTableRoom, RoomPlayer> 
      * @param modifyValue 修改的值
      * @return 修改后的值
      */
-    public long modifyRoomPool(int gameType, int roomCfgId, long modifyValue) {
+    @Override
+    public long modifyRoomPool(int gameType, long roomCfgId, long modifyValue) {
         if (modifyValue == 0) {
             return 0;
         }
@@ -70,7 +71,7 @@ public class TableRoomDao extends AbstractGoldRoomDao<BetTableRoom, RoomPlayer> 
      * @param roomCfgId 房间场次类型
      * @return key
      */
-    private String getRoomPoolKey(int gameType, int roomCfgId) {
+    private String getRoomPoolKey(int gameType, long roomCfgId) {
         return getTableName(gameType) + KEY_NAME.formatted(roomCfgId);
     }
 

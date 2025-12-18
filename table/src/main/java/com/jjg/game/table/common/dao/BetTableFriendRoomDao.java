@@ -32,6 +32,7 @@ public class BetTableFriendRoomDao extends AbstractFriendRoomDao<BetFriendRoom, 
      * @param modifyValue 修改的值
      * @return 修改后的值
      */
+    @Override
     public long modifyRoomPool(int gameType, long roomId, long modifyValue) {
         if (modifyValue == 0) {
             return 0;
@@ -80,4 +81,8 @@ public class BetTableFriendRoomDao extends AbstractFriendRoomDao<BetFriendRoom, 
         return Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(getRoomPoolKey(gameType, roomId), initRoomPool));
     }
 
+    @Override
+    public void removeRoomPool(int gameType, long roomId) {
+        redisTemplate.delete(getRoomPoolKey(gameType, roomId));
+    }
 }

@@ -136,8 +136,10 @@ public enum AddType {
     ROOM_CURRENCY_CHANGE(713),
     //好友房道具收益
     FRIEND_ROOM_INCOME_TAKE_ALL(714),
-
-
+    //好友房游戏结算
+    FRIEND_GAME_SETTLEMENT(715),
+    //好友房游戏押注
+    FRIEND_GAME_BET(716),
     //任务奖励
     TASKAWARD(801),
 
