@@ -7,7 +7,7 @@ import com.jjg.game.common.baselogic.IGameSysFuncInterface;
  * @author lm
  * @date 2025/11/7 14:05
  */
-public interface OnServerAutoShoutDown extends IGameSysFuncInterface {
+public interface OnServerAutoShutDown extends IGameSysFuncInterface {
     /**
      * 是否能退出
      * @return true 能 false不能

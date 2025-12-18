@@ -457,4 +457,25 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         roomPlayer.setPlayerId(playerId);
         return roomPlayer;
     }
+
+    /**
+     * 删除房间奖池
+     *
+     * @param gameType 游戏类型
+     * @param key   key
+     */
+    public void removeRoomPool(int gameType, long key) {
+    }
+
+    /**
+     * 修改房间奖池
+     *
+     * @param gameType    游戏类型
+     * @param key         key
+     * @param modifyValue 修改的值
+     * @return 修改后的值
+     */
+    public long modifyRoomPool(int gameType, long key, long modifyValue) {
+        return 0;
+    }
 }

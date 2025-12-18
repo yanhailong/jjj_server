@@ -24,10 +24,10 @@ public interface BasketballSuperstarConstant {
     }
 
     interface Common{
-        int MINI_POOL_ID = 101700101;
-        int MINOR_POOL_ID = 101700102;
-        int MAJOR_POOL_ID = 101700103;
-        int GRAND_POOL_ID = 101700104;
+        int MINI_POOL_ID = 101800101;
+        int MINOR_POOL_ID = 101800102;
+        int MAJOR_POOL_ID = 101800103;
+        int GRAND_POOL_ID = 101800104;
     }
 
     interface Status{
@@ -35,6 +35,15 @@ public interface BasketballSuperstarConstant {
         int FREE = 1;
     }
 
+    interface BaseElement{
+        int ID_WILD = 11;
+        int ID_SCATTER = 12;
+        int ID_ADDFREEE = 13;
+        int ID_MINI = 14;
+        int ID_MINOR = 15;
+        int ID_MAJOR = 16;
+        int ID_GRAND = 17;
+    }
 
     interface SpecialMode{
         int NORMAL = 1;
@@ -42,10 +51,10 @@ public interface BasketballSuperstarConstant {
         int JACKPOOL = 3;
     }
 
-//    interface SpecialPlay{
-//        //连续中奖倍数
-//        int TYPE_CONSECUTIVE_WINS = 4;
-//        //增加免费次数
-//        int TYPE_ADD_FREE_COUNT = 5;
-//    }
+    interface SpecialPlay{
+        //免费游戏出现在2、3、4、5轴时变成百搭，并一直粘连，直至退出此模式
+        int TYPE_STICKY_WILD= 1;
+        //增加免费次数
+        int TYPE_ADD_FREE_COUNT = 5;
+    }
 }

@@ -14,6 +14,7 @@ import java.util.Map;
  */
 @Repository
 public class HallFriendRoomDao extends AbstractFriendRoomDao<FriendRoom, RoomPlayer> {
+    private final String KEY_NAME = ":friendpool:%s";
 
     public HallFriendRoomDao() {
         super(FriendRoom.class);
@@ -38,5 +39,25 @@ public class HallFriendRoomDao extends AbstractFriendRoomDao<FriendRoom, RoomPla
             }
         }
         return null;
+    }
+
+    @Override
+    public long modifyRoomPool(int gameType, long key, long modifyValue) {
+        if (modifyValue == 0) {
+            return 0;
+        }
+        Long increment = redisTemplate.opsForValue().increment(getRoomPoolKey(gameType, key), modifyValue);
+        return increment == null ? 0 : increment;
+    }
+
+    /**
+     * 获取 redis房间池数据
+     *
+     * @param gameType 游戏类型
+     * @param roomId   房间 id
+     * @return key
+     */
+    private String getRoomPoolKey(int gameType, long roomId) {
+        return getTableName(gameType) + KEY_NAME.formatted(roomId);
     }
 }

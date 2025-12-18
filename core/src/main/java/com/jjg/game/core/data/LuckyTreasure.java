@@ -1,5 +1,6 @@
 package com.jjg.game.core.data;
 
+import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.core.config.bean.LuckyTreasureConfig;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;

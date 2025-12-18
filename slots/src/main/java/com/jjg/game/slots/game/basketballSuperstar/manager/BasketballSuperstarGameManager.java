@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -55,7 +56,7 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
 
     @Override
     public void init() {
-        log.info("启动圣诞狂欢夜游戏管理器...");
+        log.info("启动篮球巨星游戏管理器...");
         super.init();
 
 //        Map<Integer, Integer> map = new HashMap<>();
@@ -235,6 +236,9 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
         gameRunInfo.setStake(betValue);
         gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
         gameRunInfo.setStatus(BasketballSuperstarConstant.Status.NORMAL);
+
+        gameRunInfo.setChangeStickyIconSet(new HashSet<>());
+        gameRunInfo.setStickyIcon(0);
         return gameRunInfo;
     }
 
@@ -273,12 +277,16 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);
         gameRunInfo.setStatus(BasketballSuperstarConstant.Status.FREE);
+
+        gameRunInfo.setChangeStickyIconSet(freeGame.getChangeStickyIconSet());
+        gameRunInfo.setStickyIcon(freeGame.getStickyIcon());
+
         return gameRunInfo;
     }
 
     @Override
     public int getGameType() {
-        return CoreConst.GameType.CHRISTMAS_PARTY;
+        return CoreConst.GameType.BASKETBALL_STAR;
     }
 
     @Override
@@ -346,7 +354,7 @@ public class BasketballSuperstarGameManager extends AbstractSlotsGameManager<Bas
      * @return
      */
     private BasketballSuperstarGameRunInfo jackpool(BasketballSuperstarGameRunInfo gameRunInfo, BasketballSuperstarPlayerGameData playerGameData, BasketballSuperstarResultLib resultLib) {
-        if (!resultLib.getLibTypeSet().contains(ThorConstant.SpecialMode.JACKPOOL)) {
+        if (!resultLib.getLibTypeSet().contains(BasketballSuperstarConstant.SpecialMode.JACKPOOL)) {
             return gameRunInfo;
         }
 

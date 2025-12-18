@@ -1,6 +1,5 @@
 package com.jjg.game.core.logger;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
@@ -254,8 +253,9 @@ public class BaseLogger {
      * @param player
      * @param beforeLevel
      * @param level
+     * @param result
      */
-    public void level(Player player, int beforeLevel, int level, List<ItemInfo> items) {
+    public void level(Player player, int beforeLevel, int level, List<ItemInfo> items, CommonResult<ItemOperationResult> result) {
         if (player instanceof RobotPlayer) {
             return;
         }
@@ -263,7 +263,9 @@ public class BaseLogger {
             JSONObject json = new JSONObject();
             json.put("beforeLevel", beforeLevel);
             json.put("currentLevel", level);
-
+            if (result != null) {
+                json.put("result", objectMapper.writeValueAsString(result.data));
+            }
             if (items != null && !items.isEmpty()) {
                 JSONArray jsonArray = new JSONArray();
                 items.forEach(item -> {
@@ -574,12 +576,13 @@ public class BaseLogger {
             json.put("rewardsType", rewardsType);
             json.put("functionType", 1);
             if (rewards != null) {
-                json.put("rewards", JSON.toJSONString(rewards, SerializerFeature.WriteNonStringKeyAsString));
+                json.put("rewards", objectMapper.writeValueAsString(rewards));
             }
             if (result != null) {
-                json.put("result", JSON.toJSONString(result, SerializerFeature.WriteNonStringKeyAsString));
+                json.put("result", objectMapper.writeValueAsString(result));
             }
             json.put("addExp", addExp);
+            json.put("vipLevel", player.getVipLevel());
             sendLog("function", player, json);
         } catch (Exception e) {
             log.error("sendVipLog", e);

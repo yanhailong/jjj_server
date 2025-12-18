@@ -6,7 +6,7 @@ import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.*;
 import com.jjg.game.common.gate.GateClusterMessageDispatcher;
-import com.jjg.game.common.listener.OnServerAutoShoutDown;
+import com.jjg.game.common.listener.OnServerAutoShutDown;
 import com.jjg.game.common.listener.OnSwitchNode;
 import com.jjg.game.common.message.SwitchNodeMessage;
 import com.jjg.game.common.net.NetAddress;
@@ -681,8 +681,8 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
             log.info("节点权重={},当前session数量={}", nodeConfig.weight, clusterSessionSize());
             if (nodeConfig.waitClose() && sessionMap.isEmpty()) {
                 boolean canExit = true;
-                List<OnServerAutoShoutDown> gameSysInterface = SystemInterfaceHolder.getGameSysInterface(OnServerAutoShoutDown.class);
-                for (OnServerAutoShoutDown shout : gameSysInterface) {
+                List<OnServerAutoShutDown> gameSysInterface = SystemInterfaceHolder.getGameSysInterface(OnServerAutoShutDown.class);
+                for (OnServerAutoShutDown shout : gameSysInterface) {
                     try {
                         boolean temp = shout.canExit();
                         canExit &= temp;

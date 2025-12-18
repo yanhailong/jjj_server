@@ -129,7 +129,7 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
-
+            res.freeModeTotalReward = gameRunInfo.getFreeModeTotalReward();
             logger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("[Wealth Bank] 开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
@@ -233,7 +233,10 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
      * @return
      */
     private List<Integer> highlight(ResWealthBankStartGame res, WealthBankGameRunInfo gameRunInfo) {
-        if (res.status == WealthBankConstant.Status.NORMAL) {  //普通
+        if (res.status == WealthBankConstant.Status.NOTMAL_ALL_BOARD || res.status == WealthBankConstant.Status.GOLD_ALL_BOARD) {  //二选一
+            //找出所有的all board图标
+            return getIconIndex(gameRunInfo, false, false, false, true);
+        } else {
             //普通火车
             boolean normalTrain = res.wealthBankTrainInfoList != null && res.wealthBankTrainInfoList.stream().anyMatch(trainInfo -> generateManager.trainId(trainInfo.type));
             //黄金列车
@@ -242,11 +245,7 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
             boolean safeBox = res.wealthBankDollarsInfo != null && res.wealthBankDollarsInfo.coinIndexId > 0;
             //找出所有的all board图标
             return getIconIndex(gameRunInfo, normalTrain, goldTrain, safeBox, false);
-        } else if (res.status == WealthBankConstant.Status.NOTMAL_ALL_BOARD || res.status == WealthBankConstant.Status.GOLD_ALL_BOARD) {  //二选一
-            //找出所有的all board图标
-            return getIconIndex(gameRunInfo, false, false, false, true);
         }
-        return null;
     }
 
     /**

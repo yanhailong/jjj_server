@@ -5,6 +5,7 @@ import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.friendroom.AbstractFriendRoomController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
+import com.jjg.game.table.common.dao.BetTableFriendRoomDao;
 
 
 /**
@@ -16,6 +17,15 @@ public class TableFriendRoomController extends AbstractFriendRoomController<Room
 
     public TableFriendRoomController(Class<? extends RoomPlayer> roomPlayerClazz, BetFriendRoom room) {
         super(roomPlayerClazz, room);
+    }
+
+    public void onFriendRoomCreate() {
+        if (getRoomDao() instanceof BetTableFriendRoomDao dao) {
+            boolean roomPoolKey = dao.setRoomPoolKey(room.getGameType(), room.getId(), room.getPool());
+            if (!roomPoolKey) {
+                log.error("好友房初始化房间池失败，gameType: {}, roomId: {}", room.getGameType(), room.getId());
+            }
+        }
     }
 
     @Override

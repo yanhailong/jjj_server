@@ -48,8 +48,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.openxmlformats.schemas.drawingml.x2006.main.STTextTabAlignType.L;
-
 /**
  * 夺宝奇兵管理器
  */
@@ -297,9 +295,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         int buyCountPr = RandomUtils.randomMinMax(robotSinglePurchase.getFirst(), robotSinglePurchase.getLast());
         //当前总购买数量
         int totalBuy = (int) (((double) buyCountPr / 10000) * total);
-        //机器人购买数量
+        //已经购买数
         int soldCount = treasureDetails.getSoldCount();
-        //购买数量超出限制
         if (soldCount + totalBuy > limitCount) {
             return;
         }
@@ -310,7 +307,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         if (resultCode == Code.SUCCESS) {
             //购买成功通知更新 广播到所有节点
             luckyTreasureService.broadcastUpdate(latestTreasure.getIssueNumber());
-            //购买成功的话继续添加定时器
+            //购买失败的话继续添加定时器
             addRobotBuyTimer(treasureDetails);
         }
     }
@@ -805,6 +802,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 //发送邮件奖励
                 mailService.addCfgMail(player.getId(), mailCfg.getTitle(), mailCfg.getText(), ItemUtils.buildItemList(config.getItemId(), config.getItemNum()), Collections.emptyList());
             }
+
         }
         //更新状态
         luckyTreasure.setStatus(LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE);

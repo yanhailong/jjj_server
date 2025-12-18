@@ -1,9 +1,12 @@
 package com.jjg.game.slots.game.basketballSuperstar.data;
 
 import com.jjg.game.slots.data.SlotsResultLib;
+import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAddIconInfo;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author lihaocao
@@ -15,6 +18,26 @@ public class BasketballSuperstarResultLib extends SlotsResultLib<BasketballSuper
     private int jackpotId;
     //增加的免费次数
     private int addFreeCount;
+    //根据权重选取 变成wild 图标 免费转结束，才取消
+    private int stickyIcon;
+    //免费转  图标变成wild  变化的图案， key -> 图标id
+    private Set<Integer> changeStickyIconSet;
+
+    public Set<Integer> getChangeStickyIconSet() {
+        return changeStickyIconSet;
+    }
+
+    public void setChangeStickyIconSet(Set<Integer> changeStickyIconSet) {
+        this.changeStickyIconSet = changeStickyIconSet;
+    }
+
+    public int getStickyIcon() {
+        return stickyIcon;
+    }
+
+    public void setStickyIcon(int stickyIcon) {
+        this.stickyIcon = stickyIcon;
+    }
 
     public int getJackpotId() {
         return jackpotId;

@@ -65,7 +65,7 @@ public class DiceDataHolder implements ConfigExcelChangeListener {
     /**
      * 构建骰子类配置tree
      */
-    private static void buildDiceTreeBySampleData() {
+    public static void buildDiceTreeBySampleData() {
         log.info("构建骰子类奖励树");
         ROOT_NODES.clear();
         Map<EGameType, DiceMetaData> diceGameTypes = getDiceGameConfig();

@@ -15,8 +15,6 @@ public class BasketballSuperstarAwardLineInfo extends AwardLineInfo {
     private Set<Integer> sameIconSet;
     //元素id
     private int sameIcon;
-    //替换成wild的坐标
-    private Set<Integer> replaceWildIndexs;
 
     public int getBaseTimes() {
         return baseTimes;
@@ -42,11 +40,4 @@ public class BasketballSuperstarAwardLineInfo extends AwardLineInfo {
         this.sameIcon = sameIcon;
     }
 
-    public Set<Integer> getReplaceWildIndexs() {
-        return replaceWildIndexs;
-    }
-
-    public void setReplaceWildIndexs(Set<Integer> replaceWildIndexs) {
-        this.replaceWildIndexs = replaceWildIndexs;
-    }
 }

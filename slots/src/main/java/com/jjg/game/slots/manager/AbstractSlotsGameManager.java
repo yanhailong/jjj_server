@@ -707,6 +707,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     public void shutdown() {
         this.gameDataMap.forEach((k, v) -> {
             v.forEach((k1, v1) -> {
+                onAutoExitAction(v1);
                 offlineSaveGameDataDto(v1);
             });
         });

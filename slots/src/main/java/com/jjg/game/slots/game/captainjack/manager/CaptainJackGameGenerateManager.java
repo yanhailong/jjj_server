@@ -69,9 +69,8 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
         }
         Set<Integer> libTypeSet = lib.getLibTypeSet();
         int[] arr = lib.getIconArr();
-        List<SpecialGirdInfo> specialGirdInfoList = lib.getSpecialGirdInfoList();
         //获取每个图标出现的次数
-        Map<Integer, Integer> showCountMap = checkIconShowCount(arr);
+        Map<Integer, Set<Integer>> showCountMap = checkIconShowIndex(arr);
         log.debug("检查全局分散");
         //小游戏
         List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = new ArrayList<>();
@@ -80,13 +79,14 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
 
             //检查出现的个数是否满足
             int elementsCount = 0;
+            Set<Integer> indexSet = null;
             for (int iconId : cfg.getElementId()) {
-                Integer count = showCountMap.get(iconId);
-                if (count != null) {
-                    elementsCount += count;
+                indexSet = showCountMap.get(iconId);
+                if (indexSet != null) {
+                    elementsCount += indexSet.size();
                 }
             }
-            if (elementsCount != cfg.getRewardNum()) {
+            if (indexSet == null || elementsCount != cfg.getRewardNum()) {
                 continue;
             }
             if (lib.getJackpotId() > 0 && lib.getJackpotId() != cfg.getJackpotID()) {
@@ -97,10 +97,16 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
             if (cfg.getJackpotID() > 0) {
                 lib.setJackpotId(cfg.getJackpotID());
             }
+
             //是否触发小游戏
             if (CollectionUtil.isEmpty(cfg.getFeatureTriggerId())) {
                 continue;
             }
+            CaptainJackAwardLineInfo captainJackAwardLineInfo = new CaptainJackAwardLineInfo();
+            captainJackAwardLineInfo.setBaseTimes(0);
+            captainJackAwardLineInfo.setSameIconSet(indexSet);
+            captainJackAwardLineInfo.setSameIcon(cfg.getElementId().getFirst());
+            lib.addAwardLineInfo(captainJackAwardLineInfo);
             Integer icon = cfg.getElementId().getFirst();
             cfg.getFeatureTriggerId().forEach(miniGameId -> {
                 if (libTypeSet == null) {
@@ -177,6 +183,7 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
 
     /**
      * 触发探宝小游戏
+     *
      * @param lib
      */
     private void triggerTreasureHuntMiniGame(CaptainJackResultLib lib, int specialAuxiliaryId) {

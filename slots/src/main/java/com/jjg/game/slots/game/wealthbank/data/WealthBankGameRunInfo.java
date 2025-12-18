@@ -33,7 +33,8 @@ public class WealthBankGameRunInfo extends GameRunInfo<WealthBankPlayerGameData>
     private List<Integer> choosableAreas;
     //地图
     private boolean allAreaUnLock;
-
+    //免费游戏累计金额
+    private long freeModeTotalReward;
     //奖池金额
     private long mini;
     private long minor;
@@ -46,6 +47,14 @@ public class WealthBankGameRunInfo extends GameRunInfo<WealthBankPlayerGameData>
 
     public List<WealthBankResultLineInfo> getAwardLineInfos() {
         return awardLineInfos;
+    }
+
+    public long getFreeModeTotalReward() {
+        return freeModeTotalReward;
+    }
+
+    public void setFreeModeTotalReward(long freeModeTotalReward) {
+        this.freeModeTotalReward = freeModeTotalReward;
     }
 
     public void setAwardLineInfos(List<WealthBankResultLineInfo> awardLineInfos) {

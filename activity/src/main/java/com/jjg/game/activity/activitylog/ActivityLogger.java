@@ -13,6 +13,7 @@ import com.jjg.game.core.logger.BaseLogger;
 import com.jjg.game.sampledata.bean.FirstpaymentCfg;
 import com.jjg.game.sampledata.bean.PlayerLevelPackCfg;
 import com.jjg.game.sampledata.bean.PrivilegeCardCfg;
+import org.springframework.scheduling.Trigger;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -230,20 +231,21 @@ public class ActivityLogger extends BaseLogger {
      *
      * @param player       玩家数据
      * @param activityData 活动数据
-     * @param logType      类型 (1.下级充值 2绑定玩家 3.分享收益领取 4.人数收益领取 5.人数变化 6.绑定下级充值 7.周榜)
+     * @param logType      类型 (1.下级充值 2绑定玩家 3.分享收益领取 4.人数收益领取 5.人数变化 6.绑定下级充值 7.周榜 8.绑定玩家奖励领取)
      * @param totalGoldAdd 总收益增加
      * @param addBindNum   绑定人数增加
      * @param addGold      领取金币增加
      * @param sharingRatio 当前分享比例
      * @param remainGold   账户余数
      */
-    public void sendSharePromoteAddRewards(Player player, ActivityData activityData, int logType, long totalGoldAdd, int addBindNum
+    public void sendSharePromoteAddRewards(Player player, ActivityData activityData, long subordinateId, int logType, long totalGoldAdd, int addBindNum
             , long addGold, int sharingRatio, long remainGold, int bindType) {
         try {
             JSONObject json = buildBaseInfo(activityData, 0);
             json.put("totalAdd", totalGoldAdd);
             json.put("addGold", addGold);
             json.put("addBindNum", addBindNum);
+            json.put("subordinateId", subordinateId);
             json.put("sharingRatio", sharingRatio);
             json.put("logType", logType);
             if (remainGold > 0) {
@@ -269,9 +271,9 @@ public class ActivityLogger extends BaseLogger {
      * @param addGold      领取金币增加
      * @param sharingRatio 当前分享比例
      */
-    public void sendSharePromoteAddRewards(Player player, ActivityData activityData, int type, long totalGoldAdd, int addBindNum
+    public void sendSharePromoteAddRewards(Player player, ActivityData activityData, long subordinateId, int type, long totalGoldAdd, int addBindNum
             , long addGold, int sharingRatio) {
-        sendSharePromoteAddRewards(player, activityData, type, totalGoldAdd, addBindNum, addGold, sharingRatio, 0, 0);
+        sendSharePromoteAddRewards(player, activityData, subordinateId, type, totalGoldAdd, addBindNum, addGold, sharingRatio, 0, 0);
     }
 
     /**
@@ -413,11 +415,12 @@ public class ActivityLogger extends BaseLogger {
 
     /**
      * 成长基金购买
-     * @param player 玩家数据
+     *
+     * @param player       玩家数据
      * @param activityData 活动数据
-     * @param cost 购买金额
-     * @param rewards 奖励
-     * @param result 奖励结果
+     * @param cost         购买金额
+     * @param rewards      奖励
+     * @param result       奖励结果
      */
     public void sendGrowthFundBuyLog(Player player, ActivityData activityData, BigDecimal cost, Map<Integer, Long> rewards, ItemOperationResult result) {
         try {
@@ -437,13 +440,14 @@ public class ActivityLogger extends BaseLogger {
 
     /**
      * 成长基金领取奖励
-     * @param player 玩家数据
+     *
+     * @param player       玩家数据
      * @param activityData 活动数据
-     * @param levels  领取的等级
-     * @param rewards 奖励
-     * @param result 奖励结果
+     * @param levels       领取的等级
+     * @param rewards      奖励
+     * @param result       奖励结果
      */
-    public void sendGrowthFundReceiveLog(Player player, ActivityData activityData,List<Integer> levels,
+    public void sendGrowthFundReceiveLog(Player player, ActivityData activityData, List<Integer> levels,
                                          Map<Integer, Long> rewards, CommonResult<ItemOperationResult> result) {
         try {
             JSONObject json = buildBaseInfo(activityData, 0);
@@ -457,6 +461,36 @@ public class ActivityLogger extends BaseLogger {
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendGrowthFundReceiveLog error:", e);
+        }
+    }
+
+    /**
+     * 财富轮盘日志
+     *
+     * @param player      玩家数据
+     * @param todayMax    今日最大积分
+     * @param cost        花费积分
+     * @param remainPoint 剩余积分
+     * @param sourceType  来源类型 1转盘 2兑换
+     * @param rewards     奖励
+     * @param result      奖励后道具数据
+     */
+    public void sendWealthRouletteLog(Player player, int todayMax, int cost, int remainPoint, int sourceType,
+                                      Map<Integer, Long> rewards, CommonResult<ItemOperationResult> result) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("rewards", objectMapper.writeValueAsString(rewards));
+            json.put("functionType", 4);
+            json.put("todayMax", todayMax);
+            json.put("cost", cost);
+            json.put("remainPoint", remainPoint);
+            json.put("sourceType", sourceType);
+            if (result != null && result.success()) {
+                json.put("result", objectMapper.writeValueAsString(result.data));
+            }
+            sendLog("function", player, json);
+        } catch (Exception e) {
+            log.error("sendWealthRouletteLog error:", e);
         }
     }
 }

@@ -226,9 +226,10 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                     Account account = accountDao.queryAccountByPlayerId(player.getId());
                     if (Objects.nonNull(account)) {
                         long lastOfflineTime = account.getLastOfflineTime();
-                        long timeMillis = System.currentTimeMillis();
+                        long timeMillis = TimeHelper.getCurrentDateZeroMilliTime();
+                        long lastOfflineZeroTime = TimeHelper.getDateZeroMilliTime(lastOfflineTime);
                         //计算差值
-                        long difference = TimeHelper.calculateDifference(ChronoUnit.MINUTES, lastOfflineTime, timeMillis);
+                        long difference = TimeHelper.calculateDifference(ChronoUnit.MINUTES, lastOfflineZeroTime, timeMillis);
                         if (difference >= interval) {
                             //经验衰减
                             Player doneSave = playerService.doSave(player.getId(), vipLevelCfg.getRollback().getLast(),

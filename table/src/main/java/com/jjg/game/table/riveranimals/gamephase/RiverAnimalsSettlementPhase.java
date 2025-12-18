@@ -37,10 +37,22 @@ public class RiverAnimalsSettlementPhase extends BaseDiceSettlementPhase<RiverAn
     public void phaseDoAction() {
         super.phaseDoAction();
         // 随机3个1-6的骰子点数
-        List<Integer> randomNumDice = DiceUtils.randomDice(3, 1, 6);
+        List<Integer> randomNumDice = null;
+        long currentPool = canTriggerRecycling();
+        if (currentPool > 0) {
+            List<Integer> result = generateRecyclingResults(3, 1, 6, EGameType.RIVER_ANIMALS);
+            if (result == null) {
+                log.error("鱼虾蟹回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            } else {
+                randomNumDice = result;
+                log.info("鱼虾蟹回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+            }
+        }
+        if (randomNumDice == null) {
+            randomNumDice = DiceUtils.randomDice(3, 1, 6);
+        }
         // 通过骰子点数获取对应的配置
-        List<WinPosWeightCfg> winPosWeightCfgs =
-            DiceDataHolder.getWinPosWeightCfg(EGameType.RIVER_ANIMALS, randomNumDice);
+        List<WinPosWeightCfg> winPosWeightCfgs = DiceDataHolder.getWinPosWeightCfg(EGameType.RIVER_ANIMALS, randomNumDice);
         if (winPosWeightCfgs == null || winPosWeightCfgs.isEmpty()) {
             log.error("鱼虾蟹结算异常，随机奖励的区域为空，骰子：{}", randomNumDice);
             return;

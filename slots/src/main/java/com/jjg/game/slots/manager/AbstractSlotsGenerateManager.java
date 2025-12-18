@@ -263,7 +263,12 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
         int[] arr = new int[cols * rows + 1];
 
+        //蒸汽时代 列（滚轴） 配置 数量多余 列数量
+        int addCols = 0;
         for (Map.Entry<Integer, BaseRollerCfg> en : rollerCfgMap.entrySet()) {
+            if (addCols >= cols) {
+                return arr;
+            }
             BaseRollerCfg cfg = en.getValue();
             if (cfg.getAxleCountScope() == null || cfg.getAxleCountScope().isEmpty()) {
                 log.warn("没有该滚轴的范围,生成结果集失败 gameType = {},rollerCfgId = {}", this.gameType, cfg.getId());
@@ -290,6 +295,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 iconIndex++;
                 scopeIndex++;
             }
+            addCols++;
         }
         return arr;
     }
@@ -661,7 +667,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         }
         return specialAuxiliaryInfoList;
     }
-
 
 
     /**
@@ -1560,6 +1565,21 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         for (int i = 1; i < arr.length; i++) {
             int icon = arr[i];
             map.merge(icon, 1, Integer::sum);
+        }
+        return map;
+    }
+
+    /**
+     * 计算每个图标出现的位置
+     *
+     * @param arr
+     * @return
+     */
+    protected Map<Integer, Set<Integer>> checkIconShowIndex(int[] arr) {
+        Map<Integer, Set<Integer>> map = new HashMap<>();
+        for (int i = 1; i < arr.length; i++) {
+            int icon = arr[i];
+            map.computeIfAbsent(icon, k -> new HashSet<>()).add(i);
         }
         return map;
     }

@@ -16,6 +16,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.IPhaseMsgAdapter;
 import com.jjg.game.room.base.IRoomPhase;
@@ -411,7 +412,8 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
 
     /**
      * 处理输的
-     * @param player 玩家数据
+     *
+     * @param player    玩家数据
      * @param loseValue 输的金额
      */
     public void dealLose(Player player, long loseValue) {
@@ -420,7 +422,9 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
         }
         WealthRouletteController controller = roomController.getRoomManager().getWealthRouletteController();
         try {
-            controller.addProgress(player,loseValue);
+            if (getGameTransactionItemId() == ItemUtils.getGoldItemId()) {
+                controller.addProgress(player, loseValue);
+            }
         } catch (Exception e) {
             log.error("处理输的失败 info:{} betValue:{}", player.getId(), loseValue, e);
         }

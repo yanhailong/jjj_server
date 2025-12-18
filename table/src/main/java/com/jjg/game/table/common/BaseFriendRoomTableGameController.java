@@ -38,6 +38,18 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
     }
 
     @Override
+    public int addItem(long playerId, long num, AddType addType, String desc, boolean isNotify) {
+        addType = AddType.FRIEND_GAME_SETTLEMENT;
+        return super.addItem(playerId, num, addType, desc, isNotify);
+    }
+
+    @Override
+    public int deductItem(long playerId, long num, AddType deductType, String desc, boolean isNotify) {
+        deductType = AddType.FRIEND_GAME_BET;
+        return super.deductItem(playerId, num, deductType, desc, isNotify);
+    }
+
+    @Override
     protected boolean checkRoomCanNextRound() {
         boolean checkRes = super.checkRoomCanNextRound();
         if (checkRes) {

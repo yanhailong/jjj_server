@@ -13,11 +13,6 @@ import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAddFree
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAddIconInfo;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAwardLineInfo;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightResultLib;
-import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAddIconInfo;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAwardLineInfo;
-import com.jjg.game.slots.game.thor.ThorConstant;
-import com.jjg.game.slots.game.thor.data.ThorResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
@@ -121,7 +116,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
             System.arraycopy(arr, 0, newArr, 0, arr.length);
 
             //是否有消除
-            repairIcons(MahjiongWinConstant.SpecialMode.FREE, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
+            repairIcons(ChristmasBashNightConstant.SpecialMode.FREE, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
 
             if (!addIconInfoList.isEmpty()) {
                 lib.setAddIconInfos(addIconInfoList);
@@ -634,10 +629,10 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         int jackpool = 0;
         for (int i = 0; i < lib.getIconArr().length; i++) {
             int icon = lib.getIconArr()[i];
-            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
+            if (icon == ChristmasBashNightConstant.BaseElement.ID_SCATTER) {
                 count++;
-            } else if (icon == ThorConstant.BaseElement.ID_MINI || icon == ThorConstant.BaseElement.ID_MINOR ||
-                    icon == ThorConstant.BaseElement.ID_MAJOR || icon == ThorConstant.BaseElement.ID_GRAND) {
+            } else if (icon == ChristmasBashNightConstant.BaseElement.ID_MINI || icon == ChristmasBashNightConstant.BaseElement.ID_MINOR ||
+                    icon == ChristmasBashNightConstant.BaseElement.ID_MAJOR || icon == ChristmasBashNightConstant.BaseElement.ID_GRAND) {
                 jackpool++;
             }
         }
@@ -653,7 +648,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         int count = 0;
         for (int i = 0; i < lib.getIconArr().length; i++) {
             int icon = lib.getIconArr()[i];
-            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
+            if (icon == ChristmasBashNightConstant.BaseElement.ID_SCATTER) {
                 count++;
             }
         }
@@ -678,7 +673,8 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         }
 
         //检查jackpool模式
-        if (lib.getLibTypeSet().contains(ChristmasBashNightConstant.SpecialMode.JACKPOOL) && !checkJackpool(lib)) {
+        if (lib.getLibTypeSet().contains(ChristmasBashNightConstant.SpecialMode.JACKPOOL)
+                && !checkJackpool(lib)) {
             log.warn("检查jackpool模式失败");
             return false;
         }

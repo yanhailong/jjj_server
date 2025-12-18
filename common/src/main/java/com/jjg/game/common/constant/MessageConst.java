@@ -143,7 +143,9 @@ public interface MessageConst {
         int BASKETBALL_SUPERSTAR = 0x2B;
 
         //SLOTS通用
-        int SLOTS_COMMON = 0x2B;
+        int SLOTS_COMMON = 0x2C;
+        //寒冰王座
+        int FROZEN_THRONE = 0x2D;
     }
 
     interface ToClientConst {

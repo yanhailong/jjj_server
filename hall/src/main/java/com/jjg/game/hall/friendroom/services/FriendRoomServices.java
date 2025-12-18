@@ -3,7 +3,6 @@ package com.jjg.game.hall.friendroom.services;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
@@ -118,7 +117,7 @@ public class FriendRoomServices {
             // 生成邀请码
             invitationCode = friendRoomRedisDao.genInvitationCode();
             if (invitationCode <= 0) {
-                log.error("创建房间时，申请邀请码失败，时间：{}", TimeHelper.getCurrentDateZeroMileTime());
+                log.error("创建房间时，申请邀请码失败，时间：{}", TimeHelper.getCurrentDateZeroMilliTime());
                 return Code.FAIL;
             }
         }
@@ -930,6 +929,7 @@ public class FriendRoomServices {
                             dataEntity.setAliasName(updateFriendRoom.roomAliasName);
                         }
                         dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum() + updateFriendRoom.predictCostGoldNum);
+                        dataEntity.setPool(dataEntity.getPool() + updateFriendRoom.predictCostGoldNum);
                         dataEntity.setAutoRenewal(updateFriendRoom.autoRenewal);
                         if (finalAddTime > 0) {
                             long curTime = System.currentTimeMillis();
@@ -945,6 +945,9 @@ public class FriendRoomServices {
                         return true;
                     }
                 });
+        if (result.success() && updateFriendRoom.predictCostGoldNum > 0) {
+            friendRoomDao.modifyRoomPool(result.data.getGameType(), result.data.getId(), updateFriendRoom.predictCostGoldNum);
+        }
         if ((addTime > 0 || updateFriendRoom.predictCostGoldNum > 0) && friendRoom.isInGaming()) {
             if (!StringUtils.isEmpty(friendRoom.getPath())) {
                 ClusterClient client = clusterSystem.getClusterByPath(friendRoom.getPath());
@@ -1395,7 +1398,7 @@ public class FriendRoomServices {
         }
         int newInvitationCode = friendRoomRedisDao.genInvitationCode();
         if (newInvitationCode <= 0) {
-            log.error("重置邀请码时，生成邀请码失败，时间：{}", TimeHelper.getCurrentDateZeroMileTime());
+            log.error("重置邀请码时，生成邀请码失败，时间：{}", TimeHelper.getCurrentDateZeroMilliTime());
             res.code = Code.FAIL;
             playerController.send(res);
             return;

@@ -256,7 +256,7 @@ public class ItemUtils {
     }
 
     public static JSONArray itemListToJson(List<Item> items) {
-        if (items == null || items.isEmpty()) {
+        if(items == null || items.isEmpty()) {
             return null;
         }
         JSONArray jsonArray = new JSONArray();

@@ -2,6 +2,7 @@ package com.jjg.game.poker.game.texas.room;
 
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.data.FriendRoomBillHistoryBean;
@@ -27,6 +28,18 @@ public class TexasFriendGameController extends TexasGameController {
 
     public TexasFriendGameController(AbstractRoomController<Room_ChessCfg, ? extends Room> roomController) {
         super(roomController);
+    }
+
+    @Override
+    public int addItem(long playerId, long num, AddType addType, String desc, boolean isNotify) {
+        addType = AddType.FRIEND_GAME_SETTLEMENT;
+        return super.addItem(playerId, num, addType, desc, isNotify);
+    }
+
+    @Override
+    public int deductItem(long playerId, long num, AddType deductType, String desc, boolean isNotify) {
+        deductType = AddType.FRIEND_GAME_BET;
+        return super.deductItem(playerId, num, deductType, desc, isNotify);
     }
 
     @Override
