@@ -6,6 +6,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeGameRunInfo;
 import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameData;
@@ -106,6 +107,11 @@ public class SteamAgeRoomGameManager extends AbstractSteamAgeGameManager {
             log.error("", e);
         }
         return gameRunInfo;
+    }
+
+    @Override
+    protected PoolCfg randWinPool(SteamAgePlayerGameData playerGameData, int poolId) {
+        return null;
     }
 
     @Override

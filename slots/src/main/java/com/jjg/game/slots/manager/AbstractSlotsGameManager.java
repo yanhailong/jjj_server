@@ -101,7 +101,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     //游戏类型
     protected int gameType;
     //在specualResultLib
-    protected int defaultRewardSectionIndex = -1;
+    protected int defaultRewardSectionIndex = 0;
 
     //roomCfgId -> playerId ->gameData
     protected Map<Integer, Map<Long, T>> gameDataMap = new ConcurrentHashMap<>();
@@ -991,18 +991,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (contribt < 1) {
             return null;
         }
-        log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.playerId(), contribt, poolId);
+        log.info("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.playerId(), contribt, poolId);
 
         //真奖池
         Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
         if (smallPoolNumber == null) {
-            log.debug("获取小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
+            log.warn("获取小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
             return null;
         }
         //假奖池
         Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
         if (fakeSmallPoolNumber == null) {
-            log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
+            log.warn("获取(假)小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
             return null;
         }
 
@@ -1015,13 +1015,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return null;
         }
 
-        log.debug("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
+        log.info("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
         BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
 
 
         PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
         if (poolCfg == null) {
-            log.debug("获取的池子配置为空 poolId = {}", poolId);
+            log.warn("获取的池子配置为空 poolId = {}", poolId);
             return null;
         }
         //中奖概率,这里保留了8位，所以最后可以取int值

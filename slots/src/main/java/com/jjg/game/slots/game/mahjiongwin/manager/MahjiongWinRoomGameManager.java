@@ -6,6 +6,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameData;
@@ -93,6 +94,11 @@ public class MahjiongWinRoomGameManager extends AbstractMahjiongWinGameManager{
             log.error("", e);
         }
         return gameRunInfo;
+    }
+
+    @Override
+    protected PoolCfg randWinPool(MahjiongWinPlayerGameData playerGameData, int poolId) {
+        return null;
     }
 
     @Override

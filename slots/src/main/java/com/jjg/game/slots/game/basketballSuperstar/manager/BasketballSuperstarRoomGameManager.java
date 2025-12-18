@@ -6,6 +6,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarGameRunInfo;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarPlayerGameData;
@@ -106,6 +107,11 @@ public class BasketballSuperstarRoomGameManager extends AbstractBasketballSupers
             log.error("", e);
         }
         return gameRunInfo;
+    }
+
+    @Override
+    protected PoolCfg randWinPool(BasketballSuperstarPlayerGameData playerGameData, int poolId) {
+        return null;
     }
 
     @Override

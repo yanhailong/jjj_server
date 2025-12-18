@@ -6,6 +6,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
 import org.slf4j.LoggerFactory;
@@ -74,6 +75,11 @@ public class CleopatraRoomGameManager extends AbstractCleopatraGameManager {
             log.error("", e);
         }
         return gameRunInfo;
+    }
+
+    @Override
+    protected PoolCfg randWinPool(CleopatraPlayerGameData playerGameData, int poolId) {
+        return null;
     }
 
     @Override

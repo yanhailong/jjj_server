@@ -276,7 +276,6 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         try {
             PoolCfg poolCfg = randWinPool(playerGameData, resultLib.getJackpotId());
             if (poolCfg == null) {
-                log.warn("未找到对应的奖池配置 poolId = {}", resultLib.getJackpotId());
                 return gameRunInfo;
             }
 

@@ -7,6 +7,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.wealthgod.WealthGodConstant;
 import com.jjg.game.slots.game.wealthgod.data.WealthGodGameRunInfo;
 import com.jjg.game.slots.game.wealthgod.data.WealthGodPlayerGameData;
@@ -101,6 +102,11 @@ public class WealthGodRoomGameManager extends AbstractWealthGodGameManager{
             gameRunInfo.setCode(Code.EXCEPTION);
         }
         return gameRunInfo;
+    }
+
+    @Override
+    protected PoolCfg randWinPool(WealthGodPlayerGameData playerGameData, int poolId) {
+        return null;
     }
 
     @Override
