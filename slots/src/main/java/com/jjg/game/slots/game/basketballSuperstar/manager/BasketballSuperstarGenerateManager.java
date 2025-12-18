@@ -526,11 +526,11 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
         int count = 0;
         for (int i = 0; i < newArr.length; i++) {
             int icon = newArr[i];
-            if (icon == BasketballSuperstarConstant.BaseElement.ID_ADDFREEE) {
+            if (icon == BasketballSuperstarConstant.BaseElement.ID_SCATTER) {
                 count++;
             }
         }
-        return count >= 0;
+        return count >= 3;
     }
 
     /**
