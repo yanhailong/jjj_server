@@ -120,8 +120,9 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
 
             SteamAgeResultLib lib = (SteamAgeResultLib) gameRunInfo.getResultLib();
 
-            res.rewardIconInfo = addRewardIcons(lib.getIconArr(), lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
-
+            res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
+            //又连线则触发，添加图标信息（右扩展图标）
+            res.addIconInfoList = addIconInfos(lib, gameRunInfo);
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
@@ -133,6 +134,19 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
 
     }
 
+    private List<SteamAgeExpand> addIconInfos(SteamAgeResultLib lib, SteamAgeGameRunInfo gameRunInfo) {
+        List<SteamAgeExpand> iconInfos = new ArrayList<>();
+        if (lib.getAddIconInfos() != null && !lib.getAddIconInfos().isEmpty()) {
+            lib.getAddIconInfos().forEach(info -> {
+                SteamAgeExpand iconInfo = new SteamAgeExpand();
+                iconInfo.iconList = info.getAddIconList();
+                iconInfo.rewardIconInfo = addRewardIcons(info.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
+                iconInfos.add(iconInfo);
+            });
+        }
+        return iconInfos;
+    }
+
     /**
      * 添加中奖图标信息
      *
@@ -140,7 +154,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
      * @param oneBetScore
      * @return
      */
-    private SteamAgeIconInfo addRewardIcons(int[] arr, List<SteamAgeAwardLineInfo> awardLineInfoList, long oneBetScore) {
+    private SteamAgeIconInfo addRewardIcons(List<SteamAgeAwardLineInfo> awardLineInfoList, long oneBetScore) {
         if (awardLineInfoList == null || awardLineInfoList.isEmpty()) {
             return null;
         }
@@ -149,8 +163,6 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
 
         Set<Integer> indexSet = new HashSet<>();
         Set<Integer> winIconSet = new HashSet<>();
-//        Set<Integer> replaceWildIndexs = new HashSet<>();
-
         awardLineInfoList.forEach(info -> {
             indexSet.addAll(info.getSameIconSet());
             winIconSet.add(info.getSameIcon());
@@ -159,7 +171,6 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
 
         iconInfo.iconIndexs = new ArrayList<>(indexSet);
         iconInfo.winIcons = new ArrayList<>(winIconSet);
-//        iconInfo.replaceWildIndexs = new ArrayList<>(replaceWildIndexs);
         return iconInfo;
     }
 

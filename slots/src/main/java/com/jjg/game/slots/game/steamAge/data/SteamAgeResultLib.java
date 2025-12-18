@@ -18,6 +18,8 @@ public class SteamAgeResultLib extends SlotsResultLib<SteamAgeAwardLineInfo> {
     private int jackpotId;
     //增加的免费次数
     private int addFreeCount;
+    //免费 新增列次数
+    private int expandTimes;
     //消除补齐的信息
     private List<SteamAgeExpandIconInfo> addIconInfos;
 
@@ -43,5 +45,13 @@ public class SteamAgeResultLib extends SlotsResultLib<SteamAgeAwardLineInfo> {
 
     public void setAddFreeCount(int addFreeCount) {
         this.addFreeCount = addFreeCount;
+    }
+
+    public int getExpandTimes() {
+        return expandTimes;
+    }
+
+    public void setExpandTimes(int expandTimes) {
+        this.expandTimes = expandTimes;
     }
 }
