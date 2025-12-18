@@ -3,6 +3,7 @@ package com.jjg.game.hall.friendroom.services;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
@@ -11,14 +12,14 @@ import com.jjg.game.common.redis.RedissonLock;
 import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.AddType;
-import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GlobalSampleConstantId;
+import com.jjg.game.core.constant.*;
 import com.jjg.game.core.dao.room.AbstractFriendRoomDao.CreateFriendsRoom;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao.GameBillResult;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.rpc.HallRoomBridge;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
@@ -27,6 +28,7 @@ import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.core.utils.SampleDataUtils;
+import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.friendroom.constant.FriendRoomConstant;
 import com.jjg.game.hall.friendroom.constant.FriendRoomErrorCode;
 import com.jjg.game.hall.friendroom.dao.FriendRoomFollowDao;
@@ -95,6 +97,10 @@ public class FriendRoomServices {
     private final Map<Long, Long> roomPauseTimeRec = new ConcurrentHashMap<>();
     @Autowired
     private RobotUtil robotUtil;
+    @Autowired
+    private HallPoolDao hallPoolDao;
+    @Autowired
+    private CoreLogger coreLogger;
 
     /**
      * 创建好友房
@@ -135,11 +141,13 @@ public class FriendRoomServices {
         }
         // 扣除道具
         CommonResult<ItemOperationResult> removeItem;
+        Map<Integer, Long> itemMap;
         if (req.predictCostGoldNum != 0) {
-            Map<Integer, Long> itemMap = ItemUtils.mergeItemsOnCreate(Map.of(reqItem.getId(), reqItem.getItemCount()),
+            itemMap = ItemUtils.mergeItemsOnCreate(Map.of(reqItem.getId(), reqItem.getItemCount()),
                     Map.of(ItemUtils.getDiamondItemId(), req.predictCostGoldNum));
             removeItem = playerPackService.removeItems(player, itemMap, AddType.CREATE_FRIEND_ROOM);
         } else {
+            itemMap = Map.of(reqItem.getId(), reqItem.getItemCount());
             removeItem = playerPackService.removeItem(player.getId(), reqItem, AddType.CREATE_FRIEND_ROOM);
         }
         // 移除道具失败
@@ -174,6 +182,7 @@ public class FriendRoomServices {
         res.roomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
         playerController.send(res);
         log.info("玩家：{} 创建好友房成功：{}", player.getId(), JSON.toJSONString(res));
+        coreLogger.roomOperate(friendRoom, 1, roomExpendCfg.getDurationTime(), itemMap, removeItem.data.getChangeEndItemNumIncludeMoney());
         // 通知前端房间创建
         return Code.SUCCESS;
     }
@@ -469,7 +478,7 @@ public class FriendRoomServices {
         // 从房间底庄中扣除金币，如果不足直接暂停游戏
         if (itemNum > friendRoom.getPredictCostGoldNum() || itemNum <= 0) {
             // 自动续费失败，房间准备金不足
-            log.info("自动续费失败，房间准备金不足: need: {} rest: {}", itemNum, friendRoom.getPredictCostGoldNum());
+            log.info("自动续费失败，房间准备金不足: roomId: {},gameType = {},need: {} rest: {}", friendRoom.getId(), friendRoom.getGameType(), itemNum, friendRoom.getPredictCostGoldNum());
             return;
         }
         long overdueTime = friendRoom.getOverdueTime();
@@ -503,6 +512,12 @@ public class FriendRoomServices {
                 return true;
             }
         });
+
+        hallRoomBridge.updateFriendRoom(friendRoom.getCreator(),friendRoom.getRoomCfgId(),friendRoom.getId(),roomExpendCfg.getId(),friendRoom.isAutoRenewal(),0,null);
+
+        Map<Integer, Long> itemMap = Map.of(requiredMoney.get(0), (long) itemNum);
+        Map<Integer, Long> afterItemMap = Map.of(requiredMoney.get(0), friendRoom.getPredictCostGoldNum());
+        coreLogger.roomOperate(friendRoom, 2, roomExpendCfg.getDurationTime(), itemMap, afterItemMap);
     }
 
     /**
@@ -873,11 +888,14 @@ public class FriendRoomServices {
         if (node.getNodeConfig().waitClose()) {
             return Code.WAIT_CLOSE_NOT_MODIFICATION;
         }
+        RoomExpendCfg roomExpendCfg = null;
+        Map<Integer, Long> itemMap = null;
+        CommonResult<ItemOperationResult> removeItem = null;
         // 添加时间
         int addTime = 0;
         if (updateFriendRoom.timeOfOpenRoom != 0 || updateFriendRoom.predictCostGoldNum > 0) {
-            Map<Integer, Long> itemMap = new HashMap<>();
-            RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(updateFriendRoom.timeOfOpenRoom);
+            itemMap = new HashMap<>();
+            roomExpendCfg = GameDataManager.getRoomExpendCfg(updateFriendRoom.timeOfOpenRoom);
             if (roomExpendCfg != null) {
                 List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
                 itemMap.put(requiredMoney.getFirst(), Long.valueOf(requiredMoney.get(1)));
@@ -888,7 +906,7 @@ public class FriendRoomServices {
                         itemMap.getOrDefault(diamondItemId, 0L) + updateFriendRoom.predictCostGoldNum);
             }
             // 扣除道具
-            CommonResult<ItemOperationResult> removeItem = playerPackService.removeItems(player, itemMap,
+            removeItem = playerPackService.removeItems(player, itemMap,
                     AddType.MANAGE_FRIEND_ROOM);
             // 移除道具失败
             if (!removeItem.success()) {
@@ -936,7 +954,8 @@ public class FriendRoomServices {
                                 .addClusterClient(client)
                                 .setTryMillisPerClient(1000));
                 // 请求尝试开启游戏，如果游戏处于暂停状态，可以考虑异步请求开启游戏
-                hallRoomBridge.operateFriendRoom(player.getId(), friendRoom.getId(), 1);
+                hallRoomBridge.operateFriendRoom(player.getId(), friendRoom.getId(), 1, friendRoom.getRoomCfgId());
+                hallRoomBridge.updateFriendRoom(player.getId(), friendRoom.getRoomCfgId(),friendRoom.getId(), updateFriendRoom.timeOfOpenRoom, updateFriendRoom.autoRenewal, updateFriendRoom.predictCostGoldNum, updateFriendRoom.roomAliasName);
             }
         }
         res.code = Code.SUCCESS;
@@ -944,6 +963,10 @@ public class FriendRoomServices {
         playerController.send(res);
         log.info("请求更新房间数据成功，req: {} roomData: {}",
                 JSON.toJSONString(updateFriendRoom), JSON.toJSONString(result.data));
+
+        if (addTime > 0) {
+            coreLogger.roomOperate(friendRoom, 3, roomExpendCfg.getDurationTime(), itemMap, removeItem.data.getChangeEndItemNumIncludeMoney());
+        }
         return Code.SUCCESS;
     }
 
@@ -1009,12 +1032,12 @@ public class FriendRoomServices {
             gameBillInfos.add(gameBillInfo);
         }
         // TODO.2CL 后续按照收益排序
-        res.gameBillInfos = gameBillInfos.stream().sorted(Comparator.comparingInt(o -> o.gameType)).toList();
+        res.gameBillInfos = gameBillInfos.stream().sorted(Comparator.<GameBillInfo>comparingLong(o -> o.canTakeIncome).reversed()).toList();
         res.canTakeIncome = gameBillInfos.stream().mapToLong(g -> g.canTakeIncome).sum();
         res.code = Code.SUCCESS;
         res.pageSize = req.pageSize;
         res.pageIdx = gameBillInfos.size() < req.pageSize ? -1 : req.pageIdx + 1;
-        log.debug("res: {}", JSON.toJSONString(res));
+        log.debug("好友房历史账单 res: {}", JSON.toJSONString(res));
         playerController.send(res);
     }
 
@@ -1027,23 +1050,49 @@ public class FriendRoomServices {
             playerController.send(res);
             return;
         }
+
+        //获取历史账单数据
         List<FriendRoomBillHistoryBean> pageFriendRoomBillHistory =
                 billHistoryDao.pageFriendRoomBillHistory(
                         playerController.playerId(), req.gameType, req.pageIdx, req.pageSize);
+
         // 按月分的好友房账单历史
         Map<Integer, List<FriendRoomBillHistory>> friendRoomBillOfMonth = new HashMap<>();
+
         // 构建好友房账单历史
-        for (FriendRoomBillHistoryBean friendRoomBillHistoryBean : pageFriendRoomBillHistory) {
-            FriendRoomBillHistory friendRoomBillHistory = new FriendRoomBillHistory();
-            friendRoomBillHistory.id = friendRoomBillHistoryBean.getId();
-            friendRoomBillHistory.createdTime = friendRoomBillHistoryBean.getCreatedAt();
-            friendRoomBillHistory.partInNum = friendRoomBillHistoryBean.getPartInPlayerIncome().size();
-            friendRoomBillHistory.totalIncome =
-                    friendRoomBillHistoryBean.isHasTookIncome() ? 0 : friendRoomBillHistoryBean.getTotalIncome();
-            friendRoomBillHistory.totalWin =
-                    friendRoomBillHistoryBean.getPartInPlayerIncome().values().stream().mapToLong(a -> a).sum();
-            friendRoomBillOfMonth.computeIfAbsent(friendRoomBillHistoryBean.getMonth(), k -> new ArrayList<>()).add(friendRoomBillHistory);
+        if (CommonUtil.getMajorTypeByGameType(req.gameType) == CoreConst.GameMajorType.SLOTS) {  //slots类
+            for (FriendRoomBillHistoryBean friendRoomBillHistoryBean : pageFriendRoomBillHistory) {
+                if (friendRoomBillHistoryBean.getPartInPlayerBetScore() == null || friendRoomBillHistoryBean.getPartInPlayerBetScore().isEmpty()) {
+                    continue;
+                }
+
+                for (Map.Entry<Long, Long> en : friendRoomBillHistoryBean.getPartInPlayerBetScore().entrySet()) {
+                    FriendRoomBillHistory friendRoomBillHistory = new FriendRoomBillHistory();
+                    friendRoomBillHistory.id = friendRoomBillHistoryBean.getId();
+                    friendRoomBillHistory.createdTime = friendRoomBillHistoryBean.getCreatedAt();
+                    friendRoomBillHistory.playerId = en.getKey();
+                    friendRoomBillHistory.totalWin = en.getValue();
+                    friendRoomBillHistory.partInNum = 1;
+                    friendRoomBillHistory.totalIncome = friendRoomBillHistoryBean.getPlayerInCome(friendRoomBillHistory.playerId);
+
+                    friendRoomBillOfMonth.computeIfAbsent(friendRoomBillHistoryBean.getMonth(), k -> new ArrayList<>()).add(friendRoomBillHistory);
+                }
+            }
+        } else {  //百人和押注类
+            for (FriendRoomBillHistoryBean friendRoomBillHistoryBean : pageFriendRoomBillHistory) {
+                FriendRoomBillHistory friendRoomBillHistory = new FriendRoomBillHistory();
+                friendRoomBillHistory.id = friendRoomBillHistoryBean.getId();
+                friendRoomBillHistory.createdTime = friendRoomBillHistoryBean.getCreatedAt();
+                friendRoomBillHistory.partInNum = friendRoomBillHistoryBean.getPartInPlayerIncome().size();
+                friendRoomBillHistory.totalIncome =
+                        friendRoomBillHistoryBean.isHasTookIncome() ? 0 : friendRoomBillHistoryBean.getTotalIncome();
+                friendRoomBillHistory.totalWin =
+                        friendRoomBillHistoryBean.getPartInPlayerIncome().values().stream().mapToLong(a -> a).sum();
+                friendRoomBillOfMonth.computeIfAbsent(friendRoomBillHistoryBean.getMonth(), k -> new ArrayList<>()).add(friendRoomBillHistory);
+            }
         }
+
+        //月份统计
         List<FriendRoomBillHistoryDao.MonthStatisticsDto> monthStatistic =
                 billHistoryDao.monthStatistic(
                         playerController.playerId(), req.gameType, friendRoomBillOfMonth.keySet().stream().toList());
@@ -1064,6 +1113,7 @@ public class FriendRoomServices {
                 friendRoomBillHistoryMonths.stream().sorted((o1, o2) -> Integer.compare(o2.month, o1.month)).toList();
         res.pageSize = req.pageSize;
         res.pageIdx = pageFriendRoomBillHistory.size() < req.pageSize ? -1 : req.pageIdx + 1;
+        res.gameType = req.gameType;
         res.code = Code.SUCCESS;
         log.debug("ReqFriendRoomDetailBillHistory : {} ", JSON.toJSONString(res));
         playerController.send(res);
@@ -1089,26 +1139,46 @@ public class FriendRoomServices {
             playerController.send(new ResFriendRoomBillPlayerInfo(Code.SUCCESS));
             return;
         }
-        // 获取所有加入的玩家
-        Map<Long, Player> playerMap = corePlayerService.multiGetPlayerMap(historyBean.getPartInPlayerIncome().keySet());
-        List<Long> playerBlackList = friendRoomRedisDao.getPlayerBlackList(playerController.playerId());
-        List<FriendRoomBillPlayerInfo> playerInfos = new ArrayList<>();
-        for (Map.Entry<Long, Long> entry : historyBean.getPartInPlayerIncome().entrySet()) {
-            FriendRoomBillPlayerInfo playerInfo = new FriendRoomBillPlayerInfo();
-            // 玩家ID不存在
-            if (playerMap.containsKey(entry.getKey())) {
-                playerInfo.baseFriendRoomPlayerInfo =
-                        FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(playerMap.get(entry.getKey()));
-            } else {
-                // 尝试获取机器人的玩家数据
-                playerInfo.baseFriendRoomPlayerInfo =
-                        FriendRoomMessageBuilder.buildFriendRoomRobotPlayerInfo(robotUtil, entry.getKey());
+
+        if (req.playerId > 0) {
+            if (historyBean.getPartInPlayerBetScore().isEmpty()) {
+                playerController.send(new ResFriendRoomBillPlayerInfo(Code.SUCCESS));
+                return;
             }
-            playerInfo.billFlow = entry.getValue();
-            playerInfo.status = playerBlackList != null && playerBlackList.contains(entry.getKey()) ? 2 : 1;
-            playerInfos.add(playerInfo);
+
+            List<Long> playerBlackList = friendRoomRedisDao.getPlayerBlackList(playerController.playerId());
+            Long betScore = historyBean.getPartInPlayerBetScore().get(req.playerId);
+
+            FriendRoomBillPlayerInfo playerInfo = new FriendRoomBillPlayerInfo();
+            playerInfo.baseFriendRoomPlayerInfo =
+                    FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(corePlayerService.get(req.playerId));
+
+            playerInfo.status = playerBlackList != null && playerBlackList.contains(req.playerId) ? 2 : 1;
+            playerInfo.billFlow = betScore == null ? 0 : betScore;
+            res.playerInfos = List.of(playerInfo);
+        } else {
+            // 获取所有加入的玩家
+            Map<Long, Player> playerMap = corePlayerService.multiGetPlayerMap(historyBean.getPartInPlayerIncome().keySet());
+            List<Long> playerBlackList = friendRoomRedisDao.getPlayerBlackList(playerController.playerId());
+            List<FriendRoomBillPlayerInfo> playerInfos = new ArrayList<>();
+            for (Map.Entry<Long, Long> entry : historyBean.getPartInPlayerIncome().entrySet()) {
+                FriendRoomBillPlayerInfo playerInfo = new FriendRoomBillPlayerInfo();
+                // 玩家ID不存在
+                if (playerMap.containsKey(entry.getKey())) {
+                    playerInfo.baseFriendRoomPlayerInfo =
+                            FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(playerMap.get(entry.getKey()));
+                } else {
+                    // 尝试获取机器人的玩家数据
+                    playerInfo.baseFriendRoomPlayerInfo =
+                            FriendRoomMessageBuilder.buildFriendRoomRobotPlayerInfo(robotUtil, entry.getKey());
+                }
+                playerInfo.billFlow = entry.getValue();
+                playerInfo.status = playerBlackList != null && playerBlackList.contains(entry.getKey()) ? 2 : 1;
+                playerInfos.add(playerInfo);
+            }
+            res.playerInfos = playerInfos;
         }
-        res.playerInfos = playerInfos;
+
         res.code = Code.SUCCESS;
         log.debug("reqFriendRoomBillPlayerInfo: {}", JSON.toJSONString(res));
         playerController.send(res);
@@ -1120,19 +1190,25 @@ public class FriendRoomServices {
     @RedissonLock(key = "'FriendRoomBillUpdate:'+#playerId", waitTime = 10, timeUnit = TimeUnit.SECONDS)
     public int reqTakeFriendRoomIncomeReward(@Param("playerId") long playerId) {
         // 查询所有收益
-        List<Item> playerAllReward = billHistoryDao.getPlayerAllReward(playerId);
+        List<FriendRoomRewardItem> playerAllReward = billHistoryDao.getPlayerAllReward(playerId);
         if (playerAllReward.isEmpty()) {
             return Code.SUCCESS;
         }
-        log.info("玩家：{} 一键领取奖励：{}",
-                playerId,
-                playerAllReward.stream()
-                        .map(i -> "{id: " + i.getId() + " " + "count: " + i.getItemCount() + "}")
-                        .collect(Collectors.joining(",")));
+
         // 更新所有领奖状态
-        billHistoryDao.updateAllHistoryRewardTook(playerId);
+        boolean update = billHistoryDao.updateAllHistoryRewardTook(playerId, playerAllReward);
+        if (!update) {
+            return Code.FAIL;
+        }
+
+        Map<Integer, Long> addItmsMap = new HashMap<>();
+        for (FriendRoomRewardItem fri : playerAllReward) {
+            addItmsMap.merge(fri.getItemId(), fri.getCount(), Long::sum);
+        }
+
         // 给玩家添加收益道具
-        playerPackService.addItems(playerId, playerAllReward, AddType.FRIEND_ROOM_INCOME_TAKE_ALL);
+        playerPackService.addItems(playerId, addItmsMap, AddType.FRIEND_ROOM_INCOME_TAKE_ALL);
+        log.info("玩家一键领取好友房收益 playerId = {},playerAllReward = {}", playerId, JSON.toJSONString(playerAllReward));
         // 发送消息
         return Code.SUCCESS;
     }
@@ -1142,7 +1218,7 @@ public class FriendRoomServices {
      */
     public void reqOperateFriendRoom(PlayerController playerController, ReqOperateFriendRoom req) {
         ResOperateFriendRoom res = new ResOperateFriendRoom(Code.PARAM_ERROR);
-        log.debug("{} ", JSON.toJSONString(req));
+        log.debug("请求操作好友房 playerId = {},req = {} ", playerController.playerId(), JSON.toJSONString(req));
         if (req.operateCode < 1 || req.operateCode > 3 || req.roomId <= 0) {
             playerController.send(res);
             return;
@@ -1266,7 +1342,7 @@ public class FriendRoomServices {
                             .addClusterClient(client)
                             .setTryMillisPerClient(1000));
             // 操作房间
-            hallRoomBridge.operateFriendRoom(playerController.playerId(), req.roomId, req.operateCode);
+            hallRoomBridge.operateFriendRoom(playerController.playerId(), req.roomId, req.operateCode, oldRoom.getRoomCfgId());
             // 操作完成后再获取
             FriendRoom friendRoom = friendRoomDao.getFriendRoomById(playerController.playerId(), req.roomId);
             res.roomStatus = friendRoom == null ? 3 : friendRoom.getStatus();

@@ -1,6 +1,8 @@
 package com.jjg.game.core.utils;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Item;
@@ -163,6 +165,7 @@ public class ItemUtils {
 
     /**
      * 合并道具
+     *
      * @param mergeMap1 需要合并的道具1
      * @param mergeMap2 需要合并的道具2
      * @return 合并后的道具
@@ -177,6 +180,7 @@ public class ItemUtils {
 
     /**
      * 合并道具
+     *
      * @param mergeMap1 需要合并的道具1
      * @param mergeMap2 需要合并的道具2
      * @return 合并后的道具
@@ -192,6 +196,7 @@ public class ItemUtils {
 
     /**
      * 判断道具是不是都是货币
+     *
      * @param itemsMap 道具列表
      * @return 货币id
      */
@@ -214,13 +219,48 @@ public class ItemUtils {
 
     /**
      * 扩大奖励倍数
+     *
      * @param itemsMap 奖励道具
-     * @param count 扩大倍数
+     * @param count    扩大倍数
      * @return 扩大后的奖励道具
      */
     public static Map<Integer, Long> expendItems(Map<Integer, Long> itemsMap, int count) {
         Map<Integer, Long> map = new HashMap<>(itemsMap);
         itemsMap.forEach((key, value) -> map.put(key, value * count));
         return map;
+    }
+
+    public static JSONArray itemMapToJsonArray(Map<Integer, Long> items) {
+        if (items == null || items.isEmpty()) {
+            return null;
+        }
+        JSONArray jsonArray = new JSONArray();
+
+        for (Map.Entry<Integer, Long> en : items.entrySet()) {
+            jsonArray.add(itemToJson(en.getKey(), en.getValue()));
+        }
+        return jsonArray;
+    }
+
+    public static JSONArray itemToJsonArray(int id, long count) {
+        JSONArray jsonArray = new JSONArray();
+        jsonArray.add(itemToJson(id, count));
+        return jsonArray;
+    }
+
+    public static JSONObject itemToJson(int id, long count) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("itemId", id);
+        jsonObject.put("count", count);
+        return jsonObject;
+    }
+
+    public static JSONArray itemListToJson(List<Item> items) {
+        if (items == null || items.isEmpty()) {
+            return null;
+        }
+        JSONArray jsonArray = new JSONArray();
+        items.forEach(item -> jsonArray.add(itemToJson(item.getId(), item.getItemCount())));
+        return jsonArray;
     }
 }

@@ -25,6 +25,7 @@ import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightGameRunInfo;
 import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -45,6 +46,7 @@ public class CaptainJackGameManager extends AbstractSlotsGameManager<CaptainJack
         this.gameGenerateManager = gameGenerateManager;
         this.gameDataDao = gameDataDao;
         this.captainJackResultLibDao = captainJackResultLibDao;
+        this.log = LoggerFactory.getLogger(this.getClass());
     }
 
 

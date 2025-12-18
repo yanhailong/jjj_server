@@ -179,7 +179,7 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
      */
     @Override
     @RpcCallSetting(processorModKey = "#arg1")
-    public void operateFriendRoom(long playerId, long roomId, int operateCode) {
+    public void operateFriendRoom(long playerId, long roomId, int operateCode, int roomCfgId) {
         if (operateCode < 1 || operateCode > 3) {
             return;
         }
@@ -227,6 +227,11 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
             return friendRoom;
         }
         return null;
+    }
+
+    @Override
+    public int updateFriendRoom(long playerId, int roomCfgId, long roomId, int roomExpendCfgId, boolean autoRenewal, long predictCostGoldNum, String roomAliasName) {
+        return Code.SUCCESS;
     }
 
     @Override

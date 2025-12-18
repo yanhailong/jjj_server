@@ -3,15 +3,22 @@ package com.jjg.game.core.dao.room;
 import com.jjg.game.common.redis.RedissonLock;
 import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.core.data.FriendRoomBillHistoryBean;
+import com.jjg.game.core.data.FriendRoomRewardItem;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.manager.SnowflakeManager;
+import com.mongodb.bulk.BulkWriteResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.BulkOperations;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators;
 import org.springframework.data.mongodb.core.aggregation.ConditionalOperators;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -20,7 +27,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 好友房账单历史dao
@@ -29,6 +38,7 @@ import java.util.List;
  */
 @Repository
 public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistoryBean, Long> {
+    private final Logger log = LoggerFactory.getLogger(FriendRoomBillHistoryDao.class);
 
     //    private Snowflake snowflake = new Snowflake(NodeType.GAME.getValue(), NodeType.GAME.getValue());
     private final SnowflakeManager snowflakeManager;
@@ -105,16 +115,30 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
             pageSize = 5;
         }
 
+        // 构建条件表达式
+        ConditionalOperators.Cond totalIncomeCanTakeCond = ConditionalOperators
+                .when(Criteria.where("gameMajorType").is(1))
+                .then(
+                        ArithmeticOperators.Subtract
+                                .valueOf("totalIncome")
+                                .subtract(
+                                        ConditionalOperators.ifNull("hasReceivedIncome").then(0)
+                                )
+                )
+                .otherwise(
+                        ConditionalOperators
+                                .when(Criteria.where("hasTookIncome").is(false))
+                                .thenValueOf("totalIncome")
+                                .otherwise(0)
+                );
+
         Aggregation aggregation =
                 Aggregation.newAggregation(
                         Aggregation.match(Criteria.where("roomCreator").is(playerId)),
                         Aggregation.group("gameType")
                                 .sum("totalIncome").as("totalIncome")
                                 .sum("totalFlowing").as("totalWin")
-                                .sum(ConditionalOperators.when(
-                                                Criteria.where("hasTookIncome").is(false)
-                                        )
-                                        .thenValueOf("totalIncome").otherwise(0)).as("totalIncomeCanTake")
+                                .sum(totalIncomeCanTakeCond).as("totalIncomeCanTake")
                                 .count().as("totalRound"),
                         Aggregation.project()
                                 .and("_id").as("gameType")
@@ -136,29 +160,86 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
      *
      * @return 玩家所有收益奖励
      */
-    public List<Item> getPlayerAllReward(long playerId) {
-        Aggregation aggregation =
-                Aggregation.newAggregation(
-                        Aggregation.match(Criteria.where("roomCreator").is(playerId).and("hasTookIncome").is(false)),
-                        Aggregation.group("itemId")
-                                .sum("totalIncome").as("totalIncome"),
-                        Aggregation.project()
-                                .and("_id").as("id")
-                                .and("totalIncome").as("itemCount")
-                );
-        AggregationResults<Item> rawResults = mongoTemplate.aggregate(aggregation, "friendRoomBillHistoryBean", Item.class);
+    public List<FriendRoomRewardItem> getPlayerAllReward(long playerId) {
+        // 构建聚合管道
+        Aggregation aggregation = Aggregation.newAggregation(
+                // 第一步：匹配条件
+                Aggregation.match(
+                        new Criteria().andOperator(
+                                Criteria.where("roomCreator").is(playerId),
+                                new Criteria().orOperator(
+                                        Criteria.where("gameMajorType").is(1),
+                                        new Criteria().andOperator(
+                                                Criteria.where("gameMajorType").ne(1),
+                                                Criteria.where("hasTookIncome").is(false)
+                                        )
+                                )
+                        )
+                ),
+
+                // 第二步：为每个文档计算实际收益 - 更安全地处理字段
+                Aggregation.project()
+                        .and("_id").as("id")  // 数据库的_id
+                        .and("itemId").as("itemId")
+                        .and("gameMajorType").as("gameMajorType")
+                        .and("totalIncome").as("totalIncome")
+                        // 使用表达式安全处理hasReceivedIncome字段
+                        .andExpression("ifNull(hasReceivedIncome, 0)").as("safeHasReceivedIncome")
+                        .andExpression(
+                                "cond(eq(gameMajorType, 1), " +
+                                        "subtract(ifNull(totalIncome, 0), ifNull(hasReceivedIncome, 0)), " +
+                                        "ifNull(totalIncome, 0))"
+                        ).as("count")
+        );
+
+        AggregationResults<FriendRoomRewardItem> rawResults = mongoTemplate.aggregate(
+                aggregation, "friendRoomBillHistoryBean", FriendRoomRewardItem.class
+        );
+
         return rawResults.getMappedResults();
     }
 
     /**
-     * 更新所有未领奖的状态为已领取,仅在一键领取中调用，需要在调用上层进行加锁
+     * 更新玩家所有未领取的奖励状态（批量操作）
      */
-    public void updateAllHistoryRewardTook(long playerId) {
-        // 更新玩家所有未领取的奖励状态
-        mongoTemplate.updateMulti(Query.query(
-                        Criteria.where("roomCreator").is(playerId).and("hasTookIncome").is(false)),
-                Update.update("hasTookIncome", true),
-                FriendRoomBillHistoryBean.class);
+    public boolean updateAllHistoryRewardTook(long playerId, List<FriendRoomRewardItem> playerAllReward) {
+        if (playerAllReward == null || playerAllReward.isEmpty()) {
+            return true;
+        }
+
+        try {
+            BulkOperations bulkOps = mongoTemplate.bulkOps(BulkOperations.BulkMode.ORDERED, FriendRoomBillHistoryBean.class);
+
+            for (FriendRoomRewardItem reward : playerAllReward) {
+                long docId = reward.getId();
+                long count = reward.getCount();
+                int gameMajorType = reward.getGameMajorType();
+
+                Query query = Query.query(Criteria.where("_id").is(docId));
+                Update update = new Update();
+
+                if (gameMajorType != 1) {
+                    // gameMajorType不为1
+                    update.set("hasTookIncome", true);
+                } else {
+                    // gameMajorType为1
+                    update.inc("hasReceivedIncome", count);
+                }
+                bulkOps.updateOne(query, update);
+            }
+
+            // 执行批量操作
+            BulkWriteResult result = bulkOps.execute();
+            log.info("批量更新完成，玩家：{}，匹配记录数：{}，修改记录数：{}",playerId, result.getMatchedCount(), result.getModifiedCount());
+
+            if(playerAllReward.size() == result.getMatchedCount() && playerAllReward.size() == result.getModifiedCount()){
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            log.error("批量更新玩家奖励状态失败，playerId: {}", playerId, e);
+            return false;
+        }
     }
 
     /**
@@ -166,6 +247,40 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
      */
     public String getPlayerBillLockKey(long playerId) {
         return "FriendRoomBillUpdate:" + playerId;
+    }
+
+    /**
+     * 保存slots账单
+     * @param historyBean
+     */
+    public void saveSlotsBillHistory(FriendRoomBillHistoryBean historyBean) {
+        Query query = Query.query(Criteria.where("_id").is(historyBean.getId()));
+
+        Update update = new Update();
+        update.set("gameType", historyBean.getGameType())
+                .set("roomCreator", historyBean.getRoomCreator())
+                .inc("totalFlowing", historyBean.getTotalFlowing())
+                .inc("totalIncome", historyBean.getTotalIncome())
+                .set("itemId", historyBean.getItemId())
+                .set("month", historyBean.getMonth())
+                .set("createdAt", historyBean.getCreatedAt())
+                .set("hasTookIncome", false)
+                .set("gameMajorType", historyBean.getGameMajorType());
+
+        updateMapField(update, "partInPlayerIncome", historyBean.getPartInPlayerIncome());
+        updateMapField(update, "partInPlayerBetScore", historyBean.getPartInPlayerBetScore());
+
+        mongoTemplate.findAndModify(query, update,new FindAndModifyOptions().returnNew(true).upsert(true), FriendRoomBillHistoryBean.class);
+    }
+
+    private void updateMapField(Update update, String fieldName, Map<Long, Long> map) {
+        if (map != null && !map.isEmpty()) {
+            // 逐个字段更新
+            for (Map.Entry<Long, Long> entry : map.entrySet()) {
+                String mapField = fieldName + "." + entry.getKey().toString();
+                update.inc(mapField, entry.getValue());
+            }
+        }
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.jjg.game.table.common;
 
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -193,6 +194,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                                 .sum();
                 historyBean.setTotalFlowing(totalFlowing);
                 historyBean.setItemId(getGameTransactionItemId());
+                historyBean.setGameMajorType(CommonUtil.getMajorTypeByGameType(roomController.getRoom().getGameType()));
                 historyBean.setMonth(TimeHelper.getMonthNumerical());
                 historyBean.setPartInPlayerIncome(
                         settlementDataMap.entrySet().stream()

@@ -5,24 +5,13 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
 import com.jjg.game.core.manager.BaseSendMessageManager;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
-import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.cleopatra.data.AddColumnConfig;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraAddColumnInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
 import com.jjg.game.slots.game.cleopatra.pb.*;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
-import com.jjg.game.slots.game.dollarexpress.pb.PoolInfo;
-import com.jjg.game.slots.game.dollarexpress.pb.ResPoolValue;
-import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
-import com.jjg.game.slots.game.mahjiongwin.pb.ResMahjiongwinEnterGame;
-import com.jjg.game.slots.game.mahjiongwin.pb.ResMahjiongwinStartGame;
 import com.jjg.game.slots.logger.SlotsLogger;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -132,7 +121,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
      * @param playerController
      * @param gameRunInfo
      */
-    public void sendPoolValue(PlayerController playerController, DollarExpressGameRunInfo gameRunInfo) {
+    public void sendPoolValue(PlayerController playerController, CleopatraGameRunInfo gameRunInfo) {
         SendInfo sendInfo = new SendInfo();
 
         ResCleopatraPool res = new ResCleopatraPool(gameRunInfo.getCode());

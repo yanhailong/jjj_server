@@ -1,11 +1,13 @@
 package com.jjg.game.poker.game.texas.room;
 
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.data.FriendRoomBillHistoryBean;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.core.utils.CoreUtil;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.FriendRoomBillHistoryHelper;
@@ -44,6 +46,7 @@ public class TexasFriendGameController extends TexasGameController {
                         .sum();
                 historyBean.setTotalFlowing(totalFlowing);
                 historyBean.setItemId(getGameTransactionItemId());
+                historyBean.setGameMajorType(CommonUtil.getMajorTypeByGameType(roomController.getRoom().getGameType()));
                 historyBean.setMonth(TimeHelper.getMonthNumerical());
                 historyBean.setPartInPlayerIncome(
                     settlementDataMap.entrySet().stream()

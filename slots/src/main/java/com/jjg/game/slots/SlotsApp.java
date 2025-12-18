@@ -16,13 +16,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication(exclude = {QuartzAutoConfiguration.class})
 @EnableScheduling
 @ComponentScan(
-        basePackages = "com.jjg.game",
-        excludeFilters = {
-                @ComponentScan.Filter(
-                        type = FilterType.CUSTOM,
-                        classes = ExcludeServiceFilter.class),
-                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.dao.room.*")
-        })
+        basePackages = "com.jjg.game"
+)
 public class SlotsApp {
     public static void main(String[] args) {
         SpringApplication.run(SlotsApp.class, args);

@@ -5,6 +5,8 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.springframework.stereotype.Repository;
 
+import java.util.Map;
+
 /**
  * 大厅查询时使用
  *

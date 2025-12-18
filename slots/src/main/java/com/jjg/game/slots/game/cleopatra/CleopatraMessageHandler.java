@@ -5,13 +5,16 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
 import com.jjg.game.slots.game.cleopatra.manager.CleopatraGameManager;
+import com.jjg.game.slots.game.cleopatra.manager.CleopatraRoomGameManager;
 import com.jjg.game.slots.game.cleopatra.manager.CleopatraSendMessageManager;
 import com.jjg.game.slots.game.cleopatra.pb.ReqCleopatraEnterGame;
 import com.jjg.game.slots.game.cleopatra.pb.ReqCleopatraPool;
 import com.jjg.game.slots.game.cleopatra.pb.ReqCleopatraStartGame;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
+import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressRoomGameManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +31,8 @@ public class CleopatraMessageHandler {
 
     @Autowired
     private CleopatraGameManager gameManager;
+    @Autowired
+    private CleopatraRoomGameManager roomGameManager;
     @Autowired
     private CleopatraSendMessageManager sendMessageManager;
 
@@ -57,7 +62,15 @@ public class CleopatraMessageHandler {
     public void reqStartGame(PlayerController playerController, ReqCleopatraStartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            CleopatraGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);
+            CleopatraGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.enterGame(playerController);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.enterGame(playerController);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+                return;
+            }
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
@@ -74,7 +87,15 @@ public class CleopatraMessageHandler {
     public void reqPoolValue(PlayerController playerController, ReqCleopatraPool req) {
         try {
 //            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            DollarExpressGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+            CleopatraGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeVlue);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+                return;
+            }
             sendMessageManager.sendPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);

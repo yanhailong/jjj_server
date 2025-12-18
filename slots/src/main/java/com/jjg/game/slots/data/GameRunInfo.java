@@ -38,6 +38,12 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
     //税
     private long tax;
 
+    //奖池金额
+    private long mini;
+    private long minor;
+    private long major;
+    private long grand;
+
     public GameRunInfo(int code, long playerId) {
         this.code = code;
         this.playerId = playerId;
@@ -185,5 +191,37 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
 
     public void setTax(long tax) {
         this.tax = tax;
+    }
+
+    public long getMini() {
+        return mini;
+    }
+
+    public void setMini(long mini) {
+        this.mini = mini;
+    }
+
+    public long getMinor() {
+        return minor;
+    }
+
+    public void setMinor(long minor) {
+        this.minor = minor;
+    }
+
+    public long getMajor() {
+        return major;
+    }
+
+    public void setMajor(long major) {
+        this.major = major;
+    }
+
+    public long getGrand() {
+        return grand;
+    }
+
+    public void setGrand(long grand) {
+        this.grand = grand;
     }
 }

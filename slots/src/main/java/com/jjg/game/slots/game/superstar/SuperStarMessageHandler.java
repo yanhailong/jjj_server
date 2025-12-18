@@ -5,8 +5,11 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.slots.controller.SlotsRoomController;
+import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.superstar.data.SuperStarGameRunInfo;
 import com.jjg.game.slots.game.superstar.manager.SuperStarGameManager;
+import com.jjg.game.slots.game.superstar.manager.SuperStarRoomGameManager;
 import com.jjg.game.slots.game.superstar.manager.SuperStarSendMessageManager;
 import com.jjg.game.slots.game.superstar.pb.req.ReqSuperStarConfigInfo;
 import com.jjg.game.slots.game.superstar.pb.req.ReqSuperStarPoolValue;
@@ -26,6 +29,8 @@ public class SuperStarMessageHandler {
 
     @Autowired
     private SuperStarGameManager gameManager;
+    @Autowired
+    private SuperStarRoomGameManager roomGameManager;
     @Autowired
     private SuperStarSendMessageManager sendMessageManager;
 
@@ -56,7 +61,15 @@ public class SuperStarMessageHandler {
     public void reqStartGame(PlayerController playerController, ReqSuperStarStartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            SuperStarGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeValue);
+            SuperStarGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.playerStartGame(playerController, req.stakeValue);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.playerStartGame(playerController, req.stakeValue);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+                return;
+            }
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
@@ -73,7 +86,15 @@ public class SuperStarMessageHandler {
     public void reqPoolValue(PlayerController playerController, ReqSuperStarPoolValue req) {
         try {
             log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            SuperStarGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeValue);
+            SuperStarGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.getPoolValue(playerController, req.stakeValue);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeValue);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+                return;
+            }
             sendMessageManager.sendPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);

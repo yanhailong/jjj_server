@@ -5,9 +5,11 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinGameManager;
+import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinRoomGameManager;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinSendMessageManager;
 import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinEnterGame;
 import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinStartGame;
@@ -28,6 +30,8 @@ public class MahjiongWinMessageHandler {
     @Autowired
     private MahjiongWinGameManager gameManager;
     @Autowired
+    private MahjiongWinRoomGameManager roomGameManager;
+    @Autowired
     private MahjiongWinSendMessageManager sendMessageManager;
 
     /**
@@ -40,7 +44,17 @@ public class MahjiongWinMessageHandler {
     public void reqConfigInfo(PlayerController playerController, ReqMahjiongwinEnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
-            MahjiongWinGameRunInfo gameRunInfo = gameManager.enterGame(playerController);
+
+            MahjiongWinGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.enterGame(playerController);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.enterGame(playerController);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+                return;
+            }
+
             sendMessageManager.sendConfigMessage(playerController,gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
@@ -57,7 +71,15 @@ public class MahjiongWinMessageHandler {
     public void reqStartGame(PlayerController playerController, ReqMahjiongwinStartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            MahjiongWinGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);
+            MahjiongWinGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.playerStartGame(playerController, req.stakeVlue);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.playerStartGame(playerController, req.stakeVlue);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+                return;
+            }
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);

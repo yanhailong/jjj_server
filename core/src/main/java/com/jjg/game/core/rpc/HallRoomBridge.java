@@ -24,7 +24,7 @@ public interface HallRoomBridge extends IGameRpc {
      * @param roomId      房间ID
      * @param operateCode 操作码 1. 重新开启 2. 暂停 3. 解散
      */
-    void operateFriendRoom(long playerId, long roomId, int operateCode);
+    void operateFriendRoom(long playerId, long roomId, int operateCode, int roomCfgId);
 
     /**
      * 获取好友房信息
@@ -33,4 +33,16 @@ public interface HallRoomBridge extends IGameRpc {
      * @return 好友房
      */
     FriendRoom getFriendRoomInfo(long roomId);
+
+    /**
+     * 更新房间信息
+     *
+     * @param playerId
+     * @param roomId
+     * @param roomExpendCfgId    申请开房时长，RoomExpend cfg id
+     * @param autoRenewal
+     * @param predictCostGoldNum 添加的庄家准备金
+     * @param roomAliasName
+     */
+    int updateFriendRoom(long playerId, int roomCfgId, long roomId, int roomExpendCfgId, boolean autoRenewal, long predictCostGoldNum, String roomAliasName);
 }

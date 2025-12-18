@@ -5,8 +5,11 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.slots.controller.SlotsRoomController;
+import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
 import com.jjg.game.slots.game.wealthbank.data.WealthBankGameRunInfo;
 import com.jjg.game.slots.game.wealthbank.manager.WealthBankGameManager;
+import com.jjg.game.slots.game.wealthbank.manager.WealthBankRoomGameManager;
 import com.jjg.game.slots.game.wealthbank.manager.WealthBankSendMessageManager;
 import com.jjg.game.slots.game.wealthbank.pb.*;
 import org.slf4j.Logger;
@@ -26,6 +29,8 @@ public class WealthBankMessageHandler {
     @Autowired
     private WealthBankGameManager gameManager;
     @Autowired
+    private WealthBankRoomGameManager roomGameManager;
+    @Autowired
     private WealthBankSendMessageManager sendMessageManager;
 
 
@@ -40,7 +45,15 @@ public class WealthBankMessageHandler {
         try {
             log.info("[Wealth Bank] 收到玩家请求配置 playerId={},req={}",
                     playerController.playerId(), JSONObject.toJSONString(req));
-            WealthBankGameRunInfo gameRunInfo = gameManager.enterGame(playerController);
+            WealthBankGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.enterGame(playerController);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.enterGame(playerController);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+                return;
+            }
             sendMessageManager.sendConfigMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("[Wealth Bank] reqWealthBankConfigInfo 异常", e);
@@ -52,8 +65,15 @@ public class WealthBankMessageHandler {
         try {
             log.info("[Wealth Bank] 收到玩家开始游戏 playerId={},req={}",
                     playerController.playerId(), JSONObject.toJSONString(req));
-            WealthBankGameRunInfo gameRunInfo =
-                    this.gameManager.playerStartGame(playerController, req.stakeVlue);
+            WealthBankGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.playerStartGame(playerController, req.stakeVlue);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.playerStartGame(playerController, req.stakeVlue);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+                return;
+            }
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("[Wealth Bank] reqWealthBankStartGame 异常", e);
@@ -65,8 +85,15 @@ public class WealthBankMessageHandler {
         try {
             log.info("[Wealth Bank] 收到选择免费游戏类型 playerId={},req={}",
                     playerController.playerId(), JSONObject.toJSONString(req));
-            WealthBankGameRunInfo gameRunInfo =
-                    gameManager.playerChooseFreeGameType(playerController, req.status);
+            WealthBankGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.playerChooseFreeGameType(playerController, req.status);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.playerChooseFreeGameType(playerController, req.status);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+                return;
+            }
             sendMessageManager.sendChooseOneMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("[Wealth Bank] reqWealthBankChooseFreeModel 异常", e);
@@ -78,8 +105,15 @@ public class WealthBankMessageHandler {
         try {
             log.info("[Wealth Bank] 收到选择投资游戏 playerId={},req={}",
                     playerController.playerId(), JSONObject.toJSONString(req));
-            WealthBankGameRunInfo gameRunInfo =
-                    gameManager.playerInvest(playerController, req.areaId);
+            WealthBankGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.playerInvest(playerController, req.areaId);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.playerInvest(playerController, req.areaId);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+                return;
+            }
             sendMessageManager.sendInvers(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("[Wealth Bank] reqWealthBankInvestArea 异常", e);
@@ -91,8 +125,15 @@ public class WealthBankMessageHandler {
         try {
             log.info("[Wealth Bank] 收到获取奖池 playerId={},req={}",
                     playerController.playerId(), JSONObject.toJSONString(req));
-            WealthBankGameRunInfo gameRunInfo =
-                    gameManager.getPoolValue(playerController, req.stakeVlue);
+            WealthBankGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeVlue);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+                return;
+            }
             sendMessageManager.sendPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("[Wealth Bank] reqWealthBankPoolValue 异常", e);

@@ -36,6 +36,12 @@ public class FriendRoomBillHistoryBean {
     private int itemId;
     // 月份
     private int month;
+    // 玩家总押分 玩家ID + 总押分
+    private Map<Long, Long> partInPlayerBetScore;
+    //游戏主类型
+    private int gameMajorType;
+    //已经领取的收益额
+    private long hasReceivedIncome;
 
     public long getId() {
         return id;
@@ -131,5 +137,36 @@ public class FriendRoomBillHistoryBean {
 
     public void setMonth(int month) {
         this.month = month;
+    }
+
+    public Map<Long, Long> getPartInPlayerBetScore() {
+        return partInPlayerBetScore;
+    }
+
+    public void setPartInPlayerBetScore(Map<Long, Long> partInPlayerBetScore) {
+        this.partInPlayerBetScore = partInPlayerBetScore;
+    }
+
+    public int getGameMajorType() {
+        return gameMajorType;
+    }
+
+    public void setGameMajorType(int gameMajorType) {
+        this.gameMajorType = gameMajorType;
+    }
+
+    public long getHasReceivedIncome() {
+        return hasReceivedIncome;
+    }
+
+    public void setHasReceivedIncome(long hasReceivedIncome) {
+        this.hasReceivedIncome = hasReceivedIncome;
+    }
+
+    public Long getPlayerInCome(long playerId){
+        if(this.partInPlayerIncome == null || this.partInPlayerIncome.isEmpty()){
+            return null;
+        }
+        return  this.partInPlayerIncome.get(playerId);
     }
 }

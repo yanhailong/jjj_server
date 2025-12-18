@@ -164,7 +164,7 @@ public class CoreToServerMessageHandler {
         }
 
         //充值事件
-        gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order, notify.money, notify.regionCode));
+        gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order, notify.money, notify.regionCode, notify.channelProductId));
         //任务条件参数
         Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
             DefaultTaskConditionParam param = new DefaultTaskConditionParam();
@@ -182,7 +182,7 @@ public class CoreToServerMessageHandler {
         NotifyPayInfo notifyPayInfo = new NotifyPayInfo();
         notifyPayInfo.orderId = order.getId();
 
-        notifyPayInfo.allRechargeCount = resMap == null ? 0 : ((Long)resMap.get(CountDao.CountType.RECHARGE_COUNT.getParam())).intValue();
+        notifyPayInfo.allRechargeCount = resMap == null ? 0 : ((Long) resMap.get(CountDao.CountType.RECHARGE_COUNT.getParam())).intValue();
         clusterSystem.sendToPlayer(notifyPayInfo, player.getId());
 
         log.info("充值成功，通知到玩家所在的当前节点 playerId = {},orderId = {}", player.getId(), order.getId());

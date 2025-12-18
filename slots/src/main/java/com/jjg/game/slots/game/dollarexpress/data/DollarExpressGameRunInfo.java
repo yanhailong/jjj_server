@@ -34,12 +34,6 @@ public class DollarExpressGameRunInfo extends GameRunInfo<DollarExpressPlayerGam
     //地图
     private boolean allAreaUnLock;
 
-    //奖池金额
-    private long mini;
-    private long minor;
-    private long major;
-    private long grand;
-
     public DollarExpressGameRunInfo(int code, long playerId) {
         super(code, playerId);
     }
@@ -146,37 +140,5 @@ public class DollarExpressGameRunInfo extends GameRunInfo<DollarExpressPlayerGam
 
     public void setAllAreaUnLock(boolean allAreaUnLock) {
         this.allAreaUnLock = allAreaUnLock;
-    }
-
-    public long getMini() {
-        return mini;
-    }
-
-    public void setMini(long mini) {
-        this.mini = mini;
-    }
-
-    public long getMinor() {
-        return minor;
-    }
-
-    public void setMinor(long minor) {
-        this.minor = minor;
-    }
-
-    public long getMajor() {
-        return major;
-    }
-
-    public void setMajor(long major) {
-        this.major = major;
-    }
-
-    public long getGrand() {
-        return grand;
-    }
-
-    public void setGrand(long grand) {
-        this.grand = grand;
     }
 }

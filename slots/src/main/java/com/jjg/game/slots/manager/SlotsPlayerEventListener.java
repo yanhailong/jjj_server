@@ -13,6 +13,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.SlotsFriendRoomDao;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import org.apache.commons.lang3.StringUtils;
@@ -44,8 +45,9 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     private SlotsFactoryManager slotsFactoryManager;
     @Autowired
     private PlayerSessionTokenDao playerSessionTokenDao;
+
     @Autowired
-    private SlotsFriendRoomDao slotsFriendRoomDao;
+    private SlotsRoomManager slotsRoomManager;
 
 
     @Override
@@ -86,10 +88,13 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
 
             playerSessionService.enterGameServer(player);
 
+            PlayerController playerController = new PlayerController(session, player);
+            session.setReference(playerController);
+
             if (player.getRoomId() < 1) {
-                enterSlotsGame(session, player, info, gameManager);
+                enterSlotsGame(session, player, playerController, info, gameManager);
             } else {
-                enterRoomSlotsGame(session, player, info, gameManager);
+                enterRoomSlotsGame(session, player, playerController, info, gameManager);
             }
         } catch (Exception e) {
             log.error("", e);
@@ -104,13 +109,11 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
      * @param playerSessionInfo
      * @param gameManager
      */
-    private void enterSlotsGame(PFSession session, Player player, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
+    private void enterSlotsGame(PFSession session, Player player, PlayerController playerController, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
         //放入玩家对应线程中处理避免和回存冲突
         PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
             @Override
             public void action() throws Exception {
-                PlayerController playerController = new PlayerController(session, player);
-                session.setReference(playerController);
                 //创建 PlayerGameData
                 gameManager.createPlayerGameData(playerController);
             }
@@ -129,10 +132,10 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
      * @param playerSessionInfo
      * @param gameManager
      */
-    private void enterRoomSlotsGame(PFSession session, Player player, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
-        SlotsFriendRoom room = slotsFriendRoomDao.getRoom(player.getGameType(), player.getRoomId());
-        if (room == null) {
-            log.warn("进入好友房slots时，未找到该房间数据 playerId = {},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
+    private void enterRoomSlotsGame(PFSession session, Player player, PlayerController playerController, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
+        SlotsRoomController slotsRoomController = slotsRoomManager.enterRoom(player.getGameType(), player.getRoomId(), player.getId());
+        if (slotsRoomController == null) {
+            log.warn("进入好友房slots时失败 playerId = {},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
             playerService.doSave(player.getId(), p -> {
                 p.setRoomId(0);
             });
@@ -143,10 +146,9 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
             @Override
             public void action() throws Exception {
-                PlayerController playerController = new PlayerController(session, player);
-                session.setReference(playerController);
+                playerController.setScene(slotsRoomController);
                 //创建 PlayerGameData
-                gameManager.createPlayerGameData(playerController, RoomType.SLOTS_TEAM_UP_ROOM);
+                gameManager.createPlayerGameData(playerController);
             }
         });
         slotsFactoryManager.clearPlayerEvent(player.getId());

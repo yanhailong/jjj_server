@@ -42,17 +42,20 @@ public class PlayerEventCategory {
         private String money;
         // 地区代码
         private String regionCode;
+        //渠道商品id
+        private String channelProductId;
 
         public PlayerRechargeEvent(Player player, Order order) {
             super(player, EGameEventType.RECHARGE, null, null);
             this.order = order;
         }
 
-        public PlayerRechargeEvent(Player player, Order order, String money, String regionCode) {
+        public PlayerRechargeEvent(Player player, Order order, String money, String regionCode,String channelProductId) {
             super(player, EGameEventType.RECHARGE, null, null);
             this.order = order;
             this.money = money;
             this.regionCode = regionCode;
+            this.channelProductId = channelProductId;
         }
 
         public String getMoney() {
@@ -69,6 +72,14 @@ public class PlayerEventCategory {
 
         public void setOrder(Order order) {
             this.order = order;
+        }
+
+        public String getChannelProductId() {
+            return channelProductId;
+        }
+
+        public void setChannelProductId(String channelProductId) {
+            this.channelProductId = channelProductId;
         }
     }
 }

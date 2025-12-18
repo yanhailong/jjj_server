@@ -17,6 +17,8 @@ public class SlotsFactoryManager {
 
     @Autowired
     private SlotsPoolDao slotsPoolDao;
+    @Autowired
+    private SlotsRoomManager slotsRoomManager;
 
     //所有的游戏管理器
     private Map<Integer,AbstractSlotsGameManager> slotsGameManagerMap = new HashMap<>();
@@ -29,6 +31,7 @@ public class SlotsFactoryManager {
         this.slotsPoolDao.initPool();
         //初始化游戏管理器
         initGameManager(context);
+        this.slotsRoomManager.init();
     }
 
     /**
@@ -63,5 +66,6 @@ public class SlotsFactoryManager {
      */
     public void shutdown(){
         closeGameManager();
+        this.slotsRoomManager.shutDown();
     }
 }

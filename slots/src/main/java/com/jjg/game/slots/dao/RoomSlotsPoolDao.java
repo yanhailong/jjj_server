@@ -5,10 +5,15 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AbstractPoolDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
-import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.service.SlotsPlayerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 @Component
@@ -18,34 +23,39 @@ public class RoomSlotsPoolDao extends AbstractPoolDao {
 
     /**
      * 初始化房间水池
+     *
      * @param roomId
      * @param reserveValue
      */
-    public void initRoomPool(long roomId,long reserveValue){
-        String tableName = roomPoolTableName(roomId);
-
-        this.redisTemplate.opsForHash().putIfAbsent(tableName, SlotsConst.RoomSlotsPool.TYPE_STANDARD, reserveValue);
-        this.redisTemplate.opsForHash().putIfAbsent(tableName, SlotsConst.RoomSlotsPool.TYPE_ALL_REVERSE, reserveValue);
-        this.redisTemplate.opsForHash().putIfAbsent(tableName, SlotsConst.RoomSlotsPool.TYPE_ALL_INCOME, 0);
+    public void initRoomPool(long roomId, long reserveValue) {
+        this.redisTemplate.opsForHash().putIfAbsent(room_pool_prefix, roomId, reserveValue);
     }
 
     /**
-     * 给房间添加准备金
+     * 根据房间id获取池子
      *
-     * @param roomId
-     * @param addReserveValue 添加的准备金
      * @return
      */
-    public long[] addReserve(long roomId, long addReserveValue) {
-        if (addReserveValue < 0) {
+    public Number getBigPoolByRoomId(long roomId) {
+        return (Number) this.redisTemplate.opsForHash().get(room_pool_prefix, roomId);
+    }
+
+    public Map<Long, Long> getPools(List<Long> roomIds) {
+        List<Object> results = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            for (Long roomId : roomIds) {
+                connection.hGet(room_pool_prefix.getBytes(), String.valueOf(roomId).getBytes());
+            }
             return null;
+        });
+
+        Map<Long, Long> resultMap = new HashMap<>();
+        for (int i = 0; i < roomIds.size(); i++) {
+            Object value = results.get(i);
+            if (value != null) {
+                resultMap.put(roomIds.get(i), Long.parseLong(value.toString()));
+            }
         }
-
-        String tableName = roomPoolTableName(roomId);
-
-        long afterStandardValue = this.redisTemplate.opsForHash().increment(tableName, SlotsConst.RoomSlotsPool.TYPE_STANDARD, addReserveValue);
-        long afterReserveValue = this.redisTemplate.opsForHash().increment(tableName, SlotsConst.RoomSlotsPool.TYPE_ALL_REVERSE, addReserveValue);
-        return new long[]{afterStandardValue, afterReserveValue};
+        return resultMap;
     }
 
     /**
@@ -58,20 +68,7 @@ public class RoomSlotsPoolDao extends AbstractPoolDao {
         if (value == 0) {
             return null;
         }
-        return this.redisTemplate.opsForHash().increment(roomPoolTableName(roomId), SlotsConst.RoomSlotsPool.TYPE_STANDARD, value);
-    }
-
-    /**
-     * 给收益池加钱
-     *
-     * @param roomId
-     * @param value
-     */
-    public Long addToReversePool(long roomId, long value) {
-        if (value < 1) {
-            return null;
-        }
-        return this.redisTemplate.opsForHash().increment(roomPoolTableName(roomId), SlotsConst.RoomSlotsPool.TYPE_ALL_INCOME, value);
+        return this.redisTemplate.opsForHash().increment(room_pool_prefix, roomId, value);
     }
 
     /**
@@ -105,5 +102,9 @@ public class RoomSlotsPoolDao extends AbstractPoolDao {
         }
 //        log.debug("从标准池扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},value = {},afterPool = {},addType = {}", playerId, gameType, roomCfgId, value, after, addType);
         return result;
+    }
+
+    public void removePoolByRoomId(long roomId) {
+        this.redisTemplate.opsForHash().delete(room_pool_prefix,roomId);
     }
 }

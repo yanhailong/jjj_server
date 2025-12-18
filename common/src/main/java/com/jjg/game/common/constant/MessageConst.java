@@ -141,6 +141,9 @@ public interface MessageConst {
         int CHRISTMAS_NIGHT_TYPE = 0x2A;
         //篮球巨星
         int BASKETBALL_SUPERSTAR = 0x2B;
+
+        //SLOTS通用
+        int SLOTS_COMMON = 0x2B;
     }
 
     interface ToClientConst {

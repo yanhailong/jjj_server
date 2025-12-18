@@ -1,6 +1,7 @@
 package com.jjg.game.slots.constant;
 
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.utils.TimeHelper;
 
 /**
@@ -98,17 +99,17 @@ public interface SlotsConst {
         int NOT_NEED_BASE_LINE = 0;
     }
 
-    interface RoomSlotsPool {
-        //标准池
-        int TYPE_STANDARD = 1;
-        //累计添加的保证金
-        int TYPE_ALL_REVERSE = 2;
-        //累计收益
-        int TYPE_ALL_INCOME = 3;
-    }
-
     interface GlobalConfig {
         //创建房间功能基础收益万分比
         int ID_ROOM_INCOME_PROP = 12;
+    }
+
+
+    interface SlotsCommon{
+        int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.SLOTS_COMMON << MessageConst.MessageCommon.RIGHT_MOVE;
+
+        //在slots好友房获取准备金
+        int REQ_SLOTS_ROOM_POOL = BASE_MSG_PREFIX | 0x1;
+        int RES_SLOTS_ROOM_POOL = BASE_MSG_PREFIX | 0x2;
     }
 }

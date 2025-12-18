@@ -5,6 +5,7 @@ import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.slots.controller.SlotsRoomController;
 import org.springframework.beans.BeanUtils;
 
 import java.lang.reflect.Constructor;
@@ -59,8 +60,6 @@ public class SlotsPlayerGameData {
     protected int createTime;
     //离线时间
     protected int offlineTime;
-    //房间类型
-    protected RoomType roomType;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -284,12 +283,15 @@ public class SlotsPlayerGameData {
         this.offlineTime = offlineTime;
     }
 
-    public RoomType getRoomType() {
-        return roomType;
-    }
+    public SlotsRoomController getSlotsRoomController() {
+        if(this.playerController == null || this.playerController.getScene() == null){
+            return null;
+        }
 
-    public void setRoomType(RoomType roomType) {
-        this.roomType = roomType;
+        if(this.playerController.getScene() instanceof SlotsRoomController){
+            return (SlotsRoomController)this.playerController.getScene();
+        }
+        return null;
     }
 
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {

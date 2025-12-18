@@ -28,4 +28,7 @@ public class FriendRoomBillHistory {
 
     @ProtoDesc("玩家参数人数")
     public int partInNum;
+
+    @ProtoDesc("玩家id")
+    public long playerId;
 }

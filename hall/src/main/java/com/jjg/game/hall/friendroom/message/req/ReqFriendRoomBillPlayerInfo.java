@@ -20,4 +20,6 @@ public class ReqFriendRoomBillPlayerInfo extends AbstractMessage {
 
     @ProtoDesc("账单ID")
     public long id;
+    @ProtoDesc("玩家id")
+    public long playerId;
 }

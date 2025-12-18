@@ -190,7 +190,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                 timerCenter.add(updateTimer);
             }
 
-            log.info("收到更新通知,需要同步更新期号[{}]数据", issueNumber);
+//            log.info("收到更新通知,需要同步更新期号[{}]数据", issueNumber);
         }
     }
 
