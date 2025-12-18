@@ -67,7 +67,6 @@ public class WealthBankMessageHandler {
                     playerController.playerId(), JSONObject.toJSONString(req));
             WealthBankGameRunInfo gameRunInfo;
             if(playerController.getScene() == null){
-                System.out.println(11);
                 gameRunInfo = gameManager.playerStartGame(playerController, req.stakeVlue);
             }else if(playerController.getScene() instanceof SlotsRoomController){
                 System.out.println(22);

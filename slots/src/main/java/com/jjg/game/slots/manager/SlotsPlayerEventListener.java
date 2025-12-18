@@ -124,12 +124,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             @Override
             public void action() throws Exception {
                 //创建 PlayerGameData
-                SlotsPlayerGameData playerGameData = gameManager.createPlayerGameData(playerController);
-                System.out.println(gameManager.getClass().getSimpleName());
-                if (playerGameData == null) {
-                    log.warn("进入游戏失败，创建playerGameData失败 playerId = {}",player.getId());
-                    return;
-                }
+                gameManager.createPlayerGameData(playerController);
             }
         });
         slotsFactoryManager.clearPlayerEvent(player.getId());

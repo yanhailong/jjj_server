@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.pegasusunbridle.manager;
 
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleGameDataDao;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleResultLibDao;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
