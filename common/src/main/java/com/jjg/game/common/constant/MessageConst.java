@@ -112,6 +112,16 @@ public interface MessageConst {
 
         //商城
         int SHOP_TYPE = 0x29;
+
+        //圣诞狂欢夜
+        int CHRISTMAS_NIGHT_TYPE = 0x2A;
+        //篮球巨星
+        int BASKETBALL_SUPERSTAR = 0x2B;
+        //SLOTS通用
+        int SLOTS_COMMON = 0x2C;
+        //寒冰王座
+        int FROZEN_THRONE = 0x2D;
+
         //任务
         int TASK_TYPE = 0x30;
         //积分大奖
@@ -137,15 +147,6 @@ public interface MessageConst {
         int STEAM_AGE = 0x3A;
         //财富银行
         int WEALTH_BANK = 0x3B;
-        //圣诞狂欢夜
-        int CHRISTMAS_NIGHT_TYPE = 0x2A;
-        //篮球巨星
-        int BASKETBALL_SUPERSTAR = 0x2B;
-
-        //SLOTS通用
-        int SLOTS_COMMON = 0x2C;
-        //寒冰王座
-        int FROZEN_THRONE = 0x2D;
         //神马飞扬
         int PEGASUS_UNBRIDLE = 0x3C;
     }
