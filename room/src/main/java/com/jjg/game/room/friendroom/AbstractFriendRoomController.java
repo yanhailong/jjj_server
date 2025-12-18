@@ -347,9 +347,10 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             if (result.success()) {
                 this.room = result.data;
 
-                Map<Integer, Long> itemMap = Map.of(requiredMoney.get(0), (long) itemNum);
-                Map<Integer, Long> afterItemMap = Map.of(requiredMoney.get(0), this.room.getPredictCostGoldNum());
-                roomManager.getCoreLogger().roomOperate(this.room, 2, roomExpendCfg.getDurationTime(), itemMap, afterItemMap);
+                Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), (long) itemNum);
+                ItemOperationResult itemOperationResult = new ItemOperationResult();
+                itemOperationResult.setDiamond(this.room.getPredictCostGoldNum());
+                roomManager.getCoreLogger().roomOperate(this.room, 2, roomExpendCfg.getDurationTime(), itemMap, itemOperationResult);
                 log.info("房间：{} 自动续费成功, 过期时间：{} 总花费：{}", room.logStr(), overdueTime, totalTake);
             }
         }

@@ -592,7 +592,7 @@ public class BaseLogger {
     /**
      * 房间操作日志
      */
-    public void roomOperate(FriendRoom friendRoom, int operateType, int operateTimeLen, Map<Integer, Long> spendItemMap, Map<Integer, Long> remainItemMap) {
+    public void roomOperate(FriendRoom friendRoom, int operateType, int operateTimeLen, Map<Integer, Long> spendItemMap, ItemOperationResult result) {
         try {
             JSONObject json = new JSONObject();
             //1.创建房间  2.自动续费  3.手动续费
@@ -608,7 +608,7 @@ public class BaseLogger {
             //消耗
             json.put("spend", ItemUtils.itemMapToJsonArray(spendItemMap));
             //消耗
-            json.put("remain", ItemUtils.itemMapToJsonArray(remainItemMap));
+            json.put("remain", objectMapper.writeValueAsString(result));
             json.put("playerId", friendRoom.getCreator());
             sendLog("function", null, json);
         } catch (Exception e) {
