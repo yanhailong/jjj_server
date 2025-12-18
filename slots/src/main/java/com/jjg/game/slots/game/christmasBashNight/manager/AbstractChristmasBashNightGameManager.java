@@ -330,7 +330,7 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
      * @return
      */
     private ChristmasBashNightGameRunInfo jackpool(ChristmasBashNightGameRunInfo gameRunInfo, ChristmasBashNightPlayerGameData playerGameData, ChristmasBashNightResultLib resultLib) {
-        if (!resultLib.getLibTypeSet().contains(ThorConstant.SpecialMode.JACKPOOL)) {
+        if (!resultLib.getLibTypeSet().contains(ChristmasBashNightConstant.SpecialMode.JACKPOOL)) {
             return gameRunInfo;
         }
 
