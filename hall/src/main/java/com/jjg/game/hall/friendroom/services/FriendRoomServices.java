@@ -179,7 +179,7 @@ public class FriendRoomServices {
         res.roomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
         playerController.send(res);
         log.info("玩家：{} 创建好友房成功：{}", player.getId(), JSON.toJSONString(res));
-        coreLogger.roomOperate(friendRoom, 1, roomExpendCfg.getDurationTime(), itemMap, removeItem.data.getChangeEndItemNumIncludeMoney());
+        coreLogger.roomOperate(friendRoom, 1, roomExpendCfg.getDurationTime(), itemMap, removeItem.data);
         // 通知前端房间创建
         return Code.SUCCESS;
     }
@@ -510,9 +510,10 @@ public class FriendRoomServices {
             }
         });
 
-        Map<Integer, Long> itemMap = Map.of(requiredMoney.get(0), (long) itemNum);
-        Map<Integer, Long> afterItemMap = Map.of(requiredMoney.get(0), friendRoom.getPredictCostGoldNum());
-        coreLogger.roomOperate(friendRoom, 2, roomExpendCfg.getDurationTime(), itemMap, afterItemMap);
+        Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), (long) itemNum);
+        ItemOperationResult itemOperationResult = new ItemOperationResult();
+        itemOperationResult.setDiamond(friendRoom.getPredictCostGoldNum());
+        coreLogger.roomOperate(friendRoom, 2, roomExpendCfg.getDurationTime(), itemMap, itemOperationResult);
     }
 
     /**
@@ -963,7 +964,7 @@ public class FriendRoomServices {
                 JSON.toJSONString(updateFriendRoom), JSON.toJSONString(result.data));
 
         if (addTime > 0) {
-            coreLogger.roomOperate(friendRoom, 3, roomExpendCfg.getDurationTime(), itemMap, removeItem.data.getChangeEndItemNumIncludeMoney());
+            coreLogger.roomOperate(friendRoom, 3, roomExpendCfg.getDurationTime(), itemMap, removeItem.data);
         }
         return Code.SUCCESS;
     }
