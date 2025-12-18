@@ -27,8 +27,6 @@ import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 
 /**
@@ -138,51 +136,37 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
         if (realPlayerBetInfo == null) {
             return null;
         }
-        List<Integer> keys = new ArrayList<>(winPosOfWeightCfgMap.keySet());
-        Collections.shuffle(keys);
-        for (Integer key : keys) {
-            List<WinPosWeightCfg> winPosWeightCfgs = winPosOfWeightCfgMap.get(key);
-            long totalWin = 0;
-            long totalLose = 0;
-            A:
-            for (Map.Entry<Long, Map<Integer, List<Integer>>> mapEntry : realPlayerBetInfo.entrySet()) {
-                SettlementData settlementData = new SettlementData();
-                for (WinPosWeightCfg winPosWeightCfg : winPosWeightCfgs) {
-                    if (winPosWeightCfg.getWinType() == 1 || winPosWeightCfg.getWinType() == 2) {
-                        break A;
-                    }
-                    List<Integer> betAreas = winPosWeightCfg.getBetArea();
-                    if (betAreas == null || betAreas.isEmpty()) {
-                        continue;
-                    }
-                    for (Integer betAreaId : betAreas) {
-                        Map<Integer, List<Integer>> playerBetInfo = mapEntry.getValue();
-                        if (!playerBetInfo.containsKey(betAreaId)) {
-                            continue;
-                        }
-                        List<Integer> playerBetGoldList = playerBetInfo.get(betAreaId);
-                        // 玩家总押注
-                        long playerBetGoldTotal = playerBetGoldList.stream().mapToInt(Integer::intValue).sum();
-                        SettlementData calcGold = calcGold(null, winPosWeightCfg.getOdds(), winPosWeightCfg.getReturnRate(), winPosWeightCfg, playerBetGoldTotal);
-                        settlementData.increaseBySettlementData(calcGold);
-                    }
-                }
-                settlementData.setBetTotal(mapEntry.getValue().values().stream()
-                        .mapToLong(a -> a.stream().mapToInt(b -> b).sum())
-                        .sum());
-                totalLose += settlementData.getTotalWin() + settlementData.getTaxation();
-                BigDecimal totalGet = BigDecimal.valueOf(settlementData.getBetTotal() - settlementData.getBankerWind())
-                        .multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getWinRatio())))
-                        .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
-                totalWin += settlementData.getBankerWind() + totalGet.longValue();
+        // 2. 提前过滤：移除包含大奖（WinType 1或2）的无效 Key，减少后续 shuffle 和循环的负担
+        List<Integer> validKeys = getValidKeys(winPosOfWeightCfgMap);
+        if (validKeys.isEmpty()) {
+            return null;
+        }
+        Collections.shuffle(validKeys);
+        for (Integer key : validKeys) {
+            List<WinPosWeightCfg> winPosWeightCfgList = winPosOfWeightCfgMap.get(key);
+            Pair<Long, Long> winOrLoseResult = getWinOrLoseResult(realPlayerBetInfo, winPosWeightCfgList);
+            if (winOrLoseResult.getFirst() > 0 && winOrLoseResult.getFirst() >= winOrLoseResult.getSecond()) {
+                return Pair.newPair(key, winPosWeightCfgList);
             }
-            if (totalWin > 0 && totalWin >= totalLose) {
-                System.out.println("totalWin " + totalWin + " totalLose " + totalLose + " key " + key + " winPosWeightCfgs " + winPosWeightCfgs.toString());
-                return Pair.newPair(key, winPosWeightCfgs);
-            }
-
         }
         return null;
+    }
+
+    private List<Integer> getValidKeys(Map<Integer, List<WinPosWeightCfg>> winPosOfWeightCfgMap) {
+        List<Integer> validKeys = new ArrayList<>();
+        for (Map.Entry<Integer, List<WinPosWeightCfg>> entry : winPosOfWeightCfgMap.entrySet()) {
+            boolean hasBigWin = false;
+            for (WinPosWeightCfg cfg : entry.getValue()) {
+                if (cfg.getWinType() == 1 || cfg.getWinType() == 2) {
+                    hasBigWin = true;
+                    break;
+                }
+            }
+            if (!hasBigWin) {
+                validKeys.add(entry.getKey());
+            }
+        }
+        return validKeys;
     }
 
     /**
@@ -222,7 +206,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
      */
     @Override
     public SettlementData calcSettlementGold(GamePlayer gamePlayer, List<WinPosWeightCfg> winPosWeightCfgs,
-                                              Map<Integer, List<Integer>> playerBetInfo, RoomBankerChangeParam changeParam) {
+                                             Map<Integer, List<Integer>> playerBetInfo, RoomBankerChangeParam changeParam) {
         SettlementData settlementData = new SettlementData();
         for (WinPosWeightCfg winPosWeightCfg : winPosWeightCfgs) {
             if (winPosWeightCfg.getWinType() == 1) {
