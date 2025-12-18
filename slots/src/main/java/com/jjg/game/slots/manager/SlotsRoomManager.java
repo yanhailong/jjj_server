@@ -243,9 +243,10 @@ public class SlotsRoomManager implements HallRoomBridge {
         slotsRoomController.getRoom().setOverdueTime(overdueTime);
         slotsRoomController.getRoom().setPredictCostGoldNum(slotsRoomController.getRoom().getPredictCostGoldNum());
 
-        Map<Integer, Long> itemMap = Map.of(requiredMoney.get(0), (long) itemNum);
-        Map<Integer, Long> afterItemMap = Map.of(requiredMoney.get(0), slotsRoomController.getRoom().getPredictCostGoldNum());
-        slotsLogger.roomOperate(slotsRoomController.getRoom(), 2, roomExpendCfg.getDurationTime(), itemMap, afterItemMap);
+        Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), (long) itemNum);
+        ItemOperationResult itemOperationResult = new ItemOperationResult();
+        itemOperationResult.setDiamond(slotsRoomController.getRoom().getPredictCostGoldNum());
+        slotsLogger.roomOperate(slotsRoomController.getRoom(), 2, roomExpendCfg.getDurationTime(), itemMap, itemOperationResult);
         log.info("房间自动续费成功, roomId = {},roomCfgId = {},overdueTime={} totalTake={}", slotsRoomController.getRoom().getId(), slotsRoomController.getRoom().getRoomCfgId(), overdueTime, totalTake);
     }
 
