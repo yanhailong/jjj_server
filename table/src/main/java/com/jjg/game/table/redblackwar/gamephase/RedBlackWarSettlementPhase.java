@@ -145,7 +145,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                 }
             }
         }
-        //计算最终的bankerChangeGold
+        // 计算最终的bankerChangeGold
         if (changeParam != null) {
             for (SettlementData data : settlementDataMap.values()) {
                 changeParam.addTotalTaxRevenue(data.getTaxation());
