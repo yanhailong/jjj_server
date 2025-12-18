@@ -63,12 +63,12 @@ public class CleopatraMessageHandler {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             CleopatraGameRunInfo gameRunInfo;
-            if(playerController.getScene() == null){
-                gameRunInfo = gameManager.enterGame(playerController);
-            }else if(playerController.getScene() instanceof SlotsRoomController){
-                gameRunInfo = roomGameManager.enterGame(playerController);
-            }else {
-                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.playerStartGame(playerController, req.stakeVlue);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.playerStartGame(playerController, req.stakeVlue);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
@@ -88,12 +88,12 @@ public class CleopatraMessageHandler {
         try {
 //            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             CleopatraGameRunInfo gameRunInfo;
-            if(playerController.getScene() == null){
+            if (playerController.getScene() == null) {
                 gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
-            }else if(playerController.getScene() instanceof SlotsRoomController){
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
                 gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeVlue);
-            }else {
-                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
             sendMessageManager.sendPoolValue(playerController, gameRunInfo);
