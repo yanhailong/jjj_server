@@ -51,25 +51,28 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
         return null;
     }
 
-
     private List<List<Integer>> getDiceAllResults(int diceNum, int diceMinNum, int diceMaxNum) {
-        List<List<Integer>> diceAllResults = new ArrayList<>();
+        // 使用 Set 来去重，确保 125, 152, 512 等只保留一个排序后的结果
+        Set<List<Integer>> resultSet = new HashSet<>();
         int diceRange = diceMaxNum - diceMinNum + 1;
-        //先生成结果列表再打乱随机
         int times = (int) Math.pow(diceRange, diceNum);
+
         for (int i = 1; i <= times; i++) {
             List<Integer> randomNumDice = new ArrayList<>(diceNum);
             for (int j = 1; j <= diceNum; j++) {
-                //先取余再除
                 int pow = (int) Math.pow(diceRange, j);
                 int number = i % pow;
                 number = number == 0 ? pow : number;
-                //除
-                randomNumDice.addFirst((int) Math.ceil(number / (Math.pow(diceRange, j - 1))));
+                // 计算当前骰子点数
+                int diceValue = (int) Math.ceil(number / (Math.pow(diceRange, j - 1))) + (diceMinNum - 1);
+                randomNumDice.add(diceValue);
             }
-            diceAllResults.add(randomNumDice);
+            // 核心逻辑：排序后放入 Set 达到去重效果
+            // 这样 152, 512, 215 都会变成 125 并去重
+            Collections.sort(randomNumDice);
+            resultSet.add(randomNumDice);
         }
-        return diceAllResults;
+        return new ArrayList<>(resultSet);
     }
 
     /**
