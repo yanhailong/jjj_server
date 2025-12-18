@@ -146,6 +146,8 @@ public interface MessageConst {
         int SLOTS_COMMON = 0x2C;
         //寒冰王座
         int FROZEN_THRONE = 0x2D;
+        //神马飞扬
+        int PEGASUS_UNBRIDLE = 0x3C;
     }
 
     interface ToClientConst {
