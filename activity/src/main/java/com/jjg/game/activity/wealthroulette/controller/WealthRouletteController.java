@@ -197,12 +197,23 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         for (WealthRouletteRewardCfg rewardCfg : GameDataManager.getWealthRouletteRewardCfgList()) {
             res.rouletteItemInfo.add(new WealthRouletteDrawItemInfo(rewardCfg.getId(), rewardCfg.getPicture(), ItemUtils.buildItemInfo(rewardCfg.getItem())));
         }
-        res.totalPoint = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
-                getChildId(playerId, LocalDate.now().minusDays(-1))).intValue();
+        res.totalPoint = getTodayMaxPoint(playerId);
         BigDecimal current = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
                 getChildId(playerId, LocalDate.now()));
         res.tomorrowPoint = getConversionValue(playerId, current.longValue(), false).toPlainString();
         return res;
+    }
+
+    /**
+     * 获取今日最大积分
+     *
+     * @param playerId 玩家id
+     * @return 积分
+     */
+    private int getTodayMaxPoint(long playerId) {
+        long point = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
+                getChildId(playerId, LocalDate.now().minusDays(1))).longValue();
+        return getConversionValue(playerId, point, true).intValue();
     }
 
     /**
@@ -273,8 +284,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             log.error("玩家添加财富转盘奖励失败 playerId:{} addItems:{}", playerId, finalRewardMap);
         }
         //发送日志
-        int toDayMax = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
-                getChildId(playerId, LocalDate.now().minusDays(-1))).intValue();
+        int toDayMax = getTodayMaxPoint(playerId);
         activityLogger.sendWealthRouletteLog(player, toDayMax, needPoint, result.intValue(), 1, finalRewardMap, addItems);
         //构建响应信息
         res.remainPoint = result.intValue();
@@ -338,8 +348,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             log.error("财富转盘 购买商品后添加道具失败 playerId:{} goodId:{}", playerId, req.goodId);
         }
         //发送日志
-        int toDayMax = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
-                getChildId(playerId, LocalDate.now().minusDays(-1))).intValue();
+        int toDayMax = getTodayMaxPoint(playerId);
         activityLogger.sendWealthRouletteLog(player, toDayMax, needPoint, remainPoint.intValue(), 2, addItemMap, addResult);
 
         res.goodInfo = buildWealthRouletteGoodInfo(cfg, result.intValue());
@@ -412,7 +421,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         BigDecimal count = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
                 getChildId(playerId, LocalDate.now().minusDays(1)));
         BigDecimal add = getConversionValue(playerId, count.longValue(), true);
-        if (add.compareTo(BigDecimal.ZERO) > 0) {
+        if (add.compareTo(BigDecimal.ZERO) >= 0) {
             countDao.setCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId), add);
             log.info("财富转盘 今日积分 playerOd:{} addPoint:{}", playerId, add.longValue());
         }
