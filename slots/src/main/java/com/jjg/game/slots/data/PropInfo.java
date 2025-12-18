@@ -5,6 +5,7 @@ import com.jjg.game.common.utils.RandomUtils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author 11
@@ -65,6 +66,24 @@ public class PropInfo implements Cloneable{
                 return en.getKey();
             }
         }
+        return null;
+    }
+
+    public Integer getRandKey(Set<Integer> exlude) {
+        if(this.sum < 1){
+            return null;
+        }
+
+        if(exlude == null || exlude.isEmpty()){
+            int rand = RandomUtils.randomInt(this.sum);
+            for(Map.Entry<Integer,int[]> en: this.propMap.entrySet()){
+                if(rand >= en.getValue()[0] && rand < en.getValue()[1]){
+                    return en.getKey();
+                }
+            }
+            return null;
+        }
+
         return null;
     }
 

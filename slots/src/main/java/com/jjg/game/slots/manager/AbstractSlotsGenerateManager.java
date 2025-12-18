@@ -2,6 +2,7 @@ package com.jjg.game.slots.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
@@ -1281,6 +1282,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         }
         Map<Integer, SpecialResultLibCfg> tempLibCfgMap = new HashMap<>();
         Map<Integer, PropInfo> tempResultLibTypePropInfoMap = new HashMap<>();
+        Map<Integer, PropInfo> tempNoJackpotResultLibTypePropInfoMap = new HashMap<>();
 
         Map<Integer, Map<Integer, PropInfo>> tempResultLibSectionPropMap = new HashMap<>();
 
@@ -1288,6 +1290,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         Map<Integer, Map<Integer, int[]>> tempResultLibSectionMap = new HashMap<>();
 
         int tmpDefaultRewardSectionIndex = -1;
+
+        Set<Integer> jackpotIds = SlotsConst.specialModeJackpotModeIds.get(this.gameType);
 
         for (SpecialResultLibCfg cfg : cfgList) {
             tempLibCfgMap.put(cfg.getModelId(), cfg);
@@ -1305,6 +1309,25 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 }
                 propInfo.setSum(end);
                 tempResultLibTypePropInfoMap.put(cfg.getModelId(), propInfo);
+            }
+
+            if (cfg.getTypeProp() != null && !cfg.getTypeProp().isEmpty()) {
+                PropInfo propInfo = new PropInfo();
+
+                int begin = 0;
+                int end = 0;
+                for (Map.Entry<Integer, Integer> en2 : cfg.getTypeProp().entrySet()) {
+                    int libType = en2.getKey();
+                    //排除jackpot 后 计算typeProp
+                    if(jackpotIds.contains(libType)){
+                        continue;
+                    }
+                    begin = end;
+                    end += en2.getValue();
+                    propInfo.addProp(en2.getKey(), begin, end);
+                }
+                propInfo.setSum(end);
+                tempNoJackpotResultLibTypePropInfoMap.put(cfg.getModelId(), propInfo);
             }
 
             //计算sectionProp
@@ -1365,6 +1388,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         data.setDefaultRewardSectionIndex(tmpDefaultRewardSectionIndex);
         data.setResultLibMap(tempLibCfgMap);
         data.setResultLibTypePropInfoMap(tempResultLibTypePropInfoMap);
+        data.setNoJackpotResultLibTypePropInfoMap(tempNoJackpotResultLibTypePropInfoMap);
         data.setResultLibSectionPropMap(tempResultLibSectionPropMap);
         data.setResultLibSectionMap(tempResultLibSectionMap);
         return data;

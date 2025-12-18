@@ -294,6 +294,14 @@ public class SlotsPlayerGameData {
         return null;
     }
 
+    public RoomType getRoomType() {
+        SlotsRoomController slotsRoomController = getSlotsRoomController();
+        if(slotsRoomController == null){
+            return null;
+        }
+        return slotsRoomController.getRoom().getType();
+    }
+
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
         Constructor<T> constructor = cla.getConstructor();
         T t = constructor.newInstance();

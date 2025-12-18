@@ -393,7 +393,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (resultLib == null) {
             if (libType < 1) {
                 //获取 specialResultLib 中的type
-                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId());
+                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId(), playerGameData.getRoomType());
                 if (!resultLibTypeResult.success()) {
                     result.code = libCfgResult.code;
                     return result;
@@ -813,8 +813,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 }
 
                 //获取保证金
-                CommonResult<Long>  poolResult = checkAndGetPredictCostGoldNum(roomController);
-                if(!poolResult.success()){
+                CommonResult<Long> poolResult = checkAndGetPredictCostGoldNum(roomController);
+                if (!poolResult.success()) {
                     result.code = poolResult.code;
                     return result;
                 }
@@ -921,9 +921,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param modelId
      * @return
      */
-    protected CommonResult<Integer> getResultLibType(int gameType, int modelId) {
+    protected CommonResult<Integer> getResultLibType(int gameType, int modelId, RoomType roomType) {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
-        PropInfo propInfo = getGenerateManager().getSpecialResultLibCacheData().getResultLibTypePropInfoMap().get(modelId);
+        PropInfo propInfo;
+        if (roomType == null) {
+            propInfo = getGenerateManager().getSpecialResultLibCacheData().getResultLibTypePropInfoMap().get(modelId);
+        } else if (roomType == RoomType.SLOTS_TEAM_UP_ROOM) {
+            propInfo = getGenerateManager().getSpecialResultLibCacheData().getNoJackpotResultLibTypePropInfoMap().get(modelId);
+        } else {
+            log.warn("获取 resultLibType 是，不支持该roomType, gameType = {},modelId = {},roomType = {}", gameType, modelId, roomType);
+            result.code = Code.FAIL;
+            return result;
+        }
         if (propInfo == null) {
             log.debug("未找到 specialResultLib 中 typeProp相关的权重信息 modelId = {},gameType = {}", modelId, gameType);
             result.code = Code.NOT_FOUND;
@@ -1623,21 +1632,25 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
 
-    public CommonResult<Long> checkAndGetPredictCostGoldNum(SlotsRoomController slotsRoomController){
+    public CommonResult<Long> checkAndGetPredictCostGoldNum(SlotsRoomController slotsRoomController) {
         long value = slotsRoomController.getRoom().getPredictCostGoldNum();
-        if(value > 0){
-            return new CommonResult<>(Code.SUCCESS,value);
+        if (value > 0) {
+            return new CommonResult<>(Code.SUCCESS, value);
         }
 
         slotsRoomManager.autoRenewal(slotsRoomController);
         value = slotsRoomController.getRoom().getPredictCostGoldNum();
-        if(value > 0){
-            return new CommonResult<>(Code.SUCCESS,value);
+        if (value > 0) {
+            return new CommonResult<>(Code.SUCCESS, value);
         }
         return new CommonResult<>(Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT);
     }
 
     public RoomType getRoomType() {
+        return null;
+    }
+
+    public Set<Integer> specialModeJackpotIds() {
         return null;
     }
 }
