@@ -9,12 +9,14 @@ import java.util.Set;
  * @date 2025/12/2 17:31
  */
 public class PegasusUnbridleAwardLineInfo extends AwardLineInfo {
-    //中奖线的倍数
-    private int baseTimes;
-    //相同元素的坐标id
-    private Set<Integer> sameIconSet;
-    //元素id
-    private int sameIcon;
+    //线的id
+    protected int id;
+    //这条线的基础倍数
+    protected int baseTimes;
+    //图标id
+    protected int iconId;
+    //这条线上相同的个数
+    protected int sameCount;
 
     public int getBaseTimes() {
         return baseTimes;
@@ -24,21 +26,27 @@ public class PegasusUnbridleAwardLineInfo extends AwardLineInfo {
         this.baseTimes = baseTimes;
     }
 
-    public Set<Integer> getSameIconSet() {
-        return sameIconSet;
+    public int getId() {
+        return id;
     }
 
-    public void setSameIconSet(Set<Integer> sameIconSet) {
-        this.sameIconSet = sameIconSet;
+    public void setId(int id) {
+        this.id = id;
     }
 
-    public int getSameIcon() {
-        return sameIcon;
+    public int getIconId() {
+        return iconId;
     }
 
-    public void setSameIcon(int sameIcon) {
-        this.sameIcon = sameIcon;
+    public void setIconId(int iconId) {
+        this.iconId = iconId;
     }
 
+    public int getSameCount() {
+        return sameCount;
+    }
 
+    public void setSameCount(int sameCount) {
+        this.sameCount = sameCount;
+    }
 }

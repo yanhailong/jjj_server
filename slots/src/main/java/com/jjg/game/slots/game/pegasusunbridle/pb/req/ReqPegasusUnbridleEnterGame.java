@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
  * @author 11
  * @date 2025/8/1 17:43
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CAPTAIN_JACK, cmd = PegasusUnbridleConstant.MsgBean.REQ_CAPTAIN_JACK_ENTER_GAME)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.PEGASUS_UNBRIDLE, cmd = PegasusUnbridleConstant.MsgBean.REQ_PEGASUS_UNBRIDLE_ENTER_GAME)
 @ProtoDesc("请求配置信息")
 public class ReqPegasusUnbridleEnterGame extends AbstractMessage {
 }
