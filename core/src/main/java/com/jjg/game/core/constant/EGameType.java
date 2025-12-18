@@ -25,6 +25,17 @@ public enum EGameType {
     WEST_JOURNEY(CoreConst.GameType.WEST_JOURNEY, RoomType.SLOTS, "西游"),
     CLEOPATRA(CoreConst.GameType.CLEOPATRA, RoomType.SLOTS, "埃及艳后"),
     WEALTH_BANK(CoreConst.GameType.WEALTH_BANK, RoomType.SLOTS, "财富银行"),
+    WOLF_MOON(CoreConst.GameType.WOLF_MOON, RoomType.SLOTS, "狼月"),
+    HOT_SOCCER(CoreConst.GameType.HOT_SOCCER, RoomType.SLOTS, "热血足球"),
+    CHRISTMAS_PARTY(CoreConst.GameType.CHRISTMAS_PARTY, RoomType.SLOTS, "圣诞狂欢夜"),
+    BASKETBALL_STAR(CoreConst.GameType.BASKETBALL_STAR, RoomType.SLOTS, "篮球巨星"),
+    DEGULA_WEALTH(CoreConst.GameType.DEGULA_WEALTH, RoomType.SLOTS, "德古拉黑暗财富"),
+    ZEUS_VS_HADES(CoreConst.GameType.ZEUS_VS_HADES, RoomType.SLOTS, "宙斯VS哈迪斯"),
+    CAPTAIN_JACK(CoreConst.GameType.CAPTAIN_JACK, RoomType.SLOTS, "杰克船长"),
+    THOR(CoreConst.GameType.THOR, RoomType.SLOTS, "雷神"),
+    STEAM_AGE(CoreConst.GameType.STEAM_AGE, RoomType.SLOTS, "蒸汽时代"),
+    FROZEN_THRONE(CoreConst.GameType.FROZEN_THRONE, RoomType.SLOTS, "寒冰王座"),
+    PEGASUS_UNBRIDLE(CoreConst.GameType.PEGASUS_UNBRIDLE, RoomType.SLOTS, "神马飞扬"),
 
 
     // TABLE
