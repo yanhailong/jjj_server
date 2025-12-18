@@ -169,8 +169,15 @@ public class SlotsRoomManager implements HallRoomBridge {
      * @param slotsRoomController
      */
     private void tryContinueGame(SlotsRoomController slotsRoomController) {
-        long now = System.currentTimeMillis();
+        autoRenewal(slotsRoomController);
+    }
 
+    /**
+     * 自动续费
+     * @param slotsRoomController
+     */
+    public void autoRenewal(SlotsRoomController slotsRoomController){
+        long now = System.currentTimeMillis();
         //检查到期时间
         if (slotsRoomController.getRoom().getOverdueTime() >= now) {
             return;
@@ -405,7 +412,7 @@ public class SlotsRoomManager implements HallRoomBridge {
             int month = TimeHelper.getMonthNumerical();
             for (SlotsFriendRoom friendRoom : rooms) {
                 WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(friendRoom.getRoomCfgId());
-                log.debug("开始统计 roomId = {},room = {}", friendRoom.getId(), JSON.toJSONString(friendRoom));
+//                log.debug("开始统计 roomId = {},room = {}", friendRoom.getId(), JSON.toJSONString(friendRoom));
 
                 //查询FriendRoomBillHistoryBean的id
                 long id = friendRoomSlotsBillHistoryDao.queryId(friendRoom.getGameType(), month, friendRoom.getCreator());

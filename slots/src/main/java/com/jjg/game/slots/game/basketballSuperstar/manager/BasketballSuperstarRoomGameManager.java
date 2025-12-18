@@ -5,6 +5,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarGameRunInfo;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarPlayerGameData;
@@ -105,5 +106,10 @@ public class BasketballSuperstarRoomGameManager extends AbstractBasketballSupers
             log.error("", e);
         }
         return gameRunInfo;
+    }
+
+    @Override
+    public RoomType getRoomType() {
+        return RoomType.SLOTS_TEAM_UP_ROOM;
     }
 }

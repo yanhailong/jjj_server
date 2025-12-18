@@ -5,6 +5,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneGameRunInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThronePlayerGameData;
@@ -106,5 +107,10 @@ public class FrozenThroneRoomGameManager extends AbstractFrozenThroneGameManager
             log.error("", e);
         }
         return gameRunInfo;
+    }
+
+    @Override
+    public RoomType getRoomType() {
+        return RoomType.SLOTS_TEAM_UP_ROOM;
     }
 }

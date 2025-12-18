@@ -18,6 +18,7 @@ import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleGameRunInfo;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridlePlayerGameData;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -41,6 +42,7 @@ public class PegasusUnbridleGameManager extends AbstractSlotsGameManager<Pegasus
 
     @Override
     public void init() {
+        this.log =  LoggerFactory.getLogger(getClass());
         log.info("启动神马飞扬游戏管理器...");
         super.init();
 

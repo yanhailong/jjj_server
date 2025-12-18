@@ -97,6 +97,8 @@ public interface Code {
     int AMOUNT_OF_RESERVES_IS_INCORRECT = 49139;
     // 上庄的准备金不足，和配置相比
     int AMOUNT_OF_RESERVES_IS_INCORRECT_CONFIG = 49140;
+    //准备金不足(slots)
+    int AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT = 49142;
     // 請輸入正確的code
     int CODE_ERROR = 436;
     // 不能绑定自己

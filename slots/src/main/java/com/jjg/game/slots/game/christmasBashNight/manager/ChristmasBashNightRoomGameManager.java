@@ -5,6 +5,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightGameRunInfo;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightPlayerGameData;
@@ -92,5 +93,10 @@ public class ChristmasBashNightRoomGameManager extends AbstractChristmasBashNigh
             log.error("", e);
         }
         return gameRunInfo;
+    }
+
+    @Override
+    public RoomType getRoomType() {
+        return RoomType.SLOTS_TEAM_UP_ROOM;
     }
 }

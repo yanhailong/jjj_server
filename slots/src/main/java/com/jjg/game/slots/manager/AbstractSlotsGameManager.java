@@ -128,7 +128,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     public AbstractSlotsGameManager(Class<T> playerGameDataClass, Class<L> libClass) {
         this.playerGameDataClass = playerGameDataClass;
         this.libClass = libClass;
-        this.log = LoggerFactory.getLogger(this.getClass());
     }
 
     //更新获取奖池的事件
@@ -813,7 +812,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 }
 
                 //获取保证金
-                poolInit = roomController.getRoom().getPredictCostGoldNum();
+                CommonResult<Long>  poolResult = checkAndGetPredictCostGoldNum(roomController);
+                if(!poolResult.success()){
+                    result.code = poolResult.code;
+                    return result;
+                }
+
+                poolInit = poolResult.data;
 
                 //计算偏差范围
                 long diff = BigDecimal.valueOf(poolValue.longValue() - poolInit).divide(BigDecimal.valueOf(poolInit), 6, RoundingMode.HALF_UP).multiply(tenThousandBigDecimal).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
@@ -848,7 +853,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (temMap == null || temMap.isEmpty()) {
             return null;
         }
-
         return temMap.get(playerId);
     }
 
@@ -1615,5 +1619,24 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     public boolean canExit(SlotsPlayerGameData playerGameData) {
         return playerGameData.getStatus() == SlotsConst.Status.NORMAL;
+    }
+
+
+    public CommonResult<Long> checkAndGetPredictCostGoldNum(SlotsRoomController slotsRoomController){
+        long value = slotsRoomController.getRoom().getPredictCostGoldNum();
+        if(value > 0){
+            return new CommonResult<>(Code.SUCCESS,value);
+        }
+
+        slotsRoomManager.autoRenewal(slotsRoomController);
+        value = slotsRoomController.getRoom().getPredictCostGoldNum();
+        if(value > 0){
+            return new CommonResult<>(Code.SUCCESS,value);
+        }
+        return new CommonResult<>(Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT);
+    }
+
+    public RoomType getRoomType() {
+        return null;
     }
 }

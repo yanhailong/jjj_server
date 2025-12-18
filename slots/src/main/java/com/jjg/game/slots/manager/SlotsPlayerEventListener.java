@@ -7,12 +7,15 @@ import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.SlotsFriendRoomDao;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
@@ -73,7 +76,13 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             }
 
             //检查slots游戏管理器
-            AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(info.getGameType());
+            AbstractSlotsGameManager gameManager;
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(info.getRoomCfgId());
+            if(warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START){
+                gameManager = slotsFactoryManager.getGameManager(info.getGameType());
+            }else {
+                gameManager = slotsFactoryManager.getRoomGameManager(info.getGameType());
+            }
             if (gameManager == null) {
                 log.debug("sessionEnter时，获取游戏管理器失败 playerId = {},gameType = {}", playerId, info.getGameType());
                 return;
@@ -115,7 +124,12 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             @Override
             public void action() throws Exception {
                 //创建 PlayerGameData
-                gameManager.createPlayerGameData(playerController);
+                SlotsPlayerGameData playerGameData = gameManager.createPlayerGameData(playerController);
+                System.out.println(gameManager.getClass().getSimpleName());
+                if (playerGameData == null) {
+                    log.warn("进入游戏失败，创建playerGameData失败 playerId = {}",player.getId());
+                    return;
+                }
             }
         });
         slotsFactoryManager.clearPlayerEvent(player.getId());
@@ -148,7 +162,11 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             public void action() throws Exception {
                 playerController.setScene(slotsRoomController);
                 //创建 PlayerGameData
-                gameManager.createPlayerGameData(playerController);
+                SlotsPlayerGameData playerGameData = gameManager.createPlayerGameData(playerController);
+                if (playerGameData == null) {
+                    log.warn("进入好友房slots失败，创建playerGameData失败 playerId = {}",player.getId());
+                    return;
+                }
             }
         });
         slotsFactoryManager.clearPlayerEvent(player.getId());
