@@ -69,6 +69,8 @@ public class CoreConst {
         public static final int WEALTH_BANK = 102400;
         //寒冰王座
         public static final int FROZEN_THRONE = 102500;
+        //神马飞扬
+        public static final int PEGASUS_UNBRIDLE = 103400;
 
         //红黑大战
         public static final int RED_BLACK_WAR = 200100;
