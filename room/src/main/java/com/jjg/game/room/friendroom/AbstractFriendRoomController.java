@@ -166,7 +166,6 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         });
         if (result.success()) {
             this.room = result.data;
-            getRoomDao().modifyRoomPool(room.getGameType(), room.getId(), addPredicateGold);
         }
     }
 

@@ -210,7 +210,6 @@ public class FriendRoom extends Room {
             log.info("增加房间准备金：{} 剩余：{}", addValue, predictCostGoldNum);
         } else {
             Long addAfter = bankerPredicateMap.merge(bankerInf.getKey(), addValue, Long::sum);
-            pool += addValue;
             log.info("增加庄家:{} 准备金：{} 剩余：{} ", bankerInf.getKey(), addValue, addAfter);
         }
     }

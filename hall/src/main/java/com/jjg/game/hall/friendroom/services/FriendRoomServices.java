@@ -941,6 +941,9 @@ public class FriendRoomServices {
                         return true;
                     }
                 });
+        if (result.success() && updateFriendRoom.predictCostGoldNum > 0) {
+            friendRoomDao.modifyRoomPool(result.data.getGameType(), result.data.getId(), updateFriendRoom.predictCostGoldNum);
+        }
         if ((addTime > 0 || updateFriendRoom.predictCostGoldNum > 0) && friendRoom.isInGaming()) {
             if (!StringUtils.isEmpty(friendRoom.getPath())) {
                 ClusterClient client = clusterSystem.getClusterByPath(friendRoom.getPath());
