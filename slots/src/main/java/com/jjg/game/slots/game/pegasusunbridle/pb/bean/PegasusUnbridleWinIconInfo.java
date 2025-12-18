@@ -12,10 +12,10 @@ import java.util.List;
 @ProtobufMessage
 @ProtoDesc("图标中奖的信息")
 public class PegasusUnbridleWinIconInfo {
-    @ProtoDesc("坐标")
+    @ProtoDesc("中奖线id")
+    public int id;
+    @ProtoDesc("这条线上中奖图标的坐标")
     public List<Integer> iconIndexes;
-    @ProtoDesc("中奖金额")
-    public long win;
-    @ProtoDesc("中奖的图标id")
-    public List<Integer> winIcons;
+    @ProtoDesc("中奖金币")
+    public long winGold;
 }

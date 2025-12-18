@@ -1,28 +1,24 @@
 package com.jjg.game.slots.game.pegasusunbridle.manager;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
 import com.jjg.game.core.manager.BaseSendMessageManager;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
-import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleAwardLineInfo;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleGameRunInfo;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridlePlayerGameData;
-import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleResultLib;
 import com.jjg.game.slots.game.pegasusunbridle.pb.bean.PegasusUnbridlePoolInfo;
-import com.jjg.game.slots.game.pegasusunbridle.pb.bean.PegasusUnbridleWinIconInfo;
 import com.jjg.game.slots.game.pegasusunbridle.pb.res.ResPegasusUnbridleEnterGame;
-import com.jjg.game.slots.game.pegasusunbridle.pb.res.ResPegasusUnbridlePoolValue;
 import com.jjg.game.slots.game.pegasusunbridle.pb.res.ResPegasusUnbridleStartGame;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -32,14 +28,12 @@ import java.util.stream.Collectors;
 @Component
 public class PegasusUnbridleGameSendMessageManager extends BaseSendMessageManager {
 
-    private final PegasusUnbridleGameManager gameManager;
+    private final AbstractPegasusUnbridleGameManager gameManager;
     private final SlotsLogger slotsLogger;
-    private final PegasusUnbridleGameGenerateManager generateManager;
 
-    public PegasusUnbridleGameSendMessageManager(PegasusUnbridleGameManager gameManager, SlotsLogger slotsLogger, PegasusUnbridleGameGenerateManager generateManager) {
+    public PegasusUnbridleGameSendMessageManager(PegasusUnbridleGameManager gameManager, SlotsLogger slotsLogger) {
         this.gameManager = gameManager;
         this.slotsLogger = slotsLogger;
-        this.generateManager = generateManager;
     }
 
     /**
@@ -108,17 +102,13 @@ public class PegasusUnbridleGameSendMessageManager extends BaseSendMessageManage
             res.status = gameRunInfo.getStatus();
             //图标信息
             res.iconList = Arrays.stream(gameRunInfo.getIconArr(), 1, gameRunInfo.getIconArr().length).boxed().collect(Collectors.toList());
-            //剩余免费次数
-            res.remainFreeCount = gameRunInfo.getRemainFreeCount();
             //大奖展示id
             res.bigWinShow = gameRunInfo.getBigShowId();
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
 
-            PegasusUnbridleResultLib lib = (PegasusUnbridleResultLib) gameRunInfo.getResultLib();
-
-            res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData());
+            res.winIconInfoList = gameRunInfo.getAwardLineInfos();
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
@@ -130,49 +120,4 @@ public class PegasusUnbridleGameSendMessageManager extends BaseSendMessageManage
 
     }
 
-    /**
-     * 添加中奖图标信息
-     */
-    private PegasusUnbridleWinIconInfo addRewardIcons(List<PegasusUnbridleAwardLineInfo> awardLineInfoList, PegasusUnbridlePlayerGameData gameData) {
-        if (CollectionUtil.isEmpty(awardLineInfoList)) {
-            return null;
-        }
-
-        PegasusUnbridleWinIconInfo iconInfo = new PegasusUnbridleWinIconInfo();
-
-        Set<Integer> indexSet = new HashSet<>();
-        Set<Integer> winIconSet = new HashSet<>();
-        long oneBetScore = gameData.getOneBetScore();
-        awardLineInfoList.forEach(info -> {
-            indexSet.addAll(info.getSameIconSet());
-            winIconSet.add(info.getSameIcon());
-            if (gameData.getRemainFreeCount().get() == 0) {
-                iconInfo.win += info.getBaseTimes() * oneBetScore;
-            } else {
-                iconInfo.win += generateManager.getAddTimes() * oneBetScore;
-            }
-        });
-
-        iconInfo.iconIndexes = new ArrayList<>(indexSet);
-        iconInfo.winIcons = new ArrayList<>(winIconSet);
-        return iconInfo;
-    }
-
-
-
-    public void sendPoolMessage(PlayerController playerController, PegasusUnbridleGameRunInfo gameRunInfo) {
-        SendInfo sendInfo = new SendInfo();
-        ResPegasusUnbridlePoolValue res = new ResPegasusUnbridlePoolValue(gameRunInfo.getCode());
-        if (gameRunInfo.success()) {
-            res.mini = gameRunInfo.getMini();
-            res.minor = gameRunInfo.getMinor();
-            res.major = gameRunInfo.getMajor();
-            res.grand = gameRunInfo.getGrand();
-        } else {
-            log.debug("奖池结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
-        }
-        sendInfo.addPlayerMsg(playerController.playerId(), res);
-        sendInfo.getLogMessage().add(res);
-        sendRun(playerController, sendInfo, "返回奖池结果", false);
-    }
 }

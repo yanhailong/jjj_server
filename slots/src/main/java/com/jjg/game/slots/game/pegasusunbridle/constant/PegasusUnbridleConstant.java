@@ -10,33 +10,27 @@ import com.jjg.game.slots.constant.SlotsConst;
 public interface PegasusUnbridleConstant {
 
     interface MsgBean {
-        int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.CAPTAIN_JACK << MessageConst.MessageCommon.RIGHT_MOVE;
+        int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.PEGASUS_UNBRIDLE << MessageConst.MessageCommon.RIGHT_MOVE;
         //请求配置
-        int REQ_CAPTAIN_JACK_ENTER_GAME = BASE_MSG_PREFIX | 0x1;
-        int RES_CAPTAIN_JACK_ENTER_GAME = BASE_MSG_PREFIX | 0x2;
+        int REQ_PEGASUS_UNBRIDLE_ENTER_GAME = BASE_MSG_PREFIX | 0x1;
+        int RES_PEGASUS_UNBRIDLE_ENTER_GAME = BASE_MSG_PREFIX | 0x2;
 
         //开始游戏
-        int REQ_CAPTAIN_JACK_START_GAME = BASE_MSG_PREFIX | 0x3;
-        int RES_CAPTAIN_JACK_START_GAME = BASE_MSG_PREFIX | 0x4;
+        int REQ_PEGASUS_UNBRIDLE_START_GAME = BASE_MSG_PREFIX | 0x3;
+        int RES_PEGASUS_UNBRIDLE_START_GAME = BASE_MSG_PREFIX | 0x4;
         //获取奖池
-        int REQ_CAPTAIN_JACK_POOL_VALUE = BASE_MSG_PREFIX | 0x7;
-        int RES_CAPTAIN_JACK_POOL_VALUE = BASE_MSG_PREFIX | 0x8;
-        //请求探宝
-        int REQ_CAPTAIN_JACK_TREASURE_HUNTING = BASE_MSG_PREFIX | 0x9;
-        int RES_CAPTAIN_JACK_TREASURE_HUNTING = BASE_MSG_PREFIX | 0x10;
+        int REQ_PEGASUS_UNBRIDLE_POOL_VALUE = BASE_MSG_PREFIX | 0x7;
+        int RES_PEGASUS_UNBRIDLE_POOL_VALUE = BASE_MSG_PREFIX | 0x8;
     }
 
 
     interface Status {
         int NORMAL = SlotsConst.Status.NORMAL;
-        //福马模式
-        int FU_MA_MODEL = 2;
 
     }
 
     interface SpecialMode {
         int NORMAL = 1;
-        int FU_MA_MODEL = 2;
         //大奖
         int JACK_POOL = 3;
     }

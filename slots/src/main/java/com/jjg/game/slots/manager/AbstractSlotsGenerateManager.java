@@ -122,19 +122,25 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             }
         }
 
+        modifyGirdAction(specialModeCfg, lib, arr);
+
+        //判断中奖，返回
+        return checkAward(arr, lib);
+    }
+
+    protected void modifyGirdAction(SpecialModeCfg cfg, T lib, int[] arr) {
         //修改格子
-        if (specialModeCfg.getSpecialGirdID() != null && !specialModeCfg.getSpecialGirdID().isEmpty()) {
-            for (int specialGirdCfgId : specialModeCfg.getSpecialGirdID()) {
+        List<Integer> specialGirdID = cfg.getSpecialGirdID();
+        if (specialGirdID != null && !specialGirdID.isEmpty()) {
+            for (int specialGirdCfgId : specialGirdID) {
                 SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGirdCfgId, arr);
                 if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
                     lib.addSpecialGirdInfo(specialGirdInfo);
                 }
             }
         }
-
-        //判断中奖，返回
-        return checkAward(arr, lib);
     }
+
 
     /**
      * 生成一个免费结果
@@ -177,7 +183,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                     lib.addSpecialGirdInfo(specialGirdInfo);
                 }
             }
-
             //修改格子
             if (specialAuxiliaryCfg.getSpecialGirdID() != null && !specialAuxiliaryCfg.getSpecialGirdID().isEmpty()) {
                 for (int specialGirdCfgId : specialAuxiliaryCfg.getSpecialGirdID()) {
