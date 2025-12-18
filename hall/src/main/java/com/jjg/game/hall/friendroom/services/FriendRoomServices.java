@@ -3,6 +3,7 @@ package com.jjg.game.hall.friendroom.services;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
