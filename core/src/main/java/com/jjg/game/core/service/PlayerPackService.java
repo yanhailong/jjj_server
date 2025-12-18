@@ -371,7 +371,7 @@ public class PlayerPackService implements IPlayerRegister {
             }
             result.data.setChangeEndItemNum(changeAfterNum);
             result.data.setChangeBeforeItemNum(changeBefore);
-            Map<Integer, Long> map = removeItemList.stream().collect(Collectors.toMap(Item::getId, Item::getItemCount, Long::sum));
+            Map<Integer, Long> map = packItemList.stream().collect(Collectors.toMap(Item::getId, Item::getItemCount, Long::sum));
             coreLogger.consumeItem(playerId, changeBefore, map, changeAfterNum, addType);
             return result;
         } catch (Exception e) {
