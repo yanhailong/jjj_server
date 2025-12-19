@@ -241,11 +241,11 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
      *
      * @return 当前池的数量
      */
-    public long canTriggerRecycling() {
+    public Pair<Long, Long> canTriggerRecycling() {
         //判断是否有真人
         Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo = gameDataVo.getRealPlayerBetInfo();
         if (CollectionUtil.isEmpty(realPlayerBetInfo)) {
-            return 0;
+            return null;
         }
         AbstractRoomDao<? extends Room, ? extends RoomPlayer> roomDao = gameController.getRoomController().getRoomDao();
         Room_BetCfg roomCfg = gameDataVo.getRoomCfg();
@@ -255,7 +255,7 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
             roomPool = tableRoomDao.getRoomPool(roomCfg.getGameID(), roomCfg.getId(), roomCfg.getInitBasePool());
             basePool = roomCfg.getInitBasePool();
             if (roomPool > roomCfg.getInitBasePool()) {
-                return 0;
+                return null;
             }
         } else if (roomDao instanceof BetTableFriendRoomDao tableRoomDao) {
             if (gameController.getRoom() instanceof FriendRoom friendRoom) {
@@ -267,7 +267,7 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
             }
         }
         if (roomPool == null) {
-            return 0;
+            return null;
         }
         int pro = BigDecimal.valueOf(10000)
                 .subtract(BigDecimal.valueOf(10000)
@@ -275,9 +275,9 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
                         .divide(BigDecimal.valueOf(Math.max(basePool, 1)), 0, RoundingMode.DOWN))
                 .intValue();
         if (RandomUtils.getRandomNumInt10000() <= pro) {
-            return roomPool;
+            return Pair.newPair(roomPool, basePool);
         }
-        return 0;
+        return null;
     }
 
     /**
