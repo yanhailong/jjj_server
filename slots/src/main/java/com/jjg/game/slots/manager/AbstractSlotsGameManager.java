@@ -436,7 +436,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         //给池子加钱
-        CommonResult<Pair<Player, Long>> poolResult = moneyToPool(playerGameData, betValue, baseRoomCfg);
+        CommonResult<Pair<Player, Long>> poolResult = moneyToPool(playerGameData, betValue, baseRoomCfg, libCfgResult.data.getModelId());
         if (!result.success()) {
             result.code = poolResult.code;
             return result;
@@ -563,7 +563,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param betValue
      * @return player对象和税收
      */
-    protected CommonResult<Pair<Player, Long>> moneyToPool(T gameData, long betValue, BaseRoomCfg baseRoomCfg) {
+    protected CommonResult<Pair<Player, Long>> moneyToPool(T gameData, long betValue, BaseRoomCfg baseRoomCfg, int modelId) {
         SlotsRoomController slotsRoomController = gameData.getSlotsRoomController();
         if (slotsRoomController == null) {
             CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, true, AddType.SLOTS_BET);
@@ -604,7 +604,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             long toBigPoolGold = bet.multiply(toBigPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
             if (toBigPoolGold > 0) {
                 long poolCoin = slotsPoolDao.addToBigPool(this.gameType, gameData.getRoomCfgId(), toBigPoolGold);
-                log.info("给标准池加钱成功 gameType = {},roomCfgId = {},add = {},afterGold = {}", gameData.getGameType(), gameData.getRoomCfgId(), toBigPoolGold, poolCoin);
+                log.info("给标准池加钱成功 playerId = {},gameType = {},roomCfgId = {},modelId = {},add = {},afterGold = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), modelId, toBigPoolGold, poolCoin);
             }
 
             //给小池子加钱
@@ -614,7 +614,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 long poolCoin = slotsPoolDao.addToSmallPool(this.gameType, gameData.getRoomCfgId(), toSmallPoolGold);
                 gameData.addAllBet(poolCoin);
                 long contribtGold = gameData.addContribtPoolGold(poolCoin);
-                log.info("给小池子加钱成功 gameType = {},roomCfgId = {},add = {},afterGold = {},contribtGold={}", gameData.getGameType(), gameData.getRoomCfgId(), toSmallPoolGold, poolCoin, contribtGold);
+                log.info("给小池子加钱成功 playerId = {},gameType = {},roomCfgId = {},modelId = {},add = {},afterGold = {},contribtGold={}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), modelId, toSmallPoolGold, poolCoin, contribtGold);
             }
 
             CommonResult<Pair<Player, Long>> commonResult = new CommonResult<>(Code.SUCCESS);
@@ -628,7 +628,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
             return commonResult;
         } else if (slotsRoomController.getRoom().getType() == RoomType.SLOTS_TEAM_UP_ROOM) { //slots好友房
-            return roomMoneyToPool(gameData, betValue, baseRoomCfg);
+            return roomMoneyToPool(gameData, betValue, baseRoomCfg, modelId);
         } else {
             log.warn("moneyToPool 不支持的房间类型 playerId = {},roomType = {}", gameData.playerId(), slotsRoomController.getRoom().getType());
             return new CommonResult<>(Code.FAIL);
@@ -642,7 +642,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param betValue
      * @return player对象和税收
      */
-    protected CommonResult<Pair<Player, Long>> roomMoneyToPool(T gameData, long betValue, BaseRoomCfg baseRoomCfg) {
+    protected CommonResult<Pair<Player, Long>> roomMoneyToPool(T gameData, long betValue, BaseRoomCfg baseRoomCfg, int modelId) {
         try {
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(gameData.getRoomCfgId());
             CommonResult<Player> result;
@@ -663,7 +663,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             long toBigPoolGold = bet.multiply(toBigPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
             if (toBigPoolGold > 0) {
                 long poolCoin = roomSlotsPoolDao.addToBigPool(gameData.getRoomId(), toBigPoolGold);
-                log.info("给房间标准池加钱成功 gameType = {},roomId = {},roomCfgId = {},add = {},afterGold = {}", gameData.getGameType(), gameData.getRoomId(), gameData.getRoomCfgId(), toBigPoolGold, poolCoin);
+                log.info("给房间标准池加钱成功 playerId = {},gameType = {},roomId = {},roomCfgId = {},modelId = {},add = {},afterGold = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomId(), gameData.getRoomCfgId(), modelId, toBigPoolGold, poolCoin);
             }
 
             //扣除加入水池的钱之后，剩余的钱

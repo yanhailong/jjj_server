@@ -59,6 +59,9 @@ public class ThorSendMessageManager extends BaseSendMessageManager {
             }
 
             res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
+            res.status = gameRunInfo.getData().getStatus();
+            res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
+
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -95,6 +98,7 @@ public class ThorSendMessageManager extends BaseSendMessageManager {
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
             res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
+            res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
 
             logger.gameResult(playerController.getPlayer(), gameRunInfo,res);
         } else {
