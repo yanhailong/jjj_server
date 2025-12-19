@@ -223,10 +223,21 @@ public class PointsAwardTurntableService implements IRedDotService {
             log.warn("积分大奖转盘时，未在global表中找到配置 id = {}", GameConstant.GlobalConfig.POINTS_AWARDS_TURNTABLE_SPEND_SCORE);
             return result;
         }
-
         //积分消耗数量
         int consume = globalConfigCfg.getIntValue();
-
+        //判断积分条件
+        long points = pointsAwardService.getPoints(playerId);
+        if (points <= consume) {
+            result.code = Code.POINT_AWARD_POINT_NOT_ENOUGH;
+            return result;
+        }
+        //判断充值次数
+        Integer addCount = addCountMap.getOrDefault(playerId, 0);
+        Integer costCount = countMap.getOrDefault(playerId, 0);
+        if (costCount >= addCount) {
+            result.code = Code.POINT_AWARD_TIMES_NOT_ENOUGH;
+            return result;
+        }
         // 通过校验与扣费后再出结果，缩短锁持有时间，避免锁嵌套
         Map<Integer, Integer> probabilityMap = cfgTreeMap.values().stream()
                 .collect(Collectors.toMap(PointsAwardTurntableCfg::getId, PointsAwardTurntableCfg::getProbability, (a, b) -> b));
@@ -244,6 +255,16 @@ public class PointsAwardTurntableService implements IRedDotService {
             result.code = Code.SAMPLE_ERROR;
             return result;
         }
+        //验证扣除并且返回结果
+        int girdId = pointsAwardService.deduct(playerId, consume, checkTurntable(playerId), () -> {
+            //增加玩家转盘次数
+            countMap.fastPut(playerId, countMap.getOrDefault(playerId, 0) + 1);
+            return selectedId;
+        }, -1, PointsAwardType.TURNTABLE);
+        if (girdId < 0) {
+            result.code = Code.UNKNOWN_ERROR;
+            return result;
+        }
         int integralPoints = awardTurntableCfg.getIntegralNum();
         // 积分奖励（内部自带锁，与扣费不再嵌套）
         if (integralPoints > 0) {
@@ -253,14 +274,6 @@ public class PointsAwardTurntableService implements IRedDotService {
         if (awardTurntableCfg.getGetItem() != null && !awardTurntableCfg.getGetItem().isEmpty()) {
             playerPackService.addItems(playerId, ItemUtils.buildItems(awardTurntableCfg.getGetItem()), AddType.POINTS_AWARD_TURNTABLE_REWARDS);
         }
-
-        //验证扣除并且返回结果
-        int girdId = pointsAwardService.deduct(playerId, consume, checkTurntable(playerId), () -> {
-            //增加玩家转盘次数
-            countMap.fastPut(playerId, countMap.getOrDefault(playerId, 0) + 1);
-            return selectedId;
-        }, -1, PointsAwardType.TURNTABLE);
-
         if (girdId > 0) {
             PointsAwardTurntableHistory history = new PointsAwardTurntableHistory();
             history.setPlayerId(playerId);
