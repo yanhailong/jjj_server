@@ -220,9 +220,13 @@ public class AbstractFrozenThroneGameManager extends AbstractSlotsGameManager<Fr
             playerGameData.setFreeLib(resultLib);
 
             gameRunInfo.addBigPoolTimes(times);
+            //特殊 客户端开发要求推下次游戏状态 -》 赋值状态 免费转
+//            gameRunInfo.setStatus(FrozenThroneConstant.Status.FREE);
             log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(), addCount, times);
         } else {
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+//            //特殊 客户端开发要求推下次游戏状态 -》 赋值状态 免费转
+//            gameRunInfo.setStatus(FrozenThroneConstant.Status.NORMAL);
         }
 
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
@@ -234,6 +238,7 @@ public class AbstractFrozenThroneGameManager extends AbstractSlotsGameManager<Fr
         gameRunInfo.setResultLib(resultLib);
         gameRunInfo.setStake(betValue);
         gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
+        //特殊 客户端开发要求推下次游戏状态 -》 所以注释
         gameRunInfo.setStatus(FrozenThroneConstant.Status.NORMAL);
 
         return gameRunInfo;
