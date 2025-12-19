@@ -2,6 +2,7 @@ package com.jjg.game.table.luxurycarclub.gamephase;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.EGameType;
@@ -44,14 +45,14 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
     public void phaseDoAction() {
         super.phaseDoAction();
         WinPosWeightCfg winPosWeightCfg = null;
-        long currentPool = canTriggerRecycling();
-        if (currentPool > 0) {
+        Pair<Long, Long> currentPool = canTriggerRecycling();
+        if (currentPool != null) {
             WinPosWeightCfg result = generateRecyclingResults();
             if (result == null) {
-                log.error("豪车俱乐部回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+                log.error("豪车俱乐部回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
             } else {
                 winPosWeightCfg = result;
-                log.info("豪车俱乐部回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+                log.info("豪车俱乐部回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
             }
         }
         if (winPosWeightCfg == null) {
