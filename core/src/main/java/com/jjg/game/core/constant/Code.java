@@ -109,6 +109,10 @@ public interface Code {
     int ALREADY_WORN = 439;
     // 待关闭服务器禁止修改房间信息
     int WAIT_CLOSE_NOT_MODIFICATION = 441;
+    //积分大奖积分不足
+    int POINT_AWARD_POINT_NOT_ENOUGH = 66019;
+    //积分大奖次数不足
+    int POINT_AWARD_TIMES_NOT_ENOUGH = 66020;
     // 非庄家不能修改准备金
     int CANT_EDIT_BANKER_GOLD = 49074;
     // 财富转盘积分不足
