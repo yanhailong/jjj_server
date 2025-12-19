@@ -38,7 +38,8 @@ public class ResSteamAgeStartGame extends AbstractResponse {
     public SteamAgeIconInfo rewardIconInfo;
     @ProtoDesc("扩列图标的信息")
     public List<SteamAgeExpand> addIconInfoList;
-
+    @ProtoDesc("高亮坐标")
+    public List<Integer> highlightList;
 
 
     public ResSteamAgeStartGame(int code) {

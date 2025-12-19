@@ -8,6 +8,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneAwardLineInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneGameRunInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneResultLib;
@@ -106,12 +107,16 @@ public class FrozenThroneSendMessageManager extends BaseSendMessageManager {
             res.allWinGold = gameRunInfo.getAllWinGold();
             //免费游戏中累计获得金币
             res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
-            //当前状态
-            res.status = gameRunInfo.getStatus();
             //图标信息
             res.iconList = IntStream.range(1, 16).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
             //剩余免费次数
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
+            //当前状态
+            if (res.remainFreeCount > 0) {
+                res.status = FrozenThroneConstant.Status.FREE;
+            } else {
+                res.status = FrozenThroneConstant.Status.NORMAL;
+            }
             //大奖展示id
             res.bigWinShow = gameRunInfo.getBigShowId();
             //等级信息
@@ -150,7 +155,7 @@ public class FrozenThroneSendMessageManager extends BaseSendMessageManager {
             FrozenThroneIconInfo iconInfo = new FrozenThroneIconInfo();
             List<Integer> indexList = new ArrayList<>();
             indexList.addAll(awardLineInfo.getSameIconSet());
-            iconInfo.iconIndexs= indexList;
+            iconInfo.iconIndexs = indexList;
             iconInfo.winIcons = awardLineInfo.getSameIcon();
             iconInfo.linId = awardLineInfo.getLineId();
             iconInfo.win = awardLineInfo.getBaseTimes() * oneBetScore;

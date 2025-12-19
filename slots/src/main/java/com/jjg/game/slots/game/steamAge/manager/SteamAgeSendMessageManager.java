@@ -8,6 +8,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeAwardLineInfo;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeGameRunInfo;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeResultLib;
@@ -123,6 +124,9 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
             //又连线则触发，添加图标信息（右扩展图标）
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
+            //高亮图标
+            res.highlightList = highlight(lib);
+
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
@@ -148,6 +152,33 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
     }
 
     /**
+     * 高亮展示
+     *
+     * @param iconArr
+     * @return
+     */
+    private List<Integer> highlight(SteamAgeResultLib lib) {
+        int[] iconArr = lib.getIconArr();
+        List<Integer> highlightList = new ArrayList<>();
+        if (lib.getAwardLineInfoList() == null || lib.getAwardLineInfoList().isEmpty()) {
+            return highlightList;
+        }
+        for (int i = 0; i < iconArr.length; i++) {
+            if (iconArr[i] == SteamAgeConstant.BaseElement.ID_WILD
+                    || iconArr[i] == SteamAgeConstant.BaseElement.ID_SCATTER
+                    || iconArr[i] == SteamAgeConstant.BaseElement.ID_ADD
+                    || iconArr[i] == SteamAgeConstant.BaseElement.ID_MINOR
+                    || iconArr[i] == SteamAgeConstant.BaseElement.ID_MAJOR
+                    || iconArr[i] == SteamAgeConstant.BaseElement.ID_GRAND
+                    || iconArr[i] == SteamAgeConstant.BaseElement.ID_MINI) {
+                highlightList.add(i);
+            }
+        }
+        return highlightList;
+    }
+
+
+    /**
      * 添加中奖图标信息
      *
      * @param awardLineInfoList
@@ -167,8 +198,8 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             indexSet.addAll(info.getSameIconSet());
             winIconSet.add(info.getSameIcon());
             iconInfo.win += info.getBaseTimes() * oneBetScore;
+            iconInfo.baseTimes += info.getBaseTimes();
         });
-
         iconInfo.iconIndexs = new ArrayList<>(indexSet);
         iconInfo.winIcons = new ArrayList<>(winIconSet);
         return iconInfo;
