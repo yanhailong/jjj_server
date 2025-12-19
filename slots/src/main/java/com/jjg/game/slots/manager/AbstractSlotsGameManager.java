@@ -101,7 +101,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     //游戏类型
     protected int gameType;
     //在specualResultLib
-    protected int defaultRewardSectionIndex = -1;
+    protected int defaultRewardSectionIndex = 0;
 
     //roomCfgId -> playerId ->gameData
     protected Map<Integer, Map<Long, T>> gameDataMap = new ConcurrentHashMap<>();
@@ -393,7 +393,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (resultLib == null) {
             if (libType < 1) {
                 //获取 specialResultLib 中的type
-                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId());
+                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId(), playerGameData.getRoomType());
                 if (!resultLibTypeResult.success()) {
                     result.code = libCfgResult.code;
                     return result;
@@ -813,8 +813,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 }
 
                 //获取保证金
-                CommonResult<Long>  poolResult = checkAndGetPredictCostGoldNum(roomController);
-                if(!poolResult.success()){
+                CommonResult<Long> poolResult = checkAndGetPredictCostGoldNum(roomController);
+                if (!poolResult.success()) {
                     result.code = poolResult.code;
                     return result;
                 }
@@ -921,9 +921,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param modelId
      * @return
      */
-    protected CommonResult<Integer> getResultLibType(int gameType, int modelId) {
+    protected CommonResult<Integer> getResultLibType(int gameType, int modelId, RoomType roomType) {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
-        PropInfo propInfo = getGenerateManager().getSpecialResultLibCacheData().getResultLibTypePropInfoMap().get(modelId);
+        PropInfo propInfo;
+        if (roomType == null) {
+            propInfo = getGenerateManager().getSpecialResultLibCacheData().getResultLibTypePropInfoMap().get(modelId);
+        } else if (roomType == RoomType.SLOTS_TEAM_UP_ROOM) {
+            propInfo = getGenerateManager().getSpecialResultLibCacheData().getNoJackpotResultLibTypePropInfoMap().get(modelId);
+        } else {
+            log.warn("获取 resultLibType 是，不支持该roomType, gameType = {},modelId = {},roomType = {}", gameType, modelId, roomType);
+            result.code = Code.FAIL;
+            return result;
+        }
         if (propInfo == null) {
             log.debug("未找到 specialResultLib 中 typeProp相关的权重信息 modelId = {},gameType = {}", modelId, gameType);
             result.code = Code.NOT_FOUND;
@@ -991,18 +1000,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (contribt < 1) {
             return null;
         }
-        log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.playerId(), contribt, poolId);
+        log.info("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.playerId(), contribt, poolId);
 
         //真奖池
         Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
         if (smallPoolNumber == null) {
-            log.debug("获取小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
+            log.warn("获取小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
             return null;
         }
         //假奖池
         Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
         if (fakeSmallPoolNumber == null) {
-            log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
+            log.warn("获取(假)小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
             return null;
         }
 
@@ -1015,13 +1024,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return null;
         }
 
-        log.debug("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
+        log.info("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
         BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
 
 
         PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
         if (poolCfg == null) {
-            log.debug("获取的池子配置为空 poolId = {}", poolId);
+            log.warn("获取的池子配置为空 poolId = {}", poolId);
             return null;
         }
         //中奖概率,这里保留了8位，所以最后可以取int值
@@ -1623,21 +1632,25 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
 
-    public CommonResult<Long> checkAndGetPredictCostGoldNum(SlotsRoomController slotsRoomController){
+    public CommonResult<Long> checkAndGetPredictCostGoldNum(SlotsRoomController slotsRoomController) {
         long value = slotsRoomController.getRoom().getPredictCostGoldNum();
-        if(value > 0){
-            return new CommonResult<>(Code.SUCCESS,value);
+        if (value > 0) {
+            return new CommonResult<>(Code.SUCCESS, value);
         }
 
         slotsRoomManager.autoRenewal(slotsRoomController);
         value = slotsRoomController.getRoom().getPredictCostGoldNum();
-        if(value > 0){
-            return new CommonResult<>(Code.SUCCESS,value);
+        if (value > 0) {
+            return new CommonResult<>(Code.SUCCESS, value);
         }
         return new CommonResult<>(Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT);
     }
 
     public RoomType getRoomType() {
+        return null;
+    }
+
+    public Set<Integer> specialModeJackpotIds() {
         return null;
     }
 }

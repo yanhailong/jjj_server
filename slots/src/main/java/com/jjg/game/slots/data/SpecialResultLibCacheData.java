@@ -15,6 +15,8 @@ public class SpecialResultLibCacheData {
     private Map<Integer, SpecialResultLibCfg> resultLibMap;
     //specialResultLib表中typeProp字段的随机权重信息 specialResultLib.modelId -> propInfo
     private Map<Integer, PropInfo> resultLibTypePropInfoMap;
+    //specialResultLib表中typeProp字段的随机权重信息(排除了jackpot类型) specialResultLib.modelId -> propInfo
+    private Map<Integer, PropInfo> noJackpotResultLibTypePropInfoMap;
     //specialResultLib表中section字段的每个倍数的随机权重信息  modelId -> tpyeId -> PropInfo
     private Map<Integer, Map<Integer,PropInfo>> resultLibSectionPropMap;
     //specialResultLib表中section字段的倍数区间  modelId -> tpyeId -> 下标id -> 倍数区间
@@ -42,6 +44,14 @@ public class SpecialResultLibCacheData {
 
     public void setResultLibTypePropInfoMap(Map<Integer, PropInfo> resultLibTypePropInfoMap) {
         this.resultLibTypePropInfoMap = resultLibTypePropInfoMap;
+    }
+
+    public Map<Integer, PropInfo> getNoJackpotResultLibTypePropInfoMap() {
+        return noJackpotResultLibTypePropInfoMap;
+    }
+
+    public void setNoJackpotResultLibTypePropInfoMap(Map<Integer, PropInfo> noJackpotResultLibTypePropInfoMap) {
+        this.noJackpotResultLibTypePropInfoMap = noJackpotResultLibTypePropInfoMap;
     }
 
     public Map<Integer, Map<Integer, PropInfo>> getResultLibSectionPropMap() {

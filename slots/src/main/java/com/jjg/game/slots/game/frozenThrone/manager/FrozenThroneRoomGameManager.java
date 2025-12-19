@@ -6,6 +6,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneGameRunInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThronePlayerGameData;
@@ -107,6 +108,11 @@ public class FrozenThroneRoomGameManager extends AbstractFrozenThroneGameManager
             log.error("", e);
         }
         return gameRunInfo;
+    }
+
+    @Override
+    protected PoolCfg randWinPool(FrozenThronePlayerGameData playerGameData, int poolId) {
+        return null;
     }
 
     @Override

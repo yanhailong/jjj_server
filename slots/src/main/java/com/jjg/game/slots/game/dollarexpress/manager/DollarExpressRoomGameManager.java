@@ -6,6 +6,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
@@ -110,6 +111,11 @@ public class DollarExpressRoomGameManager extends AbstractDollarExpressGameManag
             gameRunInfo.setCode(Code.EXCEPTION);
         }
         return gameRunInfo;
+    }
+
+    @Override
+    protected PoolCfg randWinPool(DollarExpressPlayerGameData playerGameData, int poolId) {
+        return null;
     }
 
     @Override

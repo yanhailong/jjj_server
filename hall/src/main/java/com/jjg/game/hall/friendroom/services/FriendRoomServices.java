@@ -7,6 +7,7 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedissonLock;
 import com.jjg.game.common.rpc.ClusterRpcReference;
@@ -54,7 +55,6 @@ import reactor.util.function.Tuple2;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * 好友房服务
@@ -182,7 +182,7 @@ public class FriendRoomServices {
         res.roomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
         playerController.send(res);
         log.info("玩家：{} 创建好友房成功：{}", player.getId(), JSON.toJSONString(res));
-        coreLogger.roomOperate(friendRoom, 1, roomExpendCfg.getDurationTime(), itemMap, removeItem.data.getChangeEndItemNumIncludeMoney());
+        coreLogger.roomOperate(friendRoom, 1, roomExpendCfg.getDurationTime(), itemMap, removeItem.data);
         // 通知前端房间创建
         return Code.SUCCESS;
     }
@@ -515,9 +515,10 @@ public class FriendRoomServices {
 
         hallRoomBridge.updateFriendRoom(friendRoom.getCreator(),friendRoom.getRoomCfgId(),friendRoom.getId(),roomExpendCfg.getId(),friendRoom.isAutoRenewal(),0,null);
 
-        Map<Integer, Long> itemMap = Map.of(requiredMoney.get(0), (long) itemNum);
-        Map<Integer, Long> afterItemMap = Map.of(requiredMoney.get(0), friendRoom.getPredictCostGoldNum());
-        coreLogger.roomOperate(friendRoom, 2, roomExpendCfg.getDurationTime(), itemMap, afterItemMap);
+        Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), (long) itemNum);
+        ItemOperationResult itemOperationResult = new ItemOperationResult();
+        itemOperationResult.setDiamond(friendRoom.getPredictCostGoldNum());
+        coreLogger.roomOperate(friendRoom, 2, roomExpendCfg.getDurationTime(), itemMap, itemOperationResult);
     }
 
     /**
@@ -881,11 +882,11 @@ public class FriendRoomServices {
         if (friendRoom == null) {
             return Code.ROOM_DESTROYED;
         }
-        MarsNode node = clusterSystem.getNode(friendRoom.getPath());
-        if (node == null) {
+        ClusterClient client = getRoomNode(friendRoom);
+        if (client == null) {
             return Code.ROOM_NOT_FOUND;
         }
-        if (node.getNodeConfig().waitClose()) {
+        if (client.marsNode.getNodeConfig().waitClose()) {
             return Code.WAIT_CLOSE_NOT_MODIFICATION;
         }
         RoomExpendCfg roomExpendCfg = null;
@@ -951,7 +952,6 @@ public class FriendRoomServices {
         }
         if ((addTime > 0 || updateFriendRoom.predictCostGoldNum > 0) && friendRoom.isInGaming()) {
             if (!StringUtils.isEmpty(friendRoom.getPath())) {
-                ClusterClient client = clusterSystem.getClusterByPath(friendRoom.getPath());
                 // 单房间，直接等返回
                 GameRpcContext.getContext().setReqParameterBuilder(
                         RpcReqParameterBuilder.create()
@@ -969,7 +969,7 @@ public class FriendRoomServices {
                 JSON.toJSONString(updateFriendRoom), JSON.toJSONString(result.data));
 
         if (addTime > 0) {
-            coreLogger.roomOperate(friendRoom, 3, roomExpendCfg.getDurationTime(), itemMap, removeItem.data.getChangeEndItemNumIncludeMoney());
+            coreLogger.roomOperate(friendRoom, 3, roomExpendCfg.getDurationTime(), itemMap, removeItem.data);
         }
         return Code.SUCCESS;
     }
@@ -1245,7 +1245,7 @@ public class FriendRoomServices {
         }
         ClusterClient client = null;
         if (!StringUtils.isEmpty(friendRoom.getPath())) {
-            client = clusterSystem.getClusterByPath(friendRoom.getPath());
+            client = getRoomNode(friendRoom);
             // 被操作的房间不能为空
             if (client == null) {
                 // 房间对应的节点找不到
@@ -1417,5 +1417,53 @@ public class FriendRoomServices {
         res.code = Code.SUCCESS;
         log.info("玩家：{} 请求重置邀请码次数：{}", player.getId(), res.resetTimes);
         playerController.send(res);
+    }
+
+    /**
+     * 获取房间节点
+     * @param friendRoom
+     * @return
+     */
+    public ClusterClient getRoomNode(FriendRoom friendRoom){
+        ClusterClient client = clusterSystem.getClusterByPath(friendRoom.getPath());
+        if(client != null){
+            return client;
+        }
+
+        //TODO 押注类和百人场是否要做同样的处理
+        if(CommonUtil.getMajorTypeByGameType(friendRoom.getGameType()) != CoreConst.GameMajorType.SLOTS){
+            return null;
+        }
+
+        List<ClusterClient> clusterList = clusterSystem.getNodesByType(NodeType.GAME, friendRoom.getGameType());
+        if(clusterList == null || clusterList.isEmpty()){
+            return null;
+        }
+
+        for(ClusterClient cc : clusterList){
+            if(cc.nodeConfig.waitClose()){
+                continue;
+            }
+            if(cc.nodeConfig.getWhiteIpList() != null && cc.nodeConfig.getWhiteIpList().length > 0){
+                continue;
+            }
+            if(cc.nodeConfig.getWhiteIdList() != null && cc.nodeConfig.getWhiteIdList().length > 0){
+                continue;
+            }
+            friendRoomDao.doSave(friendRoom.getGameType(),friendRoom.getId(), new DataSaveCallback<>() {
+                @Override
+                public void updateData(FriendRoom dataEntity) {
+                }
+
+                @Override
+                public boolean updateDataWithRes(FriendRoom dataEntity) {
+                    dataEntity.setPath(cc.marsNode.getNodePath());
+                    return true;
+                }
+            });
+            friendRoom.setPath(cc.marsNode.getNodePath());
+            return cc;
+        }
+        return null;
     }
 }

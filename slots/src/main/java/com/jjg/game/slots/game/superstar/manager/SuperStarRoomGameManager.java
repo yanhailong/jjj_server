@@ -7,6 +7,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.superstar.SuperStarConstant;
 import com.jjg.game.slots.game.superstar.data.SuperStarGameRunInfo;
 import com.jjg.game.slots.game.superstar.data.SuperStarPlayerGameData;
@@ -93,6 +94,11 @@ public class SuperStarRoomGameManager extends AbstractSuperStarGameManager {
             gameRunInfo.setCode(Code.EXCEPTION);
         }
         return gameRunInfo;
+    }
+
+    @Override
+    protected PoolCfg randWinPool(SuperStarPlayerGameData playerGameData, int poolId) {
+        return null;
     }
 
     @Override
