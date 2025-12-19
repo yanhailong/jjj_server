@@ -2,6 +2,7 @@ package com.jjg.game.table.baccarat.gamephase;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.FriendRoom;
@@ -49,14 +50,14 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     public void phaseDoAction() {
         super.phaseDoAction();
         List<Byte> cardList = null;
-        long currentPool = canTriggerRecycling();
-        if (currentPool > 0) {
+        Pair<Long, Long> currentPool = canTriggerRecycling();
+        if (currentPool != null) {
             List<Byte> bytes = generateRecyclingResults();
             if (bytes == null) {
-                log.error("百家乐奖池回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+                log.error("百家乐奖池回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
             } else {
                 cardList = bytes;
-                log.info("百家乐奖池回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+                log.info("百家乐奖池回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
             }
         }
         if (cardList == null) {

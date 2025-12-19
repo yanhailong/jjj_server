@@ -2,6 +2,7 @@ package com.jjg.game.table.dicetreasure.gamephase;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
@@ -39,14 +40,14 @@ public class DiceTreasureSettlementPhase extends BaseDiceSettlementPhase<DiceTre
         super.phaseDoAction();
         // 随机三个1-6的骰子点数
         List<Integer> randomNumDice = null;
-        long currentPool = canTriggerRecycling();
-        if (currentPool > 0) {
+        Pair<Long, Long> currentPool = canTriggerRecycling();
+        if (currentPool != null) {
             List<Integer> result = generateRecyclingResults(3, 1, 6, EGameType.DICE_TREASURE);
             if (result == null) {
-                log.error("骰宝回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+                log.error("骰宝回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
             } else {
                 randomNumDice = result;
-                log.info("骰宝回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+                log.info("骰宝回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
             }
         }
         if (randomNumDice == null) {

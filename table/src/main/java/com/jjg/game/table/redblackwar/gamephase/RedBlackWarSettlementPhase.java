@@ -56,14 +56,14 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         super.phaseDoAction();
         //根据牌型获得牌
         List<Integer> joker = null;
-        long currentPool = canTriggerRecycling();
-        if (currentPool > 0) {
+        Pair<Long, Long> currentPool = canTriggerRecycling();
+        if (currentPool != null) {
             List<Integer> result = generateRecyclingResults();
             if (result == null) {
-                log.error("红黑大战回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+                log.error("红黑大战回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
             } else {
                 joker = result;
-                log.info("红黑大战回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+                log.info("红黑大战回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
             }
         }
         if (joker == null) {
@@ -246,6 +246,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         }
         return null;
     }
+
     /**
      * 组装最终发牌顺序：前3张为红方，后3张为黑方
      * side: 0 代表假设黑方赢, 1 代表假设红方赢
