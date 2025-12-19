@@ -23,6 +23,8 @@ public class ResThorEnterGame extends AbstractResponse {
     public int status;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
+    @ProtoDesc("奖池配置信息")
+    public List<ThorPoolInfo> poolList;
 
     public ResThorEnterGame(int code) {
         super(code);

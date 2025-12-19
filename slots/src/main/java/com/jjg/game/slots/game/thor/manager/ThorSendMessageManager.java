@@ -11,10 +11,7 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.dollarexpress.pb.PoolInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResPoolValue;
 import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
-import com.jjg.game.slots.game.thor.pb.ResThorFreeChooseOne;
-import com.jjg.game.slots.game.thor.pb.ResThorEnterGame;
-import com.jjg.game.slots.game.thor.pb.ResThorPoolValue;
-import com.jjg.game.slots.game.thor.pb.ResThorStartGame;
+import com.jjg.game.slots.game.thor.pb.*;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -61,6 +58,24 @@ public class ThorSendMessageManager extends BaseSendMessageManager {
             res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
             res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
+
+            //奖池信息
+            if (prizePoolIdList != null && !prizePoolIdList.isEmpty()) {
+                res.poolList = new ArrayList<>();
+                for (int poolId : prizePoolIdList) {
+                    PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+                    if (poolCfg == null) {
+                        continue;
+                    }
+                    ThorPoolInfo poolInfo = new ThorPoolInfo();
+                    poolInfo.id = poolId;
+                    poolInfo.initTimes = poolCfg.getFakePoolInitTimes();
+                    poolInfo.maxTimes = poolCfg.getFakePoolMax();
+                    poolInfo.perSomeSec = poolCfg.getGrowthRate().get(0);
+                    poolInfo.updateProp = poolCfg.getGrowthRate().get(1);
+                    res.poolList.add(poolInfo);
+                }
+            }
 
         } else {
             res.code = Code.NOT_FOUND;
