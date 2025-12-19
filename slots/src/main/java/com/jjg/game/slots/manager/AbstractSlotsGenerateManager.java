@@ -1319,7 +1319,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 for (Map.Entry<Integer, Integer> en2 : cfg.getTypeProp().entrySet()) {
                     int libType = en2.getKey();
                     //排除jackpot 后 计算typeProp
-                    if(jackpotIds.contains(libType)){
+                    if(jackpotIds != null && jackpotIds.contains(libType)){
                         continue;
                     }
                     begin = end;
