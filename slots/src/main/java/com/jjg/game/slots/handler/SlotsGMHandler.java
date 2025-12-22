@@ -29,10 +29,10 @@ public class SlotsGMHandler implements GmListener {
         try {
             if ("libType".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到选择libtype 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
-                slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType()).addTestIconDataLibType(playerController, Integer.parseInt(gmOrders[1]));
+                slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId()).addTestIconDataLibType(playerController, Integer.parseInt(gmOrders[1]));
             } else if ("setIcons".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到选择setIcons 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
-                slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType()).addTestIconDataIcons(playerController, gmOrders[1]);
+                slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId()).addTestIconDataIcons(playerController, gmOrders[1]);
             } else {
                 res.code = Code.NOT_FOUND;
             }

@@ -1,7 +1,10 @@
 package com.jjg.game.slots.manager;
 
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -23,14 +26,14 @@ public class SlotsFactoryManager {
     private SlotsRoomManager slotsRoomManager;
 
     //所有的游戏管理器
-    private Map<Integer,AbstractSlotsGameManager> slotsGameManagerMap = new HashMap<>();
+    private Map<Integer, AbstractSlotsGameManager> slotsGameManagerMap = new HashMap<>();
     //所有的游戏管理器
-    private Map<Integer,AbstractSlotsGameManager> slotsRoomGameManagerMap = new HashMap<>();
+    private Map<Integer, AbstractSlotsGameManager> slotsRoomGameManagerMap = new HashMap<>();
 
     /**
      * 工厂初始化
      */
-    public void init(ApplicationContext context){
+    public void init(ApplicationContext context) {
         //初始化池子
         this.slotsPoolDao.initPool();
         //初始化游戏管理器
@@ -41,16 +44,16 @@ public class SlotsFactoryManager {
     /**
      * 初始化游戏管理器
      */
-    private void initGameManager(ApplicationContext context){
+    private void initGameManager(ApplicationContext context) {
         Map<String, AbstractSlotsGameManager> gameManages = context.getBeansOfType(AbstractSlotsGameManager.class);
-        gameManages.forEach((k,v) -> {
+        gameManages.forEach((k, v) -> {
             v.init();
             int gameType = v.getGameType();
-            if(v.getRoomType() == null){
-                this.slotsGameManagerMap.put(gameType,v);
-            }else if(v.getRoomType() == RoomType.SLOTS_TEAM_UP_ROOM){
-                this.slotsRoomGameManagerMap.put(gameType,v);
-            }else {
+            if (v.getRoomType() == null) {
+                this.slotsGameManagerMap.put(gameType, v);
+            } else if (v.getRoomType() == RoomType.SLOTS_TEAM_UP_ROOM) {
+                this.slotsRoomGameManagerMap.put(gameType, v);
+            } else {
                 throw new RuntimeException("roomType not support  " + v.getRoomType());
             }
         });
@@ -59,26 +62,35 @@ public class SlotsFactoryManager {
     /**
      * 关闭游戏管理器
      */
-    private void closeGameManager(){
-        this.slotsGameManagerMap.forEach((k,v) -> v.shutdown());
+    private void closeGameManager() {
+        this.slotsGameManagerMap.forEach((k, v) -> v.shutdown());
     }
 
-    public AbstractSlotsGameManager getGameManager(int gameType){
+    public AbstractSlotsGameManager getGameManager(int gameType, int roomCfgId) {
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
+        if (warehouseCfg == null) {
+            return null;
+        }
+
+        if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
+            return this.slotsGameManagerMap.get(gameType);
+        } else {
+            return this.slotsRoomGameManagerMap.get(gameType);
+        }
+    }
+
+    public AbstractSlotsGameManager getGameManager(int gameType) {
         return this.slotsGameManagerMap.get(gameType);
     }
 
-    public AbstractSlotsGameManager getRoomGameManager(int gameType){
-        return this.slotsRoomGameManagerMap.get(gameType);
-    }
-
-    public void clearPlayerEvent(long playerId){
-        this.slotsGameManagerMap.forEach((k,v) -> v.clearPlayerEvent(playerId));
+    public void clearPlayerEvent(long playerId) {
+        this.slotsGameManagerMap.forEach((k, v) -> v.clearPlayerEvent(playerId));
     }
 
     /**
      * 关闭工厂
      */
-    public void shutdown(){
+    public void shutdown() {
         closeGameManager();
         this.slotsRoomManager.shutDown();
     }

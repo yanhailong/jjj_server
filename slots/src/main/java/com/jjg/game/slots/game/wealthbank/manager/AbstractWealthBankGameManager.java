@@ -651,7 +651,11 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
         }
+
         WealthBankResultLib freeGame = libResult.data;
+
+        //累计免费模式的中奖金额
+        playerGameData.addFreeModeTotalReward(playerGameData.getOneBetScore() * freeGame.getTimes());
 
         gameRunInfo.setStatus(playerGameData.getStatus());
 
@@ -660,6 +664,8 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
             playerGameData.setStatus(WealthBankConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
+            //最后一局，通知客户端，累计免费模式的中奖金额
+            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeModeTotalReward());
         }
 
         gameRunInfo.setIconArr(freeGame.getIconArr());
@@ -672,6 +678,8 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
         gameRunInfo.setRemainFreeCount(afterCount);
         gameRunInfo.setResultLib(freeGame);
+
+
 
         return gameRunInfo;
     }

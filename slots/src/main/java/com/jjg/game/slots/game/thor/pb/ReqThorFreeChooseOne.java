@@ -15,8 +15,4 @@ import com.jjg.game.slots.game.thor.ThorConstant;
 public class ReqThorFreeChooseOne extends AbstractMessage {
     @ProtoDesc("免费模式类型  0.火焰  1.冰冻")
     public int type;
-
-    public ReqThorFreeChooseOne(int type) {
-        this.type = type;
-    }
 }

@@ -19,6 +19,12 @@ public class ResThorEnterGame extends AbstractResponse {
     public List<Long> stakeList;
     @ProtoDesc("默认押注")
     public long defaultBet;
+    @ProtoDesc("状态  0.普通   1.二选一   2.火焰   3.冰冻")
+    public int status;
+    @ProtoDesc("剩余免费次数")
+    public int remainFreeCount;
+    @ProtoDesc("奖池配置信息")
+    public List<ThorPoolInfo> poolList;
 
     public ResThorEnterGame(int code) {
         super(code);

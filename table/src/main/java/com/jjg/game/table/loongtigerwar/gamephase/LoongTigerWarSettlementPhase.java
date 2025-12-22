@@ -47,14 +47,14 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         Map<Integer, List<WinPosWeightCfg>> cfgMap = loongTigerWarSampleManager.getCfgMap();
         //随机
         Integer next = null;
-        long currentPool = canTriggerRecycling();
-        if (currentPool > 0) {
+        Pair<Long, Long> currentPool = canTriggerRecycling();
+        if (currentPool != null) {
             Integer result = generateRecyclingResults(cfgMap);
             if (result == null) {
-                log.error("龙虎斗回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+                log.error("龙虎斗回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
             } else {
                 next = result;
-                log.info("龙虎斗回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+                log.info("龙虎斗回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
             }
         }
         if (next == null) {

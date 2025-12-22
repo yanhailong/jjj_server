@@ -90,11 +90,11 @@ public class SlotsPoolDao extends AbstractPoolDao {
                 BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(2)).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
                 long addToFakeValue = BigDecimal.valueOf(value).multiply(prop).longValue();
                 long afterValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, addToFakeValue);
-                log.debug("添加到假奖池2 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {},afterValue = {}", gameType, roomCfgId, value, addToFakeValue, afterValue);
+                log.info("添加到假奖池2 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {},afterValue = {}", gameType, roomCfgId, value, addToFakeValue, afterValue);
             }
         } else {  //从池子扣除
             Number fakePoolValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, value);
-            log.debug("从小奖池扣除成功 gameType = {},roomCfgId = {},value = {},afterPoolValue = {},afterFakePoolValue = {}", gameType, roomCfgId, value, poolValue, fakePoolValue.longValue());
+            log.info("从小奖池扣除成功 gameType = {},roomCfgId = {},value = {},afterPoolValue = {},afterFakePoolValue = {}", gameType, roomCfgId, value, poolValue, fakePoolValue.longValue());
         }
         return poolValue;
     }
@@ -129,7 +129,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
             addToBigPool(gameType, roomCfgId, value);
             return result;
         }
-        log.debug("从标准池扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},value = {},afterPool = {},addType = {}", playerId, gameType, roomCfgId, value, after, addType);
+        log.info("从标准池扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},value = {},afterPool = {},addType = {}", playerId, gameType, roomCfgId, value, after, addType);
         return result;
     }
 
@@ -150,7 +150,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
             addToSmallPool(gameType, roomCfgId, value);
             return result;
         }
-        log.debug("从小池子扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId, value, poolValue, addType);
+        log.info("从小池子扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId, value, poolValue, addType);
         return result;
     }
 
@@ -172,7 +172,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
         long value = SlotsUtil.calProp(ratio, poolValue.longValue());
         if (value < 1) {
             result.code = Code.FAIL;
-            log.debug("计算出的 value 小于1 playerId = {},gameType = {},roomCfgId = {}", playerId, gameType, roomCfgId);
+            log.warn("计算出的 value 小于1 playerId = {},gameType = {},roomCfgId = {}", playerId, gameType, roomCfgId);
             return result;
         }
 

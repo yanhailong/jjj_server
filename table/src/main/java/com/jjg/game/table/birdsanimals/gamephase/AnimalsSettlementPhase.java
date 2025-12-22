@@ -61,15 +61,15 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
         // 中奖区域，应该是一个动物和对应他的分类
         List<WinPosWeightCfg> winPosWeightCfgs = null;
         int randomRewardPosId = 0;
-        long currentPool = canTriggerRecycling();
-        if (currentPool > 0) {
+        Pair<Long, Long> currentPool = canTriggerRecycling();
+        if (currentPool != null) {
             Pair<Integer, List<WinPosWeightCfg>> result = generateRecyclingResults(winPosOfWeightCfgs);
             if (result == null) {
-                log.error("飞禽走兽回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+                log.error("飞禽走兽回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
             } else {
                 winPosWeightCfgs = result.getSecond();
                 randomRewardPosId = result.getFirst();
-                log.info("飞禽走兽回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool, gameDataVo.getRoomCfg().getInitBasePool());
+                log.info("飞禽走兽回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
             }
         }
         if (winPosWeightCfgs == null) {
