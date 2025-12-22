@@ -432,9 +432,9 @@ public class BaseLogger {
      * @param player
      * @param shopProduct
      */
-    public void shop(Player player, ShopProduct shopProduct, int registerChannel) {
+    public void shop(Player player, ShopProduct shopProduct, int registerChannel, long money) {
         int now = TimeHelper.nowInt();
-        shop(player, null, null, shopProduct.getType(), registerChannel, player.getChannel().getValue(), RechargeType.SHOP, shopProduct.getMoney().toPlainString(), null, now, now, OrderStatus.SUCCESS, shopProduct.getPayType(), null);
+        shop(player, null, null, shopProduct.getType(), registerChannel, player.getChannel().getValue(), RechargeType.SHOP, String.valueOf(money), null, now, now, OrderStatus.SUCCESS, shopProduct.getPayType(), null);
     }
 
     /***********************************************************************************************/
