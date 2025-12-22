@@ -1,9 +1,11 @@
 package com.jjg.game.core.task.service;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.ClusterRpcReference;
+import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.constant.TaskConstant;
@@ -73,7 +75,14 @@ public class TaskService {
     public TaskData getPlayerTask(long playerId) {
         RMap<Long, TaskData> map = getPlayerTaskMap();
         TaskData taskData = map.get(playerId);
+        try {
+            log.info("taskData: {}", ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(taskData));
+            log.info("taskDataString: {}", ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(redissonClient.getMap(TABLE_NAME).get(playerId)));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
         if (taskData == null) {
+            log.info("taskData null: {}", "null");
             TaskData data = taskDataDao.findByPlayerId(playerId);
             if (data == null) {
                 data = new TaskData();
@@ -102,11 +111,13 @@ public class TaskService {
 
     /**
      * 回存任务
+     *
      * @param playerId 玩家id
      * @param taskData 任务数据
      */
     public void saveTask(long playerId, TaskData taskData) {
         redissonClient.getMap(TABLE_NAME).fastPut(playerId, taskData);
+
     }
 
     /**
@@ -381,7 +392,7 @@ public class TaskService {
      *
      * @param playerId             玩家ID
      * @param availableTaskConfigs 可用任务配置列表
-     * @param taskManager 任务管理器
+     * @param taskManager          任务管理器
      * @return 新创建的任务列表
      */
     private Map<Integer, TaskDetail> createNewTasksForPlayer(long playerId, TaskData taskData, List<TaskCfg> availableTaskConfigs, TaskManager taskManager) {
