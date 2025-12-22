@@ -76,13 +76,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             }
 
             //检查slots游戏管理器
-            AbstractSlotsGameManager gameManager;
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(info.getRoomCfgId());
-            if(warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START){
-                gameManager = slotsFactoryManager.getGameManager(info.getGameType());
-            }else {
-                gameManager = slotsFactoryManager.getRoomGameManager(info.getGameType());
-            }
+            AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(info.getGameType(), info.getRoomCfgId());
             if (gameManager == null) {
                 log.debug("sessionEnter时，获取游戏管理器失败 playerId = {},gameType = {}", playerId, info.getGameType());
                 return;
@@ -159,7 +153,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 //创建 PlayerGameData
                 SlotsPlayerGameData playerGameData = gameManager.createPlayerGameData(playerController);
                 if (playerGameData == null) {
-                    log.warn("进入好友房slots失败，创建playerGameData失败 playerId = {}",player.getId());
+                    log.warn("进入好友房slots失败，创建playerGameData失败 playerId = {}", player.getId());
                     return;
                 }
             }
@@ -184,7 +178,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             return Code.SUCCESS;
         }
 
-        AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType());
+        AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
         if (gameManager == null) {
             log.debug("退出游戏时，获取游戏管理器失败 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
             return Code.SUCCESS;

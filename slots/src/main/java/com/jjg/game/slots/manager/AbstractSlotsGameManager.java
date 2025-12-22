@@ -1649,8 +1649,4 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     public RoomType getRoomType() {
         return null;
     }
-
-    public Set<Integer> specialModeJackpotIds() {
-        return null;
-    }
 }
