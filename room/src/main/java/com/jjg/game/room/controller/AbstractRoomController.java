@@ -122,6 +122,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     /**
      * 玩家加入房间
+     *
      * @param reconnect 重连标识
      */
     public CommonResult<R> joinRoom(PlayerController playerController, AtomicBoolean reconnect) {
@@ -751,5 +752,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      */
     public void onJoinRoomSuccessAfter(PlayerController playerController) {
         gameController.onJoinRoomSuccessAfter(playerController);
+    }
+
+    public void onFriendRoomCreate() {
+
     }
 }

@@ -231,13 +231,16 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 }
             }
         }
+        //删除池子信息
+        getRoomDao().removeRoomPool(room.getGameType(), room.getId());
     }
 
     /**
      * 发送销毁房间时返回保证金
+     *
      * @param gameTransactionItemId 房间货币id
-     * @param gainGold 返回金额
-     * @param playerId 玩家id
+     * @param gainGold              返回金额
+     * @param playerId              玩家id
      */
     public void sendDisbandRoomBack(long playerId, int gameTransactionItemId, long gainGold) {
         List<LanguageParamData> params = new ArrayList<>(2);
@@ -247,14 +250,15 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
         List<Item> returnItems = List.of(new Item(gameTransactionItemId, gainGold));
         Mail mail = roomManager.getMailService().addCfgMail(playerId, 35, returnItems, params);
-        roomManager.getCoreLogger().roomDisband(this.room,mail.getId(),returnItems);
+        roomManager.getCoreLogger().roomDisband(this.room, mail.getId(), returnItems);
     }
 
     /**
      * 发送下庄时返回保证金
+     *
      * @param gameTransactionItemId 房间货币id
-     * @param gainGold 返回金额
-     * @param playerId 玩家id
+     * @param gainGold              返回金额
+     * @param playerId              玩家id
      */
     public void sendComeDownRoomBack(long playerId, int gameTransactionItemId, long gainGold) {
         List<LanguageParamData> params = new ArrayList<>(2);
@@ -343,9 +347,10 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             if (result.success()) {
                 this.room = result.data;
 
-                Map<Integer, Long> itemMap = Map.of(requiredMoney.get(0), (long) itemNum);
-                Map<Integer, Long> afterItemMap = Map.of(requiredMoney.get(0), this.room.getPredictCostGoldNum());
-                roomManager.getCoreLogger().roomOperate(this.room, 2, roomExpendCfg.getDurationTime(), itemMap, afterItemMap);
+                Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), (long) itemNum);
+                ItemOperationResult itemOperationResult = new ItemOperationResult();
+                itemOperationResult.setDiamond(this.room.getPredictCostGoldNum());
+                roomManager.getCoreLogger().roomOperate(this.room, 2, roomExpendCfg.getDurationTime(), itemMap, itemOperationResult);
                 log.info("房间：{} 自动续费成功, 过期时间：{} 总花费：{}", room.logStr(), overdueTime, totalTake);
             }
         }
@@ -393,6 +398,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
     /**
      * 是否能上庄
+     *
      * @return true是
      */
     public boolean canBeBanker() {
@@ -489,7 +495,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
      * 取消成为庄家
      *
      * @param playerId 玩家ID
-     * @param backNum 返回版主金的金额
+     * @param backNum  返回版主金的金额
      * @return 取消结果
      */
     public int cancelBeBanker(long playerId, AtomicLong backNum) {

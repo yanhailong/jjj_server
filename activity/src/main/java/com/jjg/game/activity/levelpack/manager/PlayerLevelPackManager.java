@@ -352,9 +352,10 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         }
 
         List<ItemInfo> items = null;
+        CommonResult<ItemOperationResult> result = null;
         if (!addItemsMap.isEmpty()) {
             //添加道具
-            CommonResult<ItemOperationResult> result = playerPackService.addItems(player.getId(), addItemsMap, AddType.LEVEL_UPGRADE);
+            result = playerPackService.addItems(player.getId(), addItemsMap, AddType.LEVEL_UPGRADE);
             if (!result.success()) {
                 log.warn("玩家升级添加道具失败 playerId = {},level = {},code = {}", player.getId(), newLevel, result.code);
             } else {
@@ -378,7 +379,8 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         }
 
         coreSendMessageManager.buildBaseInfoChangeMessage(player);
-        activityLogger.level(player, oldLevel, newLevel, items);
+        activityLogger.level(player, oldLevel, newLevel, items, result
+        );
     }
 
     @Override

@@ -5,10 +5,7 @@ import com.jjg.game.common.listener.OnServerAutoShoutDown;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.FriendRoom;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.Room;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.rpc.HallRoomBridge;
 import com.jjg.game.core.utils.SampleDataUtils;
@@ -164,7 +161,10 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
             if (roomController == null) {
                 log.warn("通过cfgId: {} roomId: {} 初始化房间失败", roomCfgId, roomId);
             } else {
-                log.warn("通过cfgId: {} roomId: {} 初始化房间成功", roomCfgId, roomId);
+                if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
+                    friendRoomController.onFriendRoomCreate();
+                    log.warn("通过cfgId: {} roomId: {} 初始化房间成功", roomCfgId, roomId);
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

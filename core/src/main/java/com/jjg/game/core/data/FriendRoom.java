@@ -38,6 +38,8 @@ public class FriendRoom extends Room {
     protected long creatorIncome;
     // 房间是否处于游戏中
     protected boolean inGaming;
+    //标准池
+    protected long pool;
 
     /**
      * 场上是否有庄家
@@ -65,6 +67,14 @@ public class FriendRoom extends Room {
             return 0L;
         }
         return bankerPredicateMap.firstEntry().getValue();
+    }
+
+    public long getPool() {
+        return pool;
+    }
+
+    public void setPool(long pool) {
+        this.pool = pool;
     }
 
     /**

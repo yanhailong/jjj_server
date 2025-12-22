@@ -2,9 +2,10 @@ package com.jjg.game.table.dicecommon.phase;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.pb.AbstractMessage;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
-import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
@@ -16,13 +17,10 @@ import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
-import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
+import com.jjg.game.table.dicecommon.DiceDataHolder;
 import com.jjg.game.table.dicecommon.message.BaseDiceSettlementInfo;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 基础骰子结算阶段
@@ -33,6 +31,48 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
 
     public BaseDiceSettlementPhase(AbstractPhaseGameController<Room_BetCfg, T> gameController) {
         super(gameController);
+    }
+
+    public List<Integer> generateRecyclingResults(int diceNum, int diceMinNum, int diceMaxNum, EGameType gameType) {
+        Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo = gameDataVo.getRealPlayerBetInfo();
+        if (realPlayerBetInfo == null) {
+            return null;
+        }
+        List<List<Integer>> diceAllResults = getDiceAllResults(diceNum, diceMinNum, diceMaxNum);
+        Collections.shuffle(diceAllResults);
+        for (List<Integer> randomNumDice : diceAllResults) {
+            //计算最后一位
+            List<WinPosWeightCfg> winPosWeightCfgList = DiceDataHolder.getWinPosWeightCfg(gameType, randomNumDice);
+            Pair<Long, Long> result = getWinOrLoseResult(realPlayerBetInfo, winPosWeightCfgList);
+            if (result.getFirst() > 0 && result.getFirst() >= result.getSecond()) {
+                return randomNumDice;
+            }
+        }
+        return null;
+    }
+
+    private List<List<Integer>> getDiceAllResults(int diceNum, int diceMinNum, int diceMaxNum) {
+        // 使用 Set 来去重，确保 125, 152, 512 等只保留一个排序后的结果
+        Set<List<Integer>> resultSet = new HashSet<>();
+        int diceRange = diceMaxNum - diceMinNum + 1;
+        int times = (int) Math.pow(diceRange, diceNum);
+
+        for (int i = 1; i <= times; i++) {
+            List<Integer> randomNumDice = new ArrayList<>(diceNum);
+            for (int j = 1; j <= diceNum; j++) {
+                int pow = (int) Math.pow(diceRange, j);
+                int number = i % pow;
+                number = number == 0 ? pow : number;
+                // 计算当前骰子点数
+                int diceValue = (int) Math.ceil(number / (Math.pow(diceRange, j - 1))) + (diceMinNum - 1);
+                randomNumDice.add(diceValue);
+            }
+            // 核心逻辑：排序后放入 Set 达到去重效果
+            // 这样 152, 512, 215 都会变成 125 并去重
+            Collections.sort(randomNumDice);
+            resultSet.add(randomNumDice);
+        }
+        return new ArrayList<>(resultSet);
     }
 
     /**
@@ -75,6 +115,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             calculationFinalBankerChange(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);
         }
+        dealRoomPool(settlementDataMap);
         // 场上玩家金币变化
         diceSettlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
@@ -94,31 +135,6 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
         }
     }
 
-    /**
-     * 计算结算金币
-     */
-    protected SettlementData calcSettlementGold(GamePlayer gamePlayer, List<WinPosWeightCfg> winPosWeightCfgs,
-                                                Map<Integer, List<Integer>> playerBetInfo, RoomBankerChangeParam changeParam) {
-        SettlementData playerSettlementData = new SettlementData();
-        for (WinPosWeightCfg winPosWeightCfg : winPosWeightCfgs) {
-            List<Integer> betAreas = winPosWeightCfg.getBetArea();
-            for (Integer betAreaIdx : betAreas) {
-                if (playerBetInfo.containsKey(betAreaIdx)) {
-                    if (changeParam != null) {
-                        changeParam.removeArea(betAreaIdx);
-                    }
-                    List<Integer> playerBetGoldList = playerBetInfo.get(betAreaIdx);
-                    // 玩家总押注
-                    long playerBetGoldTotal = playerBetGoldList.stream().mapToInt(Integer::intValue).sum();
-                    SettlementData settlementData = calcGold(gamePlayer, winPosWeightCfg, playerBetGoldTotal);
-                    playerSettlementData.increaseBySettlementData(settlementData);
-                }
-            }
-        }
-        if (!(gamePlayer instanceof GameRobotPlayer)) {
-            // 记录日志
-            BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
-        }
-        return playerSettlementData;
-    }
+
+
 }

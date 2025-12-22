@@ -1,6 +1,7 @@
 package com.jjg.game.table.riveranimals.gamephase;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
@@ -37,44 +38,56 @@ public class RiverAnimalsSettlementPhase extends BaseDiceSettlementPhase<RiverAn
     public void phaseDoAction() {
         super.phaseDoAction();
         // 随机3个1-6的骰子点数
-        List<Integer> randomNumDice = DiceUtils.randomDice(3, 1, 6);
+        List<Integer> randomNumDice = null;
+        Pair<Long, Long> currentPool = canTriggerRecycling();
+        if (currentPool != null) {
+            List<Integer> result = generateRecyclingResults(3, 1, 6, EGameType.RIVER_ANIMALS);
+            if (result == null) {
+                log.error("鱼虾蟹回收触发 生成结果失败 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
+            } else {
+                randomNumDice = result;
+                log.info("鱼虾蟹回收触发 生成结果成功 当前池:{} 标准池:{}", currentPool.getFirst(), currentPool.getSecond());
+            }
+        }
+        if (randomNumDice == null) {
+            randomNumDice = DiceUtils.randomDice(3, 1, 6);
+        }
         // 通过骰子点数获取对应的配置
-        List<WinPosWeightCfg> winPosWeightCfgs =
-            DiceDataHolder.getWinPosWeightCfg(EGameType.RIVER_ANIMALS, randomNumDice);
+        List<WinPosWeightCfg> winPosWeightCfgs = DiceDataHolder.getWinPosWeightCfg(EGameType.RIVER_ANIMALS, randomNumDice);
         if (winPosWeightCfgs == null || winPosWeightCfgs.isEmpty()) {
             log.error("鱼虾蟹结算异常，随机奖励的区域为空，骰子：{}", randomNumDice);
             return;
         }
         // 中奖的区域列表
         List<BetAreaCfg> betAreaCfgs =
-            winPosWeightCfgs.stream()
-                .map(WinPosWeightCfg::getBetArea)
-                .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll)
-                .stream()
-                .distinct()
-                .map(a -> GameDataManager.getBetAreaCfg((Integer) a)).toList();
+                winPosWeightCfgs.stream()
+                        .map(WinPosWeightCfg::getBetArea)
+                        .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll)
+                        .stream()
+                        .distinct()
+                        .map(a -> GameDataManager.getBetAreaCfg((Integer) a)).toList();
         // 1梅花鹿 2葫芦 3鸡 4鱼 5螃蟹 6虾
         log.debug("{} 摇中鱼虾蟹：{}, 区域ID: {} 对应的中奖区域：{}",
-            gameDataVo.roomLogInfo(),
-            randomNumDice.stream().map((dice) -> switch (dice) {
-                case 1 -> "梅花鹿";
-                case 2 -> "葫芦";
-                case 3 -> "鸡";
-                case 4 -> "鱼";
-                case 5 -> "螃蟹";
-                case 6 -> "虾";
-                default -> "";
-            }).collect(Collectors.joining(",")),
-            winPosWeightCfgs.stream().map(WinPosWeightCfg::getId).collect(Collectors.toList()),
-            betAreaCfgs.stream().map(BetAreaCfg::getId).map(String::valueOf).collect(Collectors.joining(",")));
+                gameDataVo.roomLogInfo(),
+                randomNumDice.stream().map((dice) -> switch (dice) {
+                    case 1 -> "梅花鹿";
+                    case 2 -> "葫芦";
+                    case 3 -> "鸡";
+                    case 4 -> "鱼";
+                    case 5 -> "螃蟹";
+                    case 6 -> "虾";
+                    default -> "";
+                }).collect(Collectors.joining(",")),
+                winPosWeightCfgs.stream().map(WinPosWeightCfg::getId).collect(Collectors.toList()),
+                betAreaCfgs.stream().map(BetAreaCfg::getId).map(String::valueOf).collect(Collectors.joining(",")));
         // 添加中奖记录
         RiverAnimalsHistoryBean historyBean = addHistory(randomNumDice, betAreaCfgs);
         gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, historyBean);
         NotifyRiverAnimalsSettlement settlement =
-            RiverAnimalsMessageBuilder.notifyAnimalsSettlement(historyBean);
+                RiverAnimalsMessageBuilder.notifyAnimalsSettlement(historyBean);
         // 构建结算信息
         settlement.settlementInfo.diceSettlementInfo =
-            BaseDiceMessageBuilder.buildDiceSettlementInfo(gameDataVo);
+                BaseDiceMessageBuilder.buildDiceSettlementInfo(gameDataVo);
         // 通用骰子结算逻辑
         settlementDice(settlement.settlementInfo.diceSettlementInfo, winPosWeightCfgs, settlement);
         log.debug("鱼虾蟹房间：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));
@@ -87,7 +100,7 @@ public class RiverAnimalsSettlementPhase extends BaseDiceSettlementPhase<RiverAn
      * 添加鱼虾蟹的中奖历史记录
      */
     private RiverAnimalsHistoryBean addHistory(
-        List<Integer> diceData, List<BetAreaCfg> winPosWeightCfgs) {
+            List<Integer> diceData, List<BetAreaCfg> winPosWeightCfgs) {
         RiverAnimalsHistoryBean riverAnimalsHistoryBean = new RiverAnimalsHistoryBean();
         riverAnimalsHistoryBean.betIdxId = winPosWeightCfgs.stream().map(BetAreaCfg::getId).toList();
         riverAnimalsHistoryBean.diceData = diceData;

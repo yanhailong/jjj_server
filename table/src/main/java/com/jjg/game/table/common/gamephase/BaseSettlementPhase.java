@@ -1,8 +1,14 @@
 package com.jjg.game.table.common.gamephase;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
+import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.data.FriendRoom;
+import com.jjg.game.core.data.Room;
+import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.base.AbstractRoomPhase;
@@ -14,7 +20,10 @@ import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
+import com.jjg.game.table.common.dao.BetTableFriendRoomDao;
+import com.jjg.game.table.common.dao.TableRoomDao;
 import com.jjg.game.table.common.data.TableGameDataVo;
+import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -84,32 +93,36 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
      */
     protected SettlementData calcGold(GamePlayer gamePlayer, int odds, int returnRate, WinPosWeightCfg weightCfg, long betValue) {
         int winRatio = gameDataVo.getRoomCfg().getWinRatio();
-        // 倍率计算
+        // 总赢钱
         BigDecimal totalGet = BigDecimal.valueOf(betValue)
                 .multiply(BigDecimal.valueOf(odds))
                 .divide(BigDecimal.valueOf(100), 4, RoundingMode.DOWN);
-        BigDecimal multiAdd = totalGet.multiply(BigDecimal.valueOf((10000 - (weightCfg.getIsRatio() == 1 ? winRatio : 0))))
+        //实际赢钱
+        BigDecimal realGet = totalGet.subtract(BigDecimal.valueOf(betValue).multiply(BigDecimal.valueOf(10000 - returnRate)
+                .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN)));
+
+        BigDecimal multiAdd = realGet.multiply(BigDecimal.valueOf((10000 - (weightCfg.getIsRatio() == 1 ? winRatio : 0))))
                 .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
-        long betReturn = BigDecimal.valueOf(betValue).multiply(BigDecimal.valueOf(returnRate))
-                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+
         // 赢的总值
-        long totalWin = multiAdd.longValue() + betReturn;
-        if (!(gamePlayer instanceof GameRobotPlayer)) {
+        long totalWin = multiAdd.longValue() + betValue;
+        if (gamePlayer != null && !(gamePlayer instanceof GameRobotPlayer)) {
             log.info("玩家：{} {} 在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{}",
                     gamePlayer.getId(),
                     gameDataVo.roomLogInfo(),
                     weightCfg.getId(),
                     betValue,
+                    realGet,
                     multiAdd,
-                    betReturn,
                     totalWin);
         }
         // 倍率计算 + 压分返还 + 赢的总值
-        return new SettlementData(multiAdd.longValue(), betReturn, totalWin, betValue, totalGet.longValue() - multiAdd.longValue());
+        return new SettlementData(multiAdd.longValue(), totalWin, betValue, realGet.longValue() - multiAdd.longValue());
     }
 
     /**
      * 获取RoomBankerChangeParam
+     *
      * @param betInfo 下注信息
      * @return RoomBankerChangeParam
      */
@@ -172,5 +185,163 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
 
     public void phaseFinishAction() {
 
+    }
+
+    public void dealRoomPool(Map<Long, SettlementData> settlementDataMap) {
+        if (CollectionUtil.isEmpty(settlementDataMap)) {
+            return;
+        }
+        //判断是否有真人下注
+        Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo = gameDataVo.getRealPlayerBetInfo();
+        if (CollectionUtil.isEmpty(realPlayerBetInfo)) {
+            return;
+        }
+        if (gameController.getRoom() instanceof FriendRoom room) {
+            Map.Entry<Long, Long> longLongEntry = room.getBankerPredicateMap().firstEntry();
+            if (longLongEntry != null) {
+                return;
+            }
+        }
+        gameController.getRoomController().getRoomProcessor()
+                .tryPublish(0, new BaseHandler<String>() {
+                    @Override
+                    public void action() {
+                        //计算输赢
+                        long totalWin = 0;
+                        long totalLose = 0;
+                        for (Map.Entry<Long, SettlementData> entry : settlementDataMap.entrySet()) {
+                            GamePlayer gamePlayer = gameController.getGamePlayer(entry.getKey());
+                            if (gamePlayer == null || gamePlayer instanceof GameRobotPlayer) {
+                                continue;
+                            }
+                            SettlementData data = entry.getValue();
+                            totalLose += data.getTotalWin() + data.getTaxation();
+                            BigDecimal totalGet = BigDecimal.valueOf(data.getBetTotal() - data.getBankerWind())
+                                    .multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getWinRatio())))
+                                    .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
+                            totalWin += data.getBankerWind() + totalGet.longValue();
+                        }
+                        long diff = totalWin - totalLose;
+                        AbstractRoomDao<? extends Room, ? extends RoomPlayer> roomDao = gameController.getRoomController().getRoomDao();
+                        if (roomDao instanceof TableRoomDao tableRoomDao) {
+                            Room_BetCfg roomCfg = gameDataVo.getRoomCfg();
+                            long roomPool = tableRoomDao.modifyRoomPool(roomCfg.getGameID(), roomCfg.getId(), diff);
+                            log.info("gameType:{} roomCfgId:{} 奖池回收触发 变化值:{} 变化后{}  ", roomCfg.getGameID(), roomCfg.getId(), diff, roomPool);
+                        } else if (roomDao instanceof BetTableFriendRoomDao tableRoomDao) {
+                            Room_BetCfg roomCfg = gameDataVo.getRoomCfg();
+                            long roomPool = tableRoomDao.modifyRoomPool(roomCfg.getGameID(), gameController.getRoom().getId(), diff);
+                            log.info("好友房 gameType:{} roomCfgId:{} 奖池回收触发 变化值:{} 变化后{}  ", roomCfg.getGameID(), roomCfg.getId(), diff, roomPool);
+                        }
+                    }
+                }.setHandlerParamWithSelf("dealRoomPool"));
+    }
+
+    /**
+     * 是否能触发回收
+     *
+     * @return 当前池的数量
+     */
+    public Pair<Long, Long> canTriggerRecycling() {
+        //判断是否有真人
+        Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo = gameDataVo.getRealPlayerBetInfo();
+        if (CollectionUtil.isEmpty(realPlayerBetInfo)) {
+            return null;
+        }
+        AbstractRoomDao<? extends Room, ? extends RoomPlayer> roomDao = gameController.getRoomController().getRoomDao();
+        Room_BetCfg roomCfg = gameDataVo.getRoomCfg();
+        Long roomPool = null;
+        Long basePool = null;
+        if (roomDao instanceof TableRoomDao tableRoomDao) {
+            roomPool = tableRoomDao.getRoomPool(roomCfg.getGameID(), roomCfg.getId(), roomCfg.getInitBasePool());
+            basePool = roomCfg.getInitBasePool();
+            if (roomPool > roomCfg.getInitBasePool()) {
+                return null;
+            }
+        } else if (roomDao instanceof BetTableFriendRoomDao tableRoomDao) {
+            if (gameController.getRoom() instanceof FriendRoom friendRoom) {
+                Map.Entry<Long, Long> longLongEntry = friendRoom.getBankerPredicateMap().firstEntry();
+                if (longLongEntry == null) {
+                    roomPool = tableRoomDao.getRoomPool(roomCfg.getGameID(), gameController.getRoom().getId());
+                    basePool = friendRoom.getPool();
+                }
+            }
+        }
+        if (roomPool == null) {
+            return null;
+        }
+        int pro = BigDecimal.valueOf(10000)
+                .subtract(BigDecimal.valueOf(10000)
+                        .multiply(BigDecimal.valueOf(Math.max(roomPool, 1)))
+                        .divide(BigDecimal.valueOf(Math.max(basePool, 1)), 0, RoundingMode.DOWN))
+                .intValue();
+        if (RandomUtils.getRandomNumInt10000() <= pro) {
+            return Pair.newPair(roomPool, basePool);
+        }
+        return null;
+    }
+
+    /**
+     * 通用计算下注输赢
+     *
+     * @param realPlayerBetInfo   真人玩家下注
+     * @param winPosWeightCfgList 配置信息
+     * @return 赢的值->输的值
+     */
+    public Pair<Long, Long> getWinOrLoseResult(Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo, List<WinPosWeightCfg> winPosWeightCfgList) {
+        long totalWin = 0;
+        long totalLose = 0;
+        for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : realPlayerBetInfo.entrySet()) {
+            SettlementData playerSettlementData = new SettlementData();
+            Map<Integer, List<Integer>> playerBetInfo = entry.getValue();
+            for (WinPosWeightCfg winPosWeightCfg : winPosWeightCfgList) {
+                List<Integer> betAreas = winPosWeightCfg.getBetArea();
+                for (Integer betAreaIdx : betAreas) {
+                    if (playerBetInfo.containsKey(betAreaIdx)) {
+                        List<Integer> playerBetGoldList = playerBetInfo.get(betAreaIdx);
+                        // 玩家总押注
+                        long playerBetGoldTotal = playerBetGoldList.stream().mapToInt(Integer::intValue).sum();
+                        SettlementData settlementData = calcGold(null, winPosWeightCfg, playerBetGoldTotal);
+                        playerSettlementData.increaseBySettlementData(settlementData);
+                    }
+                }
+            }
+            playerSettlementData.setBetTotal(playerBetInfo.values().stream()
+                    .mapToLong(a -> a.stream().mapToInt(b -> b).sum())
+                    .sum());
+            totalLose += playerSettlementData.getTotalWin() + playerSettlementData.getTaxation();
+            BigDecimal totalGet = BigDecimal.valueOf(playerSettlementData.getBetTotal() - playerSettlementData.getBankerWind())
+                    .multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getWinRatio())))
+                    .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
+            totalWin += playerSettlementData.getBankerWind() + totalGet.longValue();
+        }
+        return Pair.newPair(totalWin, totalLose);
+    }
+
+    /**
+     * 计算结算金币
+     */
+    public SettlementData calcSettlementGold(GamePlayer gamePlayer, List<WinPosWeightCfg> winPosWeightCfgs,
+                                             Map<Integer, List<Integer>> playerBetInfo, RoomBankerChangeParam changeParam) {
+        SettlementData playerSettlementData = new SettlementData();
+        for (WinPosWeightCfg winPosWeightCfg : winPosWeightCfgs) {
+            List<Integer> betAreas = winPosWeightCfg.getBetArea();
+            for (Integer betAreaIdx : betAreas) {
+                if (playerBetInfo.containsKey(betAreaIdx)) {
+                    if (changeParam != null) {
+                        changeParam.removeArea(betAreaIdx);
+                    }
+                    List<Integer> playerBetGoldList = playerBetInfo.get(betAreaIdx);
+                    // 玩家总押注
+                    long playerBetGoldTotal = playerBetGoldList.stream().mapToInt(Integer::intValue).sum();
+                    SettlementData settlementData = calcGold(gamePlayer, winPosWeightCfg, playerBetGoldTotal);
+                    playerSettlementData.increaseBySettlementData(settlementData);
+                }
+            }
+        }
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            // 记录日志
+            BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
+        }
+        return playerSettlementData;
     }
 }
