@@ -234,7 +234,7 @@ public class PointsAwardTurntableService implements IRedDotService {
         //判断充值次数
         Integer addCount = addCountMap.getOrDefault(playerId, 0);
         Integer costCount = countMap.getOrDefault(playerId, 0);
-        if (costCount >= addCount) {
+        if (costCount > addCount) {
             result.code = Code.POINT_AWARD_TIMES_NOT_ENOUGH;
             return result;
         }
