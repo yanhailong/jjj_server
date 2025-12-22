@@ -13,6 +13,7 @@ import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneAwardLineInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneGameRunInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneResultLib;
 import com.jjg.game.slots.game.frozenThrone.pb.*;
+import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -105,13 +106,17 @@ public class FrozenThroneSendMessageManager extends BaseSendMessageManager {
             res.allGold = gameRunInfo.getAfterGold();
             //本局获得金币
             res.allWinGold = gameRunInfo.getAllWinGold();
-            //免费游戏中累计获得金币
-            res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
             //图标信息
             res.iconList = IntStream.range(1, 16).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
             //剩余免费次数
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
-            //当前状态
+            //免费游戏中累计获得金币
+            if (gameRunInfo.getStatus() == FrozenThroneConstant.Status.FREE) {
+                res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
+            } else {
+                res.totalWinGold = 0;
+            }
+            //下一次状态
             if (res.remainFreeCount > 0) {
                 res.status = FrozenThroneConstant.Status.FREE;
             } else {

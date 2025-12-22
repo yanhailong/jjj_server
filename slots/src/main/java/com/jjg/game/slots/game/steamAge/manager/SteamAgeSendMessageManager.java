@@ -10,6 +10,7 @@ import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeAwardLineInfo;
+import com.jjg.game.slots.game.steamAge.data.SteamAgeExpandIconInfo;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeGameRunInfo;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeResultLib;
 import com.jjg.game.slots.game.steamAge.pb.*;
@@ -121,12 +122,13 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
 
             SteamAgeResultLib lib = (SteamAgeResultLib) gameRunInfo.getResultLib();
 
-            res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
+            res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore(),0);
             //又连线则触发，添加图标信息（右扩展图标）
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
             //高亮图标
             res.highlightList = highlight(lib);
-
+            //是否触发 免费转
+            res.triggerStatus = gameRunInfo.getRemainFreeCount() > 0 ? 1 : 0;
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
@@ -141,12 +143,13 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
     private List<SteamAgeExpand> addIconInfos(SteamAgeResultLib lib, SteamAgeGameRunInfo gameRunInfo) {
         List<SteamAgeExpand> iconInfos = new ArrayList<>();
         if (lib.getAddIconInfos() != null && !lib.getAddIconInfos().isEmpty()) {
-            lib.getAddIconInfos().forEach(info -> {
+            for (int i = 0; i < lib.getAddIconInfos().size(); i++) {
+                SteamAgeExpandIconInfo info = lib.getAddIconInfos().get(i);
                 SteamAgeExpand iconInfo = new SteamAgeExpand();
                 iconInfo.iconList = info.getAddIconList();
-                iconInfo.rewardIconInfo = addRewardIcons(info.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
+                iconInfo.rewardIconInfo = addRewardIcons(info.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore(), i + 1);
                 iconInfos.add(iconInfo);
-            });
+            }
         }
         return iconInfos;
     }
@@ -177,7 +180,6 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
         return highlightList;
     }
 
-
     /**
      * 添加中奖图标信息
      *
@@ -185,7 +187,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
      * @param oneBetScore
      * @return
      */
-    private SteamAgeIconInfo addRewardIcons(List<SteamAgeAwardLineInfo> awardLineInfoList, long oneBetScore) {
+    private SteamAgeIconInfo addRewardIcons(List<SteamAgeAwardLineInfo> awardLineInfoList, long oneBetScore, int num) {
         if (awardLineInfoList == null || awardLineInfoList.isEmpty()) {
             return null;
         }
@@ -193,16 +195,54 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
         SteamAgeIconInfo iconInfo = new SteamAgeIconInfo();
 
         Set<Integer> indexSet = new HashSet<>();
+
         Set<Integer> winIconSet = new HashSet<>();
         awardLineInfoList.forEach(info -> {
             indexSet.addAll(info.getSameIconSet());
             winIconSet.add(info.getSameIcon());
-            iconInfo.win += info.getBaseTimes() * oneBetScore;
-            iconInfo.baseTimes += info.getBaseTimes();
+            iconInfo.win += info.getLineTimes() * oneBetScore;
+            iconInfo.baseTimes = info.getBaseTimes();
         });
-        iconInfo.iconIndexs = new ArrayList<>(indexSet);
+
+        //转化下坐标数组
+        if(num > 0){
+            int[] arr = getIndexArr(num);
+            Set<Integer> indexSet2 = new HashSet<>();
+            for (Integer i : indexSet) {
+                indexSet2.add(arr[i]);
+            }
+            iconInfo.iconIndexs = new ArrayList<>(indexSet2);
+        }else {
+            iconInfo.iconIndexs = new ArrayList<>(indexSet);
+        }
         iconInfo.winIcons = new ArrayList<>(winIconSet);
         return iconInfo;
+    }
+
+
+    /**
+     * 根据n次获取数组 坐标
+     * 4列 5行
+     * @return
+     */
+    public int[] getIndexArr( int num) {
+        int[] arr = new int[20];
+        for (int i = 0; i < 20; i++) {
+            arr[i] = i + 1;
+        }
+        for (int k = 1; k <= num; k++) {
+            int[] newArr = new int[20];
+            int f = 4 * k + 17;
+            int d = (k % 2 == 1) ? 1 : -1;
+            for (int i = 0; i < 4; i++) {
+                newArr[i] = f + i * d;
+            }
+            for (int i = 0; i < 16; i++) {
+                newArr[4 + i] = arr[i];
+            }
+            arr = newArr;
+        }
+        return arr;
     }
 
 
