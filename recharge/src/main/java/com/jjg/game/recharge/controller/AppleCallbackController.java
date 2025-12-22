@@ -100,8 +100,9 @@ public class AppleCallbackController extends AbstractCallbackController {
             }
             String money = transactionInfo.get("price").asText();
             String currency = transactionInfo.get("currency").asText();
+            String channelProductId = transactionInfo.get("productId").asText();
 
-            payCallback(order, money, currency);
+            payCallback(order, money, currency, channelProductId);
         } catch (Exception e) {
             log.error("处理Apple充值回调异常", e);
             return ResponseEntity.status(500).body("Error processing callback");

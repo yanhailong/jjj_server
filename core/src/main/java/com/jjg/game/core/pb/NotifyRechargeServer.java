@@ -21,4 +21,6 @@ public class NotifyRechargeServer extends AbstractMessage {
     public String money;
     @ProtoDesc("地区代码")
     public String regionCode;
+    @ProtoDesc("渠道商品id")
+    public String channelProductId;
 }

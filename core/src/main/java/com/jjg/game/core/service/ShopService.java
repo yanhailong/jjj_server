@@ -118,7 +118,7 @@ public class ShopService implements OrderGenerate, GameEventListener {
 
         PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerController.playerId());
         int registerChannel = ChannelType.GOOGLE.getValue();
-        if(playerSessionToken != null){
+        if (playerSessionToken != null) {
             registerChannel = playerSessionToken.getRegisterChannel();
         }
         coreLogger.shop(playerController.getPlayer(), shopProduct, registerChannel);
@@ -240,7 +240,7 @@ public class ShopService implements OrderGenerate, GameEventListener {
      * @param money      实际支付金额
      * @param regionCode 地区代码
      */
-    private void handleShopOrder(Player player, Order order, String money, String regionCode) {
+    private void handleShopOrder(Player player, Order order, String money, String regionCode, String channelProductId) {
         ShopProduct shopProduct = getShopProduct(Long.parseLong(order.getProductId()));
         if (shopProduct == null) {
             log.error("未找到该商品 orderId = {},productId = {}", order.getId(), order.getProductId());
@@ -262,7 +262,7 @@ public class ShopService implements OrderGenerate, GameEventListener {
                 log.debug("商城充值后添加道具成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
             }
         }
-        coreLogger.shop(player, order, shopProduct, money, regionCode);
+        coreLogger.shop(player, order, shopProduct, money, channelProductId, regionCode);
         //通知玩家充值成功
         notifyPlayerRechargeCallBack(player, order, itemInfoList);
         //vip特权
@@ -271,7 +271,8 @@ public class ShopService implements OrderGenerate, GameEventListener {
 
     /**
      * 处理vip特权
-     * @param player 玩家数据
+     *
+     * @param player      玩家数据
      * @param shopProduct 商品数据
      */
     private void dealVipPrivileged(Player player, ShopProduct shopProduct) {
@@ -283,7 +284,7 @@ public class ShopService implements OrderGenerate, GameEventListener {
                         .findFirst();
                 if (viplevelCfgOptional.isPresent()) {
                     Map<Integer, Integer> privilegedFunctions = viplevelCfgOptional.get().getPrivilegedFunctions();
-                    if(privilegedFunctions != null && !privilegedFunctions.isEmpty()){
+                    if (privilegedFunctions != null && !privilegedFunctions.isEmpty()) {
                         Integer add = privilegedFunctions.get(2);
                         if (add != null && add > 0) {
                             int magnification = 0;
@@ -304,11 +305,11 @@ public class ShopService implements OrderGenerate, GameEventListener {
                             if (magnification > 0) {
                                 BigDecimal addNum = shopProduct.getMoney().multiply(BigDecimal.valueOf(add))
                                         .multiply(BigDecimal.valueOf(magnification)
-                                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN));
+                                                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN));
                                 List<LanguageParamData> languageParamData = new ArrayList<>();
                                 languageParamData.add(new LanguageParamData(0, shopProduct.getMoney().toPlainString()));
                                 languageParamData.add(new LanguageParamData(0, String.valueOf(player.getVipLevel())));
-                                languageParamData.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(add).divide(BigDecimal.valueOf(10000),4, RoundingMode.DOWN))));
+                                languageParamData.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(add).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN))));
                                 languageParamData.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addNum))));
                                 mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum.longValue())), languageParamData);
                             }
@@ -345,7 +346,7 @@ public class ShopService implements OrderGenerate, GameEventListener {
             Player player = event.getPlayer();
             if (order.getRechargeType() == RechargeType.SHOP) {
                 //获取商品
-                handleShopOrder(player, order, event.getMoney(), event.getRegionCode());
+                handleShopOrder(player, order, event.getMoney(), event.getRegionCode(), event.getChannelProductId());
             }
         }
     }

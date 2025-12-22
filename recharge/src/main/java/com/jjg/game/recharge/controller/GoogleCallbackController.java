@@ -182,7 +182,7 @@ public class GoogleCallbackController extends AbstractCallbackController {
         }
 
         String regionCode = productInfoJson.getString("regionCode");
-        payCallback(order, null, regionCode);
+        payCallback(order, null, regionCode, sku);
         return ResponseEntity.ok("Recharge processed");
     }
 
