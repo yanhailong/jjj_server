@@ -77,7 +77,8 @@ public class TaskService {
         TaskData taskData = map.get(playerId);
         try {
             log.info("taskData: {}", ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(taskData));
-            log.info("taskDataString: {}", ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(redissonClient.getMap(TABLE_NAME).get(playerId)));
+            RMap<Long, String> rMap = redissonClient.getMap(TABLE_NAME);
+            log.info("taskDataString: {}", rMap.get(playerId));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
