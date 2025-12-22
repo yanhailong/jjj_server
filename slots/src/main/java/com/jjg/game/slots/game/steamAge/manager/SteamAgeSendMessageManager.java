@@ -126,7 +126,8 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
             //高亮图标
             res.highlightList = highlight(lib);
-
+            //是否触发 免费转
+            res.triggerStatus = lib.getAddFreeCount() > 0 ? 1 : 0;
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());

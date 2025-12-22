@@ -40,6 +40,8 @@ public class ResSteamAgeStartGame extends AbstractResponse {
     public List<SteamAgeExpand> addIconInfoList;
     @ProtoDesc("高亮坐标")
     public List<Integer> highlightList;
+    @ProtoDesc("触发免费转  0.正常  1.免费")
+    public int triggerStatus;
 
 
     public ResSteamAgeStartGame(int code) {
