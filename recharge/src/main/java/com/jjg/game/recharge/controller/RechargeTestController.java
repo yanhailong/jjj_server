@@ -56,7 +56,7 @@ public class RechargeTestController extends AbstractCallbackController {
             coreLogger.order(player, order, money, regionCode,order.getProductId());
             log.info("玩家充值成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
             //将充值成功消息通知玩家所在节点
-            notifyPlayerCurrentNode(info, order, money, regionCode);
+            notifyPlayerCurrentNode(info, order, money, regionCode,"test");
             //返回修改结果
             return ResponseEntity.ok("common.success");
         } catch (Exception e) {

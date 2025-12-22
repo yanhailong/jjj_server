@@ -77,7 +77,7 @@ public abstract class AbstractCallbackController {
             coreLogger.order(player, order, money, channelProductId, regionCode, order.getProductId());
             log.info("玩家充值成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
             //将充值成功消息通知玩家所在节点
-            notifyPlayerCurrentNode(info, order, money, regionCode);
+            notifyPlayerCurrentNode(info, order, money, regionCode, channelProductId);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -93,7 +93,7 @@ public abstract class AbstractCallbackController {
      * @param regionCode
      * @throws Exception
      */
-    protected void notifyPlayerCurrentNode(PlayerSessionInfo info, Order order, String money, String regionCode) throws Exception {
+    protected void notifyPlayerCurrentNode(PlayerSessionInfo info, Order order, String money, String regionCode, String channelProductId) throws Exception {
         ClusterClient clusterClient;
         boolean online = false;
         if (info != null && !StringUtils.isEmpty(info.getNodeName())) {
@@ -112,6 +112,7 @@ public abstract class AbstractCallbackController {
         notify.playerId = order.getPlayerId();
         notify.orderId = order.getId();
         notify.regionCode = regionCode;
+        notify.channelProductId = channelProductId;
         notify.money = money;
         PFMessage pfMessage = MessageUtil.getPFMessage(notify);
         ClusterMessage msg = new ClusterMessage(pfMessage);
