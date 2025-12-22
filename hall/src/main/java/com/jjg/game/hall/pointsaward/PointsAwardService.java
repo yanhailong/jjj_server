@@ -91,7 +91,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     public void init() {
         // 初始化充值数据记录map
         redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
-                () -> rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RECHARGE,LongCodec.INSTANCE));
+                () -> rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RECHARGE, LongCodec.INSTANCE));
         //查看是否需要清除旧数据
         clear();
         RBucket<Long> bucket = redissonClient.getBucket(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME);
@@ -224,10 +224,10 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         updateLeaderboards(playerId, currentPoints);
         //记录日志
         pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, currentPoints);
-        //通知红点
-        redDotManager.updateRedDotByInitialize(getModule(), List.of(getSubmodule(), PointsAwardConstant.RedDotSubModule.TURNRABLE), playerId);
         //添加时间段积分
         addTimePoints(playerId, pointsAward);
+        //通知红点
+        redDotManager.updateRedDotByInitialize(getModule(), List.of(getSubmodule(), PointsAwardConstant.RedDotSubModule.TURNRABLE), playerId);
         //通知玩家同步分数
         noticeSyncPoints(playerId, currentPoints);
     }
@@ -483,7 +483,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * @param order 订单信息
      */
     public void recharge(Order order) {
-        rechargeMap.addAndGet(order.getPlayerId(),RedisUtils.toLong(order.getPrice()));
+        rechargeMap.addAndGet(order.getPlayerId(), RedisUtils.toLong(order.getPrice()));
     }
 
     /**
@@ -532,7 +532,11 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             log.debug("积分大奖奖励中无该阶段配置 playerId = {},points = {},autoRecive = {}", playerId, points, autoRecive);
             return Code.SAMPLE_ERROR;
         }
-
+        //获取积分
+        long timePoints = getTimePoints(playerId);
+        if (timePoints < info.getPoints()) {
+            return Code.POINT_AWARD_POINT_NOT_ENOUGH;
+        }
         int code = Code.FAIL;
         RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
         RLock rLock = rewardReceiveSet.getReadWriteLock(playerId).writeLock();
@@ -601,10 +605,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         if (this.sortPointsAwardList == null || this.sortPointsAwardList.isEmpty()) {
             return List.of();
         }
-
         //获取玩家积分
         long points = getTimePoints(playerId);
-
         //获取领取列表
         RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
         RedDotDetails redDotDetails = new RedDotDetails();
@@ -674,14 +676,15 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         }
 
         RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
-        if (rewardReceiveSet == null || rewardReceiveSet.isEmpty()) {
+        Set<Long> rewardReceiveIds = rewardReceiveSet.readAll();
+        if (rewardReceiveIds == null || rewardReceiveIds.isEmpty()) {
             return this.sortPointsAwardList;
         } else {
             List<PointsAwardLadderRewardsInfo> list = new ArrayList<>();
             this.sortPointsAwardList.forEach(info -> {
                 PointsAwardLadderRewardsInfo newInfo = new PointsAwardLadderRewardsInfo();
                 BeanUtils.copyProperties(info, newInfo);
-                if (rewardReceiveSet.contains(info.getPoints())) {
+                if (rewardReceiveIds.contains(info.getPoints())) {
                     newInfo.setReceive(true);
                 }
                 list.add(newInfo);
