@@ -29,6 +29,8 @@ public class PointsAwardRankingCfg extends BaseCfgBean {
   protected long price;
   /** 排名名次 */
   protected List<Integer> ranking;
+  /** 是否使用机器人占榜 */
+  protected String robotUse;
   /** 开始日期 */
   protected String time;
   /** 排行类型 */
@@ -57,6 +59,11 @@ public class PointsAwardRankingCfg extends BaseCfgBean {
   /** 返回排名名次 */
   public List<Integer> getRanking() {
     return ranking;
+  }
+
+  /** 返回是否使用机器人占榜 */
+  public String getRobotUse() {
+    return robotUse;
   }
 
   /** 返回开始日期 */

@@ -26,6 +26,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -246,10 +247,15 @@ public class CashCowController extends BaseActivityController implements TimerLi
                     return res;
                 }
             }
-            Player player = corePlayerService.get(playerId);
+            int minLimit = 0;
+            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(90);
+            if (globalConfigCfg != null && globalConfigCfg.getIntValue() > 0) {
+                minLimit = globalConfigCfg.getIntValue();
+            }
             CommonResult<ItemOperationResult> addedItem = null;
             CommonResult<ItemOperationResult> removed = null;
             long get = 0;
+            Pair<Integer, Long> vipGet = null;
             // 对玩家参加活动的关键流程上分布式锁，保证玩家活动数据原子性
             String lockKey = playerActivityDao.getLockKey(playerId, activityId);
             try {
@@ -259,40 +265,55 @@ public class CashCowController extends BaseActivityController implements TimerLi
                     log.error("获取锁失败 lockKey:{} activityId:{} playerId:{} detail:{} times:{}", lockKey, activityData.getId(), playerId, detailId, times);
                     return res;
                 }
+                //获取奖池数量
+                long pool = cashCowDao.getSpecifiedActivityPool(activityId);
                 // 读取玩家在该活动的 detail 记录（包括 joinTimes 等）
                 Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
                 CashCowPlayerActivityData data = playerActivityData.computeIfAbsent(detailId, key -> new CashCowPlayerActivityData(activityId, activityData.getRound())
                 );
                 // 扣除消耗道具
-                removed = playerPackService.removeItems(player, cfg.getNeedItem(), AddType.ACTIVITY_CASHCOW);
+                removed = playerPackService.removeItems(oldPlayer, cfg.getNeedItem(), AddType.ACTIVITY_CASHCOW);
                 if (!removed.success()) {
                     // 扣除失败，返回对应错误码（可能是道具不足等）
                     res.code = removed.code;
                     return res;
                 }
-                int joinTimes = data.getJoinTimes();
-                // 根据权重配置判断是否触发中奖
-                for (List<Integer> list : weight) {
-                    // 这里约定 list 的结构： [minJoinTimes, maxJoinTimes, probability?]
-                    // 代码中只使用了 list.getFirst(), list.get(1), list.getLast() 三项：
-                    //  - list.getFirst() 和 list.get(1) 用作 joinTimes 的范围
-                    //  - list.getLast() 被当作万分比概率（0..9999）
-                    if (list.getFirst() <= joinTimes && joinTimes < list.get(1)) {
-                        // 按万分比概率判断是否中奖
-                        Integer probability = list.getLast();
-                        if (RandomUtil.randomInt(10000) < probability) {
-                            // 从奖池中扣除 cfg.getDistribution() 并返回实际发奖数量（DAO 负责判空/原子减）
-                            get = cashCowDao.reduceActivityPool(activityId, cfg.getDistribution());
+                if (pool >= minLimit) {
+                    int joinTimes = data.getJoinTimes();
+                    // 根据权重配置判断是否触发中奖
+                    for (List<Integer> list : weight) {
+                        // 这里约定 list 的结构： [minJoinTimes, maxJoinTimes, probability?]
+                        // 代码中只使用了 list.getFirst(), list.get(1), list.getLast() 三项：
+                        //  - list.getFirst() 和 list.get(1) 用作 joinTimes 的范围
+                        //  - list.getLast() 被当作万分比概率（0..9999）
+                        if (list.getFirst() <= joinTimes && joinTimes < list.get(1)) {
+                            // 按万分比概率判断是否中奖
+                            Integer probability = list.getLast();
+                            if (RandomUtil.randomInt(10000) < probability) {
+                                // 从奖池中扣除 cfg.getDistribution() 并返回实际发奖数量（DAO 负责判空/原子减）
+                                get = cashCowDao.reduceActivityPool(activityId, cfg.getDistribution());
+                                log.info("摇钱树 中奖 playerId:{} activityId:{} detailId:{} get:{}", playerId, activityId, detailId, get);
+                            } else {
+                                get = fixedRewardCheck(cfg, activityId, joinTimes);
+                                if (get > 0) {
+                                    log.info("摇钱树 固定奖励中奖 playerId:{} activityId:{} detailId:{} get:{}", playerId, activityId, detailId, get);
+                                }
+                            }
                             if (get > 0) {
                                 // 给玩家发放金币（或其他道具，目前为金币）
                                 addedItem = playerPackService.addItem(playerId, ItemUtils.getGoldItemId(), get, AddType.ACTIVITY_CASHCOW_JOIN);
                                 // 记录玩家中奖记录（写到玩家记录表或排行榜）
-                                CashCowRecordData cashCowRecordData = new CashCowRecordData(activityData.getRound(), System.currentTimeMillis(), player.getNickName(), cfg.getType(), get);
+                                CashCowRecordData cashCowRecordData = new CashCowRecordData(activityData.getRound(), System.currentTimeMillis(), oldPlayer.getNickName(), cfg.getType(), get);
                                 cashCowDao.savePlayerRecordActivity(playerId, activityId, cashCowRecordData);
+                                //计算vip获得
+                                vipGet = vipPrivilegedAdd(oldPlayer, get);
+                                if (vipGet != null) {
+                                    cashCowDao.addActivityPool(activityId, -vipGet.getSecond());
+                                }
                             }
+                            // 匹配到范围后跳出循环（每次 join 只匹配一个范围）
+                            break;
                         }
-                        // 匹配到范围后跳出循环（每次 join 只匹配一个范围）
-                        break;
                     }
                 }
                 // 增加玩家的参与次数
@@ -307,13 +328,13 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 // 解锁（注意：确保 redisLock.unlock 在任何情况下都会被调用）
                 redisLock.tryUnlock(lockKey);
             }
-            // 业务日志：记录玩家参加并扣除/发放的明细（异步/日志落库）
-            activityLogger.sendCashCowJoinLog(player, activityData, detailId
-                    , cfg.getType(), cfg.getNeedItem(), removed.data, get, addedItem == null ? null : addedItem.data);
-            //vip特权
-            if (get > 0) {
-                vipPrivilegedAdd(playerId, get);
+            //vip 邮件
+            if (vipGet != null) {
+                sendMail(oldPlayer, vipGet);
             }
+            // 业务日志：记录玩家参加并扣除/发放的明细（异步/日志落库）
+            activityLogger.sendCashCowJoinLog(oldPlayer, activityData, detailId
+                    , cfg.getType(), cfg.getNeedItem(), removed.data, get, addedItem == null ? null : addedItem.data);
             // 构建返回数据
             res.activityId = activityId;
             res.detailId = detailId;
@@ -332,14 +353,39 @@ public class CashCowController extends BaseActivityController implements TimerLi
     }
 
     /**
-     * vip特权加成
-     * @param playerId 玩家id
-     * @param get 获取金币数
+     * 固定金额奖励
+     *
+     * @param cfg   配置信息
+     * @param count 当前抽取次数
+     * @return 奖励金币数量
      */
-    private void vipPrivilegedAdd(long playerId, long get) {
-        Player newPlayer = corePlayerService.get(playerId);
+    private long fixedRewardCheck(CashcowCfg cfg, long activityId, int count) {
+        if (CollectionUtil.isEmpty(cfg.getWeightQuota())) {
+            return 0;
+        }
+        for (List<Integer> weightCfg : cfg.getWeightQuota()) {
+            if (weightCfg.size() != 3) {
+                continue;
+            }
+            if (count > weightCfg.getFirst() && count <= weightCfg.get(1)) {
+                if (RandomUtil.randomInt(10000) < weightCfg.getLast()) {
+                    cashCowDao.addActivityPool(activityId, -cfg.getDistributionQuota());
+                    return cfg.getDistributionQuota();
+                }
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * vip特权加成
+     *
+     * @param player 玩家信息
+     * @param get    获取金币数
+     */
+    private Pair<Integer, Long> vipPrivilegedAdd(Player player, long get) {
         ViplevelCfg viplevelCfg = GameDataManager.getViplevelCfgList().stream()
-                .filter(vipCfg -> vipCfg.getViplevel() == newPlayer.getVipLevel())
+                .filter(vipCfg -> vipCfg.getViplevel() == player.getVipLevel())
                 .findFirst().orElse(null);
         if (viplevelCfg != null) {
             Integer add = viplevelCfg.getPrivilegedFunctions().getOrDefault(1, 0);
@@ -349,14 +395,19 @@ public class CashCowController extends BaseActivityController implements TimerLi
                         .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
                         .longValue();
                 if (addValue > 0) {
-                    List<LanguageParamData> arrayList = new ArrayList<>();
-                    arrayList.add(new LanguageParamData(0, String.valueOf(newPlayer.getVipLevel())));
-                    arrayList.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(add).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN))));
-                    arrayList.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addValue))));
-                    mailService.addCfgMail(playerId, 38, List.of(new Item(ItemUtils.getGoldItemId(), addValue)), arrayList);
+                    return Pair.newPair(add, addValue);
                 }
             }
         }
+        return null;
+    }
+
+    private void sendMail(Player player, Pair<Integer, Long> addValue) {
+        List<LanguageParamData> arrayList = new ArrayList<>();
+        arrayList.add(new LanguageParamData(0, String.valueOf(player.getVipLevel())));
+        arrayList.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(addValue.getFirst()).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN))));
+        arrayList.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addValue.getSecond()))));
+        mailService.addCfgMail(player.getId(), 38, List.of(new Item(ItemUtils.getGoldItemId(), addValue.getSecond())), arrayList);
     }
 
     @Override
