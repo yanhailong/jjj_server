@@ -213,6 +213,8 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
             gameRunInfo.addBigPoolTimes(times);
             log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(), addCount, times);
         } else {
+            //免费次数 -1 时候赋值 0
+            playerGameData.getRemainFreeCount().updateAndGet(value -> value < 0 ? 0 : value);;
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
 
