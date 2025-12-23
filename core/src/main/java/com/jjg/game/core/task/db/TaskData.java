@@ -20,7 +20,7 @@ public class TaskData {
     /**
      * 任务详情
      */
-    private Map<Integer, TaskDetail> taskDetails;
+    private Map<Integer, TaskDetail> taskDetails = new ConcurrentHashMap<>();
 
 
     public long getPlayerId() {
