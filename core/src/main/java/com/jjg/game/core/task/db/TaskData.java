@@ -3,7 +3,6 @@ package com.jjg.game.core.task.db;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -52,10 +51,6 @@ public class TaskData {
             return null;
         }
         return taskDetails.get(configId);
-    }
-
-    public void addAllTaskDetail(List<TaskDetail> list){
-
     }
 
     public boolean hasTask(int configId){
