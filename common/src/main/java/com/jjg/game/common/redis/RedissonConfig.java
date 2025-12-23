@@ -59,7 +59,6 @@ public class RedissonConfig {
         ObjectMapper mapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
         Codec codec = new JsonJacksonCodec(mapper);
         config.setCodec(codec);
-        config.useMasterSlaveServers().setReadMode(ReadMode.MASTER);
         config.setConnectionListener(new ConnectionListener() {
             @Override
             public void onConnect(InetSocketAddress addr) {
