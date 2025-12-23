@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.steamAge.manager;
 
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
@@ -122,13 +123,13 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
 
             SteamAgeResultLib lib = (SteamAgeResultLib) gameRunInfo.getResultLib();
 
-            res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore(),0);
+            res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore(), 0);
             //又连线则触发，添加图标信息（右扩展图标）
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
             //高亮图标
-            res.highlightList = highlight(lib);
+            res.highlightList = highlight(res.iconList, res.addIconInfoList);
             //是否触发 免费转
-            res.triggerStatus = gameRunInfo.getRemainFreeCount() > 0 ? 1 : 0;
+            res.triggerStatus = gameRunInfo.getRemainFreeCount() > 0 && res.status == SteamAgeConstant.Status.NORMAL ? 1 : 0;
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
@@ -160,23 +161,44 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
      * @param iconArr
      * @return
      */
-    private List<Integer> highlight(SteamAgeResultLib lib) {
-        int[] iconArr = lib.getIconArr();
+    private List<Integer> highlight(List<Integer> iconList, List<SteamAgeExpand> addIconInfoList) {
+//        int[] iconArr = lib.getIconArr();
         List<Integer> highlightList = new ArrayList<>();
-        if (lib.getAwardLineInfoList() == null || lib.getAwardLineInfoList().isEmpty()) {
-            return highlightList;
-        }
-        for (int i = 0; i < iconArr.length; i++) {
-            if (iconArr[i] == SteamAgeConstant.BaseElement.ID_WILD
-                    || iconArr[i] == SteamAgeConstant.BaseElement.ID_SCATTER
-                    || iconArr[i] == SteamAgeConstant.BaseElement.ID_ADD
-                    || iconArr[i] == SteamAgeConstant.BaseElement.ID_MINOR
-                    || iconArr[i] == SteamAgeConstant.BaseElement.ID_MAJOR
-                    || iconArr[i] == SteamAgeConstant.BaseElement.ID_GRAND
-                    || iconArr[i] == SteamAgeConstant.BaseElement.ID_MINI) {
+        for (int i = 0; i < iconList.size(); i++) {
+            if (iconList.get(i) == SteamAgeConstant.BaseElement.ID_WILD
+                    || iconList.get(i) == SteamAgeConstant.BaseElement.ID_SCATTER
+                    || iconList.get(i) == SteamAgeConstant.BaseElement.ID_ADD
+                    || iconList.get(i) == SteamAgeConstant.BaseElement.ID_MINOR
+                    || iconList.get(i) == SteamAgeConstant.BaseElement.ID_MAJOR
+                    || iconList.get(i) == SteamAgeConstant.BaseElement.ID_GRAND
+                    || iconList.get(i) == SteamAgeConstant.BaseElement.ID_MINI) {
                 highlightList.add(i);
             }
         }
+        if (addIconInfoList == null && addIconInfoList.isEmpty()) {
+            return highlightList;
+        }
+        //扩列添加
+        for (int i = 0; i < addIconInfoList.size(); i++) {
+            SteamAgeExpand steamAgeExpand = addIconInfoList.get(i);
+            if (steamAgeExpand != null) {
+                List<Integer> expandIconList = steamAgeExpand.iconList;
+                if (expandIconList != null && !expandIconList.isEmpty()) {
+                    for (int i2 = 0; i2 < expandIconList.size(); i2++) {
+                        if (expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_WILD
+                                || expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_SCATTER
+                                || expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_ADD
+                                || expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_MINOR
+                                || expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_MAJOR
+                                || expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_GRAND
+                                || expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_MINI) {
+                            highlightList.add((4 * i) + 20 + i2 + 1);
+                        }
+                    }
+                }
+            }
+        }
+        log.info("highlightList:{}", JSONObject.toJSONString(highlightList));
         return highlightList;
     }
 
@@ -202,17 +224,18 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             winIconSet.add(info.getSameIcon());
             iconInfo.win += info.getLineTimes() * oneBetScore;
             iconInfo.baseTimes = info.getBaseTimes();
+            log.info("iconInfo.baseTimes:{}", iconInfo.baseTimes);
         });
 
         //转化下坐标数组
-        if(num > 0){
+        if (num > 0) {
             int[] arr = getIndexArr(num);
             Set<Integer> indexSet2 = new HashSet<>();
             for (Integer i : indexSet) {
                 indexSet2.add(arr[i]);
             }
             iconInfo.iconIndexs = new ArrayList<>(indexSet2);
-        }else {
+        } else {
             iconInfo.iconIndexs = new ArrayList<>(indexSet);
         }
         iconInfo.winIcons = new ArrayList<>(winIconSet);
@@ -223,9 +246,10 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
     /**
      * 根据n次获取数组 坐标
      * 4列 5行
+     *
      * @return
      */
-    public int[] getIndexArr( int num) {
+    public int[] getIndexArr(int num) {
         int[] arr = new int[20];
         for (int i = 0; i < 20; i++) {
             arr[i] = i + 1;
@@ -243,9 +267,9 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             arr = newArr;
         }
         int[] newarr2 = new int[21];
-        newarr2[0]=0;
+        newarr2[0] = 0;
         for (int i = 0; i < arr.length; i++) {
-            newarr2[i+1] = arr[i];
+            newarr2[i + 1] = arr[i];
         }
         return newarr2;
     }
