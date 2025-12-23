@@ -250,12 +250,12 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
      */
     private void addCreateRecord(TexasGameController controller, Map<Long, SettlementData> settlementDataMap) {
         long sum = settlementDataMap.values().stream().mapToLong(SettlementData::getTaxation).sum();
-        gameDataTracker.addGameLogData("tax", sum);
         if (gameController.getRoom() instanceof FriendRoom) {
             RoomBankerChangeParam roomBankerChangeParam = new RoomBankerChangeParam();
             roomBankerChangeParam.addRoomCreatorTotalIncome(calcRoomCreatorIncome(sum));
             controller.dealBankerFlowing(roomBankerChangeParam, settlementDataMap);
         }
+        gameDataTracker.addGameLogData("tax", sum);
     }
 
     /**
