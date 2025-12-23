@@ -65,4 +65,13 @@ public class SettlementData {
     public long getBankerWind() {
         return bankerWind;
     }
+
+    /**
+     * 获取没扣税之前的金额
+     *
+     * @return 没扣税之前的金额
+     */
+    public long getTotalGet() {
+        return totalWin + taxation;
+    }
 }

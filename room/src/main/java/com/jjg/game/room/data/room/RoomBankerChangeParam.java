@@ -12,7 +12,11 @@ public class RoomBankerChangeParam {
     /**
      * 获胜的押注列表
      */
-    private final Map<Integer, Map<Long, Integer>> bankerChangeMap = new HashMap<>();
+    private final Map<Integer, Map<Long, Long>> bankerChangeMap = new HashMap<>();
+    /**
+     * 是否初始化
+     */
+    boolean isInit = false;
     /**
      * 总税收
      */
@@ -21,17 +25,19 @@ public class RoomBankerChangeParam {
      * 房主税收总收益
      */
     private long roomCreatorTotalIncome;
-
     /**
      * 下注总收益
      *
      */
     private long bankerChangeGold;
 
-    public Map<Integer, Map<Long, Integer>> getBankerChangeMap() {
+    public Map<Integer, Map<Long, Long>> getBankerChangeMap() {
         return bankerChangeMap;
     }
 
+    public boolean isInit() {
+        return isInit;
+    }
 
     public void addBankerChangeGold(long value) {
         this.bankerChangeGold += value;
@@ -43,15 +49,12 @@ public class RoomBankerChangeParam {
 
     /**
      * 初始化数据
+     *
      * @param betInfo 下注信息
      */
-    public void initData(Map<Integer, Map<Long, List<Integer>>> betInfo) {
-        for (Map.Entry<Integer, Map<Long, List<Integer>>> entry : betInfo.entrySet()) {
-            Map<Long, Integer> longIntegerMap = bankerChangeMap.computeIfAbsent(entry.getKey(), key -> new HashMap<>());
-            for (Map.Entry<Long, List<Integer>> listEntry : entry.getValue().entrySet()) {
-                longIntegerMap.put(listEntry.getKey(), listEntry.getValue().stream().mapToInt(Integer::intValue).sum());
-            }
-        }
+    public void initData(Map<Integer, Map<Long, Long>> betInfo) {
+        bankerChangeMap.putAll(betInfo);
+        isInit = true;
     }
 
     public void removeArea(int areaId) {

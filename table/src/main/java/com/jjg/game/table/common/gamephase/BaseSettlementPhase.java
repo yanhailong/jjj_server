@@ -126,10 +126,10 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
      * @param betInfo 下注信息
      * @return RoomBankerChangeParam
      */
-    public RoomBankerChangeParam getRoomBankerChangeParam(Map<Integer, Map<Long, List<Integer>>> betInfo) {
+    public RoomBankerChangeParam getRoomBankerChangeParam(Map<Integer, Map<Long, Long>> betInfo) {
         RoomBankerChangeParam param = new RoomBankerChangeParam();
-        if (gameController.getRoom() instanceof FriendRoom && CollectionUtil.isNotEmpty(betInfo)) {
-            param.initData(gameDataVo.getBetInfo());
+        if (CollectionUtil.isNotEmpty(betInfo)) {
+            param.initData(betInfo);
             return param;
         }
         return param;
@@ -155,19 +155,17 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
      * 计算最后的BankerChange
      */
     public void calculationFinalBankerChange(RoomBankerChangeParam param) {
-        gameDataTracker.addGameLogData("tax", param.getTotalTaxRevenue());
-        if (gameController.getRoom() instanceof FriendRoom) {
-            long totalGet = 0;
-            for (Map.Entry<Integer, Map<Long, Integer>> entry : param.getBankerChangeMap().entrySet()) {
-                long sum = entry.getValue().values().stream().mapToLong(Integer::intValue).sum();
-                long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
-                param.addTotalTaxRevenue(sum - realGet);
-                totalGet += realGet;
-            }
-            param.addBankerChangeGold(-totalGet);
-            //计算房主收益
-            param.addRoomCreatorTotalIncome(calcRoomCreatorIncome(param.getTotalTaxRevenue()));
+        long totalGet = 0;
+        for (Map.Entry<Integer, Map<Long, Long>> entry : param.getBankerChangeMap().entrySet()) {
+            long sum = entry.getValue().values().stream().mapToLong(Long::longValue).sum();
+            long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
+            param.addTotalTaxRevenue(sum - realGet);
+            totalGet += realGet;
         }
+        param.addBankerChangeGold(-totalGet);
+        //计算房主收益
+        param.addRoomCreatorTotalIncome(calcRoomCreatorIncome(param.getTotalTaxRevenue()));
+        gameDataTracker.addGameLogData("tax", param.getTotalTaxRevenue());
     }
 
 
@@ -187,13 +185,8 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
 
     }
 
-    public void dealRoomPool(Map<Long, SettlementData> settlementDataMap) {
-        if (CollectionUtil.isEmpty(settlementDataMap)) {
-            return;
-        }
-        //判断是否有真人下注
-        Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo = gameDataVo.getRealPlayerBetInfo();
-        if (CollectionUtil.isEmpty(realPlayerBetInfo)) {
+    public void dealRoomPool(RoomBankerChangeParam changeParam) {
+        if (!changeParam.isInit() || changeParam.getBankerChangeGold() == 0) {
             return;
         }
         if (gameController.getRoom() instanceof FriendRoom room) {
@@ -206,31 +199,15 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
                 .tryPublish(0, new BaseHandler<String>() {
                     @Override
                     public void action() {
-                        //计算输赢
-                        long totalWin = 0;
-                        long totalLose = 0;
-                        for (Map.Entry<Long, SettlementData> entry : settlementDataMap.entrySet()) {
-                            GamePlayer gamePlayer = gameController.getGamePlayer(entry.getKey());
-                            if (gamePlayer == null || gamePlayer instanceof GameRobotPlayer) {
-                                continue;
-                            }
-                            SettlementData data = entry.getValue();
-                            totalLose += data.getTotalWin() + data.getTaxation();
-                            BigDecimal totalGet = BigDecimal.valueOf(data.getBetTotal() - data.getBankerWind())
-                                    .multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getWinRatio())))
-                                    .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
-                            totalWin += data.getBankerWind() + totalGet.longValue();
-                        }
-                        long diff = totalWin - totalLose;
                         AbstractRoomDao<? extends Room, ? extends RoomPlayer> roomDao = gameController.getRoomController().getRoomDao();
                         if (roomDao instanceof TableRoomDao tableRoomDao) {
                             Room_BetCfg roomCfg = gameDataVo.getRoomCfg();
-                            long roomPool = tableRoomDao.modifyRoomPool(roomCfg.getGameID(), roomCfg.getId(), diff);
-                            log.info("gameType:{} roomCfgId:{} 奖池回收触发 变化值:{} 变化后{}  ", roomCfg.getGameID(), roomCfg.getId(), diff, roomPool);
+                            long roomPool = tableRoomDao.modifyRoomPool(roomCfg.getGameID(), roomCfg.getId(), -changeParam.getBankerChangeGold());
+                            log.info("gameType:{} roomCfgId:{} 奖池回收触发 变化值:{} 变化后{}  ", roomCfg.getGameID(), roomCfg.getId(), -changeParam.getBankerChangeGold(), roomPool);
                         } else if (roomDao instanceof BetTableFriendRoomDao tableRoomDao) {
                             Room_BetCfg roomCfg = gameDataVo.getRoomCfg();
-                            long roomPool = tableRoomDao.modifyRoomPool(roomCfg.getGameID(), gameController.getRoom().getId(), diff);
-                            log.info("好友房 gameType:{} roomCfgId:{} 奖池回收触发 变化值:{} 变化后{}  ", roomCfg.getGameID(), roomCfg.getId(), diff, roomPool);
+                            long roomPool = tableRoomDao.modifyRoomPool(roomCfg.getGameID(), gameController.getRoom().getId(), -changeParam.getBankerChangeGold());
+                            log.info("好友房 gameType:{} roomCfgId:{} 奖池回收触发 变化值:{} 变化后{}  ", roomCfg.getGameID(), roomCfg.getId(), -changeParam.getBankerChangeGold(), roomPool);
                         }
                     }
                 }.setHandlerParamWithSelf("dealRoomPool"));

@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(method = {RequestMethod.POST}, value = "test")
 public class RechargeTestController extends AbstractCallbackController {
-    private final Logger log = LoggerFactory.getLogger(RechargeTestController.class);
+    private  final Logger log = LoggerFactory.getLogger(RechargeTestController.class);
 
     @Autowired
     private NodeConfig nodeConfig;
@@ -33,8 +33,8 @@ public class RechargeTestController extends AbstractCallbackController {
     public ResponseEntity<String> rechargeByOrder(@PathVariable("orderId") String orderId) {
         try {
             log.info("收到后台的请求订单充值 id = {}", orderId);
-            if (!nodeConfig.gm) {
-                log.warn("不支持该请求 orderId = {}", orderId);
+            if(!nodeConfig.gm){
+                log.warn("不支持该请求 orderId = {}",orderId);
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
 
@@ -53,10 +53,10 @@ public class RechargeTestController extends AbstractCallbackController {
             PlayerSessionInfo info = playerSessionService.getInfo(order.getPlayerId());
             String money = order.getPrice().toPlainString();
             String regionCode = "test";
-            coreLogger.order(player, order, money, regionCode, order.getProductId());
+            coreLogger.order(player, order, money, regionCode,order.getProductId());
             log.info("玩家充值成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
             //将充值成功消息通知玩家所在节点
-            notifyPlayerCurrentNode(info, order, money, regionCode, "test");
+            notifyPlayerCurrentNode(info, order, money, regionCode,"test");
             //返回修改结果
             return ResponseEntity.ok("common.success");
         } catch (Exception e) {

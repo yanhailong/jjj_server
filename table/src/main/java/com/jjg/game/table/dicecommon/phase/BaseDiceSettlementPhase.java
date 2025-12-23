@@ -6,6 +6,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
@@ -82,7 +83,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             BaseDiceSettlementInfo diceSettlementInfo, List<WinPosWeightCfg> winPosWeightCfgs, S settlement) {
         List<PlayerChangedGold> playerChangedGolds = new ArrayList<>();
         // 庄家变化的钱
-        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(gameDataVo.getBetInfo());
+        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(gameDataVo.getRealPlayerAreaBetInfo());
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
@@ -105,17 +106,17 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             playerChangedGold.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
-            if (changeParam != null) {
-                changeParam.addBankerChangeGold(Math.max(0, playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal()));
+            if (changeParam != null && !(gamePlayer instanceof GameRobotPlayer)) {
+                changeParam.addBankerChangeGold(Math.max(0, playerSettlementData.getTotalGet() - playerSettlementData.getBetTotal()));
                 changeParam.addTotalTaxRevenue(playerSettlementData.getTaxation());
             }
             settlementDataMap.put(playerId, playerSettlementData);
         }
         if (changeParam != null) {
             calculationFinalBankerChange(changeParam);
+            dealRoomPool(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);
         }
-        dealRoomPool(settlementDataMap);
         // 场上玩家金币变化
         diceSettlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
@@ -134,7 +135,6 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
         }
     }
-
 
 
 }

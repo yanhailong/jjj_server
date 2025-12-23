@@ -23,6 +23,8 @@ public class CashcowCfg extends BaseCfgBean {
   protected int condition;
   /** 所占总奖池比例万分比 */
   protected int distribution;
+  /** 固定金额奖励 */
+  protected int distributionQuota;
   /** 奖池初始值 */
   protected int initialprizepool;
   /** 消耗数量 */
@@ -33,6 +35,8 @@ public class CashcowCfg extends BaseCfgBean {
   protected int type;
   /** 次数下限_次数上限（左闭右开）_玩家中奖万分比概率| */
   protected List<List<Integer>> weight;
+  /** 固定金额奖励：次数下限_次数上限（左闭右开）_玩家中奖万分比概率| */
+  protected List<List<Integer>> weightQuota;
   /** 机器人中奖频率 */
   protected List<List<Integer>> winningFrequency;
 
@@ -44,6 +48,11 @@ public class CashcowCfg extends BaseCfgBean {
   /** 返回所占总奖池比例万分比 */
   public int getDistribution() {
     return distribution;
+  }
+
+  /** 返回固定金额奖励 */
+  public int getDistributionQuota() {
+    return distributionQuota;
   }
 
   /** 返回奖池初始值 */
@@ -69,6 +78,11 @@ public class CashcowCfg extends BaseCfgBean {
   /** 返回次数下限_次数上限（左闭右开）_玩家中奖万分比概率| */
   public List<List<Integer>> getWeight() {
     return weight;
+  }
+
+  /** 返回固定金额奖励：次数下限_次数上限（左闭右开）_玩家中奖万分比概率| */
+  public List<List<Integer>> getWeightQuota() {
+    return weightQuota;
   }
 
   /** 返回机器人中奖频率 */

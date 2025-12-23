@@ -7,6 +7,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.utils.PokerCardUtils;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
@@ -106,7 +107,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
             weightCfgList = winMap.get(RedBlackWarConstant.Camp.BLACK).get(blackHandType);
         }
         // 庄家变化的钱
-        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(betInfo);
+        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(gameDataVo.getRealPlayerAreaBetInfo());
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         //遍历获奖位置
         for (WinPosWeightCfg cfg : weightCfgList) {
@@ -147,11 +148,17 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         }
         // 计算最终的bankerChangeGold
         if (changeParam != null) {
-            for (SettlementData data : settlementDataMap.values()) {
+            for (Map.Entry<Long, SettlementData> entry : settlementDataMap.entrySet()) {
+                GamePlayer gamePlayer = gameDataVo.getGamePlayer(entry.getKey());
+                if (gamePlayer == null || gamePlayer instanceof GameRobotPlayer) {
+                    continue;
+                }
+                SettlementData data = entry.getValue();
                 changeParam.addTotalTaxRevenue(data.getTaxation());
-                changeParam.addBankerChangeGold(Math.max(0, data.getTotalWin() - data.getBetTotal()));
+                changeParam.addBankerChangeGold(Math.max(0, data.getTotalGet() - data.getBetTotal()));
             }
             calculationFinalBankerChange(changeParam);
+            dealRoomPool(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);
         }
         //计算所有玩家的结算信息
@@ -161,7 +168,6 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     .mapToLong(a -> a.stream().mapToInt(b -> b).sum())
                     .sum());
         }
-        dealRoomPool(settlementDataMap);
         //通知
         int winState = result > 0 ? 1 : 2;
         NotifyRedBlackWarSettleInfo settleInfo = new NotifyRedBlackWarSettleInfo();
@@ -268,24 +274,22 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
 
     @Override
     public void calculationFinalBankerChange(RoomBankerChangeParam param) {
-        gameDataTracker.addGameLogData("tax", param.getTotalTaxRevenue());
-        if (gameController.getRoom() instanceof FriendRoom) {
-            long totalGet = 0;
-            for (Map.Entry<Integer, Map<Long, Integer>> entry : param.getBankerChangeMap().entrySet()) {
-                long sum = entry.getValue().values().stream().mapToLong(Integer::intValue).sum();
-                if (entry.getKey() == RedBlackWarConstant.Common.CLIENT_LUCK_AREA) {
-                    //不算税收
-                    totalGet += sum;
-                } else {
-                    long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
-                    param.addTotalTaxRevenue(sum - realGet);
-                    totalGet += realGet;
-                }
+        long totalGet = 0;
+        for (Map.Entry<Integer, Map<Long, Long>> entry : param.getBankerChangeMap().entrySet()) {
+            long sum = entry.getValue().values().stream().mapToLong(Long::longValue).sum();
+            if (entry.getKey() == RedBlackWarConstant.Common.CLIENT_LUCK_AREA) {
+                //不算税收
+                totalGet += sum;
+            } else {
+                long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
+                param.addTotalTaxRevenue(sum - realGet);
+                totalGet += realGet;
             }
-            param.addBankerChangeGold(-totalGet);
-            //计算房主收益
-            param.addRoomCreatorTotalIncome(calcRoomCreatorIncome(param.getTotalTaxRevenue()));
         }
+        param.addBankerChangeGold(-totalGet);
+        //计算房主收益
+        param.addRoomCreatorTotalIncome(calcRoomCreatorIncome(param.getTotalTaxRevenue()));
+        gameDataTracker.addGameLogData("tax", param.getTotalTaxRevenue());
     }
 
     @Override
@@ -295,8 +299,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
 
     private void addLog(RedBlackWarGameDataVo gameDataVo, Map<Long, DefaultKeyValue<Long, Long>> playerGet,
                         List<Integer> redCard, List<Integer> blackCard) {
-        SaveLogUtil.generalLog(gameDataVo.getPlayerBetInfo(), playerGet, gameDataVo.getGamePlayerMap(),
-                gameController);
+        SaveLogUtil.generalLog(gameDataVo.getPlayerBetInfo(), playerGet, gameDataVo.getGamePlayerMap(), gameController);
         gameDataTracker.addGameLogData("redCard", redCard);
         gameDataTracker.addGameLogData("blackCard", blackCard);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);

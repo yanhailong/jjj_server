@@ -423,7 +423,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
         WealthRouletteController controller = roomController.getRoomManager().getWealthRouletteController();
         try {
             if (getGameTransactionItemId() == ItemUtils.getGoldItemId()) {
-                controller.addProgress(player, loseValue);
+                controller.addProgress(player, gameDataVo.getRoomCfg().getGameID(), loseValue);
             }
         } catch (Exception e) {
             log.error("处理输的失败 info:{} betValue:{}", player.getId(), loseValue, e);

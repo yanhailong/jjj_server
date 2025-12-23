@@ -85,7 +85,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
         gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, historyBean);
         List<PlayerChangedGold> playerChangedGolds = new ArrayList<>();
         // 庄家变化的钱
-        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(gameDataVo.getBetInfo());
+        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(gameDataVo.getRealPlayerAreaBetInfo());
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
@@ -111,9 +111,9 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
         }
         if (changeParam != null) {
             calculationFinalBankerChange(changeParam);
+            dealRoomPool(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);
         }
-        dealRoomPool(settlementDataMap);
         // 场上玩家金币变化
         settlement.settlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
@@ -245,9 +245,9 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                 }
             }
         }
-        if (changeParam != null) {
+        if (changeParam != null && !(gamePlayer instanceof GameRobotPlayer)) {
             changeParam.addTotalTaxRevenue(settlementData.getTaxation());
-            changeParam.addBankerChangeGold(Math.max(0, settlementData.getTotalWin() - settlementData.getBetTotal()));
+            changeParam.addBankerChangeGold(Math.max(0, settlementData.getTotalGet() - settlementData.getBetTotal()));
         }
         if (!(gamePlayer instanceof GameRobotPlayer)) {
             // 总押注
