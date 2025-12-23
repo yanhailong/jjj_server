@@ -39,7 +39,7 @@ public class TaskLogger extends BaseLogger {
     /**
      * 任务奖励领取
      */
-    public void receiveTaskAward(long playerId, int configId, List<Item> itemList, long points) {
+    public void receiveTaskAward(long playerId, int configId, List<Item> itemList, long points, int status) {
         JSONObject log = new JSONObject();
         log.put("playerId", playerId);
         log.put("taskConfigId", configId);
@@ -47,6 +47,8 @@ public class TaskLogger extends BaseLogger {
             log.put("item", itemList);
         }
         log.put("points", points);
+        //1.已完成  2.已领取
+        log.put("status", status);
         sendLog("receiveTaskAward", null, log);
     }
 

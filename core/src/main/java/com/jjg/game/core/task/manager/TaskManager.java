@@ -448,7 +448,7 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
                 playerPackService.addItems(playerId, itemList, AddType.TASKAWARD);
             }
             //记录日志
-            taskLogger.receiveTaskAward(playerId, taskId, itemList, integralNum);
+            taskLogger.receiveTaskAward(playerId, taskId, itemList, integralNum, TaskConstant.TaskStatus.STATUS_REWARDED);
             log.info("玩家[{}]成功领取任务[{}]奖励", playerId, taskId);
             updateRedDot(playerId);
             return true;
