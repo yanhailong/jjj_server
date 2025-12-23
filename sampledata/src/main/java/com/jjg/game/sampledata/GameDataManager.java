@@ -164,6 +164,7 @@ public class GameDataManager {
     containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
     containerMap.put(PlayerLevelPackCfg.class, new PlayerLevelPackCfgContainer());
     containerMap.put(PointsAwardRankingCfg.class, new PointsAwardRankingCfgContainer());
+    containerMap.put(PointsAwardRobotCfg.class, new PointsAwardRobotCfgContainer());
     containerMap.put(PointsAwardSigninCfg.class, new PointsAwardSigninCfgContainer());
     containerMap.put(PointsAwardTurntableCfg.class, new PointsAwardTurntableCfgContainer());
     containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
@@ -180,7 +181,6 @@ public class GameDataManager {
     containerMap.put(RouletteShopCfg.class, new RouletteShopCfgContainer());
     containerMap.put(ScratchCardsCfg.class, new ScratchCardsCfgContainer());
     containerMap.put(SharePromoteCfg.class, new SharePromoteCfgContainer());
-    containerMap.put(ShopConfigCfg.class, new ShopConfigCfgContainer());
     containerMap.put(SouthernMoneyCfg.class, new SouthernMoneyCfgContainer());
     containerMap.put(SpecialAuxiliaryCfg.class, new SpecialAuxiliaryCfgContainer());
     containerMap.put(SpecialGirdCfg.class, new SpecialGirdCfgContainer());
@@ -1147,6 +1147,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(PointsAwardRankingCfg.class).getCfgBeanList();
   }
 
+  public static PointsAwardRobotCfg getPointsAwardRobotCfg(int key) {
+    return getInstance().getCfgContainer(PointsAwardRobotCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PointsAwardRobotCfg> getPointsAwardRobotCfgMap() {
+    return getInstance().getCfgContainer(PointsAwardRobotCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PointsAwardRobotCfg> getPointsAwardRobotCfgList() {
+    return getInstance().getCfgContainer(PointsAwardRobotCfg.class).getCfgBeanList();
+  }
+
   public static PointsAwardSigninCfg getPointsAwardSigninCfg(int key) {
     return getInstance().getCfgContainer(PointsAwardSigninCfg.class).getCfgBeanMap().get(key);
   }
@@ -1339,18 +1351,6 @@ public class GameDataManager {
     return getInstance().getCfgContainer(SharePromoteCfg.class).getCfgBeanList();
   }
 
-  public static ShopConfigCfg getShopConfigCfg(int key) {
-    return getInstance().getCfgContainer(ShopConfigCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, ShopConfigCfg> getShopConfigCfgMap() {
-    return getInstance().getCfgContainer(ShopConfigCfg.class).getCfgBeanMap();
-  }
-
-  public static List<ShopConfigCfg> getShopConfigCfgList() {
-    return getInstance().getCfgContainer(ShopConfigCfg.class).getCfgBeanList();
-  }
-
   public static SouthernMoneyCfg getSouthernMoneyCfg(int key) {
     return getInstance().getCfgContainer(SouthernMoneyCfg.class).getCfgBeanMap().get(key);
   }
@@ -1535,6 +1535,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\workspace\\gamedoc\\游戏配置表");
+    loadAllData("D:\\java\\gamedoc\\游戏配置表");
   }
 }

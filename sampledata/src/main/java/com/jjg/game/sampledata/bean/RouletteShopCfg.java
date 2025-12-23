@@ -29,6 +29,8 @@ public class RouletteShopCfg extends BaseCfgBean {
   protected int purchase;
   /** 商店表序列 */
   protected int sequence;
+  /** 商店类型 */
+  protected int type;
 
   /** 返回每日限购次数 */
   public int getFrequency() {
@@ -53,6 +55,11 @@ public class RouletteShopCfg extends BaseCfgBean {
   /** 返回商店表序列 */
   public int getSequence() {
     return sequence;
+  }
+
+  /** 返回商店类型 */
+  public int getType() {
+    return type;
   }
 
   @Override
