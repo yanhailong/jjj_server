@@ -8,6 +8,7 @@ import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
+import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAddFreeInfo;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAddIconInfo;
@@ -437,23 +438,15 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
             throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
         }
 
-        if (lib.getSpecialAuxiliaryInfoList() != null && !lib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
-                if (specialAuxiliaryInfo.getFreeGames() != null && !specialAuxiliaryInfo.getFreeGames().isEmpty()) {
-                    Set<Integer> libTypeSet = new HashSet<>();
-                    libTypeSet.add(ChristmasBashNightConstant.SpecialMode.FREE);
-                    lib.setLibTypeSet(libTypeSet);
-                    break;
-                }
-            }
+        if(triggerFreeLib(lib, ChristmasBashNightConstant.SpecialMode.FREE)){
+            //免费
+            lib.addTimes(calFree(lib));
+        }else {
+            //中奖线
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+            //消除后新增图标
+            lib.addTimes(calAfterAddIcons(lib.getAddIconInfos()));
         }
-
-        //中奖线
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
-        //消除后新增图标
-        lib.addTimes(calAfterAddIcons(lib.getAddIconInfos()));
-        //免费
-        lib.addTimes(calFree(lib));
     }
 
     /**
@@ -470,32 +463,6 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         int times = 0;
         for (ChristmasBashNightAwardLineInfo awardLineInfo : list) {
             times += awardLineInfo.getBaseTimes();
-        }
-        return times;
-    }
-
-    /**
-     * 计算免费游戏的总倍数
-     *
-     * @param lib
-     * @return
-     */
-    private long calFree(ChristmasBashNightResultLib lib) throws Exception {
-        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            return 0;
-        }
-
-        long times = 0;
-        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
-            if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
-                continue;
-            }
-
-            for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
-                ChristmasBashNightResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), ChristmasBashNightResultLib.class);
-                calTimes(tmpLib);
-                times += tmpLib.getTimes();
-            }
         }
         return times;
     }

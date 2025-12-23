@@ -11,6 +11,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
@@ -178,13 +179,13 @@ public class AbstractMahjiongWinGameManager extends AbstractSlotsGameManager<Mah
      * @return
      */
     protected MahjiongWinGameRunInfo normal(MahjiongWinGameRunInfo gameRunInfo, MahjiongWinPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<MahjiongWinResultLib,Long>> libResult = normalGetLib(playerGameData, betValue, MahjiongWinConstant.SpecialMode.NORMAL);
+        CommonResult<Pair<MahjiongWinResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, MahjiongWinConstant.SpecialMode.NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
         }
         MahjiongWinResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setTax(libResult.data.getSecond());
+        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
 
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(MahjiongWinConstant.SpecialMode.FREE)) {  //是否会触发免费

@@ -8,6 +8,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.game.wealthgod.WealthGodConstant;
 import com.jjg.game.slots.game.wealthgod.data.WealthGodGameRunInfo;
 import com.jjg.game.slots.game.wealthgod.data.WealthGodPlayerGameData;
@@ -30,14 +31,14 @@ public class WealthGodRoomGameManager extends AbstractWealthGodGameManager{
     public WealthGodGameRunInfo startGame(PlayerController playerController, WealthGodPlayerGameData playerGameData, long betValue) {
         WealthGodGameRunInfo gameRunInfo = new WealthGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
-            CommonResult<Pair<WealthGodResultLib,Long>> commonResult = normalGetLib(playerGameData, betValue, WealthGodConstant.SpecialMode.TYPE_NORMAL);
+            CommonResult<Pair<WealthGodResultLib, BetDivideInfo>> commonResult = normalGetLib(playerGameData, betValue, WealthGodConstant.SpecialMode.TYPE_NORMAL);
             if (!commonResult.success()) {
                 gameRunInfo.setCode(commonResult.code);
                 return gameRunInfo;
             }
 
             WealthGodResultLib resultLib = commonResult.data.getFirst();
-            gameRunInfo.setTax(commonResult.data.getSecond());
+            gameRunInfo.setBetDivideInfo(commonResult.data.getSecond());
 
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());

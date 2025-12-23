@@ -71,6 +71,14 @@ public class CoreConst {
         public static final int FROZEN_THRONE = 102500;
         //神马飞扬
         public static final int PEGASUS_UNBRIDLE = 103400;
+        //金蛇招财
+        public static final int GOLD_SNAKE_FORTUNE = 103500;
+        //金钱兔
+        public static final int MONEY_RABBIT = 103501;
+        //鼠鼠福福
+        public static final int LUCKY_MOUSE = 103600;
+        //恶魔之子
+        public static final int DEMON_CHILD = 103800;
 
         //红黑大战
         public static final int RED_BLACK_WAR = 200100;

@@ -373,23 +373,15 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
     @Override
     public void calTimes(MahjiongWinResultLib lib) throws Exception {
-        if(lib.getSpecialAuxiliaryInfoList() != null && !lib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            for(SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()){
-                if(specialAuxiliaryInfo.getFreeGames() != null && !specialAuxiliaryInfo.getFreeGames().isEmpty()) {
-                    Set<Integer> libTypeSet = new HashSet<>();
-                    libTypeSet.add(MahjiongWinConstant.SpecialMode.FREE);
-                    lib.setLibTypeSet(libTypeSet);
-                    break;
-                }
-            }
+        if(triggerFreeLib(lib,MahjiongWinConstant.SpecialMode.FREE)){
+            //免费
+            lib.addTimes(calFree(lib));
+        }else {
+            //中奖线
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+            //消除后新增图标
+            lib.addTimes(calAfterAddIcons(lib.getAddIconInfos()));
         }
-
-        //中奖线
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
-        //消除后新增图标
-        lib.addTimes(calAfterAddIcons(lib.getAddIconInfos()));
-        //免费
-        lib.addTimes(calFree(lib));
     }
 
     /**
@@ -406,32 +398,6 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
         int times = 0;
         for (MahjiongWinAwardLineInfo awardLineInfo : list) {
             times += awardLineInfo.getBaseTimes();
-        }
-        return times;
-    }
-
-    /**
-     * 计算免费游戏的总倍数
-     *
-     * @param lib
-     * @return
-     */
-    private long calFree(MahjiongWinResultLib lib) throws Exception {
-        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            return 0;
-        }
-
-        long times = 0;
-        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
-            if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
-                continue;
-            }
-
-            for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
-                MahjiongWinResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), MahjiongWinResultLib.class);
-                calTimes(tmpLib);
-                times += tmpLib.getTimes();
-            }
         }
         return times;
     }

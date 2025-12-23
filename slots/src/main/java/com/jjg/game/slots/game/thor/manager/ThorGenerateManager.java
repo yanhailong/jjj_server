@@ -323,10 +323,14 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
         if (!checkElement(lib)) {
             throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
         }
-        //中奖线
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
-        //免费
-        lib.addTimes(calFree(lib));
+
+        if(triggerFreeLib(lib)){
+            //免费
+            lib.addTimes(calFree(lib));
+        }else {
+            //中奖线
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        }
     }
 
     /**
@@ -360,7 +364,7 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
      * @param lib
      * @return
      */
-    private long calFree(ThorResultLib lib) throws Exception {
+    protected long calFree(ThorResultLib lib) throws Exception {
         if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
             return 0;
         }

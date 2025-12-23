@@ -15,6 +15,7 @@ import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.TestLibData;
 import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraGameDataDao;
@@ -172,14 +173,14 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
 //                continue;
 //            }
             //获取结果库
-            CommonResult<Pair<CleopatraResultLib, Long>> libResult = normalGetLib(playerGameData, betValue, CleopatraConstant.SpecialMode.NORMAL);
+            CommonResult<Pair<CleopatraResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, CleopatraConstant.SpecialMode.NORMAL);
             if (!libResult.success()) {
                 gameRunInfo.setCode(libResult.code);
                 return gameRunInfo;
             }
 
             CleopatraResultLib tmpLib = libResult.data.getFirst();
-            gameRunInfo.setTax(libResult.data.getSecond());
+            gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
 
             //检查是否有奖池奖励
             if (tmpLib.getJackpotIds() != null && !tmpLib.getJackpotIds().isEmpty()) {

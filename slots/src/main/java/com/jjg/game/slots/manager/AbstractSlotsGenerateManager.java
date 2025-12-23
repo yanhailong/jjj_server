@@ -9,6 +9,9 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.*;
+import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressAwardLineInfo;
+import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortuneResultLib;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1319,7 +1322,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 for (Map.Entry<Integer, Integer> en2 : cfg.getTypeProp().entrySet()) {
                     int libType = en2.getKey();
                     //排除jackpot 后 计算typeProp
-                    if(jackpotIds != null && jackpotIds.contains(libType)){
+                    if (jackpotIds != null && jackpotIds.contains(libType)) {
                         continue;
                     }
                     begin = end;
@@ -1611,5 +1614,65 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             map.computeIfAbsent(icon, k -> new HashSet<>()).add(i);
         }
         return map;
+    }
+
+    /**
+     * 计算免费游戏的总倍数
+     *
+     * @param lib
+     * @return
+     */
+    protected long calFree(T lib) throws Exception {
+        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            return 0;
+        }
+
+        long times = 0;
+        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+            if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
+                continue;
+            }
+
+            for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
+                T tmpLib = JSON.parseObject(jsonObject.toJSONString(), this.resultLibClazz);
+                calTimes(tmpLib);
+                times += tmpLib.getTimes();
+            }
+        }
+        return times;
+    }
+
+    /**
+     * 是否为免费触发局
+     *
+     * @param lib
+     * @return
+     */
+    protected boolean triggerFreeLib(T lib) {
+        return triggerFreeLib(lib, -1);
+    }
+
+    /**
+     * 是否为免费触发局
+     *
+     * @param lib
+     * @return
+     */
+    protected boolean triggerFreeLib(T lib, int freeModel) {
+        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            return false;
+        }
+
+        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+            if (specialAuxiliaryInfo.getFreeGames() != null && !specialAuxiliaryInfo.getFreeGames().isEmpty()) {
+                if (freeModel > 0) {
+                    Set<Integer> libTypeSet = new HashSet<>();
+                    libTypeSet.add(freeModel);
+                    lib.setLibTypeSet(libTypeSet);
+                }
+                return true;
+            }
+        }
+        return false;
     }
 }

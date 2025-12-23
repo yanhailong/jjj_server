@@ -32,8 +32,11 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
 
     @Override
     public void calTimes(WealthGodResultLib lib) throws Exception {
-        calLineTimes(lib, lib);
-        calFree(lib, lib);
+        if(triggerFreeLib(lib)){
+            calFree(lib, lib);
+        }else {
+            calLineTimes(lib, lib);
+        }
     }
 
     /**

@@ -366,26 +366,15 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
             throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
         }
 
-        if (lib.getSpecialAuxiliaryInfoList() != null && !lib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
-                if (specialAuxiliaryInfo.getFreeGames() != null && !specialAuxiliaryInfo.getFreeGames().isEmpty()) {
-                    Set<Integer> libTypeSet = new HashSet<>();
-                    libTypeSet.add(SteamAgeConstant.SpecialMode.FREE);
-                    lib.setLibTypeSet(libTypeSet);
-                    break;
-                }
-            }
+        if(triggerFreeLib(lib,SteamAgeConstant.SpecialMode.FREE)){
+            //免费
+            lib.addTimes(calFree(lib));
+        }else {
+            //中奖线
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+            //消除后新增图标
+            lib.addTimes(calAfterAddIcons(lib.getAddIconInfos()));
         }
-
-        //中奖线
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
-        //消除后新增图标
-        lib.addTimes(calAfterAddIcons(lib.getAddIconInfos()));
-        //免费
-        lib.addTimes(calFree(lib));
-
-        log.info("lib = {}", JSONObject.toJSONString(lib));
-        log.info("times = {}", JSONObject.toJSONString(lib.getTimes()));
     }
 
     /**
@@ -402,32 +391,6 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
         int times = 0;
         for (SteamAgeAwardLineInfo awardLineInfo : list) {
             times += awardLineInfo.getTotalTimes();
-        }
-        return times;
-    }
-
-    /**
-     * 计算免费游戏的总倍数
-     *
-     * @param lib
-     * @return
-     */
-    private long calFree(SteamAgeResultLib lib) throws Exception {
-        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            return 0;
-        }
-
-        long times = 0;
-        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
-            if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
-                continue;
-            }
-
-            for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
-                SteamAgeResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), SteamAgeResultLib.class);
-                calTimes(tmpLib);
-                times += tmpLib.getTimes();
-            }
         }
         return times;
     }

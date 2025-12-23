@@ -12,6 +12,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 import com.jjg.game.slots.game.steamAge.dao.SteamAgeGameDataDao;
@@ -180,13 +181,13 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
      * @return
      */
     public SteamAgeGameRunInfo normal(SteamAgeGameRunInfo gameRunInfo, SteamAgePlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<SteamAgeResultLib,Long>> libResult = normalGetLib(playerGameData, betValue, SteamAgeConstant.SpecialMode.NORMAL);
+        CommonResult<Pair<SteamAgeResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, SteamAgeConstant.SpecialMode.NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
         }
         SteamAgeResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setTax(libResult.data.getSecond());
+        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
 
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.FREE)) {  //是否会触发免费

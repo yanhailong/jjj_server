@@ -131,10 +131,10 @@ public interface MessageConst {
         int WOLF_MOON = 0x32;
         //热血足球
         int HOT_SOCCER = 0x33;
-        //圣诞狂欢夜
-        int CHRISTMAS_PARTY = 0x34;
-        //篮球巨星
-        int BASKETBALL_STAR = 0x35;
+        //金蛇招财
+        int GOLD_SNAKE_FORTUNE = 0x34;
+        //金钱兔
+        int MONEY_RABBIT = 0x35;
         //德古拉黑暗财富
         int DEGULA_WEALTH = 0x36;
         //宙斯VS哈迪斯

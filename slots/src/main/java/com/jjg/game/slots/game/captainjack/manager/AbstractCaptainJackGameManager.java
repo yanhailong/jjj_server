@@ -11,6 +11,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackGameDataDao;
@@ -215,13 +216,13 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
      *
      */
     protected void normal(CaptainJackGameRunInfo gameRunInfo, CaptainJackPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<CaptainJackResultLib, Long>> libResult = normalGetLib(playerGameData, betValue, CaptainJackConstant.SpecialMode.NORMAL);
+        CommonResult<Pair<CaptainJackResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, CaptainJackConstant.SpecialMode.NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return;
         }
         CaptainJackResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setTax(libResult.data.getSecond());
+        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
 
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(CaptainJackConstant.SpecialMode.FREE)) {  //是否会触发免费

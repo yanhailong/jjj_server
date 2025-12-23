@@ -36,6 +36,10 @@ public enum EGameType {
     STEAM_AGE(CoreConst.GameType.STEAM_AGE, RoomType.SLOTS, "蒸汽时代"),
     FROZEN_THRONE(CoreConst.GameType.FROZEN_THRONE, RoomType.SLOTS, "寒冰王座"),
     PEGASUS_UNBRIDLE(CoreConst.GameType.PEGASUS_UNBRIDLE, RoomType.SLOTS, "神马飞扬"),
+    GOLD_SNAKE_FORTUNE(CoreConst.GameType.GOLD_SNAKE_FORTUNE, RoomType.SLOTS, "金蛇招财"),
+    MONEY_RABBIT(CoreConst.GameType.MONEY_RABBIT, RoomType.SLOTS, "金钱兔"),
+    LUCKY_MOUSE(CoreConst.GameType.LUCKY_MOUSE, RoomType.SLOTS, "鼠鼠福福"),
+    DEMON_CHILD(CoreConst.GameType.DEMON_CHILD, RoomType.SLOTS, "恶魔之子"),
 
 
     // TABLE

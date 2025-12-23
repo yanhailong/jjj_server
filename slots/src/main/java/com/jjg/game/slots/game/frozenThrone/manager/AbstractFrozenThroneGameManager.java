@@ -12,6 +12,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.basketballSuperstar.dao.BasketballSuperstarGameDataDao;
@@ -189,13 +190,13 @@ public class AbstractFrozenThroneGameManager extends AbstractSlotsGameManager<Fr
      * @return
      */
     public FrozenThroneGameRunInfo normal(FrozenThroneGameRunInfo gameRunInfo, FrozenThronePlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<FrozenThroneResultLib,Long>> libResult = normalGetLib(playerGameData, betValue, FrozenThroneConstant.SpecialMode.NORMAL);
+        CommonResult<Pair<FrozenThroneResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, FrozenThroneConstant.SpecialMode.NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
         }
         FrozenThroneResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setTax(libResult.data.getSecond());
+        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
 
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(FrozenThroneConstant.SpecialMode.FREE)) {  //是否会触发免费

@@ -378,21 +378,13 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
             throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
         }
 
-        if (lib.getSpecialAuxiliaryInfoList() != null && !lib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
-                if (specialAuxiliaryInfo.getFreeGames() != null && !specialAuxiliaryInfo.getFreeGames().isEmpty()) {
-                    Set<Integer> libTypeSet = new HashSet<>();
-                    libTypeSet.add(BasketballSuperstarConstant.SpecialMode.FREE);
-                    lib.setLibTypeSet(libTypeSet);
-                    break;
-                }
-            }
+        if(triggerFreeLib(lib,BasketballSuperstarConstant.SpecialMode.FREE)){
+            //免费
+            lib.addTimes(calFree(lib));
+        }else {
+            //中奖线
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
         }
-
-        //中奖线
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
-        //免费
-        lib.addTimes(calFree(lib));
     }
 
     /**
@@ -411,54 +403,6 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
             times += awardLineInfo.getBaseTimes();
         }
         return times;
-    }
-
-    /**
-     * 计算免费游戏的总倍数
-     *
-     * @param lib
-     * @return
-     */
-    private long calFree(BasketballSuperstarResultLib lib) throws Exception {
-        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            return 0;
-        }
-
-        long times = 0;
-        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
-            if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
-                continue;
-            }
-
-            for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
-                BasketballSuperstarResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), BasketballSuperstarResultLib.class);
-                calTimes(tmpLib);
-                times += tmpLib.getTimes();
-            }
-        }
-        return times;
-    }
-
-
-    protected void printResult(int[] arr) {
-        BaseInitCfg cfg = GameDataManager.getBaseInitCfg(this.gameType);
-
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = 1; i <= cfg.getRows(); i++) {
-            for (int j = 0; j < cfg.getCols(); j++) {
-                int index = cfg.getRows() * j + i;
-                int id = arr[index];
-                sb.append(id);
-                if (id < 10) {
-                    sb.append("   ");
-                } else {
-                    sb.append("  ");
-                }
-            }
-            sb.append("\n");
-        }
-        System.out.println(sb);
     }
 
     /**

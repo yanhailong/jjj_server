@@ -36,7 +36,7 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
     //结果库
     private SlotsResultLib resultLib;
     //税
-    private long tax;
+    private BetDivideInfo betDivideInfo;
 
     //奖池金额
     private long mini;
@@ -185,12 +185,12 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
         this.resultLib = resultLib;
     }
 
-    public long getTax() {
-        return tax;
+    public BetDivideInfo getBetDivideInfo() {
+        return betDivideInfo;
     }
 
-    public void setTax(long tax) {
-        this.tax = tax;
+    public void setBetDivideInfo(BetDivideInfo betDivideInfo) {
+        this.betDivideInfo = betDivideInfo;
     }
 
     public long getMini() {
