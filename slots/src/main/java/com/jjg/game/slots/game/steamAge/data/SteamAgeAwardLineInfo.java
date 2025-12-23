@@ -10,8 +10,12 @@ import java.util.Set;
  * @date 2025/12/2 17:31
  */
 public class SteamAgeAwardLineInfo extends AwardLineInfo {
-    //中奖线的倍数
+    //连续倍数
     private int baseTimes;
+    //线倍数
+    private int lineTimes;
+    //总倍数 线倍数*连续倍数
+    private int totalTimes;
     //相同元素的坐标id
     private Set<Integer> sameIconSet;
     //元素id
@@ -21,12 +25,28 @@ public class SteamAgeAwardLineInfo extends AwardLineInfo {
         return sameIconSet == null ? 0 : sameIconSet.size();
     }
 
+    public int getTotalTimes() {
+        return totalTimes;
+    }
+
+    public void setTotalTimes(int totalTimes) {
+        this.totalTimes = totalTimes;
+    }
+
     public int getBaseTimes() {
         return baseTimes;
     }
 
     public void setBaseTimes(int baseTimes) {
         this.baseTimes = baseTimes;
+    }
+
+    public int getLineTimes() {
+        return lineTimes;
+    }
+
+    public void setLineTimes(int lineTimes) {
+        this.lineTimes = lineTimes;
     }
 
     public Set<Integer> getSameIconSet() {

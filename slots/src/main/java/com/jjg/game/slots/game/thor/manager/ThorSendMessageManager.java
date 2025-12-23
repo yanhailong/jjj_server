@@ -113,7 +113,8 @@ public class ThorSendMessageManager extends BaseSendMessageManager {
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
             res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
-            res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
+            res.freeModeTotalReward = gameRunInfo.getFreeModeTotalReward();
+            res.freeEnd = gameRunInfo.isFreeEnd();
 
             logger.gameResult(playerController.getPlayer(), gameRunInfo,res);
         } else {

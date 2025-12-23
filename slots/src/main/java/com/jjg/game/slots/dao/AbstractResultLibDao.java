@@ -184,6 +184,10 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> {
                         connection.sRandMember(tableName.getBytes())
         );
 
+        if(compressedData == null) {
+            return null;
+        }
+
         ByteBuffer buffer = ByteBuffer.wrap(compressedData);
         int originalLength = buffer.getInt();  // 读取原始长度
 

@@ -16,7 +16,7 @@ public class SteamAgeIconInfo {
     public List<Integer> iconIndexs;
     @ProtoDesc("连续倍数")
     public int baseTimes;
-    @ProtoDesc("中奖金额")
+    @ProtoDesc("基础中奖金额（没有×倍数）")
     public long win;
     @ProtoDesc("中奖的图标id")
     public List<Integer> winIcons;

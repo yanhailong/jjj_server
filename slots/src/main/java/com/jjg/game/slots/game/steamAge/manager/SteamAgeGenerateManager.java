@@ -164,30 +164,9 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
 
         info.setSameIconSet(sameIconIndexSet);
         info.setSameIcon(cfg.getElementId().getFirst() % 10);
-
-        if (info.getSameIconSet() != null && !info.getSameIconSet().isEmpty()) {
-            //记录每一列中奖的个数
-            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-
-            Map<Integer, Integer> columIconCountMap = new HashMap<>();
-            for (int index : info.getSameIconSet()) {
-                //根据坐标，计算它在哪一列
-                int colId = index / baseInitCfg.getRows();
-                if ((index % baseInitCfg.getRows()) != 0) {
-                    colId++;
-                }
-                columIconCountMap.merge(colId, 1, Integer::sum);
-            }
-
-            int addTimes = 1;
-            for (Map.Entry<Integer, Integer> en : columIconCountMap.entrySet()) {
-                addTimes *= en.getValue();
-            }
-
-            info.setBaseTimes(cfg.getBet() * addTimes);
-        } else {
-            info.setBaseTimes(cfg.getBet());
-        }
+        info.setBaseTimes(1);
+        info.setLineTimes(cfg.getBet());
+        info.setTotalTimes(info.getLineTimes());
         return info;
     }
 
@@ -291,9 +270,10 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
                 return;
             }
             SteamAgeExpandRollerInfo steamAgeExpandRollerInfo = steamAgeExpandRollerInfoMap.get(libType).get(expandTimes);
-            Integer times = steamAgeExpandRollerInfo.getWinTimes();
+            Integer times = steamAgeExpandRollerInfo.getBaseTimes();
             SteamAgeAwardLineInfo steamAgeAwardLineInfo = list.get(i);
-            steamAgeAwardLineInfo.setBaseTimes(steamAgeAwardLineInfo.getBaseTimes() * times);
+            steamAgeAwardLineInfo.setBaseTimes(times);
+            steamAgeAwardLineInfo.setTotalTimes(times * steamAgeAwardLineInfo.getLineTimes());
         }
     }
 
@@ -421,7 +401,7 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
 
         int times = 0;
         for (SteamAgeAwardLineInfo awardLineInfo : list) {
-            times += awardLineInfo.getBaseTimes();
+            times += awardLineInfo.getTotalTimes();
         }
         return times;
     }
@@ -470,7 +450,7 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
             }
 
             for (SteamAgeAwardLineInfo awardLineInfo : info.getAwardLineInfoList()) {
-                times += awardLineInfo.getBaseTimes();
+                times += awardLineInfo.getTotalTimes();
             }
         }
         return times;

@@ -121,7 +121,7 @@ public class ShopService implements OrderGenerate, GameEventListener {
         if (playerSessionToken != null) {
             registerChannel = playerSessionToken.getRegisterChannel();
         }
-        coreLogger.shop(playerController.getPlayer(), shopProduct, registerChannel);
+        coreLogger.shop(playerController.getPlayer(), shopProduct, registerChannel, useItemCount);
         return result;
     }
 
