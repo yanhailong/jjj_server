@@ -17,7 +17,44 @@ import java.util.*;
  */
 @Repository
 public class CountDao {
-
+    private static final String DECREMENT_IF_SUFFICIENT = """
+            local current_str = redis.call('GET', KEYS[1])
+            if not current_str or current_str == '' then
+                return nil
+            end
+            local current_val = tonumber(current_str)
+            local amount = tonumber(ARGV[1])
+            if current_val < amount then
+                return nil
+            end
+            local new_val = redis.call('DECRBY', KEYS[1], amount)
+            return new_val
+            """;
+    private static final String GET_COUNTS = """
+            local res = {}
+            for i, k in ipairs(KEYS) do
+                local v = redis.call('GET', k)
+                if not v then
+                    table.insert(res, 0)
+                else
+                    table.insert(res, tonumber(v))
+                end
+            end
+            return res
+            """;
+    private static final String INCREMENT_WITHOUT_EXPIRE_REFRESH = """
+            local exists = redis.call('EXISTS', KEYS[1])
+            local current_value = redis.call('INCRBY', KEYS[1], ARGV[1])
+            if exists == 0 then
+                redis.call('EXPIRE', KEYS[1], ARGV[2])
+            end
+            return current_value
+            """;
+    private static final String LUA_SCRIPT = """
+            redis.call('SET', KEYS[1], ARGV[1])
+            redis.call('EXPIRE', KEYS[1], ARGV[2])
+            return 1
+            """;
     private Logger log = LoggerFactory.getLogger(getClass());
 
     private final RedissonClient redissonClient;
@@ -52,13 +89,8 @@ public class CountDao {
     public void setCount(String featureId, String customId, BigDecimal count, long expireSeconds) {
         String key = getKey(featureId, customId);
         long value = RedisUtils.toLong(count);
-        String lua = """
-                redis.call('SET', KEYS[1], ARGV[1])
-                redis.call('EXPIRE', KEYS[1], ARGV[2])
-                return 1
-                """;
         redissonClient.getScript()
-                .eval(RScript.Mode.READ_WRITE, lua, RScript.ReturnType.VALUE,
+                .eval(RScript.Mode.READ_WRITE, LUA_SCRIPT, RScript.ReturnType.VALUE,
                         Collections.singletonList(key),
                         String.valueOf(value),
                         String.valueOf(expireSeconds));
@@ -83,19 +115,11 @@ public class CountDao {
         // KEYS[1]: key
         // ARGV[1]: incrementValue (自增的值)
         // ARGV[2]: expireSeconds (过期时间)
-        String lua = """
-                local exists = redis.call('EXISTS', KEYS[1])
-                local current_value = redis.call('INCRBY', KEYS[1], ARGV[1])
-                if exists == 0 then
-                    redis.call('EXPIRE', KEYS[1], ARGV[2])
-                end
-                return current_value
-                """;
         // 执行 Lua 脚本
         Object eval = redissonClient.getScript(StringCodec.INSTANCE)
                 .eval(
                         RScript.Mode.READ_WRITE,
-                        lua,
+                        INCREMENT_WITHOUT_EXPIRE_REFRESH,
                         RScript.ReturnType.INTEGER,
                         Collections.singletonList(key),
                         String.valueOf(incrementValue),
@@ -125,26 +149,13 @@ public class CountDao {
         // Lua 脚本：实现原子操作
         // KEYS[1]: key
         // ARGV[1]: amountToDecrement (要自减的正值)
-        String lua = """
-                local current_str = redis.call('GET', KEYS[1])
-                if not current_str or current_str == '' then
-                    return nil
-                end
-                local current_val = tonumber(current_str)
-                local amount = tonumber(ARGV[1])
-                if current_val < amount then
-                    return nil
-                end
-                local new_val = redis.call('DECRBY', KEYS[1], amount)
-                return new_val
-                """;
 
         // 注意：我们将 Long.valueOf(null) 作为失败结果
         // 执行 Lua 脚本
         Object eval = redissonClient.getScript(StringCodec.INSTANCE)
                 .eval(
                         RScript.Mode.READ_WRITE,
-                        lua,
+                        DECREMENT_IF_SUFFICIENT,
                         RScript.ReturnType.INTEGER,
                         Collections.singletonList(key),
                         String.valueOf(amountToDecrement)
@@ -280,22 +291,9 @@ public class CountDao {
         List<Object> objectKeys = new ArrayList<>(keys);
         // Lua 一次性批量获取
         // Lua: 获取并尝试转换为 number，缺失则返回 0
-        String lua = """
-                local res = {}
-                for i, k in ipairs(KEYS) do
-                    local v = redis.call('GET', k)
-                    if not v then
-                        table.insert(res, 0)
-                    else
-                        table.insert(res, tonumber(v))
-                    end
-                end
-                return res
-                """;
 
         List<Long> values = redissonClient.getScript()
-                .eval(RScript.Mode.READ_ONLY, lua, RScript.ReturnType.MULTI, objectKeys);
-
+                .eval(RScript.Mode.READ_ONLY, GET_COUNTS, RScript.ReturnType.MULTI, objectKeys);
         Map<String, BigDecimal> result = new HashMap<>();
         for (int i = 0; i < customIds.size(); i++) {
             long v = values.get(i) == null ? 0L : values.get(i);

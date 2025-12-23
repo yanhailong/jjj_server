@@ -8,6 +8,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.game.superstar.SuperStarConstant;
 import com.jjg.game.slots.game.superstar.data.SuperStarGameRunInfo;
 import com.jjg.game.slots.game.superstar.data.SuperStarPlayerGameData;
@@ -30,14 +31,14 @@ public class SuperStarRoomGameManager extends AbstractSuperStarGameManager {
     public SuperStarGameRunInfo startGame(PlayerController playerController, SuperStarPlayerGameData playerGameData, long betValue) {
         SuperStarGameRunInfo gameRunInfo = new SuperStarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
-            CommonResult<Pair<SuperStarResultLib,Long>> commonResult = normalGetLib(playerGameData, betValue, SuperStarConstant.Common.SPECIAL_MODE_TYPE_NORMAL);
+            CommonResult<Pair<SuperStarResultLib, BetDivideInfo>> commonResult = normalGetLib(playerGameData, betValue, SuperStarConstant.Common.SPECIAL_MODE_TYPE_NORMAL);
             if (!commonResult.success()) {
                 gameRunInfo.setCode(commonResult.code);
                 return gameRunInfo;
             }
 
             SuperStarResultLib resultLib = commonResult.data.getFirst();
-            gameRunInfo.setTax(commonResult.data.getSecond());
+            gameRunInfo.setBetDivideInfo(commonResult.data.getSecond());
 
             gameRunInfo.setStake(betValue);
             //记录spin数据

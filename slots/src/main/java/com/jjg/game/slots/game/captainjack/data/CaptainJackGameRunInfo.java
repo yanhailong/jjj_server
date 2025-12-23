@@ -17,11 +17,6 @@ public class CaptainJackGameRunInfo extends GameRunInfo<CaptainJackPlayerGameDat
     //本次探宝倍率
     private int digTimesMultiplier;
 
-    private long mini;
-    private long minor;
-    private long major;
-    private long grand;
-
     public int getRemainDigCount() {
         return remainDigCount;
     }
@@ -36,37 +31,5 @@ public class CaptainJackGameRunInfo extends GameRunInfo<CaptainJackPlayerGameDat
 
     public void setDigTimesMultiplier(int digTimesMultiplier) {
         this.digTimesMultiplier = digTimesMultiplier;
-    }
-
-    public long getMini() {
-        return mini;
-    }
-
-    public void setMini(long mini) {
-        this.mini = mini;
-    }
-
-    public long getMinor() {
-        return minor;
-    }
-
-    public void setMinor(long minor) {
-        this.minor = minor;
-    }
-
-    public long getMajor() {
-        return major;
-    }
-
-    public void setMajor(long major) {
-        this.major = major;
-    }
-
-    public long getGrand() {
-        return grand;
-    }
-
-    public void setGrand(long grand) {
-        this.grand = grand;
     }
 }

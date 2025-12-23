@@ -14,6 +14,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.game.thor.dao.ThorGameDataDao;
@@ -215,13 +216,13 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
      * @return
      */
     protected ThorGameRunInfo normal(ThorGameRunInfo gameRunInfo, ThorPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<ThorResultLib, Long>> libResult = normalGetLib(playerGameData, betValue, ThorConstant.SpecialMode.TYPE_NORMAL);
+        CommonResult<Pair<ThorResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, ThorConstant.SpecialMode.TYPE_NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
         }
         ThorResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setTax(libResult.data.getSecond());
+        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
 
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(ThorConstant.SpecialMode.FREE)) {  //是否会触发二选一

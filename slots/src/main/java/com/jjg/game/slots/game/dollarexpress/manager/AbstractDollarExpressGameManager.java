@@ -16,6 +16,7 @@ import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialGirdInfo;
@@ -502,13 +503,13 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
      * @return
      */
     protected DollarExpressGameRunInfo normal(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<DollarExpressResultLib, Long>> libResult = normalGetLib(playerGameData, betValue, DollarExpressConstant.SpecialMode.TYPE_NORMAL);
+        CommonResult<Pair<DollarExpressResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, DollarExpressConstant.SpecialMode.TYPE_NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
         }
         DollarExpressResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setTax(libResult.data.getSecond());
+        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
 
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_ALL_BOARD)) {  //是否会触发二选一

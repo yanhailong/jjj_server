@@ -276,17 +276,20 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             throw new IllegalArgumentException("检查结果有错误");
         }
 
-        sortTrain(lib);
-        //中奖线
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
-        //普通火车
-        lib.addTimes(calNormalTrain(lib));
-        //黄金火车
-        lib.addTimes(calGoldTrain(lib));
-        //保险箱
-        lib.addTimes(calSafeBox(lib));
-        //免费
-        lib.addTimes(calFree(lib));
+        if(triggerFreeLib(lib)){
+            //免费
+            lib.addTimes(calFree(lib));
+        }else {
+            sortTrain(lib);
+            //中奖线
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+            //普通火车
+            lib.addTimes(calNormalTrain(lib));
+            //黄金火车
+            lib.addTimes(calGoldTrain(lib));
+            //保险箱
+            lib.addTimes(calSafeBox(lib));
+        }
     }
 
     /**
@@ -505,32 +508,6 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         }
 
         return times * specialAuxiliaryAwardInfo.getRandCount();
-    }
-
-    /**
-     * 计算免费游戏的总倍数
-     *
-     * @param lib
-     * @return
-     */
-    private long calFree(DollarExpressResultLib lib) throws Exception {
-        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            return 0;
-        }
-
-        long times = 0;
-        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
-            if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
-                continue;
-            }
-
-            for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
-                DollarExpressResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), DollarExpressResultLib.class);
-                calTimes(tmpLib);
-                times += tmpLib.getTimes();
-            }
-        }
-        return times;
     }
 
     /**

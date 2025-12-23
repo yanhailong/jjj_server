@@ -8,10 +8,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -31,6 +31,29 @@ import java.util.List;
 @Repository
 public class CashCowDao {
     private final Logger log = LoggerFactory.getLogger(CashCowDao.class);
+    private static final DefaultRedisScript<Long> REDUCE_POOL_SCRIPT;
+
+    static {
+        REDUCE_POOL_SCRIPT = new DefaultRedisScript<>();
+        REDUCE_POOL_SCRIPT.setResultType(Long.class);
+        REDUCE_POOL_SCRIPT.setScriptText("""
+                    local pool = redis.call('HGET', KEYS[1], ARGV[1])
+                    if not pool then
+                        return 0
+                    end
+                
+                    pool = tonumber(pool)
+                    if pool <= 0 then
+                        return 0
+                    end
+                    local distribution = tonumber(ARGV[2])
+                
+                    local get = math.floor(pool * distribution / 10000)
+                    local remain = pool - get
+                    redis.call('HSET', KEYS[1], ARGV[1], remain)
+                    return get
+                """);
+    }
 
     /**
      * 玩家/全局记录存储，key->List，value->CashCowRecordData
@@ -77,7 +100,7 @@ public class CashCowDao {
             return false;
         }
         // 判断是否在同一天（同一天 -> 已领取）
-        return TimeHelper.inSameDay(Long.parseLong(lastTime), System.currentTimeMillis());
+        return TimeHelper.inSameDay(Long.parseLong(lastTime), TimeHelper.getCurrentDateZeroMilliTime());
     }
 
     /**
@@ -93,7 +116,7 @@ public class CashCowDao {
      * 存储当前时间戳（通过业务逻辑判断 inSameDay）。
      */
     public void addFreeRewardsCount(long playerId, long activityId) {
-        longRedisTemplate.opsForValue().set(PLAYER_FREE_KEY.formatted(playerId, activityId), String.valueOf(System.currentTimeMillis()));
+        longRedisTemplate.opsForValue().set(PLAYER_FREE_KEY.formatted(playerId, activityId), String.valueOf(TimeHelper.getCurrentDateZeroMilliTime()));
     }
 
 
@@ -141,7 +164,7 @@ public class CashCowDao {
         String poolKey = String.format(POOL_KEY, activityId);
         HashOperations<String, String, String> hash = getOpsForHash();
         String pool = hash.get(poolKey, String.valueOf(detailId));
-        return pool == null ? 0 : Long.parseLong(pool);
+        return Math.max(0, pool == null ? 0 : Long.parseLong(pool));
     }
 
     /**
@@ -177,26 +200,11 @@ public class CashCowDao {
     public long addActivityPool(long activityId, long addValue) {
         int detailId = 0;
         String poolKey = String.format(POOL_KEY, activityId);
-        String poolLock = String.format(POOL_LOCK_KEY, activityId, detailId);
-        boolean isLock = false;
         try {
-            isLock = lock.tryLockWithDefaultTime(poolLock);
-            if (!isLock) {
-                log.error("获取锁失败 lockKey:{} activityId:{} addValue:{}", poolLock, activityId, addValue);
-                return 0;
-            }
             HashOperations<String, String, String> hash = getOpsForHash();
-            String lastPool = hash.get(poolKey, String.valueOf(detailId));
-            long realLastPool = lastPool == null ? 0 : Long.parseLong(lastPool);
-            long total = realLastPool + addValue;
-            hash.put(poolKey, String.valueOf(detailId), String.valueOf(total));
-            return total;
+            return Math.max(0, hash.increment(poolKey, String.valueOf(detailId), addValue));
         } catch (Exception e) {
             log.error("增加摇钱树奖池失败 activityId:{} detailId:{} addValue:{}", activityId, detailId, activityId, e);
-        } finally {
-            if (isLock) {
-                lock.tryUnlock(poolLock);
-            }
         }
         return 0;
     }
@@ -214,35 +222,12 @@ public class CashCowDao {
     public long reduceActivityPool(long activityId, int distribution) {
         int detailId = 0;
         String poolKey = String.format(POOL_KEY, activityId);
-        String poolLock = String.format(POOL_LOCK_KEY, activityId, detailId);
-        boolean isLock = false;
-        try {
-            isLock = lock.tryLockWithDefaultTime(poolLock);
-            if (!isLock) {
-                log.error("获取锁失败 lockKey:{} activityId:{} distribution:{}", poolLock, activityId, distribution);
-                return 0;
-            }
-            HashOperations<String, String, String> opsForHash = getOpsForHash();
-            String pool = opsForHash.get(poolKey, String.valueOf(detailId));
-            if (pool == null) {
-                return 0;
-            }
-            long realPool = Long.parseLong(pool);
-            // 计算剩余奖池：realPool - (realPool * distribution / 10000)
-            long get = BigDecimal.valueOf(realPool)
-                    .multiply(BigDecimal.valueOf(distribution))
-                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
-                    .longValue();
-            opsForHash.put(poolKey, String.valueOf(detailId), String.valueOf(realPool - get));
-            return get;
-        } catch (Exception e) {
-            log.error("减少摇钱树奖池失败 activityId:{} detailId:{} addValue:{}", activityId, detailId, activityId, e);
-        } finally {
-            if (isLock) {
-                lock.tryUnlock(poolLock);
-            }
-        }
-        return 0;
+        return longRedisTemplate.execute(
+                REDUCE_POOL_SCRIPT,
+                Collections.singletonList(poolKey),
+                String.valueOf(detailId),
+                String.valueOf(distribution)
+        );
     }
 
 

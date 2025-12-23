@@ -16,6 +16,7 @@ import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialGirdInfo;
@@ -503,13 +504,13 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
      * @return
      */
     protected WealthBankGameRunInfo normal(WealthBankGameRunInfo gameRunInfo, WealthBankPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<WealthBankResultLib, Long>> libResult = normalGetLib(playerGameData, betValue, WealthBankConstant.SpecialMode.TYPE_NORMAL);
+        CommonResult<Pair<WealthBankResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, WealthBankConstant.SpecialMode.TYPE_NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
         }
         WealthBankResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setTax(libResult.data.getSecond());
+        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
 
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(WealthBankConstant.SpecialMode.TYPE_TRIGGER_ALL_BOARD)) {  //是否会触发二选一

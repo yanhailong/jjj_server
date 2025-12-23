@@ -16,12 +16,13 @@ public class SlotsLogger extends BaseLogger {
 
     /**
      * 添加日志中的基础信息
+     *
      * @param player
      * @param gameRunInfo
      * @param json
      * @return
      */
-    private JSONObject baseInfo(Player player, GameRunInfo gameRunInfo,JSONObject json) {
+    private JSONObject baseInfo(Player player, GameRunInfo gameRunInfo, JSONObject json) {
         json.put("bet", gameRunInfo.getStake());
         json.put("allWin", gameRunInfo.getAllWinGold());
         json.put("gameType", player.getGameType());
@@ -30,13 +31,25 @@ public class SlotsLogger extends BaseLogger {
         json.put("level", player.getLevel());
         json.put("exp", player.getExp());
         json.put("auto", gameRunInfo.isAuto());
-        json.put("tax",gameRunInfo.getTax());
-        json.put("resultLibId",gameRunInfo.getResultLib() == null ? "null" : gameRunInfo.getResultLib().getId());
+
+        if (gameRunInfo.getBetDivideInfo() != null) {
+            //税收
+            json.put("tax", gameRunInfo.getBetDivideInfo().getTax());
+            //收益
+            json.put("income", gameRunInfo.getBetDivideInfo().getInCome());
+        }
+
+        if(gameRunInfo.getData() != null){
+            //房间id
+            json.put("roomId", gameRunInfo.getData().getRoomId());
+        }
+        json.put("resultLibId", gameRunInfo.getResultLib() == null ? "null" : gameRunInfo.getResultLib().getId());
         return json;
     }
 
     /**
      * 游戏结果日志
+     *
      * @param player
      * @param gameRunInfo
      * @param res
@@ -45,9 +58,9 @@ public class SlotsLogger extends BaseLogger {
         try {
             JSONObject json = new JSONObject();
             //添加基础公共信息
-            json = baseInfo(player,gameRunInfo,json);
+            json = baseInfo(player, gameRunInfo, json);
             //添加游戏数据
-            json.put("gameData",JSON.toJSONString(res));
+            json.put("gameData", JSON.toJSONString(res));
             //发送日志
             sendLog("slotsResult", player, json);
 

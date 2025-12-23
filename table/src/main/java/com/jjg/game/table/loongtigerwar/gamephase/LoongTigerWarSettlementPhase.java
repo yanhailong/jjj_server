@@ -6,6 +6,7 @@ import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.utils.PokerCardUtils;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
@@ -76,7 +77,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
 
         Map<Integer, Map<Long, List<Integer>>> betInfo = gameDataVo.getBetInfo();
         // 庄家变化的钱
-        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(betInfo);
+        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(gameDataVo.getRealPlayerAreaBetInfo());
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         for (WinPosWeightCfg weightCfg : weightCfgList) {
             for (Integer areaId : weightCfg.getBetArea()) {
@@ -110,11 +111,17 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
             }
         }
         if (changeParam != null) {
-            for (SettlementData data : settlementDataMap.values()) {
+            for (Map.Entry<Long, SettlementData> entry : settlementDataMap.entrySet()) {
+                GamePlayer gamePlayer = gameDataVo.getGamePlayer(entry.getKey());
+                if (gamePlayer == null || gamePlayer instanceof GameRobotPlayer) {
+                    continue;
+                }
+                SettlementData data = entry.getValue();
                 changeParam.addTotalTaxRevenue(data.getTaxation());
-                changeParam.addBankerChangeGold(Math.max(0, data.getTotalWin() - data.getBetTotal()));
+                changeParam.addBankerChangeGold(Math.max(0, data.getTotalGet() - data.getBetTotal()));
             }
             calculationFinalBankerChange(changeParam);
+            dealRoomPool(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);
         }
         //计算所有玩家的结算信息
@@ -124,7 +131,6 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                     .mapToLong(a -> a.stream().mapToInt(b -> b).sum())
                     .sum());
         }
-        dealRoomPool(settlementDataMap);
         Pair<Integer, Integer> twoSpecificCard = PokerCardUtils.getTwoSpecificCard(next);
         NotifyLoongTigerWarSettleInfo warSettleInfo = new NotifyLoongTigerWarSettleInfo();
         warSettleInfo.loongCard = twoSpecificCard.getFirst();
@@ -169,24 +175,22 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
 
     @Override
     public void calculationFinalBankerChange(RoomBankerChangeParam param) {
-        gameDataTracker.addGameLogData("tax", param.getTotalTaxRevenue());
-        if (gameController.getRoom() instanceof FriendRoom) {
-            long totalGet = 0;
-            for (Map.Entry<Integer, Map<Long, Integer>> entry : param.getBankerChangeMap().entrySet()) {
-                long sum = entry.getValue().values().stream().mapToLong(Integer::intValue).sum();
-                if (entry.getKey() == LoongTigerWarConstant.Common.LUCK_AREA) {
-                    //不算税收
-                    totalGet += sum;
-                } else {
-                    long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
-                    param.addTotalTaxRevenue(sum - realGet);
-                    totalGet += realGet;
-                }
+        long totalGet = 0;
+        for (Map.Entry<Integer, Map<Long, Long>> entry : param.getBankerChangeMap().entrySet()) {
+            long sum = entry.getValue().values().stream().mapToLong(Long::longValue).sum();
+            if (entry.getKey() == LoongTigerWarConstant.Common.LUCK_AREA) {
+                //不算税收
+                totalGet += sum;
+            } else {
+                long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
+                param.addTotalTaxRevenue(sum - realGet);
+                totalGet += realGet;
             }
-            param.addBankerChangeGold(-totalGet);
-            //计算房主收益
-            param.addRoomCreatorTotalIncome(calcRoomCreatorIncome(param.getTotalTaxRevenue()));
         }
+        param.addBankerChangeGold(-totalGet);
+        //计算房主收益
+        param.addRoomCreatorTotalIncome(calcRoomCreatorIncome(param.getTotalTaxRevenue()));
+        gameDataTracker.addGameLogData("tax", param.getTotalTaxRevenue());
     }
 
     @Override

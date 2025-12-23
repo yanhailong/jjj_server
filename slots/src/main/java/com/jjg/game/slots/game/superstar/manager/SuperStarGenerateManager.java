@@ -50,8 +50,11 @@ public class SuperStarGenerateManager extends AbstractSlotsGenerateManager<Super
 
     @Override
     public void calTimes(SuperStarResultLib lib) throws Exception {
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
-        lib.addTimes(calFree(lib));
+        if(triggerFreeLib(lib)){
+            lib.addTimes(calFree(lib));
+        }else {
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        }
     }
 
     /**
@@ -72,27 +75,6 @@ public class SuperStarGenerateManager extends AbstractSlotsGenerateManager<Super
             }
         }
 
-        return times;
-    }
-
-    /**
-     * 计算免费游戏的总倍数
-     */
-    private long calFree(SuperStarResultLib lib) throws Exception {
-        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            return 0;
-        }
-        long times = 0;
-        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
-            if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
-                continue;
-            }
-            for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
-                SuperStarResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), SuperStarResultLib.class);
-                calTimes(tmpLib);
-                times += tmpLib.getTimes();
-            }
-        }
         return times;
     }
 

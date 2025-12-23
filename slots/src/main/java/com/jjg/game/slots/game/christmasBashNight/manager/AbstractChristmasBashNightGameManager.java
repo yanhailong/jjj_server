@@ -12,6 +12,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
 import com.jjg.game.slots.game.christmasBashNight.dao.ChristmasBashNightGameDataDao;
@@ -172,13 +173,13 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
      * @return
      */
     protected ChristmasBashNightGameRunInfo normal(ChristmasBashNightGameRunInfo gameRunInfo, ChristmasBashNightPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<ChristmasBashNightResultLib, Long>> libResult = normalGetLib(playerGameData, betValue, ChristmasBashNightConstant.SpecialMode.NORMAL);
+        CommonResult<Pair<ChristmasBashNightResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, ChristmasBashNightConstant.SpecialMode.NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
         }
         ChristmasBashNightResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setTax(libResult.data.getSecond());
+        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
 
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(ChristmasBashNightConstant.SpecialMode.FREE)) {  //是否会触发免费

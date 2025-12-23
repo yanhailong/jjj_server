@@ -10,6 +10,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleGameDataDao;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridlePlayerGameDataDTO;
@@ -197,13 +198,13 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
      *
      */
     protected void normal(PegasusUnbridleGameRunInfo gameRunInfo, PegasusUnbridlePlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<PegasusUnbridleResultLib, Long>> libResult = normalGetLib(playerGameData, betValue, PegasusUnbridleConstant.SpecialMode.NORMAL);
+        CommonResult<Pair<PegasusUnbridleResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, PegasusUnbridleConstant.SpecialMode.NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return;
         }
         PegasusUnbridleResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setTax(libResult.data.getSecond());
+        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
         gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         //检查是否中大奖
         jackPool(gameRunInfo, playerGameData, resultLib);

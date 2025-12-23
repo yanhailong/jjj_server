@@ -500,8 +500,6 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
                     break;
                 }
             }
-
-            log.debug("iconId = {},count = {},iconBaseScore = {},addTimes = {}", icon, count, iconBaseScore, addTimes);
             lib.addTimes(count * iconBaseScore * addTimes);
         }
 
