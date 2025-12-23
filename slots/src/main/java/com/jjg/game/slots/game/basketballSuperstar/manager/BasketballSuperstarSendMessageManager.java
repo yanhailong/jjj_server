@@ -118,7 +118,8 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
-
+            //是否触发 免费转
+            res.triggerStatus = gameRunInfo.getRemainFreeCount() > 0 ? 1 : 0;
             BasketballSuperstarResultLib lib = (BasketballSuperstarResultLib) gameRunInfo.getResultLib();
             int[] iconArr = lib.getIconArr();
             //如果是免费转 可能需要修改

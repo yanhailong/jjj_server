@@ -242,7 +242,12 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             }
             arr = newArr;
         }
-        return arr;
+        int[] newarr2 = new int[21];
+        newarr2[0]=0;
+        for (int i = 0; i < arr.length; i++) {
+            newarr2[i+1] = arr[i];
+        }
+        return newarr2;
     }
 
 

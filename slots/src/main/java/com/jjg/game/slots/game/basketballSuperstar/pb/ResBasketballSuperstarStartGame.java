@@ -40,6 +40,8 @@ public class ResBasketballSuperstarStartGame extends AbstractResponse {
     public int stickyIcon;
     @ProtoDesc("免费转，需要变成wild的 格子id 并保留到下一次免费转")
     public Set<Integer> changeStickyIconSet;
+    @ProtoDesc("触发免费转  0.正常  1.免费")
+    public int triggerStatus;
 
     public ResBasketballSuperstarStartGame(int code) {
         super(code);
