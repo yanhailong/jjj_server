@@ -204,7 +204,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     private Map<Long, PlayerChangedGold> playerGameSettlement(BaccaratSettlementInfo baccaratSettlementInfo) {
         Map<Long, PlayerChangedGold> playerChangedGolds = new HashMap<>();
         // 庄家变化的钱
-        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(gameDataVo.getBetInfo());
+        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(gameDataVo.getRealPlayerAreaBetInfo());
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         // 获取玩家的押注信息，让后结算
         for (Map.Entry<Long, GamePlayer> playerEntry : gameDataVo.getGamePlayerMap().entrySet()) {
@@ -243,9 +243,9 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         }
         if (changeParam != null) {
             calculationFinalBankerChange(changeParam);
+            dealRoomPool(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);
         }
-        dealRoomPool(settlementDataMap);
         // 处理庄家输赢金币
         return playerChangedGolds;
     }
@@ -351,8 +351,8 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                     break;
             }
         }
-        if (changeParam != null) {
-            changeParam.addBankerChangeGold(Math.max(0, playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal()));
+        if (changeParam != null && !(gamePlayer instanceof GameRobotPlayer)) {
+            changeParam.addBankerChangeGold(Math.max(0, playerSettlementData.getTotalGet() - playerSettlementData.getBetTotal()));
             changeParam.addTotalTaxRevenue(playerSettlementData.getTaxation());
         }
         return playerSettlementData;

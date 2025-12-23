@@ -37,17 +37,29 @@ public class TableGameDataVo extends GameDataVo<Room_BetCfg> {
 
     public Map<Long, Map<Integer, List<Integer>>> getRealPlayerBetInfo() {
         Map<Long, Map<Integer, List<Integer>>> bet = new HashMap<>();
-        for (GamePlayer gamePlayer : getGamePlayerMap().values()) {
+        for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : playerBetInfo.entrySet()) {
+            GamePlayer gamePlayer = getGamePlayerMap().get(entry.getKey());
             if (gamePlayer instanceof GameRobotPlayer) {
                 continue;
             }
-            Map<Integer, List<Integer>> map = playerBetInfo.get(gamePlayer.getId());
-            if (CollectionUtil.isEmpty(map)) {
-                continue;
-            }
-            bet.put(gamePlayer.getId(), map);
+            bet.put(gamePlayer.getId(), entry.getValue());
         }
         return bet;
+    }
+
+    public Map<Integer, Map<Long, Long>> getRealPlayerAreaBetInfo() {
+        Map<Integer, Map<Long, Long>> areaBetmap = new HashMap<>();
+        for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : playerBetInfo.entrySet()) {
+            GamePlayer gamePlayer = getGamePlayerMap().get(entry.getKey());
+            if (gamePlayer instanceof GameRobotPlayer) {
+                continue;
+            }
+            for (Map.Entry<Integer, List<Integer>> listEntry : entry.getValue().entrySet()) {
+                Map<Long, Long> longLongMap = areaBetmap.computeIfAbsent(listEntry.getKey(), k -> new HashMap<>());
+                longLongMap.put(entry.getKey(), listEntry.getValue().stream().mapToLong(v -> v).sum());
+            }
+        }
+        return areaBetmap;
     }
 
     public void updatePlayerBetInfo(long playerId, Map<Integer, List<Integer>> betInfo) {

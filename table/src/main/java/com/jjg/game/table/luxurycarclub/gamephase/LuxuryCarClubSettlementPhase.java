@@ -70,7 +70,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
                         (BaseTableGameController<LuxuryCarClubGameDataVo>) gameController, clientShowPosId);
         List<PlayerChangedGold> playerChangedGolds = new ArrayList<>();
         // 庄家变化的钱
-        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(gameDataVo.getBetInfo());
+        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(gameDataVo.getRealPlayerAreaBetInfo());
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
@@ -104,18 +104,18 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             gameController.addItem(gamePlayer.getId(), playerSettlementData.getTotalWin(), AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
             playerChangedGold.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
             playerChangedGolds.add(playerChangedGold);
-            if (changeParam != null) {
+            if (changeParam != null && !(gamePlayer instanceof GameRobotPlayer)) {
                 changeParam.removeArea(betAreaId);
-                changeParam.addBankerChangeGold(Math.max(0, playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal()));
+                changeParam.addBankerChangeGold(Math.max(0, playerSettlementData.getTotalGet() - playerSettlementData.getBetTotal()));
                 changeParam.addTotalTaxRevenue(playerSettlementData.getTaxation());
             }
             settlementDataMap.put(playerId, playerSettlementData);
         }
         if (changeParam != null) {
             calculationFinalBankerChange(changeParam);
+            dealRoomPool(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);
         }
-        dealRoomPool(settlementDataMap);
         // 场上玩家金币变化
         settlement.settlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {

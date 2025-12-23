@@ -18,6 +18,7 @@ import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.base.gameevent.ClockEvent;
@@ -115,12 +116,50 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
      * @param player   玩家数据
      * @param progress 进度
      */
-    public void addProgress(Player player, long progress) {
+    public void addProgress(Player player, int gameType, long progress) {
         if (isClose(player) || progress == 0) {
             return;
         }
+        if (!canAddProgress(gameType)) {
+            return;
+        }
+        //按游戏判断
         countDao.incrementWithoutExpireRefresh(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), getChildId(player.getId(), LocalDate.now()),
                 BigDecimal.valueOf(Math.abs(progress)), TimeHelper.DAY_SECOND * 2);
+    }
+
+    /**
+     * 是否能增加进度
+     *
+     * @param gameType 游戏类型
+     */
+    private boolean canAddProgress(int gameType) {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(72);
+        try {
+            if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
+                int majorTypeByGameType = CommonUtil.getMajorTypeByGameType(gameType);
+                String[] split = StringUtils.split(globalConfigCfg.getValue(), "|");
+                for (String gameCfg : split) {
+                    String[] cfg = StringUtils.split(gameCfg, "_");
+                    if (cfg.length < 2) {
+                        continue;
+                    }
+                    int majorType = Integer.parseInt(cfg[0]);
+                    if (majorTypeByGameType != majorType) {
+                        continue;
+                    }
+                    for (int i = 1; i < cfg.length; i++) {
+                        int needGameId = Integer.parseInt(cfg[1]);
+                        if (needGameId == -1 || needGameId == gameType) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("财富轮盘 全局表配置错误  gameType:{}", gameType, e);
+        }
+        return false;
     }
 
     /**
