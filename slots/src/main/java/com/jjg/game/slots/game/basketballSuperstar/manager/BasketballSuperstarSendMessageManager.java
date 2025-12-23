@@ -13,6 +13,7 @@ import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarAward
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarGameRunInfo;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarResultLib;
 import com.jjg.game.slots.game.basketballSuperstar.pb.*;
+import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -119,7 +120,7 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
             //是否触发 免费转
-            res.triggerStatus = gameRunInfo.getRemainFreeCount() > 0 ? 1 : 0;
+            res.triggerStatus = gameRunInfo.getRemainFreeCount() > 0 && res.status == SteamAgeConstant.Status.NORMAL? 1 : 0;
             BasketballSuperstarResultLib lib = (BasketballSuperstarResultLib) gameRunInfo.getResultLib();
             int[] iconArr = lib.getIconArr();
             //如果是免费转 可能需要修改
