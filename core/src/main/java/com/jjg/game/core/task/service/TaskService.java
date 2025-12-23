@@ -232,9 +232,10 @@ public class TaskService {
                         if (awardList.isEmpty() && taskCfg.getIntegralNum() <= TaskConstant.TimeConstants.MIN_INTEGRAL_REWARD) {
                             taskDetail.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
                             taskDetail.setRewardTime(timestamp);
-                            taskLogger.receiveTaskAward(playerId, taskDetail.getConfigId(), null, taskCfg.getIntegralNum());
+                            taskLogger.receiveTaskAward(playerId, taskDetail.getConfigId(), null, taskCfg.getIntegralNum(), TaskConstant.TaskStatus.STATUS_REWARDED);
                             log.info("玩家[{}]完成任务[{}]任务没有奖励直接修改为已领取状态!", playerId, taskDetail.getConfigId());
                         } else {
+                            taskLogger.receiveTaskAward(playerId, taskDetail.getConfigId(), null, taskCfg.getIntegralNum(), TaskConstant.TaskStatus.STATUS_COMPLETED);
                             taskDetail.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
                             taskLogger.completeTask(playerId, taskDetail.getConfigId());
                             log.info("玩家[{}]完成任务[{}]", playerId, taskDetail.getConfigId());
