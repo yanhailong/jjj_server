@@ -34,8 +34,10 @@ public class ResThorStartGame extends AbstractResponse {
     public long rewardPoolValue;
     @ProtoDesc("状态  0.普通   1.二选一   2.火焰   3.冰冻")
     public int status;
-    @ProtoDesc("剩余免费次数")
-    public int remainFreeCount;
+    @ProtoDesc("免费模式累计奖励,免费模式最后一局才赋值")
+    public long freeModeTotalReward;
+    @ProtoDesc("标记免费模式结束")
+    public boolean freeEnd;
 
     public ResThorStartGame(int code) {
         super(code);

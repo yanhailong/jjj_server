@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.thor.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
@@ -9,7 +10,11 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
+import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.game.thor.dao.ThorGameDataDao;
 import com.jjg.game.slots.game.thor.dao.ThorResultLibDao;
@@ -23,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<ThorPlayerGameData, ThorResultLib> {
     @Autowired
@@ -255,6 +261,9 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         }
         ThorResultLib freeGame = libResult.data;
 
+        //累计免费模式的中奖金额
+        playerGameData.addFreeModeTotalReward(playerGameData.getOneBetScore() * freeGame.getTimes());
+
         gameRunInfo.setStatus(playerGameData.getStatus());
 
         int afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
@@ -262,6 +271,9 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
             playerGameData.setStatus(ThorConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
+            //最后一局，通知客户端，累计免费模式的中奖金额
+            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeModeTotalReward());
+            gameRunInfo.setFreeEnd(true);
         }
 
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));
@@ -270,6 +282,85 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         gameRunInfo.setRemainFreeCount(afterCount);
         gameRunInfo.setResultLib(freeGame);
         return gameRunInfo;
+    }
+
+    @Override
+    protected CommonResult<ThorResultLib> freeGetLib(ThorPlayerGameData playerGameData, int specialModeFreeLibType, int specialAuxiliary) {
+        CommonResult<ThorResultLib> result = new CommonResult<>(Code.SUCCESS);
+        log.debug("开始获取免费结果库 playerId = {}", playerGameData.playerId());
+
+        ThorResultLib freeLib = (ThorResultLib) playerGameData.getFreeLib();
+        if (freeLib == null) {
+            for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
+                //获取一个倍数区间
+                CommonResult<Integer> sectionResult = getResultLibSection(playerGameData.getLastModelId(), specialModeFreeLibType);
+                if (!sectionResult.success()) {
+                    continue;
+                }
+                //获取结果库
+                freeLib = getResultLibDao().getLibBySectionIndex(specialModeFreeLibType, sectionResult.data, this.libClass);
+                if (freeLib == null) {
+                    continue;
+                }
+                break;
+            }
+        }
+
+        if (freeLib == null) {
+            log.warn("未在该条结果库中找到免费转信息 gameType = {},modelId = {}", this.gameType, playerGameData.getLastModelId());
+            result.code = Code.NOT_FOUND;
+            return result;
+        }
+
+        if (freeLib.getSpecialAuxiliaryInfoList() == null || freeLib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            log.warn("未在该条结果库中找到免费转信息1 gameType = {},libId = {}", this.gameType, freeLib.getId());
+            result.code = Code.NOT_FOUND;
+            return result;
+        }
+
+        log.debug("找到免费旋转的结果库 libId = {}", freeLib.getId());
+
+        //找到结果库中免费游戏的结果
+        SpecialAuxiliaryInfo specialAuxiliaryInfo = null;
+        for (Object obj : freeLib.getSpecialAuxiliaryInfoList()) {
+            SpecialAuxiliaryInfo tmpInfo = (SpecialAuxiliaryInfo) obj;
+            SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(tmpInfo.getCfgId());
+            if (specialAuxiliary > 0 && specialAuxiliaryCfg.getType() != specialAuxiliary) {
+                continue;
+            }
+            if (tmpInfo.getFreeGames() == null || tmpInfo.getFreeGames().isEmpty()) {
+                continue;
+            }
+            specialAuxiliaryInfo = tmpInfo;
+            break;
+        }
+
+        if (specialAuxiliaryInfo == null) {
+            log.warn("未在该条结果库中找到免费转信息2 gameType = {},libId = {}", this.gameType, freeLib.getId());
+            result.code = Code.NOT_FOUND;
+            return result;
+        }
+
+        int index = playerGameData.getFreeIndex().getAndAdd(1);
+        JSONObject jsonObject = specialAuxiliaryInfo.getFreeGames().get(index);
+        log.debug("获取免费游戏的下标 index = {},allLen = {}", index, specialAuxiliaryInfo.getFreeGames().size());
+        ThorResultLib freeGame = JSON.parseObject(jsonObject.toJSONString(), this.libClass);
+
+        if (freeGame == null) {
+            log.warn("未在该条结果库中找到免费转信息3 gameType = {},libId = {}", this.gameType, freeLib.getId());
+            playerGameData.setFreeLib(null);
+            result.code = Code.NOT_FOUND;
+            return result;
+        }
+
+        if(index < 1){
+            playerGameData.setRemainFreeCount(new AtomicInteger(specialAuxiliaryInfo.getFreeGames().size()));
+        }
+
+        //缓存获取到的freeLib
+        playerGameData.setFreeLib(freeLib);
+        result.data = freeGame;
+        return result;
     }
 
     /**
