@@ -9,11 +9,9 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
 import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
-import com.jjg.game.slots.game.steamAge.data.SteamAgeAwardLineInfo;
-import com.jjg.game.slots.game.steamAge.data.SteamAgeExpandIconInfo;
-import com.jjg.game.slots.game.steamAge.data.SteamAgeGameRunInfo;
-import com.jjg.game.slots.game.steamAge.data.SteamAgeResultLib;
+import com.jjg.game.slots.game.steamAge.data.*;
 import com.jjg.game.slots.game.steamAge.pb.*;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,7 +62,19 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
             res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
-
+            if(res.remainFreeCount<0){
+                log.info("dddddddddddddddddddddddd");
+            }
+            res.remainFreeCount = res.remainFreeCount > 0 ?res.remainFreeCount : 0;
+            if (res.remainFreeCount < 1) {
+                res.status = SteamAgeConstant.Status.NORMAL;
+            }
+            if (res.status == SteamAgeConstant.Status.FREE) {
+                SteamAgeResultLib lib = (SteamAgeResultLib) gameRunInfo.getData().getFreeLib();
+                res.baseTimes = generateManager.getSteamAgeExpandRollerInfoMap().get(SteamAgeConstant.SpecialMode.FREE).get(lib.getExpandTimes()).getBaseTimes();
+            } else {
+                res.baseTimes = generateManager.getSteamAgeExpandRollerInfoMap().get(SteamAgeConstant.SpecialMode.NORMAL).get(0).getBaseTimes();
+            }
 
             //奖池信息
             if (prizePoolIdList != null && !prizePoolIdList.isEmpty()) {
@@ -108,13 +118,20 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             //本局获得金币
             res.allWinGold = gameRunInfo.getAllWinGold();
             //免费游戏中累计获得金币
-            res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
+            if (gameRunInfo.getStatus() == FrozenThroneConstant.Status.FREE) {
+                res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
+            } else {
+                res.totalWinGold = 0;
+            }
             //当前状态
             res.status = gameRunInfo.getStatus();
             //图标信息
             res.iconList = IntStream.range(1, 21).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
             //剩余免费次数
-            res.remainFreeCount = gameRunInfo.getRemainFreeCount();
+            res.remainFreeCount = gameRunInfo.getRemainFreeCount() > 0 ?gameRunInfo.getRemainFreeCount() : 0;
+            if(res.remainFreeCount<0){
+                log.info("dddddddddddddddddddddddd");
+            }
             //大奖展示id
             res.bigWinShow = gameRunInfo.getBigShowId();
             //等级信息
@@ -122,9 +139,9 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             res.exp = playerController.getPlayer().getExp();
 
             SteamAgeResultLib lib = (SteamAgeResultLib) gameRunInfo.getResultLib();
-
-            res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore(), 0);
-            //又连线则触发，添加图标信息（右扩展图标）
+            log.info("lib={}", JSONObject.toJSONString(lib));
+            res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore(), 0, res.status, lib.getExpandTimes());
+            //连线则触发，添加图标信息（右扩展图标）
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
             //高亮图标
             res.highlightList = highlight(res.iconList, res.addIconInfoList);
@@ -148,7 +165,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
                 SteamAgeExpandIconInfo info = lib.getAddIconInfos().get(i);
                 SteamAgeExpand iconInfo = new SteamAgeExpand();
                 iconInfo.iconList = info.getAddIconList();
-                iconInfo.rewardIconInfo = addRewardIcons(info.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore(), i + 1);
+                iconInfo.rewardIconInfo = addRewardIcons(info.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore(), i + 1, lib.getGameType(), lib.getExpandTimes());
                 iconInfos.add(iconInfo);
             }
         }
@@ -164,6 +181,9 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
     private List<Integer> highlight(List<Integer> iconList, List<SteamAgeExpand> addIconInfoList) {
 //        int[] iconArr = lib.getIconArr();
         List<Integer> highlightList = new ArrayList<>();
+        if (addIconInfoList == null && addIconInfoList.isEmpty()) {
+            return highlightList;
+        }
         for (int i = 0; i < iconList.size(); i++) {
             if (iconList.get(i) == SteamAgeConstant.BaseElement.ID_WILD
                     || iconList.get(i) == SteamAgeConstant.BaseElement.ID_SCATTER
@@ -174,9 +194,6 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
                     || iconList.get(i) == SteamAgeConstant.BaseElement.ID_MINI) {
                 highlightList.add(i);
             }
-        }
-        if (addIconInfoList == null && addIconInfoList.isEmpty()) {
-            return highlightList;
         }
         //扩列添加
         for (int i = 0; i < addIconInfoList.size(); i++) {
@@ -209,7 +226,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
      * @param oneBetScore
      * @return
      */
-    private SteamAgeIconInfo addRewardIcons(List<SteamAgeAwardLineInfo> awardLineInfoList, long oneBetScore, int num) {
+    private SteamAgeIconInfo addRewardIcons(List<SteamAgeAwardLineInfo> awardLineInfoList, long oneBetScore, int num, int status, int expandNum) {
         if (awardLineInfoList == null || awardLineInfoList.isEmpty()) {
             return null;
         }
@@ -219,13 +236,21 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
         Set<Integer> indexSet = new HashSet<>();
 
         Set<Integer> winIconSet = new HashSet<>();
-        awardLineInfoList.forEach(info -> {
+
+        for (int i = 0; i < awardLineInfoList.size(); i++) {
+            SteamAgeAwardLineInfo info = awardLineInfoList.get(i);
             indexSet.addAll(info.getSameIconSet());
             winIconSet.add(info.getSameIcon());
             iconInfo.win += info.getLineTimes() * oneBetScore;
             iconInfo.baseTimes = info.getBaseTimes();
+//            //没有中奖 倍数是默认1 过来的 重新赋值
+            if (info.getBaseTimes() == 1
+                    && (info.getSameIconSet() == null || info.getSameIconSet().isEmpty())) {
+                SteamAgeExpandRollerInfo steamAgeExpandRollerInfo = generateManager.getSteamAgeExpandRollerInfoMap().get(status == 1 ? SteamAgeConstant.SpecialMode.FREE : SteamAgeConstant.SpecialMode.NORMAL).get(expandNum + num);
+                iconInfo.baseTimes = steamAgeExpandRollerInfo.getBaseTimes();
+            }
             log.info("iconInfo.baseTimes:{}", iconInfo.baseTimes);
-        });
+        }
 
         //转化下坐标数组
         if (num > 0) {

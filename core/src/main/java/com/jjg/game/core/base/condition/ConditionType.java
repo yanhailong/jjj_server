@@ -40,6 +40,8 @@ public enum ConditionType {
     PLAY_ROOM_TYPE(12006, new PlayerEffectiveBetDropCheck(12006)),
     //累积使用道具数量
     PLAY_USE_ITEM(12101, new PlayUseItemCheck()),
+    //总累计达到设定有效下注数量（不计算开房间游戏）
+    PLAYER_CUMULATIVE_BET(12007, new PlayerCumulativeEffectiveBetCheck()),
     ;
 
     /**

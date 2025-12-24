@@ -8,6 +8,7 @@ import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
+import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 import com.jjg.game.slots.game.steamAge.data.*;
 
@@ -34,6 +35,10 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
     private SteamAgeAddFreeInfo steamAgeAddFreeInfo;
 
     private Map<Integer, Map<Integer, SteamAgeExpandRollerInfo>> steamAgeExpandRollerInfoMap;
+
+    public Map<Integer, Map<Integer, SteamAgeExpandRollerInfo>> getSteamAgeExpandRollerInfoMap() {
+        return steamAgeExpandRollerInfoMap;
+    }
 
     @Override
     protected List<SpecialAuxiliaryInfo> overallDisperse(SteamAgeResultLib lib) {
@@ -114,7 +119,7 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
             System.arraycopy(arr, 0, newArr, 0, arr.length);
 
             //是否有消除
-            repairIcons(SteamAgeConstant.SpecialMode.FREE, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
+            repairIcons(SteamAgeConstant.SpecialMode.FREE, newArr, lib.getAwardLineInfoList(), addIconInfoList, lib.getExpandTimes());
 
             if (!addIconInfoList.isEmpty()) {
                 lib.setAddIconInfos(addIconInfoList);
@@ -144,7 +149,7 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
             if (lib.getAwardLineInfoList() != null && !lib.getAwardLineInfoList().isEmpty()) {
                 lib.getLibTypeSet().forEach(type -> {
                     //是否新增列
-                    repairIcons(type, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
+                    repairIcons(SteamAgeConstant.SpecialMode.NORMAL, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
                 });
             }
 
@@ -200,17 +205,73 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
                 }
             }
 
-            SteamAgeResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+            SteamAgeResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID,expandTimes);
             int addCount = checkAddFreeCount(lib);
             lib.setAddFreeCount(addCount);
-            expandTimes = expandTimes + (lib.getAddIconInfos() == null ? 0 : lib.getAddIconInfos().size());
-            lib.setExpandTimes(expandTimes);
+            expandTimes = expandTimes + (lib.getAddIconInfos() == null || lib.getAddIconInfos().isEmpty() ? 0 : lib.getAddIconInfos().size());
+//            System.out.println("expandTimes= "+expandTimes);
+//            lib.setExpandTimes(expandTimes);
             remainFreeCount += addCount;
             specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
             log.debug("--------------{}------------", remainFreeCount);
             remainFreeCount--;
         }
     }
+
+    public SteamAgeResultLib generateFreeOne(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, int specialGroupGirdID,int expandTimes) {
+        try {
+            //获取模式配置
+            SpecialModeCfg specialModeCfg = this.specialModeCfgMap.get(specialModeType);
+            if (specialModeCfg == null) {
+                log.warn("生成免费游戏图标时，specialModeCfg 配置为空 gameType = {},specialModeType = {}", this.gameType, specialModeType);
+                return null;
+            }
+
+            //创建结果库对象
+            SteamAgeResultLib lib = createResultLib();
+            lib.setId(RandomUtils.getUUid());
+            lib.setRollerMode(specialModeCfg.getRollerMode());
+
+            //获取rollerMode
+            int rollerMode = specialAuxiliaryCfg.getRollerMode();
+            if (rollerMode < 1) {
+                rollerMode = specialModeCfg.getRollerMode();
+            }
+
+            //生成所有的图标
+            int[] arr = generateAllIcons(rollerMode, specialModeCfg.getCols(), specialModeCfg.getRows());
+            if (arr == null) {
+                return null;
+            }
+
+            log.debug("生成免费游戏图标 arr = {}", Arrays.toString(arr));
+
+            //修改格子策略组
+            if (specialGroupGirdID > 0) {
+                SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGroupGirdID, arr);
+                if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
+                    lib.addSpecialGirdInfo(specialGirdInfo);
+                }
+            }
+            //修改格子
+            if (specialAuxiliaryCfg.getSpecialGirdID() != null && !specialAuxiliaryCfg.getSpecialGirdID().isEmpty()) {
+                for (int specialGirdCfgId : specialAuxiliaryCfg.getSpecialGirdID()) {
+                    SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGirdCfgId, arr);
+                    if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
+                        lib.addSpecialGirdInfo(specialGirdInfo);
+                    }
+                }
+            }
+            //赋值扩展中奖
+            lib.setExpandTimes(expandTimes);
+            //判断中奖，返回
+            return checkAward(arr, lib, true);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        return null;
+    }
+
 
     /**
      * 检查是否增加免费次数
@@ -245,8 +306,6 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
         if (list == null || list.isEmpty()) {
             return;
         }
-        expandTimes++;
-
 //        //连续中奖后重置中奖倍数
         resetLineRewardTimes(libType, list, expandTimes);
 
@@ -259,6 +318,8 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
         addIconInfoList.add(addIconInfo);
 
         if (newAwardInfoList != null && !newAwardInfoList.isEmpty()) {
+            expandTimes++;
+//            System.out.println("===========expandTimes= "+expandTimes);
             repairIcons(libType, arr, newAwardInfoList, addIconInfoList, expandTimes);
         }
 
@@ -269,6 +330,7 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
             if (steamAgeExpandRollerInfoMap.get(libType) == null || steamAgeExpandRollerInfoMap.get(libType).get(expandTimes) == null) {
                 return;
             }
+            //新增列
             SteamAgeExpandRollerInfo steamAgeExpandRollerInfo = steamAgeExpandRollerInfoMap.get(libType).get(expandTimes);
             Integer times = steamAgeExpandRollerInfo.getBaseTimes();
             SteamAgeAwardLineInfo steamAgeAwardLineInfo = list.get(i);
@@ -317,11 +379,11 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
         }
         //根据权重是否中奖
         int weight = steamAgeExpandRollerInfo.getWeight();
-        Random random = new Random();
-        int randomNumber = random.nextInt(10000);
 
         //100次确认是否权重中奖，权重不一致弹出
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 1000; i++) {
+            Random random = new Random();
+            int randomNumber = random.nextInt(10000);
             addIconList.clear();
             // 补充新图标 只补充第一列
             for (int j = 1; j <= baseInitCfg.getRows(); j++) {

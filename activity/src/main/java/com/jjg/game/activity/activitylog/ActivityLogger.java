@@ -13,7 +13,6 @@ import com.jjg.game.core.logger.BaseLogger;
 import com.jjg.game.sampledata.bean.FirstpaymentCfg;
 import com.jjg.game.sampledata.bean.PlayerLevelPackCfg;
 import com.jjg.game.sampledata.bean.PrivilegeCardCfg;
-import org.springframework.scheduling.Trigger;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -209,13 +208,16 @@ public class ActivityLogger extends BaseLogger {
      *
      * @param player         玩家信息
      * @param activityData   活动数据
+     * @param type           增加类型 1充值 9有效流水
+     * @param superiorId     上级玩家id
      * @param rechargeAmount 充值金额
      * @param totalAdd       增加的金币
      */
-    public void sendSharePromoteSubordinateRecharge(Player player, ActivityData activityData, long superiorId, long rechargeAmount, long totalAdd) {
+    public void sendSharePromoteSubordinateRecharge(Player player, ActivityData activityData, int type, long superiorId, long rechargeAmount, long totalAdd) {
         try {
             JSONObject json = buildBaseInfo(activityData, 0);
             json.put("rechargeAmount", rechargeAmount);
+            json.put("addType", type);
             json.put("superiorId", superiorId);
             json.put("totalAdd", totalAdd);
             json.put("logType", 6);
@@ -231,7 +233,7 @@ public class ActivityLogger extends BaseLogger {
      *
      * @param player       玩家数据
      * @param activityData 活动数据
-     * @param logType      类型 (1.下级充值 2绑定玩家 3.分享收益领取 4.人数收益领取 5.人数变化 6.绑定下级充值 7.周榜 8.绑定玩家奖励领取)
+     * @param logType      类型 (1.下级充值 2绑定玩家 3.分享收益领取 4.人数收益领取 5.人数变化 6.绑定下级充值有效下注 7.周榜 8.绑定玩家奖励领取)
      * @param totalGoldAdd 总收益增加
      * @param addBindNum   绑定人数增加
      * @param addGold      领取金币增加
@@ -265,7 +267,7 @@ public class ActivityLogger extends BaseLogger {
      *
      * @param player       玩家数据
      * @param activityData 活动数据
-     * @param type         类型 (1.下级充值 2绑定玩家 3.分享收益领取 4.人数收益领取 5.人数变化 6.绑定下级充值 7.周榜)
+     * @param type         类型 (1.下级充值 2绑定玩家 3.分享收益领取 4.人数收益领取 5.人数变化 6.绑定下级充值 7.周榜,8.绑定玩家奖励领取9.下级有效下注 10.增加有效人数)
      * @param totalGoldAdd 总收益增加
      * @param addBindNum   绑定人数增加
      * @param addGold      领取金币增加

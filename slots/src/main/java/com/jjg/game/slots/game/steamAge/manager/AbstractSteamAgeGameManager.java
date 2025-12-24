@@ -236,6 +236,8 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
         //扣除免费次数
         int afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
 
+        log.debug("免费剩余次数 抽奖 afterCount = {}", afterCount );
+
         SteamAgeResultLib freeGame = libResult.data;
         if (freeGame.getAddFreeCount() > 0) {
             afterCount = playerGameData.getRemainFreeCount().addAndGet(freeGame.getAddFreeCount());

@@ -27,6 +27,8 @@ public class ResSteamAgeEnterGame extends AbstractResponse {
     public int remainFreeCount;
     @ProtoDesc("奖池信息")
     public List<SteamAgePoolInfo> poolList;
+    @ProtoDesc("连续倍数")
+    public int baseTimes;
 
     public ResSteamAgeEnterGame(int code) {
         super(code);

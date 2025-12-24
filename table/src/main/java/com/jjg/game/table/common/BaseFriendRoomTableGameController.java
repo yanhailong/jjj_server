@@ -120,7 +120,8 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
 
     /**
      * 返回上庄金额
-     * @param backNum 返回上庄数量
+     *
+     * @param backNum      返回上庄数量
      * @param roomBankerId 返回的玩家id
      */
     private void backBeBankerMoney(AtomicLong backNum, long roomBankerId) {
@@ -199,6 +200,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                 // 构建基础历史数据bean
                 FriendRoomBillHistoryBean historyBean = FriendRoomBillHistoryHelper.buildFriendRoom(getRoom());
                 historyBean.setTotalIncome(roomCreatorTotalIncome);
+                gameDataTracker.addGameLogData("income", roomCreatorTotalIncome);
                 long totalFlowing =
                         settlementDataMap.values().stream()
                                 .filter(s -> s.getBetWin() > 0)
