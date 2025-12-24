@@ -21,6 +21,12 @@ public class ResMoneyRabbitEnterGame extends AbstractResponse {
     public long defaultBet;
     @ProtoDesc("当前奖池的值")
     public long poolValue;
+    @ProtoDesc("状态  0.普通   1.真免费   2.假免费")
+    public int status;
+    @ProtoDesc("剩余免费次数")
+    public int remainFreeCount;
+    @ProtoDesc("奖池配置信息")
+    public List<MoneyRabbitPoolInfo> poolList;
 
     public ResMoneyRabbitEnterGame(int code) {
         super(code);

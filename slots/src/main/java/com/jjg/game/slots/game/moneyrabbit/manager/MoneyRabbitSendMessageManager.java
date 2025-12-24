@@ -5,8 +5,11 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
 import com.jjg.game.core.manager.BaseSendMessageManager;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.moneyrabbit.data.MoneyRabbitGameRunInfo;
+import com.jjg.game.slots.game.moneyrabbit.pb.MoneyRabbitPoolInfo;
 import com.jjg.game.slots.game.moneyrabbit.pb.ResMoneyRabbitEnterGame;
 import com.jjg.game.slots.game.moneyrabbit.pb.ResMoneyRabbitPool;
 import com.jjg.game.slots.game.moneyrabbit.pb.ResMoneyRabbitStartGame;
@@ -35,6 +38,8 @@ public class MoneyRabbitSendMessageManager extends BaseSendMessageManager {
      */
     public void sendConfigMessage(PlayerController playerController, MoneyRabbitGameRunInfo gameRunInfo) {
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
+        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
+        List<Integer> prizePoolIdList = baseInitCfg.getPrizePoolIdList();
 
         SendInfo sendInfo = new SendInfo();
 
@@ -48,6 +53,27 @@ public class MoneyRabbitSendMessageManager extends BaseSendMessageManager {
 
             res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
             res.poolValue = gameManager.getPoolValueByRoomCfgId(config.getId());
+
+            res.status = gameRunInfo.getData().getStatus();
+            res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
+
+            //奖池信息
+            if (prizePoolIdList != null && !prizePoolIdList.isEmpty()) {
+                res.poolList = new ArrayList<>();
+                for (int poolId : prizePoolIdList) {
+                    PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+                    if (poolCfg == null) {
+                        continue;
+                    }
+                    MoneyRabbitPoolInfo poolInfo = new MoneyRabbitPoolInfo();
+                    poolInfo.id = poolId;
+                    poolInfo.initTimes = poolCfg.getFakePoolInitTimes();
+                    poolInfo.maxTimes = poolCfg.getFakePoolMax();
+                    poolInfo.perSomeSec = poolCfg.getGrowthRate().get(0);
+                    poolInfo.updateProp = poolCfg.getGrowthRate().get(1);
+                    res.poolList.add(poolInfo);
+                }
+            }
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
