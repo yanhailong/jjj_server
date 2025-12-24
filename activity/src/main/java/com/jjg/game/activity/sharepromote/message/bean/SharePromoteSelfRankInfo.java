@@ -11,7 +11,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtoDesc("我的推广分享排行榜信息")
 public class SharePromoteSelfRankInfo extends SharePromoteRankInfo {
     @ProtoDesc("充值总金额")
-    public long totalRecharge;
+    public String totalRecharge;
     @ProtoDesc("有效流水")
     public long validFlow;
 }
