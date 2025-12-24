@@ -21,11 +21,13 @@ public class SharePromoteCfg extends BaseCfgBean {
 
   /** 名次 */
   protected List<Integer> Ranking;
+  /** 有效下注的收益比例 */
+  protected int betproportion;
   /** 激活条件 */
   protected int condition;
   /** 奖励 */
   protected Map<Integer,Long> getitem;
-  /** 收益比例 */
+  /** 充值收益比例 */
   protected int proportion;
   /** 类型 */
   protected int type;
@@ -33,6 +35,11 @@ public class SharePromoteCfg extends BaseCfgBean {
   /** 返回名次 */
   public List<Integer> getRanking() {
     return Ranking;
+  }
+
+  /** 返回有效下注的收益比例 */
+  public int getBetproportion() {
+    return betproportion;
   }
 
   /** 返回激活条件 */
@@ -45,7 +52,7 @@ public class SharePromoteCfg extends BaseCfgBean {
     return getitem;
   }
 
-  /** 返回收益比例 */
+  /** 返回充值收益比例 */
   public int getProportion() {
     return proportion;
   }
