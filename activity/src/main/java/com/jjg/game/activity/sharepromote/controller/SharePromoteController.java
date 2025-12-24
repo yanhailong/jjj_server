@@ -113,15 +113,15 @@ public class SharePromoteController extends BaseActivityController {
         if (bindInfoArr.length != 2) {
             return false;
         }
+        boolean effectiveBet = (activityTargetKey & ActivityTargetType.EFFECTIVE_BET.getTargetKey()) != 0;
         //被绑定的玩家id
         long beneficiaryPlayerId = Long.parseLong(bindInfoArr[0]);
-        //添加充值进度
-        if (activityTargetKey == ActivityTargetType.RECHARGE.getTargetKey()) {
-            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(SHARE_PROMOTE), String.valueOf(playerId), RedisUtils.fromLong(progress));
-        }
-        //添加有效流水进度
-        if (activityTargetKey == ActivityTargetType.EFFECTIVE_BET.getTargetKey()) {
+        if (effectiveBet) {
+            //添加有效流水进度
             countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(SHARE_PROMOTE_EFFECTIVE_BET), String.valueOf(playerId), BigDecimal.valueOf(progress));
+        } else {
+            //添加充值进度
+            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(SHARE_PROMOTE), String.valueOf(playerId), RedisUtils.fromLong(progress));
         }
         //获取被绑定玩家的推广分享数据
         SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(beneficiaryPlayerId);
@@ -136,7 +136,7 @@ public class SharePromoteController extends BaseActivityController {
             int type = 9;
             //计算收益率
             int proportion = getPlayerProportion(playerId, activityData);
-            if (activityTargetKey == ActivityTargetType.RECHARGE.getTargetKey()) {
+            if (!effectiveBet) {
                 proportion = getPlayerRechargeProportion(playerId, activityData);
                 GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(53);
                 if (globalConfigCfg != null) {
@@ -654,7 +654,7 @@ public class SharePromoteController extends BaseActivityController {
                 //构建排行榜玩家基本信息
                 buildSharePromoteRankInfo(player, rankInfo, entry.getValue().longValue());
                 String key = String.valueOf(entry.getKey());
-                rankInfo.totalRecharge = RedisUtils.toLong(counts.get(key));
+                rankInfo.totalRecharge = counts.get(key).toPlainString();
                 rankInfo.validFlow = effectiveFlowMap.get(key).longValue();
                 res.rankInfoList.add(rankInfo);
             }
