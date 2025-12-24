@@ -13,16 +13,14 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.game.thor.dao.ThorGameDataDao;
 import com.jjg.game.slots.game.thor.dao.ThorResultLibDao;
-import com.jjg.game.slots.game.thor.data.ThorAwardLineInfo;
-import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
-import com.jjg.game.slots.game.thor.data.ThorPlayerGameData;
-import com.jjg.game.slots.game.thor.data.ThorResultLib;
+import com.jjg.game.slots.game.thor.data.*;
 import com.jjg.game.slots.game.thor.pb.ThorWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -116,11 +114,14 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
     protected ThorGameRunInfo startGame(PlayerController playerController, ThorPlayerGameData playerGameData, long stake, boolean auto) {
         ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
+            gameRunInfo.setAuto(auto);
+
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setBeforeGold(player.getGold());
+            gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
             //获取当前处于哪种状态
             int status = playerGameData.getStatus();
@@ -144,30 +145,19 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
                 return gameRunInfo;
             }
 
-            //标准池
-            if (gameRunInfo.getBigPoolTimes() > 0) {
-                long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
-                if (addGold > 0) {
-                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
-                    if (!result.success()) {
-                        log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                        gameRunInfo.setCode(result.code);
-                        return gameRunInfo;
-                    }
-                    gameRunInfo.setAllWinGold(addGold);
-                }
-            }
+            //从奖池扣除，并给玩家加钱
+            rewardFromBigPool(gameRunInfo, playerGameData);
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), stake);
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), stake, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setAfterGold(player.getGold());
+            gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
             int times = calWinTimes(gameRunInfo, playerGameData, stake);
@@ -186,26 +176,6 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         }
         return gameRunInfo;
     }
-
-    /**
-     * 获取奖池
-     *
-     * @param playerController
-     */
-    public ThorGameRunInfo getPoolValue(PlayerController playerController, long stake) {
-        ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerController.playerId());
-        try {
-            gameRunInfo.setMini(getPoolValueByPoolId(ThorConstant.Common.MINI_POOL_ID, stake));
-            gameRunInfo.setMinor(getPoolValueByPoolId(ThorConstant.Common.MINOR_POOL_ID, stake));
-            gameRunInfo.setMajor(getPoolValueByPoolId(ThorConstant.Common.MAJOR_POOL_ID, stake));
-            gameRunInfo.setGrand(getPoolValueByPoolId(ThorConstant.Common.GRAND_POOL_ID, stake));
-        } catch (Exception e) {
-            log.error("", e);
-            gameRunInfo.setCode(Code.EXCEPTION);
-        }
-        return gameRunInfo;
-    }
-
 
     /**
      * 普通正常流程
@@ -239,7 +209,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         }
 
         //检查是否中大奖
-        jackpool(gameRunInfo, playerGameData, resultLib);
+        rewardFromSmallPool(gameRunInfo,playerGameData,resultLib.getJackpotId(),false);
 
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setStatus(playerGameData.getStatus());
@@ -263,7 +233,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         ThorResultLib freeGame = libResult.data;
 
         //累计免费模式的中奖金额
-        playerGameData.addFreeModeTotalReward(playerGameData.getOneBetScore() * freeGame.getTimes());
+        playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
 
         gameRunInfo.setStatus(playerGameData.getStatus());
 
@@ -273,7 +243,8 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
             //最后一局，通知客户端，累计免费模式的中奖金额
-            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeModeTotalReward());
+            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
+            playerGameData.setFreeAllWin(0);
             gameRunInfo.setFreeEnd(true);
         }
 
@@ -354,7 +325,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
             return result;
         }
 
-        if(index < 1){
+        if (index < 1) {
             playerGameData.setRemainFreeCount(new AtomicInteger(specialAuxiliaryInfo.getFreeGames().size()));
         }
 
@@ -362,42 +333,6 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         playerGameData.setFreeLib(freeLib);
         result.data = freeGame;
         return result;
-    }
-
-    /**
-     * 检查中大奖
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param resultLib
-     * @return
-     */
-    private ThorGameRunInfo jackpool(ThorGameRunInfo gameRunInfo, ThorPlayerGameData playerGameData, ThorResultLib resultLib) {
-        if (!resultLib.getLibTypeSet().contains(ThorConstant.SpecialMode.JACKPOOL)) {
-            return gameRunInfo;
-        }
-
-        try {
-            PoolCfg poolCfg = randWinPool(playerGameData, resultLib.getJackpotId());
-            if (poolCfg == null) {
-                return gameRunInfo;
-            }
-
-            long poolValue = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), poolCfg.getDelayTime());
-            //给玩家加钱
-            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), poolValue, AddType.SLOTS_TRAIN, resultLib.getJackpotId() + "");
-            if (!result.success()) {
-                log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
-                return gameRunInfo;
-            }
-            playerGameData.addSmallPoolReward(poolValue);
-            gameRunInfo.addSmallPoolGold(poolValue);
-
-            log.info("玩家奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), resultLib.getJackpotId(), poolValue);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-        return gameRunInfo;
     }
 
     /**
@@ -446,7 +381,12 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
 
     @Override
     protected void offlineSaveGameDataDto(ThorPlayerGameData gameData) {
-
+        try {
+            ThorPlayerGameDataDTO dto = gameData.converToDto(ThorPlayerGameDataDTO.class);
+            gameDataDao.saveGameData(dto);
+        } catch (Exception e) {
+            log.error("", e);
+        }
     }
 
     @Override

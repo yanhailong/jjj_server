@@ -8,6 +8,8 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.game.superstar.SuperStarConstant;
 import com.jjg.game.slots.game.superstar.dao.SuperStarGameDataDao;
@@ -85,23 +87,6 @@ public class AbstractSuperStarGameManager extends AbstractSlotsGameManager<Super
     }
 
     /**
-     * 获取奖池
-     */
-    public SuperStarGameRunInfo getPoolValue(PlayerController playerController, long stake) {
-        SuperStarGameRunInfo gameRunInfo = new SuperStarGameRunInfo(Code.SUCCESS, playerController.playerId());
-        try {
-            gameRunInfo.setMini(getPoolValueByPoolId(SuperStarConstant.Common.MINI_POOL_ID, stake));
-            gameRunInfo.setMinor(getPoolValueByPoolId(SuperStarConstant.Common.MINOR_POOL_ID, stake));
-            gameRunInfo.setMajor(getPoolValueByPoolId(SuperStarConstant.Common.MAJOR_POOL_ID, stake));
-            gameRunInfo.setGrand(getPoolValueByPoolId(SuperStarConstant.Common.GRAND_POOL_ID, stake));
-        } catch (Exception e) {
-            log.error("", e);
-            gameRunInfo.setCode(Code.EXCEPTION);
-        }
-        return gameRunInfo;
-    }
-
-    /**
      * 开始游戏
      */
     public SuperStarGameRunInfo playerStartGame(PlayerController playerController, long betValue) {
@@ -121,6 +106,8 @@ public class AbstractSuperStarGameManager extends AbstractSlotsGameManager<Super
     public SuperStarGameRunInfo startGame(PlayerController playerController, SuperStarPlayerGameData playerGameData, long betValue) {
         SuperStarGameRunInfo gameRunInfo = new SuperStarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
+
             CommonResult<Pair<SuperStarResultLib, BetDivideInfo>> commonResult = normalGetLib(playerGameData, betValue, SuperStarConstant.Common.SPECIAL_MODE_TYPE_NORMAL);
             if (!commonResult.success()) {
                 gameRunInfo.setCode(commonResult.code);
@@ -137,35 +124,15 @@ public class AbstractSuperStarGameManager extends AbstractSlotsGameManager<Super
             spinInfo.setJackpotId(resultLib.getJackpotId());
             gameRunInfo.setSpinInfo(spinInfo);
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
-            //标准池
-            long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
-            if (gameRunInfo.getBigPoolTimes() > 0) {
-                if (addGold > 0) {
-                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
-                    if (!result.success()) {
-                        log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                        gameRunInfo.setCode(result.code);
-                        return gameRunInfo;
-                    }
-                }
-            }
-            int jackpotId = gameRunInfo.getSpinInfo().getJackpotId();
-            //检测奖池奖励
-            if (jackpotId > 0) {
-                long pool = getPoolValueByPoolId(jackpotId, betValue);
-                if (pool > 0) {
-                    addGold += pool;
-                    slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), pool, AddType.SLOTS_JACKPOT_REWARD);
-                    //记录发奖金额
-                    gameRunInfo.getSpinInfo().jackpotValue = pool;
-                }
-            }
-            if (addGold > 0) {
-                gameRunInfo.addAllWinGold(addGold);
-            }
+
+            //从奖池扣除，并给玩家加钱
+            rewardFromBigPool(gameRunInfo, playerGameData);
+            //奖池中奖
+            rewardFromSmallPool(gameRunInfo, playerGameData, gameRunInfo.getSpinInfo().getJackpotId(), false);
+            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(),gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
 
             //添加大奖展示id
             int times = calWinTimes(gameRunInfo, playerGameData, betValue);
@@ -176,7 +143,7 @@ public class AbstractSuperStarGameManager extends AbstractSlotsGameManager<Super
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setAfterGold(player.getGold());
+            gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
             gameRunInfo.setResultLib(resultLib);
 
             return gameRunInfo;

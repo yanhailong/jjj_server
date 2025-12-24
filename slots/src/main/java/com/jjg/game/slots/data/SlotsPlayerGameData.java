@@ -173,6 +173,10 @@ public class SlotsPlayerGameData {
         this.freeAllWin = freeAllWin;
     }
 
+    public void addFreeAllWin(long freeAllWin) {
+        this.freeAllWin += freeAllWin;
+    }
+
     public void setRemainFreeCount(AtomicInteger remainFreeCount) {
         this.remainFreeCount = remainFreeCount;
     }
@@ -300,6 +304,20 @@ public class SlotsPlayerGameData {
             return null;
         }
         return slotsRoomController.getRoom().getType();
+    }
+
+    public Player getPlayer() {
+        if(this.playerController == null){
+            return null;
+        }
+        return this.playerController.getPlayer();
+    }
+
+    public void setPlayer(Player player) {
+        if(this.playerController == null){
+            return;
+        }
+        this.playerController.setPlayer(player);
     }
 
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {

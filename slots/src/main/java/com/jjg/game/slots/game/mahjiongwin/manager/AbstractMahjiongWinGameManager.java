@@ -10,6 +10,8 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
@@ -100,11 +102,12 @@ public class AbstractMahjiongWinGameManager extends AbstractSlotsGameManager<Mah
         try {
             gameRunInfo.setAuto(auto);
 
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setBeforeGold(player.getGold());
+            gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
             //获取当前处于哪种状态
             int status = playerGameData.getStatus();
@@ -118,41 +121,23 @@ public class AbstractMahjiongWinGameManager extends AbstractSlotsGameManager<Mah
                 return gameRunInfo;
             }
 
-            if(!gameRunInfo.success()){
+            if (!gameRunInfo.success()) {
                 return gameRunInfo;
             }
 
-            //标准池
-            if (gameRunInfo.getBigPoolTimes() > 0) {
-                long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
-                if (addGold > 0) {
-                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
-                    if (!result.success()) {
-                        log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                        gameRunInfo.setCode(result.code);
-                        return gameRunInfo;
-                    }
-                    gameRunInfo.setAllWinGold(addGold);
-                }
-
-                //如果是免费模式，要累计记录中奖金额
-                if(status == MahjiongWinConstant.Status.FREE) {
-                    playerGameData.setFreeAllWin(playerGameData.getFreeAllWin() + addGold);
-                }else {
-                    playerGameData.setFreeAllWin(0);
-                }
-            }
+            //从奖池扣除，并给玩家加钱
+            rewardFromBigPool(gameRunInfo, playerGameData);
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(),gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setAfterGold(player.getGold());
+            gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
             int times = calWinTimes(gameRunInfo, playerGameData, betValue);
@@ -249,10 +234,16 @@ public class AbstractMahjiongWinGameManager extends AbstractSlotsGameManager<Mah
             log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(), afterCount);
         }
 
+        //累计免费模式的中奖金额
+        playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
+
         if (afterCount < 1) {
             playerGameData.setStatus(MahjiongWinConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
+
+            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
+            playerGameData.setFreeAllWin(0);
             log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
         }
 

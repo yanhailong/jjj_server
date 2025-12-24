@@ -5,8 +5,10 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeGameRunInfo;
 import com.jjg.game.slots.game.steamAge.manager.SteamAgeGameManager;
+import com.jjg.game.slots.game.steamAge.manager.SteamAgeRoomGameManager;
 import com.jjg.game.slots.game.steamAge.manager.SteamAgeSendMessageManager;
 import com.jjg.game.slots.game.steamAge.pb.ReqSteamAgeEnterGame;
 import com.jjg.game.slots.game.steamAge.pb.ReqSteamAgePoolInfo;
@@ -28,6 +30,8 @@ public class SteamAgeMessageHandler {
     @Autowired
     private SteamAgeGameManager gameManager;
     @Autowired
+    private SteamAgeRoomGameManager roomGameManager;
+    @Autowired
     private SteamAgeSendMessageManager sendMessageManager;
 
     /**
@@ -40,8 +44,16 @@ public class SteamAgeMessageHandler {
     public void reqConfigInfo(PlayerController playerController, ReqSteamAgeEnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
-            SteamAgeGameRunInfo gameRunInfo = gameManager.enterGame(playerController);
-            sendMessageManager.sendConfigMessage(playerController,gameRunInfo);
+            SteamAgeGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.enterGame(playerController);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.enterGame(playerController);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
+            sendMessageManager.sendConfigMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -57,7 +69,15 @@ public class SteamAgeMessageHandler {
     public void reqStartGame(PlayerController playerController, ReqSteamAgeStartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            SteamAgeGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);
+            SteamAgeGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = this.roomGameManager.playerStartGame(playerController, req.stakeVlue);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
@@ -75,7 +95,15 @@ public class SteamAgeMessageHandler {
     public void reqGetPoolInfo(PlayerController playerController, ReqSteamAgePoolInfo req) {
         try {
             log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            SteamAgeGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+            SteamAgeGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.getPoolValue(SteamAgeGameRunInfo.class, playerController, req.stakeVlue);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.getPoolValue(SteamAgeGameRunInfo.class, playerController, req.stakeVlue);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
             sendMessageManager.sendPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);

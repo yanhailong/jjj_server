@@ -13,6 +13,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
@@ -103,11 +104,13 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
         CleopatraGameRunInfo gameRunInfo = new CleopatraGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
+
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setBeforeGold(player.getGold());
+            gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
             gameRunInfo = normal(gameRunInfo, playerGameData, betValue);
 
@@ -115,30 +118,19 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
                 return gameRunInfo;
             }
 
-            //标准池
-            if (gameRunInfo.getBigPoolTimes() > 0) {
-                long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
-                if (addGold > 0) {
-                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
-                    if (!result.success()) {
-                        log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                        gameRunInfo.setCode(result.code);
-                        return gameRunInfo;
-                    }
-                    gameRunInfo.setAllWinGold(addGold);
-                }
-            }
+            //从奖池扣除，并给玩家加钱
+            rewardFromBigPool(gameRunInfo, playerGameData);
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue);
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setAfterGold(player.getGold());
+            gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
             int times = calWinTimes(gameRunInfo, playerGameData, betValue);

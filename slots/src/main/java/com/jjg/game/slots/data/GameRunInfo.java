@@ -44,6 +44,9 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
     private long major;
     private long grand;
 
+    //免费游戏累计金额
+    private long freeModeTotalReward;
+
     public GameRunInfo(int code, long playerId) {
         this.code = code;
         this.playerId = playerId;
@@ -223,5 +226,13 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
 
     public void setGrand(long grand) {
         this.grand = grand;
+    }
+
+    public long getFreeModeTotalReward() {
+        return freeModeTotalReward;
+    }
+
+    public void setFreeModeTotalReward(long freeModeTotalReward) {
+        this.freeModeTotalReward = freeModeTotalReward;
     }
 }

@@ -33,7 +33,7 @@ public class GoldSnakeFortuneSendMessageManager extends BaseSendMessageManager {
      *
      * @param playerController
      */
-    public void sendConfigMessage(PlayerController playerController) {
+    public void sendConfigMessage(PlayerController playerController, GoldSnakeFortuneGameRunInfo gameRunInfo) {
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
 
         SendInfo sendInfo = new SendInfo();
@@ -79,10 +79,13 @@ public class GoldSnakeFortuneSendMessageManager extends BaseSendMessageManager {
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
+            //中奖线信息
+            res.winIconInfoList = gameRunInfo.getAwardLineInfos();
+            res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
+            res.freeModeTotalReward = gameRunInfo.getFreeModeTotalReward();
+            res.remainFreeCount = gameRunInfo.getRemainFreeCount();
 
-
-
-            slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
+            slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }

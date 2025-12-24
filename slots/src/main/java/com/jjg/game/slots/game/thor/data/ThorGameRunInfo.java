@@ -12,8 +12,6 @@ import java.util.List;
 public class ThorGameRunInfo extends GameRunInfo<ThorPlayerGameData> {
     //中奖线信息
     private List<ThorWinIconInfo> awardLineInfos;
-    //免费游戏累计金额
-    private long freeModeTotalReward;
     //标记免费模式结束
     private boolean freeEnd;
 
@@ -27,14 +25,6 @@ public class ThorGameRunInfo extends GameRunInfo<ThorPlayerGameData> {
 
     public void setAwardLineInfos(List<ThorWinIconInfo> awardLineInfos) {
         this.awardLineInfos = awardLineInfos;
-    }
-
-    public long getFreeModeTotalReward() {
-        return freeModeTotalReward;
-    }
-
-    public void setFreeModeTotalReward(long freeModeTotalReward) {
-        this.freeModeTotalReward = freeModeTotalReward;
     }
 
     public boolean isFreeEnd() {

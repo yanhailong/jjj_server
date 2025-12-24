@@ -25,20 +25,6 @@ public class WealthBankPlayerGameData extends SlotsPlayerGameData {
     private Set<Integer> selectedAreaSet;
     //全地图解锁
     private AtomicBoolean allUnLock = new AtomicBoolean(false);
-    //免费模式累计奖励
-    private long freeModeTotalReward = 0;
-
-    public long getFreeModeTotalReward() {
-        return freeModeTotalReward;
-    }
-
-    public void setFreeModeTotalReward(long freeModeTotalReward) {
-        this.freeModeTotalReward = freeModeTotalReward;
-    }
-
-    public void addFreeModeTotalReward(long freeModeTotalReward) {
-        this.freeModeTotalReward += freeModeTotalReward;
-    }
 
     public int getTotalDollars() {
         return totalDollars;

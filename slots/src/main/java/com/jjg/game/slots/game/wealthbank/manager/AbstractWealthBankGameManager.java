@@ -11,10 +11,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.PoolCfg;
-import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
-import com.jjg.game.sampledata.bean.SpecialGirdCfg;
-import com.jjg.game.sampledata.bean.SpecialPlayCfg;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
@@ -293,25 +290,6 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
     }
 
     /**
-     * 获取奖池
-     *
-     * @param playerController
-     */
-    public WealthBankGameRunInfo getPoolValue(PlayerController playerController, long stake) {
-        WealthBankGameRunInfo gameRunInfo = new WealthBankGameRunInfo(Code.SUCCESS, playerController.playerId());
-        try {
-            gameRunInfo.setMini(getPoolValueByPoolId(WealthBankConstant.Common.MINI_POOL_ID, stake));
-            gameRunInfo.setMinor(getPoolValueByPoolId(WealthBankConstant.Common.MINOR_POOL_ID, stake));
-            gameRunInfo.setMajor(getPoolValueByPoolId(WealthBankConstant.Common.MAJOR_POOL_ID, stake));
-            gameRunInfo.setGrand(getPoolValueByPoolId(WealthBankConstant.Common.GRAND_POOL_ID, stake));
-        } catch (Exception e) {
-            log.error("[Wealth Bank] ", e);
-            gameRunInfo.setCode(Code.EXCEPTION);
-        }
-        return gameRunInfo;
-    }
-
-    /**
      * 系统自动二选一
      *
      * @param playerGameData
@@ -408,11 +386,12 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
         try {
             gameRunInfo.setAuto(auto);
 
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setBeforeGold(player.getGold());
+            gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
             boolean allAreaUnlock = playerGameData.getAllUnLock().compareAndSet(true, false);
             if (allAreaUnlock) {
@@ -446,24 +425,11 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
             //检查是否触发投资游戏
             gameRunInfo = checkInvers(playerGameData, gameRunInfo);
 
-            //标准池
-            if (gameRunInfo.getBigPoolTimes() > 0) {
-                long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
-                if (addGold > 0) {
-                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
-                    if (!result.success()) {
-                        log.warn("[Wealth Bank] 给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                        gameRunInfo.setCode(result.code);
-                        return gameRunInfo;
-                    }
-                    gameRunInfo.setAllWinGold(addGold);
-                }
-            }
-
-            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
+            //从奖池扣除，并给玩家加钱
+            rewardFromBigPool(gameRunInfo, playerGameData);
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue);
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
 
             //添加美元收集进度
             if (gameRunInfo.getTotalDollars() < 1) {
@@ -474,7 +440,7 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
             player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setAfterGold(player.getGold());
+            gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
             int times = calWinTimes(gameRunInfo, playerGameData, betValue);
@@ -656,7 +622,7 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
         WealthBankResultLib freeGame = libResult.data;
 
         //累计免费模式的中奖金额
-        playerGameData.addFreeModeTotalReward(playerGameData.getOneBetScore() * freeGame.getTimes());
+        playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
 
         gameRunInfo.setStatus(playerGameData.getStatus());
 
@@ -666,7 +632,8 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
             //最后一局，通知客户端，累计免费模式的中奖金额
-            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeModeTotalReward());
+            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
+            playerGameData.setFreeAllWin(0);
         }
 
         gameRunInfo.setIconArr(freeGame.getIconArr());
@@ -679,7 +646,6 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
         gameRunInfo.setRemainFreeCount(afterCount);
         gameRunInfo.setResultLib(freeGame);
-
 
 
         return gameRunInfo;

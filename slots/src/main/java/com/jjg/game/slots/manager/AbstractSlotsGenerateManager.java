@@ -663,16 +663,30 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 continue;
             }
 
-            cfg.getFeatureTriggerId().forEach(miniGameId -> {
-                libTypeSet.forEach(libType -> {
-                    SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, arr, miniGameId, specialGirdInfoList);
-                    if (specialAuxiliaryInfo != null) {
-                        specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
-                    }
+            if(libTypeSet == null || libTypeSet.isEmpty()){
+                Set<Integer> triggerFreeSet = SlotsConst.specialModeTriggerFreeModeIds.get(this.gameType);
+                if(triggerFreeSet != null && !triggerFreeSet.isEmpty()){
+                    cfg.getFeatureTriggerId().forEach(miniGameId -> {
+                        triggerFreeSet.forEach(libType -> {
+                            SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, arr, miniGameId, specialGirdInfoList);
+                            if (specialAuxiliaryInfo != null) {
+                                specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
+                            }
+                        });
+
+                    });
+                }
+            }else {
+                cfg.getFeatureTriggerId().forEach(miniGameId -> {
+                    libTypeSet.forEach(libType -> {
+                        SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, arr, miniGameId, specialGirdInfoList);
+                        if (specialAuxiliaryInfo != null) {
+                            specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
+                        }
+                    });
+
                 });
-
-            });
-
+            }
         }
         return specialAuxiliaryInfoList;
     }

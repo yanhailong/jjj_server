@@ -62,12 +62,12 @@ public class SuperStarMessageHandler {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             SuperStarGameRunInfo gameRunInfo;
-            if(playerController.getScene() == null){
+            if (playerController.getScene() == null) {
                 gameRunInfo = gameManager.playerStartGame(playerController, req.stakeValue);
-            }else if(playerController.getScene() instanceof SlotsRoomController){
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
                 gameRunInfo = roomGameManager.playerStartGame(playerController, req.stakeValue);
-            }else {
-                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
@@ -87,12 +87,12 @@ public class SuperStarMessageHandler {
         try {
             log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             SuperStarGameRunInfo gameRunInfo;
-            if(playerController.getScene() == null){
-                gameRunInfo = gameManager.getPoolValue(playerController, req.stakeValue);
-            }else if(playerController.getScene() instanceof SlotsRoomController){
-                gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeValue);
-            }else {
-                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.getPoolValue(SuperStarGameRunInfo.class, playerController, req.stakeValue);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.getPoolValue(SuperStarGameRunInfo.class, playerController, req.stakeValue);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
             sendMessageManager.sendPoolValue(playerController, gameRunInfo);

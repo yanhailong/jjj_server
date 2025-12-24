@@ -23,6 +23,16 @@ public class ResGoldSnakeFortuneStartGame extends AbstractResponse {
     public int level;
     @ProtoDesc("经验")
     public long exp;
+    @ProtoDesc("中奖图标信息")
+    public List<GoldSnakeFortuneWinIconInfo> winIconInfoList;
+    @ProtoDesc("从奖池获得的奖励")
+    public long rewardPoolValue;
+    @ProtoDesc("状态  0.普通   1.真免费   2.假免费")
+    public int status;
+    @ProtoDesc("免费模式累计奖励,免费模式最后一局才赋值")
+    public long freeModeTotalReward;
+    @ProtoDesc("剩余免费次数")
+    public int remainFreeCount;
 
     public ResGoldSnakeFortuneStartGame(int code) {
         super(code);

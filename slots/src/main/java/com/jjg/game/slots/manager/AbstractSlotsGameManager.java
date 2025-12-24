@@ -1084,6 +1084,84 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
+     * 从奖池扣除，并给玩家加钱
+     *
+     * @param gameRunInfo
+     * @param playerGameData
+     */
+    protected void rewardFromBigPool(GameRunInfo gameRunInfo, T playerGameData) {
+        if (gameRunInfo.getBigPoolTimes() < 1) {
+            return;
+        }
+
+        long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
+        if (addGold < 1) {
+            return;
+        }
+
+        CommonResult<Player> result;
+        RoomType roomType = playerGameData.getRoomType();
+        if (roomType == null) {
+            result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
+        } else if (roomType == RoomType.SLOTS_TEAM_UP_ROOM) {
+            result = roomSlotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getRoomId(), addGold, AddType.SLOTS_BET_REWARD);
+        } else {
+            return;
+        }
+
+        if (!result.success()) {
+            log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
+            gameRunInfo.setCode(result.code);
+            return;
+        }
+        gameRunInfo.setAllWinGold(addGold);
+    }
+
+    /**
+     * 从奖池扣除钱
+     *
+     * @param gameRunInfo
+     * @param playerGameData
+     * @param jackpotId
+     * @param rand
+     */
+    protected void rewardFromSmallPool(GameRunInfo gameRunInfo, T playerGameData, int jackpotId, boolean rand) {
+        if(jackpotId < 1){
+            return;
+        }
+
+        RoomType roomType = playerGameData.getRoomType();
+        if(roomType != null){
+            return;
+        }
+
+        long poolValue = 0;
+        if (rand) {
+            PoolCfg poolCfg = randWinPool(playerGameData, jackpotId);
+            if (poolCfg == null) {
+                return;
+            }
+            poolValue = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), poolCfg.getDelayTime());
+        } else {
+            poolValue = getPoolValueByPoolId(jackpotId, playerGameData.getOneBetScore());
+        }
+        if (poolValue < 1) {
+            return;
+        }
+        //给玩家加钱
+        CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), poolValue, AddType.SLOTS_TRAIN, jackpotId + "");
+        if (!result.success()) {
+            log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
+            return;
+        }
+        playerGameData.addSmallPoolReward(poolValue);
+        gameRunInfo.addSmallPoolGold(poolValue);
+        playerGameData.setPlayer(result.data);
+
+        log.info("玩家奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), jackpotId, poolValue);
+    }
+
+    /**
      * 计算奖池金额
      *
      * @param stake
@@ -1633,9 +1711,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      *
      * @param player 玩家数据
      */
-    protected void triggerWinTask(Player player, long allWinGold, long bet) {
+    protected void triggerWinTask(Player player, long allWinGold, long bet, int moneyItemId) {
         long winValue = allWinGold - bet;
-        if (winValue <= 0) {
+        if (winValue <= 0 && moneyItemId == ItemUtils.getGoldItemId()) {
             wealthRouletteController.addProgress(player, gameType, winValue);
             return;
         }
@@ -1645,10 +1723,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             TaskConditionParam10003 param = new TaskConditionParam10003();
             param.setGameId(gameType);
             param.setAddValue(winValue);
-            param.setCoinId(ItemUtils.getGoldItemId());
+            param.setCoinId(moneyItemId);
             return param;
         }, false);
-
     }
 
     /**
@@ -1687,5 +1764,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     public RoomType getRoomType() {
         return null;
+    }
+
+    public long getMoneyByItemId(WarehouseCfg warehouseCfg, Player player) {
+        if (warehouseCfg.getTransactionItemId() == ItemUtils.getDiamondItemId()) {
+            return player.getDiamond();
+        }
+        return player.getGold();
     }
 }
