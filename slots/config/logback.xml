@@ -36,7 +36,7 @@
         <logger name="com.jjg.game.slots.game.steamAge.manager.SteamAgeGenerateManager" level="error"/>
         <logger name="com.jjg.game.slots.game.captainjack.manager.CaptainJackGameGenerateManager" level="error"/>
         <logger name="com.jjg.game.slots.game.goldsnakefortune.manager.GoldSnakeFortuneGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.moneyrabbit.manager.MoneyRabbitGenerateManager" level="error"/>
+<!--        <logger name="com.jjg.game.slots.game.moneyrabbit.manager.MoneyRabbitGenerateManager" level="error"/>-->
         <logger name="com.jjg.game.slots.game.pegasusunbridle.manager.PegasusUnbridleGameGenerateManager" level="error"/>
         <logger name="com.jjg.game.slots.game.wealthbank.manager.WealthBankGenerateManager" level="error"/>
 

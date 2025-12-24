@@ -204,6 +204,8 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             //最后一局，通知客户端，累计免费模式的中奖金额
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
+
+            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
         }
 
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));

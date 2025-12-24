@@ -172,7 +172,7 @@ public class AbstractWealthGodGameManager extends AbstractSlotsGameManager<Wealt
             for (WealthGodAwardLineInfo lineInfo : awardLineInfoList) {
                 WealthGodResultLineInfo resultLineInfo = new WealthGodResultLineInfo();
                 resultLineInfo.id = lineInfo.getLineId();
-                BaseLineCfg baseLineCfg = this.lineCfgMap.get(lineInfo.getLineId());
+                BaseLineCfg baseLineCfg = getBaseLineCfg(lineInfo.getLineId(),false);
                 int direction = baseLineCfg.getDirection().getFirst();
                 List<Integer> indexList = baseLineCfg.getPosLocation();
                 if (direction == SlotsConst.BaseLine.DIRECTION_LEFT) {

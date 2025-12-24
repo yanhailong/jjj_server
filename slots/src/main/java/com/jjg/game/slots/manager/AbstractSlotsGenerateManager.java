@@ -41,8 +41,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     protected Map<Integer, Map<Integer, BaseRollerCfg>> baseRollerCfgMap = null;
     //gameMode -> lineId -> cfg
     protected Map<Integer, Map<Integer, BaseLineCfg>> baseLineCfgMap = null;
-    //lineId -> 主元素id - > cfg
-    protected Map<Integer, Map<Integer, BaseLineFreeInfo>> baseLineFreeCfgMap = null;
     //普通图标 lineType -> sid -> cfg
     protected Map<Integer, Map<Integer, BaseElementRewardCfg>> baseElementRewardCfgMap = null;
 
@@ -991,6 +989,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * @return
      */
     protected SameInfo iconSame(SameInfo sameInfo, int iconIdFront, int iconIdBack) {
+        if(iconIdFront >= SlotsConst.Common.INVALID_ICON_BEGIN_ID || iconIdBack >= SlotsConst.Common.INVALID_ICON_BEGIN_ID) {
+            return sameInfo;
+        }
+
         Set<Integer> noralIconSet = this.iconsMap.get(SlotsConst.BaseElement.TYPE_NORMAL);
         Set<Integer> wildIconSet = this.iconsMap.get(SlotsConst.BaseElement.TYPE_WILD);
 

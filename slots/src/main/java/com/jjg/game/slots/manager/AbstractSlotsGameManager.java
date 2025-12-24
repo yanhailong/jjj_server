@@ -116,8 +116,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     //roomCfgId -> cfg
     protected Map<Integer, BaseRoomCfg> roomCfgMap;
-    //lineId -> cfg
-    protected Map<Integer, BaseLineCfg> lineCfgMap;
+    //gameMode -> lineId -> cfg
+    protected Map<Integer, Map<Integer, BaseLineCfg>> baseLineCfgMap = null;
 
     //大奖展示倍数区间
     protected Map<Integer, int[]> bigWinShowMap = null;
@@ -1126,12 +1126,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param rand
      */
     protected void rewardFromSmallPool(GameRunInfo gameRunInfo, T playerGameData, int jackpotId, boolean rand) {
-        if(jackpotId < 1){
+        if (jackpotId < 1) {
             return;
         }
 
         RoomType roomType = playerGameData.getRoomType();
-        if(roomType != null){
+        if (roomType != null) {
             return;
         }
 
@@ -1394,14 +1394,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * baseline配置
      */
     protected void baseLineConfig() {
-        Map<Integer, BaseLineCfg> tempLineCfgMap = new HashMap<>();
+        //gameMode -> lineId -> cfg
+        Map<Integer, Map<Integer, BaseLineCfg>> tmpBaseLineCfgMap = new HashMap<>();
+
         for (Map.Entry<Integer, BaseLineCfg> en : GameDataManager.getBaseLineCfgMap().entrySet()) {
             BaseLineCfg cfg = en.getValue();
             if (cfg.getGameType() == this.gameType) {
-                tempLineCfgMap.put(cfg.getLineId(), cfg);
+                Map<Integer, BaseLineCfg> tmpMap = tmpBaseLineCfgMap.computeIfAbsent(cfg.getGameMode(), k -> new HashMap<>());
+                tmpMap.put(cfg.getLineId(), cfg);
             }
         }
-        this.lineCfgMap = tempLineCfgMap;
+        this.baseLineCfgMap = tmpBaseLineCfgMap;
     }
 
 
@@ -1444,11 +1447,38 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     public List<Integer> getIconIndexsByLineId(int lineId) {
-        BaseLineCfg baseLineCfg = this.lineCfgMap.get(lineId);
+        return getIconIndexsByLineId(lineId, false);
+    }
+
+    /**
+     * 根据线id获取这条线上的icon坐标
+     *
+     * @param lineId
+     * @return
+     */
+    public List<Integer> getIconIndexsByLineId(int lineId, boolean freeModel) {
+        BaseLineCfg baseLineCfg = getBaseLineCfg(lineId, freeModel);
         if (baseLineCfg == null) {
             return null;
         }
         return baseLineCfg.getPosLocation();
+    }
+
+    protected BaseLineCfg getBaseLineCfg(int lineId, boolean freeModel){
+        Map<Integer, BaseLineCfg> lineCfgMap = this.baseLineCfgMap.get(0);
+        if (lineCfgMap == null || lineCfgMap.isEmpty()) {
+            if (freeModel) {
+                lineCfgMap = this.baseLineCfgMap.get(2);
+            } else {
+                lineCfgMap = this.baseLineCfgMap.get(1);
+            }
+        }
+
+        BaseLineCfg baseLineCfg = lineCfgMap.get(lineId);
+        if (baseLineCfg == null) {
+            return null;
+        }
+        return baseLineCfg;
     }
 
 

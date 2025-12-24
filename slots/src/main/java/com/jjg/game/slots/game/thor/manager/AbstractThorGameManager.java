@@ -209,9 +209,9 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         }
 
         //检查是否中大奖
-        rewardFromSmallPool(gameRunInfo,playerGameData,resultLib.getJackpotId(),false);
+        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotId(), false);
 
-        gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
+        gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore(), false));
         gameRunInfo.setStatus(playerGameData.getStatus());
         gameRunInfo.setStake(betValue);
         gameRunInfo.setResultLib(resultLib);
@@ -246,9 +246,11 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
             gameRunInfo.setFreeEnd(true);
+
+            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
         }
 
-        gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));
+        gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore(), true));
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
         gameRunInfo.setRemainFreeCount(afterCount);
@@ -342,7 +344,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
      * @param oneBetScore 单线押分值
      * @return
      */
-    private List<ThorWinIconInfo> transAwardLinePbInfo(List<ThorAwardLineInfo> infoList, long oneBetScore) {
+    private List<ThorWinIconInfo> transAwardLinePbInfo(List<ThorAwardLineInfo> infoList, long oneBetScore, boolean freeModel) {
         if (infoList == null || infoList.isEmpty()) {
             return null;
         }
@@ -351,7 +353,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         for (ThorAwardLineInfo lineInfo : infoList) {
             ThorWinIconInfo resultLineInfo = new ThorWinIconInfo();
             resultLineInfo.id = lineInfo.getId();
-            resultLineInfo.iconIndexs = getIconIndexsByLineId(lineInfo.getId()).subList(0, lineInfo.getSameCount());
+            resultLineInfo.iconIndexs = getIconIndexsByLineId(lineInfo.getId(), freeModel).subList(0, lineInfo.getSameCount());
 //            resultLineInfo.times = lineInfo.getBaseTimes();
             resultLineInfo.winGold = oneBetScore * lineInfo.getBaseTimes();
             list.add(resultLineInfo);

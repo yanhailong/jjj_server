@@ -69,6 +69,9 @@ public class SlotsConst {
 
         //最大离线时间
         public static final int MAX_OFFLINE_TIME = 5 * TimeHelper.ONE_MINUTE_OF_MILLIS;
+
+        //无效的图标起始id
+        public static final int INVALID_ICON_BEGIN_ID = 1000;
     }
 
     //结果库变更类型
