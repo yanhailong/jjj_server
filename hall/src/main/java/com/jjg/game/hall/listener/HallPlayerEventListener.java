@@ -223,6 +223,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.register = register[0];
 
             res.registerRewardsState = countDao.getCount(CountDao.CountType.PLAYER_COUNT.getParam().formatted("register"), String.valueOf(player.getId())).intValue();
+            res.moneySymbol = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_MONEY_SYMBOL).getValue();
             //更新session
             PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
 
