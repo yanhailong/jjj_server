@@ -32,7 +32,7 @@ public enum ActivityType {
             ActivityTargetType.NONE.getTargetKey(), true, false),
     //推广分享
     SHARE_PROMOTE(6, SharePromoteController.class, true, false,
-            ActivityTargetType.RECHARGE.getTargetKey(), false, false),
+            ActivityTargetType.getTagetKey(ActivityTargetType.RECHARGE, ActivityTargetType.EFFECTIVE_BET), false, false),
     //官方派奖
     OFFICIAL_AWARDS(9, OfficialAwardsController.class, true, false,
             ActivityTargetType.getTagetKey(ActivityTargetType.RECHARGE), true, true),
