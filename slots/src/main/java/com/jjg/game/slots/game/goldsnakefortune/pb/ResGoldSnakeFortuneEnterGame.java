@@ -27,6 +27,8 @@ public class ResGoldSnakeFortuneEnterGame extends AbstractResponse {
     public int remainFreeCount;
     @ProtoDesc("奖池配置信息")
     public List<GoldSnakeFortunePoolInfo> poolList;
+    @ProtoDesc("免费模式累计奖励")
+    public long freeModeTotalReward;
 
     public ResGoldSnakeFortuneEnterGame(int code) {
         super(code);

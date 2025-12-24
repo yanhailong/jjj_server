@@ -4,20 +4,24 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.BetDivideInfo;
+import com.jjg.game.slots.data.SpecialGirdInfo;
+import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortuneGameRunInfo;
+import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortunePlayerGameData;
+import com.jjg.game.slots.game.goldsnakefortune.pb.GoldSnakeFortuneCoinInfo;
 import com.jjg.game.slots.game.moneyrabbit.MoneyRabbitConstant;
 import com.jjg.game.slots.game.moneyrabbit.dao.MoneyRabbitGameDataDao;
 import com.jjg.game.slots.game.moneyrabbit.dao.MoneyRabbitResultLibDao;
 import com.jjg.game.slots.game.moneyrabbit.data.*;
+import com.jjg.game.slots.game.moneyrabbit.pb.MoneyRabbitCoinInfo;
 import com.jjg.game.slots.game.moneyrabbit.pb.MoneyRabbitWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.utils.SlotsUtil;
@@ -26,6 +30,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameManager<MoneyRabbitPlayerGameData, MoneyRabbitResultLib> {
     @Autowired
@@ -40,6 +46,20 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
 
     public AbstractMoneyRabbitGameManager() {
         super(MoneyRabbitPlayerGameData.class, MoneyRabbitResultLib.class);
+    }
+
+    @Override
+    public MoneyRabbitGameRunInfo enterGame(PlayerController playerController) {
+        //获取玩家游戏数据
+        MoneyRabbitPlayerGameData playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+            return new MoneyRabbitGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+        }
+
+        MoneyRabbitGameRunInfo gameRunInfo = new MoneyRabbitGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        gameRunInfo.setData(playerGameData);
+        return gameRunInfo;
     }
 
     /**
@@ -148,6 +168,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
 
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(MoneyRabbitConstant.SpecialMode.FREE)) {  //是否会触发二选一
+            playerGameData.setRemainFreeCount(new AtomicInteger(8));
             playerGameData.setStatus(MoneyRabbitConstant.Status.FREE);
             gameRunInfo.setStatus(MoneyRabbitConstant.Status.REAL_FREE);
             log.debug("触发真免费  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
@@ -168,8 +189,11 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
 
+        //设置金钱信息
+        checkCoinInfo(gameRunInfo, playerGameData, resultLib);
+
         //检查是否中大奖
-        rewardFromSmallPool(gameRunInfo,playerGameData,resultLib.getJackpotId(),false);
+        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotId(), false);
 
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setStake(betValue);
@@ -208,6 +232,9 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
         }
 
+        //设置金钱信息
+        checkCoinInfo(gameRunInfo, playerGameData, freeGame);
+
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
@@ -223,7 +250,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
      * @param oneBetScore 单线押分值
      * @return
      */
-    private List<MoneyRabbitWinIconInfo> transAwardLinePbInfo(List<MoneyRabbitAwardLineInfo> infoList, long oneBetScore) {
+    protected List<MoneyRabbitWinIconInfo> transAwardLinePbInfo(List<MoneyRabbitAwardLineInfo> infoList, long oneBetScore) {
         if (infoList == null || infoList.isEmpty()) {
             return null;
         }
@@ -238,6 +265,42 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             list.add(resultLineInfo);
         }
         return list;
+    }
+
+    /**
+     * 设置设置金钱信息
+     *
+     * @return
+     */
+    protected void checkCoinInfo(MoneyRabbitGameRunInfo gameRunInfo, MoneyRabbitPlayerGameData playerGameData, MoneyRabbitResultLib lib) {
+        if (lib.getSpecialGirdInfoList() == null || lib.getSpecialGirdInfoList().isEmpty()) {
+            return;
+        }
+
+        List<MoneyRabbitCoinInfo> coinInfoList = null;
+        for (SpecialGirdInfo specialGirdInfo : lib.getSpecialGirdInfoList()) {
+            if (specialGirdInfo.getValueMap() == null || specialGirdInfo.getValueMap().isEmpty()) {
+                continue;
+            }
+            //检查修改的图标是否有美元图标
+            SpecialGirdCfg specialGirdCfg = GameDataManager.getSpecialGirdCfg(specialGirdInfo.getCfgId());
+            if (!specialGirdCfg.getElement().containsKey(MoneyRabbitConstant.BaseElement.ID_COIN) && !specialGirdCfg.getElement().containsKey(MoneyRabbitConstant.BaseElement.ID_COIN2)) {
+                continue;
+            }
+
+            for (Map.Entry<Integer, Integer> en : specialGirdInfo.getValueMap().entrySet()) {
+                if (coinInfoList == null) {
+                    coinInfoList = new ArrayList<>();
+                }
+
+                MoneyRabbitCoinInfo coinInfo = new MoneyRabbitCoinInfo();
+                coinInfo.index = en.getKey();
+                coinInfo.value = playerGameData.getOneBetScore() * en.getValue();
+                coinInfoList.add(coinInfo);
+                log.debug("添加金钱信息 girdId = {},value = {}", coinInfo.index, coinInfo.value);
+            }
+        }
+        gameRunInfo.setCoinInfoList(coinInfoList);
     }
 
     @Override

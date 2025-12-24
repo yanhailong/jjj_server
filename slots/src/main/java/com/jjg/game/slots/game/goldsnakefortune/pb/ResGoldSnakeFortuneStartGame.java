@@ -33,6 +33,8 @@ public class ResGoldSnakeFortuneStartGame extends AbstractResponse {
     public long freeModeTotalReward;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
+    @ProtoDesc("奖金图标信息")
+    public List<GoldSnakeFortuneCoinInfo> coinInfoList;
 
     public ResGoldSnakeFortuneStartGame(int code) {
         super(code);

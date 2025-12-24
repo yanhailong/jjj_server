@@ -4,11 +4,11 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.slots.game.goldsnakefortune.GoldSnakeFortuneConstant;
+import com.jjg.game.slots.game.moneyrabbit.MoneyRabbitConstant;
 
 import java.util.List;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.GOLD_SNAKE_FORTUNE, cmd = GoldSnakeFortuneConstant.MsgBean.RES_START_GAME, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.MONEY_RABBIT, cmd = MoneyRabbitConstant.MsgBean.RES_START_GAME, resp = true)
 @ProtoDesc("开始游戏返回")
 public class ResMoneyRabbitStartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")
@@ -33,6 +33,8 @@ public class ResMoneyRabbitStartGame extends AbstractResponse {
     public long freeModeTotalReward;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
+    @ProtoDesc("奖金图标信息")
+    public List<MoneyRabbitCoinInfo> coinInfoList;
 
     public ResMoneyRabbitStartGame(int code) {
         super(code);

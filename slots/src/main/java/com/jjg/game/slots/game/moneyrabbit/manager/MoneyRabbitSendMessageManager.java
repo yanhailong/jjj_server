@@ -107,9 +107,12 @@ public class MoneyRabbitSendMessageManager extends BaseSendMessageManager {
             res.exp = playerController.getPlayer().getExp();
             //中奖线信息
             res.winIconInfoList = gameRunInfo.getAwardLineInfos();
+            res.status = gameRunInfo.getStatus();
             res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
             res.freeModeTotalReward = gameRunInfo.getFreeModeTotalReward();
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
+            //金钱信息
+            res.coinInfoList = gameRunInfo.getCoinInfoList();
 
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
@@ -133,13 +136,16 @@ public class MoneyRabbitSendMessageManager extends BaseSendMessageManager {
 
         ResMoneyRabbitPool res = new ResMoneyRabbitPool(gameRunInfo.getCode());
         if (gameRunInfo.success()) {
-            res.poolValue = gameRunInfo.getMini();
+            res.mini = gameRunInfo.getMini();
+            res.minor = gameRunInfo.getMinor();
+            res.major = gameRunInfo.getMajor();
+            res.grand = gameRunInfo.getGrand();
         } else {
             log.debug("奖池结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
 
         sendInfo.addPlayerMsg(playerController.playerId(), res);
 //        sendInfo.getLogMessage().add(res);
-        sendRun(playerController, sendInfo, "返回奖池结果", true);
+        sendRun(playerController, sendInfo, "返回奖池结果", false);
     }
 }

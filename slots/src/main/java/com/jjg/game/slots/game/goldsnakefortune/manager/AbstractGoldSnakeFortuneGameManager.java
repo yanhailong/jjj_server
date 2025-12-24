@@ -9,14 +9,25 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.BetDivideInfo;
+import com.jjg.game.slots.data.GameRunInfo;
+import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.goldsnakefortune.GoldSnakeFortuneConstant;
 import com.jjg.game.slots.game.goldsnakefortune.dao.GoldSnakeFortuneGameDataDao;
 import com.jjg.game.slots.game.goldsnakefortune.dao.GoldSnakeFortuneResultLibDao;
 import com.jjg.game.slots.game.goldsnakefortune.data.*;
+import com.jjg.game.slots.game.goldsnakefortune.pb.GoldSnakeFortuneCoinInfo;
 import com.jjg.game.slots.game.goldsnakefortune.pb.GoldSnakeFortuneWinIconInfo;
+import com.jjg.game.slots.game.moneyrabbit.MoneyRabbitConstant;
+import com.jjg.game.slots.game.moneyrabbit.data.MoneyRabbitGameRunInfo;
+import com.jjg.game.slots.game.moneyrabbit.data.MoneyRabbitPlayerGameData;
+import com.jjg.game.slots.game.moneyrabbit.data.MoneyRabbitResultLib;
+import com.jjg.game.slots.game.moneyrabbit.pb.MoneyRabbitCoinInfo;
+import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
+import com.jjg.game.slots.game.thor.data.ThorPlayerGameData;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -24,6 +35,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsGameManager<GoldSnakeFortunePlayerGameData, GoldSnakeFortuneResultLib> {
     @Autowired
@@ -38,6 +51,20 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
 
     public AbstractGoldSnakeFortuneGameManager() {
         super(GoldSnakeFortunePlayerGameData.class, GoldSnakeFortuneResultLib.class);
+    }
+
+    @Override
+    public GoldSnakeFortuneGameRunInfo enterGame(PlayerController playerController) {
+        //获取玩家游戏数据
+        GoldSnakeFortunePlayerGameData playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+            return new GoldSnakeFortuneGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+        }
+
+        GoldSnakeFortuneGameRunInfo gameRunInfo = new GoldSnakeFortuneGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        gameRunInfo.setData(playerGameData);
+        return gameRunInfo;
     }
 
     /**
@@ -146,6 +173,7 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
 
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(GoldSnakeFortuneConstant.SpecialMode.FREE)) {  //是否会触发二选一
+            playerGameData.setRemainFreeCount(new AtomicInteger(8));
             playerGameData.setStatus(GoldSnakeFortuneConstant.Status.FREE);
             gameRunInfo.setStatus(GoldSnakeFortuneConstant.Status.REAL_FREE);
             log.debug("触发真免费  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
@@ -166,8 +194,11 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
 
+        //设置金钱信息
+        checkCoinInfo(gameRunInfo, playerGameData, resultLib);
+
         //检查是否中大奖
-        rewardFromSmallPool(gameRunInfo,playerGameData,resultLib.getJackpotId(),true);
+        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotId(), true);
 
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setStake(betValue);
@@ -204,6 +235,9 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
             playerGameData.setFreeAllWin(0);
         }
 
+        //设置金钱信息
+        checkCoinInfo(gameRunInfo, playerGameData, freeGame);
+
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
@@ -219,7 +253,7 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
      * @param oneBetScore 单线押分值
      * @return
      */
-    private List<GoldSnakeFortuneWinIconInfo> transAwardLinePbInfo(List<GoldSnakeFortuneAwardLineInfo> infoList, long oneBetScore) {
+    protected List<GoldSnakeFortuneWinIconInfo> transAwardLinePbInfo(List<GoldSnakeFortuneAwardLineInfo> infoList, long oneBetScore) {
         if (infoList == null || infoList.isEmpty()) {
             return null;
         }
@@ -234,6 +268,42 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
             list.add(resultLineInfo);
         }
         return list;
+    }
+
+    /**
+     * 设置设置金钱信息
+     *
+     * @return
+     */
+    protected void checkCoinInfo(GoldSnakeFortuneGameRunInfo gameRunInfo, GoldSnakeFortunePlayerGameData playerGameData, GoldSnakeFortuneResultLib lib) {
+        if (lib.getSpecialGirdInfoList() == null || lib.getSpecialGirdInfoList().isEmpty()) {
+            return;
+        }
+
+        List<GoldSnakeFortuneCoinInfo> coinInfoList = null;
+        for (SpecialGirdInfo specialGirdInfo : lib.getSpecialGirdInfoList()) {
+            if (specialGirdInfo.getValueMap() == null || specialGirdInfo.getValueMap().isEmpty()) {
+                continue;
+            }
+            //检查修改的图标是否有美元图标
+            SpecialGirdCfg specialGirdCfg = GameDataManager.getSpecialGirdCfg(specialGirdInfo.getCfgId());
+            if (!specialGirdCfg.getElement().containsKey(MoneyRabbitConstant.BaseElement.ID_COIN) && !specialGirdCfg.getElement().containsKey(MoneyRabbitConstant.BaseElement.ID_COIN2)) {
+                continue;
+            }
+
+            for (Map.Entry<Integer, Integer> en : specialGirdInfo.getValueMap().entrySet()) {
+                if (coinInfoList == null) {
+                    coinInfoList = new ArrayList<>();
+                }
+
+                GoldSnakeFortuneCoinInfo coinInfo = new GoldSnakeFortuneCoinInfo();
+                coinInfo.index = en.getKey();
+                coinInfo.value = playerGameData.getOneBetScore() * en.getValue();
+                coinInfoList.add(coinInfo);
+                log.debug("添加金钱信息 girdId = {},value = {}", coinInfo.index, coinInfo.value);
+            }
+        }
+        gameRunInfo.setCoinInfoList(coinInfoList);
     }
 
     @Override
