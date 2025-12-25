@@ -121,7 +121,6 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 gameManager.createPlayerGameData(playerController);
             }
         });
-        slotsFactoryManager.clearPlayerEvent(player.getId());
         PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(player.getId());
         logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), playerSessionToken.getDevice());
         log.debug("玩家进入slots 游戏 playerId = {},gameType = {}", player.getId(), player.getGameType());
@@ -158,7 +157,6 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 }
             }
         });
-        slotsFactoryManager.clearPlayerEvent(player.getId());
         PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(player.getId());
         logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), playerSessionToken.getDevice());
         log.debug("玩家进入好友房slots 游戏 playerId = {},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
@@ -200,7 +198,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         }
         session.setReference(null);
         logger.exitGame(playerController.getPlayer(), onlineTimeLen, playerController.getPlayer().getDeviceType());
-        log.debug("退出游戏结算 playerId = {}", playerController.playerId());
+        log.debug("玩家退出slots游戏 playerId = {}", playerController.playerId());
         return Code.SUCCESS;
     }
 

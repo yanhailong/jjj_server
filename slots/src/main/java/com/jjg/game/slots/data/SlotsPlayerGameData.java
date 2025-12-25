@@ -9,7 +9,10 @@ import com.jjg.game.slots.controller.SlotsRoomController;
 import org.springframework.beans.BeanUtils;
 
 import java.lang.reflect.Constructor;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -59,7 +62,9 @@ public class SlotsPlayerGameData {
     //创建该对象的时间(及进入游戏的时间)
     protected int createTime;
     //离线时间
-    protected int offlineTime;
+    protected long offlineTime;
+    //离线事件
+    protected Map<Integer,OffLineEventData> offlineEventMap;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -279,11 +284,11 @@ public class SlotsPlayerGameData {
         return 0;
     }
 
-    public int getOfflineTime() {
+    public long getOfflineTime() {
         return offlineTime;
     }
 
-    public void setOfflineTime(int offlineTime) {
+    public void setOfflineTime(long offlineTime) {
         this.offlineTime = offlineTime;
     }
 
@@ -318,6 +323,28 @@ public class SlotsPlayerGameData {
             return;
         }
         this.playerController.setPlayer(player);
+    }
+
+    public Map<Integer, OffLineEventData> getOfflineEventMap() {
+        return offlineEventMap;
+    }
+
+    public void setOfflineEventMap(Map<Integer, OffLineEventData> offlineEventMap) {
+        this.offlineEventMap = offlineEventMap;
+    }
+
+    public void actionOffLineEvent(int eventId) {
+        if(this.offlineEventMap == null || this.offlineEventMap.isEmpty()) {
+            return;
+        }
+        this.offlineEventMap.get(eventId).setAction(true);
+    }
+
+    public void addOffLineEvent(OffLineEventData offLineEventData) {
+        if(this.offlineEventMap == null) {
+            this.offlineEventMap = new HashMap<>();
+        }
+        this.offlineEventMap.put(offLineEventData.getId(), offLineEventData);
     }
 
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
