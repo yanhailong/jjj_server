@@ -62,7 +62,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
             res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
-            res.remainFreeCount = res.remainFreeCount > 0 ?res.remainFreeCount : 0;
+            res.remainFreeCount = res.remainFreeCount > 0 ? res.remainFreeCount : 0;
             if (res.remainFreeCount < 1) {
                 res.status = SteamAgeConstant.Status.NORMAL;
             }
@@ -125,7 +125,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             //图标信息
             res.iconList = IntStream.range(1, 21).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
             //剩余免费次数
-            res.remainFreeCount = gameRunInfo.getRemainFreeCount() > 0 ?gameRunInfo.getRemainFreeCount() : 0;
+            res.remainFreeCount = gameRunInfo.getRemainFreeCount() > 0 ? gameRunInfo.getRemainFreeCount() : 0;
             //大奖展示id
             res.bigWinShow = gameRunInfo.getBigShowId();
             //等级信息
@@ -186,7 +186,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
                     || iconList.get(i) == SteamAgeConstant.BaseElement.ID_MAJOR
                     || iconList.get(i) == SteamAgeConstant.BaseElement.ID_GRAND
                     || iconList.get(i) == SteamAgeConstant.BaseElement.ID_MINI) {
-                highlightList.add(i);
+                highlightList.add(i + 1);
             }
         }
         //扩列添加
@@ -194,11 +194,13 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             SteamAgeExpand steamAgeExpand = addIconInfoList.get(i);
             if (steamAgeExpand != null) {
                 List<Integer> expandIconList = steamAgeExpand.iconList;
-                if (expandIconList != null && !expandIconList.isEmpty()) {
-                    for (int i2 = 0; i2 < expandIconList.size(); i2++) {
+                for (int i2 = 0; i2 < expandIconList.size(); i2++) {
+                    if(expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_ADD){
+                        highlightList.add((4 * i) + 20 + i2 + 1);
+                    }
+                    if (expandIconList != null && !expandIconList.isEmpty()) {
                         if (expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_WILD
                                 || expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_SCATTER
-                                || expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_ADD
                                 || expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_MINOR
                                 || expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_MAJOR
                                 || expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_GRAND
