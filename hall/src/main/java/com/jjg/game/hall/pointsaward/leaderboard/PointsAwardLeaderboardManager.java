@@ -225,18 +225,6 @@ public class PointsAwardLeaderboardManager implements LeaderLatchListener {
         }
     }
 
-    public static void main(String[] args) {
-        int oldPoint = 0;
-        int minAdd = 1;
-        int maxRank = 300;
-        int currentRank = 1;
-        for (int i = 0; i < 3; i++) {
-            double addValue = (minAdd * maxRank * 1 / Math.max(1, currentRank * (currentRank - 1)) + (double) (minAdd / currentRank)) / 100;
-            oldPoint += (int) addValue;
-            System.out.println("addValue:" + addValue + " oldPoint:" + oldPoint);
-        }
-    }
-
     public RList<String> getRedisRobotList() {
         return redissonClient.getList(PointsAwardConstant.RedisKey.POINTS_AWARD_ROBOT_ID);
     }
