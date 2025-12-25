@@ -336,6 +336,9 @@ public class PointsAwardLeaderboardManager implements LeaderLatchListener {
             if (isMaster()) {
                 handleMidnightSettlement();
             }
+            if (isFirstDayOfMonth()) {
+                clearRobotData();
+            }
             // 重载配置
             reloadConfig();
         } catch (Exception e) {
@@ -369,7 +372,6 @@ public class PointsAwardLeaderboardManager implements LeaderLatchListener {
             if (firstDayOfMonth && configMap.containsKey(PointsAwardConstant.Leaderboard.TYPE_MONTH)) {
                 snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH);
                 leaderboardService.reset(PointsAwardConstant.Leaderboard.TYPE_MONTH);
-                clearRobotData();
             }
             log.info("午夜0点结算完成，是否周一:{} 是否月初: {}", weekStart, firstDayOfMonth);
         } catch (Exception e) {
@@ -382,8 +384,10 @@ public class PointsAwardLeaderboardManager implements LeaderLatchListener {
      *
      */
     private void clearRobotData() {
-        RList<String> redisIdList = redissonClient.getList(PointsAwardConstant.RedisKey.POINTS_AWARD_ROBOT_ID);
-        redisIdList.delete();
+        if (isMaster()) {
+            RList<String> redisIdList = redissonClient.getList(PointsAwardConstant.RedisKey.POINTS_AWARD_ROBOT_ID);
+            redisIdList.delete();
+        }
         robotList = null;
         log.info("月榜结束 清除机器人数据成功");
     }
