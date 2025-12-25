@@ -409,7 +409,7 @@ public class SharePromoteController extends BaseActivityController {
                 return;
             }
 
-            ResSharePromoteGlobalInfo res = (ResSharePromoteGlobalInfo) reqSharePromoteGlobalInfo(superPlayer, activityData);
+            ResSharePromoteGlobalInfo res = (ResSharePromoteGlobalInfo) reqSharePromoteGlobalInfo(player, activityData);
             if (res.code != Code.SUCCESS) {
                 log.warn("绑定上级失败时生成邀请码失败 playerId = {},superPlayerId = {},code = {}", player.getId(), shareId, res.code);
                 return;
