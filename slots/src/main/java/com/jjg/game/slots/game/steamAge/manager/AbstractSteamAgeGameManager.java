@@ -35,8 +35,6 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
     @Autowired
     private SteamAgeGameDataDao gameDataDao;
 
-    protected AtomicInteger autoCount = new AtomicInteger(0);
-
     public AbstractSteamAgeGameManager() {
         super(SteamAgePlayerGameData.class, SteamAgeResultLib.class);
         this.log = LoggerFactory.getLogger(getClass());
@@ -337,7 +335,6 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
                 autoStartGame(playerGameData, playerGameData.getAllBetScore());
                 forCount = playerGameData.getRemainFreeCount().get();
             }
-            log.info("ddddddddddd");
         }
     }
 
@@ -348,8 +345,7 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
      * @return
      */
     public SteamAgeGameRunInfo autoStartGame(SteamAgePlayerGameData playerGameData, long betValue) {
-        log.debug("系统开始自动玩游戏 playerId = {},autoCount={},freeCount={}", playerGameData.playerId(), autoCount.incrementAndGet(), playerGameData.getRemainFreeCount().get());
-
+        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
         return startGame(playerGameData, betValue, true);
     }
 }
