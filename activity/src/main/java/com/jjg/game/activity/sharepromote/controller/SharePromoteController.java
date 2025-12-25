@@ -18,6 +18,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.ConditionType;
+import com.jjg.game.core.base.condition.check.record.BaseCheckParam;
 import com.jjg.game.core.base.condition.check.record.PlayerRechargeParam;
 import com.jjg.game.core.base.condition.check.record.PlayerSampleParam;
 import com.jjg.game.core.constant.AddType;
@@ -135,9 +136,9 @@ public class SharePromoteController extends BaseActivityController {
             BigDecimal realProgress = BigDecimal.valueOf(progress);
             int type = 9;
             //计算收益率
-            int proportion = getPlayerProportion(playerId, activityData);
+            int proportion = getPlayerProportion(beneficiaryPlayerId, activityData);
             if (!effectiveBet) {
-                proportion = getPlayerRechargeProportion(playerId, activityData);
+                proportion = getPlayerRechargeProportion(beneficiaryPlayerId, activityData);
                 GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(53);
                 if (globalConfigCfg != null) {
                     magnification = BigDecimal.valueOf(globalConfigCfg.getIntValue());
@@ -173,12 +174,14 @@ public class SharePromoteController extends BaseActivityController {
             return;
         }
         String[] conditionCfg = StringUtils.split(globalConfigCfg.getValue(), "|");
-        boolean result = true;
+        int conditionNum = 0;
+        int passNum = 0;
         for (String cfg : conditionCfg) {
             String[] cfgArr = StringUtils.split(cfg, "_");
             if (cfgArr.length == 0) {
-                continue;
+                break;
             }
+            conditionNum++;
             ConditionType type = EnumUtil.getBy(ConditionType.class, (t) -> t.getId() == Integer.parseInt(cfgArr[0]));
             if (type == ConditionType.PLAYER_SUM_PAY && additionalParameters instanceof Order order) {
                 PlayerRechargeParam param = new PlayerRechargeParam();
@@ -186,25 +189,32 @@ public class SharePromoteController extends BaseActivityController {
                 param.setFunction(SHARE_PROMOTE);
                 param.setAmount(RedisUtils.fromLong(progress));
                 param.setChannelId(order.getPayChannel());
-                result &= BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0;
+                if (BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0) {
+                    passNum++;
+                }
                 continue;
             }
             if (type == ConditionType.PLAYER_CUMULATIVE_BET && additionalParameters instanceof Integer id) {
                 if (id != ItemUtils.getGoldItemId()) {
-                    result = false;
                     continue;
                 }
                 PlayerSampleParam param = new PlayerSampleParam();
                 param.setPlayerId(playerId);
                 param.setFunction(SHARE_PROMOTE);
                 param.setParamList(List.of(progress));
-                result &= BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0;
+                if (BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0) {
+                    passNum++;
+                }
                 continue;
             }
-            result = false;
-            break;
+            BaseCheckParam baseCheckParam = new BaseCheckParam();
+            baseCheckParam.setPlayerId(playerId);
+            baseCheckParam.setFunction(SHARE_PROMOTE);
+            if (conditionManager.isAchievement(player, baseCheckParam, cfg)) {
+                passNum++;
+            }
         }
-        if (result) {
+        if (conditionNum == passNum) {
             //添加到有效下级
             String key = sharePromoteDao.getLock(beneficiaryPlayerId);
             SharePromotePlayerData newPlayerInfoData = null;
@@ -233,6 +243,7 @@ public class SharePromoteController extends BaseActivityController {
                 activityLogger.sendSharePromoteAddRewards(beneficiaryPlayer, activityData, playerId, 10,
                         0, 1, 0, 0, 0, 0);
             }
+
             log.info("beneficiaryPlayerId:{} 新增有效下级:{}", beneficiaryPlayerId, playerId);
         }
     }
