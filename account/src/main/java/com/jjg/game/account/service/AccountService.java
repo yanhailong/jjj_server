@@ -1,6 +1,7 @@
 package com.jjg.game.account.service;
 
 import com.jjg.game.account.dao.PlayerIdDao;
+import com.jjg.game.account.data.LoginResult;
 import com.jjg.game.account.dto.LoginDto;
 import com.jjg.game.account.logger.AccountLogger;
 import com.jjg.game.common.redis.RedisLock;
@@ -41,8 +42,8 @@ public class AccountService {
     private PlayerLoginTimeDao playerLoginTimeDao;
 
 
-    public CommonResult<Account> login(LoginType loginType, ChannelUserInfo channelUserInfo, LoginDto loginDto, String ip) {
-        CommonResult<Account> accountResult = getOrCreateAccount(loginType, channelUserInfo, loginDto, ip);
+    public LoginResult<Account> login(LoginType loginType, ChannelUserInfo channelUserInfo, LoginDto loginDto, String ip) {
+        LoginResult<Account> accountResult = getOrCreateAccount(loginType, channelUserInfo, loginDto, ip);
         if (!accountResult.success()) {
             log.warn("获取或者创建账号失败,登录失败 loginType = {},channelUserId = {}", loginType, channelUserInfo.getUserId());
             return accountResult;
@@ -88,8 +89,8 @@ public class AccountService {
      * @param channelUserInfo
      * @return
      */
-    private CommonResult<Account> getOrCreateAccount(LoginType loginType, ChannelUserInfo channelUserInfo, LoginDto loginDto, String ip) {
-        CommonResult<Account> result = new CommonResult<>(Code.FAIL);
+    private LoginResult<Account> getOrCreateAccount(LoginType loginType, ChannelUserInfo channelUserInfo, LoginDto loginDto, String ip) {
+        LoginResult<Account> result = new LoginResult<>(Code.FAIL);
         //要加锁，防止重复创建账号
         String lockKey = getLockKey(loginType, channelUserInfo);
         long now = System.currentTimeMillis();
@@ -113,6 +114,8 @@ public class AccountService {
 
                 account = accountDao.setChannelValue(loginType, channelUserInfo, account);
                 account.setCreateTime((int) (now / 1000));
+
+                result.setRegister(true);
 
                 accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, loginDto.getChannel(), ip, loginDto.getDevice(),
                         loginDto.getMac(), loginDto.getPhoneType(), loginDto.getSubChannel());

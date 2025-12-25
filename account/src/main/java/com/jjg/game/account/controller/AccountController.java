@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 import com.jjg.game.account.config.AccountConfig;
+import com.jjg.game.account.data.LoginResult;
 import com.jjg.game.account.dto.LoginConfigDto;
 import com.jjg.game.account.dto.LoginDto;
 import com.jjg.game.account.dto.LoginSmsDto;
@@ -253,13 +254,13 @@ public class AccountController extends AbstractController {
      */
     private WebResult<LoginVo> guestLogin(LoginDto dto, String ip) {
         //登录逻辑
-        CommonResult<Account> accountResult = accountService.login(LoginType.GUEST, new GuestUserInfo(dto.getData()), dto, ip);
+        LoginResult<Account> accountResult = accountService.login(LoginType.GUEST, new GuestUserInfo(dto.getData()), dto, ip);
         if (!accountResult.success()) {
             return fail(accountResult.code);
         }
 
         //组装返回结果
-        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.GUEST, accountResult.data, dto, ip);
+        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.GUEST, accountResult.data, accountResult.isRegister(), dto, ip);
 
         log.info("游客获取token成功 guest = {},playerId = {},token = {}", dto.getData(), accountResult.data.getPlayerId(), loginVoWebResult.getData().getToken());
         return loginVoWebResult;
@@ -298,13 +299,13 @@ public class AccountController extends AbstractController {
         }
 
         //登录逻辑
-        CommonResult<Account> accountResult = accountService.login(LoginType.GOOGLE, userInfoResult.data, dto, ip);
+        LoginResult<Account> accountResult = accountService.login(LoginType.GOOGLE, userInfoResult.data, dto, ip);
         if (!accountResult.success()) {
             return fail(accountResult.code);
         }
 
         //组装返回结果
-        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.GOOGLE, accountResult.data, dto, ip);
+        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.GOOGLE, accountResult.data, accountResult.isRegister(), dto, ip);
 
         log.info("谷歌登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(), loginVoWebResult.getData().getToken());
         return loginVoWebResult;
@@ -323,13 +324,13 @@ public class AccountController extends AbstractController {
         }
 
         //登录逻辑
-        CommonResult<Account> accountResult = accountService.login(LoginType.APPLE, userInfoResult.data, dto, ip);
+        LoginResult<Account> accountResult = accountService.login(LoginType.APPLE, userInfoResult.data, dto, ip);
         if (!accountResult.success()) {
             return fail(accountResult.code);
         }
 
         //组装返回结果
-        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.APPLE, accountResult.data, dto, ip);
+        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.APPLE, accountResult.data, accountResult.isRegister(), dto, ip);
 
         log.info("apple登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(), loginVoWebResult.getData().getToken());
         return loginVoWebResult;
@@ -367,13 +368,13 @@ public class AccountController extends AbstractController {
         }
 
         //登录逻辑
-        CommonResult<Account> accountResult = accountService.login(LoginType.PHONE, userInfoResult.data, dto, ip);
+        LoginResult<Account> accountResult = accountService.login(LoginType.PHONE, userInfoResult.data, dto, ip);
         if (!accountResult.success()) {
             return fail(accountResult.code);
         }
 
         //组装返回结果
-        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.APPLE, accountResult.data, dto, ip);
+        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.APPLE, accountResult.data, accountResult.isRegister(), dto, ip);
 
         log.info("phone登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(), loginVoWebResult.getData().getToken());
         return loginVoWebResult;
@@ -393,13 +394,13 @@ public class AccountController extends AbstractController {
         }
 
         //登录逻辑
-        CommonResult<Account> accountResult = accountService.login(LoginType.FACEBOOK, userInfoResult.data, dto, ip);
+        LoginResult<Account> accountResult = accountService.login(LoginType.FACEBOOK, userInfoResult.data, dto, ip);
         if (!accountResult.success()) {
             return fail(accountResult.code);
         }
 
         //组装返回结果
-        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.FACEBOOK, accountResult.data, dto, ip);
+        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.FACEBOOK, accountResult.data, accountResult.isRegister(), dto, ip);
 
         log.info("facebook 登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(), loginVoWebResult.getData().getToken());
         return loginVoWebResult;
@@ -412,7 +413,7 @@ public class AccountController extends AbstractController {
      * @param account
      * @return
      */
-    private WebResult<LoginVo> loginResult(LoginType loginType, Account account, LoginDto dto, String ip) {
+    private WebResult<LoginVo> loginResult(LoginType loginType, Account account, boolean register, LoginDto dto, String ip) {
         //生成token
         String token = RandomUtils.getUUid();
 
@@ -426,8 +427,13 @@ public class AccountController extends AbstractController {
         ChannelType channelType = ChannelType.valueOf(dto.getChannel(), ChannelType.GOOGLE);
 
         //保存token，方便weboskcet连接时进行校验
-        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), channelType.getValue(), ip, deviceType.getValue(),
-                dto.getMac(), account.getChannel().getValue(), dto.getShareId());
+        if (register) {
+            playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), channelType.getValue(), ip, deviceType.getValue(),
+                    dto.getMac(), account.getChannel().getValue(), dto.getShareId());
+        } else {
+            playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), channelType.getValue(), ip, deviceType.getValue(),
+                    dto.getMac(), account.getChannel().getValue(), null);
+        }
 
         LoginVo vo = new LoginVo();
         vo.setToken(token);
