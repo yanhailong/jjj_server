@@ -62,9 +62,6 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
             res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
-            if(res.remainFreeCount<0){
-                log.info("dddddddddddddddddddddddd");
-            }
             res.remainFreeCount = res.remainFreeCount > 0 ?res.remainFreeCount : 0;
             if (res.remainFreeCount < 1) {
                 res.status = SteamAgeConstant.Status.NORMAL;
@@ -129,9 +126,6 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             res.iconList = IntStream.range(1, 21).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
             //剩余免费次数
             res.remainFreeCount = gameRunInfo.getRemainFreeCount() > 0 ?gameRunInfo.getRemainFreeCount() : 0;
-            if(res.remainFreeCount<0){
-                log.info("dddddddddddddddddddddddd");
-            }
             //大奖展示id
             res.bigWinShow = gameRunInfo.getBigShowId();
             //等级信息
