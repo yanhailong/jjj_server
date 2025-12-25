@@ -71,6 +71,10 @@ public interface PointsAwardConstant {
          * 时间段玩家积分锁
          */
         String POINTS_AWARD_TIME_DATA_POINTS_LOCK = "pointsAwardTimeDataPointsLock:";
+        /**
+         * 机器人ID
+         */
+        String POINTS_AWARD_ROBOT_ID = "pointsAward:robotId";
     }
 
     /**

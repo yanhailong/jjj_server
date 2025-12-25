@@ -1,13 +1,22 @@
 package com.jjg.game.hall.pointsaward.leaderboard;
 
+import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.util.RandomUtil;
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.curator.MarsCurator;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.AwardCodeType;
 import com.jjg.game.core.data.LanguageParamData;
+import com.jjg.game.core.data.RankChange;
+import com.jjg.game.core.data.RankEntry;
 import com.jjg.game.core.manager.AwardCodeManager;
 import com.jjg.game.core.service.MailService;
+import com.jjg.game.core.service.RankService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.hall.pointsaward.PointsAwardLogger;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardData;
@@ -15,8 +24,13 @@ import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.PointsAwardRankingCfg;
+import com.jjg.game.sampledata.bean.PointsAwardRobotCfg;
+import com.jjg.game.sampledata.bean.RobotCfg;
+import io.netty.util.Timeout;
 import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.redisson.api.RDeque;
+import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,12 +41,14 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * 积分大奖排行榜管理器
  */
 @Component
-public class PointsAwardLeaderboardManager {
+public class PointsAwardLeaderboardManager implements LeaderLatchListener {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -49,8 +65,11 @@ public class PointsAwardLeaderboardManager {
     private final AwardCodeManager awardCodeManager;
     private final PointsAwardLogger pointsAwardLogger;
     private final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-
-
+    private Timeout timeout;
+    //RobotUserID ->PointsAwardRobotCfg Id
+    private List<Pair<Long, Integer>> robotList;
+    private final RankService rankService;
+    private final RobotUtil robotUtil;
     // ==================== 构造函数 ====================
 
     /**
@@ -71,7 +90,7 @@ public class PointsAwardLeaderboardManager {
             RedissonClient redissonClient,
             @Lazy MailService mailService,
             @Lazy AwardCodeManager awardCodeManager,
-            PointsAwardLogger pointsAwardLogger) {
+            PointsAwardLogger pointsAwardLogger, RankService rankService, RobotUtil robotUtil) {
         this.leaderboardService = leaderboardService;
         this.redisLock = redisLock;
         this.marsCurator = marsCurator;
@@ -79,6 +98,8 @@ public class PointsAwardLeaderboardManager {
         this.mailService = mailService;
         this.awardCodeManager = awardCodeManager;
         this.pointsAwardLogger = pointsAwardLogger;
+        this.rankService = rankService;
+        this.robotUtil = robotUtil;
     }
 
     // ==================== 初始化方法 ====================
@@ -96,11 +117,159 @@ public class PointsAwardLeaderboardManager {
             // 初始化服务的管理器引用
             leaderboardService.init(this);
             cacheRankData();
-
+            initRobot();
             log.info("积分奖励排行榜管理器初始化完成");
         } catch (Exception e) {
             log.error("积分奖励排行榜管理器初始化失败", e);
             throw new RuntimeException("排行榜管理器初始化失败", e);
+        }
+    }
+
+    private void initRobot() {
+        if (isMaster()) {
+            //单位秒【倒计时下限_倒计时上限_最小增长积分_前X名用机器人占榜】
+            try {
+                GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(48);
+                if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
+                    String[] config = StringUtils.split(globalConfigCfg.getValue(), "_");
+                    if (config.length != 4) {
+                        return;
+                    }
+                    timeout = WheelTimerUtil.scheduleAtRangeRate(this::robotAction, 0, Integer.parseInt(config[0]), Integer.parseInt(config[1]), TimeUnit.MILLISECONDS);
+                }
+            } catch (Exception e) {
+                log.error("初始化积分大奖机器人失败", e);
+            }
+        }
+    }
+
+    /**
+     * 机器人行为
+     */
+    public void robotAction() {
+        //单位秒【倒计时下限_倒计时上限_最小增长积分_前X名用机器人占榜】
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(48);
+        if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
+            String[] config = StringUtils.split(globalConfigCfg.getValue(), "_");
+            if (config.length != 4) {
+                return;
+            }
+            //a)	机器人积分 = 当前排行榜对应位置的积分 + 最小增长积分 × 排行榜最大名次（300） × 随机数（0~1） × Max { 1，（当前排名 × （当前排名 - 1））}  + 最小增长积分  × 排行榜最大名次（300） ÷ 当前排名
+            //i.	当前排行榜对应位置的积分
+            //ii.	最小增长积分，globalConfig 表中 ID 48 ，最后一个参数
+            //iii.	 随机数（0~1），执行时在0~1的范围内随机一个值
+            //iv.	当前排名，机器人对标的占位排名位置
+            //v.	排行榜最大名次（300），配置中的最大名次，当前300
+            int minAdd = Integer.parseInt(config[2]);
+            int maxRank = Integer.parseInt(config[3]);
+            //缓存中没有从redis中取
+            if (CollectionUtil.isEmpty(robotList)) {
+                robotList = new ArrayList<>(maxRank);
+                //取机器人配置的id，积分大奖机器人配置的数据生成玩家id和数据保存到redis确保每次执行都一样
+                //list String 积分_机器人
+                RList<String> redisIdList = getRedisRobotList();
+                if (redisIdList.isEmpty()) {
+                    //redis中没有就初始化
+                    List<PointsAwardRobotCfg> pointsRobot = new ArrayList<>(GameDataManager.getPointsAwardRobotCfgList());
+                    List<RobotCfg> robotCfgList = new ArrayList<>(GameDataManager.getRobotCfgList());
+                    //打乱
+                    Collections.shuffle(robotCfgList);
+                    Collections.shuffle(pointsRobot);
+                    maxRank = Math.min(maxRank, robotCfgList.size());
+                    maxRank = Math.min(maxRank, pointsRobot.size());
+                    List<String> add = new ArrayList<>(maxRank);
+                    for (int i = 0; i < maxRank; i++) {
+                        RobotCfg robotCfg = robotCfgList.get(i);
+                        long robotId = robotUtil.getId(robotCfg.getId());
+                        PointsAwardRobotCfg pointsRobotCfg = pointsRobot.get(i);
+                        add.add(robotId + "_" + pointsRobotCfg.getId());
+                        robotList.add(Pair.newPair(robotId, pointsRobotCfg.getId()));
+                    }
+                    redisIdList.addAll(add);
+                    log.info("积分大奖初始化机器人数据成功");
+                }
+                loadRobotData(redisIdList);
+            }
+            if (CollectionUtil.isEmpty(robotList)) {
+                return;
+            }
+            //取出对应的排名
+            List<RankEntry> rankEntries = rankService.topN(leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.DAY), robotList.size());
+            List<RankChange> rankChanges = new ArrayList<>(robotList.size());
+            for (int i = 0; i < robotList.size(); i++) {
+                Pair<Long, Integer> robotCfgPair = robotList.get(i);
+                PointsAwardRobotCfg rankingCfg = GameDataManager.getPointsAwardRobotCfg(robotCfgPair.getSecond());
+                if (rankingCfg == null) {
+                    continue;
+                }
+                long oldPoint = 0;
+                if (i < rankEntries.size()) {
+                    oldPoint = rankEntries.get(i).getPoints();
+                }
+                int currentRank = i + 1;
+                //a)	机器人积分 = 当前排行榜对应位置的积分 + 最小增长积分 × 排行榜最大名次（300） × 随机数（0~1） × Max { 1，（当前排名 × （当前排名 - 1））}  + 最小增长积分  × 排行榜最大名次（300） ÷ 当前排名
+                double newPoint = oldPoint + (minAdd * maxRank * RandomUtil.randomDouble(0, 1) / Math.max(1, currentRank * (currentRank - 1)) + (double) (minAdd / currentRank) / 100);
+                rankChanges.add(new RankChange(robotCfgPair.getFirst(), (int) newPoint));
+            }
+            if (rankChanges.isEmpty()) {
+                return;
+            }
+            log.info("变化积分 ：{}", JSON.toJSONString(rankChanges));
+            //更新排行榜
+            rankService.batchSetPoints(leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.DAY), rankChanges);
+            log.info("积分大奖更新日榜成功 size:{}", rankChanges.size());
+            rankService.batchSetPoints(leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.WEEK), rankChanges);
+            log.info("积分大奖更新周榜成功size:{}", rankChanges.size());
+            rankService.batchSetPoints(leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.TYPE_MONTH), rankChanges);
+            log.info("积分大奖更新月榜成功size:{}", rankChanges.size());
+        }
+    }
+
+    public static void main(String[] args) {
+        int oldPoint = 0;
+        int minAdd = 1;
+        int maxRank = 300;
+        int currentRank = 1;
+        for (int i = 0; i < 3; i++) {
+            double addValue = (minAdd * maxRank * 1 / Math.max(1, currentRank * (currentRank - 1)) + (double) (minAdd / currentRank)) / 100;
+            oldPoint += (int) addValue;
+            System.out.println("addValue:" + addValue + " oldPoint:" + oldPoint);
+        }
+    }
+
+    public RList<String> getRedisRobotList() {
+        return redissonClient.getList(PointsAwardConstant.RedisKey.POINTS_AWARD_ROBOT_ID);
+    }
+
+    public Map<Long, Integer> getRobotMap() {
+        if (robotList == null) {
+            loadRobotData(getRedisRobotList());
+        }
+        if (CollectionUtil.isEmpty(robotList)) {
+            return Map.of();
+        }
+        return robotList.stream().collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
+    }
+
+    public boolean isRobot(long playerId) {
+        return robotUtil.isRobot(playerId);
+    }
+
+    /**
+     * 从redis加载机器人列表
+     *
+     * @param redisIdList
+     */
+    private void loadRobotData(RList<String> redisIdList) {
+        if (CollectionUtil.isEmpty(robotList)) {
+            robotList = new ArrayList<>();
+            //从redis解析
+            List<String> cfgCache = redisIdList.readAll();
+            for (String cfg : cfgCache) {
+                String[] configStr = cfg.split("_");
+                robotList.add(Pair.newPair(Long.parseLong(configStr[0]), Integer.parseInt(configStr[1])));
+            }
+            log.info("积分大奖缓存机器人数据成功");
         }
     }
 
@@ -212,11 +381,23 @@ public class PointsAwardLeaderboardManager {
             if (firstDayOfMonth && configMap.containsKey(PointsAwardConstant.Leaderboard.TYPE_MONTH)) {
                 snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH);
                 leaderboardService.reset(PointsAwardConstant.Leaderboard.TYPE_MONTH);
+                clearRobotData();
             }
             log.info("午夜0点结算完成，是否周一:{} 是否月初: {}", weekStart, firstDayOfMonth);
         } catch (Exception e) {
             log.error("午夜0点结算失败", e);
         }
+    }
+
+    /**
+     * 清除机器人数据
+     *
+     */
+    private void clearRobotData() {
+        RList<String> redisIdList = redissonClient.getList(PointsAwardConstant.RedisKey.POINTS_AWARD_ROBOT_ID);
+        redisIdList.delete();
+        robotList = null;
+        log.info("月榜结束 清除机器人数据成功");
     }
 
 
@@ -399,13 +580,17 @@ public class PointsAwardLeaderboardManager {
             log.warn("排行榜配置为空，跳过发奖，类型: {}", rankingData.getRankType());
             return;
         }
-        rankingInfoList.forEach(info -> {
-            try {
-                sendPlayerAward(info, cfgMap, rankingData);
-            } catch (Exception e) {
-                log.error("发送玩家奖励失败，玩家ID: {}, 排名: {}", info.getPlayerId(), info.getRank(), e);
+        for (PointsAwardLeaderboardInfo leaderboardInfo : rankingInfoList) {
+            if (isRobot(leaderboardInfo.getPlayerId())) {
+                log.debug("玩家为机器人，跳过发奖，玩家ID: {}, 排名: {}", leaderboardInfo.getPlayerId(), leaderboardInfo.getRank());
+                continue;
             }
-        });
+            try {
+                sendPlayerAward(leaderboardInfo, cfgMap, rankingData);
+            } catch (Exception e) {
+                log.error("发送玩家奖励失败，玩家ID: {}, 排名: {}", leaderboardInfo.getPlayerId(), leaderboardInfo.getRank(), e);
+            }
+        }
         log.info("排行榜奖励发送完成，类型: {}, 发奖人数: {}", rankingData.getRankType(), rankingInfoList.size());
     }
 
@@ -554,4 +739,19 @@ public class PointsAwardLeaderboardManager {
     }
 
 
+    @Override
+    public void isLeader() {
+        if (timeout == null) {
+            initRobot();
+            log.info("成为主节点 添加机器人定时任务");
+        }
+    }
+
+    @Override
+    public void notLeader() {
+        if (timeout != null) {
+            timeout.cancel();
+            log.info("成为普通节点 取消机器人定时任务");
+        }
+    }
 }

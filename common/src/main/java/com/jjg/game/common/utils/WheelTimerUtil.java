@@ -1,5 +1,6 @@
 package com.jjg.game.common.utils;
 
+import cn.hutool.core.util.RandomUtil;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.TimerTask;
@@ -58,10 +59,7 @@ public class WheelTimerUtil {
      * @param unit         时间单位
      * @return 可用 Timeout 取消任务
      */
-    public static Timeout scheduleAtFixedRate(Runnable task,
-                                              long initialDelay,
-                                              long period,
-                                              TimeUnit unit) {
+    public static Timeout scheduleAtFixedRate(Runnable task, long initialDelay, long period, TimeUnit unit) {
         // 包装一个递归任务
         TimerTask timerTask = new TimerTask() {
             @Override
@@ -73,10 +71,41 @@ public class WheelTimerUtil {
                     task.run();
 
                 } catch (Exception e) {
-                    log.error("轮询定时器异常",e);
+                    log.error("轮询定时器异常", e);
                 } finally {
                     // 再次调度自身
                     TIMER.newTimeout(this, period, unit);
+                }
+            }
+        };
+        return TIMER.newTimeout(timerTask, initialDelay, unit);
+    }
+
+    /**
+     * 周期性任务（固定间隔）
+     *
+     * @param task         执行内容
+     * @param initialDelay 首次延迟
+     * @param periodMax    最大间隔时间
+     * @param periodMin    最小间隔时间
+     * @param unit         时间单位
+     * @return 可用 Timeout 取消任务
+     */
+    public static Timeout scheduleAtRangeRate(Runnable task, long initialDelay, long periodMin, long periodMax, TimeUnit unit) {
+        // 包装一个递归任务
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run(Timeout timeout) {
+                if (timeout.isCancelled()) {
+                    return;
+                }
+                try {
+                    task.run();
+                } catch (Exception e) {
+                    log.error("轮询定时器异常", e);
+                } finally {
+                    // 再次调度自身
+                    TIMER.newTimeout(this, RandomUtil.randomLong(periodMin, periodMax), unit);
                 }
             }
         };

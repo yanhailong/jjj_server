@@ -67,7 +67,7 @@ public class RankService {
      * -- KEYS[1] rank key
      * -- ARGV = member1, add1, member2, add2, ..., nowTime
      */
-    private static final String BATCH_ADD_LUA = """
+    private static final String BATCH_SET_LUA = """
             local BASE = 8388608
             local TIME_MAX  = 8388607
             local POINTS_MAX = 1073741823
@@ -77,16 +77,7 @@ public class RankService {
             local nowTime = tonumber(ARGV[argc])
             for i = 1, argc - 1, 2 do
                 local member = ARGV[i]
-                local addPoints = tonumber(ARGV[i + 1])
-            
-                local oldScore = redis.call('ZSCORE', key, member)
-                local points
-            
-                if not oldScore then
-                    points = addPoints
-                else
-                    points = math.floor(tonumber(oldScore) / BASE) + addPoints
-                end
+                local points = tonumber(ARGV[i + 1])
             
                 if points < 0 then points = 0 end
                 if points > POINTS_MAX then points = POINTS_MAX end
@@ -115,7 +106,7 @@ public class RankService {
         return score >>> TIME_BITS;
     }
 
-    public void batchAddPoints(String rankKey, List<RankChange> changes) {
+    public void batchSetPoints(String rankKey, List<RankChange> changes) {
         if (changes == null || changes.isEmpty()) {
             return;
         }
@@ -127,7 +118,7 @@ public class RankService {
         args.add((System.currentTimeMillis() / 1000) & TIME_MASK);
         script.eval(
                 RScript.Mode.READ_WRITE,
-                BATCH_ADD_LUA,
+                BATCH_SET_LUA,
                 RScript.ReturnType.STATUS,
                 Collections.singletonList(rankKey),
                 args.toArray()
@@ -139,7 +130,7 @@ public class RankService {
             return List.of();
         }
         RScoredSortedSet<Long> zset =
-                redissonClient.getScoredSortedSet(rankKey);
+                redissonClient.getScoredSortedSet(rankKey, LongCodec.INSTANCE);
         Collection<ScoredEntry<Long>> entries =
                 zset.entryRangeReversed(0, n - 1);
 
@@ -161,7 +152,7 @@ public class RankService {
 
     public RankEntry getRank(String rankKey, long playerId) {
         RScoredSortedSet<Long> zset =
-                redissonClient.getScoredSortedSet(rankKey);
+                redissonClient.getScoredSortedSet(rankKey, LongCodec.INSTANCE);
 
         Integer rank = zset.revRank(playerId);
         Double score = zset.getScore(playerId);
@@ -183,7 +174,7 @@ public class RankService {
      */
     public long getPoints(String rankKey, long playerId) {
         RScoredSortedSet<Long> zset =
-                redissonClient.getScoredSortedSet(rankKey);
+                redissonClient.getScoredSortedSet(rankKey, LongCodec.INSTANCE);
         Double score = zset.getScore(playerId);
         if (score == null) {
             return 0;

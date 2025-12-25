@@ -2,6 +2,7 @@ package com.jjg.game.account.dao;
 
 import com.jjg.game.account.config.AccountConfig;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.utils.RobotUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
@@ -20,12 +21,15 @@ public class PlayerIdDao {
     private RedisTemplate redisTemplate;
     @Autowired
     private AccountConfig accountConfig;
+    @Autowired
+    private RobotUtil robotUtil;
 
     /**
      * 初始化id
      */
     public void init() {
         redisTemplate.opsForValue().setIfAbsent(tableName, accountConfig.getPlayerBeginId());
+        robotUtil.initRobotStartId(accountConfig.getPlayerBeginId());
     }
 
     /**

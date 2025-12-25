@@ -3,6 +3,7 @@ package com.jjg.game.hall.pointsaward;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardManager;
 import com.jjg.game.hall.pointsaward.signin.PointsAwardSignInManager;
@@ -16,7 +17,7 @@ import java.util.concurrent.TimeUnit;
  * 积分大奖管理器
  */
 @Component
-public class PointsAwardManager implements GameEventListener, TimerListener {
+public class PointsAwardManager implements GameEventListener, TimerListener<String> {
 
     /**
      * 转盘服务
@@ -57,6 +58,8 @@ public class PointsAwardManager implements GameEventListener, TimerListener {
     }
 
 
+
+
     /**
      * 处理事件
      *
@@ -93,7 +96,7 @@ public class PointsAwardManager implements GameEventListener, TimerListener {
     }
 
     @Override
-    public void onTimer(TimerEvent e) {
+    public void onTimer(TimerEvent<String> e) {
         if(e == this.delayLoadRankEvent){
             pointsAwardLeaderboardManager.cacheRankData();
             this.timerCenter.remove(e);
