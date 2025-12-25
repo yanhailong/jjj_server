@@ -715,11 +715,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     public void shutdown() {
         this.gameDataMap.forEach((k, v) -> {
             v.forEach((k1, v1) -> {
-                try{
+                try {
                     onAutoExitAction(v1);
                     offlineSaveGameDataDto(v1);
-                }catch (Exception e){
-                    log.error("",e);
+                } catch (Exception e) {
+                    log.error("", e);
                 }
             });
         });
@@ -1256,7 +1256,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                             continue;
                         }
                         //开始执行
-                        offlineImplement(gameDataValue, en.getKey());
+                        offlineImplement(gameDataValue, en.getValue());
                     }
                 }
             }
@@ -1266,10 +1266,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 离线执行
      *
-     * @param playerGameData 玩家数据
-     * @param eventId        事件id
+     * @param playerGameData   玩家数据
+     * @param offLineEventData 事件
      */
-    private void offlineImplement(T playerGameData, int eventId) {
+    private void offlineImplement(T playerGameData, OffLineEventData offLineEventData) {
         //分发到对应的线程
         PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerGameData.playerId()
                 , 0, new BaseHandler<String>() {
@@ -1280,7 +1280,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         }
                         onAutoExitAction(playerGameData);
                         //标记该事件已执行
-                        playerGameData.actionOffLineEvent(eventId);
+                        offLineEventData.setAction(true);
                     }
                 }.setHandlerParamWithSelf("slots offlineImplement"));
     }
@@ -1506,7 +1506,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (playerGameData == null) {
             return null;
         }
-        long now =  System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         playerGameData.setOfflineTime(now);
         playerGameData.setOnline(false);
         if (initiativeExit) {
