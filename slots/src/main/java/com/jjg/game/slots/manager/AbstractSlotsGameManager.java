@@ -1500,7 +1500,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 .addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, () -> specialPlayConfig());
     }
 
-
+    /**
+     * 处理玩家退出游戏事件
+     * @param playerController
+     * @param initiativeExit
+     * @return
+     */
     public T exit(PlayerController playerController, boolean initiativeExit) {
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
@@ -1510,8 +1515,15 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setOfflineTime(now);
         playerGameData.setOnline(false);
         if (initiativeExit) {
+            //退出自动执行事件
+            onAutoExitAction(playerGameData);
+
             offlineSaveGameDataDto(playerGameData);
             removePlayerGameData(playerController.playerId(), playerGameData.getRoomCfgId());
+        }else {
+            //30秒之后执行事件
+            OffLineEventData offLineEventData = new OffLineEventData(1,now + 30 * TimeHelper.ONE_SECOND_OF_MILLIS);
+            playerGameData.addOffLineEvent(offLineEventData);
         }
         return playerGameData;
     }
