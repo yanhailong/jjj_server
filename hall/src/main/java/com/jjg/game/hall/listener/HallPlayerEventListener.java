@@ -1,6 +1,7 @@
 package com.jjg.game.hall.listener;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.activity.sharepromote.controller.SharePromoteController;
 import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsNode;
@@ -87,6 +88,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private CountDao countDao;
     @Autowired
     private RedDotManager redDotManager;
+    @Autowired
+    private SharePromoteController sharePromoteController;
 
     public void init() {
     }
@@ -143,7 +146,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 return;
             }
 
-            ChannelType channelType = ChannelType.valueOf(playerSessionToken.getChannel(),ChannelType.GOOGLE);
+            ChannelType channelType = ChannelType.valueOf(playerSessionToken.getChannel(), ChannelType.GOOGLE);
             LoginType loginType = LoginType.valueOf(playerSessionToken.getLoginType());
 
             //标记是否为注册的账号
@@ -227,8 +230,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //更新session
             PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
 
-            //更新token过期时间
-            playerSessionTokenDao.updateExpire(playerSessionToken);
             Account account = accountDao.queryAccountByPlayerId(player.getId());
             boolean dayOfFirstLogin = !TimeHelper.inSameDay(account.getLastLoginTime(), timeMillis) &&
                     !TimeHelper.inSameDay(account.getLastOfflineTime(), timeMillis);
@@ -251,6 +252,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 session.setReference(playerController);
                 SystemInterfaceHolder.callGameSysAction(
                         IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, dayOfFirstLogin));
+
+                //更新token过期时间
+                playerSessionTokenDao.updateExpire(playerSessionToken);
                 return;
             }
 
@@ -267,8 +271,14 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             if (register[0]) {
                 hallService.saveDefaultAvatar(req.playerId);
                 hallPlayerService.savePlayerNick(req.playerId, player.getNickName());
-                hallLogger.level(player, 1,1,null, null);
+                hallLogger.level(player, 1, 1, null, null);
+                sharePromoteController.bindSuperPlayer(player, playerSessionToken.getSharId());
+                playerSessionToken.setSharId(null);
             }
+
+            //更新token过期时间
+            playerSessionTokenDao.updateExpire(playerSessionToken);
+
             log.info("玩家登录成功 playerId = {},res = {}", player.getId(), JSON.toJSONString(res));
 
             // 调用登录接口类

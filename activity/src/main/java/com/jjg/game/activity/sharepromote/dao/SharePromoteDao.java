@@ -63,6 +63,7 @@ public class SharePromoteDao {
     private final String SHARE_PROMOTE_PLAYER_INFO = "activity:sharepromote:player:%d";           // 玩家信息
     private final String SHARE_PROMOTE_LOCK = "activity:sharepromote:lock:%d";                    // 玩家操作锁
     private final String SHARE_PROMOTE_ERROR_CODE_TIME = "activity:sharepromote:errorcodetime:%d";                    // 玩家邀请码输入错误下次能输入时间
+    private final String SHARE_PROMOTE_URL_PREFIX = "activity:sharepromote:urlprefix";                    // 分享链接前缀
 
     public SharePromoteDao(RedisTemplate<String, String> redisTemplate, RedisTemplate<String, SharePromotePlayerData> playerDataRedisTemplate) {
         this.redisTemplate = redisTemplate;
@@ -402,5 +403,13 @@ public class SharePromoteDao {
             sb.append(c);
         }
         return sb.toString();
+    }
+
+    public void setShareUrlPrefix(String value) {
+        redisTemplate.opsForValue().set(SHARE_PROMOTE_URL_PREFIX, value);
+    }
+
+    public String getShareUrlPrefix() {
+        return redisTemplate.opsForValue().get(SHARE_PROMOTE_URL_PREFIX);
     }
 }

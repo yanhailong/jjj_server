@@ -32,6 +32,8 @@ public class ResSharePromoteGlobalInfo extends AbstractResponse {
     public String QrCode;
     @ProtoDesc("可领取收益")
     public long getProfitReward;
+    @ProtoDesc("分享链接")
+    public String shareUrlPrefix;
 
     public ResSharePromoteGlobalInfo(int code) {
         super(code);

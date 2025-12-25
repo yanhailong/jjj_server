@@ -17,6 +17,10 @@ public class LoginDto {
     private int device;
     //手机型号
     private String phoneType;
+    //分享码
+    private String shareId;
+    //子渠道
+    private String subChannel;
 
     public int getLoginType() {
         return loginType;
@@ -64,5 +68,21 @@ public class LoginDto {
 
     public void setPhoneType(String phoneType) {
         this.phoneType = phoneType;
+    }
+
+    public String getShareId() {
+        return shareId;
+    }
+
+    public void setShareId(String shareId) {
+        this.shareId = shareId;
+    }
+
+    public String getSubChannel() {
+        return subChannel;
+    }
+
+    public void setSubChannel(String subChannel) {
+        this.subChannel = subChannel;
     }
 }

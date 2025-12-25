@@ -114,7 +114,8 @@ public class AccountService {
                 account = accountDao.setChannelValue(loginType, channelUserInfo, account);
                 account.setCreateTime((int) (now / 1000));
 
-                accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, loginDto.getChannel(), ip, loginDto.getDevice(), loginDto.getMac(), loginDto.getPhoneType());
+                accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, loginDto.getChannel(), ip, loginDto.getDevice(),
+                        loginDto.getMac(), loginDto.getPhoneType(), loginDto.getSubChannel());
             }
 
             if (!Objects.equals(loginDto.getMac(), account.getLastLoginMac())) {
