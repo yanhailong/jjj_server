@@ -5,8 +5,10 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarGameRunInfo;
 import com.jjg.game.slots.game.basketballSuperstar.manager.BasketballSuperstarGameManager;
+import com.jjg.game.slots.game.basketballSuperstar.manager.BasketballSuperstarRoomGameManager;
 import com.jjg.game.slots.game.basketballSuperstar.manager.BasketballSuperstarSendMessageManager;
 import com.jjg.game.slots.game.basketballSuperstar.pb.ReqBasketballSuperstarEnterGame;
 import com.jjg.game.slots.game.basketballSuperstar.pb.ReqBasketballSuperstarPoolInfo;
@@ -28,6 +30,8 @@ public class BasketballSuperstarMessageHandler {
     @Autowired
     private BasketballSuperstarGameManager gameManager;
     @Autowired
+    private BasketballSuperstarRoomGameManager roomGameManager;
+    @Autowired
     private BasketballSuperstarSendMessageManager sendMessageManager;
 
     /**
@@ -40,8 +44,16 @@ public class BasketballSuperstarMessageHandler {
     public void reqConfigInfo(PlayerController playerController, ReqBasketballSuperstarEnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
-            BasketballSuperstarGameRunInfo gameRunInfo = gameManager.enterGame(playerController);
-            sendMessageManager.sendConfigMessage(playerController,gameRunInfo);
+            BasketballSuperstarGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.enterGame(playerController);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.enterGame(playerController);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
+            sendMessageManager.sendConfigMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -57,7 +69,15 @@ public class BasketballSuperstarMessageHandler {
     public void reqStartGame(PlayerController playerController, ReqBasketballSuperstarStartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            BasketballSuperstarGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);
+            BasketballSuperstarGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = this.roomGameManager.playerStartGame(playerController, req.stakeVlue);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
@@ -75,7 +95,15 @@ public class BasketballSuperstarMessageHandler {
     public void reqGetPoolInfo(PlayerController playerController, ReqBasketballSuperstarPoolInfo req) {
         try {
             log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            BasketballSuperstarGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+            BasketballSuperstarGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.getPoolValue(BasketballSuperstarGameRunInfo.class, playerController, req.stakeVlue);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.getPoolValue(BasketballSuperstarGameRunInfo.class, playerController, req.stakeVlue);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
             sendMessageManager.sendPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);

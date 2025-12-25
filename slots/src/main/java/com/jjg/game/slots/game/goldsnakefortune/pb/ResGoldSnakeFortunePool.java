@@ -13,8 +13,10 @@ import com.jjg.game.slots.game.goldsnakefortune.GoldSnakeFortuneConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.GOLD_SNAKE_FORTUNE, cmd = GoldSnakeFortuneConstant.MsgBean.RES_POOL_VALUE,resp = true)
 @ProtoDesc("奖池返回")
 public class ResGoldSnakeFortunePool extends AbstractResponse {
-    @ProtoDesc("奖池")
-    public long poolValue;
+    public long mini;
+    public long minor;
+    public long major;
+    public long grand;
 
     public ResGoldSnakeFortunePool(int code) {
         super(code);

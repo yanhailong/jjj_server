@@ -94,9 +94,9 @@ public class CaptainJackMessageHandler {
         try {
             CaptainJackGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
-                gameRunInfo = gameManager.getPoolValue(playerController,req.stakeValue);
+                gameRunInfo = gameManager.getPoolValue(CaptainJackGameRunInfo.class,playerController,req.stakeValue);
             } else if (playerController.getScene() instanceof SlotsRoomController) {
-                gameRunInfo = roomGameManager.getPoolValue(playerController,req.stakeValue);
+                gameRunInfo = roomGameManager.getPoolValue(CaptainJackGameRunInfo.class,playerController,req.stakeValue);
             } else {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;

@@ -5,8 +5,10 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneGameRunInfo;
 import com.jjg.game.slots.game.frozenThrone.manager.FrozenThroneGameManager;
+import com.jjg.game.slots.game.frozenThrone.manager.FrozenThroneRoomGameManager;
 import com.jjg.game.slots.game.frozenThrone.manager.FrozenThroneSendMessageManager;
 import com.jjg.game.slots.game.frozenThrone.pb.ReqFrozenThroneEnterGame;
 import com.jjg.game.slots.game.frozenThrone.pb.ReqFrozenThronePoolInfo;
@@ -28,6 +30,8 @@ public class FrozenThroneMessageHandler {
     @Autowired
     private FrozenThroneGameManager gameManager;
     @Autowired
+    private FrozenThroneRoomGameManager roomGameManager;
+    @Autowired
     private FrozenThroneSendMessageManager sendMessageManager;
 
     /**
@@ -40,8 +44,16 @@ public class FrozenThroneMessageHandler {
     public void reqConfigInfo(PlayerController playerController, ReqFrozenThroneEnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
-            FrozenThroneGameRunInfo gameRunInfo = gameManager.enterGame(playerController);
-            sendMessageManager.sendConfigMessage(playerController,gameRunInfo);
+            FrozenThroneGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.enterGame(playerController);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.enterGame(playerController);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
+            sendMessageManager.sendConfigMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -57,7 +69,15 @@ public class FrozenThroneMessageHandler {
     public void reqStartGame(PlayerController playerController, ReqFrozenThroneStartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            FrozenThroneGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);
+            FrozenThroneGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = this.roomGameManager.playerStartGame(playerController, req.stakeVlue);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
@@ -75,7 +95,15 @@ public class FrozenThroneMessageHandler {
     public void reqGetPoolInfo(PlayerController playerController, ReqFrozenThronePoolInfo req) {
         try {
             log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            FrozenThroneGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+            FrozenThroneGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.getPoolValue(FrozenThroneGameRunInfo.class, playerController, req.stakeVlue);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.getPoolValue(FrozenThroneGameRunInfo.class, playerController, req.stakeVlue);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
             sendMessageManager.sendPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);

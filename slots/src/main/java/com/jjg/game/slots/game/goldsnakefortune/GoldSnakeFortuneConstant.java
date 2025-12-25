@@ -8,9 +8,15 @@ public interface GoldSnakeFortuneConstant {
     interface Status{
         int NORMAL = SlotsConst.Status.NORMAL;
         //免费模式
-        int REAL_FREE = SlotsConst.Status.FREE;
-        //假免费模式
-        int FAKE_FREE = 2;
+        int FREE = SlotsConst.Status.FREE;
+        //触发真免费
+        int REAL_FREE = 2;
+        //触发假免费
+        int FAKE_FREE = 3;
+    }
+
+    interface SpecialPlay{
+        int ID_FAKE_FREE = 5035001;
     }
 
     interface MsgBean {
@@ -28,11 +34,9 @@ public interface GoldSnakeFortuneConstant {
         int RES_POOL_VALUE = BASE_MSG_PREFIX | 0x6;
     }
 
-    interface SpecialPlay{
-        int TYPE_ADD_ICON = 6;
-    }
-
     interface SpecialMode{
         int NORMAL = 1;
+        int FREE = 2;
+        int JACKPOT = 3;
     }
 }

@@ -9,7 +9,9 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleGameDataDao;
@@ -79,6 +81,7 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
         return startGame(playerController, playerGameData, stake, false);
     }
+
     /**
      * 将库里面的中将线信息转化为消息
      *
@@ -100,6 +103,7 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         }
         return list;
     }
+
     /**
      * 开始游戏
      *
@@ -108,10 +112,14 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         PegasusUnbridleGameRunInfo gameRunInfo = new PegasusUnbridleGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
+
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
-            gameRunInfo.setBeforeGold(player.getGold());
+
+            gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
+
             //获取当前处于哪种状态
             int status = playerGameData.getStatus();
             if (status == PegasusUnbridleConstant.Status.NORMAL) {
@@ -124,28 +132,18 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
             if (!gameRunInfo.success()) {
                 return gameRunInfo;
             }
-            //标准池
-            if (gameRunInfo.getBigPoolTimes() > 0) {
-                long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
-                if (addGold > 0) {
-                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
-                    if (!result.success()) {
-                        log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                        gameRunInfo.setCode(result.code);
-                        return gameRunInfo;
-                    }
-                    gameRunInfo.setAllWinGold(addGold);
-                }
-            }
+            //从奖池扣除，并给玩家加钱
+            rewardFromBigPool(gameRunInfo, playerGameData);
+
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue);
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setAfterGold(player.getGold());
+            gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
             int times = calWinTimes(gameRunInfo, playerGameData, betValue);
@@ -164,36 +162,6 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
     }
 
     /**
-     * 检查中大奖
-     *
-     */
-    private void jackPool(PegasusUnbridleGameRunInfo gameRunInfo, PegasusUnbridlePlayerGameData playerGameData, PegasusUnbridleResultLib resultLib) {
-        if (!resultLib.getLibTypeSet().contains(PegasusUnbridleConstant.SpecialMode.JACK_POOL)) {
-            return;
-        }
-        try {
-            PoolCfg poolCfg = randWinPool(playerGameData, resultLib.getJackpotId());
-            if (poolCfg == null) {
-                return;
-            }
-
-            long poolValue = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), poolCfg.getDelayTime());
-            //给玩家加钱
-            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), poolValue, AddType.SLOTS_TRAIN, resultLib.getJackpotId() + "");
-            if (!result.success()) {
-                log.warn("福马飞扬 从小池子扣除，并给玩家加钱失败 code = {}", result.code);
-                return;
-            }
-            playerGameData.addSmallPoolReward(poolValue);
-            gameRunInfo.addSmallPoolGold(poolValue);
-
-            log.info("福马飞扬 玩家奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), resultLib.getJackpotId(), poolValue);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    /**
      * 普通正常流程
      *
      */
@@ -206,17 +174,17 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         PegasusUnbridleResultLib resultLib = libResult.data.getFirst();
         gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
         gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+
         //检查是否中大奖
-        jackPool(gameRunInfo, playerGameData, resultLib);
+        rewardFromSmallPool(gameRunInfo,playerGameData,resultLib.getJackpotId(),false);
+
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
-        gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(),playerGameData.getOneBetScore()));
+        gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
         gameRunInfo.setStake(betValue);
         gameRunInfo.setStatus(playerGameData.getStatus());
     }
-
-
 
 
     @Override
@@ -258,22 +226,6 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
             log.error("", e);
         }
     }
-
-
-    public PegasusUnbridleGameRunInfo getPoolValue(PlayerController playerController, long stakeValue) {
-        PegasusUnbridleGameRunInfo gameRunInfo = new PegasusUnbridleGameRunInfo(Code.SUCCESS, playerController.playerId());
-        try {
-            gameRunInfo.setMini(getPoolValueByPoolId(PegasusUnbridleConstant.Common.MINI_POOL_ID, stakeValue));
-            gameRunInfo.setMinor(getPoolValueByPoolId(PegasusUnbridleConstant.Common.MINOR_POOL_ID, stakeValue));
-            gameRunInfo.setMajor(getPoolValueByPoolId(PegasusUnbridleConstant.Common.MAJOR_POOL_ID, stakeValue));
-            gameRunInfo.setGrand(getPoolValueByPoolId(PegasusUnbridleConstant.Common.GRAND_POOL_ID, stakeValue));
-        } catch (Exception e) {
-            log.error("", e);
-            gameRunInfo.setCode(Code.EXCEPTION);
-        }
-        return gameRunInfo;
-    }
-
 
     @Override
     protected void onAutoExitAction(PegasusUnbridlePlayerGameData gameData) {

@@ -1,5 +1,6 @@
 package com.jjg.game.activity.sharepromote.dao;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.sharepromote.data.SharePromotePlayerData;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
@@ -250,6 +251,7 @@ public class SharePromoteDao {
 
     /**
      * 玩家输入错误邀请码进行计时
+     *
      * @param playerId 玩家id
      */
     private void addPlayerCodeErrorPrint(long playerId) {
@@ -338,9 +340,11 @@ public class SharePromoteDao {
      * 获取玩家已绑定的目标数量
      */
     public long getBindCount(long playerId) {
-        String bindKey = SHARE_PROMOTE_BIND_KEY.formatted(playerId);
-        Long size = redisTemplate.opsForSet().size(bindKey);
-        return size != null ? size : 0L;
+        SharePromotePlayerData playerInfoData = getPlayerInfoData(playerId);
+        if (playerInfoData == null || CollectionUtil.isEmpty(playerInfoData.getValidSubordinateIds())) {
+            return 0;
+        }
+        return playerInfoData.getValidSubordinateIds().size();
     }
 
     /**

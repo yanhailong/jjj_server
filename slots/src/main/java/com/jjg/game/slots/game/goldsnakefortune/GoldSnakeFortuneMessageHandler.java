@@ -54,7 +54,7 @@ public class GoldSnakeFortuneMessageHandler {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
-            sendMessageManager.sendConfigMessage(playerController);
+            sendMessageManager.sendConfigMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

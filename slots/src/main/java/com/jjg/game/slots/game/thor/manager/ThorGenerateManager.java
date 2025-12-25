@@ -465,6 +465,10 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
     }
 
     private boolean checkFreeModel(ThorResultLib lib) {
+        if(lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            return false;
+        }
+
         for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
             if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
                 continue;

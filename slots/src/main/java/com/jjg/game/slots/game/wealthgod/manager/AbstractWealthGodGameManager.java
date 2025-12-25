@@ -14,6 +14,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SlotsResultLib;
@@ -107,6 +108,8 @@ public class AbstractWealthGodGameManager extends AbstractSlotsGameManager<Wealt
     public WealthGodGameRunInfo startGame(PlayerController playerController, WealthGodPlayerGameData playerGameData, long betValue) {
         WealthGodGameRunInfo gameRunInfo = new WealthGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
+
             CommonResult<Pair<WealthGodResultLib, BetDivideInfo>> commonResult = normalGetLib(playerGameData, betValue, WealthGodConstant.SpecialMode.TYPE_NORMAL);
             if (!commonResult.success()) {
                 gameRunInfo.setCode(commonResult.code);
@@ -129,41 +132,16 @@ public class AbstractWealthGodGameManager extends AbstractSlotsGameManager<Wealt
             gameRunInfo.setSpinInfo(infoList);
             //记录奖池id
             gameRunInfo.setJackpotId(resultLib.getJackpotId());
+            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
 
-            //房间配置id
-            int roomCfgId = player.getRoomCfgId();
-            long addGold = 0;
-            //标准池
-            if (gameRunInfo.getBigPoolTimes() > 0) {
-                addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
-                if (addGold > 0) {
-                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
-                    if (!result.success()) {
-                        log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                        gameRunInfo.setCode(result.code);
-                        return gameRunInfo;
-                    }
-                }
-            }
-            int jackpotId = gameRunInfo.getJackpotId();
-            //检测奖池奖励
-            if (jackpotId > 0) {
-                long pool = calculatePool(roomCfgId, jackpotId, playerController);
-                if (pool > 0) {
-                    addGold += pool;
-                    slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), pool, AddType.SLOTS_JACKPOT_REWARD);
-                    //记录发奖金额
-                    gameRunInfo.setJackpotValue(pool);
-                    //记录发奖后剩余的奖池金额
-                    gameRunInfo.setPoolValue(getPoolValueByRoomCfgId(roomCfgId));
-                }
-            }
-            if (addGold > 0) {
-                gameRunInfo.addAllWinGold(addGold);
-            }
+            //从奖池扣除，并给玩家加钱
+            rewardFromBigPool(gameRunInfo, playerGameData);
+            //奖池中奖
+            rewardFromSmallPool(gameRunInfo, playerGameData, gameRunInfo.getJackpotId(), false);
+            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(),gameRunInfo.getAllWinGold(),betValue);
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
@@ -194,7 +172,7 @@ public class AbstractWealthGodGameManager extends AbstractSlotsGameManager<Wealt
             for (WealthGodAwardLineInfo lineInfo : awardLineInfoList) {
                 WealthGodResultLineInfo resultLineInfo = new WealthGodResultLineInfo();
                 resultLineInfo.id = lineInfo.getLineId();
-                BaseLineCfg baseLineCfg = this.lineCfgMap.get(lineInfo.getLineId());
+                BaseLineCfg baseLineCfg = getBaseLineCfg(lineInfo.getLineId(),false);
                 int direction = baseLineCfg.getDirection().getFirst();
                 List<Integer> indexList = baseLineCfg.getPosLocation();
                 if (direction == SlotsConst.BaseLine.DIRECTION_LEFT) {

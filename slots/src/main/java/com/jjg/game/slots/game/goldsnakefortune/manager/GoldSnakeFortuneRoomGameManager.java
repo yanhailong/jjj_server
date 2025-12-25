@@ -13,7 +13,6 @@ public class GoldSnakeFortuneRoomGameManager extends AbstractGoldSnakeFortuneGam
         this.log =  LoggerFactory.getLogger(getClass());
     }
 
-
     @Override
     protected PoolCfg randWinPool(GoldSnakeFortunePlayerGameData playerGameData, int poolId) {
         return null;

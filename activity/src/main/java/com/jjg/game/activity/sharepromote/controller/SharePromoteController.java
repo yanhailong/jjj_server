@@ -1,12 +1,10 @@
 package com.jjg.game.activity.sharepromote.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.util.EnumUtil;
 import com.jjg.game.activity.activitylog.data.SharePromoteWeekRank;
 import com.jjg.game.activity.common.controller.BaseActivityController;
-import com.jjg.game.activity.common.data.ActivityData;
-import com.jjg.game.activity.common.data.ActivityType;
-import com.jjg.game.activity.common.data.ClaimRewardsResult;
-import com.jjg.game.activity.common.data.PlayerActivityData;
+import com.jjg.game.activity.common.data.*;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.sharepromote.dao.SharePromoteDao;
@@ -19,10 +17,14 @@ import com.jjg.game.activity.sharepromote.message.res.*;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.condition.ConditionType;
+import com.jjg.game.core.base.condition.check.record.PlayerRechargeParam;
+import com.jjg.game.core.base.condition.check.record.PlayerSampleParam;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.RedisUtils;
@@ -49,15 +51,19 @@ import java.util.stream.Collectors;
  */
 @Component
 public class SharePromoteController extends BaseActivityController {
+    private final String SHARE_PROMOTE_EFFECTIVE_BET = "sharePromote:effective_bet";
+    private final String SHARE_PROMOTE = "sharePromote";
     private final Logger log = LoggerFactory.getLogger(SharePromoteController.class);
     private final SharePromoteDao sharePromoteDao;
     private final MailService mailService;
     private final CountDao countDao;
+    private final ConditionManager conditionManager;
 
-    public SharePromoteController(SharePromoteDao sharePromoteDao, MailService mailService, CountDao countDao) {
+    public SharePromoteController(SharePromoteDao sharePromoteDao, MailService mailService, CountDao countDao, ConditionManager conditionManager) {
         this.sharePromoteDao = sharePromoteDao;
         this.mailService = mailService;
         this.countDao = countDao;
+        this.conditionManager = conditionManager;
     }
 
     @Override
@@ -107,40 +113,123 @@ public class SharePromoteController extends BaseActivityController {
         if (bindInfoArr.length != 2) {
             return false;
         }
+        boolean effectiveBet = (activityTargetKey & ActivityTargetType.EFFECTIVE_BET.getTargetKey()) != 0;
         //被绑定的玩家id
         long beneficiaryPlayerId = Long.parseLong(bindInfoArr[0]);
-        //计算收益率
-        int proportion = getPlayerProportion(beneficiaryPlayerId, activityData);
-        if (proportion == 0) {
-            return false;
+        if (effectiveBet) {
+            //添加有效流水进度
+            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(SHARE_PROMOTE_EFFECTIVE_BET), String.valueOf(playerId), BigDecimal.valueOf(progress));
+        } else {
+            //添加充值进度
+            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(SHARE_PROMOTE), String.valueOf(playerId), RedisUtils.fromLong(progress));
         }
         //获取被绑定玩家的推广分享数据
         SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(beneficiaryPlayerId);
         if (playerInfoData == null) {
             return false;
         }
-        countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted("sharePromote"), String.valueOf(playerId), RedisUtils.fromLong(progress));
-        BigDecimal magnification = BigDecimal.ONE;
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(53);
-        if (globalConfigCfg != null) {
-            magnification = BigDecimal.valueOf(globalConfigCfg.getIntValue());
+        //判断是不是有效下级
+        List<Long> validSubordinateIds = playerInfoData.getValidSubordinateIds();
+        if (validSubordinateIds != null && validSubordinateIds.contains(playerId)) {
+            BigDecimal magnification = BigDecimal.ONE;
+            BigDecimal realProgress = BigDecimal.valueOf(progress);
+            int type = 9;
+            //计算收益率
+            int proportion = getPlayerProportion(playerId, activityData);
+            if (!effectiveBet) {
+                proportion = getPlayerRechargeProportion(playerId, activityData);
+                GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(53);
+                if (globalConfigCfg != null) {
+                    magnification = BigDecimal.valueOf(globalConfigCfg.getIntValue());
+                }
+                realProgress = RedisUtils.fromLong(progress);
+                type = 1;
+            }
+            if (proportion == 0) {
+                return false;
+            }
+            //计算本次添加的进度
+            long addValue = realProgress.multiply(BigDecimal.valueOf(proportion))
+                    .multiply(magnification)
+                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
+                    .longValue();
+            if (addValue > 0) {
+                //添加充值计数
+                sharePromoteDao.addPlayerIncome(playerId, beneficiaryPlayerId, addValue);
+                Player beneficiaryPlayer = corePlayerService.get(beneficiaryPlayerId);
+                //发送日志
+                activityLogger.sendSharePromoteAddRewards(beneficiaryPlayer, activityData, playerId, type, addValue, 0, progress, 0);
+                activityLogger.sendSharePromoteSubordinateRecharge(player, activityData, type, beneficiaryPlayerId, progress, addValue);
+            }
+            return false;
         }
-        //计算本次添加的进度
-        long addValue = RedisUtils.fromLong(progress)
-                .multiply(BigDecimal.valueOf(proportion))
-                .multiply(magnification)
-                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
-                .longValue();
-        if (addValue > 0) {
-            //添加充值计数
-            sharePromoteDao.addPlayerIncome(playerId, beneficiaryPlayerId, addValue);
-            Player beneficiaryPlayer = corePlayerService.get(beneficiaryPlayerId);
-            //发送日志
-            activityLogger.sendSharePromoteAddRewards(beneficiaryPlayer, activityData, playerId, 1,
-                    addValue, 0, progress, 0);
-            activityLogger.sendSharePromoteSubordinateRecharge(player, activityData, beneficiaryPlayerId, progress, addValue);
-        }
+        addConditionProgress(player, activityData, progress, additionalParameters, playerId, beneficiaryPlayerId);
         return false;
+    }
+
+    private void addConditionProgress(Player player, ActivityData activityData, long progress, Object additionalParameters, long playerId, long beneficiaryPlayerId) {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(65);
+        if (globalConfigCfg == null || StringUtils.isEmpty(globalConfigCfg.getValue())) {
+            return;
+        }
+        String[] conditionCfg = StringUtils.split(globalConfigCfg.getValue(), "|");
+        boolean result = true;
+        for (String cfg : conditionCfg) {
+            String[] cfgArr = StringUtils.split(cfg, "_");
+            if (cfgArr.length == 0) {
+                continue;
+            }
+            ConditionType type = EnumUtil.getBy(ConditionType.class, (t) -> t.getId() == Integer.parseInt(cfgArr[0]));
+            if (type == ConditionType.PLAYER_SUM_PAY && additionalParameters instanceof Order order) {
+                PlayerRechargeParam param = new PlayerRechargeParam();
+                param.setPlayerId(playerId);
+                param.setFunction(SHARE_PROMOTE);
+                param.setAmount(RedisUtils.fromLong(progress));
+                param.setChannelId(order.getPayChannel());
+                result &= BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0;
+            }
+            if (type == ConditionType.PLAYER_CUMULATIVE_BET && additionalParameters instanceof Integer id) {
+                if (id != ItemUtils.getGoldItemId()) {
+                    continue;
+                }
+                PlayerSampleParam param = new PlayerSampleParam();
+                param.setPlayerId(playerId);
+                param.setFunction(SHARE_PROMOTE);
+                param.setParamList(List.of(progress));
+                result &= BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0;
+            }
+        }
+        if (result) {
+            //添加到有效下级
+            String key = sharePromoteDao.getLock(beneficiaryPlayerId);
+            SharePromotePlayerData newPlayerInfoData = null;
+            try {
+                boolean lock = redisLock.tryLockWithDefaultTime(key);
+                if (!lock) {
+                    log.error("推广分享保存有效下级 获取锁失败 playerId:{}", beneficiaryPlayerId);
+                    return;
+                }
+                newPlayerInfoData = sharePromoteDao.getPlayerInfoData(beneficiaryPlayerId);
+                List<Long> validSubordinateIds = newPlayerInfoData.getValidSubordinateIds();
+                if (validSubordinateIds == null || !validSubordinateIds.contains(playerId)) {
+                    newPlayerInfoData.addValidSubordinateId(playerId);
+                    newPlayerInfoData.addNotClaimedPlayerId(playerId, System.currentTimeMillis());
+                }
+                sharePromoteDao.savePlayerInfoData(beneficiaryPlayerId, newPlayerInfoData);
+            } catch (Exception e) {
+                log.error("推广分享保存有效下级失败", e);
+            } finally {
+                redisLock.tryUnlock(key);
+            }
+            //修改活动状态
+            if (newPlayerInfoData != null) {
+                Player beneficiaryPlayer = corePlayerService.get(beneficiaryPlayerId);
+                checkActivityStatus(beneficiaryPlayer, activityData, newPlayerInfoData.getValidSubordinateIds().size(), getPlayerProportion(beneficiaryPlayerId, activityData));
+                activityLogger.sendSharePromoteAddRewards(beneficiaryPlayer, activityData, playerId, 10,
+                        0, 1, 0, 0, 0, 0);
+            }
+            log.info("beneficiaryPlayerId:{} 新增有效下级:{}", beneficiaryPlayerId, playerId);
+        }
     }
 
     @Override
@@ -162,7 +251,7 @@ public class SharePromoteController extends BaseActivityController {
             info.activityId = activityData.getId();
             info.detailId = cfg.getId();
             info.needNum = cfg.getCondition();
-            info.proportion = cfg.getProportion();
+            info.proportion = cfg.getBetproportion();
             //奖励信息
             info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetitem());
             if (data != null) {
@@ -246,8 +335,6 @@ public class SharePromoteController extends BaseActivityController {
             res.code = Code.CODE_ERROR;
             return res;
         }
-        //绑定之前的收益率
-        int bindBefore = getPlayerProportion(playerId, activityData);
         //绑定玩家
         CommonResult<Long> result = sharePromoteDao.bindPlayer(playerId, req.invitationCode);
         res.code = result.code;
@@ -265,10 +352,6 @@ public class SharePromoteController extends BaseActivityController {
                 }
                 playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
                 playerInfoData.setBindCount(playerInfoData.getBindCount() + 1);
-                if (playerInfoData.getNotClaimedPlayerIds() == null) {
-                    playerInfoData.setNotClaimedPlayerIds(new HashMap<>());
-                }
-                playerInfoData.getNotClaimedPlayerIds().put(result.data, System.currentTimeMillis());
                 sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
                 save = true;
             } catch (Exception e) {
@@ -282,10 +365,7 @@ public class SharePromoteController extends BaseActivityController {
                 //发送日志
                 activityLogger.sendSharePromoteAddRewards(playerController.getPlayer(), activityData, result.data, 2,
                         0, 1, 0, 0, 0, 1);
-                //修改活动状态
-                checkActivityStatus(playerController.getPlayer(), activityData, playerInfoData.getBindCount(), bindBefore);
             }
-            res.bindNum = playerInfoData.getBindCount();
         }
         return res;
     }
@@ -470,7 +550,7 @@ public class SharePromoteController extends BaseActivityController {
             }
         }
         if (playerInfoData != null) {
-            res.sharePlayerNum = playerInfoData.getBindCount();
+            res.sharePlayerNum = CollectionUtil.isEmpty(playerInfoData.getValidSubordinateIds()) ? 0 : playerInfoData.getValidSubordinateIds().size();
             res.invitationCode = playerInfoData.getCode();
             res.getProfitReward = sharePromoteDao.getPlayerIncome(playerId);
             List<String> history = playerInfoData.getHistory();
@@ -505,13 +585,35 @@ public class SharePromoteController extends BaseActivityController {
     }
 
     /**
-     * 获取玩家收益
+     * 获取有效下注玩家收益
      *
      * @param playerId     玩家id
      * @param activityData 活动数据
      * @return 玩家总收益率
      */
     private int getPlayerProportion(long playerId, ActivityData activityData) {
+        long bindCount = sharePromoteDao.getBindCount(playerId);
+        Map<Integer, SharePromoteCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        int maxProportion = 0;
+        if (CollectionUtil.isEmpty(baseCfgBeanMap)) {
+            return 0;
+        }
+        for (SharePromoteCfg cfg : baseCfgBeanMap.values()) {
+            if (bindCount >= cfg.getCondition() && maxProportion < cfg.getBetproportion()) {
+                maxProportion = cfg.getBetproportion();
+            }
+        }
+        return maxProportion;
+    }
+
+    /**
+     * 获取充值下注玩家收益
+     *
+     * @param playerId     玩家id
+     * @param activityData 活动数据
+     * @return 玩家总收益率
+     */
+    private int getPlayerRechargeProportion(long playerId, ActivityData activityData) {
         long bindCount = sharePromoteDao.getBindCount(playerId);
         Map<Integer, SharePromoteCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         int maxProportion = 0;
@@ -539,7 +641,9 @@ public class SharePromoteController extends BaseActivityController {
             res.rankInfoList = new ArrayList<>(playerIncomeRank.size());
             //获取排行榜玩家信息数据
             Map<Long, Player> playerMap = corePlayerService.multiGetPlayerMap(playerIncomeRank.keySet());
-            Map<String, BigDecimal> counts = countDao.getCounts(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted("sharePromote"),
+            Map<String, BigDecimal> counts = countDao.getCounts(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(SHARE_PROMOTE),
+                    playerIncomeRank.keySet().stream().map(String::valueOf).toList());
+            Map<String, BigDecimal> effectiveFlowMap = countDao.getCounts(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(SHARE_PROMOTE_EFFECTIVE_BET),
                     playerIncomeRank.keySet().stream().map(String::valueOf).toList());
             for (Map.Entry<Long, Double> entry : playerIncomeRank.entrySet()) {
                 Player player = playerMap.get(entry.getKey());
@@ -549,7 +653,9 @@ public class SharePromoteController extends BaseActivityController {
                 SharePromoteSelfRankInfo rankInfo = new SharePromoteSelfRankInfo();
                 //构建排行榜玩家基本信息
                 buildSharePromoteRankInfo(player, rankInfo, entry.getValue().longValue());
-                rankInfo.totalRecharge = counts.get(String.valueOf(entry.getKey())).toPlainString();
+                String key = String.valueOf(entry.getKey());
+                rankInfo.totalRecharge = counts.get(key).toPlainString();
+                rankInfo.validFlow = effectiveFlowMap.get(key).longValue();
                 res.rankInfoList.add(rankInfo);
             }
             res.startIndex = req.startIndex;

@@ -15,9 +15,11 @@ import java.util.Set;
 public class SlotsConst {
     //jackpot的类型id
     public static final Map<Integer, Set<Integer>> specialModeJackpotModeIds = new HashMap<>();
+    //免费触发局的类型id
+    public static final Map<Integer, Set<Integer>> specialModeTriggerFreeModeIds = new HashMap<>();
 
     static {
-
+        //jackpot的类型id
         specialModeJackpotModeIds.put(CoreConst.GameType.SUPER_STAR, Set.of(3));
         specialModeJackpotModeIds.put(CoreConst.GameType.WEALTH_GOD, Set.of(2));
         specialModeJackpotModeIds.put(CoreConst.GameType.CLEOPATRA, Set.of(3));
@@ -30,6 +32,19 @@ public class SlotsConst {
         specialModeJackpotModeIds.put(CoreConst.GameType.PEGASUS_UNBRIDLE, Set.of(8, 9, 10, 11, 12, 13));
         specialModeJackpotModeIds.put(CoreConst.GameType.GOLD_SNAKE_FORTUNE, Set.of(3));
         specialModeJackpotModeIds.put(CoreConst.GameType.MONEY_RABBIT, Set.of(3));
+
+        //免费触发局的类型id
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.DOLLAR_EXPRESS, Set.of(6));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.MAHJIONG_WIN, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.WEALTH_BANK, Set.of(6));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.CHRISTMAS_PARTY, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.THOR, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.CAPTAIN_JACK, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.BASKETBALL_STAR, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.FROZEN_THRONE, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.STEAM_AGE, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.GOLD_SNAKE_FORTUNE, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.MONEY_RABBIT, Set.of(2));
     }
 
     public class Status {
@@ -54,6 +69,9 @@ public class SlotsConst {
 
         //最大离线时间
         public static final int MAX_OFFLINE_TIME = 5 * TimeHelper.ONE_MINUTE_OF_MILLIS;
+
+        //无效的图标起始id
+        public static final int INVALID_ICON_BEGIN_ID = 1000;
     }
 
     //结果库变更类型

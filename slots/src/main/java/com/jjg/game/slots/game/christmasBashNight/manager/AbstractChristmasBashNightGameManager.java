@@ -10,7 +10,9 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
@@ -94,11 +96,12 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
         try {
             gameRunInfo.setAuto(auto);
 
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setBeforeGold(player.getGold());
+            gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
             //获取当前处于哪种状态
             int status = playerGameData.getStatus();
@@ -116,37 +119,19 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
                 return gameRunInfo;
             }
 
-            //标准池
-            if (gameRunInfo.getBigPoolTimes() > 0) {
-                long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
-                if (addGold > 0) {
-                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
-                    if (!result.success()) {
-                        log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                        gameRunInfo.setCode(result.code);
-                        return gameRunInfo;
-                    }
-                    gameRunInfo.setAllWinGold(addGold);
-                }
-
-                //如果是免费模式，要累计记录中奖金额
-                if (status == ChristmasBashNightConstant.Status.FREE) {
-                    playerGameData.setFreeAllWin(playerGameData.getFreeAllWin() + addGold);
-                } else {
-                    playerGameData.setFreeAllWin(0);
-                }
-            }
+            //从奖池扣除，并给玩家加钱
+            rewardFromBigPool(gameRunInfo, playerGameData);
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(player, gameRunInfo.getAllWinGold(), betValue);
+            triggerWinTask(player, gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setAfterGold(player.getGold());
+            gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
             int times = calWinTimes(gameRunInfo, playerGameData, betValue);
@@ -213,7 +198,7 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
 
         //检查是否中大奖
-        jackpool(gameRunInfo, playerGameData, resultLib);
+        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotId(), false);
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
@@ -246,10 +231,16 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
             log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(), afterCount);
         }
 
+        //累计免费模式的中奖金额
+        playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
+
         if (afterCount < 1) {
             playerGameData.setStatus(ChristmasBashNightConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
+
+            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
+            playerGameData.setFreeAllWin(0);
             log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
         }
 
@@ -299,63 +290,6 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
         } catch (Exception e) {
             log.error("", e);
         }
-    }
-
-    /**
-     * 获取奖池 信息
-     *
-     * @param playerController 玩家控制类
-     * @return
-     */
-    public ChristmasBashNightGameRunInfo getPoolValue(PlayerController playerController, long stake) {
-        ChristmasBashNightGameRunInfo gameRunInfo = new ChristmasBashNightGameRunInfo(Code.SUCCESS, playerController.playerId());
-        try {
-            gameRunInfo.setMini(getPoolValueByPoolId(ChristmasBashNightConstant.Common.MINI_POOL_ID, stake));
-            gameRunInfo.setMinor(getPoolValueByPoolId(ChristmasBashNightConstant.Common.MINOR_POOL_ID, stake));
-            gameRunInfo.setMajor(getPoolValueByPoolId(ChristmasBashNightConstant.Common.MAJOR_POOL_ID, stake));
-            gameRunInfo.setGrand(getPoolValueByPoolId(ChristmasBashNightConstant.Common.GRAND_POOL_ID, stake));
-        } catch (Exception e) {
-            log.error("", e);
-            gameRunInfo.setCode(Code.EXCEPTION);
-        }
-        return gameRunInfo;
-    }
-
-
-    /**
-     * 检查中大奖
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param resultLib
-     * @return
-     */
-    private ChristmasBashNightGameRunInfo jackpool(ChristmasBashNightGameRunInfo gameRunInfo, ChristmasBashNightPlayerGameData playerGameData, ChristmasBashNightResultLib resultLib) {
-        if (!resultLib.getLibTypeSet().contains(ChristmasBashNightConstant.SpecialMode.JACKPOOL)) {
-            return gameRunInfo;
-        }
-
-        try {
-            PoolCfg poolCfg = randWinPool(playerGameData, resultLib.getJackpotId());
-            if (poolCfg == null) {
-                return gameRunInfo;
-            }
-
-            long poolValue = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), poolCfg.getDelayTime());
-            //给玩家加钱
-            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), poolValue, AddType.SLOTS_TRAIN, resultLib.getJackpotId() + "");
-            if (!result.success()) {
-                log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
-                return gameRunInfo;
-            }
-            playerGameData.addSmallPoolReward(poolValue);
-            gameRunInfo.addSmallPoolGold(poolValue);
-
-            log.info("玩家奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), resultLib.getJackpotId(), poolValue);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-        return gameRunInfo;
     }
 
     @Override
