@@ -187,9 +187,11 @@ public class SharePromoteController extends BaseActivityController {
                 param.setAmount(RedisUtils.fromLong(progress));
                 param.setChannelId(order.getPayChannel());
                 result &= BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0;
+                continue;
             }
             if (type == ConditionType.PLAYER_CUMULATIVE_BET && additionalParameters instanceof Integer id) {
                 if (id != ItemUtils.getGoldItemId()) {
+                    result = false;
                     continue;
                 }
                 PlayerSampleParam param = new PlayerSampleParam();
@@ -197,7 +199,10 @@ public class SharePromoteController extends BaseActivityController {
                 param.setFunction(SHARE_PROMOTE);
                 param.setParamList(List.of(progress));
                 result &= BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0;
+                continue;
             }
+            result = false;
+            break;
         }
         if (result) {
             //添加到有效下级
