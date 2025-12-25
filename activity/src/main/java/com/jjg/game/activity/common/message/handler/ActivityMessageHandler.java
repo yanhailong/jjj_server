@@ -192,7 +192,7 @@ public class ActivityMessageHandler {
         if (activityData == null) {
             return;
         }
-        AbstractResponse res = sharePromoteController.reqSharePromoteBindPlayer(playerController, activityData, req);
+        AbstractResponse res = sharePromoteController.reqSharePromoteBindPlayer(playerController.getPlayer(), activityData, req);
         if (res != null) {
             playerController.send(res);
         }
@@ -239,7 +239,7 @@ public class ActivityMessageHandler {
         if (activityData == null) {
             return;
         }
-        AbstractResponse res = sharePromoteController.reqSharePromoteGlobalInfo(playerController, activityData);
+        AbstractResponse res = sharePromoteController.reqSharePromoteGlobalInfo(playerController.getPlayer(), activityData);
         playerController.send(res);
     }
 

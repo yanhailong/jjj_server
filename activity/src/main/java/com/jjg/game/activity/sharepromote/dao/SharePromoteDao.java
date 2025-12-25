@@ -405,11 +405,11 @@ public class SharePromoteDao {
         return sb.toString();
     }
 
-    public void setShareUrlPrefix(String value){
+    public void setShareUrlPrefix(String value) {
         redisTemplate.opsForValue().set(SHARE_PROMOTE_URL_PREFIX, value);
     }
 
-    public String getShareUrlPrefix(){
+    public String getShareUrlPrefix() {
         return redisTemplate.opsForValue().get(SHARE_PROMOTE_URL_PREFIX);
     }
 }
