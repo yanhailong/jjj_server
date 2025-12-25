@@ -30,7 +30,7 @@ public interface PointsAwardConstant {
         /**
          * 积分大奖排行榜
          */
-        String POINTS_AWARD_RANKING = "pointsAward:ranking:";
+        String POINTS_AWARD_RANKING = "pointsAward:rank:";
         /**
          * 转盘历史记录
          */
