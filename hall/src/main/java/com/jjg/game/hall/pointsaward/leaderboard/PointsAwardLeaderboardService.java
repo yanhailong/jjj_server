@@ -1,8 +1,9 @@
 package com.jjg.game.hall.pointsaward.leaderboard;
 
-import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.PageUtils;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.RankEntry;
 import com.jjg.game.core.manager.AwardCodeManager;
@@ -16,19 +17,13 @@ import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.PointsAwardRankingCfg;
+import com.jjg.game.sampledata.bean.PointsAwardRobotCfg;
 import org.redisson.api.RDeque;
-import org.redisson.api.RMap;
-import org.redisson.api.RScoredSortedSet;
 import org.redisson.api.RedissonClient;
-import org.redisson.client.protocol.ScoredEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 
 /**
@@ -89,7 +84,7 @@ public class PointsAwardLeaderboardService {
         });
     }
 
-    private String getRankKey(int type) {
+    public String getRankKey(int type) {
         return PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING + type;
     }
 
@@ -102,7 +97,7 @@ public class PointsAwardLeaderboardService {
         rankService.addPoints(getRankKey(type), playerId, points);
     }
 
-    public long getEndTime(int type){
+    public long getEndTime(int type) {
         return manager.getEndTime(type);
     }
 
@@ -117,7 +112,6 @@ public class PointsAwardLeaderboardService {
         }
         return (int) rank.getRank();
     }
-
 
 
     /**
@@ -141,22 +135,39 @@ public class PointsAwardLeaderboardService {
             finalRankEntries.add(entry);
         }
         List<PointsAwardLeaderboardInfo> ret = new ArrayList<>(finalRankEntries.size());
-        Map<Long, Player> playerMap = hallPlayerService.multiGetPlayerMap(finalRankEntries.stream().map(RankEntry::getPlayerId).toList());
+        List<Long> realPerson = finalRankEntries.stream().map(RankEntry::getPlayerId).filter(playerId -> !manager.isRobot(playerId)).toList();
+        Map<Long, Player> playerMap = Map.of();
+        if (!realPerson.isEmpty()) {
+            playerMap = hallPlayerService.multiGetPlayerMap(realPerson);
+        }
         int rank = 1;
+        Map<Long, Integer> robotMap = manager.getRobotMap();
         for (RankEntry rankEntry : finalRankEntries) {
             PointsAwardLeaderboardInfo info = new PointsAwardLeaderboardInfo();
             info.setPlayerId(rankEntry.getPlayerId());
             info.setConfigId(rank);
             info.setRank(rank++);
             info.setRankPoints((int) rankEntry.getPoints());
-            Player player = playerMap.get(info.getPlayerId());
-            info.setGender(player.getGender());
-            info.setHeadFrameId(player.getHeadFrameId());
-            info.setHeadImgId(player.getHeadImgId());
-            info.setNickName(player.getNickName());
-            info.setNationalId(player.getNationalId());
-            info.setTitleId(player.getTitleId());
-            info.setLevel(player.getLevel());
+            //如果是机器人读表
+            if (manager.isRobot(rankEntry.getPlayerId())) {
+                Integer cfgId = robotMap.getOrDefault(rankEntry.getPlayerId(), 1);
+                PointsAwardRobotCfg pointsAwardRobotCfg = GameDataManager.getPointsAwardRobotCfg(cfgId);
+                info.setGender((byte) pointsAwardRobotCfg.getGender());
+                info.setHeadFrameId(pointsAwardRobotCfg.getFrame());
+                info.setHeadImgId(pointsAwardRobotCfg.getPicture());
+                info.setNickName(pointsAwardRobotCfg.getNameId());
+                info.setNationalId(pointsAwardRobotCfg.getFlag());
+                info.setLevel(pointsAwardRobotCfg.getPlayerLevel());
+            } else {
+                Player player = playerMap.get(info.getPlayerId());
+                info.setGender(player.getGender());
+                info.setHeadFrameId(player.getHeadFrameId());
+                info.setHeadImgId(player.getHeadImgId());
+                info.setNickName(player.getNickName());
+                info.setNationalId(player.getNationalId());
+                info.setTitleId(player.getTitleId());
+                info.setLevel(player.getLevel());
+            }
             ret.add(info);
         }
         return ret;
