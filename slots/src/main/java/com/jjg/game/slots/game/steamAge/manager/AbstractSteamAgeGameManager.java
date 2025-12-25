@@ -5,16 +5,14 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
+import com.jjg.game.slots.data.OffLineEventData;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 import com.jjg.game.slots.game.steamAge.dao.SteamAgeGameDataDao;
@@ -23,7 +21,6 @@ import com.jjg.game.slots.game.steamAge.data.SteamAgeGameRunInfo;
 import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameData;
 import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameDataDTO;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeResultLib;
-import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,11 +33,9 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
     @Autowired
     private SteamAgeGenerateManager generateManager;
     @Autowired
-    private SlotsPoolDao slotsPoolDao;
-    @Autowired
-    private SlotsLogger logger;
-    @Autowired
     private SteamAgeGameDataDao gameDataDao;
+
+    protected AtomicInteger autoCount = new AtomicInteger(0);
 
     public AbstractSteamAgeGameManager() {
         super(SteamAgePlayerGameData.class, SteamAgeResultLib.class);
@@ -88,27 +83,23 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
         }
 
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
+        return startGame(playerGameData, stake, false);
     }
 
     /**
      * 开始游戏
      *
-     * @param playerController
      * @param playerGameData
      * @param auto
      * @return
      */
-    public SteamAgeGameRunInfo startGame(PlayerController playerController, SteamAgePlayerGameData playerGameData, long betValue, boolean auto) {
+    public SteamAgeGameRunInfo startGame(SteamAgePlayerGameData playerGameData, long betValue, boolean auto) {
         SteamAgeGameRunInfo gameRunInfo = new SteamAgeGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
-
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
-            playerController.setPlayer(player);
-
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(player.getRoomCfgId());
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
             //获取当前处于哪种状态
@@ -119,7 +110,7 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
                 gameRunInfo = free(gameRunInfo, playerGameData);
             } else {
                 gameRunInfo.setCode(Code.FAIL);
-                log.warn("当前状态错误 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
+                log.warn("当前状态错误 playerId = {},gameType = {}", player.getIp(), player.getGameType());
                 return gameRunInfo;
             }
 
@@ -137,7 +128,6 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
-            playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
@@ -208,7 +198,7 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
 
         //检查是否中大奖
-        rewardFromSmallPool(gameRunInfo,playerGameData,resultLib.getJackpotId(),false);
+        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotId(), false);
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
@@ -236,7 +226,7 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
         //扣除免费次数
         int afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
 
-        log.debug("免费剩余次数 抽奖 afterCount = {}", afterCount );
+        log.debug("免费剩余次数 抽奖 afterCount = {}", afterCount);
 
         SteamAgeResultLib freeGame = libResult.data;
         if (freeGame.getAddFreeCount() > 0) {
@@ -304,5 +294,62 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
         } catch (Exception e) {
             log.error("", e);
         }
+    }
+
+    /**
+     * 退出游戏
+     *
+     * @param playerController
+     * @param initiativeExit
+     * @return 返回值来标记是否可以进行断线重连
+     */
+    @Override
+    public SteamAgePlayerGameData exit(PlayerController playerController, boolean initiativeExit) {
+        SteamAgePlayerGameData playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            return null;
+        }
+
+        long now = System.currentTimeMillis();
+        playerGameData.setOfflineTime(now);
+        playerGameData.setOnline(false);
+
+        if (initiativeExit) {
+            //退出自动执行事件
+            onAutoExitAction(playerGameData);
+            //保存数据
+            offlineSaveGameDataDto(playerGameData);
+            removePlayerGameData(playerGameData.playerId(), playerGameData.getRoomCfgId());
+        } else {
+            //30秒之后执行事件
+            OffLineEventData offLineEventData = new OffLineEventData(1, now + 30 * TimeHelper.ONE_SECOND_OF_MILLIS);
+            playerGameData.addOffLineEvent(offLineEventData);
+        }
+        return playerGameData;
+    }
+
+    @Override
+    protected void onAutoExitAction(SteamAgePlayerGameData playerGameData) {
+        //检查当前是否处于特殊模式
+        if (playerGameData.getStatus() == SteamAgeConstant.Status.FREE) {
+            int forCount = playerGameData.getRemainFreeCount().get();
+            while (forCount > 0) {
+                autoStartGame(playerGameData, playerGameData.getAllBetScore());
+                forCount = playerGameData.getRemainFreeCount().get();
+            }
+            log.info("ddddddddddd");
+        }
+    }
+
+    /**
+     * 自动玩游戏
+     *
+     * @param betValue
+     * @return
+     */
+    public SteamAgeGameRunInfo autoStartGame(SteamAgePlayerGameData playerGameData, long betValue) {
+        log.debug("系统开始自动玩游戏 playerId = {},autoCount={},freeCount={}", playerGameData.playerId(), autoCount.incrementAndGet(), playerGameData.getRemainFreeCount().get());
+
+        return startGame(playerGameData, betValue, true);
     }
 }
