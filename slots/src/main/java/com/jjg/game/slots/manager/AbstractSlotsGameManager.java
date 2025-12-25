@@ -1278,7 +1278,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         if (playerGameData.isOnline()) {
                             return;
                         }
-                        log.debug("开始执行自动事件2... eventId = {},offLineTime = {},getOfflineHandleEventMills={}", eventId, playerGameData.getOfflineTime());
                         onAutoExitAction(playerGameData);
                         //标记该事件已执行
                         playerGameData.actionOffLineEvent(eventId);
@@ -1302,7 +1301,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         if (playerGameData.isOnline()) {
                             return;
                         }
-                        log.debug("开始执行自动保存事件");
 //                        onAutoExitAction(playerGameData);
                         offlineSaveGameDataDto(playerGameData);
                         removePlayerGameData(playerGameData.playerId(), playerGameData.getRoomCfgId());
