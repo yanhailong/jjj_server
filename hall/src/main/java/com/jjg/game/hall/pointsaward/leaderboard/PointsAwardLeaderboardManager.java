@@ -135,7 +135,7 @@ public class PointsAwardLeaderboardManager implements LeaderLatchListener {
                     if (config.length != 4) {
                         return;
                     }
-                    timeout = WheelTimerUtil.scheduleAtRangeRate(this::robotAction, 0, Integer.parseInt(config[0]), Integer.parseInt(config[1]), TimeUnit.MILLISECONDS);
+                    timeout = WheelTimerUtil.scheduleAtRangeRate(this::robotAction, 0, Integer.parseInt(config[0]), Integer.parseInt(config[1]), TimeUnit.SECONDS);
                 }
             } catch (Exception e) {
                 log.error("初始化积分大奖机器人失败", e);
@@ -222,18 +222,6 @@ public class PointsAwardLeaderboardManager implements LeaderLatchListener {
             log.info("积分大奖更新周榜成功size:{}", rankChanges.size());
             rankService.batchSetPoints(leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.TYPE_MONTH), rankChanges);
             log.info("积分大奖更新月榜成功size:{}", rankChanges.size());
-        }
-    }
-
-    public static void main(String[] args) {
-        int oldPoint = 0;
-        int minAdd = 1;
-        int maxRank = 300;
-        int currentRank = 1;
-        for (int i = 0; i < 3; i++) {
-            double addValue = (minAdd * maxRank * 1 / Math.max(1, currentRank * (currentRank - 1)) + (double) (minAdd / currentRank)) / 100;
-            oldPoint += (int) addValue;
-            System.out.println("addValue:" + addValue + " oldPoint:" + oldPoint);
         }
     }
 
