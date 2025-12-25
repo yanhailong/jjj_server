@@ -135,7 +135,7 @@ public class PointsAwardLeaderboardManager implements LeaderLatchListener {
                     if (config.length != 4) {
                         return;
                     }
-                    timeout = WheelTimerUtil.scheduleAtRangeRate(this::robotAction, 0, Integer.parseInt(config[0]), Integer.parseInt(config[1]), TimeUnit.MILLISECONDS);
+                    timeout = WheelTimerUtil.scheduleAtRangeRate(this::robotAction, 0, Integer.parseInt(config[0]), Integer.parseInt(config[1]), TimeUnit.SECONDS);
                 }
             } catch (Exception e) {
                 log.error("初始化积分大奖机器人失败", e);
