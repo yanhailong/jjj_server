@@ -268,7 +268,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
             Set<Integer> icons = new HashSet<>();
             //遍历格子 ，把 是stickyIcon添加进去
             for (int i = 0; i < arr.length; i++) {
-                //第一列不能为 改变wild的格子 0 1 2 3 4
+                //第1和6列不能为 改变wild的格子 0 1 2 3 4
                 if (arr[i] == stickyIcon && i >= 5 && i <= 20) {
                     icons.add(i);
                 }
