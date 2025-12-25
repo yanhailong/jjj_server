@@ -60,6 +60,9 @@ public interface BackendGMCmd {
     //删除公告
     String DEL_NOTICE = "delNotice";
 
+    //分享连接地址
+    String SHARE_URL_PREFIX = "shareUrlPrefix";
+
     /**
      * 配置相关q
      */

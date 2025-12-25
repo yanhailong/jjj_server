@@ -571,8 +571,8 @@ public class SharePromoteController extends BaseActivityController {
             res.getProfitReward = sharePromoteDao.getPlayerIncome(playerId);
             List<String> history = playerInfoData.getHistory();
             res.recodes = buildRecords(history);
-
         }
+        res.shareUrlPrefix = sharePromoteDao.getShareUrlPrefix();
         return res;
     }
 
