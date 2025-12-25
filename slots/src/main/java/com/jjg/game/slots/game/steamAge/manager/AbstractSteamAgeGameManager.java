@@ -24,6 +24,7 @@ import com.jjg.game.slots.game.steamAge.data.SteamAgeResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamAgePlayerGameData, SteamAgeResultLib> {
@@ -33,6 +34,8 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
     private SteamAgeGenerateManager generateManager;
     @Autowired
     private SteamAgeGameDataDao gameDataDao;
+
+    protected AtomicInteger autoCount = new AtomicInteger(0);
 
     public AbstractSteamAgeGameManager() {
         super(SteamAgePlayerGameData.class, SteamAgeResultLib.class);
@@ -80,7 +83,7 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
         }
 
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame( playerGameData, stake, false);
+        return startGame(playerGameData, stake, false);
     }
 
     /**
@@ -330,9 +333,11 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
         //检查当前是否处于特殊模式
         if (playerGameData.getStatus() == SteamAgeConstant.Status.FREE) {
             int forCount = playerGameData.getRemainFreeCount().get();
-            for (int i = 0; i < forCount; i++) {
+            while (forCount > 0) {
                 autoStartGame(playerGameData, playerGameData.getAllBetScore());
+                forCount = playerGameData.getRemainFreeCount().get();
             }
+            log.info("ddddddddddd");
         }
     }
 
@@ -343,7 +348,7 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
      * @return
      */
     public SteamAgeGameRunInfo autoStartGame(SteamAgePlayerGameData playerGameData, long betValue) {
-        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
+        log.debug("系统开始自动玩游戏 playerId = {},autoCount={},freeCount={}", playerGameData.playerId(), autoCount.incrementAndGet(), playerGameData.getRemainFreeCount().get());
 
         return startGame(playerGameData, betValue, true);
     }
