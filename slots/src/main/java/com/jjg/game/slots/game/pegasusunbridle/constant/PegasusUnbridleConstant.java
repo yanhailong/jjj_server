@@ -23,7 +23,8 @@ public interface PegasusUnbridleConstant {
 
     interface Status {
         int NORMAL = SlotsConst.Status.NORMAL;
-        int FU_MA = 1;
+        int FAKE_FU_MA = 1;
+        int REAL_FU_MA = 2;
     }
 
     interface SpecialMode {
