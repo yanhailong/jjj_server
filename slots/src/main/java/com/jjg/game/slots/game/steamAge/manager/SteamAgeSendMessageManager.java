@@ -117,6 +117,9 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             //免费游戏中累计获得金币
             if (gameRunInfo.getStatus() == FrozenThroneConstant.Status.FREE) {
                 res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
+                if(gameRunInfo.getRemainFreeCount() <= 0){
+                    res.totalWinGold = gameRunInfo.getFreeModeTotalReward();
+                }
             } else {
                 res.totalWinGold = 0;
             }

@@ -16,6 +16,7 @@ import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarAward
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarGameRunInfo;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarResultLib;
 import com.jjg.game.slots.game.basketballSuperstar.pb.*;
+import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
 import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -115,7 +116,14 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
             //本局获得金币
             res.allWinGold = gameRunInfo.getAllWinGold();
             //免费游戏中累计获得金币
-            res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
+            if (gameRunInfo.getStatus() == FrozenThroneConstant.Status.FREE) {
+                res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
+                if(gameRunInfo.getRemainFreeCount() <= 0){
+                    res.totalWinGold = gameRunInfo.getFreeModeTotalReward();
+                }
+            } else {
+                res.totalWinGold = 0;
+            }
             //当前状态
             res.status = gameRunInfo.getStatus();
             //图标信息
