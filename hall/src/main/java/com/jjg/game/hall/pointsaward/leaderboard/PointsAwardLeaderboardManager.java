@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.curator.MarsCurator;
+import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
@@ -48,7 +49,7 @@ import java.util.stream.Collectors;
  * 积分大奖排行榜管理器
  */
 @Component
-public class PointsAwardLeaderboardManager implements LeaderLatchListener {
+public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
