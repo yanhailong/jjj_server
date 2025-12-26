@@ -327,7 +327,7 @@ public class TaskService {
             return currentMonthTasks.getFirst();
         }
 
-        // 如果有匹配当前年月的任务，选择ID最小的
+        // 如果有匹配当前年月的任务，随机一个
         if (!currentMonthTasks.isEmpty()) {
             return RandomUtil.randomEle(currentMonthTasks);
         }
@@ -341,7 +341,7 @@ public class TaskService {
         if (permanentTasks.size() == 1) {
             return permanentTasks.getFirst();
         }
-
+        //随机一个
         if (!permanentTasks.isEmpty()) {
             return RandomUtil.randomEle(permanentTasks);
         }
