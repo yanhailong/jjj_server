@@ -18,10 +18,30 @@ public class BasketballSuperstarResultLib extends SlotsResultLib<BasketballSuper
     private int jackpotId;
     //增加的免费次数
     private int addFreeCount;
+    //免费转 转了多少局
+    private int freeCount;
     //根据权重选取 变成wild 图标 免费转结束，才取消
     private int stickyIcon;
     //免费转  图标变成wild  变化的图案， key -> 图标id
     private Set<Integer> changeStickyIconSet;
+    //免费转  图标变成wild  变化的图案， key -> 图标id
+    private Set<Integer> addStickyIconSet;
+
+    public int getFreeCount() {
+        return freeCount;
+    }
+
+    public void setFreeCount(int freeCount) {
+        this.freeCount = freeCount;
+    }
+
+    public Set<Integer> getAddStickyIconSet() {
+        return addStickyIconSet;
+    }
+
+    public void setAddStickyIconSet(Set<Integer> addStickyIconSet) {
+        this.addStickyIconSet = addStickyIconSet;
+    }
 
     public Set<Integer> getChangeStickyIconSet() {
         return changeStickyIconSet;

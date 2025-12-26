@@ -133,7 +133,6 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             res.exp = playerController.getPlayer().getExp();
 
             SteamAgeResultLib lib = (SteamAgeResultLib) gameRunInfo.getResultLib();
-            log.info("lib={}", JSONObject.toJSONString(lib));
             res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore(), 0, res.status, lib.getExpandTimes());
             //连线则触发，添加图标信息（右扩展图标）
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
@@ -175,7 +174,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
     private List<Integer> highlight(List<Integer> iconList, List<SteamAgeExpand> addIconInfoList) {
 //        int[] iconArr = lib.getIconArr();
         List<Integer> highlightList = new ArrayList<>();
-        if (addIconInfoList == null && addIconInfoList.isEmpty()) {
+        if (addIconInfoList == null || addIconInfoList.isEmpty()) {
             return highlightList;
         }
         for (int i = 0; i < iconList.size(); i++) {
