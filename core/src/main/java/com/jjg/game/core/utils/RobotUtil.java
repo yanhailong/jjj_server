@@ -85,7 +85,7 @@ public class RobotUtil {
             if (baseStartId == 0) {
                 baseStartId = 1000000L;
             }
-            ROBOT_START_ID = baseStartId + ROBOT_START_NODE_ID * GameDataManager.getRobotCfgList().size() * GameConstant.ROBOT_ID_PRIME_NUMBER;
+            ROBOT_START_ID = getRobotStartId(baseStartId) + ROBOT_START_NODE_ID * GameDataManager.getRobotCfgList().size() * GameConstant.ROBOT_ID_PRIME_NUMBER;
         }
         return ROBOT_START_ID;
     }
@@ -107,7 +107,7 @@ public class RobotUtil {
      */
     public void initRobotStartId(long startId) {
         RAtomicLong atomicLong = redissonClient.getAtomicLong(NODE_START_KEY);
-        atomicLong.compareAndSet(0, getRobotStartId(startId));
+        atomicLong.compareAndSet(0, startId);
     }
 
     public RobotCfg getRobotCfg(long robotId) {
@@ -117,9 +117,9 @@ public class RobotUtil {
     }
 
     public boolean isRobot(long robotId) {
-        long robotStartId = getRobotStartId();
-        return (robotId - robotStartId) % GameConstant.ROBOT_ID_PRIME_NUMBER == 0;
+        return robotId % GameConstant.ROBOT_ID_PRIME_NUMBER == 0;
     }
+
 }
 
 

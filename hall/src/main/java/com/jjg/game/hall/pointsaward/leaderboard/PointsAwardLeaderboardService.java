@@ -158,7 +158,7 @@ public class PointsAwardLeaderboardService {
                 info.setNationalId(pointsAwardRobotCfg.getFlag());
                 info.setLevel(pointsAwardRobotCfg.getPlayerLevel());
             } else {
-                Player player = playerMap.get(info.getPlayerId());
+                Player player = playerMap.get(rankEntry.getPlayerId());
                 info.setGender(player.getGender());
                 info.setHeadFrameId(player.getHeadFrameId());
                 info.setHeadImgId(player.getHeadImgId());
