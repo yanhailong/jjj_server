@@ -176,8 +176,8 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
         List<Integer> highlightList = new ArrayList<>();
         if ((addIconInfoList == null || addIconInfoList.isEmpty())
                 && !iconList.contains(SteamAgeConstant.BaseElement.ID_ADD)
-                && !lib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.FREE)
-                && !lib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.JACKPOOL)) {
+                && (lib.getLibTypeSet() == null || lib.getLibTypeSet().isEmpty() || !lib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.FREE))
+                && (lib.getLibTypeSet() == null || lib.getLibTypeSet().isEmpty() || !lib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.JACKPOOL))) {
             return highlightList;
         }
         for (int i = 0; i < iconList.size(); i++) {
