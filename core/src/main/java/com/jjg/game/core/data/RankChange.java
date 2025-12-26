@@ -13,6 +13,14 @@ public class RankChange {
         this.addPoints = addPoints;
     }
 
+    public void setPlayerId(long playerId) {
+        this.playerId = playerId;
+    }
+
+    public void setAddPoints(int addPoints) {
+        this.addPoints = addPoints;
+    }
+
     public long getPlayerId() {
         return playerId;
     }

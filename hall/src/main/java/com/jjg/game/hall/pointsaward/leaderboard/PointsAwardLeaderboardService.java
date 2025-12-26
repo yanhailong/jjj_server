@@ -144,13 +144,12 @@ public class PointsAwardLeaderboardService {
         Map<Long, Integer> robotMap = manager.getRobotMap();
         for (RankEntry rankEntry : finalRankEntries) {
             PointsAwardLeaderboardInfo info = new PointsAwardLeaderboardInfo();
-            info.setPlayerId(rankEntry.getPlayerId());
-            info.setConfigId(rank);
-            info.setRank(rank++);
-            info.setRankPoints((int) rankEntry.getPoints());
             //如果是机器人读表
             if (manager.isRobot(rankEntry.getPlayerId())) {
-                Integer cfgId = robotMap.getOrDefault(rankEntry.getPlayerId(), 1);
+                Integer cfgId = robotMap.get(rankEntry.getPlayerId());
+                if (cfgId == null) {
+                    continue;
+                }
                 PointsAwardRobotCfg pointsAwardRobotCfg = GameDataManager.getPointsAwardRobotCfg(cfgId);
                 info.setGender((byte) pointsAwardRobotCfg.getGender());
                 info.setHeadFrameId(pointsAwardRobotCfg.getFrame());
@@ -168,6 +167,10 @@ public class PointsAwardLeaderboardService {
                 info.setTitleId(player.getTitleId());
                 info.setLevel(player.getLevel());
             }
+            info.setPlayerId(rankEntry.getPlayerId());
+            info.setConfigId(rank);
+            info.setRank(rank++);
+            info.setRankPoints((int) rankEntry.getPoints());
             ret.add(info);
         }
         return ret;
