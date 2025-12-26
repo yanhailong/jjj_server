@@ -174,12 +174,10 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
     private List<Integer> highlight(List<Integer> iconList, List<SteamAgeExpand> addIconInfoList, SteamAgeResultLib lib) {
 //        int[] iconArr = lib.getIconArr();
         List<Integer> highlightList = new ArrayList<>();
-        if (addIconInfoList == null
-                || addIconInfoList.isEmpty()
-                || !iconList.contains(SteamAgeConstant.BaseElement.ID_ADD)
-                || !lib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.FREE)
-                || !lib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.JACKPOOL)
-        ) {
+        if ((addIconInfoList == null || addIconInfoList.isEmpty())
+                && !iconList.contains(SteamAgeConstant.BaseElement.ID_ADD)
+                && !lib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.FREE)
+                && !lib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.JACKPOOL)) {
             return highlightList;
         }
         for (int i = 0; i < iconList.size(); i++) {
