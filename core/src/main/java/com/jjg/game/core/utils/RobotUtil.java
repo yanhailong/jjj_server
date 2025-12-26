@@ -85,7 +85,7 @@ public class RobotUtil {
             if (baseStartId == 0) {
                 baseStartId = 1000000L;
             }
-            ROBOT_START_ID = getRobotStartId(baseStartId) + ROBOT_START_NODE_ID * GameDataManager.getRobotCfgList().size() * GameConstant.ROBOT_ID_PRIME_NUMBER;
+            ROBOT_START_ID = getRobotStartId(baseStartId + ROBOT_START_NODE_ID * GameDataManager.getRobotCfgList().size() * GameConstant.ROBOT_ID_PRIME_NUMBER);
         }
         return ROBOT_START_ID;
     }
@@ -94,7 +94,7 @@ public class RobotUtil {
         for (int i = 1; i <= GameConstant.ROBOT_ID_PRIME_NUMBER + 1; i++) {
             long startId = baseStartId + i;
             if (startId % GameConstant.ROBOT_ID_PRIME_NUMBER == 0) {
-                return baseStartId;
+                return startId;
             }
         }
         return baseStartId;
