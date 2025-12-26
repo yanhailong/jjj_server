@@ -140,7 +140,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                 if (config.length != 4) {
                     return;
                 }
-                WheelTimerUtil.schedule(this::robotAction, RandomUtil.randomInt(Integer.parseInt(config[0]), Integer.parseInt(config[1])), TimeUnit.MILLISECONDS);
+                WheelTimerUtil.schedule(this::robotAction, RandomUtil.randomInt(Integer.parseInt(config[0]), Integer.parseInt(config[1])), TimeUnit.SECONDS);
             }
         } catch (Exception e) {
             log.error("添加积分大奖机器人定时任务失败", e);
