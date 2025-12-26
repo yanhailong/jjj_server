@@ -1285,7 +1285,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 , 0, new BaseHandler<String>() {
                     @Override
                     public void action() {
-                        if (playerGameData.isOnline()) {
+                        if (playerGameData.isOnline() || offLineEventData.isAction()) {
                             return;
                         }
                         onAutoExitAction(playerGameData, offLineEventData.getId());
@@ -1527,14 +1527,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setOnline(false);
         if (initiativeExit) {
             //退出自动执行事件
-            for (Map.Entry<Integer, OffLineEventData> en : playerGameData.getOfflineEventMap().entrySet()) {
-                //检查该事件是否已经执行
-                if (en.getValue().isAction()) {
-                    continue;
+            if (playerGameData.getOfflineEventMap() != null && !playerGameData.getOfflineEventMap().isEmpty()) {
+                for (Map.Entry<Integer, OffLineEventData> en : playerGameData.getOfflineEventMap().entrySet()) {
+                    //检查该事件是否已经执行
+                    if (en.getValue().isAction()) {
+                        continue;
+                    }
+                    //开始执行
+                    onAutoExitAction(playerGameData, en.getKey());
+                    en.getValue().setAction(true);
                 }
-                //开始执行
-                onAutoExitAction(playerGameData, en.getKey());
-                en.getValue().setAction(true);
             }
 
             offlineSaveGameDataDto(playerGameData);
