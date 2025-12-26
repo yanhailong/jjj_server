@@ -228,7 +228,7 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
     }
 
     @Override
-    protected void onAutoExitAction(PegasusUnbridlePlayerGameData gameData) {
+    protected void onAutoExitAction(PegasusUnbridlePlayerGameData gameData, int eventId) {
 
     }
 }

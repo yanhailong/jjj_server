@@ -293,7 +293,7 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
     }
 
     @Override
-    protected void onAutoExitAction(ChristmasBashNightPlayerGameData gameData) {
+    protected void onAutoExitAction(ChristmasBashNightPlayerGameData gameData, int eventId) {
         if (gameData.getStatus() == ChristmasBashNightConstant.Status.FREE) {
             freeStateAction(gameData, (playerGameData) ->
                     startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));

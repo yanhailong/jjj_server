@@ -256,7 +256,7 @@ public class AbstractMahjiongWinGameManager extends AbstractSlotsGameManager<Mah
     }
 
     @Override
-    protected void onAutoExitAction(MahjiongWinPlayerGameData gameData) {
+    protected void onAutoExitAction(MahjiongWinPlayerGameData gameData, int eventId) {
         if (gameData.getStatus() == ChristmasBashNightConstant.Status.FREE) {
             freeStateAction(gameData, (playerGameData) ->
                     startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));

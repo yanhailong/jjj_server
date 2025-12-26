@@ -310,7 +310,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
     }
 
     @Override
-    protected void onAutoExitAction(CaptainJackPlayerGameData gameData) {
+    protected void onAutoExitAction(CaptainJackPlayerGameData gameData, int eventId) {
         //发放免费模式和探宝奖励
         if (gameData.getStatus() == CaptainJackConstant.Status.FREE) {
             Object freeLib = gameData.getFreeLib();

@@ -1078,7 +1078,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     }
 
     @Override
-    protected void onAutoExitAction(DollarExpressPlayerGameData playerGameData) {
+    protected void onAutoExitAction(DollarExpressPlayerGameData playerGameData, int eventId) {
         if (playerGameData.getInvers().get()) {
             autoInvest(playerGameData);
             log.debug("自动投资游戏事件 playerId = {}", playerGameData.playerId());

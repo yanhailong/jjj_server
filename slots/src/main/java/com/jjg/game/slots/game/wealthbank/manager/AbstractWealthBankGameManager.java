@@ -1091,7 +1091,7 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
 
 
     @Override
-    protected void onAutoExitAction(WealthBankPlayerGameData playerGameData) {
+    protected void onAutoExitAction(WealthBankPlayerGameData playerGameData, int eventId) {
 
         if (playerGameData.getStatus() == WealthBankConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == WealthBankConstant.Status.GOLD_ALL_BOARD) {
             log.debug("[Wealth Bank] 添加自动投资游戏事件 playerId = {}", playerGameData.playerId());
