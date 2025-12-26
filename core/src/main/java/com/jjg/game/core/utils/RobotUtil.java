@@ -90,6 +90,16 @@ public class RobotUtil {
         return ROBOT_START_ID;
     }
 
+    public long getRobotStartId(long baseStartId) {
+        for (int i = 1; i <= GameConstant.ROBOT_ID_PRIME_NUMBER + 1; i++) {
+            long startId = baseStartId + i;
+            if (startId % GameConstant.ROBOT_ID_PRIME_NUMBER == 0) {
+                return baseStartId;
+            }
+        }
+        return baseStartId;
+    }
+
     /**
      * 初始化全局机器Id
      *
@@ -97,7 +107,7 @@ public class RobotUtil {
      */
     public void initRobotStartId(long startId) {
         RAtomicLong atomicLong = redissonClient.getAtomicLong(NODE_START_KEY);
-        atomicLong.compareAndSet(0, startId);
+        atomicLong.compareAndSet(0, getRobotStartId(startId));
     }
 
     public RobotCfg getRobotCfg(long robotId) {
