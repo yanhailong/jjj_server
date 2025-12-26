@@ -1,24 +1,25 @@
 package com.jjg.game.slots.game.pegasusunbridle.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
-import com.jjg.game.sampledata.bean.BaseLineCfg;
-import com.jjg.game.sampledata.bean.SpecialGirdCfg;
-import com.jjg.game.sampledata.bean.SpecialModeCfg;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.GirdUpdatePropConfig;
 import com.jjg.game.slots.data.PropInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialGirdInfo;
+import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleAwardLineInfo;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleResultLib;
-import com.jjg.game.slots.game.wealthbank.data.WealthBankAwardLineInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
-import org.checkerframework.checker.units.qual.A;
+import jodd.util.StringUtil;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author lm
@@ -30,6 +31,7 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
         super(PegasusUnbridleResultLib.class);
     }
 
+    private Pair<Integer, Integer> modelRandom;
 
     @Override
     public PegasusUnbridleResultLib checkAward(int[] arr, PegasusUnbridleResultLib lib, boolean freeModel) throws Exception {
@@ -44,6 +46,7 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
         calTimes(lib);
         return lib;
     }
+
     @Override
     protected PegasusUnbridleAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
         PegasusUnbridleAwardLineInfo awardLineInfo = new PegasusUnbridleAwardLineInfo();
@@ -53,6 +56,7 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
         awardLineInfo.setIconId(baseIconId);
         return awardLineInfo;
     }
+
     @Override
     protected void modifyGirdAction(SpecialModeCfg cfg, PegasusUnbridleResultLib lib, int[] arr) {
         List<Integer> specialGirdID = cfg.getSpecialGirdID();
@@ -64,6 +68,10 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
                 }
             }
         }
+    }
+
+    public Pair<Integer, Integer> getModelRandom() {
+        return modelRandom;
     }
 
     public boolean girdUpdateIsAllUpdate(int cfgId, int[] arr) {
@@ -193,4 +201,16 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
         return times;
     }
 
+    @Override
+    protected void specialPlayConfig() {
+        SpecialPlayCfg specialPlayCfg = GameDataManager.getSpecialPlayCfg(PegasusUnbridleConstant.Common.SPECIAL_PLAY_ID);
+        if (specialPlayCfg == null || StringUtil.isEmpty(specialPlayCfg.getValue())) {
+            return;
+        }
+        String[] modeArr = specialPlayCfg.getValue().split(",");
+        if (modeArr.length != 2) {
+            return;
+        }
+        modelRandom = Pair.newPair(Integer.parseInt(modeArr[0]), Integer.parseInt(modeArr[1]));
+    }
 }
