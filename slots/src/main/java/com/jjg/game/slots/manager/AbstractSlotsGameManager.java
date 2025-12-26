@@ -896,6 +896,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setOnline(true);
             playerGameData.setOfflineTime(0);
             playerGameData.setPlayerController(playerController);
+            playerGameData.setOfflineEventMap(initOffLineEvent());
             return playerGameData;
         }
 
@@ -926,6 +927,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setOfflineTime(0);
         playerGameData.setOnline(true);
         playerGameData.setPlayerController(playerController);
+        playerGameData.setOfflineEventMap(initOffLineEvent());
         return putGameData(playerController, playerGameData);
     }
 
@@ -1542,9 +1544,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             offlineSaveGameDataDto(playerGameData);
             removePlayerGameData(playerController.playerId(), playerGameData.getRoomCfgId());
         } else {
-            //30秒之后执行事件
-            OffLineEventData offLineEventData = new OffLineEventData(1, now + 30 * TimeHelper.ONE_SECOND_OF_MILLIS);
-            playerGameData.addOffLineEvent(offLineEventData);
+            //修改执行离线任务的时间
+            if (playerGameData.getOfflineEventMap() != null && !playerGameData.getOfflineEventMap().isEmpty()) {
+                for (Map.Entry<Integer, OffLineEventData> en : playerGameData.getOfflineEventMap().entrySet()) {
+                    OffLineEventData data = en.getValue();
+                    data.setActionMills(now + data.getActionMills());
+                }
+            }
         }
         return playerGameData;
     }
@@ -1810,5 +1816,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return player.getDiamond();
         }
         return player.getGold();
+    }
+
+    /**
+     * 初始化离线事件
+     * @return
+     */
+    protected Map<Integer,OffLineEventData> initOffLineEvent(){
+        Map<Integer,OffLineEventData> map = new  HashMap<>();
+        //离线30秒后执行
+        OffLineEventData offLineEventData = new OffLineEventData(1);
+        offLineEventData.setDelayMills(30 * TimeHelper.ONE_SECOND_OF_MILLIS);
+        map.put(offLineEventData.getId(),offLineEventData);
+        return map;
     }
 }

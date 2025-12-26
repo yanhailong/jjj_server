@@ -5,8 +5,14 @@ public class OffLineEventData {
     private int id;
     //该事件执行时间
     private long actionMills;
+    //离线后延迟执行时间
+    private int delayMills;
     //是否已经执行
     private boolean action;
+
+    public OffLineEventData(int id) {
+        this.id = id;
+    }
 
     public OffLineEventData(int id, long actionMills) {
         this.id = id;
@@ -27,6 +33,14 @@ public class OffLineEventData {
 
     public void setActionMills(long actionMills) {
         this.actionMills = actionMills;
+    }
+
+    public int getDelayMills() {
+        return delayMills;
+    }
+
+    public void setDelayMills(int delayMills) {
+        this.delayMills = delayMills;
     }
 
     public boolean isAction() {
