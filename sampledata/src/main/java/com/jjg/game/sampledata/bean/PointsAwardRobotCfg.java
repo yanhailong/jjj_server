@@ -31,8 +31,6 @@ public class PointsAwardRobotCfg extends BaseCfgBean {
   protected int picture;
   /** 玩家等级 */
   protected int playerLevel;
-  /** 用途 */
-  protected List<Integer> usetype;
   /** VIP等级 */
   protected int vipLevel;
 
@@ -64,11 +62,6 @@ public class PointsAwardRobotCfg extends BaseCfgBean {
   /** 返回玩家等级 */
   public int getPlayerLevel() {
     return playerLevel;
-  }
-
-  /** 返回用途 */
-  public List<Integer> getUsetype() {
-    return usetype;
   }
 
   /** 返回VIP等级 */

@@ -1112,7 +1112,7 @@ public class HallMessageHandler implements GmListener {
     }
 
     /**
-     * 游戏功能开放列表
+     * 请求领取注册奖励
      */
     @Command(HallConstant.MsgBean.REQ_GET_REGISTER_REWARDS)
     public void ReqGetRegisterRewards(PlayerController playerController) {

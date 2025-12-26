@@ -21,7 +21,7 @@ public class ResPegasusUnbridleStartGame extends AbstractResponse {
     public List<Integer> iconList;
     @ProtoDesc("本局中奖金币")
     public long allWinGold;
-    @ProtoDesc("当前状态 0.正常")
+    @ProtoDesc("当前状态 0.正常 1.假福马模式")
     public int status;
     @ProtoDesc("玩家当前金币")
     public long allGold;
@@ -33,7 +33,6 @@ public class ResPegasusUnbridleStartGame extends AbstractResponse {
     public long exp;
     @ProtoDesc("中奖图标信息")
     public List<PegasusUnbridleWinIconInfo> winIconInfoList;
-
     public ResPegasusUnbridleStartGame(int code) {
         super(code);
     }
