@@ -362,7 +362,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
     }
 
     @Override
-    protected void onAutoExitAction(ThorPlayerGameData gameData) {
+    protected void onAutoExitAction(ThorPlayerGameData gameData, int eventId) {
         //TODO
     }
 

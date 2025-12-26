@@ -716,7 +716,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         this.gameDataMap.forEach((k, v) -> {
             v.forEach((k1, v1) -> {
                 try {
-                    onAutoExitAction(v1);
+                    if (v1.getOfflineEventMap() != null && !v1.getOfflineEventMap().isEmpty()) {
+                        for (Map.Entry<Integer, OffLineEventData> en : v1.getOfflineEventMap().entrySet()) {
+                            //检查该事件是否已经执行
+                            if (en.getValue().isAction()) {
+                                continue;
+                            }
+                            //开始执行
+                            onAutoExitAction(v1, en.getKey());
+                            en.getValue().setAction(true);
+                        }
+                    }
                     offlineSaveGameDataDto(v1);
                 } catch (Exception e) {
                     log.error("", e);
@@ -1278,7 +1288,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         if (playerGameData.isOnline()) {
                             return;
                         }
-                        onAutoExitAction(playerGameData);
+                        onAutoExitAction(playerGameData, offLineEventData.getId());
                         //标记该事件已执行
                         offLineEventData.setAction(true);
                     }
@@ -1322,7 +1332,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      *
      * @param gameData 玩家数据
      */
-    protected void onAutoExitAction(T gameData) {
+    protected void onAutoExitAction(T gameData, int eventId) {
     }
 
     /**
@@ -1502,6 +1512,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 处理玩家退出游戏事件
+     *
      * @param playerController
      * @param initiativeExit
      * @return
@@ -1516,13 +1527,21 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setOnline(false);
         if (initiativeExit) {
             //退出自动执行事件
-            onAutoExitAction(playerGameData);
+            for (Map.Entry<Integer, OffLineEventData> en : playerGameData.getOfflineEventMap().entrySet()) {
+                //检查该事件是否已经执行
+                if (en.getValue().isAction()) {
+                    continue;
+                }
+                //开始执行
+                onAutoExitAction(playerGameData, en.getKey());
+                en.getValue().setAction(true);
+            }
 
             offlineSaveGameDataDto(playerGameData);
             removePlayerGameData(playerController.playerId(), playerGameData.getRoomCfgId());
-        }else {
+        } else {
             //30秒之后执行事件
-            OffLineEventData offLineEventData = new OffLineEventData(1,now + 30 * TimeHelper.ONE_SECOND_OF_MILLIS);
+            OffLineEventData offLineEventData = new OffLineEventData(1, now + 30 * TimeHelper.ONE_SECOND_OF_MILLIS);
             playerGameData.addOffLineEvent(offLineEventData);
         }
         return playerGameData;
