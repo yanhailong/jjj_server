@@ -232,15 +232,13 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
 
         //累计免费模式的中奖金额
         playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
-
+        if (playerGameData.getFreeLib() instanceof CaptainJackResultLib lib) {
+            gameRunInfo.addBigPoolTimes(lib.getTimes());
+        }
         if (afterCount == 0) {
-            if (playerGameData.getFreeLib() instanceof CaptainJackResultLib lib) {
-                gameRunInfo.addBigPoolTimes(lib.getTimes());
-            }
             playerGameData.setStatus(CaptainJackConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
-
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
             log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());

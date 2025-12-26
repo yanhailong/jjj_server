@@ -423,6 +423,8 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
             return 0;
         }
         long count = 0;
+        int baseTimes = 1;
+        long totalTimes = 0;
         for (SpecialAuxiliaryInfo info : lib.getSpecialAuxiliaryInfoList()) {
             if (CollectionUtil.isEmpty(info.getFreeGames())) {
                 continue;
@@ -434,10 +436,19 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
                 if (CollectionUtil.isEmpty(tmpLib.getAddIconInfos())) {
                     continue;
                 }
+                //中奖线
+                tmpLib.addTimes(calLineTimes(tmpLib.getAwardLineInfoList()));
+                //消除后新增图标
+                tmpLib.addTimes(calAfterAddIcons(tmpLib.getAddIconInfos()));
+                if (tmpLib.getTimes() > 0) {
+                    tmpLib.setTimes(tmpLib.getTimes() * (baseTimes + count / needTimes * addTimes));
+                }
+                jsonObject.put("times", tmpLib.getTimes());
+                totalTimes += tmpLib.getTimes();
                 count += tmpLib.getAddIconInfos().size();
             }
         }
-        return 1 + count / needTimes * addTimes;
+        return totalTimes;
     }
 
     /**
