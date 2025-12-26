@@ -37,6 +37,7 @@ import com.jjg.game.hall.pb.struct.GameWareInfo;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -224,8 +225,12 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.carouselList = getCarousel();
 
             res.register = register[0];
-
-            res.registerRewardsState = countDao.getCount(CountDao.CountType.PLAYER_COUNT.getParam().formatted("register"), String.valueOf(player.getId())).intValue();
+            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(50);
+            if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
+                res.registerRewardsState = countDao.getCount(CountDao.CountType.PLAYER_COUNT.getParam().formatted("register"), String.valueOf(player.getId())).intValue();
+            } else {
+                res.registerRewardsState = 0;
+            }
             res.moneySymbol = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_MONEY_SYMBOL).getValue();
             //更新session
             PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
