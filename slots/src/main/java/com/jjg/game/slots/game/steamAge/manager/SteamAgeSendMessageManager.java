@@ -17,10 +17,7 @@ import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -140,7 +137,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             //连线则触发，添加图标信息（右扩展图标）
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
             //高亮图标
-            res.highlightList = highlight(res.iconList, res.addIconInfoList);
+            res.highlightList = highlight(res.iconList, res.addIconInfoList, lib);
             //是否触发 免费转
             res.triggerStatus = gameRunInfo.getRemainFreeCount() > 0 && res.status == SteamAgeConstant.Status.NORMAL ? 1 : 0;
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
@@ -174,10 +171,13 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
      * @param
      * @return
      */
-    private List<Integer> highlight(List<Integer> iconList, List<SteamAgeExpand> addIconInfoList) {
+    private List<Integer> highlight(List<Integer> iconList, List<SteamAgeExpand> addIconInfoList, SteamAgeResultLib lib) {
 //        int[] iconArr = lib.getIconArr();
         List<Integer> highlightList = new ArrayList<>();
-        if (addIconInfoList == null || addIconInfoList.isEmpty()) {
+        if ((addIconInfoList == null || addIconInfoList.isEmpty())
+                && !iconList.contains(SteamAgeConstant.BaseElement.ID_ADD)
+                && !lib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.FREE)
+                && !lib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.JACKPOOL)) {
             return highlightList;
         }
         for (int i = 0; i < iconList.size(); i++) {
@@ -281,7 +281,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
         if (num > 0) {
             for (int i = num; i > 0; i--) {
                 for (int i1 = 0; i1 < 4; i1++) {
-                    arr.add(20 + ((i-1) * 4) + i1 + 1);
+                    arr.add(20 + ((i - 1) * 4) + i1 + 1);
                 }
             }
         }

@@ -279,10 +279,13 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
             log.info("新增需要格子变成 wild{}", JSONObject.toJSONString(icons));
             Set<Integer> changeIcons = new HashSet<>();
             //如果上一轮有修改图标记录 直接加入进来
-            if (lastLib != null && lastLib.getChangeStickyIconSet() != null && !lastLib.getChangeStickyIconSet().isEmpty()) {
+            if (lastLib != null && lastLib.getAddStickyIconSet() != null && !lastLib.getAddStickyIconSet().isEmpty()) {
                 changeIcons.addAll(lastLib.getAddStickyIconSet());
-                log.info("需要格子变成 wild{}", JSONObject.toJSONString(icons));
             }
+            if (lastLib != null && lastLib.getChangeStickyIconSet() != null && !lastLib.getChangeStickyIconSet().isEmpty()) {
+                changeIcons.addAll(lastLib.getChangeStickyIconSet());
+            }
+            log.info("需要格子变成 wild{}", JSONObject.toJSONString(icons));
             lib.setChangeStickyIconSet(changeIcons);
             lib.setAddStickyIconSet(icons);
 
