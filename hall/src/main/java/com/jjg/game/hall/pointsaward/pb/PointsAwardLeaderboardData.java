@@ -14,9 +14,9 @@ import java.util.List;
 public class PointsAwardLeaderboardData {
 
     /**
-     * 排行榜类型 1=上午榜 2=下午榜 3=月榜
+     * 排行榜类型 1=日榜 2=周榜 3=月榜
      */
-    @ProtoDesc("排行榜类型 1=上午榜 2=下午榜 3=月榜")
+    @ProtoDesc("排行榜类型 1=日榜 2=周榜 3=月榜")
     private int rankType;
 
     /**

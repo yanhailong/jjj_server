@@ -1,6 +1,7 @@
 package com.jjg.game.core.task.service;
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.ClusterRpcReference;
@@ -328,11 +329,9 @@ public class TaskService {
             return currentMonthTasks.getFirst();
         }
 
-        // 如果有匹配当前年月的任务，选择ID最小的
+        // 如果有匹配当前年月的任务，随机一个
         if (!currentMonthTasks.isEmpty()) {
-            return currentMonthTasks.stream()
-                    .min(Comparator.comparingInt(TaskCfg::getId))
-                    .orElse(null);
+            return RandomUtil.randomEle(currentMonthTasks);
         }
 
         // 如果没有匹配当前年月的任务，选择没有时间配置的常驻任务
@@ -344,11 +343,9 @@ public class TaskService {
         if (permanentTasks.size() == 1) {
             return permanentTasks.getFirst();
         }
-
+        //随机一个
         if (!permanentTasks.isEmpty()) {
-            return permanentTasks.stream()
-                    .min(Comparator.comparingInt(TaskCfg::getId))
-                    .orElse(null);
+            return RandomUtil.randomEle(permanentTasks);
         }
 
         return null;

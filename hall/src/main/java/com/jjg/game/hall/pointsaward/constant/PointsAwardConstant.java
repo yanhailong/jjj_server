@@ -30,15 +30,7 @@ public interface PointsAwardConstant {
         /**
          * 积分大奖排行榜
          */
-        String POINTS_AWARD_RANKING = "pointsAward:ranking:";
-        /**
-         * 积分大奖排行榜
-         */
-        String POINTS_AWARD_RANKING_START_TS = "pointsAward:ranking:start_ts:";
-        /**
-         * 积分大奖排行榜记录的玩家积分
-         */
-        String POINTS_AWARD_RANKING_POINTS = "pointsAward:ranking:points:";
+        String POINTS_AWARD_RANKING = "pointsAward:rank:";
         /**
          * 转盘历史记录
          */
@@ -79,6 +71,10 @@ public interface PointsAwardConstant {
          * 时间段玩家积分锁
          */
         String POINTS_AWARD_TIME_DATA_POINTS_LOCK = "pointsAwardTimeDataPointsLock:";
+        /**
+         * 机器人ID
+         */
+        String POINTS_AWARD_ROBOT_ID = "pointsAward:robotId";
     }
 
     /**
@@ -98,17 +94,9 @@ public interface PointsAwardConstant {
          */
         String POINTS_AWARD_SIGN_IN_CLEAR_LOCK = "pointsAwardSignInClearLock";
         /**
-         * 积分大奖排行榜更新锁
-         */
-        String POINTS_AWARD_RANKING_LOCK = "pointsAwardRankingLock:";
-        /**
          * 玩家积分大奖数据初始化锁
          */
         String POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT = "pointsAwardDataLockTurntableInit";
-        /**
-         * 玩家排行榜奖励和历史记录锁
-         */
-        String PLAYER_RANKING_AWARD_LOCK = "playerRankingAwardLock:";
         /**
          * 所有排行榜的历史记录记录锁
          */
@@ -156,43 +144,16 @@ public interface PointsAwardConstant {
             int MONTHLY_OTHER_AWARD = 7;
         }
 
-        /**
-         * 时间相关常量
-         */
-        interface TimeConstants {
-            /**
-             * 上午榜结束时间 - 11:59:59
-             */
-            int AM_END_HOUR = 11;
-            int AM_END_MINUTE = 59;
-            int AM_END_SECOND = 59;
 
-            /**
-             * 下午榜开始时间 - 12:00:00
-             */
-            int PM_START_HOUR = 12;
-
-            /**
-             * 一天结束时间 - 23:59:59
-             */
-            int DAY_END_HOUR = 23;
-            int DAY_END_MINUTE = 59;
-            int DAY_END_SECOND = 59;
-
-            /**
-             * 12小时的毫秒数
-             */
-            long TWELVE_HOURS_MILLIS = 12L * 60 * 60 * 1000;
-        }
 
         /**
-         * 上午榜类型值
+         * 日榜榜类型值
          */
-        int AM = 1;
+        int DAY = 1;
         /**
-         * 下午榜类型值
+         * 周榜榜类型值
          */
-        int PM = 2;
+        int WEEK = 2;
         /**
          * 月榜类型值（与 AM/PM 区分开，避免混淆）
          */
@@ -212,13 +173,13 @@ public interface PointsAwardConstant {
         /**
          * 排行榜最多保留的名次
          */
-        int MAX_RANK_SIZE = 50;
+        int MAX_RANK_SIZE = 300;
         /**
-         * 上午榜时段名字
+         * 日榜时段名字
          */
         String RANK_NAME_AM = "00:00:00-12:00:00";
         /**
-         * 下午榜时段名字
+         * 周榜时段名字
          */
         String RANK_NAME_PM = "12:00-24:00";
         /**

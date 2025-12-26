@@ -18,6 +18,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.ConditionType;
+import com.jjg.game.core.base.condition.check.record.BaseCheckParam;
 import com.jjg.game.core.base.condition.check.record.PlayerRechargeParam;
 import com.jjg.game.core.base.condition.check.record.PlayerSampleParam;
 import com.jjg.game.core.constant.AddType;
@@ -135,9 +136,9 @@ public class SharePromoteController extends BaseActivityController {
             BigDecimal realProgress = BigDecimal.valueOf(progress);
             int type = 9;
             //计算收益率
-            int proportion = getPlayerProportion(playerId, activityData);
+            int proportion = getPlayerProportion(beneficiaryPlayerId, activityData);
             if (!effectiveBet) {
-                proportion = getPlayerRechargeProportion(playerId, activityData);
+                proportion = getPlayerRechargeProportion(beneficiaryPlayerId, activityData);
                 GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(53);
                 if (globalConfigCfg != null) {
                     magnification = BigDecimal.valueOf(globalConfigCfg.getIntValue());
@@ -173,12 +174,14 @@ public class SharePromoteController extends BaseActivityController {
             return;
         }
         String[] conditionCfg = StringUtils.split(globalConfigCfg.getValue(), "|");
-        boolean result = true;
+        int conditionNum = 0;
+        int passNum = 0;
         for (String cfg : conditionCfg) {
             String[] cfgArr = StringUtils.split(cfg, "_");
             if (cfgArr.length == 0) {
-                continue;
+                break;
             }
+            conditionNum++;
             ConditionType type = EnumUtil.getBy(ConditionType.class, (t) -> t.getId() == Integer.parseInt(cfgArr[0]));
             if (type == ConditionType.PLAYER_SUM_PAY && additionalParameters instanceof Order order) {
                 PlayerRechargeParam param = new PlayerRechargeParam();
@@ -186,7 +189,10 @@ public class SharePromoteController extends BaseActivityController {
                 param.setFunction(SHARE_PROMOTE);
                 param.setAmount(RedisUtils.fromLong(progress));
                 param.setChannelId(order.getPayChannel());
-                result &= BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0;
+                if (BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0) {
+                    passNum++;
+                }
+                continue;
             }
             if (type == ConditionType.PLAYER_CUMULATIVE_BET && additionalParameters instanceof Integer id) {
                 if (id != ItemUtils.getGoldItemId()) {
@@ -196,10 +202,19 @@ public class SharePromoteController extends BaseActivityController {
                 param.setPlayerId(playerId);
                 param.setFunction(SHARE_PROMOTE);
                 param.setParamList(List.of(progress));
-                result &= BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0;
+                if (BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0) {
+                    passNum++;
+                }
+                continue;
+            }
+            BaseCheckParam baseCheckParam = new BaseCheckParam();
+            baseCheckParam.setPlayerId(playerId);
+            baseCheckParam.setFunction(SHARE_PROMOTE);
+            if (conditionManager.isAchievement(player, baseCheckParam, cfg)) {
+                passNum++;
             }
         }
-        if (result) {
+        if (conditionNum == passNum) {
             //添加到有效下级
             String key = sharePromoteDao.getLock(beneficiaryPlayerId);
             SharePromotePlayerData newPlayerInfoData = null;
@@ -228,6 +243,7 @@ public class SharePromoteController extends BaseActivityController {
                 activityLogger.sendSharePromoteAddRewards(beneficiaryPlayer, activityData, playerId, 10,
                         0, 1, 0, 0, 0, 0);
             }
+
             log.info("beneficiaryPlayerId:{} 新增有效下级:{}", beneficiaryPlayerId, playerId);
         }
     }
@@ -311,14 +327,14 @@ public class SharePromoteController extends BaseActivityController {
     /**
      * 请求绑定玩家
      *
-     * @param playerController 玩家控制器
-     * @param activityData     活动数据
-     * @param req              请求
+     * @param player       玩家信息
+     * @param activityData 活动数据
+     * @param req          请求
      * @return 响应
      */
-    public AbstractResponse reqSharePromoteBindPlayer(PlayerController playerController, ActivityData activityData, ReqSharePromoteBindPlayer req) {
+    public AbstractResponse reqSharePromoteBindPlayer(Player player, ActivityData activityData, ReqSharePromoteBindPlayer req) {
         ResSharePromoteBindPlayer res = new ResSharePromoteBindPlayer(Code.SUCCESS);
-        long playerId = playerController.playerId();
+        long playerId = player.getId();
         //多次输入错误邀请码判断
         int playerCodeErrorPrint = sharePromoteDao.getPlayerCodeErrorPrint(playerId);
         if (playerCodeErrorPrint >= ActivityConstant.SharePromote.MAX_ERROR_TIMES) {
@@ -363,11 +379,53 @@ public class SharePromoteController extends BaseActivityController {
             }
             if (save) {
                 //发送日志
-                activityLogger.sendSharePromoteAddRewards(playerController.getPlayer(), activityData, result.data, 2,
+                activityLogger.sendSharePromoteAddRewards(player, activityData, result.data, 2,
                         0, 1, 0, 0, 0, 1);
             }
         }
         return res;
+    }
+
+    /**
+     * 请求绑定上级
+     *
+     */
+    public void bindSuperPlayer(Player player, String shareId) {
+        try {
+            if (StringUtils.isBlank(shareId)) {
+                return;
+            }
+
+            //上级玩家
+            Player superPlayer = corePlayerService.get(Long.parseLong(shareId));
+            if (superPlayer == null) {
+                log.warn("绑定上级失败，获取不到上级玩家信息 playerId = {},shareId = {}", player.getId(), shareId);
+                return;
+            }
+
+            ActivityData activityData = activityManager.getOpenActivityData(superPlayer, ActivityType.SHARE_PROMOTE);
+            if (activityData == null) {
+                log.warn("上级玩家不能参与推广分享活动 playerId = {},superPlayerId = {}", player.getId(), superPlayer.getId());
+                return;
+            }
+
+            ResSharePromoteGlobalInfo res = (ResSharePromoteGlobalInfo) reqSharePromoteGlobalInfo(player, activityData);
+            if (res.code != Code.SUCCESS) {
+                log.warn("绑定上级失败时生成邀请码失败 playerId = {},superPlayerId = {},code = {}", player.getId(), shareId, res.code);
+                return;
+            }
+
+            ReqSharePromoteBindPlayer req = new ReqSharePromoteBindPlayer();
+            req.invitationCode = res.invitationCode;
+            ResSharePromoteBindPlayer bindRes = (ResSharePromoteBindPlayer) reqSharePromoteBindPlayer(superPlayer, activityData, req);
+            if (bindRes == null || bindRes.code != Code.SUCCESS) {
+                log.warn("绑定上级失败 playerId = {},superPlayerId = {},code = {}", player.getId(), shareId, bindRes == null ? "null" : bindRes.code);
+                return;
+            }
+            log.info("玩家绑定上级成功 playerId = {},superPlayerId = {},invitationCode = {}", player.getId(), superPlayer.getId(), res.invitationCode);
+        } catch (Exception e) {
+            log.error("", e);
+        }
     }
 
     public void checkActivityStatus(Player player, ActivityData activityData, int bindNum, int bindBefore) {
@@ -513,9 +571,9 @@ public class SharePromoteController extends BaseActivityController {
     /**
      * 请求推广分享总览数据
      */
-    public AbstractResponse reqSharePromoteGlobalInfo(PlayerController playerController, ActivityData data) {
+    public AbstractResponse reqSharePromoteGlobalInfo(Player player, ActivityData data) {
         ResSharePromoteGlobalInfo res = new ResSharePromoteGlobalInfo(Code.SUCCESS);
-        long playerId = playerController.playerId();
+        long playerId = player.getId();
         res.earningsRatio = getPlayerProportion(playerId, data);
         res.yesterdayIncome = sharePromoteDao.getYesterdayIncome(playerId);
         res.historyIncome = sharePromoteDao.getPlayerHistoryIncome(playerId);
@@ -555,8 +613,8 @@ public class SharePromoteController extends BaseActivityController {
             res.getProfitReward = sharePromoteDao.getPlayerIncome(playerId);
             List<String> history = playerInfoData.getHistory();
             res.recodes = buildRecords(history);
-
         }
+        res.shareUrlPrefix = sharePromoteDao.getShareUrlPrefix();
         return res;
     }
 

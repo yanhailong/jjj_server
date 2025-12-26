@@ -32,11 +32,6 @@ public class TimerManager implements GmListener {
         gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 0));
     }
 
-    @Scheduled(cron = "0 0 12 * * *")
-    public void halfDay() {
-        gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 12));
-    }
-
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
         String gmOrder = gmOrders[0];
