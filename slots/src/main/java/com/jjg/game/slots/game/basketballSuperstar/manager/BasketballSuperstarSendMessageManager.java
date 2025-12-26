@@ -66,7 +66,12 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
             res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
             res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
-
+            if (res.status == BasketballSuperstarConstant.Status.FREE) {
+                BasketballSuperstarResultLib freeLib = (BasketballSuperstarResultLib) gameRunInfo.getData().getFreeLib();
+                res.changeStickyIconSet = freeLib.getChangeStickyIconSet();
+                res.addStickyIconSet = freeLib.getAddStickyIconSet();
+                res.freeCount = freeLib.getFreeCount();
+            }
 
             //奖池信息
             if (prizePoolIdList != null && !prizePoolIdList.isEmpty()) {
@@ -125,6 +130,9 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
             //是否触发 免费转
             res.triggerStatus = gameRunInfo.getRemainFreeCount() > 0 && res.status == SteamAgeConstant.Status.NORMAL ? 1 : 0;
             BasketballSuperstarResultLib lib = (BasketballSuperstarResultLib) gameRunInfo.getResultLib();
+            res.changeStickyIconSet = lib.getChangeStickyIconSet();
+            res.addStickyIconSet = lib.getAddStickyIconSet();
+            res.freeCount = lib.getFreeCount();
             int[] iconArr = lib.getIconArr();
             //如果是免费转 可能需要修改
             if (res.status == BasketballSuperstarConstant.Status.FREE

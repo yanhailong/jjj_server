@@ -185,8 +185,10 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
         log.debug("增加免费游戏次数 addCount = {}", freeCount);
 
         int remainFreeCount = freeCount;
+        int freeNum = 0;
         BasketballSuperstarResultLib lastLib = null;
         while (remainFreeCount > 0) {
+            freeNum++;
             log.debug("免费转 权重变成wild 图标 stickyIcon = {}", stickyIcon);
             //检查是否有修改图案策略组id
             int specialGroupGirdID = 0;
@@ -198,6 +200,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
             }
             BasketballSuperstarResultLib lib = generateFreeOneHaveLastLib(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, lastLib, stickyIcon);
             int addCount = checkAddFreeCount(lib);
+            lib.setFreeCount(freeNum);
             lib.setAddFreeCount(addCount);
             lib.setStickyIcon(stickyIcon);
             remainFreeCount += addCount;
@@ -274,14 +277,14 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
                 }
             }
             log.info("新增需要格子变成 wild{}", JSONObject.toJSONString(icons));
-
+            Set<Integer> changeIcons = new HashSet<>();
             //如果上一轮有修改图标记录 直接加入进来
             if (lastLib != null && lastLib.getChangeStickyIconSet() != null && !lastLib.getChangeStickyIconSet().isEmpty()) {
-                icons.addAll(lastLib.getChangeStickyIconSet());
+                changeIcons.addAll(lastLib.getAddStickyIconSet());
                 log.info("需要格子变成 wild{}", JSONObject.toJSONString(icons));
             }
-            lib.setChangeStickyIconSet(icons);
-
+            lib.setChangeStickyIconSet(changeIcons);
+            lib.setAddStickyIconSet(icons);
 
             //上盘结果  wild图标保存
 //            SpecialGirdInfo lastInfo = gridUpdate(lastLib.getIconArr(), arr);
@@ -303,6 +306,67 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
         }
         return null;
     }
+
+    /**
+     * 按照配置生成所有的图标元素
+     *
+     * @return
+     */
+    public int[] generateAllIcons(int rollerMode, int cols, int rows, int specialModeType) {
+
+        Map<Integer, BaseRollerCfg> rollerCfgMap = this.baseRollerCfgMap.get(rollerMode);
+        if (rollerCfgMap == null) {
+            log.warn("生成图标时，rollerCfgMap 配置为空 rollerMode={}", rollerMode);
+            return null;
+        }
+
+        int[] arr = new int[cols * rows + 1];
+
+        //蒸汽时代 列（滚轴） 配置 数量多余 列数量
+        int addCols = 0;
+
+        //不是免费转 就退出
+        if (specialModeType != BasketballSuperstarConstant.SpecialMode.FREE) {
+            return arr;
+        }
+
+        for (Map.Entry<Integer, BaseRollerCfg> en : rollerCfgMap.entrySet()) {
+            if (addCols >= cols) {
+                return arr;
+            }
+            BaseRollerCfg cfg = en.getValue();
+            if (cfg.getAxleCountScope() == null || cfg.getAxleCountScope().isEmpty()) {
+                log.warn("没有该滚轴的范围,生成结果集失败 gameType = {},rollerCfgId = {}", this.gameType, cfg.getId());
+                return null;
+            }
+
+            int iconIndex = (cfg.getColumn() - 1) * rows + 1;
+
+            //区间范围的第一个下标
+            int first = cfg.getAxleCountScope().get(0) - 1;
+            //区间范围的最后一个下标
+            int last = cfg.getAxleCountScope().get(1) - 1;
+
+            //随机生成一个起始位置
+            int scopeIndex = RandomUtils.randomMinMax(first, last);
+            for (int i = 0; i < rows; i++) {
+                //首尾相连
+                if (scopeIndex > last) {
+                    scopeIndex = first;
+                }
+
+                int elementId = cfg.getElements().get(scopeIndex);
+                arr[iconIndex] = elementId;
+                iconIndex++;
+                scopeIndex++;
+            }
+            addCols++;
+        }
+        return arr;
+
+    }
+
+
 //
 //    /**
 //     * 获取 修改棋子原因 上次是wild 粘性
@@ -378,10 +442,10 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
             throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
         }
 
-        if(triggerFreeLib(lib,BasketballSuperstarConstant.SpecialMode.FREE)){
+        if (triggerFreeLib(lib, BasketballSuperstarConstant.SpecialMode.FREE)) {
             //免费
             lib.addTimes(calFree(lib));
-        }else {
+        } else {
             //中奖线
             lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
         }
