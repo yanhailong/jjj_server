@@ -229,7 +229,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
                 res.registerRewardsState = countDao.getCount(CountDao.CountType.PLAYER_COUNT.getParam().formatted("register"), String.valueOf(player.getId())).intValue();
             } else {
-                res.registerRewardsState = 0;
+                res.registerRewardsState = 1;
             }
             res.moneySymbol = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_MONEY_SYMBOL).getValue();
             //更新session
