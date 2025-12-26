@@ -184,15 +184,17 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
         gameRunInfo.setStake(betValue);
-        gameRunInfo.setStatus(playerGameData.getStatus());
+        Set<Integer> typeSet = resultLib.getLibTypeSet();
         //检查是否触发假福马
         if (gameGenerateManager.getModelRandom() != null) {
-            Set<Integer> typeSet = resultLib.getLibTypeSet();
             if (typeSet != null && typeSet.size() == 1 && typeSet.contains(gameGenerateManager.getModelRandom().getFirst())) {
                 if (RandomUtil.randomInt(10000) < gameGenerateManager.getModelRandom().getSecond()) {
-                    gameRunInfo.setStatus(PegasusUnbridleConstant.Status.FU_MA);
+                    gameRunInfo.setStatus(PegasusUnbridleConstant.Status.FAKE_FU_MA);
                 }
             }
+        }
+        if (typeSet != null && !typeSet.contains(PegasusUnbridleConstant.SpecialMode.NORMAL)) {
+            gameRunInfo.setStatus(PegasusUnbridleConstant.Status.REAL_FU_MA);
         }
     }
 
