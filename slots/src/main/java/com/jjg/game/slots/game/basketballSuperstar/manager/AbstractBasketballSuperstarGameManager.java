@@ -297,40 +297,10 @@ public class AbstractBasketballSuperstarGameManager extends AbstractSlotsGameMan
         }
     }
 
-    /**
-     * 退出游戏
-     *
-     * @param playerController
-     * @param initiativeExit
-     * @return 返回值来标记是否可以进行断线重连
-     */
-    @Override
-    public BasketballSuperstarPlayerGameData exit(PlayerController playerController, boolean initiativeExit) {
-        BasketballSuperstarPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            return null;
-        }
 
-        long now = System.currentTimeMillis();
-        playerGameData.setOfflineTime(now);
-        playerGameData.setOnline(false);
-
-        if (initiativeExit) {
-            //退出自动执行事件
-            onAutoExitAction(playerGameData);
-            //保存数据
-            offlineSaveGameDataDto(playerGameData);
-            removePlayerGameData(playerGameData.playerId(), playerGameData.getRoomCfgId());
-        } else {
-            //30秒之后执行事件
-            OffLineEventData offLineEventData = new OffLineEventData(1, now + 30 * TimeHelper.ONE_SECOND_OF_MILLIS);
-            playerGameData.addOffLineEvent(offLineEventData);
-        }
-        return playerGameData;
-    }
 
     @Override
-    protected void onAutoExitAction(BasketballSuperstarPlayerGameData playerGameData) {
+    protected void onAutoExitAction(BasketballSuperstarPlayerGameData playerGameData, int eventId) {
         //检查当前是否处于特殊模式
         if (playerGameData.getStatus() == BasketballSuperstarConstant.Status.FREE) {
             int forCount = playerGameData.getRemainFreeCount().get();
