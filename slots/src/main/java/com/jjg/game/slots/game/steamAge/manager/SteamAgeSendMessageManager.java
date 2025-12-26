@@ -117,7 +117,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             //免费游戏中累计获得金币
             if (gameRunInfo.getStatus() == FrozenThroneConstant.Status.FREE) {
                 res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
-                if(gameRunInfo.getRemainFreeCount() <= 0){
+                if (gameRunInfo.getRemainFreeCount() <= 0) {
                     res.totalWinGold = gameRunInfo.getFreeModeTotalReward();
                 }
             } else {
@@ -197,7 +197,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             if (steamAgeExpand != null) {
                 List<Integer> expandIconList = steamAgeExpand.iconList;
                 for (int i2 = 0; i2 < expandIconList.size(); i2++) {
-                    if(expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_ADD){
+                    if (expandIconList.get(i2) == SteamAgeConstant.BaseElement.ID_ADD) {
                         highlightList.add((4 * i) + 20 + i2 + 1);
                     }
                     if (expandIconList != null && !expandIconList.isEmpty()) {
@@ -258,6 +258,9 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
                 indexSet2.add(arr[i]);
             }
             iconInfo.iconIndexs = new ArrayList<>(indexSet2);
+//            log.info("================>arr={}", JSONObject.toJSONString(arr));
+//            log.info("================>indexSet={}", JSONObject.toJSONString(indexSet));
+//            log.info("================>indexSet2={}", JSONObject.toJSONString(indexSet2));
         } else {
             iconInfo.iconIndexs = new ArrayList<>(indexSet);
         }
@@ -273,28 +276,21 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
      * @return
      */
     public int[] getIndexArr(int num) {
-        int[] arr = new int[20];
+        List<Integer> arr = new ArrayList<>();
+        arr.add(0);
+        if (num > 0) {
+            for (int i = num; i > 0; i--) {
+                for (int i1 = 0; i1 < 4; i1++) {
+                    arr.add(20 + ((i-1) * 4) + i1 + 1);
+                }
+            }
+        }
+
         for (int i = 0; i < 20; i++) {
-            arr[i] = i + 1;
+            arr.add(i + 1);
         }
-        for (int k = 1; k <= num; k++) {
-            int[] newArr = new int[20];
-            int f = 4 * k + 17;
-            int d = (k % 2 == 1) ? 1 : -1;
-            for (int i = 0; i < 4; i++) {
-                newArr[i] = f + i * d;
-            }
-            for (int i = 0; i < 16; i++) {
-                newArr[4 + i] = arr[i];
-            }
-            arr = newArr;
-        }
-        int[] newarr2 = new int[21];
-        newarr2[0] = 0;
-        for (int i = 0; i < arr.length; i++) {
-            newarr2[i + 1] = arr[i];
-        }
-        return newarr2;
+
+        return arr.stream().mapToInt(Integer::intValue).toArray();
     }
 
 
