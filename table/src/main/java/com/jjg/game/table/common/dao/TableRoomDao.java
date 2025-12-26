@@ -50,6 +50,7 @@ public class TableRoomDao extends AbstractGoldRoomDao<BetTableRoom, RoomPlayer> 
                 if (Boolean.FALSE.equals(absent)) {
                     log.error("初始化房间池失败，gameType: {}, roomCfgId: {}", gameType, roomCfgId);
                 }
+                log.info("初始化奖池成功 gameType = {}, roomCfgId = {}, pool = {}", gameType, roomCfgId, initRoomPool);
                 return initRoomPool;
             }
             case Integer pool -> {
