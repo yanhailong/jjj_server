@@ -552,6 +552,12 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         //获取第一列出现的图标
         for (int i = 1; i <= baseInitCfg.getRows(); i++) {
             int icon = arr[i];
+            //如果第一列出现了wild图标
+            if (wildIconSet.contains(icon)) {
+                for (Integer normalIcon : normalIconSet) {
+                    firstColIcons.computeIfAbsent(normalIcon, k -> new HashSet<>()).add(i);
+                }
+            }
             firstColIcons.computeIfAbsent(icon, k -> new HashSet<>()).add(i);
         }
 
@@ -661,9 +667,9 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 continue;
             }
 
-            if(libTypeSet == null || libTypeSet.isEmpty()){
+            if (libTypeSet == null || libTypeSet.isEmpty()) {
                 Set<Integer> triggerFreeSet = SlotsConst.specialModeTriggerFreeModeIds.get(this.gameType);
-                if(triggerFreeSet != null && !triggerFreeSet.isEmpty()){
+                if (triggerFreeSet != null && !triggerFreeSet.isEmpty()) {
                     cfg.getFeatureTriggerId().forEach(miniGameId -> {
                         triggerFreeSet.forEach(libType -> {
                             SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, arr, miniGameId, specialGirdInfoList);
@@ -674,7 +680,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
                     });
                 }
-            }else {
+            } else {
                 cfg.getFeatureTriggerId().forEach(miniGameId -> {
                     libTypeSet.forEach(libType -> {
                         SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, arr, miniGameId, specialGirdInfoList);
@@ -989,7 +995,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * @return
      */
     protected SameInfo iconSame(SameInfo sameInfo, int iconIdFront, int iconIdBack) {
-        if(iconIdFront >= SlotsConst.Common.INVALID_ICON_BEGIN_ID || iconIdBack >= SlotsConst.Common.INVALID_ICON_BEGIN_ID) {
+        if (iconIdFront >= SlotsConst.Common.INVALID_ICON_BEGIN_ID || iconIdBack >= SlotsConst.Common.INVALID_ICON_BEGIN_ID) {
             return sameInfo;
         }
 

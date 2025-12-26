@@ -171,7 +171,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
     /**
      * 高亮展示
      *
-     * @param iconArr
+     * @param
      * @return
      */
     private List<Integer> highlight(List<Integer> iconList, List<SteamAgeExpand> addIconInfoList) {
