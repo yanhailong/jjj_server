@@ -27,7 +27,7 @@ public class PlayerTotalRechargeCheck extends BaseCheck {
             if (condition.getChannelId() == 0 || condition.getChannelId() == param.getChannelId()) {
                 progress = countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), param.getAmount());
             }
-            return progress.compareTo(condition.getNeedAmount()) >= 0 ? BigDecimal.ONE : BigDecimal.ZERO;
+            return progress.compareTo(condition.getMinAchievedValue()) >= 0 ? BigDecimal.ONE : BigDecimal.ZERO;
         }
         return BigDecimal.ZERO;
     }
@@ -38,7 +38,7 @@ public class PlayerTotalRechargeCheck extends BaseCheck {
             return null;
         }
         PlayerRechargeCondition playerRechargeCondition = new PlayerRechargeCondition();
-        playerRechargeCondition.setNeedAmount(new BigDecimal(condition.getFirst()).setScale(2, RoundingMode.DOWN));
+        playerRechargeCondition.setMinAchievedValue(new BigDecimal(condition.getFirst()).setScale(2, RoundingMode.DOWN));
         playerRechargeCondition.setChannelId(Integer.parseInt(condition.get(1)));
         return playerRechargeCondition;
     }
