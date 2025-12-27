@@ -530,7 +530,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         }
         //获取积分
         long timePoints = getTimePoints(playerId);
-        if (timePoints < info.getPoints()) {
+        if (!autoRecive && timePoints < info.getPoints()) {
             return Code.POINT_AWARD_POINT_NOT_ENOUGH;
         }
         int code = Code.FAIL;
