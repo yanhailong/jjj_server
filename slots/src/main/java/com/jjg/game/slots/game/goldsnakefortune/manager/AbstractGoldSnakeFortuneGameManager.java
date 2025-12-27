@@ -287,7 +287,7 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
             }
             //检查修改的图标是否有美元图标
             SpecialGirdCfg specialGirdCfg = GameDataManager.getSpecialGirdCfg(specialGirdInfo.getCfgId());
-            if (!specialGirdCfg.getElement().containsKey(MoneyRabbitConstant.BaseElement.ID_COIN) && !specialGirdCfg.getElement().containsKey(MoneyRabbitConstant.BaseElement.ID_COIN2)) {
+            if (!specialGirdCfg.getElement().containsKey(GoldSnakeFortuneConstant.BaseElement.ID_COIN) && !specialGirdCfg.getElement().containsKey(GoldSnakeFortuneConstant.BaseElement.ID_COIN2)) {
                 continue;
             }
 

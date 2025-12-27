@@ -18,7 +18,8 @@ import org.springframework.context.annotation.FilterType;
                 @ComponentScan.Filter(
                         type = FilterType.CUSTOM,
                         classes = ExcludeServiceFilter.class),
-                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.dao.room.*")
+                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.dao.room.*"),
+                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.slots\\..*")
         })
 public class GmApp  {
     public static void main(String[] args) {

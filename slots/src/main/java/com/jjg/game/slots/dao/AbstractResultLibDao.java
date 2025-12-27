@@ -175,6 +175,13 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> {
         log.debug("从redis移除旧的结果库 gameType = {},removeName = {}, 删除Key数量 = {},耗时 = {} ms", gameType, gameTableName, deleted, System.currentTimeMillis() - start);
     }
 
+    /**
+     * 根据倍数区间获取结果库对象
+     * @param libType
+     * @param sectionIndex
+     * @param clazz
+     * @return
+     */
     public T getLibBySectionIndex(int libType, int sectionIndex, Class<T> clazz) {
         String tableName = tabelName(this.currentRedisLibName, this.gameType, libType, sectionIndex);
 
@@ -184,6 +191,13 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> {
                         connection.sRandMember(tableName.getBytes())
         );
 
+        return deserializeResultLib(compressedData,clazz);
+    }
+
+    /**
+     * 反序列化结果库数据
+     */
+    public T deserializeResultLib(byte[] compressedData, Class<T> clazz) {
         if(compressedData == null) {
             return null;
         }

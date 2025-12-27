@@ -27,7 +27,7 @@ public class ResMoneyRabbitStartGame extends AbstractResponse {
     public List<MoneyRabbitWinIconInfo> winIconInfoList;
     @ProtoDesc("从奖池获得的奖励")
     public long rewardPoolValue;
-    @ProtoDesc("状态  0.普通   1.真免费   2.假免费")
+    @ProtoDesc("状态  0.普通  1.免费模式  2.真免费   3.假免费")
     public int status;
     @ProtoDesc("免费模式累计奖励,免费模式最后一局才赋值")
     public long freeModeTotalReward;

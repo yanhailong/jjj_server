@@ -31,9 +31,12 @@ public class SlotsGMHandler implements GmListener {
                 log.debug("收到选择libtype 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId()).addTestIconDataLibType(playerController, Integer.parseInt(gmOrders[1]));
             } else if ("setIcons".equalsIgnoreCase(gmOrders[0])) {
-                log.debug("收到选择setIcons 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                log.debug("收到setIcons 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId()).addTestIconDataIcons(playerController, gmOrders[1]);
-            } else {
+            } else if("setLib".equalsIgnoreCase(gmOrders[0])){
+                log.debug("收到setLib 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId()).addTestLibs(playerController, gmOrders[1]);
+            }else {
                 res.code = Code.NOT_FOUND;
             }
         } catch (Exception e) {

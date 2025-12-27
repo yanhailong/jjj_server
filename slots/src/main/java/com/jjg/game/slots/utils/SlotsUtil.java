@@ -118,6 +118,6 @@ public class SlotsUtil {
         }
 
         int rand = RandomUtils.randomMinMax(1,TEN_THOUSAND);
-        return prop <= rand;
+        return rand <= prop;
     }
 }

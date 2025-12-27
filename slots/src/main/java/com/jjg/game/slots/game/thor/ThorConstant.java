@@ -47,7 +47,6 @@ public interface ThorConstant {
 
     interface BaseElement{
         int ID_WILD = 11;
-        int ID_HEIMDALL = 8;
         int ID_SCATTER = 14;
         int ID_MINI = 15;
         int ID_MINOR = 16;

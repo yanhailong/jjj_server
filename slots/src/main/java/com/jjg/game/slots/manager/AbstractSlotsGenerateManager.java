@@ -1490,6 +1490,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             if (girdUpdatePropConfig.getValuePropInfo() != null) {
                 int value = girdUpdatePropConfig.getValuePropInfo().getRandKey();
                 info.addValue(girdId, value);
+                log.debug("赋值 girdId = {}, value = {}", girdId, value);
             }
 
             //达到最大次数限制后，移除

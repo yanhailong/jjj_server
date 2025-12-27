@@ -55,6 +55,12 @@
             <artifactId>bcpkix-jdk15on</artifactId>
             <version>1.70</version>
         </dependency>
+        <dependency>
+            <groupId>com.jjg.game</groupId>
+            <artifactId>slots</artifactId>
+            <version>1.0.0-JJG-RELEASES</version>
+            <optional>true</optional>
+        </dependency>
 
     </dependencies>
 

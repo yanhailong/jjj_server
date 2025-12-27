@@ -60,6 +60,9 @@ public interface BackendGMCmd {
     //删除公告
     String DEL_NOTICE = "delNotice";
 
+    //导出slots结果库
+    String EXPORT_SLOTS_LIB = "exportSlotsLib";
+
     /**
      * 配置相关q
      */

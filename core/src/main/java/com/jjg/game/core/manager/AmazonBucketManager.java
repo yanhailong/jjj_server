@@ -49,7 +49,7 @@ public class AmazonBucketManager {
      *
      * @param fileName
      */
-    public void dowmload(String fileName) {
+    public synchronized void dowmload(String fileName) {
         try {
             if (this.s3Client == null) {
                 log.warn("s3Client 为空，下载文件失败,请检查是否添加相关配置 fileName = {}", fileName);

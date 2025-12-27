@@ -1,12 +1,15 @@
 package com.jjg.game.slots.game.moneyrabbit.manager;
 
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
 import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
+import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialGirdInfo;
+import com.jjg.game.slots.game.moneyrabbit.MoneyRabbitConstant;
 import com.jjg.game.slots.game.moneyrabbit.data.MoneyRabbitAwardLineInfo;
 import com.jjg.game.slots.game.moneyrabbit.data.MoneyRabbitResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
@@ -100,6 +103,11 @@ public class MoneyRabbitGenerateManager extends AbstractSlotsGenerateManager<Mon
 
     @Override
     public void calTimes(MoneyRabbitResultLib lib) throws Exception {
+        if (!checkElement(lib)) {
+            log.warn("lib = {}", JSONObject.toJSONString(lib));
+            throw new IllegalArgumentException("检查结果有错误");
+        }
+
         if (triggerFreeLib(lib)) {
             //免费
             lib.addTimes(calFree(lib));
@@ -109,6 +117,40 @@ public class MoneyRabbitGenerateManager extends AbstractSlotsGenerateManager<Mon
             //金钱兔模式
             lib.addTimes(calSpecialModel(lib));
         }
+    }
+
+    private boolean checkElement(MoneyRabbitResultLib lib) {
+        int coinSize = 0;
+        for (int i = 1; i < lib.getIconArr().length; i++) {
+            int coin = lib.getIconArr()[i];
+            if(coin == MoneyRabbitConstant.BaseElement.ID_COIN){
+                coinSize++;
+            }
+        }
+
+        if(coinSize < 1){
+            return true;
+        }
+
+        if(lib.getSpecialGirdInfoList() == null || lib.getSpecialGirdInfoList().isEmpty()){
+            log.warn("coinSize = {}", coinSize);
+            return false;
+        }
+
+        for(SpecialGirdInfo specialGirdInfo : lib.getSpecialGirdInfoList()){
+            SpecialGirdCfg specialGirdCfg = GameDataManager.getSpecialGirdCfg(specialGirdInfo.getCfgId());
+            if(specialGirdCfg == null){
+                log.warn("获取配置为空 cfgId = {}", specialGirdInfo.getCfgId());
+                return false;
+            }
+            if(specialGirdCfg.getElement() == null || specialGirdCfg.getElement().isEmpty()){
+                continue;
+            }
+            if(specialGirdCfg.getElement().containsKey(MoneyRabbitConstant.BaseElement.ID_COIN) || specialGirdCfg.getElement().size() == coinSize){
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

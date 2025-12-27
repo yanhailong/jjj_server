@@ -3,10 +3,8 @@ package com.jjg.game.slots.game.thor.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
-import com.jjg.game.sampledata.bean.BaseLineCfg;
-import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
-import com.jjg.game.sampledata.bean.SpecialModeCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
@@ -469,6 +467,9 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
             return false;
         }
 
+        SpecialGirdCfg cfg = GameDataManager.getSpecialGirdCfg(ThorConstant.Common.FREE_LAST_ONE_UPDATE_GIRD);
+        int specialIcon = cfg.getElement().entrySet().stream().findFirst().get().getKey();
+
         for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
             if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
                 continue;
@@ -483,15 +484,15 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
                 int icon7 = tmpLib.getIconArr()[7];
                 int icon8 = tmpLib.getIconArr()[8];
 
-                boolean iconLast = (icon7 == ThorConstant.BaseElement.ID_HEIMDALL && icon8 == ThorConstant.BaseElement.ID_HEIMDALL);
+                boolean iconLast = (icon7 == specialIcon && icon8 == specialIcon);
                 if (i == lastIndex) {
                     if (!iconLast) {
-                        log.debug("免费最后一局没有海姆达尔");
+                        log.debug("免费最后一局没有特殊图标 specialIcon = {}",specialIcon);
                         return false;
                     }
                 } else {
                     if (iconLast) {
-                        log.debug("免费中途不能有海姆达尔");
+                        log.debug("免费中途不能有特殊图标 specialIcon = {}",specialIcon);
                         return false;
                     }
                 }

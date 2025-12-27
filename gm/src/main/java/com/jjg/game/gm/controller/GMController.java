@@ -1098,6 +1098,25 @@ public class GMController extends AbstractController {
         }
     }
 
+    @RequestMapping(BackendGMCmd.EXPORT_SLOTS_LIB)
+    public WebResult<String> exportSlotsLib(@RequestBody ExportSlotsLib dto) {
+        log.info("收到导出结果库的请求 dto = {}", dto);
+        try {
+            if (dto.gameType() < 1) {
+                return fail("common.paramerror");
+            }
+
+            Thread.ofVirtual().start(() -> {
+                slotsLibDao.exportGameResultLib(dto.gameType());
+            });
+
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
 
     //****************************************************************************************************************/
 

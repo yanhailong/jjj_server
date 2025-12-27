@@ -132,7 +132,6 @@ public class AbstractWealthGodGameManager extends AbstractSlotsGameManager<Wealt
             gameRunInfo.setSpinInfo(infoList);
             //记录奖池id
             gameRunInfo.setJackpotId(resultLib.getJackpotId());
-            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
 
             //从奖池扣除，并给玩家加钱
             rewardFromBigPool(gameRunInfo, playerGameData);

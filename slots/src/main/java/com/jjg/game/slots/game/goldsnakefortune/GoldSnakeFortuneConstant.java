@@ -19,6 +19,11 @@ public interface GoldSnakeFortuneConstant {
         int ID_FAKE_FREE = 5035001;
     }
 
+    interface BaseElement{
+        int ID_COIN = 8;
+        int ID_COIN2 = 14;
+    }
+
     interface MsgBean {
         int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.GOLD_SNAKE_FORTUNE << MessageConst.MessageCommon.RIGHT_MOVE;
         //请求配置

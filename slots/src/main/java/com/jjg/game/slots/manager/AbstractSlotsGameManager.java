@@ -396,7 +396,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 //获取 specialResultLib 中的type
                 CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId(), playerGameData.getRoomType());
                 if (!resultLibTypeResult.success()) {
-                    result.code = libCfgResult.code;
+                    result.code = resultLibTypeResult.code;
                     return result;
                 }
                 libType = resultLibTypeResult.data;
@@ -1724,6 +1724,42 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
+     * 添加测试libs
+     *
+     * @param playerController
+     */
+    public boolean addTestLibs(PlayerController playerController, String gm) {
+        T playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            return false;
+        }
+
+        try {
+            String[] arr = gm.split(";");
+            for (String s : arr) {
+                byte[] data = strToByteArray(s);
+                L lib = (L) getResultLibDao().deserializeResultLib(data, this.libClass);
+                TestLibData testLibData = new TestLibData();
+                testLibData.setData(lib);
+                playerGameData.addTestIconsData(testLibData);
+            }
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        return true;
+    }
+
+    private byte[] strToByteArray(String str) {
+        String[] split = str.split(",");
+        byte[] data = new byte[split.length];
+
+        for (int i = 0; i < split.length; i++) {
+            data[i] = Byte.parseByte(split[i]);
+        }
+        return data;
+    }
+
+    /**
      * 根据倍场id获取奖池
      *
      * @param roomCfgId
@@ -1820,14 +1856,72 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 初始化离线事件
+     *
      * @return
      */
-    protected Map<Integer,OffLineEventData> initOffLineEvent(){
-        Map<Integer,OffLineEventData> map = new  HashMap<>();
+    protected Map<Integer, OffLineEventData> initOffLineEvent() {
+        Map<Integer, OffLineEventData> map = new HashMap<>();
         //离线30秒后执行
         OffLineEventData offLineEventData = new OffLineEventData(1);
         offLineEventData.setDelayMills(30 * TimeHelper.ONE_SECOND_OF_MILLIS);
-        map.put(offLineEventData.getId(),offLineEventData);
+        map.put(offLineEventData.getId(), offLineEventData);
         return map;
+    }
+
+    /**
+     * 从数据库获取结果库
+     *
+     * @param playerGameData
+     * @param libType
+     * @return
+     */
+    protected CommonResult<L> getLibFromDB(SlotsPlayerGameData playerGameData, int modelId, int libType) {
+        CommonResult<L> result = new CommonResult<>(Code.SUCCESS);
+        //先去获取测试数据
+        TestLibData testLibData = playerGameData.pollTestLibData();
+
+        L resultLib = null;
+        if (testLibData != null) {
+            libType = testLibData.getLibType();
+            if (libType > 0) {
+                log.debug("获取到测试数据 playerId = {},libType = {}", playerGameData.playerId(), libType);
+            } else if (testLibData.getData() != null) {
+                resultLib = (L) testLibData.getData();
+                log.debug("获取到测试数据 playerId = {},libId = {}", playerGameData.playerId(), resultLib.getId());
+            }
+        }
+
+        if (resultLib == null) {
+            if (libType < 1) {
+                //获取 specialResultLib 中的type
+                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), modelId, playerGameData.getRoomType());
+                if (!resultLibTypeResult.success()) {
+                    result.code = resultLibTypeResult.code;
+                    return result;
+                }
+                libType = resultLibTypeResult.data;
+                log.debug("获取到结果库类型 playerId = {},libType = {}", playerGameData.playerId(), libType);
+            }
+
+            //如果获取结果库失败，会重试，所以用循环
+            for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
+                //获取倍数区间
+                CommonResult<Integer> resultLibSectionResult = getResultLibSection(modelId, libType);
+                if (!resultLibSectionResult.success()) {
+                    continue;
+                }
+
+                //根据倍数区间从结果库里面随机获取一条
+                resultLib = (L) getResultLibDao().getLibBySectionIndex(libType, resultLibSectionResult.data, this.libClass);
+                if (resultLib == null) {
+                    log.warn("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, modelId, libType, resultLibSectionResult.data, i);
+                    continue;
+                }
+//                sectionIndex = resultLibSectionResult.data;
+                log.debug("成功获取结果库  playerId = {},lib = {}", playerGameData.playerId(), JSON.toJSONString(resultLib));
+                break;
+            }
+        }
+        return null;
     }
 }
