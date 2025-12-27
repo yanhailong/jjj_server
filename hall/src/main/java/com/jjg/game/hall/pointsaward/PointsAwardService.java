@@ -104,9 +104,9 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * 跨天
      */
     public void daily() {
-        //跨月检查
-        checkMonth();
         if (marsCurator.isMaster()) {
+            //跨月检查
+            clear();
             // 初始化充值数据记录map
             redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
                     () -> {
@@ -114,16 +114,13 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                         if (rechargeMap != null) {
                             rechargeMap.clear();
                         }
+                        RKeys keys = redissonClient.getKeys();
+                        long deleted = keys.deleteByPattern(PointsAwardConstant.RedisKey.POINTS_AWARD_LADDER_REWARDS_RECEIVE + "*");
+                        log.info("阶段奖励领取记录 删除数量: {}", deleted);
                     });
             log.debug("充值数据记录map清除完成");
+            resetTimePoints();
         }
-    }
-
-    /**
-     * 检查跨月
-     */
-    private void checkMonth() {
-        clear();
     }
 
     /**
@@ -138,8 +135,6 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                         RKeys keys = redissonClient.getKeys();
                         long deleted = keys.deleteByPattern(PointsAwardConstant.RedisKey.POINTS_AWARD_DATA_POINTS + "*");
                         log.info("玩家积分数据清除! 删除数量: {}", deleted);
-                        deleted = keys.deleteByPattern(PointsAwardConstant.RedisKey.POINTS_AWARD_LADDER_REWARDS_RECEIVE + "*");
-                        log.info("充值数据领取记录 删除数量: {}", deleted);
                     });
         };
         if (bucket.get() == null) {
@@ -535,7 +530,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         }
         //获取积分
         long timePoints = getTimePoints(playerId);
-        if (timePoints < info.getPoints()) {
+        if (!autoRecive && timePoints < info.getPoints()) {
             return Code.POINT_AWARD_POINT_NOT_ENOUGH;
         }
         int code = Code.FAIL;
