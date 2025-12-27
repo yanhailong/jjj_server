@@ -345,7 +345,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * 查看是否有关服前未处理数据
      */
     public void recoverUnsettledRounds() {
-        log.info("执行。。。。。。检测服务器重启后是否有未处理数据");
+//        log.info("执行。。。。。。检测服务器重启后是否有未处理数据");
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_CONFIG_ID);
         int intValue = globalConfigCfg.getIntValue();
         //查询数据库中是否存在上次未开奖的

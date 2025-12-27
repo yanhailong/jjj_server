@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.pegasusunbridle.manager;
 
+import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.proto.Pair;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author lm
@@ -176,14 +178,24 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         gameRunInfo.addBigPoolTimes(resultLib.getTimes());
 
         //检查是否中大奖
-        rewardFromSmallPool(gameRunInfo,playerGameData,resultLib.getJackpotId(),false);
-
+        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotId(), false);
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
         gameRunInfo.setStake(betValue);
-        gameRunInfo.setStatus(playerGameData.getStatus());
+        Set<Integer> typeSet = resultLib.getLibTypeSet();
+        //检查是否触发假福马
+        if (gameGenerateManager.getModelRandom() != null) {
+            if (typeSet != null && typeSet.size() == 1 && typeSet.contains(gameGenerateManager.getModelRandom().getFirst())) {
+                if (RandomUtil.randomInt(10000) < gameGenerateManager.getModelRandom().getSecond()) {
+                    gameRunInfo.setStatus(PegasusUnbridleConstant.Status.FAKE_FU_MA);
+                }
+            }
+        }
+        if (typeSet != null && !typeSet.contains(PegasusUnbridleConstant.SpecialMode.NORMAL)) {
+            gameRunInfo.setStatus(PegasusUnbridleConstant.Status.REAL_FU_MA);
+        }
     }
 
 
@@ -227,8 +239,4 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         }
     }
 
-    @Override
-    protected void onAutoExitAction(PegasusUnbridlePlayerGameData gameData, int eventId) {
-
-    }
 }

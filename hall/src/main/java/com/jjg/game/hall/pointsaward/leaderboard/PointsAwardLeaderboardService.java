@@ -1,10 +1,13 @@
 package com.jjg.game.hall.pointsaward.leaderboard;
 
-import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.PageUtils;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.RankEntry;
 import com.jjg.game.core.manager.AwardCodeManager;
+import com.jjg.game.core.service.RankService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardData;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardHistory;
@@ -14,19 +17,13 @@ import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.PointsAwardRankingCfg;
+import com.jjg.game.sampledata.bean.PointsAwardRobotCfg;
 import org.redisson.api.RDeque;
-import org.redisson.api.RMap;
-import org.redisson.api.RScoredSortedSet;
 import org.redisson.api.RedissonClient;
-import org.redisson.client.protocol.ScoredEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 
 /**
@@ -44,22 +41,22 @@ public class PointsAwardLeaderboardService {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final RedissonClient redissonClient;
-    private final RedisLock redisLock;
     private final HallPlayerService hallPlayerService;
     private final AwardCodeManager awardCodeManager;
 
-    private final Map<Integer,List<PointsAwardLeaderboardData>> rankMap = new HashMap<>();
+    private final Map<Integer, List<PointsAwardLeaderboardData>> rankMap = new HashMap<>();
+    private final RankService rankService;
 
     /**
      * 排行榜管理器
      */
     private PointsAwardLeaderboardManager manager;
 
-    public PointsAwardLeaderboardService(RedissonClient redissonClient, RedisLock redisLock, HallPlayerService hallPlayerService, AwardCodeManager awardCodeManager) {
+    public PointsAwardLeaderboardService(RedissonClient redissonClient, HallPlayerService hallPlayerService, AwardCodeManager awardCodeManager, RankService rankService) {
         this.redissonClient = redissonClient;
-        this.redisLock = redisLock;
         this.hallPlayerService = hallPlayerService;
         this.awardCodeManager = awardCodeManager;
+        this.rankService = rankService;
     }
 
     public void init(PointsAwardLeaderboardManager manager) {
@@ -87,18 +84,8 @@ public class PointsAwardLeaderboardService {
         });
     }
 
-    private RScoredSortedSet<Long> set(int type) {
-        String key = PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING + type;
-        return redissonClient.getScoredSortedSet(key);
-    }
-
-    /**
-     * 将积分与时间编码为 ZSET 分数
-     * 积分为整数部分，时间偏移为小数部分（保证 < 1）
-     */
-    private double toScore(long points, long tsMillis) {
-        double epsilon = (PointsAwardConstant.Leaderboard.TIME_BASE_MS - tsMillis) / PointsAwardConstant.Leaderboard.EPSILON_DIVISOR;
-        return points + epsilon;
+    public String getRankKey(int type) {
+        return PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING + type;
     }
 
     /**
@@ -106,65 +93,12 @@ public class PointsAwardLeaderboardService {
      * 不满足最低分时移除。
      * 并发控制：对同一排行榜使用分布式锁，保证读取-计算-写入与裁剪的原子性。
      */
-    public void upsert(int type, long playerId, long points, long tsMillis) {
-        String lockKey = PointsAwardConstant.RedisLockKey.POINTS_AWARD_RANKING_LOCK + type;
-        redisLock.lockAndRun(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
-            RMap<Long, Long> playerPointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_POINTS + type);
-            playerPointsMap.put(playerId, points);
-            RScoredSortedSet<Long> s = set(type);
-            int minPoints = resolveMinPoints(type);
-            log.info("upsert playerId = {},type = {}, points = {}, tsMillis = {},minPoints = {}", playerId, type, points, tsMillis, minPoints);
-            if (points < minPoints) {
-                return;
-            }
-            // 写入新的分数（总积分 + 时间偏移），并按照需要裁剪榜单大小
-            s.add(toScore(points, tsMillis), playerId);
-            int size = s.size();
-            int maxSize = manager.getMaxSize(type);
-            if (size > maxSize) {
-                int excess = size - maxSize;
-                s.removeRangeByRank(0, excess - 1);
-            }
-        });
+    public void upsert(int type, long playerId, int points) {
+        rankService.addPoints(getRankKey(type), playerId, points);
     }
 
-    // 根据时间戳判定上午或下午榜类型
-    private int resolveHalfDayType(long tsMillis) {
-        LocalDate date = LocalDate.ofInstant(Instant.ofEpochMilli(tsMillis), ZoneId.systemDefault());
-        long startOfDayMillis = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-        long noonMillis = startOfDayMillis + 12L * 60 * 60 * 1000;
-        return tsMillis < noonMillis ? PointsAwardConstant.Leaderboard.AM : PointsAwardConstant.Leaderboard.PM;
-    }
-
-    /**
-     * 判断指定类型的排行榜在当前时间是否处于活跃状态
-     *
-     * @param type 排行榜类型
-     * @return true 如果排行榜当前活跃，false 如果排行榜当前不活跃
-     */
-    private boolean isLeaderboardActive(int type) {
-        LocalDateTime nowDateTime = LocalDateTime.now();
-        int currentHour = nowDateTime.getHour();
-        return switch (type) {
-            case PointsAwardConstant.Leaderboard.AM ->
-                // 上午榜活跃时间：00:00-12:00
-                    currentHour < 12;
-            case PointsAwardConstant.Leaderboard.PM ->
-                // 下午榜活跃时间：12:00-24:00
-                    currentHour >= 12;
-            case PointsAwardConstant.Leaderboard.TYPE_MONTH ->
-                // 月榜始终活跃
-                    true;
-            default -> false;
-        };
-    }
-
-    /**
-     * 默认根据传入时间戳选择上午或下午榜类型
-     */
-    public void upsert(long playerId, long points, long tsMillis) {
-        int type = resolveHalfDayType(tsMillis);
-        upsert(type, playerId, points, tsMillis);
+    public long getEndTime(int type) {
+        return manager.getEndTime(type);
     }
 
     /**
@@ -172,9 +106,13 @@ public class PointsAwardLeaderboardService {
      * 未上榜返回 -1
      */
     public int getRank(int type, long playerId) {
-        Integer r = set(type).revRank(playerId);
-        return r == null ? -1 : (r + 1);
+        RankEntry rank = rankService.getRank(getRankKey(type), playerId);
+        if (rank == null || resolveMinPoints(type) > rank.getPoints()) {
+            return -1;
+        }
+        return (int) rank.getRank();
     }
+
 
     /**
      * 获取排行榜前 N 名玩家信息
@@ -183,29 +121,56 @@ public class PointsAwardLeaderboardService {
         if (n <= 0) {
             return List.of();
         }
-        RScoredSortedSet<Long> s = set(type);
-        int size = Math.min(n, s.size());
-        if (size == 0) {
+        List<RankEntry> rankEntries = rankService.topN(getRankKey(type), n);
+        if (rankEntries.isEmpty()) {
             return List.of();
         }
-        Collection<ScoredEntry<Long>> entries = s.entryRangeReversed(0, size - 1);
-        List<PointsAwardLeaderboardInfo> ret = new ArrayList<>(entries.size());
-//        Map<Integer, PointsAwardRankingCfg> rankingCfgMap = manager.getRankingCfgMap(type);
+        //筛选
+        int minPoints = resolveMinPoints(type);
+        List<RankEntry> finalRankEntries = new ArrayList<>(rankEntries.size());
+        for (RankEntry entry : rankEntries) {
+            if (entry.getPoints() < minPoints) {
+                break;
+            }
+            finalRankEntries.add(entry);
+        }
+        List<PointsAwardLeaderboardInfo> ret = new ArrayList<>(finalRankEntries.size());
+        List<Long> realPerson = finalRankEntries.stream().map(RankEntry::getPlayerId).filter(playerId -> !manager.isRobot(playerId)).toList();
+        Map<Long, Player> playerMap = Map.of();
+        if (!realPerson.isEmpty()) {
+            playerMap = hallPlayerService.multiGetPlayerMap(realPerson);
+        }
         int rank = 1;
-        for (ScoredEntry<Long> e : entries) {
+        Map<Long, Integer> robotMap = manager.getRobotMap();
+        for (RankEntry rankEntry : finalRankEntries) {
             PointsAwardLeaderboardInfo info = new PointsAwardLeaderboardInfo();
-            info.setPlayerId(e.getValue());
+            //如果是机器人读表
+            if (manager.isRobot(rankEntry.getPlayerId())) {
+                Integer cfgId = robotMap.get(rankEntry.getPlayerId());
+                if (cfgId == null) {
+                    continue;
+                }
+                PointsAwardRobotCfg pointsAwardRobotCfg = GameDataManager.getPointsAwardRobotCfg(cfgId);
+                info.setGender((byte) pointsAwardRobotCfg.getGender());
+                info.setHeadFrameId(pointsAwardRobotCfg.getFrame());
+                info.setHeadImgId(pointsAwardRobotCfg.getPicture());
+                info.setNickName(pointsAwardRobotCfg.getNameId());
+                info.setNationalId(pointsAwardRobotCfg.getFlag());
+                info.setLevel(pointsAwardRobotCfg.getPlayerLevel());
+            } else {
+                Player player = playerMap.get(rankEntry.getPlayerId());
+                info.setGender(player.getGender());
+                info.setHeadFrameId(player.getHeadFrameId());
+                info.setHeadImgId(player.getHeadImgId());
+                info.setNickName(player.getNickName());
+                info.setNationalId(player.getNationalId());
+                info.setTitleId(player.getTitleId());
+                info.setLevel(player.getLevel());
+            }
+            info.setPlayerId(rankEntry.getPlayerId());
             info.setConfigId(rank);
             info.setRank(rank++);
-            info.setRankPoints((int) Math.floor(e.getScore()));
-            Player player = hallPlayerService.get(info.getPlayerId());
-            info.setGender(player.getGender());
-            info.setHeadFrameId(player.getHeadFrameId());
-            info.setHeadImgId(player.getHeadImgId());
-            info.setNickName(player.getNickName());
-            info.setNationalId(player.getNationalId());
-            info.setTitleId(player.getTitleId());
-            info.setLevel(player.getLevel());
+            info.setRankPoints((int) rankEntry.getPoints());
             ret.add(info);
         }
         return ret;
@@ -218,7 +183,7 @@ public class PointsAwardLeaderboardService {
      * @return
      */
     private int resolveMinPoints(int type) {
-        // 上下午榜最低分
+        // 上周榜最低分
         int dayMin = GameDataManager.getGlobalConfigCfg(41).getIntValue();
         // 月榜最低分
         int monthMin = GameDataManager.getGlobalConfigCfg(42).getIntValue();
@@ -229,13 +194,7 @@ public class PointsAwardLeaderboardService {
      * 清空指定类型排行榜
      */
     public void reset(int type) {
-        String lockKey = PointsAwardConstant.RedisLockKey.POINTS_AWARD_RANKING_LOCK + type;
-        redisLock.lockAndRun(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
-            RScoredSortedSet<Long> s = set(type);
-            s.delete();
-            RMap<Long, Long> playerPointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_POINTS + type);
-            playerPointsMap.clear();
-        });
+        rankService.reset(getRankKey(type));
     }
 
     public String historyKey(long playerId) {
@@ -299,64 +258,18 @@ public class PointsAwardLeaderboardService {
     public PageUtils.PageResult<PointsAwardLeaderboardData> getData(int type, int pageIndex, int pageSize) {
         List<PointsAwardLeaderboardData> tmpList = this.rankMap.get(type);
         List<PointsAwardLeaderboardData> list;
-        if(tmpList == null || tmpList.isEmpty()){
+        if (tmpList == null || tmpList.isEmpty()) {
             list = new ArrayList<>();
-        }else {
+        } else {
             list = new ArrayList<>(tmpList);
         }
-
         // 只有在排行榜活跃时才添加当前数据
-        PointsAwardLeaderboardData data = null;
-        if (isLeaderboardActive(type)) {
-            data = new PointsAwardLeaderboardData();
-            data.setRankType(type);
-            data.setRankingInfoList(topN(type, PointsAwardConstant.Leaderboard.MAX_RANK_SIZE));
-            data.setEndTime(System.currentTimeMillis());
-            list.addFirst(data);
-        }else {
-            data = new PointsAwardLeaderboardData();
-            data.setRankType(type);
-            data.setEndTime(System.currentTimeMillis());
-            list.addFirst(data);
-        }
-
-        //该名次中没有玩家的，也需要将配置的奖励发给客户端
-//        if(data != null) {
-//            //获取排行榜奖励
-//            Map<Integer, PointsAwardRankingCfg> rankingCfgMap = manager.getRankingCfgMap(type);
-//            //如果排行榜数据为空，则将名次对应的奖励发给客户端
-//            if(data.getRankingInfoList().isEmpty()){
-//                List<PointsAwardLeaderboardInfo> rankingInfoList = new ArrayList<>(rankingCfgMap.size());
-//                for(Map.Entry<Integer, PointsAwardRankingCfg> en : rankingCfgMap.entrySet()){
-//                    PointsAwardLeaderboardInfo info = new PointsAwardLeaderboardInfo();
-//                    info.setRank(en.getKey());
-//                    info.setConfigId(en.getValue().getId());
-//                    rankingInfoList.add(info);
-//                }
-//                data.setRankingInfoList(rankingInfoList);
-//            }else {
-//                //将data.getRankingInfoList()转化为map
-//                Map<Integer, PointsAwardLeaderboardInfo> tmpMap = data.getRankingInfoList().stream()
-//                                                                    .collect(Collectors.toMap(
-//                                                                            PointsAwardLeaderboardInfo::getRank,
-//                                                                            item -> item
-//                                                                    ));
-//
-//                for(Map.Entry<Integer, PointsAwardRankingCfg> en : rankingCfgMap.entrySet()){
-//                    int rank = en.getKey();
-//                    PointsAwardLeaderboardInfo info = tmpMap.get(rank);
-//                    if(info != null) {
-//                        continue;
-//                    }
-//
-//                    info = new PointsAwardLeaderboardInfo();
-//                    info.setRank(en.getKey());
-//                    info.setConfigId(en.getValue().getId());
-//                    data.getRankingInfoList().add(info);
-//                }
-//            }
-//        }
-
+        PointsAwardLeaderboardData data;
+        data = new PointsAwardLeaderboardData();
+        data.setRankType(type);
+        data.setRankingInfoList(topN(type, manager.getMaxRankSize(type)));
+        data.setEndTime(getEndTime(type));
+        list.addFirst(data);
         return PageUtils.page(list, pageIndex, pageSize);
     }
 
@@ -385,39 +298,8 @@ public class PointsAwardLeaderboardService {
         return response;
     }
 
-    /**
-     * 领奖码已经使用
-     *
-     * @param code 被使用的领奖码
-     */
-    public void receiveCode(long playerId, String code) {
-        redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.PLAYER_RANKING_AWARD_LOCK + playerId, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
-            RDeque<PointsAwardLeaderboardHistory> dequeHistory = redissonClient.getDeque(historyKey(playerId));
-            List<PointsAwardLeaderboardHistory> historyList = dequeHistory.readAll();
 
-            // 查找匹配的历史记录并修改
-            boolean found = false;
-            for (PointsAwardLeaderboardHistory history : historyList) {
-                if (history.getCode() != null && history.getCode().equals(code)) {
-                    history.setExpiredTime(-1L);
-                    found = true;
-                    break;
-                }
-            }
-
-            // 如果找到了匹配的记录，需要重新写入整个队列 目前调用不频繁暂不考虑性能
-            if (found) {
-                // 清空原队列
-                dequeHistory.clear();
-                // 重新添加修改后的数据
-                for (PointsAwardLeaderboardHistory history : historyList) {
-                    dequeHistory.addLast(history);
-                }
-            }
-        });
-    }
-
-    public void loadRank(int type){
+    public void loadRank(int type) {
         List<PointsAwardLeaderboardData> list = manager.getRankingHistory(type);
         rankMap.put(type, list);
 

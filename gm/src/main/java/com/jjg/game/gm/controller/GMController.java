@@ -2,6 +2,7 @@ package com.jjg.game.gm.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jjg.game.activity.sharepromote.dao.SharePromoteDao;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
@@ -95,6 +96,8 @@ public class GMController extends AbstractController {
     private SlotsLibDao slotsLibDao;
     @Autowired
     private NoticeDao noticeDao;
+    @Autowired
+    private SharePromoteDao sharePromoteDao;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -1091,6 +1094,22 @@ public class GMController extends AbstractController {
 
             PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyLoadNoticeConfig());
             clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString())::contains);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    @RequestMapping(BackendGMCmd.SHARE_URL_PREFIX)
+    public WebResult<String> shareUrlPrefix(@RequestBody ShareUrlPrefixDto dto) {
+        log.info("收到设置分享连接 dto = {}", dto);
+        try {
+            if (StringUtils.isBlank(dto.url())) {
+                return fail("common.paramerror");
+            }
+
+            sharePromoteDao.setShareUrlPrefix(dto.url());
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);

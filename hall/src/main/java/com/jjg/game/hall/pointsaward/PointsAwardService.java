@@ -104,9 +104,9 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * 跨天
      */
     public void daily() {
-        //跨月检查
-        checkMonth();
         if (marsCurator.isMaster()) {
+            //跨月检查
+            clear();
             // 初始化充值数据记录map
             redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
                     () -> {
@@ -114,16 +114,13 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                         if (rechargeMap != null) {
                             rechargeMap.clear();
                         }
+                        RKeys keys = redissonClient.getKeys();
+                        long deleted = keys.deleteByPattern(PointsAwardConstant.RedisKey.POINTS_AWARD_LADDER_REWARDS_RECEIVE + "*");
+                        log.info("阶段奖励领取记录 删除数量: {}", deleted);
                     });
             log.debug("充值数据记录map清除完成");
+            resetTimePoints();
         }
-    }
-
-    /**
-     * 检查跨月
-     */
-    private void checkMonth() {
-        clear();
     }
 
     /**
@@ -138,8 +135,6 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                         RKeys keys = redissonClient.getKeys();
                         long deleted = keys.deleteByPattern(PointsAwardConstant.RedisKey.POINTS_AWARD_DATA_POINTS + "*");
                         log.info("玩家积分数据清除! 删除数量: {}", deleted);
-                        deleted = keys.deleteByPattern(PointsAwardConstant.RedisKey.POINTS_AWARD_LADDER_REWARDS_RECEIVE + "*");
-                        log.info("充值数据领取记录 删除数量: {}", deleted);
                     });
         };
         if (bucket.get() == null) {
@@ -221,7 +216,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             log.error("add 玩家积分更新失败!playerId = [{}],pointsAward = [{}]", playerId, pointsAward, e);
         }
         // 排行榜更新
-        updateLeaderboards(playerId, currentPoints);
+        updateLeaderboards(playerId, pointsAward);
         //记录日志
         pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, currentPoints);
         //添加时间段积分
@@ -312,13 +307,14 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * @param playerId    玩家ID
      * @param pointsAward 增加的积分
      */
-    private void updateLeaderboards(long playerId, long pointsAward) {
+    private void updateLeaderboards(long playerId, int pointsAward) {
         try {
-            long nowTs = System.currentTimeMillis();
             // 更新日榜
-            leaderboardService.upsert(playerId, pointsAward, nowTs);
+            leaderboardService.upsert(PointsAwardConstant.Leaderboard.DAY, playerId, pointsAward);
+            // 更新周榜
+            leaderboardService.upsert(PointsAwardConstant.Leaderboard.WEEK, playerId, pointsAward);
             // 同步更新月榜(用于每月结算快照)
-            leaderboardService.upsert(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerId, pointsAward, nowTs);
+            leaderboardService.upsert(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerId, pointsAward);
         } catch (Exception e) {
             log.warn("更新排行榜失败 playerId=[{}], points=[{}]", playerId, pointsAward, e);
         }
@@ -369,7 +365,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                 long next = curr - pointsAward;
                 if (counter.compareAndSet(curr, next)) {
                     // 排行榜更新
-                    updateLeaderboards(playerId, counter.get());
+                    updateLeaderboards(playerId, -pointsAward);
                     //通知玩家同步分数
                     noticeSyncPoints(playerId, next);
                     //记录日志
@@ -534,7 +530,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         }
         //获取积分
         long timePoints = getTimePoints(playerId);
-        if (timePoints < info.getPoints()) {
+        if (!autoRecive && timePoints < info.getPoints()) {
             return Code.POINT_AWARD_POINT_NOT_ENOUGH;
         }
         int code = Code.FAIL;

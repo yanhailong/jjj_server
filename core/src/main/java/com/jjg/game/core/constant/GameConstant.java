@@ -126,6 +126,8 @@ public class GameConstant {
         public static final int POINTS_AWARDS_TURNTABLE_SPEND_SCORE = 40;
         //积分大奖：每日转盘默认初始次数上限
         public static final int POINTS_AWARDS_TURNTABLE_INIT_COUNT_LIMIT = 43;
+        //货币符号
+        public static final int ID_MONEY_SYMBOL = 100;
     }
 
     public class PlayerBuff {

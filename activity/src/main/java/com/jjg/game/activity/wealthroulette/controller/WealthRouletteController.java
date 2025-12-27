@@ -149,7 +149,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
                         continue;
                     }
                     for (int i = 1; i < cfg.length; i++) {
-                        int needGameId = Integer.parseInt(cfg[1]);
+                        int needGameId = Integer.parseInt(cfg[i]);
                         if (needGameId == -1 || needGameId == gameType) {
                             return true;
                         }

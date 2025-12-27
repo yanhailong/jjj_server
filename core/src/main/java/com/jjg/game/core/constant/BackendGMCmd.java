@@ -63,6 +63,9 @@ public interface BackendGMCmd {
     //导出slots结果库
     String EXPORT_SLOTS_LIB = "exportSlotsLib";
 
+    //分享连接地址
+    String SHARE_URL_PREFIX = "shareUrlPrefix";
+
     /**
      * 配置相关q
      */
