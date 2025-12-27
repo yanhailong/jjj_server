@@ -119,6 +119,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                         log.info("阶段奖励领取记录 删除数量: {}", deleted);
                     });
             log.debug("充值数据记录map清除完成");
+            resetTimePoints();
         }
     }
 

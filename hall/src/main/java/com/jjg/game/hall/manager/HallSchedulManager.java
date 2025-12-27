@@ -57,11 +57,4 @@ public class HallSchedulManager {
         }
     }
 
-    @Scheduled(cron = "0 0 0,12 * * ?")
-    private void clearPlayer() {
-        //是主节点才能执行
-        if (marsCurator.isMaster()) {
-            pointsAwardService.resetTimePoints();
-        }
-    }
 }
