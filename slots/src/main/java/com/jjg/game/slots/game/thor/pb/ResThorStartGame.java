@@ -4,7 +4,6 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.slots.game.cleopatra.pb.CleopatraWinIconInfo;
 import com.jjg.game.slots.game.thor.ThorConstant;
 
 import java.util.List;
@@ -38,6 +37,8 @@ public class ResThorStartGame extends AbstractResponse {
     public long freeModeTotalReward;
     @ProtoDesc("标记免费模式结束")
     public boolean freeEnd;
+    @ProtoDesc("冻结到下一局的wild坐标")
+    public List<Integer> freezeWilds;
 
     public ResThorStartGame(int code) {
         super(code);

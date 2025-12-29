@@ -149,11 +149,14 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
                         lib = generateIceFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, lastFreezeWildSet, thisFreezeWildSet);
                     } else {
                         lib = generateLastFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, lastFreezeWildSet);
+                        lib.setFreezeWildSet(thisFreezeWildSet);
                     }
                 } else {
                     lib = generateIceFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, lastFreezeWildSet, thisFreezeWildSet);
+                    lib.setFreezeWildSet(thisFreezeWildSet);
                 }
                 lastFreezeWildSet = new HashSet<>(thisFreezeWildSet);
+
             }
 
             specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));

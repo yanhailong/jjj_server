@@ -8,9 +8,8 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
-import com.jjg.game.slots.game.dollarexpress.pb.PoolInfo;
-import com.jjg.game.slots.game.dollarexpress.pb.ResPoolValue;
 import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
+import com.jjg.game.slots.game.thor.data.ThorResultLib;
 import com.jjg.game.slots.game.thor.pb.*;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -115,6 +114,11 @@ public class ThorSendMessageManager extends BaseSendMessageManager {
             res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
             res.freeModeTotalReward = gameRunInfo.getFreeModeTotalReward();
             res.freeEnd = gameRunInfo.isFreeEnd();
+
+            ThorResultLib resultLib = (ThorResultLib)gameRunInfo.getResultLib();
+            if(resultLib.getFreezeWildSet() != null && !resultLib.getFreezeWildSet().isEmpty()) {
+                res.freezeWilds = new ArrayList<>(resultLib.getFreezeWildSet());
+            }
 
             logger.gameResult(playerController.getPlayer(), gameRunInfo,res);
         } else {
