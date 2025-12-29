@@ -18,6 +18,10 @@ public interface PegasusUnbridleConstant {
         //开始游戏
         int REQ_PEGASUS_UNBRIDLE_START_GAME = BASE_MSG_PREFIX | 0x3;
         int RES_PEGASUS_UNBRIDLE_START_GAME = BASE_MSG_PREFIX | 0x4;
+
+        //获取奖池
+        int REQ_PEGASUS_UNBRIDLE_POOL_VALUE = BASE_MSG_PREFIX | 0x7;
+        int RES_PEGASUS_UNBRIDLE_POOL_VALUE = BASE_MSG_PREFIX | 0x8;
     }
 
 

@@ -379,11 +379,10 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
         }
         //根据权重是否中奖
         int weight = steamAgeExpandRollerInfo.getWeight();
+        int randomNumber = RandomUtils.nextInt(10000);
 
         //100次确认是否权重中奖，权重不一致弹出
         for (int i = 0; i < 1000; i++) {
-            Random random = new Random();
-            int randomNumber = random.nextInt(10000);
             addIconList.clear();
             // 补充新图标 只补充第一列
             for (int j = 1; j <= baseInitCfg.getRows(); j++) {

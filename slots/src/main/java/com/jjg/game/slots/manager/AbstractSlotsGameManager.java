@@ -438,7 +438,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         //给池子加钱
         CommonResult<Pair<Player, BetDivideInfo>> poolResult = moneyToPool(playerGameData, betValue, baseRoomCfg, libCfgResult.data.getModelId());
-        if (!result.success()) {
+        if (!poolResult.success()) {
             result.code = poolResult.code;
             return result;
         }
