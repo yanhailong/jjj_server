@@ -139,7 +139,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         int total = gameDataVo.getSeatDownNotReadyNum();
         if (getCurrentGamePhase() == EGamePhase.WAIT_READY && roomCfg.getMinPlayer() <= total && total <= roomCfg.getMaxPlayer()) {
             addPokerPhaseTimer(new TexasStartGamePhase(this));
-            log.info("尝试开启下一局 当前id{}", gameDataVo.getId());
+            log.info("尝试开启下一局 当前id{} roomId:{}", gameDataVo.getId(), roomController.getRoom().getId());
             nextRoundStart();
             return true;
         }
