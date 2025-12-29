@@ -8,10 +8,13 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
+import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackPoolValue;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleGameRunInfo;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridlePlayerGameData;
 import com.jjg.game.slots.game.pegasusunbridle.pb.bean.PegasusUnbridlePoolInfo;
 import com.jjg.game.slots.game.pegasusunbridle.pb.res.ResPegasusUnbridleEnterGame;
+import com.jjg.game.slots.game.pegasusunbridle.pb.res.ResPegasusUnbridlePoolValue;
 import com.jjg.game.slots.game.pegasusunbridle.pb.res.ResPegasusUnbridleStartGame;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.stereotype.Component;
@@ -120,4 +123,16 @@ public class PegasusUnbridleGameSendMessageManager extends BaseSendMessageManage
 
     }
 
+    public void sendPoolMessage(PlayerController playerController, PegasusUnbridleGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+        ResPegasusUnbridlePoolValue res = new ResPegasusUnbridlePoolValue(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+            res.major = gameRunInfo.getMajor();
+        } else {
+            log.debug("奖池结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回奖池结果", false);
+    }
 }

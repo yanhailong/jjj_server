@@ -11,6 +11,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.BetDivideInfo;
@@ -26,6 +27,7 @@ import com.jjg.game.slots.game.pegasusunbridle.pb.bean.PegasusUnbridleWinIconInf
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -53,7 +55,7 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
     public void init() {
         log.info("启动神马飞扬游戏管理器...");
         super.init();
-
+        addUpdatePoolEvent();
     }
 
     @Override
@@ -198,6 +200,24 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         }
     }
 
+    /**
+     * 获取奖池信息
+     *
+     * @param playerController
+     * @param stake
+     * @param
+     * @return
+     */
+    public PegasusUnbridleGameRunInfo getPoolValue( PlayerController playerController, long stake) {
+        PegasusUnbridleGameRunInfo gameRunInfo = new PegasusUnbridleGameRunInfo(Code.SUCCESS, playerController.playerId());
+        try {
+            gameRunInfo.setMajor(getPoolValueByRoomCfgId(playerController.getPlayer().getRoomCfgId()));
+            return gameRunInfo;
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        return gameRunInfo;
+    }
 
     @Override
     public int getGameType() {

@@ -12,6 +12,7 @@ import com.jjg.game.slots.game.pegasusunbridle.manager.PegasusUnbridleGameManage
 import com.jjg.game.slots.game.pegasusunbridle.manager.PegasusUnbridleGameSendMessageManager;
 import com.jjg.game.slots.game.pegasusunbridle.manager.PegasusUnbridleRoomGameManager;
 import com.jjg.game.slots.game.pegasusunbridle.pb.req.ReqPegasusUnbridleEnterGame;
+import com.jjg.game.slots.game.pegasusunbridle.pb.req.ReqPegasusUnbridlePoolValue;
 import com.jjg.game.slots.game.pegasusunbridle.pb.req.ReqPegasusUnbridleStartGame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +78,30 @@ public class PegasusUnbridleMessageHandler {
                 return;
             }
             sendMessageManager.reqPegasusUnbridleStartGame(playerController, gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 奖池
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(PegasusUnbridleConstant.MsgBean.REQ_PEGASUS_UNBRIDLE_POOL_VALUE)
+    public void reqPegasusUnbridlePoolValue(PlayerController playerController, ReqPegasusUnbridlePoolValue req) {
+        try {
+            PegasusUnbridleGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.getPoolValue(playerController, req.stakeValue);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeValue);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
+            sendMessageManager.sendPoolMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

@@ -200,7 +200,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
         //检查是否中大奖
-        rewardFromSmallPool(gameRunInfo,playerGameData,resultLib.getJackpotId(),false);
+        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotId(), false);
 
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
         gameRunInfo.setIconArr(resultLib.getIconArr());
@@ -232,9 +232,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
 
         //累计免费模式的中奖金额
         playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
-        if (playerGameData.getFreeLib() instanceof CaptainJackResultLib lib) {
-            gameRunInfo.addBigPoolTimes(lib.getTimes());
-        }
+        gameRunInfo.addBigPoolTimes(freeGame.getTimes());
         if (afterCount == 0) {
             playerGameData.setStatus(CaptainJackConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
@@ -242,8 +240,6 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
             log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
-        } else {
-            gameRunInfo.addBigPoolTimes(gameGenerateManager.getAddTimes());
         }
         //免费触发挖宝
         if (freeGame.getDigTimes() > 0 && CollectionUtil.isNotEmpty(freeGame.getDigTimesMultiplier())) {
