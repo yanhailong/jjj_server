@@ -98,7 +98,7 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
                 });
             }
 
-            if(lib.getJackpotId() < 1){
+            if (lib.getJackpotId() < 1) {
                 lib.setJackpotId(cfg.getJackpotID());
             }
         }
@@ -119,7 +119,8 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
 
         //最后一局
         int lastOne = freeCount - 1;
-        Set<Integer> wildSet = null;
+        //上一局的冰冻wild
+        Set<Integer> lastFreezeWildSet = null;
 
         for (int i = 0; i < freeCount; i++) {
             //检查是否有修改图案策略组id
@@ -134,31 +135,32 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
             ThorResultLib lib;
             if (specialModeType == ThorConstant.SpecialMode.FIRE) {  //火焰模式
                 if (i == lastOne) {
-                    lib = generateLastFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+                    lib = generateLastFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, null);
                 } else {
                     lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
                 }
             } else {  //冰雪模式
+                //本局的冰冻wild
+                Set<Integer> thisFreezeWildSet = new HashSet<>();
                 if (i == lastOne) {
                     //如果是最后一局，检查wild有没有出现在7，8位置上
-                    if (wildSet != null && (wildSet.contains(7) || wildSet.contains(8))) {
+                    if (lastFreezeWildSet != null && (lastFreezeWildSet.contains(7) || lastFreezeWildSet.contains(8))) {
                         i--;
-                        lib = generateIceFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, wildSet);
-                        wildSet = addWild(lib.getIconArr());
-                    }else {
-                        lib = generateLastFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+                        lib = generateIceFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, lastFreezeWildSet, thisFreezeWildSet);
+                    } else {
+                        lib = generateLastFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, lastFreezeWildSet);
                     }
                 } else {
-                    lib = generateIceFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, wildSet);
-                    wildSet = addWild(lib.getIconArr());
+                    lib = generateIceFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID, lastFreezeWildSet, thisFreezeWildSet);
                 }
+                lastFreezeWildSet = new HashSet<>(thisFreezeWildSet);
             }
 
             specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
         }
     }
 
-    public ThorResultLib generateIceFreeOne(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, int specialGroupGirdID, Set<Integer> wildSet) {
+    public ThorResultLib generateIceFreeOne(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, int specialGroupGirdID, Set<Integer> lastFreezeWildSet, Set<Integer> thisFreezeWildSet) {
         try {
             //获取模式配置
             SpecialModeCfg specialModeCfg = this.specialModeCfgMap.get(specialModeType);
@@ -178,8 +180,8 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
                 rollerMode = specialModeCfg.getRollerMode();
             }
 
-            //生成所有的图标
             int[] arr = generateAllIcons(specialModeCfg.getRollerMode(), specialModeCfg.getCols(), specialModeCfg.getRows());
+            //生成所有的图标
             if (arr == null) {
                 return null;
             }
@@ -204,9 +206,15 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
                 }
             }
 
-            if (wildSet != null && !wildSet.isEmpty()) {
-                for (int wildIndex : wildSet) {
-                    arr[wildIndex] = ThorConstant.BaseElement.ID_WILD;
+            //添加本局的wild
+            addFreezeWild(arr, thisFreezeWildSet);
+
+            //将上一局出现的wild冻结到本局
+            if (lastFreezeWildSet != null && !lastFreezeWildSet.isEmpty()) {
+                for (int wildIndex : lastFreezeWildSet) {
+                    //本局中出现的wild和上一局出现wild的位置重叠，那么将改位置上的wild视为上局冻结后的wild
+                    thisFreezeWildSet.remove(wildIndex);
+                    arr[wildIndex] = ThorConstant.BaseElement.ID_FREEZE_WILD;
                 }
             }
 
@@ -226,7 +234,7 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
      * @param specialGroupGirdID
      * @return
      */
-    private ThorResultLib generateLastFreeOne(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, int specialGroupGirdID) {
+    private ThorResultLib generateLastFreeOne(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, int specialGroupGirdID, Set<Integer> wildSet) {
         try {
             //获取模式配置
             SpecialModeCfg specialModeCfg = this.specialModeCfgMap.get(specialModeType);
@@ -278,6 +286,13 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
                 lib.addSpecialGirdInfo(specialGirdInfo);
             }
 
+            if (wildSet != null && !wildSet.isEmpty()) {
+                for (int wildIndex : wildSet) {
+                    arr[wildIndex] = ThorConstant.BaseElement.ID_FREEZE_WILD;
+                }
+//                lib.setFreezeIndexs(wildSet);
+            }
+
             //判断中奖，返回
             return checkAward(arr, lib, true);
         } catch (Exception e) {
@@ -292,24 +307,20 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
      * @param arr
      * @return
      */
-    private Set<Integer> addWild(int[] arr) {
-        Set<Integer> set = null;
+    private Set<Integer> addFreezeWild(int[] arr, Set<Integer> thisFreezeWildSet) {
         for (int i = 0; i < arr.length; i++) {
             int icon = arr[i];
-            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
-                if (set == null) {
-                    set = new HashSet<>();
-                }
-                set.add(i);
+            if (icon == ThorConstant.BaseElement.ID_FREEZE_WILD) {
+                thisFreezeWildSet.add(i);
             }
         }
-        return set;
+        return thisFreezeWildSet;
     }
 
-    private boolean hasWild(int[] arr) {
+    private boolean hasFireWild(int[] arr) {
         for (int i = 0; i < arr.length; i++) {
             int icon = arr[i];
-            if (icon == ThorConstant.BaseElement.ID_SCATTER) {
+            if (icon == ThorConstant.BaseElement.ID_FIRE_WILD) {
                 return true;
             }
         }
@@ -322,10 +333,10 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
             throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
         }
 
-        if(triggerFreeLib(lib)){
+        if (triggerFreeLib(lib)) {
             //免费
             lib.addTimes(calFree(lib));
-        }else {
+        } else {
             //中奖线
             lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
         }
@@ -376,8 +387,8 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
             for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
                 ThorResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), ThorResultLib.class);
                 calTimes(tmpLib);
-                if(lib.getLibTypeSet().contains(ThorConstant.SpecialMode.ICE)){
-                    if(hasWild(tmpLib.getIconArr())){
+                if (lib.getLibTypeSet().contains(ThorConstant.SpecialMode.ICE)) {
+                    if (hasFireWild(tmpLib.getIconArr())) {
                         tmpLib.setTimes(tmpLib.getTimes() * 3);
                     }
                 }
@@ -444,7 +455,7 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
      * @return
      */
     private boolean checkJackpool(ThorResultLib lib) {
-        if(lib.getJackpotId() < 1){
+        if (lib.getJackpotId() < 1) {
             return false;
         }
 
@@ -463,7 +474,7 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
     }
 
     private boolean checkFreeModel(ThorResultLib lib) {
-        if(lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
             return false;
         }
 
@@ -487,12 +498,12 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
                 boolean iconLast = (icon7 == specialIcon && icon8 == specialIcon);
                 if (i == lastIndex) {
                     if (!iconLast) {
-                        log.debug("免费最后一局没有特殊图标 specialIcon = {}",specialIcon);
+                        log.debug("免费最后一局没有特殊图标 specialIcon = {}", specialIcon);
                         return false;
                     }
                 } else {
                     if (iconLast) {
-                        log.debug("免费中途不能有特殊图标 specialIcon = {}",specialIcon);
+                        log.debug("免费中途不能有特殊图标 specialIcon = {}", specialIcon);
                         return false;
                     }
                 }
