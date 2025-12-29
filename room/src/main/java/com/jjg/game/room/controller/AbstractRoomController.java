@@ -1,10 +1,8 @@
 package com.jjg.game.room.controller;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.concurrent.PlayerWorker;
-import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.timer.TimerEvent;
@@ -486,9 +484,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 if (code != Code.SUCCESS) {
                     log.debug("机器人加入房间失败, code : {} {}", code, room.logStr());
                 }
-                if (room.getGameType() == CoreConst.GameType.TEXAS) {
-                    log.debug("机器人加入房间成功, id : {} {}", robotPlayerController.getPlayer().getId(), JSON.toJSONString(room));
-                }
             }
         }.setHandlerParamWithSelf("room tick robot join"));
     }
@@ -548,7 +543,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             for (PlayerController playerController : playerControllers) {
                 // 调用游戏的离开房间逻辑
                 gameController.onPlayerLeaveRoom(playerController);
-                log.error("机器人退出房间成功 id:{}",playerController.playerId());
             }
             // 移除玩家PlayerController
             this.playerControllers.values().removeAll(playerControllers);
@@ -570,9 +564,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             // 退出房间时删除人数
             roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(),
                     room.getMaxLimit(), -playerControllers.size(), 0);
-            if(room.getGameType()== CoreConst.GameType.TEXAS){
-                log.error("机器人退出房间成功  room:{}", JSON.toJSONString(room));
-            }
         } catch (Exception e) {
             log.error("机器人退出房间时异常", e);
             result.code = Code.EXCEPTION;
