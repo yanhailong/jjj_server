@@ -46,6 +46,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
 
         //获取每个图标出现的次数
         Map<Integer, Integer> showCountMap = checkIconShowCount(lib.getIconArr());
+        Map<Integer, Set<Integer>> integerSetMap = checkIconShowIndex(lib.getIconArr());
         //已经出现的小游戏id
         Set<Integer> showAuxiliaryIdSet = new HashSet<>();
         addShowAuxiliaryId(lib, showAuxiliaryIdSet);
@@ -57,7 +58,6 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
 
         for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
             BaseElementRewardCfg cfg = en.getValue();
-
             //检查出现的个数是否满足
             int elementsCount = 0;
             for (int iconId : cfg.getElementId()) {
@@ -68,6 +68,19 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
             }
             if (elementsCount != cfg.getRewardNum()) {
                 continue;
+            }
+
+            //ID_SCATTER 3个以上 会返回倍数
+            if (cfg.getElementId().contains(BasketballSuperstarConstant.BaseElement.ID_SCATTER)) {
+                List<BasketballSuperstarAwardLineInfo> awardLineInfoList = lib.getAwardLineInfoList();
+                if (awardLineInfoList == null) {
+                    awardLineInfoList = new ArrayList<>();
+                }
+                BasketballSuperstarAwardLineInfo awardLineInfo = new BasketballSuperstarAwardLineInfo();
+                awardLineInfo.setBaseTimes(cfg.getBet());
+                awardLineInfo.setSameIconSet(integerSetMap.get(BasketballSuperstarConstant.BaseElement.ID_SCATTER));
+                awardLineInfo.setSameIcon(BasketballSuperstarConstant.BaseElement.ID_SCATTER);
+                awardLineInfoList.add(awardLineInfo);
             }
 
             //是否触发小游戏
@@ -104,6 +117,9 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
             int[] newArr = new int[arr.length];
             System.arraycopy(arr, 0, newArr, 0, arr.length);
             for (Integer i : lib.getChangeStickyIconSet()) {
+                newArr[i] = BasketballSuperstarConstant.BaseElement.ID_WILD;
+            }
+            for (Integer i : lib.getAddStickyIconSet()) {
                 newArr[i] = BasketballSuperstarConstant.BaseElement.ID_WILD;
             }
             //检查满线图案
