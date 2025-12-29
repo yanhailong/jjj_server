@@ -218,6 +218,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
         //累计免费模式的中奖金额
         playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
 
+
         gameRunInfo.setStatus(playerGameData.getStatus());
 
         int afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
@@ -225,8 +226,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             playerGameData.setStatus(MoneyRabbitConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
-            //最后一局，通知客户端，累计免费模式的中奖金额
-            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
+
             playerGameData.setFreeAllWin(0);
 
             log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
@@ -235,6 +235,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
         //设置金钱信息
         checkCoinInfo(gameRunInfo, playerGameData, freeGame);
 
+        gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());

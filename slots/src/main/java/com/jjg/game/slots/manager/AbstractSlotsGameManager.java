@@ -376,65 +376,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return result;
         }
 
-        int libType = 0;
-        L resultLib = null;
-        //先去获取测试数据
-        TestLibData testLibData = playerGameData.pollTestLibData();
-        if (testLibData != null) {
-            libType = testLibData.getLibType();
-            if (libType > 0) {
-                log.debug("获取到测试数据 playerId = {},libType = {}", playerGameData.playerId(), libType);
-            } else if (testLibData.getData() != null) {
-                resultLib = (L) testLibData.getData();
-                log.debug("获取到测试数据 playerId = {},libId = {}", playerGameData.playerId(), resultLib.getId());
-            }
+        //从数据库获取结果库
+        CommonResult<L> libResult = getLibFromDB(playerGameData,specialModeNormalType);
+        if(!libResult.success()){
+            result.code = libResult.code;
+            return result;
         }
 
-        int sectionIndex = -1;
-        if (resultLib == null) {
-            if (libType < 1) {
-                //获取 specialResultLib 中的type
-                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId(), playerGameData.getRoomType());
-                if (!resultLibTypeResult.success()) {
-                    result.code = resultLibTypeResult.code;
-                    return result;
-                }
-                libType = resultLibTypeResult.data;
-                log.debug("获取到结果库类型 playerId = {},libType = {}", playerGameData.playerId(), libType);
-            }
-
-            //如果获取结果库失败，会重试，所以用循环
-            for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
-                //获取倍数区间
-                CommonResult<Integer> resultLibSectionResult = getResultLibSection(libCfgResult.data.getModelId(), libType);
-                if (!resultLibSectionResult.success()) {
-                    continue;
-                }
-
-                //根据倍数区间从结果库里面随机获取一条
-                resultLib = (L) getResultLibDao().getLibBySectionIndex(libType, resultLibSectionResult.data, this.libClass);
-                if (resultLib == null) {
-                    log.warn("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, libCfgResult.data.getModelId(), libType, resultLibSectionResult.data, i);
-                    continue;
-                }
-                sectionIndex = resultLibSectionResult.data;
-                log.debug("成功获取结果库  playerId = {},lib = {}", playerGameData.playerId(), JSON.toJSONString(resultLib));
-                break;
-            }
-
-            //如果前面没有获取到lib，则获取一个无奖励的结果
-            if (resultLib == null) {
-                sectionIndex = this.defaultRewardSectionIndex;
-                resultLib = (L) getResultLibDao().getLibBySectionIndex(specialModeNormalType, this.defaultRewardSectionIndex, this.libClass);
-                log.warn("前面获取结果库失败，所以找一个不中奖的结果返回 gameType = {},libType = {}", this.gameType, libType);
-
-                if (resultLib == null) {
-                    log.warn("获取结果库失败 gameType = {},libType = {}", this.gameType, libType);
-                    result.code = Code.FAIL;
-                    return result;
-                }
-            }
-        }
+        L resultLib = libResult.data;
 
         //给池子加钱
         CommonResult<Pair<Player, BetDivideInfo>> poolResult = moneyToPool(playerGameData, betValue, baseRoomCfg, libCfgResult.data.getModelId());
@@ -452,9 +401,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setOneBetScore(betScoreArr[0]);
         playerGameData.setAllBetScore(betScoreArr[1]);
 
-        if (sectionIndex > 0) {
-            playerGameData.setLastSectionIndex(sectionIndex);
-        }
         playerGameData.setLastModelId(libCfgResult.data.getModelId());
         PlayerController playerController = playerGameData.getPlayerController();
         //获取最新的玩家
@@ -487,20 +433,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         log.debug("开始获取免费结果库 playerId = {}", playerGameData.playerId());
 
         L freeLib = (L) playerGameData.getFreeLib();
+
         if (freeLib == null) {
-            for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
-                //获取一个倍数区间
-                CommonResult<Integer> sectionResult = getResultLibSection(playerGameData.getLastModelId(), specialModeFreeLibType);
-                if (!sectionResult.success()) {
-                    continue;
-                }
-                //获取结果库
-                freeLib = (L) getResultLibDao().getLibBySectionIndex(specialModeFreeLibType, sectionResult.data, this.libClass);
-                if (freeLib == null) {
-                    continue;
-                }
-                break;
+            //缓存中没有，就从数据库获取
+            CommonResult<L> libResult = getLibFromDB(playerGameData, specialModeFreeLibType);
+            if(!libResult.success()) {
+                result.code = libResult.code;
+                return result;
             }
+
+            freeLib = libResult.data;
         }
 
         if (freeLib == null) {
@@ -1875,7 +1817,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param libType
      * @return
      */
-    protected CommonResult<L> getLibFromDB(SlotsPlayerGameData playerGameData, int modelId, int libType) {
+    protected CommonResult<L> getLibFromDB(SlotsPlayerGameData playerGameData, int libType) {
         CommonResult<L> result = new CommonResult<>(Code.SUCCESS);
         //先去获取测试数据
         TestLibData testLibData = playerGameData.pollTestLibData();
@@ -1887,14 +1829,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 log.debug("获取到测试数据 playerId = {},libType = {}", playerGameData.playerId(), libType);
             } else if (testLibData.getData() != null) {
                 resultLib = (L) testLibData.getData();
-                log.debug("获取到测试数据 playerId = {},libId = {}", playerGameData.playerId(), resultLib.getId());
+                log.debug("获取到测试数据 playerId = {},lib = {}", playerGameData.playerId(), JSON.toJSONString(resultLib));
             }
         }
 
         if (resultLib == null) {
             if (libType < 1) {
                 //获取 specialResultLib 中的type
-                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), modelId, playerGameData.getRoomType());
+                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), playerGameData.getLastModelId(), playerGameData.getRoomType());
                 if (!resultLibTypeResult.success()) {
                     result.code = resultLibTypeResult.code;
                     return result;
@@ -1906,22 +1848,40 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //如果获取结果库失败，会重试，所以用循环
             for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
                 //获取倍数区间
-                CommonResult<Integer> resultLibSectionResult = getResultLibSection(modelId, libType);
+                CommonResult<Integer> resultLibSectionResult = getResultLibSection(playerGameData.getLastModelId(), libType);
                 if (!resultLibSectionResult.success()) {
+                    result.code = resultLibSectionResult.code;
                     continue;
                 }
 
                 //根据倍数区间从结果库里面随机获取一条
                 resultLib = (L) getResultLibDao().getLibBySectionIndex(libType, resultLibSectionResult.data, this.libClass);
                 if (resultLib == null) {
-                    log.warn("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, modelId, libType, resultLibSectionResult.data, i);
+                    log.warn("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, playerGameData.getLastModelId(), libType, resultLibSectionResult.data, i);
                     continue;
                 }
 //                sectionIndex = resultLibSectionResult.data;
-                log.debug("成功获取结果库  playerId = {},lib = {}", playerGameData.playerId(), JSON.toJSONString(resultLib));
+                log.info("成功获取结果库  playerId = {},lib = {}", playerGameData.playerId(), JSON.toJSONString(resultLib));
+                result.code = Code.SUCCESS;
+                playerGameData.setLastSectionIndex(resultLibSectionResult.data);
                 break;
             }
         }
-        return null;
+
+        //如果前面没有获取到lib，则获取一个无奖励的结果
+        if (resultLib == null) {
+            resultLib = (L) getResultLibDao().getLibBySectionIndex(libType, this.defaultRewardSectionIndex, this.libClass);
+            log.warn("前面获取结果库失败，所以找一个不中奖的结果返回 gameType = {},libType = {}", this.gameType, libType);
+
+            if (resultLib == null) {
+                log.warn("获取不中奖结果库失败 gameType = {},libType = {}", this.gameType, libType);
+                result.code = Code.FAIL;
+                return result;
+            }
+            playerGameData.setLastSectionIndex(this.defaultRewardSectionIndex);
+        }
+
+        result.data = resultLib;
+        return result;
     }
 }

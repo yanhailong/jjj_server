@@ -50,13 +50,12 @@ public class RechargeTestController extends AbstractCallbackController {
             }
             Player player = playerService.get(order.getPlayerId());
             //获取玩家session信息
-            PlayerSessionInfo info = playerSessionService.getInfo(order.getPlayerId());
             String money = order.getPrice().toPlainString();
             String regionCode = "test";
             coreLogger.order(player, order, money, regionCode,order.getProductId());
             log.info("玩家充值成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
             //将充值成功消息通知玩家所在节点
-            notifyPlayerCurrentNode(info, order, money, regionCode,"test");
+            payCallback(order, money, regionCode,"test");
             //返回修改结果
             return ResponseEntity.ok("common.success");
         } catch (Exception e) {
