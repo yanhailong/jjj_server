@@ -19,11 +19,6 @@ public class GameFunctionCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "GameFunction";
 
-  /** 解锁条件 */
-  public static final int CONDITION_LEVEL = 1;
-  /** 解锁条件 */
-  public static final int CONDITION_VIP_LEVEL = 3;
-
   /** 游戏中左侧列表按钮 */
   protected int butList;
   /** 显示区域类型 */
@@ -41,7 +36,7 @@ public class GameFunctionCfg extends BaseCfgBean {
   /** 提示文本ID */
   protected int tips;
   /** 解锁条件 */
-  protected Map<Integer, Integer> vipLevel;
+  protected List<Integer> vipLevel;
 
   /** 返回游戏中左侧列表按钮 */
   public int getButList() {
@@ -84,7 +79,7 @@ public class GameFunctionCfg extends BaseCfgBean {
   }
 
   /** 返回解锁条件 */
-  public Map<Integer, Integer> getVipLevel() {
+  public List<Integer> getVipLevel() {
     return vipLevel;
   }
 
