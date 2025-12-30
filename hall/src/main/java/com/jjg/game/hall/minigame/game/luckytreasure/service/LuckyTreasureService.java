@@ -44,6 +44,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 夺宝奇兵服务类
@@ -60,6 +61,8 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
     private final SubscriptionManager subscriptionManager;
     private final ClusterSystem clusterSystem;
     private final HallPlayerService playerService;
+
+    private AtomicLong lastUpdateTime = new AtomicLong(0);
 
     /**
      * 等待通知更新的期号列表
@@ -95,41 +98,55 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
      */
     @Override
     public void onTimer(TimerEvent<LuckyTreasureService> e) {
-        if (e == updateTimer) {
-            updateTimer = null;
-            Set<Long> updateSet = new HashSet<>(issueNumberSet);
-            issueNumberSet.clear();
+        if (e != updateTimer) {
+            return;
+        }
+        long time = System.currentTimeMillis();
+        //大于1秒才处理
+        if (time - lastUpdateTime.get() < 500) {
+            return;
+        }
+        //没有变更的期号 则返回
+        if (issueNumberSet.isEmpty()) {
+            return;
+        }
+        lastUpdateTime.set(time);
+        updateTimer = null;
+        Set<Long> updateSet = new HashSet<>(issueNumberSet);
+        issueNumberSet.clear();
 
-            List<LuckyTreasure> luckyTreasureList = new ArrayList<>();
+        List<LuckyTreasure> luckyTreasureList = new ArrayList<>();
 
-            //只有先将活动从redis中取出来 避免循环中从redis拉取增大开销
-            List<LuckyTreasure> redisLuckyTreasureList = updateSet.stream()
-                    .map(luckyTreasureRedisDao::getTreasureByIssueNumber)
-                    .filter(Objects::nonNull) // 过滤掉null值
-                    .toList();
+        //只有先将活动从redis中取出来 避免循环中从redis拉取增大开销
+        List<LuckyTreasure> redisLuckyTreasureList = updateSet.stream()
+                .map(luckyTreasureRedisDao::getTreasureByIssueNumber)
+                .filter(Objects::nonNull) // 过滤掉null值
+                .toList();
 
-            //如果在redis中没有找到该 issueNumber，则要从mongodb中查询
-            List<Long> needFindFromMongList = new ArrayList<>();
+        //如果在redis中没有找到该 issueNumber，则要从mongodb中查询
+        List<Long> needFindFromMongList = new ArrayList<>();
 
-            if (!redisLuckyTreasureList.isEmpty()) {
-                luckyTreasureList.addAll(redisLuckyTreasureList);
+        if (!redisLuckyTreasureList.isEmpty()) {
+            luckyTreasureList.addAll(redisLuckyTreasureList);
+        }
+
+        updateSet.forEach(id -> {
+            LuckyTreasure tmp = redisLuckyTreasureList.stream().filter(luckyTreasure -> Objects.equals(luckyTreasure.getIssueNumber(), id)).findFirst().orElse(null);
+            if (tmp == null) {
+                needFindFromMongList.add(id);
             }
+        });
 
-            updateSet.forEach(id -> {
-                LuckyTreasure tmp = redisLuckyTreasureList.stream().filter(luckyTreasure -> Objects.equals(luckyTreasure.getIssueNumber(), id)).findFirst().orElse(null);
-                if (tmp == null) {
-                    needFindFromMongList.add(id);
-                }
-            });
+        List<LuckyTreasure> mongoLuckyTreasureList = luckyTreasureDao.find(needFindFromMongList);
+        if (!mongoLuckyTreasureList.isEmpty()) {
+            luckyTreasureList.addAll(mongoLuckyTreasureList);
+        }
 
-            List<LuckyTreasure> mongoLuckyTreasureList = luckyTreasureDao.find(needFindFromMongList);
-            if (!mongoLuckyTreasureList.isEmpty()) {
-                luckyTreasureList.addAll(mongoLuckyTreasureList);
-            }
-
+        List<LuckyTreasure> luckyTreasureListStatus = luckyTreasureList.stream().filter(luckyTreasure -> luckyTreasure.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY || luckyTreasure.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_DRAW).toList();
+        if (!luckyTreasureListStatus.isEmpty()) {
             subscriptionManager.publish(SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE, (playerId) -> {
                 NotifyLuckyTreasureUpdate notifyLuckyTreasureUpdate = new NotifyLuckyTreasureUpdate();
-                luckyTreasureList.forEach(treasure -> {
+                luckyTreasureListStatus.forEach(treasure -> {
                     LuckyTreasureUpdateInfo afterInfo = new LuckyTreasureUpdateInfo();
                     afterInfo.setIssueNumber(treasure.getIssueNumber());
                     afterInfo.setAlreadyBuyCount(treasure.getBuyMap().getOrDefault(playerId, 0));
@@ -141,10 +158,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                     afterInfo.setBuyCount(treasure.getBuyMap().size());
                     afterInfo.setTotalCount(treasure.getConfig().getTotal());
                     afterInfo.setStatus(calculateStatus(treasure, playerId));
-                    if(treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY || treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_DRAW){
-                        notifyLuckyTreasureUpdate.getUpdateList().add(afterInfo);
-                    }
-
+                    notifyLuckyTreasureUpdate.getUpdateList().add(afterInfo);
                 });
                 if (notifyLuckyTreasureUpdate.getUpdateList().isEmpty()) {
                     return null;
@@ -152,7 +166,9 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                 log.debug("推送订阅 topic = {},playerId = {}, LuckyTreasureUpdateInfo = {}", SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE, playerId, JSONObject.toJSONString(notifyLuckyTreasureUpdate));
                 return notifyLuckyTreasureUpdate;
             });
+        }
 
+        if (!luckyTreasureList.isEmpty()) {
             subscriptionManager.publish(SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE, (playerId) -> {
                 NotifyLuckyTreasureRecordUpdate notifyLuckyTreasureRecordUpdate = new NotifyLuckyTreasureRecordUpdate();
                 luckyTreasureList.forEach(treasure -> {
@@ -167,9 +183,6 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                     afterInfo.setBuyCount(treasure.getBuyMap().size());
                     afterInfo.setTotalCount(treasure.getConfig().getTotal());
                     afterInfo.setStatus(calculateStatus(treasure, playerId));
-                    if(treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY || treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_DRAW){
-                        notifyLuckyTreasureRecordUpdate.getUpdateList().add(afterInfo);
-                    }
                     notifyLuckyTreasureRecordUpdate.getUpdateList().add(afterInfo);
                 });
                 log.debug("推送订阅 topic = {},playerId = {}, LuckyTreasureUpdateRecordInfo = {}", SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE, playerId, JSONObject.toJSONString(notifyLuckyTreasureRecordUpdate));
@@ -189,7 +202,8 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         if (issueNumber > 0) {
             issueNumberSet.add(issueNumber);
             if (updateTimer == null) {
-                updateTimer = new TimerEvent<>(this, null, 0, 1, 200, false);
+                //定时任务，每500ms执行一次，如果发送成功了，就不会再执行了
+                updateTimer = new TimerEvent<>(this, null, 500, 2, 100, false).withTimeUnit(TimeUnit.MILLISECONDS);
                 // 添加到定时器中心
                 timerCenter.add(updateTimer);
             }

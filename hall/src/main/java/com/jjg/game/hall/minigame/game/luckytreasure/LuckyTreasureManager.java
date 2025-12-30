@@ -333,7 +333,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             }
             // 购买成功，更新数据库
             luckyTreasureDao.save(latestTreasure);
-//            log.info("夺宝奇兵机器人购买成功, 机器人ID:{}, 期号:{}, 购买数量:{}", playerId, latestTreasure.getIssueNumber(), count);
+            log.info("夺宝奇兵机器人购买成功, 机器人ID:{}, 期号:{}, 购买数量:{}", playerId, latestTreasure.getIssueNumber(), count);
             return Code.SUCCESS;
         } catch (Exception e) {
             log.error("执行购买逻辑失败", e);
@@ -345,7 +345,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * 查看是否有关服前未处理数据
      */
     public void recoverUnsettledRounds() {
-//        log.info("执行。。。。。。检测服务器重启后是否有未处理数据");
+        log.info("执行。。。。。。检测服务器重启后是否有未处理数据");
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_CONFIG_ID);
         int intValue = globalConfigCfg.getIntValue();
         //查询数据库中是否存在上次未开奖的
@@ -481,7 +481,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         // 添加到定时器中心
         timerCenter.add(buyTimer);
         activityBuyTimers.put(issueNumber, buyTimer);
-//        log.info("夺宝奇兵期号[{}],configId[{}]增加机器人购买定时器!", issueNumber, config.getId());
+        log.info("夺宝奇兵期号[{}],configId[{}]增加机器人购买定时器!", issueNumber, config.getId());
     }
 
     /**
