@@ -73,10 +73,19 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
             }
             if (res.status == BasketballSuperstarConstant.Status.FREE) {
                 BasketballSuperstarResultLib freeLib = (BasketballSuperstarResultLib) gameRunInfo.getData().getFreeLib();
-                res.changeStickyIconSet = freeLib.getChangeStickyIconSet();
-                res.addStickyIconSet = freeLib.getAddStickyIconSet();
-                res.stickyIcon = freeLib.getStickyIcon();
-                res.freeCount = freeLib.getFreeCount();
+                List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = freeLib.getSpecialAuxiliaryInfoList();
+                if (specialAuxiliaryInfoList != null && !specialAuxiliaryInfoList.isEmpty()) {
+                    List<JSONObject> freeGames = specialAuxiliaryInfoList.get(0).getFreeGames();
+                    if (freeGames != null && !freeGames.isEmpty()) {
+                        JSONObject jsonObject = freeGames.get(gameRunInfo.getData().getFreeIndex().get());
+                        BasketballSuperstarResultLib basketballSuperstarResultLib = JSON.parseObject(jsonObject.toJSONString(), BasketballSuperstarResultLib.class);
+                        res.stickyIcon = basketballSuperstarResultLib.getStickyIcon();
+                        res.changeStickyIconSet = freeLib.getChangeStickyIconSet();
+                        res.addStickyIconSet = freeLib.getAddStickyIconSet();
+                        res.stickyIcon = freeLib.getStickyIcon();
+                        res.freeCount = freeLib.getFreeCount();
+                    }
+                }
             }
 
             //奖池信息
