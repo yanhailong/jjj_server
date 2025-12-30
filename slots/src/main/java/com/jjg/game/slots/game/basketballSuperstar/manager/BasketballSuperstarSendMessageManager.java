@@ -77,13 +77,19 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
                 if (specialAuxiliaryInfoList != null && !specialAuxiliaryInfoList.isEmpty()) {
                     List<JSONObject> freeGames = specialAuxiliaryInfoList.get(0).getFreeGames();
                     if (freeGames != null && !freeGames.isEmpty()) {
-                        JSONObject jsonObject = freeGames.get(gameRunInfo.getData().getFreeIndex().get());
+                        int freeIndex = gameRunInfo.getData().getFreeIndex().get();
+                        JSONObject jsonObject = freeGames.get(freeIndex >= 1 ? freeIndex - 1 : 0);
                         BasketballSuperstarResultLib basketballSuperstarResultLib = JSON.parseObject(jsonObject.toJSONString(), BasketballSuperstarResultLib.class);
                         res.stickyIcon = basketballSuperstarResultLib.getStickyIcon();
-                        res.changeStickyIconSet = basketballSuperstarResultLib.getChangeStickyIconSet();
-                        res.addStickyIconSet = basketballSuperstarResultLib.getAddStickyIconSet();
-                        res.stickyIcon = basketballSuperstarResultLib.getStickyIcon();
-                        res.freeCount = basketballSuperstarResultLib.getFreeCount();
+                        if (freeIndex >= 1) {
+                            res.changeStickyIconSet = basketballSuperstarResultLib.getChangeStickyIconSet();
+                            res.addStickyIconSet = basketballSuperstarResultLib.getAddStickyIconSet();
+                            res.freeCount = basketballSuperstarResultLib.getFreeCount();
+                        } else {
+                            res.freeCount = 0;
+                            res.changeStickyIconSet = new HashSet<>();
+                            res.addStickyIconSet = new HashSet<>();
+                        }
                     }
                 }
             }
@@ -132,7 +138,7 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
             //免费游戏中累计获得金币
             if (gameRunInfo.getStatus() == FrozenThroneConstant.Status.FREE) {
                 res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
-                if(gameRunInfo.getRemainFreeCount() <= 0){
+                if (gameRunInfo.getRemainFreeCount() <= 0) {
                     res.totalWinGold = gameRunInfo.getFreeModeTotalReward();
                 }
             } else {
