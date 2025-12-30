@@ -81,6 +81,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
                 awardLineInfo.setSameIconSet(integerSetMap.get(BasketballSuperstarConstant.BaseElement.ID_SCATTER));
                 awardLineInfo.setSameIcon(BasketballSuperstarConstant.BaseElement.ID_SCATTER);
                 awardLineInfoList.add(awardLineInfo);
+                lib.setAwardLineInfoList(awardLineInfoList);
             }
 
             //是否触发小游戏
