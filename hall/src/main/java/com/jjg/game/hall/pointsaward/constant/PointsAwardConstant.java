@@ -14,7 +14,7 @@ public interface PointsAwardConstant {
         /**
          * 玩家积分
          */
-        String POINTS_AWARD_DATA_POINTS = "pointsAward:dataPoints:";
+        String POINTS_AWARD_PLAYER_POINTS = "pointsAward:playerPoints";
         /**
          * 签到次数
          */
@@ -54,7 +54,7 @@ public interface PointsAwardConstant {
         /**
          * 积分大奖积分阶梯奖励领取记录
          */
-        String POINTS_AWARD_LADDER_REWARDS_RECEIVE = "pointsAward:ladderRewards:receive:";
+        String POINTS_AWARD_LADDER_REWARDS_RECEIVE = "pointsAward:ladderRewards:receiveMap:";
         /**
          * 积分大奖记录开始时间
          */

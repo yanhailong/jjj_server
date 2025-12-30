@@ -1,5 +1,6 @@
 package com.jjg.game.hall.pointsaward;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.PFSession;
@@ -23,6 +24,7 @@ import com.jjg.game.hall.pointsaward.pb.PointsAwardLadderRewardsInfo;
 import com.jjg.game.hall.pointsaward.pb.res.NotifySyncPlayerPoint;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.*;
 import org.redisson.client.codec.LongCodec;
 import org.slf4j.Logger;
@@ -34,11 +36,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -67,6 +67,18 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * 玩家累计充值金额
      */
     private RMap<Long, Long> rechargeMap;
+    private static final String REMOVE = """
+            local cur = redis.call('HGET', KEYS[1], ARGV[1])
+            cur = tonumber(cur) or 0
+            
+            local cost = tonumber(ARGV[2])
+            
+            if cur < cost then
+                return -1
+            end
+            
+            return redis.call('HINCRBY', KEYS[1], ARGV[1], -cost)
+            """;
 
     public PointsAwardService(RedissonClient redissonClient,
                               @Lazy ClusterSystem clusterSystem,
@@ -107,6 +119,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         if (marsCurator.isMaster()) {
             //跨月检查
             clear();
+            //重置时间段积分
+            resetTimePoints();
             // 初始化充值数据记录map
             redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
                     () -> {
@@ -114,12 +128,12 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                         if (rechargeMap != null) {
                             rechargeMap.clear();
                         }
-                        RKeys keys = redissonClient.getKeys();
-                        long deleted = keys.deleteByPattern(PointsAwardConstant.RedisKey.POINTS_AWARD_LADDER_REWARDS_RECEIVE + "*");
+                        RMap<Long, String> ladderRewardsMap = getLadderRewardsMap();
+                        int deleted = ladderRewardsMap.size();
+                        ladderRewardsMap.delete();
                         log.info("阶段奖励领取记录 删除数量: {}", deleted);
                     });
             log.debug("充值数据记录map清除完成");
-            resetTimePoints();
         }
     }
 
@@ -132,9 +146,9 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             // 初始化充值数据记录map
             redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
                     () -> {
-                        RKeys keys = redissonClient.getKeys();
-                        long deleted = keys.deleteByPattern(PointsAwardConstant.RedisKey.POINTS_AWARD_DATA_POINTS + "*");
-                        log.info("玩家积分数据清除! 删除数量: {}", deleted);
+                        RMap<Long, Long> pointsRedisMap = getPointsRedisMap();
+                        pointsRedisMap.delete();
+                        log.info("玩家积分数据清除! 删除数量!");
                     });
         };
         if (bucket.get() == null) {
@@ -147,6 +161,10 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                 command.run();
             }
         }
+    }
+
+    private RMap<Long, Long> getPointsRedisMap() {
+        return redissonClient.getMap(atomicKey(), LongCodec.INSTANCE);
     }
 
     /**
@@ -172,8 +190,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     /**
      * 积分key
      */
-    private String atomicKey(long playerId) {
-        return PointsAwardConstant.RedisKey.POINTS_AWARD_DATA_POINTS + playerId;
+    private String atomicKey() {
+        return PointsAwardConstant.RedisKey.POINTS_AWARD_PLAYER_POINTS;
     }
 
     /**
@@ -206,15 +224,9 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         if (pointsAward <= 0) {
             return;
         }
-        RAtomicLong counter = redissonClient.getAtomicLong(atomicKey(playerId));
-
+        RMap<Long, Long> counter = getPointsRedisMap();
         //排行榜的积分
-        long currentPoints = counter.get();
-        try {
-            currentPoints = updatePointsWithOverflowProtection(counter, currentPoints, pointsAward);
-        } catch (Exception e) {
-            log.error("add 玩家积分更新失败!playerId = [{}],pointsAward = [{}]", playerId, pointsAward, e);
-        }
+        long currentPoints = counter.addAndGet(playerId, (long) pointsAward);
         // 排行榜更新
         updateLeaderboards(playerId, pointsAward);
         //记录日志
@@ -356,27 +368,35 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             return false;
         }
         try {
-            RAtomicLong counter = redissonClient.getAtomicLong(atomicKey(playerId));
-            while (true) {
-                long curr = counter.get();
-                if (curr < pointsAward) {
-                    return false;
-                }
-                long next = curr - pointsAward;
-                if (counter.compareAndSet(curr, next)) {
-                    // 排行榜更新
-                    updateLeaderboards(playerId, -pointsAward);
-                    //通知玩家同步分数
-                    noticeSyncPoints(playerId, next);
-                    //记录日志
-                    pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, false, next);
-                    return true;
-                }
+            long remain = removePoint(playerId, pointsAward);
+            if (remain <= 0) {
+                log.error("积分扣减失败，余额不足 playerId = [{}],pointsAward = [{}]", playerId, pointsAward);
+                return false;
             }
+
+            // 排行榜更新
+            updateLeaderboards(playerId, -pointsAward);
+            //通知玩家同步分数
+            noticeSyncPoints(playerId, remain);
+            //记录日志
+            pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, false, remain);
+            return true;
         } catch (Exception e) {
             log.error("deductWithinLock 玩家积分扣减失败!playerId = [{}],pointsAward = [{}]", playerId, pointsAward, e);
             return false;
         }
+    }
+
+    private long removePoint(long playerId, int pointsAward) {
+        Long result = redissonClient.getScript(LongCodec.INSTANCE).eval(
+                RScript.Mode.READ_WRITE,
+                REMOVE,
+                RScript.ReturnType.INTEGER,
+                List.of(atomicKey()),
+                playerId,
+                pointsAward
+        );
+        return result == null ? 0 : result;
     }
 
     /**
@@ -425,7 +445,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * 获取玩家积分
      */
     public long getPoints(long playerId) {
-        return redissonClient.getAtomicLong(atomicKey(playerId)).get();
+        RMap<Long, Long> rMap = getPointsRedisMap();
+        return rMap.getOrDefault(playerId, 0L);
     }
 
     /**
@@ -485,8 +506,18 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     /**
      * 获取玩家已经领取的阶梯奖励列表
      */
-    public RSet<Long> getLadderReceiveSet(long playerId) {
-        return redissonClient.getSet(PointsAwardConstant.RedisKey.POINTS_AWARD_LADDER_REWARDS_RECEIVE + playerId);
+    public Set<Long> getLadderReceiveSet(long playerId) {
+        RMap<Long, String> rMap = getLadderRewardsMap();
+        String receiveStatus = rMap.get(playerId);
+        if (StringUtils.isEmpty(receiveStatus)) {
+            return new HashSet<>();
+        }
+        String[] receivedPoints = StringUtils.split(receiveStatus, ";");
+        return Arrays.stream(receivedPoints).map(Long::parseLong).collect(Collectors.toCollection(HashSet::new));
+    }
+
+    private RMap<Long, String> getLadderRewardsMap() {
+        return redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_LADDER_REWARDS_RECEIVE);
     }
 
     /**
@@ -497,7 +528,6 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         //先全部读取，然后删除
         Map<Long, TimePoints> timePointsMap = playerTimePointsMap.readAllMap();
         playerTimePointsMap.delete();
-
         if (this.pointsAwardMap == null || this.pointsAwardMap.isEmpty()) {
             log.debug("积分大奖保底奖励为空，故阶段积分重置时无奖励");
         } else {
@@ -507,10 +537,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                         receiveLader(pointsAwardInfo.getPoints(), playerId, true);
                     }
                 });
-                getLadderReceiveSet(playerId).delete();
             });
         }
-
         log.debug("重置时间段积分 map.size = {}", timePointsMap.size());
     }
 
@@ -534,11 +562,12 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             return Code.POINT_AWARD_POINT_NOT_ENOUGH;
         }
         int code = Code.FAIL;
-        RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
-        RLock rLock = rewardReceiveSet.getReadWriteLock(playerId).writeLock();
+        RMap<Long, String> rewardReceiveMap = getLadderRewardsMap();
+        RLock rLock = rewardReceiveMap.getReadWriteLock(playerId).writeLock();
         CommonResult<ItemOperationResult> addResult = null;
         try {
             if (rLock.tryLock()) {
+                Set<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
                 //已经领取过了
                 if (rewardReceiveSet.contains(info.getPoints())) {
                     code = Code.REPEAT_OP;
@@ -554,6 +583,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                             code = addResult.code;
                         } else {
                             rewardReceiveSet.add(info.getPoints());
+                            rewardReceiveMap.put(playerId, CollectionUtil.join(rewardReceiveSet, ";"));
                             code = Code.SUCCESS;
                         }
                     }
@@ -604,7 +634,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         //获取玩家积分
         long points = getTimePoints(playerId);
         //获取领取列表
-        RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
+        Set<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
         RedDotDetails redDotDetails = new RedDotDetails();
         redDotDetails.setRedDotModule(getModule());
         redDotDetails.setRedDotSubmodule(getSubmodule());
@@ -671,8 +701,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             return Collections.emptyList();
         }
 
-        RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
-        Set<Long> rewardReceiveIds = rewardReceiveSet.readAll();
+        Set<Long> rewardReceiveIds = getLadderReceiveSet(playerId);
         if (rewardReceiveIds == null || rewardReceiveIds.isEmpty()) {
             return this.sortPointsAwardList;
         } else {
