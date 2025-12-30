@@ -74,6 +74,7 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
                 BasketballSuperstarResultLib freeLib = (BasketballSuperstarResultLib) gameRunInfo.getData().getFreeLib();
                 res.changeStickyIconSet = freeLib.getChangeStickyIconSet();
                 res.addStickyIconSet = freeLib.getAddStickyIconSet();
+                res.stickyIcon = freeLib.getStickyIcon();
                 res.freeCount = freeLib.getFreeCount();
             }
 
