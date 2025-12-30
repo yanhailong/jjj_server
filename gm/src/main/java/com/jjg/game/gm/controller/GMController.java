@@ -1117,6 +1117,44 @@ public class GMController extends AbstractController {
         }
     }
 
+    @RequestMapping(BackendGMCmd.BATCH_GET_PLAYERS_INFO)
+    public WebResult<List<PlayerAndAccountVo>> batchGetPlayersInfo(@RequestBody BatchGetPlayersInfoDto dto) {
+        log.info("收到批量获取玩家信息 dto = {}", dto);
+        try {
+            if (dto.playerIds() == null || dto.playerIds().isEmpty()) {
+                return fail("common.paramerror");
+            }
+
+            // 去重，避免重复查询
+            List<Long> ids = dto.playerIds().stream()
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            if (ids.size() > 100) {
+                log.warn("批量查询玩家数量不能超过100");
+                return fail("common.paramerror");
+            }
+            List<Player> players = playerService.multiGetPlayer(ids);
+            Map<Long, Account> accounts = accountDao.multiGetAccountMap(ids);
+
+            List<PlayerAndAccountVo> list = new ArrayList<>();
+            for (Player p : players) {
+                PlayerAndAccountVo vo = new PlayerAndAccountVo();
+                BeanUtils.copyProperties(p, vo);
+
+                Account account = accounts.get(p.getId());
+                if (account != null) {
+                    BeanUtils.copyProperties(account, vo);
+                }
+                list.add(vo);
+            }
+            return success("common.success", list);
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
 
     //****************************************************************************************************************/
 

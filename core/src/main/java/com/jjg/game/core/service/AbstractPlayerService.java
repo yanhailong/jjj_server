@@ -1056,7 +1056,7 @@ public class AbstractPlayerService {
                 redisPlayer.stream().filter(Objects::nonNull)
                         .collect(HashMap::new, (map, e) -> map.put(e.getId(), e), HashMap::putAll);
         // 需要从数据中查询
-        List<Long> queryFromDb = new ArrayList<>(playerIds);
+        Set<Long> queryFromDb = new HashSet<>(playerIds);
         queryFromDb.removeAll(playerMap.keySet());
         List<Player> players = playerDao.findAllById(queryFromDb);
         // 如果数据库中也查不到，直接返回从redis中查询到的数据
