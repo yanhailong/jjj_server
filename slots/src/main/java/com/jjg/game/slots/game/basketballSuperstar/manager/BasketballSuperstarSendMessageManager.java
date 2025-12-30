@@ -80,10 +80,10 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
                         JSONObject jsonObject = freeGames.get(gameRunInfo.getData().getFreeIndex().get());
                         BasketballSuperstarResultLib basketballSuperstarResultLib = JSON.parseObject(jsonObject.toJSONString(), BasketballSuperstarResultLib.class);
                         res.stickyIcon = basketballSuperstarResultLib.getStickyIcon();
-                        res.changeStickyIconSet = freeLib.getChangeStickyIconSet();
-                        res.addStickyIconSet = freeLib.getAddStickyIconSet();
-                        res.stickyIcon = freeLib.getStickyIcon();
-                        res.freeCount = freeLib.getFreeCount();
+                        res.changeStickyIconSet = basketballSuperstarResultLib.getChangeStickyIconSet();
+                        res.addStickyIconSet = basketballSuperstarResultLib.getAddStickyIconSet();
+                        res.stickyIcon = basketballSuperstarResultLib.getStickyIcon();
+                        res.freeCount = basketballSuperstarResultLib.getFreeCount();
                     }
                 }
             }
