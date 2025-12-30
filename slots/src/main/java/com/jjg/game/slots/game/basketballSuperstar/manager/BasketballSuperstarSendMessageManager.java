@@ -65,6 +65,7 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
 
             res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
             res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
+            res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
             res.remainFreeCount = res.remainFreeCount > 0 ? res.remainFreeCount : 0;
             if (res.remainFreeCount < 1) {
