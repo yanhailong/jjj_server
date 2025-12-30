@@ -22,12 +22,12 @@ public class ResPegasusUnbridleEnterGame extends AbstractResponse {
     public long defaultBet;
     @ProtoDesc("累计中奖金币")
     public long totalWinGold;
-    @ProtoDesc("当前状态 0.正常  1.免费 2.探宝")
+    @ProtoDesc("当前状态 0.正常 ")
     public int status;
-    @ProtoDesc("剩余免费次数")
-    public int remainFreeCount;
-    @ProtoDesc("当前累计免费金额")
-    public long freeAmount;
+    @ProtoDesc("图标id列表")
+    public List<Integer> iconList;
+    @ProtoDesc("滚轴类型")
+    public int scrollType;
     @ProtoDesc("奖池信息")
     public List<PegasusUnbridlePoolInfo> poolList;
     public ResPegasusUnbridleEnterGame(int code) {

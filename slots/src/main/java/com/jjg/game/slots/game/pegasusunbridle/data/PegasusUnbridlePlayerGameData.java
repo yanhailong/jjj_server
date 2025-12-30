@@ -10,6 +10,22 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2025/12/2 17:27
  */
 public class PegasusUnbridlePlayerGameData extends SlotsPlayerGameData {
+    private int currentRandomIndex;
+    private PegasusUnbridleResultLib fuMa;
 
+    public PegasusUnbridleResultLib getFuMa() {
+        return fuMa;
+    }
 
+    public void setFuMa(PegasusUnbridleResultLib fuMa) {
+        this.fuMa = fuMa;
+    }
+
+    public int getCurrentRandomIndex() {
+        return currentRandomIndex;
+    }
+
+    public void setCurrentRandomIndex(int currentRandomIndex) {
+        this.currentRandomIndex = currentRandomIndex;
+    }
 }

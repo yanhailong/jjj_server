@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.pegasusunbridle.manager;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
@@ -10,8 +11,10 @@ import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
 import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackPoolValue;
+import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleGameRunInfo;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridlePlayerGameData;
+import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleResultLib;
 import com.jjg.game.slots.game.pegasusunbridle.pb.bean.PegasusUnbridlePoolInfo;
 import com.jjg.game.slots.game.pegasusunbridle.pb.res.ResPegasusUnbridleEnterGame;
 import com.jjg.game.slots.game.pegasusunbridle.pb.res.ResPegasusUnbridlePoolValue;
@@ -60,8 +63,16 @@ public class PegasusUnbridleGameSendMessageManager extends BaseSendMessageManage
             PegasusUnbridlePlayerGameData playerGameData = gameRunInfo.getData();
             res.totalWinGold = playerGameData.getFreeAllWin();
             res.status = playerGameData.getStatus();
-            res.remainFreeCount = playerGameData.getRemainFreeCount().get();
-
+            if (playerGameData.getStatus() == PegasusUnbridleConstant.Status.REAL_FU_MA) {
+                if (playerGameData.getFuMa() != null) {
+                    List<PegasusUnbridleResultLib> randomResult = playerGameData.getFuMa().getRandomResult();
+                    if (CollectionUtil.isNotEmpty(randomResult)) {
+                        PegasusUnbridleResultLib resultLib = randomResult.get(playerGameData.getCurrentRandomIndex());
+                        res.iconList = Arrays.stream(resultLib.getIconArr(), 1, resultLib.getIconArr().length).boxed().collect(Collectors.toList());
+                        res.scrollType = playerGameData.getFuMa().getRollerMode();
+                    }
+                }
+            }
             res.poolList = new ArrayList<>();
             for (int poolId : prizePoolIdList) {
                 PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
@@ -112,6 +123,8 @@ public class PegasusUnbridleGameSendMessageManager extends BaseSendMessageManage
             res.exp = playerController.getPlayer().getExp();
 
             res.winIconInfoList = gameRunInfo.getAwardLineInfos();
+            res.scrollType = gameRunInfo.getScrollType();
+            res.isFuMaEnd = gameRunInfo.isFuMaEnd();
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());

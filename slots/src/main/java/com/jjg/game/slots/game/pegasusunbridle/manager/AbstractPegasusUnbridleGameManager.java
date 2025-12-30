@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.pegasusunbridle.manager;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
@@ -11,9 +12,9 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
+import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleGameDataDao;
@@ -25,9 +26,9 @@ import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridlePlayerGameDat
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleResultLib;
 import com.jjg.game.slots.game.pegasusunbridle.pb.bean.PegasusUnbridleWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -41,6 +42,8 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
     private final PegasusUnbridleGameGenerateManager gameGenerateManager;
     private final PegasusUnbridleGameDataDao gameDataDao;
     private final PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao;
+    @Autowired
+    protected SlotsPoolDao slotsPoolDao;
 
     public AbstractPegasusUnbridleGameManager(PegasusUnbridleGameGenerateManager gameGenerateManager,
                                               PegasusUnbridleGameDataDao gameDataDao, PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao) {
@@ -128,6 +131,8 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
             int status = playerGameData.getStatus();
             if (status == PegasusUnbridleConstant.Status.NORMAL) {
                 normal(gameRunInfo, playerGameData, betValue);
+            } else if (status == PegasusUnbridleConstant.Status.REAL_FU_MA) {
+                fuMa(gameRunInfo, playerGameData, betValue);
             } else {
                 gameRunInfo.setCode(Code.FAIL);
                 log.warn("当前状态错误 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
@@ -159,10 +164,56 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
                 checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             }
             gameRunInfo.setData(playerGameData);
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             log.error("", e);
         }
         return gameRunInfo;
+    }
+
+    private void fuMa(PegasusUnbridleGameRunInfo gameRunInfo, PegasusUnbridlePlayerGameData playerGameData, long betValue) {
+        PegasusUnbridleResultLib fuMaResultLib = playerGameData.getFuMa();
+        if (fuMaResultLib == null || CollectionUtil.isEmpty(fuMaResultLib.getRandomResult())) {
+            playerGameData.setStatus(PegasusUnbridleConstant.Status.NORMAL);
+            playerGameData.setFuMa(null);
+            playerGameData.setCurrentRandomIndex(0);
+            gameRunInfo.setCode(Code.PARAM_ERROR);
+            return;
+        }
+        int currentRandomIndex = playerGameData.getCurrentRandomIndex();
+        List<PegasusUnbridleResultLib> randomResult = fuMaResultLib.getRandomResult();
+        if (currentRandomIndex >= randomResult.size()) {
+            gameRunInfo.setCode(Code.PARAM_ERROR);
+            return;
+        }
+        gameRunInfo.setScrollType(fuMaResultLib.getRollerMode());
+        if (currentRandomIndex == randomResult.size() - 1) {
+            PoolCfg poolCfg = GameDataManager.getPoolCfg(fuMaResultLib.getJackpotId());
+            if (poolCfg != null) {
+                //检查是否中大奖
+                CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(),
+                        poolCfg.getTruePool(), AddType.SLOTS_JACKPOT_REWARD);
+                if (result.success()) {
+                    gameRunInfo.addSmallPoolGold(result.data);
+                }
+            }
+            //最后一次
+            playerGameData.setStatus(PegasusUnbridleConstant.Status.NORMAL);
+            playerGameData.setFuMa(null);
+            playerGameData.setCurrentRandomIndex(0);
+            gameRunInfo.setBigShowId(fuMaResultLib.getJackpotId());
+            gameRunInfo.setFuMaEnd(true);
+            gameRunInfo.setBigPoolTimes(fuMaResultLib.getTimes());
+            gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(fuMaResultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
+            gameRunInfo.setIconArr(fuMaResultLib.getIconArr());
+            gameRunInfo.setStatus(PegasusUnbridleConstant.Status.REAL_FU_MA);
+            return;
+        }
+        PegasusUnbridleResultLib resultLib = randomResult.get(currentRandomIndex);
+        playerGameData.setCurrentRandomIndex(currentRandomIndex + 1);
+        gameRunInfo.setStatus(PegasusUnbridleConstant.Status.REAL_FU_MA);
+        gameRunInfo.setIconArr(resultLib.getIconArr());
+        gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
     }
 
     /**
@@ -177,15 +228,6 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         }
         PegasusUnbridleResultLib resultLib = libResult.data.getFirst();
         gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-        gameRunInfo.addBigPoolTimes(resultLib.getTimes());
-
-        //检查是否中大奖
-        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotId(), false);
-        log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
-        gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
-        gameRunInfo.setIconArr(resultLib.getIconArr());
-        gameRunInfo.setResultLib(resultLib);
-        gameRunInfo.setStake(betValue);
         Set<Integer> typeSet = resultLib.getLibTypeSet();
         //检查是否触发假福马
         if (gameGenerateManager.getModelRandom() != null) {
@@ -197,6 +239,17 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         }
         if (typeSet != null && !typeSet.contains(PegasusUnbridleConstant.SpecialMode.NORMAL)) {
             gameRunInfo.setStatus(PegasusUnbridleConstant.Status.REAL_FU_MA);
+            playerGameData.setStatus(PegasusUnbridleConstant.Status.REAL_FU_MA);
+            playerGameData.setFuMa(resultLib);
+            gameRunInfo.setScrollType(resultLib.getRollerMode());
+            log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+            fuMa(gameRunInfo, playerGameData, betValue);
+        } else {
+            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+            gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
+            gameRunInfo.setIconArr(resultLib.getIconArr());
+            gameRunInfo.setResultLib(resultLib);
+            gameRunInfo.setStake(betValue);
         }
     }
 
@@ -208,7 +261,7 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
      * @param
      * @return
      */
-    public PegasusUnbridleGameRunInfo getPoolValue( PlayerController playerController, long stake) {
+    public PegasusUnbridleGameRunInfo getPoolValue(PlayerController playerController, long stake) {
         PegasusUnbridleGameRunInfo gameRunInfo = new PegasusUnbridleGameRunInfo(Code.SUCCESS, playerController.playerId());
         try {
             gameRunInfo.setMajor(getPoolValueByRoomCfgId(playerController.getPlayer().getRoomCfgId()));
