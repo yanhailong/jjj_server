@@ -518,20 +518,12 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
      */
     protected DollarExpressGameRunInfo allBoardTrain(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData) {
         log.debug("进入二选一之拉火车流程 playerId = {}", playerGameData.playerId());
-        DollarExpressResultLib trainLib = null;
-        for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
-            //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
-            if (!result.success()) {
-                continue;
-            }
-            //获取结果库
-            trainLib = libDao.getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN, result.data, this.libClass);
-            if (trainLib == null) {
-                continue;
-            }
-            break;
+
+        CommonResult<DollarExpressResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
+        if(!libResult.success()){
+            return null;
         }
+        DollarExpressResultLib trainLib = libResult.data;
 
         if (trainLib == null) {
             gameRunInfo.setCode(Code.FAIL);
@@ -568,20 +560,12 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
      */
     protected DollarExpressGameRunInfo allBoardGoldTrain(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData) {
         log.debug("进入二选一之拉黄金火车流程 playerId = {}", playerGameData.playerId());
-        DollarExpressResultLib goldTrainLib = null;
-        for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
-            //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
-            if (!result.success()) {
-                continue;
-            }
-            //获取结果库
-            goldTrainLib = libDao.getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN, result.data, this.libClass);
-            if (goldTrainLib == null) {
-                continue;
-            }
-            break;
+
+        CommonResult<DollarExpressResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
+        if(!libResult.success()){
+            return null;
         }
+        DollarExpressResultLib goldTrainLib = libResult.data;
 
         if (goldTrainLib == null) {
             gameRunInfo.setCode(Code.FAIL);
@@ -650,20 +634,12 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
      */
     protected DollarExpressGameRunInfo areaAllUnlockGoldTrain(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData) {
         log.debug("进入地图全部解锁，奖励黄金火车流程 playerId = {}", playerGameData.playerId());
-        DollarExpressResultLib goldTrainLib = null;
-        for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
-            //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
-            if (!result.success()) {
-                continue;
-            }
-            //获取结果库
-            goldTrainLib = libDao.getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN, result.data, this.libClass);
-            if (goldTrainLib == null) {
-                continue;
-            }
-            break;
+
+        CommonResult<DollarExpressResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
+        if(!libResult.success()){
+            return null;
         }
+        DollarExpressResultLib goldTrainLib = libResult.data;
 
         if (goldTrainLib == null) {
             gameRunInfo.setCode(Code.FAIL);

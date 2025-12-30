@@ -520,20 +520,12 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
      */
     protected WealthBankGameRunInfo allBoardTrain(WealthBankGameRunInfo gameRunInfo, WealthBankPlayerGameData playerGameData) {
         log.debug("[Wealth Bank] 进入二选一之拉火车流程 playerId = {}", playerGameData.playerId());
-        WealthBankResultLib trainLib = null;
-        for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
-            //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), WealthBankConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
-            if (!result.success()) {
-                continue;
-            }
-            //获取结果库
-            trainLib = libDao.getLibBySectionIndex(WealthBankConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN, result.data, this.libClass);
-            if (trainLib == null) {
-                continue;
-            }
-            break;
+
+        CommonResult<WealthBankResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
+        if(!libResult.success()){
+            return null;
         }
+        WealthBankResultLib trainLib = libResult.data;
 
         if (trainLib == null) {
             gameRunInfo.setCode(Code.FAIL);
@@ -570,20 +562,12 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
      */
     protected WealthBankGameRunInfo allBoardGoldTrain(WealthBankGameRunInfo gameRunInfo, WealthBankPlayerGameData playerGameData) {
         log.debug("[Wealth Bank] 进入二选一之拉黄金火车流程 playerId = {}", playerGameData.playerId());
-        WealthBankResultLib goldTrainLib = null;
-        for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
-            //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), WealthBankConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
-            if (!result.success()) {
-                continue;
-            }
-            //获取结果库
-            goldTrainLib = libDao.getLibBySectionIndex(WealthBankConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN, result.data, this.libClass);
-            if (goldTrainLib == null) {
-                continue;
-            }
-            break;
+
+        CommonResult<WealthBankResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
+        if(!libResult.success()){
+            return null;
         }
+        WealthBankResultLib goldTrainLib = libResult.data;
 
         if (goldTrainLib == null) {
             gameRunInfo.setCode(Code.FAIL);
@@ -660,20 +644,12 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
      */
     protected WealthBankGameRunInfo areaAllUnlockGoldTrain(WealthBankGameRunInfo gameRunInfo, WealthBankPlayerGameData playerGameData) {
         log.debug("[Wealth Bank] 进入地图全部解锁，奖励黄金火车流程 playerId = {}", playerGameData.playerId());
-        WealthBankResultLib goldTrainLib = null;
-        for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
-            //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), WealthBankConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
-            if (!result.success()) {
-                continue;
-            }
-            //获取结果库
-            goldTrainLib = libDao.getLibBySectionIndex(WealthBankConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN, result.data, this.libClass);
-            if (goldTrainLib == null) {
-                continue;
-            }
-            break;
+
+        CommonResult<WealthBankResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
+        if(!libResult.success()){
+            return null;
         }
+        WealthBankResultLib goldTrainLib = libResult.data;
 
         if (goldTrainLib == null) {
             gameRunInfo.setCode(Code.FAIL);

@@ -5,13 +5,11 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -265,19 +263,14 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
 
         ThorResultLib freeLib = (ThorResultLib) playerGameData.getFreeLib();
         if (freeLib == null) {
-            for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
-                //获取一个倍数区间
-                CommonResult<Integer> sectionResult = getResultLibSection(playerGameData.getLastModelId(), specialModeFreeLibType);
-                if (!sectionResult.success()) {
-                    continue;
-                }
-                //获取结果库
-                freeLib = getResultLibDao().getLibBySectionIndex(specialModeFreeLibType, sectionResult.data, this.libClass);
-                if (freeLib == null) {
-                    continue;
-                }
-                break;
+            //缓存中没有，就从数据库获取
+            CommonResult<ThorResultLib> libResult = getLibFromDB(playerGameData, specialModeFreeLibType);
+            if(!libResult.success()) {
+                result.code = libResult.code;
+                return result;
             }
+
+            freeLib = libResult.data;
         }
 
         if (freeLib == null) {

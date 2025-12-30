@@ -230,14 +230,13 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
             playerGameData.setStatus(GoldSnakeFortuneConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
-            //最后一局，通知客户端，累计免费模式的中奖金额
-            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
         }
 
         //设置金钱信息
         checkCoinInfo(gameRunInfo, playerGameData, freeGame);
 
+        gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());

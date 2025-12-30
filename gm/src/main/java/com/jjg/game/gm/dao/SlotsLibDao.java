@@ -1,14 +1,12 @@
 package com.jjg.game.gm.dao;
 
-import cn.hutool.core.io.file.FileWriter;
 import cn.hutool.poi.excel.BigExcelWriter;
-import cn.hutool.poi.excel.ExcelWriter;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.manager.AmazonBucketManager;
 import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.data.SlotsResultLib;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
@@ -29,14 +27,9 @@ import com.jjg.game.slots.game.wealthbank.data.WealthBankResultLib;
 import com.jjg.game.slots.game.wealthgod.data.WealthGodResultLib;
 import com.jjg.game.slots.utils.LZ4CompressionUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Repository;
 
@@ -52,6 +45,9 @@ import java.util.*;
  */
 @Repository
 public class SlotsLibDao extends AbstractResultLibDao<SlotsResultLib> {
+
+    @Autowired
+    private AmazonBucketManager amazonBucketManager;
 
     // 游戏类型到ResultLib子类的映射
     private static final Map<Integer, Class<? extends SlotsResultLib>> GAME_TYPE_TO_CLASS_MAP = new HashMap<>();
@@ -204,11 +200,13 @@ public class SlotsLibDao extends AbstractResultLibDao<SlotsResultLib> {
         } catch (Exception e) {
             log.error("导出结果库失败", e);
             resultCode = Code.FAIL;
+            file.delete();
         } finally {
             // 确保文件写入器关闭
             if (fileWriter != null) {
                 fileWriter.close();
                 log.warn("已写入完毕 fileName = {},totalLibs = {}", file.getName(), totalLibs);
+                this.amazonBucketManager.upload(file);
             }
         }
         return resultCode;
