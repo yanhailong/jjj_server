@@ -260,7 +260,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
 
     private void onSwitchNodeAfter(PFSession pfSession) {
         List<OnSwitchNode> gameSysInterface = SystemInterfaceHolder.getGameSysInterface(OnSwitchNode.class);
-        if (CollectionUtil.isEmpty(gameSysInterface)) {
+        if (CollectionUtil.isNotEmpty(gameSysInterface)) {
             for (OnSwitchNode event : gameSysInterface) {
                 try {
                     event.OnSwitchNodeAction(pfSession);
