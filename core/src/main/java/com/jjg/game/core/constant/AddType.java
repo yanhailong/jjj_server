@@ -48,8 +48,8 @@ public enum AddType {
     CREATE_FRIEND_ROOM(401),
     //管理好友房
     MANAGE_FRIEND_ROOM(402),
-
-
+    //创建好友房失败回退
+    CREATE_FRIEND_FAIL_CALLBACK(403),
 
     //获取邮件奖励
     GET_MAIL_ITEMS(501),

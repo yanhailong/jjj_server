@@ -184,14 +184,6 @@ public class TexasMessageHandler {
         return change;
     }
 
-    private static SeatInfo addNewSeatInfo(SeatInfo seatInfo, int srcSeatId, boolean seatDown, TexasGameDataVo gameDataVo) {
-        SeatInfo newSeatInfo = gameDataVo.getSeatInfo().remove(seatInfo.getSeatId());
-        newSeatInfo.setSeatId(srcSeatId);
-        newSeatInfo.setSeatDown(seatDown);
-        gameDataVo.getSeatInfo().put(srcSeatId, newSeatInfo);
-        return newSeatInfo;
-    }
-
     @Command(value = TexasConstant.MsgBean.REQ_CHANGE_TABLE)
     public void reqTexasChangeTable(PlayerController playerController, ReqTexasChangeTable changeTable) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =

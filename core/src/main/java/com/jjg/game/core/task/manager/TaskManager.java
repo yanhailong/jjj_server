@@ -462,18 +462,20 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
     public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
         long playerId = player.getId();
         TaskManager taskManager = this;
-        PlayerExecutorGroupDisruptor.getDefaultExecutor()
-                .tryPublish(playerId, 0, new BaseHandler<String>() {
-                    @Override
-                    public void action() {
-                        TaskData taskData = playerTaskMap.computeIfAbsent(playerId, k -> taskService.getPlayerTask(playerId));
-                        try {
-                            taskService.checkTask(playerId, taskData, taskManager);
-                        } catch (Exception e) {
-                            log.error("初始化玩家任务失败 playerId={}, firstLogin={}, error={}", playerId, firstLogin, e.getMessage(), e);
+        if (firstLogin) {
+            PlayerExecutorGroupDisruptor.getDefaultExecutor()
+                    .tryPublish(playerId, 0, new BaseHandler<String>() {
+                        @Override
+                        public void action() {
+                            TaskData taskData = playerTaskMap.computeIfAbsent(playerId, k -> taskService.getPlayerTask(playerId));
+                            try {
+                                taskService.checkTask(playerId, taskData, taskManager);
+                            } catch (Exception e) {
+                                log.error("初始化玩家任务失败 playerId={}, firstLogin={}, error={}", playerId, firstLogin, e.getMessage(), e);
+                            }
                         }
-                    }
-                }.setHandlerParamWithSelf("task onPlayerLoginSuccess"));
+                    }.setHandlerParamWithSelf("task onPlayerLoginSuccess"));
+        }
     }
 
     @Override
@@ -631,10 +633,6 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
             int hour = clockEvent.getHour();
             //处理日常任务
             if (hour == 0) {
-                checkAllOnlinePlayerTasks(hour);
-            }
-            //积分大奖任务额外处理
-            else if (hour == 12) {
                 checkAllOnlinePlayerTasks(hour);
             }
         }

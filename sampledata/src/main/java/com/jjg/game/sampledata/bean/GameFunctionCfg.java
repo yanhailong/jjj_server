@@ -36,7 +36,7 @@ public class GameFunctionCfg extends BaseCfgBean {
   /** 提示文本ID */
   protected int tips;
   /** 解锁条件 */
-  protected List<Integer> vipLevel;
+  protected Map<Integer,Integer> vipLevel;
 
   /** 返回游戏中左侧列表按钮 */
   public int getButList() {
@@ -79,7 +79,7 @@ public class GameFunctionCfg extends BaseCfgBean {
   }
 
   /** 返回解锁条件 */
-  public List<Integer> getVipLevel() {
+  public Map<Integer,Integer> getVipLevel() {
     return vipLevel;
   }
 

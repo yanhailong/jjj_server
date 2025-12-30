@@ -238,13 +238,15 @@ public class CashCowDao {
      * - 存入玩家个人日志
      * - 同时存入全局日志
      */
-    public void savePlayerRecordActivity(long playerId, long activityId, CashCowRecordData data) {
+    public void savePlayerRecordActivity(long playerId, long activityId, CashCowRecordData data, boolean isFix) {
         try {
             String playerKey = String.format(PLAYER_RECORD_KEY, activityId, playerId);
             // 玩家个人记录（List 左进）
             recordRedisTemplate.opsForList().leftPush(playerKey, data);
-            // 全局记录（List 左进）
-            recordRedisTemplate.opsForList().leftPush(String.format(ALL_RECORD_KEY, activityId), data);
+            if(!isFix){
+                // 全局记录（List 左进）
+                recordRedisTemplate.opsForList().leftPush(String.format(ALL_RECORD_KEY, activityId), data);
+            }
         } catch (Exception e) {
             log.error("保存玩家活动记录失败");
         }
