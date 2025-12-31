@@ -354,14 +354,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected CommonResult<Pair<L, BetDivideInfo>> normalGetLib(T playerGameData, long betValue, int specialModeNormalType) {
         CommonResult<Pair<L, BetDivideInfo>> result = new CommonResult<>(Code.SUCCESS);
         log.debug("开始正常流程 playerId = {},roomId = {},betValue = {}", playerGameData.playerId(), playerGameData.getRoomId(), betValue);
-        //获取倍场配置
-        BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(playerGameData.getRoomCfgId());
-        if (baseRoomCfg == null) {
-            log.warn("获取倍场配置失败 playerId = {},gameType = {},roomCfgId = {},betValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), betValue);
-            result.code = Code.NOT_FOUND;
-            return result;
-        }
-
         //检查押分是否合法
         long[] betScoreArr = this.allStakeMap.get(playerGameData.getRoomCfgId()).stream().filter(arr -> arr[1] == betValue).findFirst().orElse(null);
         if (betScoreArr == null) {
@@ -370,15 +362,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return result;
         }
 
-        CommonResult<SpecialResultLibCfg> libCfgResult = getLibCfg(playerGameData, baseRoomCfg.getInitBasePool());
-        if (!libCfgResult.success()) {
-            result.code = libCfgResult.code;
-            return result;
-        }
-
         //从数据库获取结果库
-        CommonResult<L> libResult = getLibFromDB(playerGameData,specialModeNormalType);
-        if(!libResult.success()){
+        CommonResult<L> libResult = getLibFromDB(playerGameData, specialModeNormalType);
+        if (!libResult.success()) {
             result.code = libResult.code;
             return result;
         }
@@ -386,7 +372,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         L resultLib = libResult.data;
 
         //给池子加钱
-        CommonResult<Pair<Player, BetDivideInfo>> poolResult = moneyToPool(playerGameData, betValue, baseRoomCfg, libCfgResult.data.getModelId());
+        CommonResult<Pair<Player, BetDivideInfo>> poolResult = moneyToPool(playerGameData, betValue);
         if (!poolResult.success()) {
             result.code = poolResult.code;
             return result;
@@ -401,7 +387,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setOneBetScore(betScoreArr[0]);
         playerGameData.setAllBetScore(betScoreArr[1]);
 
-        playerGameData.setLastModelId(libCfgResult.data.getModelId());
         PlayerController playerController = playerGameData.getPlayerController();
         //获取最新的玩家
         if (playerController != null) {
@@ -437,12 +422,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (freeLib == null) {
             //缓存中没有，就从数据库获取
             CommonResult<L> libResult = getLibFromDB(playerGameData, specialModeFreeLibType);
-            if(!libResult.success()) {
+            if (!libResult.success()) {
                 result.code = libResult.code;
                 return result;
             }
 
             freeLib = libResult.data;
+
+
+            String str = """
+                    { "gameType": 103501, "iconArr": [ 0, 13, 14, 13, 99999, 13, 13, 13, 13, 13, 13, 13, 99999 ], "id": "371158a0417a4663bd05d5881e9f6771", "jackpotId": 0, "libTypeSet": [ 2 ], "rollerMode": 2035012, "specialAuxiliaryInfoList": [ { "cfgId": 30350101, "freeGames": [ { "gameType": 103501, "times": 0, "jackpotId": 0, "iconArr": [ 0, 13, 13, 13, 99999, 13, 13, 13, 13, 13, 13, 13, 99999 ], "awardLineInfoList": [ ], "rollerMode": 2035012, "id": "5260676b3d0843f4b873c683bf33f0d5" }, { "gameType": 103501, "times": 0, "jackpotId": 0, "iconArr": [ 0, 13, 13, 8, 99999, 13, 13, 13, 13, 13, 8, 8, 99999 ], "specialGirdInfoList": [ { "valueType": 1, "valueMap": { "3": 40, "10": 10, "11": 10 }, "cfgId": 10350102, "miniGameId": 0 } ], "awardLineInfoList": [ ], "rollerMode": 2035012, "id": "a1b71f75bd6240b297298cbd00e63e8c" }, { "gameType": 103501, "times": 0, "jackpotId": 0, "iconArr": [ 0, 13, 13, 13, 99999, 8, 8, 13, 13, 13, 13, 13, 99999 ], "specialGirdInfoList": [ { "valueType": 1, "valueMap": { "5": 20, "6": 20 }, "cfgId": 10350102, "miniGameId": 0 } ], "awardLineInfoList": [ ], "rollerMode": 2035012, "id": "78899eccfd9d4454b6c0560aa28be512" }, { "gameType": 103501, "times": 0, "jackpotId": 0, "iconArr": [ 0, 13, 8, 8, 99999, 8, 13, 13, 8, 13, 8, 13, 99999 ], "specialGirdInfoList": [ { "valueType": 1, "valueMap": { "2": 10, "3": 10, "5": 10, "8": 10, "10": 10 }, "cfgId": 10350102, "miniGameId": 0 } ], "awardLineInfoList": [ ], "rollerMode": 2035012, "id": "923b5ed95cb247308b00d02a21fb4630", "specialAuxiliaryInfoList":[ { "awardInfos":[ { "randCount":1 } ], "cfgId":30350102 } ] }, { "gameType": 103501, "times": 0, "jackpotId": 0, "iconArr": [ 0, 13, 13, 13, 99999, 13, 13, 8, 13, 8, 13, 13, 99999 ], "specialGirdInfoList": [ { "valueType": 1, "valueMap": { "7": 10, "9": 10 }, "cfgId": 10350102, "miniGameId": 0 } ], "awardLineInfoList": [ ], "rollerMode": 2035012, "id": "bc38cd133822459aa5130cc97eeab44e" }, { "gameType": 103501, "times": 0, "jackpotId": 0, "iconArr": [ 0, 13, 13, 13, 99999, 8, 13, 13, 13, 8, 13, 13, 99999 ], "specialGirdInfoList": [ { "valueType": 1, "valueMap": { "5": 10, "9": 10 }, "cfgId": 10350102, "miniGameId": 0 } ], "awardLineInfoList": [ ], "rollerMode": 2035012, "id": "9bd7b9c77d544caf8a37ac5c2dbbca97" }, { "gameType": 103501, "times": 0, "jackpotId": 0, "iconArr": [ 0, 13, 13, 13, 99999, 13, 13, 8, 13, 13, 8, 8, 99999 ], "specialGirdInfoList": [ { "valueType": 1, "valueMap": { "7": 10, "10": 20, "11": 20 }, "cfgId": 10350102, "miniGameId": 0 } ], "awardLineInfoList": [ ], "rollerMode": 2035012, "id": "b534b89d7b2942d883a9f20167974dd6" }, { "gameType": 103501, "times": 0, "jackpotId": 0, "iconArr": [ 0, 13, 13, 13, 99999, 13, 13, 13, 8, 8, 13, 13, 99999 ], "specialGirdInfoList": [ { "valueType": 1, "valueMap": { "8": 10, "9": 10 }, "cfgId": 10350102, "miniGameId": 0 } ], "awardLineInfoList": [ ], "rollerMode": 2035012, "id": "9d03dbd9f5334e34bf21fccff5ee5ff5" } ] } ], "times": 30 }
+                    """;
+            freeLib = JSONObject.parseObject(str,this.libClass);
         }
 
         if (freeLib == null) {
@@ -506,7 +497,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param betValue
      * @return player对象和税收
      */
-    protected CommonResult<Pair<Player, BetDivideInfo>> moneyToPool(T gameData, long betValue, BaseRoomCfg baseRoomCfg, int modelId) {
+    protected CommonResult<Pair<Player, BetDivideInfo>> moneyToPool(T gameData, long betValue) {
         SlotsRoomController slotsRoomController = gameData.getSlotsRoomController();
         if (slotsRoomController == null) {
             CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, true, AddType.SLOTS_BET);
@@ -542,12 +533,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             BigDecimal bet = BigDecimal.valueOf(betValue);
             log.info("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.playerId(), betValue, result.data.getGold());
 
+            BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(gameData.getRoomCfgId());
             //给标准池子加钱
             BigDecimal toBigPoolProp = BigDecimal.valueOf(baseRoomCfg.getInitBasePoolProportion()).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
             long toBigPoolGold = bet.multiply(toBigPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
             if (toBigPoolGold > 0) {
                 long poolCoin = slotsPoolDao.addToBigPool(this.gameType, gameData.getRoomCfgId(), toBigPoolGold);
-                log.info("给标准池加钱成功 playerId = {},gameType = {},roomCfgId = {},modelId = {},add = {},afterGold = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), modelId, toBigPoolGold, poolCoin);
+                log.info("给标准池加钱成功 playerId = {},gameType = {},roomCfgId = {},modelId = {},add = {},afterGold = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), gameData.getLastModelId(), toBigPoolGold, poolCoin);
             }
 
             //给小池子加钱
@@ -557,7 +549,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 long poolCoin = slotsPoolDao.addToSmallPool(this.gameType, gameData.getRoomCfgId(), toSmallPoolGold);
                 gameData.addAllBet(poolCoin);
                 long contribtGold = gameData.addContribtPoolGold(poolCoin);
-                log.info("给小池子加钱成功 playerId = {},gameType = {},roomCfgId = {},modelId = {},add = {},afterGold = {},contribtGold={}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), modelId, toSmallPoolGold, poolCoin, contribtGold);
+                log.info("给小池子加钱成功 playerId = {},gameType = {},roomCfgId = {},modelId = {},add = {},afterGold = {},contribtGold={}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), gameData.getLastModelId(), toSmallPoolGold, poolCoin, contribtGold);
             }
 
             CommonResult<Pair<Player, BetDivideInfo>> commonResult = new CommonResult<>(Code.SUCCESS);
@@ -574,7 +566,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             commonResult.data = new Pair<>(result.data, betDivideInfo);
             return commonResult;
         } else if (slotsRoomController.getRoom().getType() == RoomType.SLOTS_TEAM_UP_ROOM) { //slots好友房
-            return roomMoneyToPool(gameData, betValue, baseRoomCfg, modelId);
+            return roomMoneyToPool(gameData, betValue);
         } else {
             log.warn("moneyToPool 不支持的房间类型 playerId = {},roomType = {}", gameData.playerId(), slotsRoomController.getRoom().getType());
             return new CommonResult<>(Code.FAIL);
@@ -588,7 +580,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param betValue
      * @return player对象和税收
      */
-    protected CommonResult<Pair<Player, BetDivideInfo>> roomMoneyToPool(T gameData, long betValue, BaseRoomCfg baseRoomCfg, int modelId) {
+    protected CommonResult<Pair<Player, BetDivideInfo>> roomMoneyToPool(T gameData, long betValue) {
         try {
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(gameData.getRoomCfgId());
             CommonResult<Player> result;
@@ -604,12 +596,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
 
             BigDecimal bet = BigDecimal.valueOf(betValue);
+            BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(gameData.getRoomCfgId());
             //给标准池子加钱
             BigDecimal toBigPoolProp = BigDecimal.valueOf(baseRoomCfg.getInitBasePoolProportion()).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
             long toBigPoolGold = bet.multiply(toBigPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
             if (toBigPoolGold > 0) {
                 long poolCoin = roomSlotsPoolDao.addToBigPool(gameData.getRoomId(), toBigPoolGold);
-                log.info("给房间标准池加钱成功 playerId = {},gameType = {},roomId = {},roomCfgId = {},modelId = {},add = {},afterGold = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomId(), gameData.getRoomCfgId(), modelId, toBigPoolGold, poolCoin);
+                log.info("给房间标准池加钱成功 playerId = {},gameType = {},roomId = {},roomCfgId = {},modelId = {},add = {},afterGold = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomId(), gameData.getRoomCfgId(), gameData.getLastModelId(), toBigPoolGold, poolCoin);
             }
 
             //扣除加入水池的钱之后，剩余的钱
@@ -684,7 +677,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         globalConfig();
         calAllLineStake();
-        log.info("配置重新计算结束 gameType = {}", this.gameType);
+//        log.info("配置重新计算结束 gameType = {}", this.gameType);
     }
 
 
@@ -1817,7 +1810,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param libType
      * @return
      */
-    protected CommonResult<L> getLibFromDB(SlotsPlayerGameData playerGameData, int libType) {
+    protected CommonResult<L> getLibFromDB(T playerGameData, int libType) {
         CommonResult<L> result = new CommonResult<>(Code.SUCCESS);
         //先去获取测试数据
         TestLibData testLibData = playerGameData.pollTestLibData();
@@ -1834,9 +1827,25 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         if (resultLib == null) {
+            //获取倍场配置
+            BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(playerGameData.getRoomCfgId());
+            if (baseRoomCfg == null) {
+                log.warn("获取倍场配置失败 playerId = {},gameType = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId());
+                result.code = Code.NOT_FOUND;
+                return result;
+            }
+
+            //获取结果库配置
+            CommonResult<SpecialResultLibCfg> libCfgResult = getLibCfg(playerGameData, baseRoomCfg.getInitBasePool());
+            if (!libCfgResult.success()) {
+                result.code = libCfgResult.code;
+                return result;
+            }
+
+            //如果gm中没有设置 libType，则需要根据配置获取 libType
             if (libType < 1) {
                 //获取 specialResultLib 中的type
-                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), playerGameData.getLastModelId(), playerGameData.getRoomType());
+                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId(), playerGameData.getRoomType());
                 if (!resultLibTypeResult.success()) {
                     result.code = resultLibTypeResult.code;
                     return result;
@@ -1848,7 +1857,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //如果获取结果库失败，会重试，所以用循环
             for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
                 //获取倍数区间
-                CommonResult<Integer> resultLibSectionResult = getResultLibSection(playerGameData.getLastModelId(), libType);
+                CommonResult<Integer> resultLibSectionResult = getResultLibSection(libCfgResult.data.getModelId(), libType);
                 if (!resultLibSectionResult.success()) {
                     result.code = resultLibSectionResult.code;
                     continue;
@@ -1857,13 +1866,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 //根据倍数区间从结果库里面随机获取一条
                 resultLib = (L) getResultLibDao().getLibBySectionIndex(libType, resultLibSectionResult.data, this.libClass);
                 if (resultLib == null) {
-                    log.warn("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, playerGameData.getLastModelId(), libType, resultLibSectionResult.data, i);
+                    log.warn("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, libCfgResult.data.getModelId(), libType, resultLibSectionResult.data, i);
                     continue;
                 }
 //                sectionIndex = resultLibSectionResult.data;
                 log.info("成功获取结果库  playerId = {},lib = {}", playerGameData.playerId(), JSON.toJSONString(resultLib));
                 result.code = Code.SUCCESS;
                 playerGameData.setLastSectionIndex(resultLibSectionResult.data);
+                playerGameData.setLastModelId(libCfgResult.data.getModelId());
                 break;
             }
         }

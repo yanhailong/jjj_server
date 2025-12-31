@@ -1295,7 +1295,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         }
 
         this.specialResultLibCacheData = calSpecialResultLibCacheData(cfgList);
-        log.info("计算分析缓存 specialResultLib 配置成功 gameType = {}", gameType);
+//        log.info("计算分析缓存 specialResultLib 配置成功 gameType = {}", gameType);
     }
 
     /**
