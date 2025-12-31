@@ -229,12 +229,22 @@ public class PlayerPackService implements IPlayerRegister {
      * @param player 玩家信息
      */
     public CommonResult<ItemOperationResult> removeItems(Player player, Map<Integer, Long> removeItemMap,
-                                                         AddType addType) {
+                                                         AddType addType, String desc) {
         List<Item> itemList = new ArrayList<>();
         for (Map.Entry<Integer, Long> entry : removeItemMap.entrySet()) {
             itemList.add(new Item(entry.getKey(), entry.getValue()));
         }
-        return removeItem(player, itemList, addType);
+        return removeItem(player, itemList, addType, desc);
+    }
+
+    /**
+     * 移除道具
+     *
+     * @param player 玩家信息
+     */
+    public CommonResult<ItemOperationResult> removeItems(Player player, Map<Integer, Long> removeItemMap,
+                                                         AddType addType) {
+        return removeItems(player, removeItemMap, addType,null);
     }
 
     /**
@@ -243,6 +253,15 @@ public class PlayerPackService implements IPlayerRegister {
      * @param player 玩家信息
      */
     public CommonResult<ItemOperationResult> removeItem(Player player, List<Item> removeItemList, AddType addType) {
+        return removeItem(player, removeItemList, addType, null);
+    }
+
+    /**
+     * 移除道具
+     *
+     * @param player 玩家信息
+     */
+    public CommonResult<ItemOperationResult> removeItem(Player player, List<Item> removeItemList, AddType addType, String desc) {
         CommonResult<ItemOperationResult> result = new CommonResult<>(Code.NOT_ENOUGH_ITEM);
         int code = checkHasItems(player, removeItemList);
         if (code != Code.SUCCESS) {
@@ -333,7 +352,7 @@ public class PlayerPackService implements IPlayerRegister {
             //扣除金币和钻石
             if (deductGoldV > 0 || deductDiamondV > 0) {
                 CommonResult<Player> removeResult =
-                        corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
+                        corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType, true, desc);
                 if (!removeResult.success()) {
                     result.code = removeResult.code;
                     return result;

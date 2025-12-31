@@ -67,11 +67,31 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
             res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
             res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
+            res.remainFreeCount = res.remainFreeCount > 0 ? res.remainFreeCount : 0;
+            if (res.remainFreeCount < 1) {
+                res.status = SteamAgeConstant.Status.NORMAL;
+            }
             if (res.status == BasketballSuperstarConstant.Status.FREE) {
                 BasketballSuperstarResultLib freeLib = (BasketballSuperstarResultLib) gameRunInfo.getData().getFreeLib();
-                res.changeStickyIconSet = freeLib.getChangeStickyIconSet();
-                res.addStickyIconSet = freeLib.getAddStickyIconSet();
-                res.freeCount = freeLib.getFreeCount();
+                List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = freeLib.getSpecialAuxiliaryInfoList();
+                if (specialAuxiliaryInfoList != null && !specialAuxiliaryInfoList.isEmpty()) {
+                    List<JSONObject> freeGames = specialAuxiliaryInfoList.get(0).getFreeGames();
+                    if (freeGames != null && !freeGames.isEmpty()) {
+                        int freeIndex = gameRunInfo.getData().getFreeIndex().get();
+                        JSONObject jsonObject = freeGames.get(freeIndex >= 1 ? freeIndex - 1 : 0);
+                        BasketballSuperstarResultLib basketballSuperstarResultLib = JSON.parseObject(jsonObject.toJSONString(), BasketballSuperstarResultLib.class);
+                        res.stickyIcon = basketballSuperstarResultLib.getStickyIcon();
+                        if (freeIndex >= 1) {
+                            res.changeStickyIconSet = basketballSuperstarResultLib.getChangeStickyIconSet();
+                            res.addStickyIconSet = basketballSuperstarResultLib.getAddStickyIconSet();
+                            res.freeCount = basketballSuperstarResultLib.getFreeCount();
+                        } else {
+                            res.freeCount = 0;
+                            res.changeStickyIconSet = new HashSet<>();
+                            res.addStickyIconSet = new HashSet<>();
+                        }
+                    }
+                }
             }
 
             //奖池信息
@@ -118,7 +138,7 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
             //免费游戏中累计获得金币
             if (gameRunInfo.getStatus() == FrozenThroneConstant.Status.FREE) {
                 res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
-                if(gameRunInfo.getRemainFreeCount() <= 0){
+                if (gameRunInfo.getRemainFreeCount() <= 0) {
                     res.totalWinGold = gameRunInfo.getFreeModeTotalReward();
                 }
             } else {

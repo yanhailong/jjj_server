@@ -1,20 +1,11 @@
-package com.jjg.game.core.data;
+package com.jjg.game.gm.vo;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import com.jjg.game.core.data.ChannelType;
+import com.jjg.game.core.data.LoginType;
 
-import java.util.Objects;
+import java.util.Map;
 
-/**
- * 玩家对象
- *
- * @author 11
- * @date 2025/5/26 11:18
- */
-@Document
-public class Player {
-    //玩家id
-    @Id
+public class PlayerAndAccountVo {
     private long id;
     //昵称
     private String nickName;
@@ -72,6 +63,22 @@ public class Player {
     private ChannelType channel;
     //登录方式
     private LoginType loginType;
+    //邮箱账号
+    private String email;
+    //0.游客  1.实名用户
+    private int accountType;
+    //注册时的mac
+    private String registerMac;
+    //最近一次登录的mac
+    private String lastLoginMac;
+    //最近一次登录时间
+    private long lastLoginTime;
+    //最近一次离线时间
+    private long lastOfflineTime;
+    //当前状态  0.正常  1.被封  2.被删除
+    private int status;
+    //第三方账号
+    private Map<LoginType, String> thirdAccounts;
 
     public long getId() {
         return id;
@@ -129,6 +136,30 @@ public class Player {
         this.titleId = titleId;
     }
 
+    public int getChipsId() {
+        return chipsId;
+    }
+
+    public void setChipsId(int chipsId) {
+        this.chipsId = chipsId;
+    }
+
+    public int getBackgroundId() {
+        return backgroundId;
+    }
+
+    public void setBackgroundId(int backgroundId) {
+        this.backgroundId = backgroundId;
+    }
+
+    public int getCardBackgroundId() {
+        return cardBackgroundId;
+    }
+
+    public void setCardBackgroundId(int cardBackgroundId) {
+        this.cardBackgroundId = cardBackgroundId;
+    }
+
     public long getRoomId() {
         return roomId;
     }
@@ -158,34 +189,7 @@ public class Player {
     }
 
     public void setGold(long gold) {
-        if (gold < 0) {
-            throw new IllegalArgumentException("设置玩家：" + id + " 金币为负数：" + gold);
-        }
         this.gold = gold;
-    }
-
-    public int getChipsId() {
-        return chipsId;
-    }
-
-    public void setChipsId(int chipsId) {
-        this.chipsId = chipsId;
-    }
-
-    public int getBackgroundId() {
-        return backgroundId;
-    }
-
-    public void setBackgroundId(int backgroundId) {
-        this.backgroundId = backgroundId;
-    }
-
-    public int getCardBackgroundId() {
-        return cardBackgroundId;
-    }
-
-    public void setCardBackgroundId(int cardBackgroundId) {
-        this.cardBackgroundId = cardBackgroundId;
     }
 
     public long getDiamond() {
@@ -308,50 +312,67 @@ public class Player {
         this.loginType = loginType;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        Player player = (Player) o;
-        return id == player.id;
+    public String getEmail() {
+        return email;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(id);
+    public void setEmail(String email) {
+        this.email = email;
     }
 
-    public void copy(Player newPlayer) {
-        if (newPlayer == null) {
-            return;
-        }
-        newPlayer.setId(this.getId());
-        newPlayer.setNickName(this.getNickName());
-        newPlayer.setGender(this.getGender());
-        newPlayer.setHeadImgId(this.getHeadImgId());
-        newPlayer.setHeadFrameId(this.getHeadFrameId());
-        newPlayer.setNationalId(this.getNationalId());
-        newPlayer.setTitleId(this.getTitleId());
-        newPlayer.setChipsId(this.getChipsId());
-        newPlayer.setBackgroundId(this.getBackgroundId());
-        newPlayer.setCardBackgroundId(this.getCardBackgroundId());
-        newPlayer.setRoomId(this.getRoomId());
-        newPlayer.setGameType(this.getGameType());
-        newPlayer.setRoomCfgId(this.getRoomCfgId());
-        newPlayer.setGold(this.getGold());
-        newPlayer.setDiamond(this.getDiamond());
-        newPlayer.setSafeBoxGold(this.getSafeBoxGold());
-        newPlayer.setSafeBoxDiamond(this.getSafeBoxDiamond());
-        newPlayer.setLevel(this.getLevel());
-        newPlayer.setExp(this.getExp());
-        newPlayer.setVipLevel(this.getVipLevel());
-        newPlayer.setVipExp(this.getVipExp());
-        newPlayer.setStatement(this.getStatement());
-        newPlayer.setIp(this.getIp());
-        newPlayer.setDeviceType(this.getDeviceType());
-        newPlayer.setCreateTime(this.getCreateTime());
-        newPlayer.setUpdateTime(this.getUpdateTime());
-        newPlayer.setFriendRoomInvitationCode(this.getFriendRoomInvitationCode());
-        newPlayer.setChannel(this.getChannel());
-        newPlayer.setLoginType(this.getLoginType());
+    public int getAccountType() {
+        return accountType;
+    }
+
+    public void setAccountType(int accountType) {
+        this.accountType = accountType;
+    }
+
+    public String getRegisterMac() {
+        return registerMac;
+    }
+
+    public void setRegisterMac(String registerMac) {
+        this.registerMac = registerMac;
+    }
+
+    public String getLastLoginMac() {
+        return lastLoginMac;
+    }
+
+    public void setLastLoginMac(String lastLoginMac) {
+        this.lastLoginMac = lastLoginMac;
+    }
+
+    public long getLastLoginTime() {
+        return lastLoginTime;
+    }
+
+    public void setLastLoginTime(long lastLoginTime) {
+        this.lastLoginTime = lastLoginTime;
+    }
+
+    public long getLastOfflineTime() {
+        return lastOfflineTime;
+    }
+
+    public void setLastOfflineTime(long lastOfflineTime) {
+        this.lastOfflineTime = lastOfflineTime;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
+    }
+
+    public Map<LoginType, String> getThirdAccounts() {
+        return thirdAccounts;
+    }
+
+    public void setThirdAccounts(Map<LoginType, String> thirdAccounts) {
+        this.thirdAccounts = thirdAccounts;
     }
 }

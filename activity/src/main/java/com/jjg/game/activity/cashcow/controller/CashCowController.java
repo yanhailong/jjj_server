@@ -26,7 +26,6 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
-import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -289,6 +288,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                         if (list.getFirst() <= joinTimes && joinTimes < list.get(1)) {
                             // 按万分比概率判断是否中奖
                             Integer probability = list.getLast();
+                            boolean isFix = false;
                             if (RandomUtil.randomInt(10000) < probability) {
                                 // 从奖池中扣除 cfg.getDistribution() 并返回实际发奖数量（DAO 负责判空/原子减）
                                 get = cashCowDao.reduceActivityPool(activityId, cfg.getDistribution());
@@ -298,13 +298,14 @@ public class CashCowController extends BaseActivityController implements TimerLi
                                 if (get > 0) {
                                     log.info("摇钱树 固定奖励中奖 playerId:{} activityId:{} detailId:{} get:{}", playerId, activityId, detailId, get);
                                 }
+                                isFix = true;
                             }
                             if (get > 0) {
                                 // 给玩家发放金币（或其他道具，目前为金币）
                                 addedItem = playerPackService.addItem(playerId, ItemUtils.getGoldItemId(), get, AddType.ACTIVITY_CASHCOW_JOIN);
                                 // 记录玩家中奖记录（写到玩家记录表或排行榜）
                                 CashCowRecordData cashCowRecordData = new CashCowRecordData(activityData.getRound(), System.currentTimeMillis(), oldPlayer.getNickName(), cfg.getType(), get);
-                                cashCowDao.savePlayerRecordActivity(playerId, activityId, cashCowRecordData);
+                                cashCowDao.savePlayerRecordActivity(playerId, activityId, cashCowRecordData, isFix);
                                 //计算vip获得
                                 vipGet = vipPrivilegedAdd(oldPlayer, get);
                                 if (vipGet != null) {
@@ -571,7 +572,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                     if (get > 0) {
                         // 记录机器人中奖（不发包给“机器人账户”，只是写记录）
                         CashCowRecordData cashCowRecordData = new CashCowRecordData(activityData.getRound(), System.currentTimeMillis(), robotPlayer.getNickName(), cfg.getType(), get);
-                        cashCowDao.savePlayerRecordActivity(robotPlayer.getId(), activityData.getId(), cashCowRecordData);
+                        cashCowDao.savePlayerRecordActivity(robotPlayer.getId(), activityData.getId(), cashCowRecordData, false);
                     }
                 }
             }
@@ -920,27 +921,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         // 获取玩家该活动的历史数据
         Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
         if (CollectionUtil.isNotEmpty(playerActivityData)) {
-            boolean needRest = false;
-            Map<Integer, CashcowCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
-            Iterator<Map.Entry<Integer, CashCowPlayerActivityData>> iterator = playerActivityData.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<Integer, CashCowPlayerActivityData> entry = iterator.next();
-                CashCowPlayerActivityData data = entry.getValue();
-                // 如果期数数不一致，则需要重置
-                if (data.getRound() != activityData.getRound()) {
-                    needRest = true;
-                    break;
-                }
-                CashcowCfg cfg = baseCfgBeanMap.get(entry.getKey());
-                if (cfg != null && cfg.getType() == ActivityConstant.CashCow.CUMULATIVE_REWARDS_REWARD_TYPE) {
-                    iterator.remove();
-                }
-            }
-            if (needRest) {
-                playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
-            } else {
-                playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
-            }
+            playerActivityDao.clearPlayerActivityData(playerId, activityData.getType());
         }
         cashCowDao.delPlayerActivityProgress(playerId, activityData.getId());
     }

@@ -61,12 +61,21 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
     protected void modifyGirdAction(SpecialModeCfg cfg, PegasusUnbridleResultLib lib, int[] arr) {
         List<Integer> specialGirdID = cfg.getSpecialGirdID();
         if (specialGirdID != null && !specialGirdID.isEmpty()) {
-            for (int specialGirdCfgId : specialGirdID) {
+            for (int i = 0; i < specialGirdID.size(); i++) {
+                int specialGirdCfgId = specialGirdID.get(i);
                 boolean allUpdate = girdUpdateIsAllUpdate(specialGirdCfgId, arr);
+                if (cfg.getType() != PegasusUnbridleConstant.SpecialMode.NORMAL && i > 0) {
+                    PegasusUnbridleResultLib resultLib = new PegasusUnbridleResultLib();
+                    lib.setRollerMode(cfg.getRollerMode());
+                    resultLib.setIconArr(Arrays.copyOf(arr, arr.length));
+                    resultLib.setAwardLineInfoList(winLines(resultLib, false));
+                    lib.addRandomResult(resultLib);
+                }
                 if (!allUpdate) {
                     break;
                 }
             }
+
         }
     }
 
@@ -105,9 +114,6 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
         //出现的次数记录
         Map<Integer, Integer> girdShowMap = new HashMap<>();
 
-        SpecialGirdInfo info = new SpecialGirdInfo();
-        info.setCfgId(specialGirdCfg.getId());
-
         //记录实际修改格子的次数
         int x = 0;
         int maxForCount = arr.length * 2;
@@ -139,6 +145,7 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
             }
         }
         log.debug("修改后的图标 arr = {}", Arrays.toString(arr));
+
         return x >= randCount;
     }
 

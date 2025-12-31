@@ -6,6 +6,7 @@ import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
+import com.jjg.game.core.constant.GameFunctionConstant;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.ConditionManager;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 游戏功能服务
@@ -121,11 +123,23 @@ public class GameFunctionService implements GameEventListener, ConfigExcelChange
         if (!functionCfg.getIsOpen()) {
             return false;
         }
+        Map<Integer, Integer> conditionTypeMap = functionCfg.getVipLevel();
 
-        List<Integer> conditionTypes = functionCfg.getVipLevel();
-        List<Integer> conditionCfg = new ArrayList<>(conditionTypes);
+        boolean achievement = true;
+        for (Map.Entry<Integer, Integer> integerIntegerEntry : conditionTypeMap.entrySet()) {
+            List<Integer> conditionCfg = new ArrayList<>();
+            conditionCfg.add(integerIntegerEntry.getKey());
+            conditionCfg.add(integerIntegerEntry.getValue());
+            if (integerIntegerEntry.getKey() == GameFunctionConstant.ConditionType.CONDITION_LEVEL) {
+                achievement = conditionManager.isAchievement(player, player.getLevel(), conditionCfg);
+            } else if (integerIntegerEntry.getKey() == GameFunctionConstant.ConditionType.CONDITION_VIP_LEVEL) {
+                achievement = conditionManager.isAchievement(player, player.getVipLevel(), conditionCfg);
+            }else {
+                achievement = false;
+            }
+        }
+
         // 检查是否触发成功
-        boolean achievement = conditionManager.isAchievement(player, player.getLevel(), conditionCfg);
         if (!achievement && notify) {
             TipUtils.sendToastTip(player.getId(), 16030);
         }
@@ -156,18 +170,22 @@ public class GameFunctionService implements GameEventListener, ConfigExcelChange
                 continue;
             }
             // 条件类型
-            List<Integer> conditionTypes = gameFunctionCfg.getVipLevel();
-            ConditionCfg conditionCfg = GameDataManager.getConditionCfg(conditionTypes.getFirst());
-            if (conditionCfg == null) {
-                continue;
+            Set<Integer> conditionTypeSet = gameFunctionCfg.getVipLevel().keySet();
+            for (Integer conditionType : conditionTypeSet) {
+                ConditionCfg conditionCfg = GameDataManager.getConditionCfg(conditionType);
+                if (conditionCfg == null) {
+                    continue;
+                }
+                // 获取游戏事件类型
+                EGameEventType gameEventType = EGameEventType.gameEventType(conditionCfg.getTriggerEventType());
+                if (gameEventType == null) {
+                    log.error("条件表配置异常，配置的事件触发类型：{} 在游戏事件枚举中缺失", conditionCfg.getTriggerEventType());
+                    continue;
+                }
+                tmpGameTypeOfFuncCache.computeIfAbsent(gameEventType, k -> new ArrayList<>()).add(gameFunctionCfg);
             }
-            // 获取游戏事件类型
-            EGameEventType gameEventType = EGameEventType.gameEventType(conditionCfg.getTriggerEventType());
-            if (gameEventType == null) {
-                log.error("条件表配置异常，配置的事件触发类型：{} 在游戏事件枚举中缺失", conditionCfg.getTriggerEventType());
-                continue;
-            }
-            tmpGameTypeOfFuncCache.computeIfAbsent(gameEventType, k -> new ArrayList<>()).add(gameFunctionCfg);
+
+
         }
         this.gameTypeOfFuncCache = tmpGameTypeOfFuncCache;
     }

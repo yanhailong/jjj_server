@@ -1483,7 +1483,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             if (playerGameData.getOfflineEventMap() != null && !playerGameData.getOfflineEventMap().isEmpty()) {
                 for (Map.Entry<Integer, OffLineEventData> en : playerGameData.getOfflineEventMap().entrySet()) {
                     OffLineEventData data = en.getValue();
-                    data.setActionMills(now + data.getActionMills());
+                    data.setActionMills(now + data.getActionMills() + data.getDelayMills());
                 }
             }
         }

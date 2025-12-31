@@ -139,7 +139,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         int total = gameDataVo.getSeatDownNotReadyNum();
         if (getCurrentGamePhase() == EGamePhase.WAIT_READY && roomCfg.getMinPlayer() <= total && total <= roomCfg.getMaxPlayer()) {
             addPokerPhaseTimer(new TexasStartGamePhase(this));
-            log.info("尝试开启下一局 当前id{}", gameDataVo.getId());
+            log.info("尝试开启下一局 当前id{} roomId:{}", gameDataVo.getId(), roomController.getRoom().getId());
             nextRoundStart();
             return true;
         }
@@ -904,6 +904,10 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             long playerLatestOperateTime = pokerPlayerGameData.getPlayerLatestOperateTime();
             // 暂停玩家操作时间
             if (playerLatestOperateTime <= 0) {
+                continue;
+            }
+            if (gamePlayer instanceof GameRobotPlayer&&!seatInfo.isSeatDown()) {
+                roomController.getRoomManager().exitRoom(gamePlayer.getId());
                 continue;
             }
             // 如果超过最大退出时间

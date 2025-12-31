@@ -16,8 +16,20 @@ public class PegasusUnbridleGameRunInfo extends GameRunInfo<PegasusUnbridlePlaye
         super(code, playerId);
     }
 
+    //是否是福马模式结束
+    private boolean isFuMaEnd;
     //中奖线信息
     private List<PegasusUnbridleWinIconInfo> awardLineInfos;
+    //滚轴类型
+    private int scrollType;
+
+    public boolean isFuMaEnd() {
+        return isFuMaEnd;
+    }
+
+    public void setFuMaEnd(boolean fuMaEnd) {
+        isFuMaEnd = fuMaEnd;
+    }
 
     public List<PegasusUnbridleWinIconInfo> getAwardLineInfos() {
         return awardLineInfos;
@@ -25,5 +37,13 @@ public class PegasusUnbridleGameRunInfo extends GameRunInfo<PegasusUnbridlePlaye
 
     public void setAwardLineInfos(List<PegasusUnbridleWinIconInfo> awardLineInfos) {
         this.awardLineInfos = awardLineInfos;
+    }
+
+    public int getScrollType() {
+        return scrollType;
+    }
+
+    public void setScrollType(int scrollType) {
+        this.scrollType = scrollType;
     }
 }
