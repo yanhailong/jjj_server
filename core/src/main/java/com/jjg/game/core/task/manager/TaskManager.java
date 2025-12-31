@@ -462,20 +462,20 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
     public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
         long playerId = player.getId();
         TaskManager taskManager = this;
-        if (firstLogin) {
-            PlayerExecutorGroupDisruptor.getDefaultExecutor()
-                    .tryPublish(playerId, 0, new BaseHandler<String>() {
-                        @Override
-                        public void action() {
-                            TaskData taskData = playerTaskMap.computeIfAbsent(playerId, k -> taskService.getPlayerTask(playerId));
-                            try {
+        PlayerExecutorGroupDisruptor.getDefaultExecutor()
+                .tryPublish(playerId, 0, new BaseHandler<String>() {
+                    @Override
+                    public void action() {
+                        TaskData taskData = playerTaskMap.computeIfAbsent(playerId, k -> taskService.getPlayerTask(playerId));
+                        try {
+                            if (firstLogin) {
                                 taskService.checkTask(playerId, taskData, taskManager);
-                            } catch (Exception e) {
-                                log.error("初始化玩家任务失败 playerId={}, firstLogin={}, error={}", playerId, firstLogin, e.getMessage(), e);
                             }
+                        } catch (Exception e) {
+                            log.error("初始化玩家任务失败 playerId={}, firstLogin={}, error={}", playerId, firstLogin, e.getMessage(), e);
                         }
-                    }.setHandlerParamWithSelf("task onPlayerLoginSuccess"));
-        }
+                    }
+                }.setHandlerParamWithSelf("task onPlayerLoginSuccess"));
     }
 
     @Override
