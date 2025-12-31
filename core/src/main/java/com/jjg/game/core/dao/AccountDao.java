@@ -11,9 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -180,6 +182,46 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
             return result;
         });
         return result;
+    }
+
+    /**
+     * 批量获取玩家
+     */
+    public Map<Long, Account> multiGetAccountMap(Collection<Long> ids) {
+        List<Account> players = multiGetAccount(ids);
+        return players.stream()
+                .filter(Objects::nonNull)
+                .collect(HashMap::new, (map, e) -> map.put(e.getPlayerId(), e), HashMap::putAll);
+    }
+
+    /**
+     * 批量获取账号
+     */
+    public List<Account> multiGetAccount(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        HashOperations<String, Long, Account> operations = redisTemplate.opsForHash();
+        List<Account> redisAccount = operations.multiGet(DATA_TABLE_NAME, ids);
+        // 过滤空数据
+        redisAccount = redisAccount.stream().filter(Objects::nonNull).toList();
+        if (redisAccount.size() == ids.size()) {
+            return new ArrayList<>(redisAccount);
+        }
+        Map<Long, Account> accountMap =
+                redisAccount.stream().filter(Objects::nonNull)
+                        .collect(HashMap::new, (map, e) -> map.put(e.getPlayerId(), e), HashMap::putAll);
+
+        // 需要从数据中查询
+        Set<Long> queryFromDb = new HashSet<>(ids);
+        queryFromDb.removeAll(accountMap.keySet());
+        List<Account> players = findAllById(queryFromDb);
+        // 如果数据库中也查不到，直接返回从redis中查询到的数据
+        if (players.isEmpty()) {
+            return new ArrayList<>(accountMap.values().stream().toList());
+        }
+        players.addAll(accountMap.values());
+        return new ArrayList<>(players.stream().filter(Objects::nonNull).toList());
     }
 
     private String getBindLockKey(LoginType loginType, String data) {

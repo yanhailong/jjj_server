@@ -64,8 +64,7 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
     /**
      * 创建押注好友房
      */
-    public FriendRoom createBetFriendRoom(
-            long playerId, String nodePath, WarehouseCfg warehouseCfg, CreateFriendsRoom req) {
+    public FriendRoom createBetFriendRoom(long playerId, long roomId, String nodePath, WarehouseCfg warehouseCfg, CreateFriendsRoom req) {
         try {
             int gameType = warehouseCfg.getGameID();
             int roomCfgId = warehouseCfg.getId();
@@ -73,6 +72,7 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
             int maxLimit = roomMaxLimit.getT1();
             long curTime = System.currentTimeMillis();
             T friendRoom = fillFriendRoomData(gameType, warehouseCfg, nodePath, maxLimit);
+            friendRoom.setId(roomId);
             friendRoom.setRoomCfgId(roomCfgId);
             friendRoom.setAliasName(req.roomAliasName);
             friendRoom.setOverdueTime(req.timeOfOpenRoom + curTime);

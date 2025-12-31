@@ -163,13 +163,16 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
      */
     protected T createRoom(T room, boolean save) {
         try {
-            //随机房间号
-            long roomId = snowflakeManager.nextId();
-            room.setId(roomId);
-            if (!save) {
-                return room;
+            if(room.getId() < 1){
+                //随机房间号
+                long roomId = snowflakeManager.nextId();
+                room.setId(roomId);
+                if (!save) {
+                    return room;
+                }
+                log.debug("创建房间是生成的房间id = {}", roomId);
             }
-            log.debug("创建房间是生成的房间id = {}", roomId);
+
             boolean success = putIfAbsent(room);
             if (success) {
                 return room;

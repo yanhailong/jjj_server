@@ -122,7 +122,6 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
         RobotPlayer robotPlayer = robotUtil.initRobotPlayer(robotCfg);
         robotPlayer.setRoomId(roomId);
         robotPlayer.setRoomCfgId(roomCfg.getId());
-        robotPlayer.setNickName("player" + robotPlayer.getId());
         robotPlayer.setGold(gold);
         robotPlayer.setGameType(roomCfg.getGameID());
         robotPlayer.setRoomCfgId(roomCfg.getId());

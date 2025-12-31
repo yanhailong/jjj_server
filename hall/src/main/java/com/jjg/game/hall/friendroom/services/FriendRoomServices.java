@@ -21,6 +21,7 @@ import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao.GameBillResult;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.core.manager.SnowflakeManager;
 import com.jjg.game.core.rpc.HallRoomBridge;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
@@ -48,6 +49,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
@@ -101,6 +103,9 @@ public class FriendRoomServices {
     private HallPoolDao hallPoolDao;
     @Autowired
     private CoreLogger coreLogger;
+    @Lazy
+    @Autowired
+    protected SnowflakeManager snowflakeManager;
 
     /**
      * 创建好友房
@@ -142,14 +147,19 @@ public class FriendRoomServices {
         // 扣除道具
         CommonResult<ItemOperationResult> removeItem;
         Map<Integer, Long> itemMap;
+        //随机房间号
+        long roomId = snowflakeManager.nextId();
+
+        String roomIdStr = String.valueOf(roomId);
         if (req.predictCostGoldNum != 0) {
             itemMap = ItemUtils.mergeItemsOnCreate(Map.of(reqItem.getId(), reqItem.getItemCount()),
                     Map.of(ItemUtils.getDiamondItemId(), req.predictCostGoldNum));
-            removeItem = playerPackService.removeItems(player, itemMap, AddType.CREATE_FRIEND_ROOM);
+            removeItem = playerPackService.removeItems(player, itemMap, AddType.CREATE_FRIEND_ROOM, roomIdStr);
         } else {
             itemMap = Map.of(reqItem.getId(), reqItem.getItemCount());
-            removeItem = playerPackService.removeItem(player.getId(), reqItem, AddType.CREATE_FRIEND_ROOM);
+            removeItem = playerPackService.removeItem(player, Collections.singletonList(new Item(reqItem.getId(), reqItem.getItemCount())), AddType.CREATE_FRIEND_ROOM, roomIdStr);
         }
+
         // 移除道具失败
         if (!removeItem.success()) {
             return removeItem.code;
@@ -159,11 +169,14 @@ public class FriendRoomServices {
         // 创建房间
         FriendRoom friendRoom = this.friendRoomDao.createBetFriendRoom(
                 player.getId(),
+                roomId,
                 targetNode.getNodePath(),
                 warehouseCfg,
                 new CreateFriendsRoom(req.itemId, req.roomCfgId, openTime, req.autoRenewal,
                         req.predictCostGoldNum, req.roomAliasName, req.timeOfOpenRoom));
         if (friendRoom == null) {
+            //创建房间失败，将消耗的道具回退
+            playerPackService.addItems(player.getId(), itemMap, AddType.CREATE_FRIEND_FAIL_CALLBACK, roomIdStr);
             return Code.PARAM_ERROR;
         }
         RespCreateFriendsRoom res = new RespCreateFriendsRoom(Code.SUCCESS);

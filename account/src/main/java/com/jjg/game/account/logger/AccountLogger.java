@@ -3,6 +3,7 @@ package com.jjg.game.account.logger;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.logger.BaseLogger;
 import com.jjg.game.core.logger.CoreLogger;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 /**
@@ -32,7 +33,7 @@ public class AccountLogger extends BaseLogger {
             json.put("mac", mac);
             json.put("device", device);
             json.put("phoneType", phoneType);
-            json.put("intro_way", subChannel);
+            json.put("intro_way", StringUtils.isBlank(subChannel) ? "jjchannel" : subChannel);
             sendLog("register", null, json);
         } catch (Exception e) {
             log.error("记录guestLogin登录日志异常", e);

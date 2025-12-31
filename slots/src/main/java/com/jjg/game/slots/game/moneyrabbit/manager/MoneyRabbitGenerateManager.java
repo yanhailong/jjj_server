@@ -7,6 +7,7 @@ import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.moneyrabbit.MoneyRabbitConstant;
@@ -171,6 +172,11 @@ public class MoneyRabbitGenerateManager extends AbstractSlotsGenerateManager<Mon
         return times;
     }
 
+    /**
+     * 特殊模式
+     * @param lib
+     * @return
+     */
     private int calSpecialModel(MoneyRabbitResultLib lib) {
         if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
             return 0;
@@ -184,7 +190,19 @@ public class MoneyRabbitGenerateManager extends AbstractSlotsGenerateManager<Mon
             if (specialAuxiliaryInfo.getAwardInfos() == null || specialAuxiliaryInfo.getAwardInfos().isEmpty()) {
                 continue;
             }
+
+            SpecialAuxiliaryAwardInfo specialAuxiliaryAwardInfo = specialAuxiliaryInfo.getAwardInfos().stream().findFirst().orElseGet(null);
+            if (specialAuxiliaryAwardInfo == null) {
+                continue;
+            }
+
             SpecialAuxiliaryCfg cfg = GameDataManager.getSpecialAuxiliaryCfg(specialAuxiliaryInfo.getCfgId());
+            if(cfg == null){
+                continue;
+            }
+
+            int randCount = specialAuxiliaryAwardInfo.getRandCount();
+
             int prop = cfg.getAwardTypeA().get(1);
             if (!SlotsUtil.calProp(prop)) {
                 continue;
@@ -203,6 +221,7 @@ public class MoneyRabbitGenerateManager extends AbstractSlotsGenerateManager<Mon
                     }
                 }
             }
+            times *= randCount;
         }
         return times;
     }
