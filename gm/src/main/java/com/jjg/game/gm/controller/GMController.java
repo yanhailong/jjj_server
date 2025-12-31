@@ -1168,19 +1168,30 @@ public class GMController extends AbstractController {
     public WebResult<List<PlayerAndAccountVo>> backendRecharge(@RequestBody BackendRechargeDto dto) {
         log.info("收到后台充值 dto = {}", dto);
         try {
-            if (StringUtils.isBlank(dto.channelOrderId()) || dto.price() < 1 || dto.rechargeType() < 0 || dto.playerId() < 1) {
+            if (StringUtils.isBlank(dto.channelOrderId()) || dto.price() < 1 || dto.playerId() < 1 || dto.items() == null || dto.items().isEmpty()) {
+                log.warn("参数错误 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
-            RechargeType rechargeType = RechargeType.valueOf(dto.rechargeType());
-            if (rechargeType == null) {
-                log.warn("不支持的充值类型 dto = {}", dto);
-                return fail("common.paramerror");
+            List<Item> items = new ArrayList<>();
+            for (ItemDto itemDto : dto.items()) {
+                ItemCfg itemCfg = GameDataManager.getItemCfg(itemDto.id());
+                if (itemCfg == null) {
+                    log.warn("后台充值失败，未找到该道具 itemId = {}", itemDto.id());
+                    return fail("common.paramerror");
+                }
+
+                if (itemDto.count() < 1) {
+                    log.warn("后台充值失败，添加道具的数量不能小于1 itemId = {}", itemDto.id());
+                    return fail("common.paramerror");
+                }
+
+                items.add(new Item(itemDto.id(), itemDto.count()));
             }
 
             //是否缓存充值节点
             ClusterClient client = clusterSystem.randClientByType(NodeType.RECHARGE);
-            if(client == null){
+            if (client == null) {
                 log.warn("未找到充值节点 dto = {}", dto);
                 return fail("common.paramerror");
             }
@@ -1197,14 +1208,14 @@ public class GMController extends AbstractController {
             }
 
             BigDecimal price = BigDecimal.valueOf(dto.price());
-            Order order = orderService.generateOrder(player.getId(), ChannelType.BACKEND, PayType.BACKEND, dto.productId(), price, rechargeType, OrderStatus.ORDER, null);
+            Order order = orderService.generateOrder("htcz", player.getId(), price, RechargeType.BACKEND, items);
             if (order == null) {
                 log.warn("后台充值时，生成订单失败 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
             //rpc调用充值
-            int code = backendBridge.recharge(order.getId(), dto.channelOrderId(), dto.price(), dto.rechargeType());
+            int code = backendBridge.recharge(order.getId(), dto.channelOrderId());
             if (code != Code.SUCCESS) {
                 log.warn("后台充值失败 code = {}", code);
                 return fail("common.fail");

@@ -1,10 +1,11 @@
 package com.jjg.game.gm.dto;
 
+import java.util.List;
+
 public record BackendRechargeDto(
         long playerId,
         String channelOrderId,
-        String productId,
         long price,
-        int rechargeType
+        List<ItemDto> items
 ) {
 }

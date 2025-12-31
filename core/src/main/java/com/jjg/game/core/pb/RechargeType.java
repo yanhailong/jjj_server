@@ -43,6 +43,10 @@ public enum RechargeType {
      * 每日充值
      */
     DAILY_RECHARGE(8),
+    /**
+     * 后台充值
+     */
+    BACKEND(9),
     ;
     private final int type;
 

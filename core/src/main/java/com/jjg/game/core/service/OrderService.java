@@ -9,12 +9,14 @@ import com.jjg.game.core.dao.OrderDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.RechargeType;
 import com.mongodb.DuplicateKeyException;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -49,7 +51,17 @@ public class OrderService {
      * @return
      */
     public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price, RechargeType rechargeType) {
-        return generateOrder(playerId, playerChannel, payType, productId, price, rechargeType, OrderStatus.ORDER, null);
+        return generateOrder(playerId, playerChannel, payType, productId, price, rechargeType, OrderStatus.ORDER, null, null);
+    }
+
+    private Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price,
+                                RechargeType rechargeType, OrderStatus orderStatus, String channelProductId, List<Item> items) {
+        return generateOrder(null, playerId, playerChannel, payType, productId, price, rechargeType, orderStatus, channelProductId, items);
+    }
+
+    public Order generateOrder(String orderIdPrefix, long playerId, BigDecimal price, RechargeType rechargeType, List<Item> items) {
+        Account account = accountDao.queryAccountByPlayerId(playerId);
+        return generateOrder(orderIdPrefix, playerId, account.getChannel(), null, null, price, rechargeType, OrderStatus.ORDER, null, items);
     }
 
     /**
@@ -60,9 +72,10 @@ public class OrderService {
      * @param price
      * @return
      */
-    public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price, RechargeType rechargeType, OrderStatus orderStatus, String channelProductId) {
+    private Order generateOrder(String orderIdPrefix, long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price,
+                                RechargeType rechargeType, OrderStatus orderStatus, String channelProductId, List<Item> items) {
         for (int i = 0; i < CoreConst.Common.MONGO_TRY_COUNT; i++) {
-            String orderId = "cz" + DateUtil.format(DateUtil.date(), "yyMMdd") + RandomUtils.getRandomString(9);
+            String orderId = (StringUtils.isBlank(orderIdPrefix) ? "cz" : orderIdPrefix) + DateUtil.format(DateUtil.date(), "yyMMdd") + RandomUtils.getRandomString(9);
             String uuid = RandomUtils.getOriginalUUid();
             try {
                 Order order = new Order();
@@ -78,6 +91,7 @@ public class OrderService {
                 order.setRechargeType(rechargeType);
                 order.setCreateTime(TimeHelper.nowInt());
                 order.setChannelProductId(channelProductId);
+                order.setItems(items);
                 orderDao.insert(order);
                 return order;
             } catch (DuplicateKeyException e) {
@@ -109,7 +123,7 @@ public class OrderService {
      * @return 删除的订单数量
      */
     public void clean() {
-        int expire = TimeHelper.nowInt() - (int)TimeUnit.DAYS.toSeconds(60);
+        int expire = TimeHelper.nowInt() - (int) TimeUnit.DAYS.toSeconds(60);
         long delCount = orderDao.deleteOrdersBeforeTimestamp(expire);
         log.info("删除过期订单数量 = {}", delCount);
     }

@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 订单
@@ -42,6 +43,8 @@ public class Order {
     private String channelOrderId;
     //渠道产品id
     private String channelProductId;
+    //附加的道具
+    private List<Item> items;
 
     public String getId() {
         return id;
@@ -145,5 +148,13 @@ public class Order {
 
     public void setChannelProductId(String channelProductId) {
         this.channelProductId = channelProductId;
+    }
+
+    public List<Item> getItems() {
+        return items;
+    }
+
+    public void setItems(List<Item> items) {
+        this.items = items;
     }
 }
