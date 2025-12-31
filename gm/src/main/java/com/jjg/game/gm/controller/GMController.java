@@ -636,7 +636,16 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            List<OnlinePlayer> list = onlinePlayerDao.query(dto.gameId(), dto.registerChannel(), dto.pageSize(), dto.page());
+            List<String> subChannels = new ArrayList<>();
+            if(dto.subChannels() != null){
+                for(String str : dto.subChannels()){
+                    if(!StringUtils.isBlank(str)){
+                        subChannels.add(str);
+                    }
+                }
+            }
+
+            List<OnlinePlayer> list = onlinePlayerDao.query(dto.gameId(), dto.registerChannel(), subChannels, dto.pageSize(), dto.page());
             if (list == null || list.isEmpty()) {
                 return success("common.success");
             }
