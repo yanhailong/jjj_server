@@ -11,8 +11,7 @@ public class RPCController extends AbstractCallbackController implements Backend
     @Override
     public int recharge(String selfOrderId, String channelOrderId) {
         try {
-            log.info("收到后台充值的请求 selfOrderId = {},channelOrderId = {}",
-                    selfOrderId, channelOrderId);
+            log.info("收到后台充值的请求 selfOrderId = {},channelOrderId = {}",selfOrderId, channelOrderId);
 
             Order order = orderService.getOrder(selfOrderId);
             if (order == null) {

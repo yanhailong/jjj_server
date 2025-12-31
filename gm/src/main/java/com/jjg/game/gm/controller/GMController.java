@@ -1182,6 +1182,15 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
+            RechargeType rechargeType = RechargeType.BACKEND;
+            if(dto.rechargeType() > 0){
+                rechargeType = RechargeType.valueOf(dto.rechargeType());
+                if(rechargeType == null){
+                    log.warn("参数错误,rechargeType无法识别 dto = {}", dto);
+                    return fail("common.paramerror");
+                }
+            }
+
             List<Item> items = new ArrayList<>();
             for (ItemDto itemDto : dto.items()) {
                 ItemCfg itemCfg = GameDataManager.getItemCfg(itemDto.id());
@@ -1217,7 +1226,7 @@ public class GMController extends AbstractController {
             }
 
             BigDecimal price = BigDecimal.valueOf(dto.price());
-            Order order = orderService.generateOrder("htcz", player.getId(), price, RechargeType.BACKEND, items);
+            Order order = orderService.generateOrder("htcz", player.getId(), price, rechargeType, items);
             if (order == null) {
                 log.warn("后台充值时，生成订单失败 dto = {}", dto);
                 return fail("common.paramerror");
