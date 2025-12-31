@@ -376,9 +376,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return result;
         }
 
+        //赋值lastModleId， 初始化的playerGameData.LastModelId = 0
+        playerGameData.setLastModelId(playerGameData.getLastModelId() > 0 ? playerGameData.getLastModelId() : libCfgResult.data.getModelId());
         //从数据库获取结果库
-        CommonResult<L> libResult = getLibFromDB(playerGameData,specialModeNormalType);
-        if(!libResult.success()){
+        CommonResult<L> libResult = getLibFromDB(playerGameData, specialModeNormalType);
+        if (!libResult.success()) {
             result.code = libResult.code;
             return result;
         }
@@ -402,6 +404,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setAllBetScore(betScoreArr[1]);
 
         playerGameData.setLastModelId(libCfgResult.data.getModelId());
+        log.info("更新结果库 modelId = {}", libCfgResult.data.getModelId());
         PlayerController playerController = playerGameData.getPlayerController();
         //获取最新的玩家
         if (playerController != null) {
@@ -437,7 +440,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (freeLib == null) {
             //缓存中没有，就从数据库获取
             CommonResult<L> libResult = getLibFromDB(playerGameData, specialModeFreeLibType);
-            if(!libResult.success()) {
+            if (!libResult.success()) {
                 result.code = libResult.code;
                 return result;
             }
@@ -1848,6 +1851,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //如果获取结果库失败，会重试，所以用循环
             for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
                 //获取倍数区间
+                log.info("获取结果库 和 游戏模式 modelId = {},libType = {}", playerGameData.getLastModelId(), libType);
                 CommonResult<Integer> resultLibSectionResult = getResultLibSection(playerGameData.getLastModelId(), libType);
                 if (!resultLibSectionResult.success()) {
                     result.code = resultLibSectionResult.code;
