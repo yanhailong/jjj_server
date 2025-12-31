@@ -247,18 +247,18 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
         }
         log.info("切换节点，sessionId={},toNode={}", pfSession.sessionId(), marsNode.getNodePath());
         try {
+            onSwitchNodeBefore(pfSession);
             SwitchNodeMessage switchNodeMessage = new SwitchNodeMessage(pfSession.sessionId(), marsNode.getNodePath()
                     , pfSession.playerId);
             pfSession.send2Gate(switchNodeMessage);
-            onSwitchNodeAfter(pfSession);
         } catch (Exception e) {
             log.warn("节点切换异常", e);
         }
     }
 
-    private void onSwitchNodeAfter(PFSession pfSession) {
+    private void onSwitchNodeBefore(PFSession pfSession) {
         List<OnSwitchNode> gameSysInterface = SystemInterfaceHolder.getGameSysInterface(OnSwitchNode.class);
-        if (CollectionUtil.isEmpty(gameSysInterface)) {
+        if (CollectionUtil.isNotEmpty(gameSysInterface)) {
             for (OnSwitchNode event : gameSysInterface) {
                 try {
                     event.OnSwitchNodeAction(pfSession);
