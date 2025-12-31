@@ -21,11 +21,12 @@ public class OnlinePlayerDao extends MongoBaseDao<OnlinePlayer, Long> {
         super(OnlinePlayer.class, mongoTemplate);
     }
 
-    public void online(long playerId, int channel, int gameType) {
+    public void online(long playerId, int channel, int gameType, String subChannel) {
         OnlinePlayer onlinePlayer = new OnlinePlayer();
         onlinePlayer.setPlayerId(playerId);
         onlinePlayer.setChannel(channel);
         onlinePlayer.setGameType(gameType);
+        onlinePlayer.setSubChannel(subChannel);
         mongoTemplate.save(onlinePlayer);
     }
 
@@ -55,10 +56,10 @@ public class OnlinePlayerDao extends MongoBaseDao<OnlinePlayer, Long> {
 
         Query query = new Query();
 
-        ChannelType channelType = ChannelType.valueOf(channel,null);
-        if(channelType != null){
+        ChannelType channelType = ChannelType.valueOf(channel, null);
+        if (channelType != null) {
             query.addCriteria(Criteria.where("channel").is(channelType.getValue()).and("gameType").is(gameType));
-        }else {
+        } else {
             query.addCriteria(Criteria.where("gameType").is(gameType));
         }
 
@@ -68,9 +69,9 @@ public class OnlinePlayerDao extends MongoBaseDao<OnlinePlayer, Long> {
 
     public long countBy(int channel, int gameType) {
         Query query = new Query();
-        if(channel > 0){
+        if (channel > 0) {
             query.addCriteria(Criteria.where("channel").is(channel).and("gameType").is(gameType));
-        }else {
+        } else {
             query.addCriteria(Criteria.where("gameType").is(gameType));
         }
         return mongoTemplate.count(query, OnlinePlayer.class);

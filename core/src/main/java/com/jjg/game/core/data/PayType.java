@@ -7,6 +7,7 @@ package com.jjg.game.core.data;
 public enum PayType {
     GOOGLE(1),
     IOS(2),
+    BACKEND(3),
 
     ;
 

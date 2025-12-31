@@ -77,7 +77,7 @@ public class OrderService {
                 order.setOrderStatus(orderStatus);
                 order.setRechargeType(rechargeType);
                 order.setCreateTime(TimeHelper.nowInt());
-                order.setChannelOrderId(channelProductId);
+                order.setChannelProductId(channelProductId);
                 orderDao.insert(order);
                 return order;
             } catch (DuplicateKeyException e) {

@@ -17,6 +17,8 @@ import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.rpc.ClusterRpcReference;
+import com.jjg.game.common.rpc.GameRpcContext;
+import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.*;
 import com.jjg.game.core.dao.*;
@@ -26,7 +28,9 @@ import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.gm.*;
+import com.jjg.game.core.rpc.BackendBridge;
 import com.jjg.game.core.rpc.HallPointsAwardBridge;
 import com.jjg.game.core.service.*;
 import com.jjg.game.gm.dao.SlotsLibDao;
@@ -44,6 +48,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -98,6 +103,10 @@ public class GMController extends AbstractController {
     private NoticeDao noticeDao;
     @Autowired
     private SharePromoteDao sharePromoteDao;
+    @ClusterRpcReference()
+    private BackendBridge backendBridge;
+    @Autowired
+    private OrderService orderService;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -1149,6 +1158,59 @@ public class GMController extends AbstractController {
                 list.add(vo);
             }
             return success("common.success", list);
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    @RequestMapping(BackendGMCmd.BACKEND_RECHARGE)
+    public WebResult<List<PlayerAndAccountVo>> backendRecharge(@RequestBody BackendRechargeDto dto) {
+        log.info("收到后台充值 dto = {}", dto);
+        try {
+            if (StringUtils.isBlank(dto.channelOrderId()) || dto.price() < 1 || dto.rechargeType() < 0 || dto.playerId() < 1) {
+                return fail("common.paramerror");
+            }
+
+            RechargeType rechargeType = RechargeType.valueOf(dto.rechargeType());
+            if (rechargeType == null) {
+                log.warn("不支持的充值类型 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            //是否缓存充值节点
+            ClusterClient client = clusterSystem.randClientByType(NodeType.RECHARGE);
+            if(client == null){
+                log.warn("未找到充值节点 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            GameRpcContext.getContext().withReqParameterBuilder(
+                    RpcReqParameterBuilder.create()
+                            .addClusterClient(client)
+                            .setTryMillisPerClient(1000));
+
+            Player player = playerService.get(dto.playerId());
+            if (player == null) {
+                log.warn("后台充值时，未找到玩家信息 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            BigDecimal price = BigDecimal.valueOf(dto.price());
+            Order order = orderService.generateOrder(player.getId(), ChannelType.BACKEND, PayType.BACKEND, dto.productId(), price, rechargeType, OrderStatus.ORDER, null);
+            if (order == null) {
+                log.warn("后台充值时，生成订单失败 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            //rpc调用充值
+            int code = backendBridge.recharge(order.getId(), dto.channelOrderId(), dto.price(), dto.rechargeType());
+            if (code != Code.SUCCESS) {
+                log.warn("后台充值失败 code = {}", code);
+                return fail("common.fail");
+            }
+            log.info("后台充值成功 dto = {},orderId = {}", dto, order.getId());
+            return success("common.success");
         } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");

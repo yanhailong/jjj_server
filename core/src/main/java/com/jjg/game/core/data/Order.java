@@ -40,6 +40,8 @@ public class Order {
     private int updateTime;
     //渠道订单id
     private String channelOrderId;
+    //渠道产品id
+    private String channelProductId;
 
     public String getId() {
         return id;
@@ -135,5 +137,13 @@ public class Order {
 
     public void setChannelOrderId(String channelOrderId) {
         this.channelOrderId = channelOrderId;
+    }
+
+    public String getChannelProductId() {
+        return channelProductId;
+    }
+
+    public void setChannelProductId(String channelProductId) {
+        this.channelProductId = channelProductId;
     }
 }
