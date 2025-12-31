@@ -82,8 +82,12 @@ public class OrderService {
                 order.setId(orderId);
                 order.setUuid(uuid);
                 order.setPlayerId(playerId);
-                order.setPlayerChannel(playerChannel.getValue());
-                order.setPayChannel(payType.getValue());
+                if(playerChannel != null){
+                    order.setPlayerChannel(playerChannel.getValue());
+                }
+                if(payType != null){
+                    order.setPayChannel(payType.getValue());
+                }
                 order.setProductId(productId);
                 order.setPrice(price);
 
