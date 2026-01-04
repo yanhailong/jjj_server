@@ -27,6 +27,7 @@ import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.core.service.CarouselService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.friendroom.services.FriendRoomServices;
@@ -91,6 +92,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private RedDotManager redDotManager;
     @Autowired
     private SharePromoteController sharePromoteController;
+    @Autowired
+    private TaskManager taskManager;
 
     public void init() {
     }
@@ -290,7 +293,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             // 调用登录接口类
             SystemInterfaceHolder.callGameSysAction(
                     IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, dayOfFirstLogin));
-
+            //加载任务数据
+            taskManager.initTaskData(player, dayOfFirstLogin);
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             session.send(res);

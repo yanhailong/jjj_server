@@ -19,6 +19,7 @@ import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -59,7 +60,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
     private final Map<Integer, IPlayerRoomEventListener> roomListenerMap = new HashMap<>();
     @Autowired
-    private PlayerSessionTokenDao playerSessionTokenDao;
+    private TaskManager taskManager;
 
     public void init() {
         Map<String, IPlayerRoomEventListener> listenerMap =
@@ -189,6 +190,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 roomManager.getProcessorExecutors().tryPublish(player.getRoomId(), 0, new BaseHandler<String>() {
                     @Override
                     public void action() {
+                        taskManager.loadTaskData(playerId);
                         PlayerController playerController = new PlayerController(session, player);
                         session.setReference(playerController);
                         int code = roomManager.joinRoom(playerController, finalInfo.getGameType(), finalInfo.getRoomCfgId(), player.getRoomId());
