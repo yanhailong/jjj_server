@@ -27,6 +27,7 @@ public class HallLogger extends BaseLogger {
             json.put("ip", ip);
             json.put("device", device);
             json.put("mac", mac);
+            json.put("subChannel", player.getSubChannel());
             sendLog("login", player, json);
         } catch (Exception e) {
             log.error("记录login登录日志异常", e);
