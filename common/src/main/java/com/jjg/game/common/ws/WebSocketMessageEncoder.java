@@ -17,7 +17,6 @@ import java.util.List;
  * @since 1.0
  */
 public class WebSocketMessageEncoder extends MessageToMessageEncoder<PFMessage> {
-    private Logger log = LoggerFactory.getLogger(this.getClass());
     @Override
     protected void encode(ChannelHandlerContext ctx, PFMessage msg, List<Object> out) throws Exception {
         Pack p = new Pack(msg.cmd, msg.data);

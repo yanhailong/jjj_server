@@ -1,6 +1,5 @@
 package com.jjg.game.room.services;
 
-import com.jjg.game.common.baselogic.ConsoleDebugger;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.timer.TimerCenter;
@@ -85,14 +84,12 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
             return;
         }
         // 本地调试时使用
-        if (ConsoleDebugger.isIdeModel()) {
-            if (nodeConfig.getNeedBootGameId() != null) {
-                List<Integer> needBootGameList = new ArrayList<>();
-                for (int gameId : nodeConfig.getNeedBootGameId()) {
-                    needBootGameList.add(gameId);
-                }
-                availableGames.keySet().removeIf(a -> !needBootGameList.contains(a));
+        if (nodeConfig.getNeedBootGameId() != null) {
+            List<Integer> needBootGameList = new ArrayList<>();
+            for (int gameId : nodeConfig.getNeedBootGameId()) {
+                needBootGameList.add(gameId);
             }
+            availableGames.keySet().removeIf(a -> !needBootGameList.contains(a));
         }
         String openedGames =
                 availableGames.values().stream().map(EGameType::getGameDesc).collect(Collectors.joining(","));

@@ -82,10 +82,6 @@ public class RpcClientService {
 
         int waitTime = rpcReqParameter != null && rpcReqParameter.getTryMillisPerClient() > 0
                 ? rpcReqParameter.getTryMillisPerClient() : reference.timeoutMillis();
-        // TODO.2CL 后续加入重试
-        int retryTimes = rpcReqParameter != null && rpcReqParameter.getRetryTimesPerClient() > 0
-                ? rpcReqParameter.getRetryTimesPerClient() : reference.tryTimes();
-
         // 发送消息并等待
         return flushMessageAndWait(clusterClients, message, waitTime, method.getReturnType());
     }
