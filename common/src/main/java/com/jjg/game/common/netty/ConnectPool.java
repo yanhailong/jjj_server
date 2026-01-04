@@ -1,18 +1,18 @@
 package com.jjg.game.common.netty;
 
-import com.jjg.game.common.utils.OSUtils;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.*;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.epoll.EpollSocketChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import com.jjg.game.common.net.Connect;
 import com.jjg.game.common.net.ConnectListener;
 import com.jjg.game.common.net.NetAddress;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.*;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollSocketChannel;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,9 +30,7 @@ import java.util.concurrent.TimeUnit;
 public class ConnectPool<T extends NettyConnect<Object>> implements ConnectListener, TimerListener<String>,
     ChannelFutureListener {
 
-    public final static int MAX_POOL_SIZE = 10;
-    public final static int POOL_SIZE = 1;
-    private static final EventLoopGroup WORKER_GROUP = OSUtils.IS_LINUX ? new EpollEventLoopGroup() :
+    private static final EventLoopGroup WORKER_GROUP = Epoll.isAvailable() ? new EpollEventLoopGroup() :
         new NioEventLoopGroup();
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final NetAddress netAddress;
@@ -40,26 +38,17 @@ public class ConnectPool<T extends NettyConnect<Object>> implements ConnectListe
     private final ChannelInitializer<Channel> initializer;
     private final Random random = new Random();
     private final NetAddress startAddress;
-    private int poolSize;
     private Bootstrap bootstrap;
     private List<T> connectList;
     private TimerCenter timerCenter;
 
     public ConnectPool(NetAddress netAddress, ChannelInitializer<Channel> initializer) {
-        this(netAddress, null, null, initializer, POOL_SIZE);
+        this(netAddress, null, null, initializer);
     }
-
     public ConnectPool(NetAddress netAddress, NetAddress localAddress, NetAddress startAddress,
                        ChannelInitializer<Channel> initializer) {
-        this(netAddress, localAddress, startAddress, initializer, POOL_SIZE);
-    }
-
-    public ConnectPool(NetAddress netAddress, NetAddress localAddress, NetAddress startAddress,
-                       ChannelInitializer<Channel> initializer,
-                       int poolSize) {
         this.netAddress = netAddress;
         this.initializer = initializer;
-        this.poolSize = poolSize;
         this.localAddress = localAddress;
         this.startAddress = startAddress;
     }
@@ -71,7 +60,7 @@ public class ConnectPool<T extends NettyConnect<Object>> implements ConnectListe
             bootstrap = new Bootstrap();
 
             bootstrap.group(WORKER_GROUP)
-                    .channel(OSUtils.IS_LINUX ? EpollSocketChannel.class : NioSocketChannel.class)
+                    .channel(Epoll.isAvailable()? EpollSocketChannel.class : NioSocketChannel.class)
                     .option(ChannelOption.SO_KEEPALIVE, true)
                     .option(ChannelOption.TCP_NODELAY, true)
                     .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
@@ -154,7 +143,7 @@ public class ConnectPool<T extends NettyConnect<Object>> implements ConnectListe
         if (bootstrap == null) {
             bootstrap = new Bootstrap();
             bootstrap.group(WORKER_GROUP)
-                    .channel(OSUtils.IS_LINUX ? EpollSocketChannel.class : NioSocketChannel.class)
+                    .channel(Epoll.isAvailable() ? EpollSocketChannel.class : NioSocketChannel.class)
                     .option(ChannelOption.SO_KEEPALIVE, true)
                     .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
                     .handler(initializer);

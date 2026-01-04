@@ -362,7 +362,7 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
     }
 
     @Override
-    public void OnSwitchNodeAction(PFSession pfSession) {
+    public void onSwitchNodeAction(PFSession pfSession) {
         if (pfSession == null || pfSession.getPlayerId() <= 0) {
             return;
         }

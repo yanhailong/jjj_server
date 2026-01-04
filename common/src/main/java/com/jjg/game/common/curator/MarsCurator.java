@@ -91,18 +91,18 @@ public class MarsCurator implements TreeCacheListener {
         try {
             log.debug("mars curator init. ");
             ExponentialBackoffRetry retryPolicy =
-                new ExponentialBackoffRetry(zkConfig.getBaseSleepTimeMs(), zkConfig.getMaxRetries());
+                    new ExponentialBackoffRetry(zkConfig.getBaseSleepTimeMs(), zkConfig.getMaxRetries());
 
             client = CuratorFrameworkFactory.builder()
-                .connectString(zkConfig.getConnects())
-                .sessionTimeoutMs(zkConfig.getSessionTimeoutMs())
-                .connectionTimeoutMs(zkConfig.getConnectionTimeoutMs())
-                .retryPolicy(retryPolicy)
-                .build();
+                    .connectString(zkConfig.getConnects())
+                    .sessionTimeoutMs(zkConfig.getSessionTimeoutMs())
+                    .connectionTimeoutMs(zkConfig.getConnectionTimeoutMs())
+                    .retryPolicy(retryPolicy)
+                    .build();
             // 忽略NodeCache关闭时，异常调用时日志
             client.getUnhandledErrorListenable().addListener(((message, e) -> {
                 if (e instanceof IllegalStateException &&
-                    e.getMessage().contains("Expected state [STARTED] was [STOPPED]")) {
+                        e.getMessage().contains("Expected state [STARTED] was [STOPPED]")) {
                     // 忽略此异常
                     return;
                 }
@@ -134,11 +134,11 @@ public class MarsCurator implements TreeCacheListener {
                 int[] gameMajorTypes = nodeConfig.getGameMajorTypes();
                 if (gameMajorTypes == null || gameMajorTypes.length < 1) {
                     log.warn("选举主节点失败,gameMajorTypes 错误 nodeName = {},nodeType = {},gameMajorTypes={}",
-                        nodeConfig.getName(), nodeConfig.getType(), gameMajorTypes == null ? 0 : gameMajorTypes.length);
+                            nodeConfig.getName(), nodeConfig.getType(), gameMajorTypes == null ? 0 : gameMajorTypes.length);
                     return;
                 }
                 path =
-                    mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType() + "/" + gameMajorTypes[0];
+                        mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType() + "/" + gameMajorTypes[0];
             } else if (NodeType.HALL.name().equals(nodeConfig.getType())) {
                 path = mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType();
             }
@@ -149,13 +149,13 @@ public class MarsCurator implements TreeCacheListener {
 
             final String tmpPath = path;
             LeaderLatch latch = new LeaderLatch(client, path, nodeConfig.getName(),
-                LeaderLatch.CloseMode.NOTIFY_LEADER);
+                    LeaderLatch.CloseMode.NOTIFY_LEADER);
             latch.addListener(new LeaderLatchListener() {
                 @Override
                 public void isLeader() {
                     master.set(true);
                     Map<String, IGameClusterLeaderListener>
-                        listenerMap = CommonUtil.getContext().getBeansOfType(IGameClusterLeaderListener.class);
+                            listenerMap = CommonUtil.getContext().getBeansOfType(IGameClusterLeaderListener.class);
                     try {
                         listenerMap.values().forEach(IGameClusterLeaderListener::isLeader);
                     } catch (Exception e) {
@@ -164,14 +164,14 @@ public class MarsCurator implements TreeCacheListener {
                     nodeConfig.setWeight(1);
                     nodeManager.update();
                     log.info("该节点被选举为主节点 nodeName = {},nodeType = {},wight={}", nodeConfig.getName(),
-                        nodeConfig.getType(), nodeConfig.weight);
+                            nodeConfig.getType(), nodeConfig.weight);
                 }
 
                 @Override
                 public void notLeader() {
                     master.set(false);
                     Map<String, IGameClusterLeaderListener>
-                        listenerMap = CommonUtil.getContext().getBeansOfType(IGameClusterLeaderListener.class);
+                            listenerMap = CommonUtil.getContext().getBeansOfType(IGameClusterLeaderListener.class);
                     try {
                         listenerMap.values().forEach(IGameClusterLeaderListener::notLeader);
                     } catch (Exception e) {
@@ -228,9 +228,9 @@ public class MarsCurator implements TreeCacheListener {
             if (!checkExists(nodePath)) {
                 log.info("create path {}", nodePath);
                 client.create()
-                    .creatingParentsIfNeeded().withMode(persistent
-                        ? CreateMode.PERSISTENT : CreateMode.EPHEMERAL)
-                    .forPath(nodePath, payload);
+                        .creatingParentsIfNeeded().withMode(persistent
+                                ? CreateMode.PERSISTENT : CreateMode.EPHEMERAL)
+                        .forPath(nodePath, payload);
             }
         } catch (Exception e) {
             log.warn("add path fail.path is {}", path, e);
@@ -264,7 +264,7 @@ public class MarsCurator implements TreeCacheListener {
             marsNodeListeners.forEach((k, v) -> {
                 v.nodeChange(nodeChangeType, marsNode);
                 log.info("notify mars node listeners.path={},nodeChangeType={},listener={}", path, nodeChangeType,
-                    v.getClass().getName());
+                        v.getClass().getName());
             });
         }
     }
@@ -371,7 +371,7 @@ public class MarsCurator implements TreeCacheListener {
      */
     @Override
     public void childEvent(CuratorFramework client, TreeCacheEvent event)
-        throws Exception {
+            throws Exception {
 //        log.info("Event type = {}, client state = {}", event.getType(), client.getState());
 
         TreeCacheEvent.Type type = event.getType();
@@ -420,7 +420,7 @@ public class MarsCurator implements TreeCacheListener {
      * 处理节点变化事件
      */
     private synchronized void startMarsNodeEvent() {
-        TreeCacheEvent event = null;
+        TreeCacheEvent event;
         while ((event = queue.poll()) != null) {
             try {
                 TreeCacheEvent.Type type = event.getType();
@@ -469,7 +469,7 @@ public class MarsCurator implements TreeCacheListener {
             String nodeType = pathArr[3];
 
             if (NodeType.HALL.name().equals(nodeType) || NodeType.GATE.name().equals(nodeType) ||
-                    NodeType.GM.name().equals(nodeType)  || NodeType.RECHARGE.name().equals(nodeType) ||
+                    NodeType.GM.name().equals(nodeType) || NodeType.RECHARGE.name().equals(nodeType) ||
                     NodeType.ACCOUNT.name().equals(nodeType)) {
                 return true;
             }
@@ -492,7 +492,7 @@ public class MarsCurator implements TreeCacheListener {
                 NodeConfig anotherNodeConfig = JSONObject.parseObject(data, NodeConfig.class);
 
                 if (anotherNodeConfig.getGameMajorTypes() != null && anotherNodeConfig.getGameMajorTypes().length > 0
-                    && this.nodeConfig.getGameMajorTypes() != null && this.nodeConfig.getGameMajorTypes().length > 0) {
+                        && this.nodeConfig.getGameMajorTypes() != null && this.nodeConfig.getGameMajorTypes().length > 0) {
                     for (int anotherGameMajorType : anotherNodeConfig.getGameMajorTypes()) {
                         for (int thisGameMajorType : this.nodeConfig.getGameMajorTypes()) {
                             if (anotherGameMajorType == thisGameMajorType) {
@@ -502,7 +502,7 @@ public class MarsCurator implements TreeCacheListener {
                     }
                 }
                 log.debug("这个节点不需要缓存  anotherNodeName={},gameMajorTypes={}", anotherNodeConfig.getName(),
-                    Arrays.toString(anotherNodeConfig.getGameMajorTypes()));
+                        Arrays.toString(anotherNodeConfig.getGameMajorTypes()));
                 return false;
             }
 

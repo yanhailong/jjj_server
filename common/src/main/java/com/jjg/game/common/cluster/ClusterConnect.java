@@ -9,6 +9,8 @@ import com.jjg.game.common.protostuff.PFMessage;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 集群节点连接对象
@@ -17,6 +19,7 @@ import io.netty.handler.timeout.IdleStateEvent;
  * @since 1.0
  */
 public class ClusterConnect extends NettyConnect<ClusterMessage> implements Connect<ClusterMessage> {
+    private static final Logger log = LoggerFactory.getLogger(ClusterConnect.class);
 
     private final ClusterMessageDispatcher clusterMessageDispatcher;
 
