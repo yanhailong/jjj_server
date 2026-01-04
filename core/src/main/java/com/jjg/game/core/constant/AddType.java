@@ -11,6 +11,8 @@ public enum AddType {
     FAIL_ROLLBACK(2),
     //gm操作
     GM_OPERATOR(3),
+    //后台操作
+    BACKEND_OPERATOR(4),
 
 
     //道具兑换

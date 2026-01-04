@@ -528,6 +528,7 @@ public class BaseLogger {
             json.put("payType", payType);
             json.put("regionCode", regionCode);
             json.put("chanelProductId", chanelProductId);
+            json.put("subChannel", player.getSubChannel());
             json.put("desc", desc);
 
             sendLog("order", player, json);
@@ -552,6 +553,7 @@ public class BaseLogger {
             json.put("status", orderStatus.code);
             json.put("payType", payType);
             json.put("chanelProductId", chanelProductId);
+            json.put("subChannel", player.getSubChannel());
             json.put("regionCode", regionCode);
 
             sendLog("shop", player, json);

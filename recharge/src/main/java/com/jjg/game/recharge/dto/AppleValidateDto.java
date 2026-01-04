@@ -14,9 +14,9 @@ public class AppleValidateDto {
     //apple交易id
     private String transactionId;
     //来源   1.商城   2.等级礼包
-    public int rechargeType;
+    private int rechargeType;
     //配置的订单id
-    public String productId;
+    private String productId;
 
     public long getPlayerId() {
         return playerId;

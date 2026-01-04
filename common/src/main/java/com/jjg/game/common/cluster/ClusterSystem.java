@@ -261,7 +261,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
         if (CollectionUtil.isNotEmpty(gameSysInterface)) {
             for (OnSwitchNode event : gameSysInterface) {
                 try {
-                    event.OnSwitchNodeAction(pfSession);
+                    event.onSwitchNodeAction(pfSession);
                 } catch (Exception e) {
                     log.error("节点选择事件处理异常 pfSession:{}", pfSession == null ? "null" : pfSession.sessionId(), e);
                 }
@@ -767,9 +767,9 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
     }
 
     @Override
-    public void OnSwitchNodeAction(PFSession pfSession) {
+    public void onSwitchNodeAction(PFSession pfSession) {
         if (pfSession == null) {
-            log.error("OnSwitchNodeAction pfSession is null");
+            log.error("onSwitchNodeAction pfSession is null");
             return;
         }
         removeSession(pfSession.sessionId());
