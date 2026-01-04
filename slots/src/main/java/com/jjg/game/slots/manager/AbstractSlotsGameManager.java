@@ -816,6 +816,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return;
         }
         temMap.remove(playerId);
+        taskManager.onExit(playerId);
     }
 
     /**

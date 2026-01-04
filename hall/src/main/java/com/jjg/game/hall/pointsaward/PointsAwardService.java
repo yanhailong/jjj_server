@@ -8,7 +8,10 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
-import com.jjg.game.core.constant.*;
+import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
@@ -40,7 +43,6 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * 积分大奖积分服务

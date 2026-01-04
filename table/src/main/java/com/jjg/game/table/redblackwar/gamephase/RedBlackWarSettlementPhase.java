@@ -1,5 +1,6 @@
 package com.jjg.game.table.redblackwar.gamephase;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.CommonUtil;
@@ -200,7 +201,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
 
     private List<Integer> generateRecyclingResults() {
         Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo = gameDataVo.getRealPlayerBetInfo();
-        if (realPlayerBetInfo == null) {
+        if (CollectionUtil.isEmpty(realPlayerBetInfo)) {
             return null;
         }
 
