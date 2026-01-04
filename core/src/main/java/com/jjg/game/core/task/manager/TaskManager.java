@@ -480,7 +480,7 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService,
             taskService.saveTask(playerId, taskData);
             log.info("玩家回存任务信息成功 playerId:{}", playerId);
         } else {
-            log.error("sessionClose 时保存任务数据错误 playerId={}", playerId);
+            log.info("sessionClose 时保存任务数据错误 playerId={}", playerId);
         }
     }
 
