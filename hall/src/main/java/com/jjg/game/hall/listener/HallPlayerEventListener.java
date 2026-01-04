@@ -311,7 +311,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     @Override
     public void sessionClose(PFSession session) {
         session.setReference(null);
-
+        if (session.getPlayerId() > 0) {
+            taskManager.onExit(session.getPlayerId());
+        }
     }
 
     @Override
