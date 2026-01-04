@@ -1049,6 +1049,11 @@ public class GMController extends AbstractController {
 
     }
 
+    /**
+     * 修改积分大奖积分
+     * @param dto
+     * @return
+     */
     @RequestMapping(BackendGMCmd.CHANGE_PLAYER_POINTS)
     public WebResult<String> changePoints(@RequestBody ChangePointsDto dto) {
         log.info("收到修改玩家积分大奖积分请求 dto = {}", dto);
@@ -1066,6 +1071,11 @@ public class GMController extends AbstractController {
 
     }
 
+    /**
+     * 保存公告
+     * @param dto
+     * @return
+     */
     @RequestMapping(BackendGMCmd.SAVE_NOTICE)
     public WebResult<String> saveNotice(@RequestBody NoticeDto dto) {
         log.info("收到保存公告的请求 dto = {}", dto);
@@ -1096,6 +1106,11 @@ public class GMController extends AbstractController {
         }
     }
 
+    /**
+     * 删除公告
+     * @param dto
+     * @return
+     */
     @RequestMapping(BackendGMCmd.DEL_NOTICE)
     public WebResult<String> delNotice(@RequestBody DelNoticeDto dto) {
         log.info("收到删除公告的请求 dto = {}", dto);
@@ -1119,6 +1134,11 @@ public class GMController extends AbstractController {
         }
     }
 
+    /**
+     * 设置分享连接
+     * @param dto
+     * @return
+     */
     @RequestMapping(BackendGMCmd.SHARE_URL_PREFIX)
     public WebResult<String> shareUrlPrefix(@RequestBody ShareUrlPrefixDto dto) {
         log.info("收到设置分享连接 dto = {}", dto);
@@ -1135,6 +1155,11 @@ public class GMController extends AbstractController {
         }
     }
 
+    /**
+     * 批量获取玩家信息
+     * @param dto
+     * @return
+     */
     @RequestMapping(BackendGMCmd.BATCH_GET_PLAYERS_INFO)
     public WebResult<List<PlayerAndAccountVo>> batchGetPlayersInfo(@RequestBody BatchGetPlayersInfoDto dto) {
         log.info("收到批量获取玩家信息 dto = {}", dto);
@@ -1173,8 +1198,13 @@ public class GMController extends AbstractController {
         }
     }
 
+    /**
+     * 后台充值
+     * @param dto
+     * @return
+     */
     @RequestMapping(BackendGMCmd.BACKEND_RECHARGE)
-    public WebResult<List<PlayerAndAccountVo>> backendRecharge(@RequestBody BackendRechargeDto dto) {
+    public WebResult<String> backendRecharge(@RequestBody BackendRechargeDto dto) {
         log.info("收到后台充值 dto = {}", dto);
         try {
             if (StringUtils.isBlank(dto.channelOrderId()) || dto.price() < 1 || dto.playerId() < 1 || dto.items() == null || dto.items().isEmpty()) {
@@ -1222,6 +1252,12 @@ public class GMController extends AbstractController {
             Player player = playerService.get(dto.playerId());
             if (player == null) {
                 log.warn("后台充值时，未找到玩家信息 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            boolean add = orderService.putOrderId(dto.channelOrderId());
+            if (!add) {
+                log.warn("后台充值时，生成订单失败，该订单号已存在 dto = {}", dto);
                 return fail("common.paramerror");
             }
 

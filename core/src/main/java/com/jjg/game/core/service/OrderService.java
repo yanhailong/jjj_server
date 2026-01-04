@@ -13,10 +13,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -31,6 +33,11 @@ public class OrderService {
     private OrderDao orderDao;
     @Autowired
     private AccountDao accountDao;
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    private final String CHANNEL_ORDER_TABLE_NAME = "channelOrder:data";
+    private final String CHANNEL_ORDER_TIME_TABLE_NAME = "channelOrder:time";
 
     public Order generateOrder(Player player, PayType payType, String productId, RechargeType rechargeType) {
         Account account = accountDao.queryAccountByPlayerId(player.getId());
@@ -82,10 +89,10 @@ public class OrderService {
                 order.setId(orderId);
                 order.setUuid(uuid);
                 order.setPlayerId(playerId);
-                if(playerChannel != null){
+                if (playerChannel != null) {
                     order.setPlayerChannel(playerChannel.getValue());
                 }
-                if(payType != null){
+                if (payType != null) {
                     order.setPayChannel(payType.getValue());
                 }
                 order.setProductId(productId);
@@ -122,13 +129,29 @@ public class OrderService {
     }
 
     /**
+     * 检查订单是否重复
+     *
+     * @param channelOrderId
+     * @return
+     */
+    public boolean putOrderId(String channelOrderId) {
+        return this.redisTemplate.opsForZSet().addIfAbsent(CHANNEL_ORDER_TIME_TABLE_NAME, channelOrderId, TimeHelper.nowInt());
+    }
+
+    public Long removeChannelOrderSet(long expireTime) {
+        return redisTemplate.opsForZSet().removeRangeByScore(CHANNEL_ORDER_TIME_TABLE_NAME, 0, expireTime);
+    }
+
+    /**
      * 清除创建时间早于指定时间戳的订单
      *
      * @return 删除的订单数量
      */
     public void clean() {
-        int expire = TimeHelper.nowInt() - (int) TimeUnit.DAYS.toSeconds(60);
-        long delCount = orderDao.deleteOrdersBeforeTimestamp(expire);
-        log.info("删除过期订单数量 = {}", delCount);
+        int expire = TimeHelper.nowInt() - (int) TimeUnit.DAYS.toSeconds(30);
+        long mongoDelCount = orderDao.deleteOrdersBeforeTimestamp(expire);
+
+        Long removeChannelOrderCount = removeChannelOrderSet(expire);
+        log.info("删除过期订单数量 mongoDelCount = {},removeChannelOrderCount = {}", mongoDelCount,removeChannelOrderCount);
     }
 }
