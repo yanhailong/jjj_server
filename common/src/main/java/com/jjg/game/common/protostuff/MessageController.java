@@ -15,7 +15,7 @@ public class MessageController {
     public Object been;
     // 方法反射类
     public MethodAccess methodAccess;
-    public Map<Integer, MethodInfo> MethodInfos;
+    public Map<Integer, MethodInfo> methodInfos;
     // 控制器的注解类
     private MessageType messageType;
 
@@ -24,14 +24,14 @@ public class MessageController {
         this.been = been;
         Class<?> clazz = been.getClass();
         methodAccess = MethodAccess.get(clazz);
-        MethodInfos = MessageUtil.load(methodAccess, clazz);
+        methodInfos = MessageUtil.load(methodAccess, clazz);
     }
 
     public MessageController(Object been, Class<?> clazz) {
         this.been = been;
         //Class<?> clazz = been.getClass();
         methodAccess = MethodAccess.get(clazz);
-        MethodInfos = MessageUtil.load(methodAccess, clazz);
+        methodInfos = MessageUtil.load(methodAccess, clazz);
     }
 
     public MessageType getMessageType() {

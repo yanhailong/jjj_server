@@ -17,6 +17,7 @@ public class PlayerSessionToken {
     private String mac;
     private int registerChannel;
     private String sharId;
+    private String subChannel;
 
     public long getPlayerId() {
         return playerId;
@@ -96,5 +97,13 @@ public class PlayerSessionToken {
 
     public void setSharId(String sharId) {
         this.sharId = sharId;
+    }
+
+    public String getSubChannel() {
+        return subChannel;
+    }
+
+    public void setSubChannel(String subChannel) {
+        this.subChannel = subChannel;
     }
 }

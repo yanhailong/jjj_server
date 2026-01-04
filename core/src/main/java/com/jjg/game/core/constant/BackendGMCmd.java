@@ -67,6 +67,8 @@ public interface BackendGMCmd {
     String SHARE_URL_PREFIX = "shareUrlPrefix";
     //批量获取玩家信息
     String BATCH_GET_PLAYERS_INFO = "batchGetPlayersInfo";
+    //后台充值
+    String BACKEND_RECHARGE = "backendRecharge";
 
     /**
      * 配置相关q

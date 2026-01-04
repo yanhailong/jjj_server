@@ -95,7 +95,7 @@ public class ClusterMessageDispatcher {
             }
             if (clusterMessage.getMsg().cmd == MessageConst.SessionConst.NOTIFY_SESSION_QUIT ||
                     clusterMessage.getMsg().cmd == MessageConst.SessionConst.NOTIFY_SESSION_ENTER) {
-                bindId = sessionId == null ? 0 : Math.abs(sessionId.hashCode());
+                bindId = sessionId == null ? 0 : sessionId.hashCode() ^ (sessionId.hashCode() >>> 31);;
             }
             final PFMessage finalMsg = msg;
             final PFSession finalPFSession = session;
@@ -132,7 +132,7 @@ public class ClusterMessageDispatcher {
             command = msg.cmd;
             MessageController messageController = messageControllers.get(messageType);
             if (messageController != null) {
-                MethodInfo methodInfo = messageController.MethodInfos.get(command);
+                MethodInfo methodInfo = messageController.methodInfos.get(command);
                 if (methodInfo == null) {
                     // 处理分组消息
                     if (messageController.getMessageType().isGroupMessage()) {
@@ -162,7 +162,7 @@ public class ClusterMessageDispatcher {
      */
     protected boolean handGropMessage(Connect<ClusterMessage> connect, PFSession session, PFMessage msg,
                                       MessageController messageController) throws Exception {
-        Map<Integer, MethodInfo> methodInfos = messageController.MethodInfos;
+        Map<Integer, MethodInfo> methodInfos = messageController.methodInfos;
         Set<MethodInfo> groupMsgDispatcher =
                 methodInfos.values().stream().filter(val -> val.getCommandAnno().isGroupMsgDispatcher())
                         .collect(Collectors.toSet());

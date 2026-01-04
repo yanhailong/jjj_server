@@ -72,6 +72,8 @@ public class Player {
     private ChannelType channel;
     //登录方式
     private LoginType loginType;
+    //子渠道
+    private String subChannel;
 
     public long getId() {
         return id;
@@ -306,6 +308,14 @@ public class Player {
 
     public void setLoginType(LoginType loginType) {
         this.loginType = loginType;
+    }
+
+    public String getSubChannel() {
+        return subChannel;
+    }
+
+    public void setSubChannel(String subChannel) {
+        this.subChannel = subChannel;
     }
 
     @Override

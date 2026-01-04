@@ -1,5 +1,6 @@
 package com.jjg.game.common.curator;
 
+import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterHelper;
 import com.jjg.game.common.config.NodeConfig;
@@ -8,6 +9,7 @@ import java.util.*;
 
 /**
  * 节点
+ *
  * @since 1.0
  */
 public class MarsNode {
@@ -48,16 +50,16 @@ public class MarsNode {
     }
 
     public MarsNode getChildren(String path, boolean rc) {
-        if(childrenNodes.isEmpty()){
+        if (childrenNodes.isEmpty()) {
             return null;
         }
 
         MarsNode marsNode = childrenNodes.get(path);
-        if(marsNode != null){
+        if (marsNode != null) {
             return marsNode;
         }
 
-        for(Map.Entry<String,MarsNode> en : childrenNodes.entrySet()){
+        for (Map.Entry<String, MarsNode> en : childrenNodes.entrySet()) {
             if (path.startsWith(en.getKey())) {
                 if (rc) {
                     return en.getValue().getChildren(path, rc);
@@ -86,10 +88,7 @@ public class MarsNode {
         if (childrenNodes.isEmpty()) {
             return null;
         }
-        List<MarsNode> childrens = getAllChildren();
-        Random random = new Random();
-        int p = random.nextInt(childrens.size());
-        return childrens.get(p);
+        return RandomUtil.randomEle(getAllChildren());
     }
 
     public MarsNode randomOneMarsNodeWithWeight(String ip, long playerId) {
@@ -102,7 +101,7 @@ public class MarsNode {
         List<MarsNode> preciselist = new ArrayList<>();
         for (MarsNode marsNode : childrens) {
             NodeConfig nodeConfig = marsNode.getNodeConfig();
-            if(!nodeConfig.isOpen()){
+            if (!nodeConfig.isOpen()) {
                 continue;
             }
             if ((nodeConfig.whiteIdList == null || nodeConfig.whiteIdList.length == 0)
@@ -124,10 +123,7 @@ public class MarsNode {
         if (totalWeight <= 0) {
             return null;
         }
-
-        Random random = new Random();
-        int p = random.nextInt(totalWeight);
-
+        int p = RandomUtil.randomInt(totalWeight);
         int sum = 0;
         for (MarsNode marsNode : tempNodes) {
             sum += marsNode.getNodeConfig().weight;

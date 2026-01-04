@@ -292,6 +292,9 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
             if (CollectionUtil.isEmpty(info.getSameIconSet())) {
                 continue;
             }
+            if (info.getSameIcon() == CaptainJackConstant.BaseElement.FREE_ICON || info.getSameIcon() == CaptainJackConstant.BaseElement.TREASURE_ICON) {
+                continue;
+            }
             for (Integer index : info.getSameIconSet()) {
                 int columnId = index / baseInitCfg.getRows();
                 if ((index % baseInitCfg.getRows()) != 0) {
@@ -299,6 +302,9 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
                 }
                 allSameMap.computeIfAbsent(columnId, k -> new HashSet<>()).add(index);
             }
+        }
+        if (CollectionUtil.isEmpty(allSameMap)) {
+            return;
         }
         //坐标对应添加的
         Map<Integer, Integer> addIconMap = new HashMap<>();

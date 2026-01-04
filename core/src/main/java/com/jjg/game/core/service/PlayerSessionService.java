@@ -378,13 +378,13 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
             info.setSessionId(pfSession.sessionId());
         }
         save(info);
-        onlinePlayerDao.online(player.getId(),player.getChannel().getValue(),gameType);
+        onlinePlayerDao.online(player.getId(), player.getChannel().getValue(), gameType, player.getSubChannel());
         return info;
     }
 
     @Override
     public void onTimer(TimerEvent<String> e) {
-       if (e == onlineCountEvent) {
+        if (e == onlineCountEvent) {
             int size = clusterSystem.clusterSessionSize();
             log.info("打印在线人数 ,size={}", size);
             coreLogger.online(size, nodeManager.nodeConfig.getTcpAddress().getHost());
