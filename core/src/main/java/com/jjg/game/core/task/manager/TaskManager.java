@@ -461,7 +461,7 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService,
                 .tryPublish(playerId, 0, new BaseHandler<String>() {
                     @Override
                     public void action() {
-                        TaskData taskData = playerTaskMap.computeIfAbsent(playerId, k -> taskService.getPlayerTask(playerId));
+                        TaskData taskData = loadTaskData(playerId);
                         try {
                             if (needCheckTask) {
                                 taskService.checkTask(playerId, taskData, taskManager);
@@ -485,12 +485,13 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService,
     }
 
 
-    public void loadTaskData(long playerId) {
-        playerTaskMap.computeIfAbsent(playerId, k -> {
+    public TaskData loadTaskData(long playerId) {
+        TaskData taskData = playerTaskMap.computeIfAbsent(playerId, k -> {
             log.info("玩家从redis加载任务信息成功 playerId:{}", playerId);
             return taskService.getPlayerTask(playerId);
         });
         log.info("玩家加载任务信息成功 playerId:{}", playerId);
+        return taskData;
     }
 
 
