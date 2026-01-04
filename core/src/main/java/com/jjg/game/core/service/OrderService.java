@@ -68,7 +68,11 @@ public class OrderService {
 
     public Order generateOrder(String orderIdPrefix, long playerId, BigDecimal price, RechargeType rechargeType, List<Item> items) {
         Account account = accountDao.queryAccountByPlayerId(playerId);
-        return generateOrder(orderIdPrefix, playerId, account.getChannel(), null, null, price, rechargeType, OrderStatus.ORDER, null, items);
+        PayType payType = null;
+        if(account.getChannel() != null){
+            payType = PayType.valueOf(account.getChannel().getValue());
+        }
+        return generateOrder(orderIdPrefix, playerId, account.getChannel(), payType, null, price, rechargeType, OrderStatus.ORDER, null, items);
     }
 
     /**
@@ -153,6 +157,7 @@ public class OrderService {
         long mongoDelCount = orderDao.deleteOrdersBeforeTimestamp(expire);
 
         int channelOrderExpire = now - (int) TimeUnit.DAYS.toSeconds(7);
+
         Long removeChannelOrderCount = removeChannelOrderSet(channelOrderExpire);
         log.info("删除过期订单数量 mongoDelCount = {},removeChannelOrderCount = {}", mongoDelCount,removeChannelOrderCount);
     }
