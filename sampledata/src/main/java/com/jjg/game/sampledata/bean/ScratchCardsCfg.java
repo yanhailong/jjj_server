@@ -25,8 +25,10 @@ public class ScratchCardsCfg extends BaseCfgBean {
   protected Map<Integer,String> channelCommodity;
   /** 礼包购买金额 */
   protected BigDecimal cost;
+  /** 兑换消耗 */
+  protected Map<Integer,Long> costItem;
   /** 奖励1 */
-  protected Map<Integer,Long> getitem;
+  protected Map<Integer,Long> getItem;
   /** 中奖图标数量 */
   protected int iconNum;
   /** 类型 */
@@ -44,9 +46,14 @@ public class ScratchCardsCfg extends BaseCfgBean {
     return cost;
   }
 
+  /** 返回兑换消耗 */
+  public Map<Integer,Long> getCostItem() {
+    return costItem;
+  }
+
   /** 返回奖励1 */
-  public Map<Integer,Long> getGetitem() {
-    return getitem;
+  public Map<Integer,Long> getGetItem() {
+    return getItem;
   }
 
   /** 返回中奖图标数量 */

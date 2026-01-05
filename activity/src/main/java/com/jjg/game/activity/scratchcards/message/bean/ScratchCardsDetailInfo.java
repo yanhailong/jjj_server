@@ -1,8 +1,11 @@
 package com.jjg.game.activity.scratchcards.message.bean;
 
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+
+import java.util.List;
 
 /**
  * @author lm
@@ -19,4 +22,7 @@ public class ScratchCardsDetailInfo extends BaseActivityDetailInfo {
     public String buyPrice;
     @ProtoDesc("商品id")
     public String productId;
+    @ProtoDesc("消耗道具列表")
+    public List<ItemInfo> costItems;
+
 }

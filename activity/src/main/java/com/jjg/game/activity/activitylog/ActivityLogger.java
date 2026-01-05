@@ -180,11 +180,18 @@ public class ActivityLogger extends BaseLogger {
     /**
      * 礼包获得日志
      */
-    public void sendActivityGift(Player player, ActivityData activityData, ItemOperationResult result, Map<Integer, Long> rewards, BigDecimal cost, int detailId) {
+    public void sendActivityGift(Player player, ActivityData activityData, ItemOperationResult result, Map<Integer, Long> rewards, Object costObject, int detailId) {
         try {
             JSONObject json = buildBaseInfo(activityData, detailId);
             json.put("rewards", objectMapper.writeValueAsString(rewards));
-            json.put("cost", cost.toPlainString());
+            if (costObject instanceof BigDecimal cost) {
+                json.put("cost", cost.toPlainString());
+                json.put("buyType", 1);
+            }
+            if (costObject instanceof Map<?, ?> costItem) {
+                json.put("cost", objectMapper.writeValueAsString(costItem));
+                json.put("buyType", 2);
+            }
             json.put("operation", "gift");
             json.put("rewardsItemNum", objectMapper.writeValueAsString(result));
             sendLog(TOPIC, player, json);

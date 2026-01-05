@@ -4,7 +4,6 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.WeightRandom;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
-import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -19,13 +18,12 @@ import com.jjg.game.activity.officialawards.message.req.ReqOfficialAwardsTotalPo
 import com.jjg.game.activity.officialawards.message.res.*;
 import com.jjg.game.activity.util.CronUtil;
 import com.jjg.game.activity.util.DataCache;
-import com.jjg.game.common.listener.IGameClusterLeaderListener;
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
-import com.jjg.game.common.timer.TimerCenter;
-import com.jjg.game.common.timer.TimerEvent;
-import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
@@ -34,7 +32,9 @@ import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.OfficialAwardsCfg;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -45,6 +45,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -54,18 +56,15 @@ import java.util.stream.Collectors;
  * @date 2025/9/3
  */
 @Component
-public class OfficialAwardsController extends BaseActivityController implements IGameClusterLeaderListener
-        , TimerListener<Long> {
+public class OfficialAwardsController extends BaseActivityController {
     private final Logger log = LoggerFactory.getLogger(OfficialAwardsController.class);
     private final OfficialAwardsDao officialAwardsDao;
     private final DataCache dataCache;
-    private final TimerCenter timerCenter;
     private final RobotUtil robotUtil;
 
-    public OfficialAwardsController(OfficialAwardsDao officialAwardsDao, DataCache dataCache, TimerCenter timerCenter, RobotUtil robotUtil) {
+    public OfficialAwardsController(OfficialAwardsDao officialAwardsDao, DataCache dataCache, RobotUtil robotUtil) {
         this.officialAwardsDao = officialAwardsDao;
         this.dataCache = dataCache;
-        this.timerCenter = timerCenter;
         this.robotUtil = robotUtil;
     }
 
@@ -161,10 +160,37 @@ public class OfficialAwardsController extends BaseActivityController implements 
         for (Long getReward : getRewards) {
             res.infoList.add(ItemUtils.buildItemInfo(id, getReward));
         }
+        targetRobotAction(activityData, times);
         res.remainPoint = remainPoint;
         res.totalPool = reducedPair.getSecond();
         res.rewardDetailId = cfg.getId();
         return res;
+    }
+
+    /**
+     * 触发机器人中奖
+     *
+     * @param activityData 活动数据
+     */
+    private void targetRobotAction(ActivityData activityData, int baseTimes) {
+        try {
+            int type = activityData.getValueParam().get(2).intValue();
+            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(34);
+            if (globalConfigCfg == null || StringUtils.isEmpty(globalConfigCfg.getValue())) {
+                return;
+            }
+            String[] split = StringUtils.split(globalConfigCfg.getValue(), "_");
+            if (split.length != 3) {
+                return;
+            }
+            int times = Integer.parseInt(split[type - 1]) * baseTimes;
+            WeightRandom<Integer> robotRandom = dataCache.getRobotRandom();
+            AtomicInteger actionCount = new AtomicInteger(times);
+            WheelTimerUtil.scheduleAtFixedCount(() -> robotAction(activityData.getId(), actionCount), actionCount, robotRandom.next(), robotRandom, TimeUnit.MILLISECONDS);
+            log.info("添加机器人定时任务成功 times:{}", times);
+        } catch (Exception e) {
+            log.error("刮刮乐 触发机器人中奖失败 activityId:{}", activityData.getId(), e);
+        }
     }
 
     /**
@@ -243,9 +269,8 @@ public class OfficialAwardsController extends BaseActivityController implements 
             return;
         }
         officialAwardsDao.setTotalPool(activityData.getId(), valueParam.getFirst());
-        //添加机器人获奖逻辑
-        robotAction(activityData.getId());
     }
+
 
     @Override
     public void onActivityEnd(ActivityData activityData) {
@@ -256,19 +281,6 @@ public class OfficialAwardsController extends BaseActivityController implements 
         }
     }
 
-    /**
-     * 机器人行为
-     */
-    private void robotAction(long activityId) {
-        //获取权重随机器
-        WeightRandom<Integer> robotRandom = dataCache.getRobotRandom();
-        if (robotRandom != null) {
-            Integer nextTime = robotRandom.next();
-            if (nextTime != null) {
-                timerCenter.add(new TimerEvent<>(this, nextTime, activityId));
-            }
-        }
-    }
 
     /**
      * 获取玩家官方派奖活动明细
@@ -416,55 +428,41 @@ public class OfficialAwardsController extends BaseActivityController implements 
                 .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
-    @Override
-    public void isLeader() {
-        if (activityManager.isExecutionNode()) {
-            Map<Long, ActivityData> longActivityDataMap = activityManager.getActivityTypeData().get(ActivityType.OFFICIAL_AWARDS);
-            if (CollectionUtil.isEmpty(longActivityDataMap)) {
-                return;
-            }
-            for (ActivityData activityData : longActivityDataMap.values()) {
-                if (activityData.canRun()) {
-                    robotAction(activityData.getId());
-                    break;
-                }
-            }
-        }
-    }
-
-    @Override
-    public void notLeader() {
-
-    }
-
-    @Override
-    public void onTimer(TimerEvent<Long> e) {
-        if (activityManager.isExecutionNode()) {
-            Long activityId = e.getParameter();
-            ActivityData activityData = activityManager.getActivityData().get(activityId);
-            if (!activityData.canRun()) {
-                return;
-            }
-            //奖池为空直接返回
-            long pool = officialAwardsDao.getTotalPool(activityData.getId());
-            if (pool <= 0) {
-                return;
-            }
-            //机器人进行中奖
-            Map<Integer, OfficialAwardsCfg> map = getDetailCfgBean(activityData);
-            WeightRandom<OfficialAwardsCfg> random = getOfficialAwardsCfgWeightRandom(map);
-            OfficialAwardsCfg next = random.next();
-            if (CollectionUtil.isEmpty(next.getGetItem())) {
-                return;
-            }
-            Pair<Long, Long> pair = officialAwardsDao.reduceTotalPool(activityData.getId(), next.getGetItem().values().iterator().next());
-            if (pair.getFirst() > 0) {
-                addRobotRecord(activityData.getId(), pair.getFirst());
-            }
-            if (pair.getSecond() > 0) {
-                robotAction(activityId);
-            }
-        }
+    /**
+     * 机器人中奖行为
+     *
+     * @param activityId  活动ID
+     * @param actionCount
+     */
+    public void robotAction(long activityId, AtomicInteger actionCount) {
+        PlayerExecutorGroupDisruptor.getDefaultExecutor()
+                .tryPublish(0, 0, new BaseHandler<String>() {
+                    @Override
+                    public void action() {
+                        ActivityData activityData = activityManager.getActivityData().get(activityId);
+                        if (!activityData.canRun()) {
+                            actionCount.set(0);
+                            return;
+                        }
+                        //奖池为空直接返回
+                        long pool = officialAwardsDao.getTotalPool(activityData.getId());
+                        if (pool <= 0) {
+                            actionCount.set(0);
+                            return;
+                        }
+                        //机器人进行中奖
+                        Map<Integer, OfficialAwardsCfg> map = getDetailCfgBean(activityData);
+                        WeightRandom<OfficialAwardsCfg> random = getOfficialAwardsCfgWeightRandom(map);
+                        OfficialAwardsCfg next = random.next();
+                        if (CollectionUtil.isEmpty(next.getGetItem())) {
+                            return;
+                        }
+                        Pair<Long, Long> pair = officialAwardsDao.reduceTotalPool(activityData.getId(), next.getGetItem().values().iterator().next());
+                        if (pair.getFirst() > 0) {
+                            addRobotRecord(activityData.getId(), pair.getFirst());
+                        }
+                    }
+                }.setHandlerParamWithSelf("officialAwards robotAction"));
     }
 
     /**
