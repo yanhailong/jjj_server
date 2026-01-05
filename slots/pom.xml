@@ -104,7 +104,7 @@
                     </descriptors>
                     <archive>
                         <manifest>
-                            <mainClass>com.jjg.game.room.RoomApp</mainClass>
+                            <mainClass>com.jjg.game.slots.SlotsApp</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
