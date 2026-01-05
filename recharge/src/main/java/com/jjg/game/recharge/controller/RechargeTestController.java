@@ -49,7 +49,7 @@ public class RechargeTestController extends AbstractCallbackController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
             //调用充值
-            payCallback(order, order.getPrice().toPlainString(), "test","test");
+            payCallback(order, order.getPrice().toPlainString(), "test","");
             //返回修改结果
             return ResponseEntity.ok("common.success");
         } catch (Exception e) {
