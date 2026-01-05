@@ -679,11 +679,16 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             return awardType == PointsAwardConstant.Leaderboard.AwardType.ITEM
                     ? PointsAwardConstant.Leaderboard.MailTemplateId.MONTHLY_ITEM_AWARD
                     : PointsAwardConstant.Leaderboard.MailTemplateId.MONTHLY_OTHER_AWARD;
-        } else {
+        } else if (rankType == PointsAwardConstant.Leaderboard.DAY) {
             return awardType == PointsAwardConstant.Leaderboard.AwardType.ITEM
                     ? PointsAwardConstant.Leaderboard.MailTemplateId.DAILY_ITEM_AWARD
                     : PointsAwardConstant.Leaderboard.MailTemplateId.DAILY_OTHER_AWARD;
+        } else if (rankType == PointsAwardConstant.Leaderboard.WEEK) {
+            return awardType == PointsAwardConstant.Leaderboard.AwardType.ITEM
+                    ? PointsAwardConstant.Leaderboard.MailTemplateId.WEEK_ITEM_AWARD
+                    : PointsAwardConstant.Leaderboard.MailTemplateId.WEEK_OTHER_AWARD;
         }
+        return PointsAwardConstant.Leaderboard.MailTemplateId.DAILY_ITEM_AWARD;
     }
 
     /**
