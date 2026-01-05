@@ -460,7 +460,6 @@ public class OfficialAwardsController extends BaseActivityController {
                         Pair<Long, Long> pair = officialAwardsDao.reduceTotalPool(activityData.getId(), next.getGetItem().values().iterator().next());
                         if (pair.getFirst() > 0) {
                             addRobotRecord(activityData.getId(), pair.getFirst());
-                            log.info("机器人抽奖成功");
                         }
                     }
                 }.setHandlerParamWithSelf("officialAwards robotAction"));
