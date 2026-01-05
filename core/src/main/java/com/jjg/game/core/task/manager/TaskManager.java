@@ -5,8 +5,6 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.listener.OnSwitchNode;
-import com.jjg.game.common.listener.SessionCloseListener;
-import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.CommonUtil;
@@ -14,13 +12,11 @@ import com.jjg.game.core.base.gameevent.ClockEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
-import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.logger.TaskLogger;
 import com.jjg.game.core.manager.RedDotManager;
@@ -51,7 +47,7 @@ import java.util.function.Supplier;
  * 负责任务的触发、进度更新、完成检查和奖励发放
  */
 @Component
-public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListener, SessionEnterListener, IRedDotService, SessionCloseListener,
+public class TaskManager implements ConfigExcelChangeListener, IRedDotService,
         GameEventListener, OnSwitchNode {
 
     private static final Logger log = LoggerFactory.getLogger(TaskManager.class);
@@ -458,71 +454,44 @@ public class TaskManager implements IPlayerLoginSuccess, ConfigExcelChangeListen
         }
     }
 
-    @Override
-    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+    public void initTaskData(Player player, boolean needCheckTask) {
         long playerId = player.getId();
         TaskManager taskManager = this;
         PlayerExecutorGroupDisruptor.getDefaultExecutor()
                 .tryPublish(playerId, 0, new BaseHandler<String>() {
                     @Override
                     public void action() {
-                        TaskData taskData = playerTaskMap.computeIfAbsent(playerId, k -> taskService.getPlayerTask(playerId));
+                        TaskData taskData = loadTaskData(playerId);
                         try {
-                            if (firstLogin) {
+                            if (needCheckTask) {
                                 taskService.checkTask(playerId, taskData, taskManager);
                             }
                         } catch (Exception e) {
-                            log.error("初始化玩家任务失败 playerId={}, firstLogin={}, error={}", playerId, firstLogin, e.getMessage(), e);
+                            log.error("初始化玩家任务失败 playerId={}, firstLogin={}, error={}", playerId, needCheckTask, e.getMessage(), e);
                         }
                     }
                 }.setHandlerParamWithSelf("task onPlayerLoginSuccess"));
     }
 
-    @Override
-    public void sessionClose(PFSession session) {
-        if (session == null) {
-            return;
-        }
-        long playerId = session.getPlayerId();
-        if (playerId > 0) {
-            PlayerExecutorGroupDisruptor.getDefaultExecutor()
-                    .tryPublish(playerId, 0, new BaseHandler<String>() {
-                        @Override
-                        public void action() {
-                            onExit(playerId);
-                        }
-                    }.setHandlerParamWithSelf("task sessionClose"));
-        } else {
-            log.error("sessionClose 时保存任务数据错误 session={}", session.sessionId());
-        }
-
-    }
-
-    private void onExit(long playerId) {
+    public void onExit(long playerId) {
         TaskData taskData = playerTaskMap.remove(playerId);
         if (taskData != null) {
             //回存到redis
             taskService.saveTask(playerId, taskData);
             log.info("玩家回存任务信息成功 playerId:{}", playerId);
         } else {
-            log.error("sessionClose 时保存任务数据错误 playerId={}", playerId);
+            log.info("sessionClose 时保存任务数据错误 playerId={}", playerId);
         }
     }
 
 
-    @Override
-    public void sessionEnter(PFSession session, long playerId) {
-        PlayerExecutorGroupDisruptor.getDefaultExecutor()
-                .tryPublish(playerId, 0, new BaseHandler<String>() {
-                    @Override
-                    public void action() {
-                        try {
-                            playerTaskMap.computeIfAbsent(playerId, k -> taskService.getPlayerTask(playerId));
-                        } catch (Exception e) {
-                            log.error("玩家任务数据获取异常 playerId={}", playerId, e);
-                        }
-                    }
-                }.setHandlerParamWithSelf("task sessionEnter"));
+    public TaskData loadTaskData(long playerId) {
+        TaskData taskData = playerTaskMap.computeIfAbsent(playerId, k -> {
+            log.info("玩家从redis加载任务信息成功 playerId:{}", playerId);
+            return taskService.getPlayerTask(playerId);
+        });
+        log.info("玩家加载任务信息成功 playerId:{}", playerId);
+        return taskData;
     }
 
 

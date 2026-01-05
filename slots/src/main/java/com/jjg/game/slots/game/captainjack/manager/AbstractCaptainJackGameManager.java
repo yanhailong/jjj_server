@@ -86,12 +86,10 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         CaptainJackGameRunInfo gameRunInfo = new CaptainJackGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
-
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
-
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
             //获取当前处于哪种状态
@@ -319,9 +317,19 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
                 int index = gameData.getFreeIndex().get();
                 for (int i = index; i < totalSize; i++) {
                     startGame(new PlayerController(null, null), gameData, gameData.getAllBetScore(), true);
+                    autoRunTreasureChest(gameData);
                 }
             }
         }
+        autoRunTreasureChest(gameData);
+    }
+
+    /**
+     * 自动执行探宝
+     *
+     * @param gameData 游戏数据
+     */
+    private void autoRunTreasureChest(CaptainJackPlayerGameData gameData) {
         if (gameData.getStatus() == CaptainJackConstant.Status.TREASURE_CHEST) {
             CaptainJackResultLib resultLib = gameData.getResultLib();
             if (resultLib == null) {

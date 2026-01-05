@@ -7,25 +7,21 @@ import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
-import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.PlayerSessionInfo;
+import com.jjg.game.core.data.PlayerSessionToken;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
-import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.WarehouseCfg;
+import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.slots.controller.SlotsRoomController;
-import com.jjg.game.slots.dao.SlotsFriendRoomDao;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.Optional;
 
 
 /**
@@ -43,15 +39,14 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     @Autowired
     private CoreLogger logger;
     @Autowired
-    private PlayerLastGameInfoDao playerLastGameInfoDao;
-    @Autowired
     private SlotsFactoryManager slotsFactoryManager;
     @Autowired
     private PlayerSessionTokenDao playerSessionTokenDao;
 
     @Autowired
     private SlotsRoomManager slotsRoomManager;
-
+    @Autowired
+    private TaskManager taskManager;
 
     @Override
     public void sessionClose(PFSession session) {
@@ -117,6 +112,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
             @Override
             public void action() throws Exception {
+                taskManager.loadTaskData(player.getId());
                 //创建 PlayerGameData
                 gameManager.createPlayerGameData(playerController);
             }
@@ -150,10 +146,10 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             public void action() throws Exception {
                 playerController.setScene(slotsRoomController);
                 //创建 PlayerGameData
+                taskManager.loadTaskData(player.getId());
                 SlotsPlayerGameData playerGameData = gameManager.createPlayerGameData(playerController);
                 if (playerGameData == null) {
                     log.warn("进入好友房slots失败，创建playerGameData失败 playerId = {}", player.getId());
-                    return;
                 }
             }
         });

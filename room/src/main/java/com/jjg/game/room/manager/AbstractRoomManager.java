@@ -497,9 +497,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             // 退出房间将当前场景置为空
             playerController.setScene(null);
             // 将玩家房间ID置为0
-            playerService.doSave(playerController.playerId(), p -> p.setRoomId(0));
-            boolean isRobot = playerController.getPlayer() instanceof RobotPlayer;
-            if (!isRobot) {
+            if (!playerController.isRobotPlayer()) {
+                playerService.doSave(playerController.playerId(), p -> p.setRoomId(0));
+                taskManager.onExit(playerController.playerId());
                 log.debug("玩家退出房间成功 gameCfgId = {},roomId = {},playerId = {},房间人数：{}",
                         room.getRoomCfgId(),
                         room.getId(),

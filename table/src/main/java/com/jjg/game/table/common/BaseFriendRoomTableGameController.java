@@ -181,7 +181,6 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
     public void dealBankerFlowing(RoomBankerChangeParam param, Map<Long, SettlementData> settlementDataMap) {
         if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
             // 给庄家或房主准备金添加金币 都需要扣房间税
-            long roomBankerId = friendRoomController.getRoom().roomBankerId();
             long bankerFlowing = param.getBankerChangeGold();
             long roomCreatorTotalIncome = param.getRoomCreatorTotalIncome();
             // 如果场上玩家赢钱，说明需要扣除准备金或者庄家金币
