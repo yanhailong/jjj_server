@@ -11,7 +11,9 @@ import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.scratchcards.message.bean.ScratchCardsActivity;
 import com.jjg.game.activity.scratchcards.message.bean.ScratchCardsDetailInfo;
 import com.jjg.game.activity.scratchcards.message.bean.ScratchCardsRewardsInfo;
+import com.jjg.game.activity.scratchcards.message.req.ReqScratchCardsExchange;
 import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsDetailInfo;
+import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsExchange;
 import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsJoinActivity;
 import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
@@ -118,21 +120,21 @@ public class ScratchCardsController extends BaseActivityController implements Ga
             ScratchCardsCfg rewardCfg = random.next();
 
             // 累加奖励道具
-            if (CollectionUtil.isNotEmpty(rewardCfg.getGetitem())) {
-                for (Map.Entry<Integer, Long> entry : rewardCfg.getGetitem().entrySet()) {
+            if (CollectionUtil.isNotEmpty(rewardCfg.getGetItem())) {
+                for (Map.Entry<Integer, Long> entry : rewardCfg.getGetItem().entrySet()) {
                     rewards.merge(entry.getKey(), entry.getValue(), Long::sum);
                 }
             }
 
             // 构建每次刮刮乐结果
-            ScratchCardsResult scratchCardsResult = new ScratchCardsResult(rewardCfg.getIconNum(), rewardCfg.getGetitem(), rewardCfg.getId());
+            ScratchCardsResult scratchCardsResult = new ScratchCardsResult(rewardCfg.getIconNum(), rewardCfg.getGetItem(), rewardCfg.getId());
             scratchCardsResults.add(scratchCardsResult);
             //构建分类结果
             Map<Integer, Long> map = rewardsClassification.get(rewardCfg.getIconNum());
-            if (map == null && CollectionUtil.isNotEmpty(rewardCfg.getGetitem())) {
+            if (map == null && CollectionUtil.isNotEmpty(rewardCfg.getGetItem())) {
                 HashMap<Integer, Long> temp = new HashMap<>();
                 rewardsClassification.put(rewardCfg.getIconNum(), temp);
-                rewardCfg.getGetitem().forEach((key, value) -> temp.merge(key, value, Long::sum));
+                rewardCfg.getGetItem().forEach((key, value) -> temp.merge(key, value, Long::sum));
             }
             timesMap.compute(rewardCfg.getIconNum(), (k, hasTimes) -> hasTimes == null ? 1 : hasTimes + 1);
         }
@@ -206,13 +208,15 @@ public class ScratchCardsController extends BaseActivityController implements Ga
             info.activityId = activityData.getId();
             info.detailId = cfg.getId();
             info.type = cfg.getType();
-            info.buyPrice = cfg.getCost().toPlainString();
             // 奖励信息
-            info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetitem());
+            info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetItem());
             info.numOf7 = cfg.getIconNum();
-            //商品id
             if (CollectionUtil.isNotEmpty(cfg.getChannelCommodity())) {
                 info.productId = cfg.getChannelCommodity().get(player.getChannel().getValue());
+                info.buyPrice = cfg.getCost().toPlainString();
+            }
+            if (CollectionUtil.isNotEmpty(cfg.getCostItem())) {
+                info.costItems = ItemUtils.buildItemInfo(cfg.getCostItem());
             }
             return info;
         }
@@ -230,16 +234,16 @@ public class ScratchCardsController extends BaseActivityController implements Ga
         Map<Integer, ScratchCardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         ScratchCardsCfg cfg = baseCfgBeanMap.get(giftId);
         if (cfg.getType() == ActivityConstant.ScratchCards.GIFT_TYPE) {
-            CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerId, cfg.getGetitem(), AddType.ACTIVITY_SCRATCH_CARDS_BUY_GIFT);
+            CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerId, cfg.getGetItem(), AddType.ACTIVITY_SCRATCH_CARDS_BUY_GIFT);
             if (!addItems.success()) {
                 log.error("刮刮乐购买礼包自动领奖失败 playerId:{} activityData:{}", playerId, activityData);
                 res.code = Code.UNKNOWN_ERROR;
                 activityManager.sendToPlayer(playerId, res);
                 return;
             }
-            res.itemInfos = ItemUtils.buildItemInfo(cfg.getGetitem());
+            res.itemInfos = ItemUtils.buildItemInfo(cfg.getGetItem());
             // 日志记录
-            activityLogger.sendActivityGift(player, activityData, addItems.data, cfg.getGetitem(), cfg.getCost(), giftId);
+            activityLogger.sendActivityGift(player, activityData, addItems.data, cfg.getGetItem(), cfg.getCost(), giftId);
             activityManager.sendToPlayer(playerId, res);
         }
     }
@@ -326,5 +330,40 @@ public class ScratchCardsController extends BaseActivityController implements Ga
         //获取背包数据
         PlayerPack playerPack = playerPackService.getFromAllDB(playerId);
         return playerPack.getItemCount(costItem.getId()) > 0;
+    }
+
+    public AbstractResponse reqScratchCardsExchange(Player player, ReqScratchCardsExchange req) {
+        ResScratchCardsExchange msg = new ResScratchCardsExchange(Code.SUCCESS);
+        ActivityData activityData = activityManager.getActivityData().get(req.activityId);
+        if (activityData == null) {
+            msg.code = Code.PARAM_ERROR;
+            return msg;
+        }
+        Map<Integer, ScratchCardsCfg> detailCfgBean = getDetailCfgBean(activityData);
+        ScratchCardsCfg cfg = detailCfgBean.get(req.goodsId);
+        if (cfg == null || cfg.getType() != ActivityConstant.ScratchCards.GIFT_TYPE
+                || CollectionUtil.isNotEmpty(cfg.getChannelCommodity())
+                || CollectionUtil.isEmpty(cfg.getCostItem())) {
+            msg.code = Code.PARAM_ERROR;
+            return msg;
+        }
+        Map<Integer, Long> getItem = cfg.getGetItem();
+        if (CollectionUtil.isEmpty(getItem)) {
+            msg.code = Code.SAMPLE_ERROR;
+            return msg;
+        }
+        //扣除道具添加道具
+        CommonResult<ItemOperationResult> removeItems = playerPackService.removeItems(player, cfg.getCostItem(), AddType.ACTIVITY_SCRATCH_CARDS_EXCHANGE);
+        if (!removeItems.success()) {
+            msg.code = Code.NOT_ENOUGH_ITEM;
+            return msg;
+        }
+        CommonResult<ItemOperationResult> addItems = playerPackService.addItems(player.getId(), getItem, AddType.ACTIVITY_SCRATCH_CARDS_EXCHANGE);
+        if (!addItems.success()) {
+            log.error("刮刮卡兑换道具发奖失败 playerId:{} activityId:{}", player.getId(), activityData.getId());
+        }
+        msg.rewardList = ItemUtils.buildItemInfo(getItem);
+        activityLogger.sendActivityGift(player, activityData, addItems.data, getItem, cfg.getCostItem(), cfg.getId());
+        return msg;
     }
 }

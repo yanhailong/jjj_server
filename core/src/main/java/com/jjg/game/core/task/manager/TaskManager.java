@@ -365,6 +365,16 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService,
         onExit(pfSession.playerId);
     }
 
+    /**
+     * 关服执行
+     */
+    public void shutdown() {
+        for (Map.Entry<Long, TaskData> dataEntry : playerTaskMap.entrySet()) {
+            taskService.saveTask(dataEntry.getKey(), dataEntry.getValue());
+            log.info("关服玩家回存任务信息成功 playerId:{}", dataEntry.getKey());
+        }
+    }
+
     record TaskSortParam(Task task, TaskDetail taskDetail, long progress) {
     }
 

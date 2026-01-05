@@ -402,8 +402,15 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      * 检查未加入人数
      */
     public void checkNoJoinPlayer() {
-        RC cfg = gameController.getGameDataVo().getRoomCfg();
-        diffCount = roomManager.getMatchDataDao().checkPlayerExpiredWaitingNum(diffCount, cfg.getGameID(), cfg.getId(), room);
+        PlayerWorker baseFuncProcessor = getRoomProcessor();
+        baseFuncProcessor.tryPublish(0, new BaseHandler<String>() {
+            @Override
+            public void action() {
+                RC cfg = gameController.getGameDataVo().getRoomCfg();
+                diffCount = roomManager.getMatchDataDao().checkPlayerExpiredWaitingNum(diffCount, cfg.getGameID(), cfg.getId(), room);
+            }
+        }.setHandlerParamWithSelf("checkNoJoinPlayer"));
+
     }
 
 

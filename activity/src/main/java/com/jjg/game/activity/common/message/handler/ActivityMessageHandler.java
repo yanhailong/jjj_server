@@ -17,6 +17,8 @@ import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.activity.officialawards.controller.OfficialAwardsController;
 import com.jjg.game.activity.officialawards.message.req.ReqOfficialAwardsRecord;
 import com.jjg.game.activity.officialawards.message.req.ReqOfficialAwardsTotalPool;
+import com.jjg.game.activity.scratchcards.controller.ScratchCardsController;
+import com.jjg.game.activity.scratchcards.message.req.ReqScratchCardsExchange;
 import com.jjg.game.activity.sharepromote.controller.SharePromoteController;
 import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteBindPlayer;
 import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteSelfRankInfo;
@@ -51,8 +53,11 @@ public class ActivityMessageHandler {
     private final NodeConfig nodeConfig;
     private final OfficialAwardsController officialAwardsController;
     private final WealthRouletteController wealthRouletteController;
+    private final ScratchCardsController scratchCardsController;
 
-    public ActivityMessageHandler(ActivityManager activityManager, CashCowController cashCowController, SharePromoteController sharePromoteController, PlayerLevelPackManager playerLevelPackManager, NodeConfig nodeConfig, OfficialAwardsController officialAwardsController, WealthRouletteController wealthRouletteController) {
+    public ActivityMessageHandler(ActivityManager activityManager, CashCowController cashCowController, SharePromoteController sharePromoteController,
+                                  PlayerLevelPackManager playerLevelPackManager, NodeConfig nodeConfig, OfficialAwardsController officialAwardsController,
+                                  WealthRouletteController wealthRouletteController, ScratchCardsController scratchCardsController) {
         this.activityManager = activityManager;
         this.cashCowController = cashCowController;
         this.sharePromoteController = sharePromoteController;
@@ -60,6 +65,7 @@ public class ActivityMessageHandler {
         this.nodeConfig = nodeConfig;
         this.officialAwardsController = officialAwardsController;
         this.wealthRouletteController = wealthRouletteController;
+        this.scratchCardsController = scratchCardsController;
     }
 
     /**
@@ -374,6 +380,17 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_WEALTH_ROULETTE_BUY_GOOD)
     public void reqWealthRouletteBuyGood(PlayerController playerController, ReqWealthRouletteBuyGood req) {
         AbstractResponse abstractResponse = wealthRouletteController.reqWealthRouletteBuyGood(playerController.getPlayer(), req);
+        playerController.send(abstractResponse);
+    }
+
+    /**
+     * 刮刮卡 兑换道具
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(ActivityConstant.MsgBean.REQ_SCRATCH_CARDS_EXCHANGE)
+    public void reqScratchCardsExchange(PlayerController playerController, ReqScratchCardsExchange req) {
+        AbstractResponse abstractResponse = scratchCardsController.reqScratchCardsExchange(playerController.getPlayer(), req);
         playerController.send(abstractResponse);
     }
 
