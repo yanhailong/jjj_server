@@ -1,5 +1,6 @@
 package com.jjg.game.common.utils;
 
+import cn.hutool.core.lang.WeightRandom;
 import cn.hutool.core.util.RandomUtil;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * 封装的 HashedWheelTimer 工具类
  * 支持一次性任务 & 周期性任务
+ * 需要在其他线程执行逻辑任务
  *
  * @author lm
  * @date 2025/9/29 14:29
@@ -112,11 +114,46 @@ public class WheelTimerUtil {
         return TIMER.newTimeout(timerTask, initialDelay, unit);
     }
 
+
+    /**
+     * 周期性任务（固定次数，随机时间）
+     *
+     * @param task         执行内容
+     * @param initialDelay 首次延迟
+     * @param random       权重随机时间
+     * @param unit         时间单位
+     * @return 可用 Timeout 取消任务
+     */
+    public static Timeout scheduleAtFixedCount(Runnable task, AtomicInteger times, long initialDelay, WeightRandom<Integer> random, TimeUnit unit) {
+        // 包装一个递归任务
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run(Timeout timeout) {
+                if (timeout.isCancelled()) {
+                    return;
+                }
+                try {
+                    task.run();
+                } catch (Exception e) {
+                    log.error("轮询定时器异常", e);
+                } finally {
+                    int get = times.decrementAndGet();
+                    if (get > 0) {
+                        // 再次调度自身
+                        TIMER.newTimeout(this, random.next(), unit);
+                    }
+                }
+            }
+        };
+        return TIMER.newTimeout(timerTask, initialDelay, unit);
+    }
+
     /**
      * 关闭定时器（应用退出时调用）
      */
     public static void stop() {
         TIMER.stop();
     }
+
 }
 

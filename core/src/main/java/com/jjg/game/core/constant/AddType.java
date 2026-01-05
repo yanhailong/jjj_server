@@ -110,6 +110,8 @@ public enum AddType {
     ACTIVITY_DAILY_RECHARGE_PROGRESS(621),
     //每日充值购买礼包奖励
     ACTIVITY_DAILY_RECHARGE_GIFT(622),
+    //刮刮卡兑换道具
+    ACTIVITY_SCRATCH_CARDS_EXCHANGE(623),
     //好友房申请庄家扣除准备金
     FRIEND_ROOM_APPLY_BANKER_DEDUCT_PREDICATE(701),
     //好友房取消申请庄家，添加准备金
