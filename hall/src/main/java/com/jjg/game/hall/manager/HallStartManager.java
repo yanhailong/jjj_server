@@ -7,6 +7,7 @@ import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.core.service.LoginConfigService;
+import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.hall.casino.manager.CasinoManager;
 import com.jjg.game.hall.listener.HallPlayerEventListener;
 import com.jjg.game.hall.minigame.MinigameManager;
@@ -56,7 +57,8 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private LoginConfigService loginConfigService;
     @Autowired
     private NoticeService noticeService;
-
+    @Autowired
+    private TaskManager taskManager;
     private ApplicationContext context;
 
     private boolean running = false;
@@ -83,6 +85,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         marsCoreStartService.shutdown();
         coreStartService.shutdown();
         casinoManager.shutdown();
+        taskManager.shutdown();
         running = false;
     }
 
