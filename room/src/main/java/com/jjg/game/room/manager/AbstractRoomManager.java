@@ -1,5 +1,6 @@
 package com.jjg.game.room.manager;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.activity.wealthroulette.controller.WealthRouletteController;
@@ -249,6 +250,18 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         if (randomRoom == null) {
             return null;
         }
+        if (CollectionUtil.isNotEmpty(randomRoom.getRoomPlayers())) {
+            List<Long> removeIds = new ArrayList<>();
+            for (Map.Entry<Long, RoomPlayer> entry : randomRoom.getRoomPlayers().entrySet()) {
+                RoomPlayer roomPlayer = entry.getValue();
+                if (roomPlayer.isRobot()) {
+                    removeIds.add(entry.getKey());
+                }
+                randomRoom = roomDao.removePlayers(randomRoom.getGameType(), randomRoom.getRoomCfgId(), removeIds);
+                log.info("从redis加载房间数据时 移除异常的机器人 ids:{}", removeIds);
+            }
+        }
+
         return initWithRoom(gameType, roomCfgId, maxLimit, roomType, randomRoom);
     }
 
