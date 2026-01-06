@@ -13,10 +13,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
-import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.data.SpecialGirdInfo;
+import com.jjg.game.slots.data.*;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.wealthbank.WealthBankConstant;
 import com.jjg.game.slots.game.wealthbank.dao.WealthBankGameDataDao;
@@ -104,7 +101,7 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
         }
 
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, betValue, false);
+        return startGame(playerGameData, betValue, false);
     }
 
     /**
@@ -371,7 +368,7 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
     public WealthBankGameRunInfo autoStartGame(WealthBankPlayerGameData playerGameData, long betValue) {
         log.debug("[Wealth Bank] 系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
 
-        return startGame(new PlayerController(null, null), playerGameData, betValue, true);
+        return startGame(playerGameData, betValue, true);
     }
 
     /**
@@ -381,15 +378,15 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
      * @return
      */
     public WealthBankGameRunInfo
-    startGame(PlayerController playerController, WealthBankPlayerGameData playerGameData, long betValue, boolean auto) {
+    startGame(WealthBankPlayerGameData playerGameData, long betValue, boolean auto) {
         WealthBankGameRunInfo gameRunInfo = new WealthBankGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
 
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
-            playerController.setPlayer(player);
+            playerGameData.setPlayer(player);
 
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
@@ -429,7 +426,7 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
             rewardFromBigPool(gameRunInfo, playerGameData);
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerGameData.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
 
             //添加美元收集进度
             if (gameRunInfo.getTotalDollars() < 1) {
@@ -438,7 +435,7 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
-            playerController.setPlayer(player);
+            playerGameData.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
@@ -798,17 +795,6 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
         return gameRunInfo;
     }
 
-    @Override
-    protected void offlineSaveGameDataDto(WealthBankPlayerGameData gameData) {
-        try {
-            WealthBankPlayerGameDataDTO dto = gameData.converToDto(WealthBankPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("[Wealth Bank] ", e);
-        }
-
-    }
-
     /**
      * 将库里面的中将线信息转化为消息
      *
@@ -903,6 +889,11 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
     @Override
     protected WealthBankGenerateManager getGenerateManager() {
         return this.generateManager;
+    }
+
+    @Override
+    protected Class<WealthBankPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return WealthBankPlayerGameDataDTO.class;
     }
 
     /**

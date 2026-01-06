@@ -17,6 +17,7 @@ import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.TestLibData;
 import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraGameDataDao;
@@ -26,6 +27,7 @@ import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameDataDTO;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
+import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameDataDTO;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -280,18 +282,13 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
     }
 
     @Override
-    public int getGameType() {
-        return CoreConst.GameType.CLEOPATRA;
+    protected Class<CleopatraPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return CleopatraPlayerGameDataDTO.class;
     }
 
     @Override
-    protected void offlineSaveGameDataDto(CleopatraPlayerGameData gameData) {
-        try {
-            CleopatraPlayerGameDataDTO dto = gameData.converToDto(CleopatraPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
+    public int getGameType() {
+        return CoreConst.GameType.CLEOPATRA;
     }
 
     @Override

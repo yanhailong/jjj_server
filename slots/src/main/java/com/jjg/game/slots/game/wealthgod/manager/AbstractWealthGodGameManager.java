@@ -16,10 +16,7 @@ import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.SlotsResultLib;
-import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.data.TestLibData;
+import com.jjg.game.slots.data.*;
 import com.jjg.game.slots.game.wealthgod.WealthGodConstant;
 import com.jjg.game.slots.game.wealthgod.dao.WealthGodGameDataDao;
 import com.jjg.game.slots.game.wealthgod.dao.WealthGodResultLibDao;
@@ -55,19 +52,6 @@ public class AbstractWealthGodGameManager extends AbstractSlotsGameManager<Wealt
         addUpdatePoolEvent();
     }
 
-    /**
-     * 玩家离线保存gameDataDto
-     */
-    @Override
-    protected void offlineSaveGameDataDto(WealthGodPlayerGameData gameData) {
-        try {
-            WealthGodPlayerGameDataDTO dto = gameData.converToDto(WealthGodPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
     @Override
     public int getGameType() {
         return CoreConst.GameType.WEALTH_GOD;
@@ -86,6 +70,11 @@ public class AbstractWealthGodGameManager extends AbstractSlotsGameManager<Wealt
     @Override
     protected WealthGodGenerateManager getGenerateManager() {
         return this.generateManager;
+    }
+
+    @Override
+    protected Class<WealthGodPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return WealthGodPlayerGameDataDTO.class;
     }
 
     /**

@@ -14,6 +14,7 @@ import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.GameRunInfo;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.goldsnakefortune.GoldSnakeFortuneConstant;
 import com.jjg.game.slots.game.goldsnakefortune.dao.GoldSnakeFortuneGameDataDao;
@@ -332,13 +333,8 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
     }
 
     @Override
-    protected void offlineSaveGameDataDto(GoldSnakeFortunePlayerGameData gameData) {
-        try {
-            GoldSnakeFortunePlayerGameDataDTO dto = gameData.converToDto(GoldSnakeFortunePlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
+    protected Class<GoldSnakeFortunePlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return GoldSnakeFortunePlayerGameDataDTO.class;
     }
 
     @Override

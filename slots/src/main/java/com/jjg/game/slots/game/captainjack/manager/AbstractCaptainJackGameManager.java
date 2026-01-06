@@ -14,6 +14,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.BetDivideInfo;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackGameDataDao;
@@ -250,20 +251,9 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         gameRunInfo.setStatus(playerGameData.getStatus());
     }
 
-
     @Override
     public int getGameType() {
         return CoreConst.GameType.CAPTAIN_JACK;
-    }
-
-    @Override
-    protected void offlineSaveGameDataDto(CaptainJackPlayerGameData gameData) {
-        try {
-            CaptainJackPlayerGameDataDTO dto = gameData.converToDto(CaptainJackPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
     }
 
     @Override
@@ -279,6 +269,11 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
     @Override
     protected CaptainJackGameDataDao getGameDataDao() {
         return this.gameDataDao;
+    }
+
+    @Override
+    protected Class<CaptainJackPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return CaptainJackPlayerGameDataDTO.class;
     }
 
     @Override

@@ -14,6 +14,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
@@ -270,16 +271,6 @@ public class AbstractMahjiongWinGameManager extends AbstractSlotsGameManager<Mah
     }
 
     @Override
-    protected void offlineSaveGameDataDto(MahjiongWinPlayerGameData gameData) {
-        try {
-            MahjiongWinPlayerGameDataDTO dto = gameData.converToDto(MahjiongWinPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    @Override
     protected MahjiongWinResultLibDao getResultLibDao() {
         return this.libDao;
     }
@@ -292,6 +283,11 @@ public class AbstractMahjiongWinGameManager extends AbstractSlotsGameManager<Mah
     @Override
     protected MahjiongWinGameDataDao getGameDataDao() {
         return this.gameDataDao;
+    }
+
+    @Override
+    protected Class<MahjiongWinPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return MahjiongWinPlayerGameDataDTO.class;
     }
 
     @Override
