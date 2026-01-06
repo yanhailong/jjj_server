@@ -7,7 +7,10 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.utils.ObjectMapperUtil;
-import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.Order;
+import com.jjg.game.core.data.OrderStatus;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.pb.NotifyRechargeServer;
 import com.jjg.game.core.recharge.dao.OfflineRechargeDao;
@@ -105,7 +108,7 @@ public abstract class AbstractCallbackController {
             //可能会出现玩家已经不在当前节点需要自行处理
             clusterClient = clusterSystem.getClusterByPath(info.getCurrentNode());
         } else {
-            log.info("因玩家不在线，已将充值成功添加到离线充值 playerId = {},orderId = {},toNodePath = {}", order.getPlayerId(), order.getId(), clusterClient.nodeConfig.getName());
+            log.info("因玩家不在线，已将充值成功添加到离线充值 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
             //离线玩家登陆时处理,离线充值
             offlineRechargeDao.addRecharge(order.getPlayerId(), ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(notify));
             return;
