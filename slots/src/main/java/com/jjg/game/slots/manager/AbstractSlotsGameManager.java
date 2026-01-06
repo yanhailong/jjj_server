@@ -1351,6 +1351,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (initiativeExit) {
             offlineSaveGameDataDto(playerGameData);
             removePlayerGameData(playerController.playerId(), playerGameData.getRoomCfgId());
+        } else {
+            taskManager.saveTask(playerController.playerId());
         }
         return playerGameData;
     }
