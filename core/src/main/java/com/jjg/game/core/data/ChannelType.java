@@ -11,7 +11,6 @@ import java.util.Arrays;
 public enum ChannelType {
     GOOGLE(1),
     APPLE(2),
-
     ;
 
     private final int value;

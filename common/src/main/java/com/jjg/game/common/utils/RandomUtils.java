@@ -354,7 +354,7 @@ public class RandomUtils {
                 break;
             }
             // 随机一个
-            int rand = new Random().nextInt(weight) + 1;
+            int rand = RandomUtil.randomInt(weight) + 1;
             int r = 0;
             T choose = null;
             for (T id : map.keySet()) {

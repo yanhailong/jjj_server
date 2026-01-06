@@ -906,6 +906,10 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             if (playerLatestOperateTime <= 0) {
                 continue;
             }
+            if (gamePlayer instanceof GameRobotPlayer&&!seatInfo.isSeatDown()) {
+                roomController.getRoomManager().exitRoom(gamePlayer.getId());
+                continue;
+            }
             // 如果超过最大退出时间
             if (playerLatestOperateTime + exitTime < currentTime) {
                 RoomPlayer roomPlayer = roomController.getRoomPlayer(gamePlayer.getId());

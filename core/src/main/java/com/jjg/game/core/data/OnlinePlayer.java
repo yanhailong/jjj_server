@@ -15,6 +15,8 @@ public class OnlinePlayer {
     private int channel;
     //游戏
     private int gameType;
+    //游戏
+    private String subChannel;
 
     public long getPlayerId() {
         return playerId;
@@ -38,5 +40,13 @@ public class OnlinePlayer {
 
     public void setGameType(int gameType) {
         this.gameType = gameType;
+    }
+
+    public String getSubChannel() {
+        return subChannel;
+    }
+
+    public void setSubChannel(String subChannel) {
+        this.subChannel = subChannel;
     }
 }

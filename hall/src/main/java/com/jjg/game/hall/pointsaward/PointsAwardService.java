@@ -7,7 +7,10 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
-import com.jjg.game.core.constant.*;
+import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
@@ -34,13 +37,10 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * 积分大奖积分服务
@@ -107,6 +107,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         if (marsCurator.isMaster()) {
             //跨月检查
             clear();
+            //重置时间段积分
+            resetTimePoints();
             // 初始化充值数据记录map
             redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
                     () -> {
@@ -119,7 +121,6 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                         log.info("阶段奖励领取记录 删除数量: {}", deleted);
                     });
             log.debug("充值数据记录map清除完成");
-            resetTimePoints();
         }
     }
 
@@ -497,7 +498,6 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         //先全部读取，然后删除
         Map<Long, TimePoints> timePointsMap = playerTimePointsMap.readAllMap();
         playerTimePointsMap.delete();
-
         if (this.pointsAwardMap == null || this.pointsAwardMap.isEmpty()) {
             log.debug("积分大奖保底奖励为空，故阶段积分重置时无奖励");
         } else {
@@ -507,10 +507,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                         receiveLader(pointsAwardInfo.getPoints(), playerId, true);
                     }
                 });
-                getLadderReceiveSet(playerId).delete();
             });
         }
-
         log.debug("重置时间段积分 map.size = {}", timePointsMap.size());
     }
 

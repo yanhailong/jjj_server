@@ -19,7 +19,6 @@ public class PlayerGameWinMoneyCheck extends BaseCheck {
     @Override
     public boolean check(Object paramObject, Object conditionObject) {
         if (paramObject instanceof PlayerSampleParam param && conditionObject instanceof PlayerGameWinMoneyCondition condition) {
-
             //总押注 总获胜金额 货币id
             List<Long> paramList = param.getParamList();
             if (paramList == null || paramList.size() != 3) {
@@ -31,7 +30,10 @@ public class PlayerGameWinMoneyCheck extends BaseCheck {
             }
             if (CollectionUtil.isEmpty(condition.getIds()) || condition.getIds().contains(param.getId())) {
                 Long first = paramList.getFirst();
-                return first >= condition.getNeedBet() && paramList.get(1) >= condition.getMinAchievedValue().longValue();
+                if (first >= condition.getNeedBet()) {
+                    BigDecimal progress = countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), BigDecimal.valueOf(paramList.getFirst()));
+                    return progress.compareTo(condition.getMinAchievedValue()) >= 0;
+                }
             }
         }
         return false;

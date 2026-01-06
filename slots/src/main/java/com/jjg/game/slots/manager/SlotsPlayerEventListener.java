@@ -7,21 +7,18 @@ import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.slots.dao.SlotsFriendRoomDao;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.Optional;
 
 
 /**
@@ -39,14 +36,13 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     @Autowired
     private CoreLogger logger;
     @Autowired
-    private PlayerLastGameInfoDao playerLastGameInfoDao;
-    @Autowired
     private SlotsFactoryManager slotsFactoryManager;
     @Autowired
     private PlayerSessionTokenDao playerSessionTokenDao;
     @Autowired
     private SlotsFriendRoomDao slotsFriendRoomDao;
-
+    @Autowired
+    private TaskManager taskManager;
 
     @Override
     public void sessionClose(PFSession session) {
@@ -87,7 +83,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             playerSessionService.enterGameServer(player);
 
             if (player.getRoomId() < 1) {
-                enterSlotsGame(session, player, info, gameManager);
+                enterSlotsGame(session, player, gameManager);
             } else {
                 enterRoomSlotsGame(session, player, info, gameManager);
             }
@@ -101,15 +97,15 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
      *
      * @param session
      * @param player
-     * @param playerSessionInfo
      * @param gameManager
      */
-    private void enterSlotsGame(PFSession session, Player player, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
+    private void enterSlotsGame(PFSession session, Player player, AbstractSlotsGameManager gameManager) {
         //放入玩家对应线程中处理避免和回存冲突
         PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
             @Override
             public void action() throws Exception {
                 PlayerController playerController = new PlayerController(session, player);
+                taskManager.loadTaskData(player.getId());
                 session.setReference(playerController);
                 //创建 PlayerGameData
                 gameManager.createPlayerGameData(playerController);
@@ -144,6 +140,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             @Override
             public void action() throws Exception {
                 PlayerController playerController = new PlayerController(session, player);
+                taskManager.loadTaskData(player.getId());
                 session.setReference(playerController);
                 //创建 PlayerGameData
                 gameManager.createPlayerGameData(playerController, RoomType.SLOTS_TEAM_UP_ROOM);

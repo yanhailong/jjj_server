@@ -1,5 +1,6 @@
 package com.jjg.game.table.birdsanimals.gamephase;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
@@ -133,7 +134,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
 
     private Pair<Integer, List<WinPosWeightCfg>> generateRecyclingResults(Map<Integer, List<WinPosWeightCfg>> winPosOfWeightCfgMap) {
         Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo = gameDataVo.getRealPlayerBetInfo();
-        if (realPlayerBetInfo == null) {
+        if (CollectionUtil.isEmpty(realPlayerBetInfo)) {
             return null;
         }
         // 2. 提前过滤：移除包含大奖（WinType 1或2）的无效 Key，减少后续 shuffle 和循环的负担

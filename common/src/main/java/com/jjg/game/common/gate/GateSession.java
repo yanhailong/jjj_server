@@ -1,6 +1,7 @@
 package com.jjg.game.common.gate;
 
 import com.jjg.game.common.cluster.ClusterClient;
+import com.jjg.game.common.cluster.ClusterConnect;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
@@ -34,6 +35,8 @@ import java.util.Map;
  */
 public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMessage>, ConnectListener {
 
+    private static final Logger log = LoggerFactory.getLogger(GateSession.class);
+
     /**
      * TODO 在GateSession中管理所有的网关会话?是否应该在{@linkplain com.jjg.game.gate.GateSessionManager}中管理操作所有的网关会话
      */
@@ -53,7 +56,7 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
     private long activeTime;
     private long createTime;
     private NettyConnect<Object> connect;
-    protected Logger log = LoggerFactory.getLogger(getClass());
+
     /**
      * 当前所在节点
      */

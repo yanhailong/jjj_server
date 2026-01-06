@@ -1,5 +1,6 @@
 package com.jjg.game.table.dicecommon.phase;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.proto.Pair;
@@ -36,7 +37,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
 
     public List<Integer> generateRecyclingResults(int diceNum, int diceMinNum, int diceMaxNum, EGameType gameType) {
         Map<Long, Map<Integer, List<Integer>>> realPlayerBetInfo = gameDataVo.getRealPlayerBetInfo();
-        if (realPlayerBetInfo == null) {
+        if (CollectionUtil.isEmpty(realPlayerBetInfo)) {
             return null;
         }
         List<List<Integer>> diceAllResults = getDiceAllResults(diceNum, diceMinNum, diceMaxNum);

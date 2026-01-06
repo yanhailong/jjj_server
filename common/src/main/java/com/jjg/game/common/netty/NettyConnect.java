@@ -23,11 +23,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> implements Connect<T> {
 
-    protected Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log = LoggerFactory.getLogger(NettyConnect.class);
     protected ChannelHandlerContext ctx;
     protected NetAddress remoteAddress;
     protected List<ConnectListener> connectListeners = new CopyOnWriteArrayList<>();
-    protected long lastHeartbeatTime;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {

@@ -2,6 +2,7 @@ package com.jjg.game.core.task.service;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.ClusterRpcReference;
@@ -103,6 +104,7 @@ public class TaskService {
 
     /**
      * 回存任务
+     *
      * @param playerId 玩家id
      * @param taskData 任务数据
      */
@@ -121,7 +123,6 @@ public class TaskService {
             if (taskData == null || taskData.getTaskDetails() == null || taskData.getTaskDetails().isEmpty()) {
                 return;
             }
-
             taskData.getTaskDetails().entrySet().removeIf(en -> {
                 Integer taskId = en.getKey();
                 TaskDetail detail = en.getValue();
@@ -161,7 +162,7 @@ public class TaskService {
         }
 
         // 获取当前应该激活的任务
-        TaskCfg currentActiveCfg = getCurrentActiveTaskInGroup(activeGroupTasks);
+        TaskCfg currentActiveCfg = getCurrentActiveTaskInGroup(activeGroupTasks, taskCfg);
 
         // 如果当前任务不是应该激活的任务，则删除
         if (currentActiveCfg.getId() != taskCfg.getId()) {
@@ -253,14 +254,7 @@ public class TaskService {
     private boolean shouldRefreshTask(LocalDateTime createTime) {
         LocalDateTime now = LocalDateTime.now();
         // 不是同一天，肯定需要刷新
-        if (!createTime.toLocalDate().isEqual(now.toLocalDate())) {
-            return true;
-        }
-        // 同一天的情况下，判断是否跨越了12点
-        int createHour = createTime.getHour();
-        int nowHour = now.getHour();
-        // 创建时间在0-11点（上半天），当前时间在12-23点（下半天）
-        return createHour < TaskConstant.TimeConstants.NOON_HOUR && nowHour >= TaskConstant.TimeConstants.NOON_HOUR;
+        return !createTime.toLocalDate().isEqual(now.toLocalDate());
     }
 
 
@@ -378,7 +372,7 @@ public class TaskService {
      *
      * @param playerId             玩家ID
      * @param availableTaskConfigs 可用任务配置列表
-     * @param taskManager 任务管理器
+     * @param taskManager          任务管理器
      * @return 新创建的任务列表
      */
     private Map<Integer, TaskDetail> createNewTasksForPlayer(long playerId, TaskData taskData, List<TaskCfg> availableTaskConfigs, TaskManager taskManager) {
@@ -492,25 +486,21 @@ public class TaskService {
      * 获取组中当前应该激活的任务
      *
      * @param activeGroupTasks 组中的激活任务列表
+     * @param taskCfg          当前任务
      * @return 当前应该激活的任务
      */
-    private TaskCfg getCurrentActiveTaskInGroup(List<TaskCfg> activeGroupTasks) {
+    private TaskCfg getCurrentActiveTaskInGroup(List<TaskCfg> activeGroupTasks, TaskCfg taskCfg) {
         LocalDate currentDate = LocalDate.now();
 
         // 筛选出与当前年月匹配的任务
         List<TaskCfg> currentMonthTasks = activeGroupTasks.stream()
                 .filter(cfg -> isTaskMatchCurrentMonth(cfg, currentDate))
                 .toList();
-
+        if (CollectionUtil.isEmpty(currentMonthTasks) || currentMonthTasks.contains(taskCfg)) {
+            return taskCfg;
+        }
         if (currentMonthTasks.size() == 1) {
             return currentMonthTasks.getFirst();
-        }
-
-        // 优先选择与当前年月匹配的任务，有多个则选择ID最小的
-        if (!currentMonthTasks.isEmpty()) {
-            return currentMonthTasks.stream()
-                    .min(Comparator.comparingInt(TaskCfg::getId))
-                    .orElse(currentMonthTasks.getFirst());
         }
 
         // 如果没有匹配当前年月的任务，选择没有时间配置的常驻任务中ID最小的
@@ -521,17 +511,7 @@ public class TaskService {
         if (permanentTasks.size() == 1) {
             return permanentTasks.getFirst();
         }
-
-        if (!permanentTasks.isEmpty()) {
-            return permanentTasks.stream()
-                    .min(Comparator.comparingInt(TaskCfg::getId))
-                    .orElse(permanentTasks.getFirst());
-        }
-
-        // 如果都没有，返回ID最小的任务作为兜底
-        return activeGroupTasks.stream()
-                .min(Comparator.comparingInt(TaskCfg::getId))
-                .orElse(activeGroupTasks.getFirst());
+        return taskCfg;
     }
 
     /**

@@ -11,6 +11,8 @@ public enum AddType {
     FAIL_ROLLBACK(2),
     //gm操作
     GM_OPERATOR(3),
+    //后台操作
+    BACKEND_OPERATOR(4),
 
 
     //道具兑换
@@ -48,8 +50,8 @@ public enum AddType {
     CREATE_FRIEND_ROOM(401),
     //管理好友房
     MANAGE_FRIEND_ROOM(402),
-
-
+    //创建好友房失败回退
+    CREATE_FRIEND_FAIL_CALLBACK(403),
 
     //获取邮件奖励
     GET_MAIL_ITEMS(501),
@@ -108,6 +110,8 @@ public enum AddType {
     ACTIVITY_DAILY_RECHARGE_PROGRESS(621),
     //每日充值购买礼包奖励
     ACTIVITY_DAILY_RECHARGE_GIFT(622),
+    //刮刮卡兑换道具
+    ACTIVITY_SCRATCH_CARDS_EXCHANGE(623),
     //好友房申请庄家扣除准备金
     FRIEND_ROOM_APPLY_BANKER_DEDUCT_PREDICATE(701),
     //好友房取消申请庄家，添加准备金

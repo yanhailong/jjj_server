@@ -427,13 +427,8 @@ public class AccountController extends AbstractController {
         ChannelType channelType = ChannelType.valueOf(dto.getChannel(), ChannelType.GOOGLE);
 
         //保存token，方便weboskcet连接时进行校验
-        if (register) {
-            playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), channelType.getValue(), ip, deviceType.getValue(),
-                    dto.getMac(), account.getChannel().getValue(), dto.getShareId());
-        } else {
-            playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), channelType.getValue(), ip, deviceType.getValue(),
-                    dto.getMac(), account.getChannel().getValue(), null);
-        }
+        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), channelType.getValue(), ip, deviceType.getValue(),
+                dto.getMac(), account.getChannel().getValue(), dto.getShareId(), dto.getSubChannel());
 
         LoginVo vo = new LoginVo();
         vo.setToken(token);

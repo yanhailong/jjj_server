@@ -9,6 +9,7 @@ import java.nio.channels.FileChannel;
 
 /**
  * 文件读取与解析帮助者类，用于读取指定文件，解析文件
+ *
  * @version 1.0
  * @All rights reserved.
  */
@@ -21,10 +22,8 @@ public class FileHelper {
      * @throws IOException
      */
     public static byte[] read(String filename) {
-
-        FileChannel fc = null;
-        try {
-            fc = new RandomAccessFile(filename, "r").getChannel();
+        try (RandomAccessFile randomAccessFile = new RandomAccessFile(filename, "r")) {
+            FileChannel fc = randomAccessFile.getChannel();
             MappedByteBuffer byteBuffer = fc.map(FileChannel.MapMode.READ_ONLY, 0,
                     fc.size()).load();
             System.out.println(byteBuffer.isLoaded());
@@ -36,14 +35,9 @@ public class FileHelper {
             return result;
         } catch (IOException e) {
             e.printStackTrace();
-            return new byte[0];
-        } finally {
-            try {
-                fc.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
+        return new byte[0];
+
     }
 
     /**
@@ -54,37 +48,18 @@ public class FileHelper {
      * @return
      */
     public static String readFile(File file, String charsetName) {
-        FileInputStream fin = null;
-        InputStreamReader inReader = null;
         BufferedReader br = null;
         StringBuilder sb = new StringBuilder();
-        try {
-            fin = new FileInputStream(file);
-            inReader = new InputStreamReader(fin, charsetName);
+        try (FileInputStream fin = new FileInputStream(file); InputStreamReader inReader = new InputStreamReader(fin, charsetName)) {
             br = new BufferedReader(inReader);
             char[] charBuffer = new char[1024];
-            int n = 0;
+            int n;
             while ((n = br.read(charBuffer)) != -1) {
                 sb.append(charBuffer, 0, n);
             }
             return sb.toString();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (fin != null) {
-                try {
-                    fin.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (inReader != null) {
-                try {
-                    inReader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
         return null;
     }
@@ -97,23 +72,11 @@ public class FileHelper {
      * @param append  是否添加到后面
      */
     public static void saveFile(File file, String content, boolean append) {
-        FileOutputStream fos = null;
-        try {
-            fos = new FileOutputStream(file, append);
+        try (FileOutputStream fos = new FileOutputStream(file, append)) {
             fos.write(content.getBytes("UTF-8"));
             fos.flush();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            if (fos != null) {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 
@@ -129,10 +92,16 @@ public class FileHelper {
         File file = new File(fileName);
         if (!file.exists()) {
             try {
-                if (file.getParentFile()!=null) {
-                    file.getParentFile().mkdirs();
+                if (file.getParentFile() != null) {
+                    boolean mkDirs = file.getParentFile().mkdirs();
+                    if (!mkDirs) {
+                        throw new RuntimeException("创建文件夹失败");
+                    }
                 }
-                file.createNewFile();
+                boolean newFile = file.createNewFile();
+                if (!newFile) {
+                    throw new RuntimeException("创建文件失败");
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }

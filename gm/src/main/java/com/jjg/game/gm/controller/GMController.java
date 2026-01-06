@@ -17,6 +17,8 @@ import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.rpc.ClusterRpcReference;
+import com.jjg.game.common.rpc.GameRpcContext;
+import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.*;
 import com.jjg.game.core.dao.*;
@@ -26,7 +28,9 @@ import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.gm.*;
+import com.jjg.game.core.rpc.BackendBridge;
 import com.jjg.game.core.rpc.HallPointsAwardBridge;
 import com.jjg.game.core.service.*;
 import com.jjg.game.gm.dao.SlotsLibDao;
@@ -44,6 +48,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -98,6 +103,10 @@ public class GMController extends AbstractController {
     private NoticeDao noticeDao;
     @Autowired
     private SharePromoteDao sharePromoteDao;
+    @ClusterRpcReference()
+    private BackendBridge backendBridge;
+    @Autowired
+    private OrderService orderService;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -627,7 +636,16 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            List<OnlinePlayer> list = onlinePlayerDao.query(dto.gameId(), dto.registerChannel(), dto.pageSize(), dto.page());
+            List<String> subChannels = new ArrayList<>();
+            if(dto.subChannels() != null){
+                for(String str : dto.subChannels()){
+                    if(!StringUtils.isBlank(str)){
+                        subChannels.add(str);
+                    }
+                }
+            }
+
+            List<OnlinePlayer> list = onlinePlayerDao.query(dto.gameId(), dto.registerChannel(), subChannels, dto.pageSize(), dto.page());
             if (list == null || list.isEmpty()) {
                 return success("common.success");
             }
@@ -1031,6 +1049,11 @@ public class GMController extends AbstractController {
 
     }
 
+    /**
+     * 修改积分大奖积分
+     * @param dto
+     * @return
+     */
     @RequestMapping(BackendGMCmd.CHANGE_PLAYER_POINTS)
     public WebResult<String> changePoints(@RequestBody ChangePointsDto dto) {
         log.info("收到修改玩家积分大奖积分请求 dto = {}", dto);
@@ -1048,6 +1071,11 @@ public class GMController extends AbstractController {
 
     }
 
+    /**
+     * 保存公告
+     * @param dto
+     * @return
+     */
     @RequestMapping(BackendGMCmd.SAVE_NOTICE)
     public WebResult<String> saveNotice(@RequestBody NoticeDto dto) {
         log.info("收到保存公告的请求 dto = {}", dto);
@@ -1078,6 +1106,11 @@ public class GMController extends AbstractController {
         }
     }
 
+    /**
+     * 删除公告
+     * @param dto
+     * @return
+     */
     @RequestMapping(BackendGMCmd.DEL_NOTICE)
     public WebResult<String> delNotice(@RequestBody DelNoticeDto dto) {
         log.info("收到删除公告的请求 dto = {}", dto);
@@ -1101,6 +1134,11 @@ public class GMController extends AbstractController {
         }
     }
 
+    /**
+     * 设置分享连接
+     * @param dto
+     * @return
+     */
     @RequestMapping(BackendGMCmd.SHARE_URL_PREFIX)
     public WebResult<String> shareUrlPrefix(@RequestBody ShareUrlPrefixDto dto) {
         log.info("收到设置分享连接 dto = {}", dto);
@@ -1110,6 +1148,133 @@ public class GMController extends AbstractController {
             }
 
             sharePromoteDao.setShareUrlPrefix(dto.url());
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 批量获取玩家信息
+     * @param dto
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.BATCH_GET_PLAYERS_INFO)
+    public WebResult<List<PlayerAndAccountVo>> batchGetPlayersInfo(@RequestBody BatchGetPlayersInfoDto dto) {
+        log.info("收到批量获取玩家信息 dto = {}", dto);
+        try {
+            if (dto.playerIds() == null || dto.playerIds().isEmpty()) {
+                return fail("common.paramerror");
+            }
+
+            // 去重，避免重复查询
+            List<Long> ids = dto.playerIds().stream()
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            if (ids.size() > 100) {
+                log.warn("批量查询玩家数量不能超过100");
+                return fail("common.paramerror");
+            }
+            List<Player> players = playerService.multiGetPlayer(ids);
+            Map<Long, Account> accounts = accountDao.multiGetAccountMap(ids);
+
+            List<PlayerAndAccountVo> list = new ArrayList<>();
+            for (Player p : players) {
+                PlayerAndAccountVo vo = new PlayerAndAccountVo();
+                BeanUtils.copyProperties(p, vo);
+
+                Account account = accounts.get(p.getId());
+                if (account != null) {
+                    BeanUtils.copyProperties(account, vo);
+                }
+                list.add(vo);
+            }
+            return success("common.success", list);
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 后台充值
+     * @param dto
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.BACKEND_RECHARGE)
+    public WebResult<String> backendRecharge(@RequestBody BackendRechargeDto dto) {
+        log.info("收到后台充值 dto = {}", dto);
+        try {
+            if (StringUtils.isBlank(dto.channelOrderId()) || dto.price() < 1 || dto.playerId() < 1 || dto.items() == null || dto.items().isEmpty()) {
+                log.warn("参数错误 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            RechargeType rechargeType = RechargeType.BACKEND;
+            if(dto.rechargeType() > 0){
+                rechargeType = RechargeType.valueOf(dto.rechargeType());
+                if(rechargeType == null){
+                    log.warn("参数错误,rechargeType无法识别 dto = {}", dto);
+                    return fail("common.paramerror");
+                }
+            }
+
+            List<Item> items = new ArrayList<>();
+            for (ItemDto itemDto : dto.items()) {
+                ItemCfg itemCfg = GameDataManager.getItemCfg(itemDto.id());
+                if (itemCfg == null) {
+                    log.warn("后台充值失败，未找到该道具 itemId = {}", itemDto.id());
+                    return fail("common.paramerror");
+                }
+
+                if (itemDto.count() < 1) {
+                    log.warn("后台充值失败，添加道具的数量不能小于1 itemId = {}", itemDto.id());
+                    return fail("common.paramerror");
+                }
+
+                items.add(new Item(itemDto.id(), itemDto.count()));
+            }
+
+            //是否缓存充值节点
+            ClusterClient client = clusterSystem.randClientByType(NodeType.RECHARGE);
+            if (client == null) {
+                log.warn("未找到充值节点 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            GameRpcContext.getContext().withReqParameterBuilder(
+                    RpcReqParameterBuilder.create()
+                            .addClusterClient(client)
+                            .setTryMillisPerClient(1000));
+
+            Player player = playerService.get(dto.playerId());
+            if (player == null) {
+                log.warn("后台充值时，未找到玩家信息 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            boolean add = orderService.putOrderId(dto.channelOrderId());
+            if (!add) {
+                log.warn("后台充值时，生成订单失败，该订单号已存在 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            BigDecimal price = BigDecimal.valueOf(dto.price());
+            Order order = orderService.generateOrder("htcz", player.getId(), price, rechargeType, items);
+            if (order == null) {
+                log.warn("后台充值时，生成订单失败 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            //rpc调用充值
+            int code = backendBridge.recharge(order.getId(), dto.channelOrderId());
+            if (code != Code.SUCCESS) {
+                log.warn("后台充值失败 code = {}", code);
+                return fail("common.fail");
+            }
+            log.info("后台充值成功 dto = {},orderId = {}", dto, order.getId());
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);

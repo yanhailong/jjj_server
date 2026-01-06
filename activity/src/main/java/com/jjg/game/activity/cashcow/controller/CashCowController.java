@@ -335,7 +335,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             }
             // 业务日志：记录玩家参加并扣除/发放的明细（异步/日志落库）
             activityLogger.sendCashCowJoinLog(oldPlayer, activityData, detailId
-                    , cfg.getType(), cfg.getNeedItem(), removed.data, get, addedItem == null ? null : addedItem.data);
+                    , cfg.getType(), cfg.getNeedItem(), removed == null ? null : removed.data, get, addedItem == null ? null : addedItem.data);
             // 构建返回数据
             res.activityId = activityId;
             res.detailId = detailId;

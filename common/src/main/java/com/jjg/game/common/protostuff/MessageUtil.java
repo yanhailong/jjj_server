@@ -68,21 +68,19 @@ public class MessageUtil {
     public static Map<Integer, MethodInfo> load(MethodAccess methodAccess, Class<?> clazz) {
         Method[] methods = clazz.getMethods();
         Map<Integer, MethodInfo> methodInfos = new HashMap<>();
-        if (methods != null && methods.length >= 0) {
-            for (Method method : methods) {
-                Class<Command> clz = Command.class;
-                Command command = method.getAnnotation(clz);
-                if (command != null) {
-                    String name = method.getName();
-                    Class[] types = method.getParameterTypes();
-                    Type returnType = method.getReturnType();
-                    int index = methodAccess.getIndex(name, types);
-                    MethodInfo methodInfo = new MethodInfo(index, name, types, returnType);
-                    methodInfo.setCommandAnno(command);
-                    methodInfos.put(command.value(), methodInfo);
-                }
-
+        for (Method method : methods) {
+            Class<Command> clz = Command.class;
+            Command command = method.getAnnotation(clz);
+            if (command != null) {
+                String name = method.getName();
+                Class[] types = method.getParameterTypes();
+                Type returnType = method.getReturnType();
+                int index = methodAccess.getIndex(name, types);
+                MethodInfo methodInfo = new MethodInfo(index, name, types, returnType);
+                methodInfo.setCommandAnno(command);
+                methodInfos.put(command.value(), methodInfo);
             }
+
         }
         return methodInfos;
     }

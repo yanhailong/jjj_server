@@ -149,29 +149,29 @@ public final class ClassUtils {
             return;
         }
         // 如果存在 就获取包下的所有文件 包括目录
-        File[] dirfiles = dir.listFiles((File file) -> {
-            return (recursive && file.isDirectory())
-                    || (file.getName().endsWith(".class"));
-        });
+        File[] dirfiles = dir.listFiles((File file) -> (recursive && file.isDirectory())
+                || (file.getName().endsWith(".class")));
         // 循环所有文件
-        for (
+        if (dirfiles != null) {
+            for (
 
-                File file : dirfiles) {
-            // 如果是目录 则继续扫描
-            if (file.isDirectory()) {
-                findAndAddClassesInPackageByFile(
-                        packageName + "." + file.getName(),
-                        file.getAbsolutePath(), recursive, classes);
-            } else {
-                // 如果是java类文件 去掉后面的.class 只留下类名
-                String className = file.getName().substring(0,
-                        file.getName().length() - 6);
-                try {
-                    // 添加到集合中去
-                    classes.add(Class.forName(packageName + '.' + className));
-                } catch (ClassNotFoundException e) {
-                    // log.error("添加用户自定义视图类错误 找不到此类的.class文件");
-                    e.printStackTrace();
+                    File file : dirfiles) {
+                // 如果是目录 则继续扫描
+                if (file.isDirectory()) {
+                    findAndAddClassesInPackageByFile(
+                            packageName + "." + file.getName(),
+                            file.getAbsolutePath(), recursive, classes);
+                } else {
+                    // 如果是java类文件 去掉后面的.class 只留下类名
+                    String className = file.getName().substring(0,
+                            file.getName().length() - 6);
+                    try {
+                        // 添加到集合中去
+                        classes.add(Class.forName(packageName + '.' + className));
+                    } catch (ClassNotFoundException e) {
+                        // log.error("添加用户自定义视图类错误 找不到此类的.class文件");
+                        e.printStackTrace();
+                    }
                 }
             }
         }

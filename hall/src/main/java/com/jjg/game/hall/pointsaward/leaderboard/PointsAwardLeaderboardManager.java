@@ -3,6 +3,8 @@ package com.jjg.game.hall.pointsaward.leaderboard;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.proto.Pair;
@@ -151,97 +153,102 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
      * 机器人行为
      */
     public void robotAction() {
-        try {
-            //单位秒【倒计时下限_倒计时上限_最小增长积分_前X名用机器人占榜】
-            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(48);
-            if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
-                String[] config = StringUtils.split(globalConfigCfg.getValue(), "_");
-                if (config.length != 4) {
-                    return;
-                }
-                //a)	机器人积分 = 当前排行榜对应位置的积分 + 最小增长积分 × 排行榜最大名次（300） × 随机数（0~1） × Max { 1，（当前排名 × （当前排名 - 1））}  + 最小增长积分  × 排行榜最大名次（300） ÷ 当前排名
-                //i.	当前排行榜对应位置的积分
-                //ii.	最小增长积分，globalConfig 表中 ID 48 ，最后一个参数
-                //iii.	 随机数（0~1），执行时在0~1的范围内随机一个值
-                //iv.	当前排名，机器人对标的占位排名位置
-                //v.	排行榜最大名次（300），配置中的最大名次，当前300
-                int minAdd = Integer.parseInt(config[2]);
-                int maxRank = Integer.parseInt(config[3]);
-                //缓存中没有从redis中取
-                if (CollectionUtil.isEmpty(robotList)) {
-                    robotList = new ArrayList<>(maxRank);
-                    //取机器人配置的id，积分大奖机器人配置的数据生成玩家id和数据保存到redis确保每次执行都一样
-                    //list String 积分_机器人
-                    RList<String> redisIdList = getRedisRobotList();
-                    if (redisIdList.isEmpty()) {
-                        //redis中没有就初始化
-                        List<PointsAwardRobotCfg> pointsRobot = new ArrayList<>(GameDataManager.getPointsAwardRobotCfgList());
-                        List<RobotCfg> robotCfgList = new ArrayList<>(GameDataManager.getRobotCfgList());
-                        //打乱
-                        Collections.shuffle(robotCfgList);
-                        Collections.shuffle(pointsRobot);
-                        maxRank = Math.min(maxRank, robotCfgList.size());
-                        maxRank = Math.min(maxRank, pointsRobot.size());
-                        List<String> add = new ArrayList<>(maxRank);
-                        for (int i = 0; i < maxRank; i++) {
-                            RobotCfg robotCfg = robotCfgList.get(i);
-                            long robotId = robotUtil.getId(robotCfg.getId());
-                            PointsAwardRobotCfg pointsRobotCfg = pointsRobot.get(i);
-                            add.add(robotId + "_" + pointsRobotCfg.getId());
-                            robotList.add(Pair.newPair(robotId, pointsRobotCfg.getId()));
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(0, 0, new BaseHandler<String>() {
+            @Override
+            public void action() {
+                try {
+                    //单位秒【倒计时下限_倒计时上限_最小增长积分_前X名用机器人占榜】
+                    GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(48);
+                    if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
+                        String[] config = StringUtils.split(globalConfigCfg.getValue(), "_");
+                        if (config.length != 4) {
+                            return;
                         }
-                        redisIdList.addAll(add);
-                        log.info("积分大奖初始化机器人数据成功");
-                    } else {
-                        loadRobotData(redisIdList);
-                    }
-                }
-                if (CollectionUtil.isEmpty(robotList)) {
-                    return;
-                }
-                //取出对应的排名
-                String rankKey = leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.DAY);
-                List<RankEntry> rankEntries = rankService.topN(rankKey, robotList.size());
-                List<RankChange> rankChanges = new ArrayList<>(robotList.size());
-                for (int i = 0; i < robotList.size(); i++) {
-                    Pair<Long, Integer> robotCfgPair = robotList.get(i);
-                    PointsAwardRobotCfg rankingCfg = GameDataManager.getPointsAwardRobotCfg(robotCfgPair.getSecond());
-                    if (rankingCfg == null) {
-                        continue;
-                    }
-                    long oldPoint = 0;
-                    if (i < rankEntries.size()) {
-                        oldPoint = rankEntries.get(i).getPoints();
-                    }
-                    int currentRank = i + 1;
-                    //a)	机器人积分 = 当前排行榜对应位置的积分 + (最小增长积分 × 排行榜最大名次（300） × 随机数（0~1） / Max { 1，（当前排名 × （当前排名 - 1））}  + 最小增长积分  × 排行榜最大名次（300） ÷ 当前排名)/100
-                    double newPoint = oldPoint + ((minAdd * maxRank * RandomUtil.randomDouble(0, 1) / Math.max(1, currentRank * (currentRank - 1)) + (double) minAdd * maxRank / currentRank) / 100);
-                    rankChanges.add(new RankChange(robotCfgPair.getFirst(), (int) newPoint));
-                }
-                if (rankChanges.isEmpty()) {
-                    return;
-                }
-                //批量获取原积分,然后计算真正的积分
-                Map<Long, Long> oldPointMap = rankService.batchGetPoints(rankKey, rankChanges.stream().map(RankChange::getPlayerId).collect(Collectors.toList()));
-                //从新计算需要增加的分数
-                for (RankChange rankChange : rankChanges) {
-                    rankChange.setAddPoints(rankChange.getAddPoints() - (oldPointMap.getOrDefault(rankChange.getPlayerId(), 0L)).intValue());
-                }
+                        //a)	机器人积分 = 当前排行榜对应位置的积分 + 最小增长积分 × 排行榜最大名次（300） × 随机数（0~1） × Max { 1，（当前排名 × （当前排名 - 1））}  + 最小增长积分  × 排行榜最大名次（300） ÷ 当前排名
+                        //i.	当前排行榜对应位置的积分
+                        //ii.	最小增长积分，globalConfig 表中 ID 48 ，最后一个参数
+                        //iii.	 随机数（0~1），执行时在0~1的范围内随机一个值
+                        //iv.	当前排名，机器人对标的占位排名位置
+                        //v.	排行榜最大名次（300），配置中的最大名次，当前300
+                        int minAdd = Integer.parseInt(config[2]);
+                        int maxRank = Integer.parseInt(config[3]);
+                        //缓存中没有从redis中取
+                        if (CollectionUtil.isEmpty(robotList)) {
+                            robotList = new ArrayList<>(maxRank);
+                            //取机器人配置的id，积分大奖机器人配置的数据生成玩家id和数据保存到redis确保每次执行都一样
+                            //list String 积分_机器人
+                            RList<String> redisIdList = getRedisRobotList();
+                            if (redisIdList.isEmpty()) {
+                                //redis中没有就初始化
+                                List<PointsAwardRobotCfg> pointsRobot = new ArrayList<>(GameDataManager.getPointsAwardRobotCfgList());
+                                List<RobotCfg> robotCfgList = new ArrayList<>(GameDataManager.getRobotCfgList());
+                                //打乱
+                                Collections.shuffle(robotCfgList);
+                                Collections.shuffle(pointsRobot);
+                                maxRank = Math.min(maxRank, robotCfgList.size());
+                                maxRank = Math.min(maxRank, pointsRobot.size());
+                                List<String> add = new ArrayList<>(maxRank);
+                                for (int i = 0; i < maxRank; i++) {
+                                    RobotCfg robotCfg = robotCfgList.get(i);
+                                    long robotId = robotUtil.getId(robotCfg.getId());
+                                    PointsAwardRobotCfg pointsRobotCfg = pointsRobot.get(i);
+                                    add.add(robotId + "_" + pointsRobotCfg.getId());
+                                    robotList.add(Pair.newPair(robotId, pointsRobotCfg.getId()));
+                                }
+                                redisIdList.addAll(add);
+                                log.info("积分大奖初始化机器人数据成功");
+                            } else {
+                                loadRobotData(redisIdList);
+                            }
+                        }
+                        if (CollectionUtil.isEmpty(robotList)) {
+                            return;
+                        }
+                        //取出对应的排名
+                        String rankKey = leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.DAY);
+                        List<RankEntry> rankEntries = rankService.topN(rankKey, robotList.size());
+                        List<RankChange> rankChanges = new ArrayList<>(robotList.size());
+                        for (int i = 0; i < robotList.size(); i++) {
+                            Pair<Long, Integer> robotCfgPair = robotList.get(i);
+                            PointsAwardRobotCfg rankingCfg = GameDataManager.getPointsAwardRobotCfg(robotCfgPair.getSecond());
+                            if (rankingCfg == null) {
+                                continue;
+                            }
+                            long oldPoint = 0;
+                            if (i < rankEntries.size()) {
+                                oldPoint = rankEntries.get(i).getPoints();
+                            }
+                            int currentRank = i + 1;
+                            //a)	机器人积分 = 当前排行榜对应位置的积分 + (最小增长积分 × 排行榜最大名次（300） × 随机数（0~1） / Max { 1，（当前排名 × （当前排名 - 1））}  + 最小增长积分  × 排行榜最大名次（300） ÷ 当前排名)/100
+                            double newPoint = oldPoint + ((minAdd * maxRank * RandomUtil.randomDouble(0, 1) / Math.max(1, currentRank * (currentRank - 1)) + (double) minAdd * maxRank / currentRank) / 100);
+                            rankChanges.add(new RankChange(robotCfgPair.getFirst(), (int) newPoint));
+                        }
+                        if (rankChanges.isEmpty()) {
+                            return;
+                        }
+                        //批量获取原积分,然后计算真正的积分
+                        Map<Long, Long> oldPointMap = rankService.batchGetPoints(rankKey, rankChanges.stream().map(RankChange::getPlayerId).collect(Collectors.toList()));
+                        //从新计算需要增加的分数
+                        for (RankChange rankChange : rankChanges) {
+                            rankChange.setAddPoints(rankChange.getAddPoints() - (oldPointMap.getOrDefault(rankChange.getPlayerId(), 0L)).intValue());
+                        }
 
-                log.info("变化积分 ：{}", JSON.toJSONString(rankChanges));
-                //更新排行榜
-                rankService.batchAddPoints(rankKey, rankChanges);
-                log.info("积分大奖更新日榜成功 size:{}", rankChanges.size());
-                rankService.batchAddPoints(leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.WEEK), rankChanges);
-                log.info("积分大奖更新周榜成功size:{}", rankChanges.size());
-                rankService.batchAddPoints(leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.TYPE_MONTH), rankChanges);
-                log.info("积分大奖更新月榜成功size:{}", rankChanges.size());
+                        log.info("变化积分 ：{}", JSON.toJSONString(rankChanges));
+                        //更新排行榜
+                        rankService.batchAddPoints(rankKey, rankChanges);
+                        log.info("积分大奖更新日榜成功 size:{}", rankChanges.size());
+                        rankService.batchAddPoints(leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.WEEK), rankChanges);
+                        log.info("积分大奖更新周榜成功size:{}", rankChanges.size());
+                        rankService.batchAddPoints(leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.TYPE_MONTH), rankChanges);
+                        log.info("积分大奖更新月榜成功size:{}", rankChanges.size());
+                    }
+                } catch (Exception e) {
+                    log.error("积分大奖机器人逻辑处理失败");
+                } finally {
+                    addRobotSchedule();
+                }
             }
-        } catch (Exception e) {
-            log.error("积分大奖机器人逻辑处理失败");
-        } finally {
-            addRobotSchedule();
-        }
+        }.setHandlerParamWithSelf("pointsAward robotAction"));
     }
 
     public RList<String> getRedisRobotList() {
@@ -672,11 +679,16 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             return awardType == PointsAwardConstant.Leaderboard.AwardType.ITEM
                     ? PointsAwardConstant.Leaderboard.MailTemplateId.MONTHLY_ITEM_AWARD
                     : PointsAwardConstant.Leaderboard.MailTemplateId.MONTHLY_OTHER_AWARD;
-        } else {
+        } else if (rankType == PointsAwardConstant.Leaderboard.DAY) {
             return awardType == PointsAwardConstant.Leaderboard.AwardType.ITEM
                     ? PointsAwardConstant.Leaderboard.MailTemplateId.DAILY_ITEM_AWARD
                     : PointsAwardConstant.Leaderboard.MailTemplateId.DAILY_OTHER_AWARD;
+        } else if (rankType == PointsAwardConstant.Leaderboard.WEEK) {
+            return awardType == PointsAwardConstant.Leaderboard.AwardType.ITEM
+                    ? PointsAwardConstant.Leaderboard.MailTemplateId.WEEK_ITEM_AWARD
+                    : PointsAwardConstant.Leaderboard.MailTemplateId.WEEK_OTHER_AWARD;
         }
+        return PointsAwardConstant.Leaderboard.MailTemplateId.DAILY_ITEM_AWARD;
     }
 
     /**
