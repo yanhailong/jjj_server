@@ -136,14 +136,7 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
             //本局获得金币
             res.allWinGold = gameRunInfo.getAllWinGold();
             //免费游戏中累计获得金币
-            if (gameRunInfo.getStatus() == FrozenThroneConstant.Status.FREE) {
-                res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
-                if (gameRunInfo.getRemainFreeCount() <= 0) {
-                    res.totalWinGold = gameRunInfo.getFreeModeTotalReward();
-                }
-            } else {
-                res.totalWinGold = 0;
-            }
+            res.totalWinGold = gameRunInfo.getFreeModeTotalReward();
             //当前状态
             res.status = gameRunInfo.getStatus();
             //图标信息

@@ -111,17 +111,9 @@ public class FrozenThroneSendMessageManager extends BaseSendMessageManager {
             //剩余免费次数
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
             //免费游戏中累计获得金币
-            if (gameRunInfo.getStatus() == FrozenThroneConstant.Status.FREE) {
-                res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
-            } else {
-                res.totalWinGold = 0;
-            }
+            res.totalWinGold = gameRunInfo.getFreeModeTotalReward();
             //下一次状态
-            if (res.remainFreeCount > 0) {
-                res.status = FrozenThroneConstant.Status.FREE;
-            } else {
-                res.status = FrozenThroneConstant.Status.NORMAL;
-            }
+            res.status = gameRunInfo.getStatus();
             //大奖展示id
             res.bigWinShow = gameRunInfo.getBigShowId();
             //等级信息
