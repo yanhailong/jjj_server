@@ -104,7 +104,7 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
         }
 
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, betValue, false);
+        return startGame(playerGameData, betValue, false);
     }
 
     /**
@@ -371,7 +371,7 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
     public WealthBankGameRunInfo autoStartGame(WealthBankPlayerGameData playerGameData, long betValue) {
         log.debug("[Wealth Bank] 系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
 
-        return startGame(new PlayerController(null, null), playerGameData, betValue, true);
+        return startGame(playerGameData, betValue, true);
     }
 
     /**
@@ -381,15 +381,15 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
      * @return
      */
     public WealthBankGameRunInfo
-    startGame(PlayerController playerController, WealthBankPlayerGameData playerGameData, long betValue, boolean auto) {
+    startGame(WealthBankPlayerGameData playerGameData, long betValue, boolean auto) {
         WealthBankGameRunInfo gameRunInfo = new WealthBankGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
 
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
-            playerController.setPlayer(player);
+            playerGameData.setPlayer(player);
 
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
@@ -429,7 +429,7 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
             rewardFromBigPool(gameRunInfo, playerGameData);
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerGameData.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
 
             //添加美元收集进度
             if (gameRunInfo.getTotalDollars() < 1) {
@@ -438,7 +438,7 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
-            playerController.setPlayer(player);
+            playerGameData.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
