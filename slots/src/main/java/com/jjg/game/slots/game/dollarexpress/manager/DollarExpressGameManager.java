@@ -1164,7 +1164,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     }
 
     @Override
-    protected void onAutoExitAction(DollarExpressPlayerGameData playerGameData) {
+    protected void onAutoExitAction(DollarExpressPlayerGameData playerGameData, int eventId) {
         if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD) {
             autoChooseFreeModelType(playerGameData);
             //检查当前是否处于特殊模式
@@ -1180,12 +1180,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         if (playerGameData.getInvers().get()) {
             autoInvest(playerGameData);
         }
-    }
-
-
-    @Override
-    protected int getOfflineImplementTime() {
-        return 30 * 1000;
     }
 
     public DollarExpressCollectDollarConfig getDollarExpressCollectDollarConfig() {

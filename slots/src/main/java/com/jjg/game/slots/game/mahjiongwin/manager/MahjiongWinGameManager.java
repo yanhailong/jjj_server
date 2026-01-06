@@ -12,8 +12,6 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
-import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinGameDataDao;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinResultLibDao;
@@ -275,8 +273,8 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
     }
 
     @Override
-    protected void onAutoExitAction(MahjiongWinPlayerGameData gameData) {
-        if (gameData.getStatus() == ChristmasBashNightConstant.Status.FREE) {
+    protected void onAutoExitAction(MahjiongWinPlayerGameData gameData, int eventId) {
+        if (gameData.getStatus() == MahjiongWinConstant.Status.FREE) {
             freeStateAction(gameData, (playerGameData) ->
                     startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
         }
