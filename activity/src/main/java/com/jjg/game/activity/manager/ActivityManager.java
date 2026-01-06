@@ -400,14 +400,17 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         Boolean checked = playerActivityDao.checkCanTargetFirstLogin(player.getId());
         for (ActivityData data : activityData.values()) {
             BaseActivityController controller = data.getType().getController();
-            if (!playerCanJoinActivity(data, playerController.getPlayer())) {
+            if (!data.canRun()) {
+                continue;
+            }
+            info.activityInfos.add(controller.buildActivityInfo(data));
+            if (!data.getType().getController().checkPlayerCanJoinActivity(player, data)) {
                 continue;
             }
             //玩家首次登录执行
             if (firstLogin && Boolean.TRUE.equals(checked)) {
                 controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
             }
-            info.activityInfos.add(controller.buildActivityInfo(data));
         }
         if (firstLogin && Boolean.TRUE.equals(checked)) {
             //触发登录活动
