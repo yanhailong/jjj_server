@@ -102,6 +102,7 @@ public class ClusterMessageHandler {
         }
         pfSession.setAddress(sessionCreate.netAddress);
         pfSession.gatePath = gatePath;
+        clusterSystem.putSession(pfSession.sessionId(), pfSession);
         if (sessionCreate.loginData != null && this.sessionLoginListenerMap != null && !this.sessionLoginListenerMap.isEmpty()) {
             for (Map.Entry<String, SessionLoginListener> en : this.sessionLoginListenerMap.entrySet()) {
                 en.getValue().login(pfSession, sessionCreate.loginData);
@@ -113,7 +114,6 @@ public class ClusterMessageHandler {
                 }
             }
         }
-        clusterSystem.putSession(pfSession.sessionId(), pfSession);
     }
 
     /**

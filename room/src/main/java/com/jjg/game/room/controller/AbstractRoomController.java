@@ -153,7 +153,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             } else {
                 log.error("玩家已经在房间中 roomId = {},playerId = {}", room.getId(), playerController.playerId());
             }
-            gameController.onPlayerJoinRoom(playerController, gameController.isGameStarted());
+            gameController.onPlayerJoinRoom(playerController, reconnect);
             playerControllers.put(playerController.playerId(), playerController);
             playerController.setScene(this);
             //非重连

@@ -29,6 +29,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * table类房间基类
@@ -144,8 +145,8 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     }
 
     @Override
-    public GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
-        GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, gameStartStatus);
+    public GamePlayer onPlayerJoinRoom(PlayerController playerController, AtomicBoolean isReconnect) {
+        GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, isReconnect);
         gamePlayer.setTableGameData(new TablePlayerGameData());
         // 场上玩家重新排序
         resortPlayerOnTable();

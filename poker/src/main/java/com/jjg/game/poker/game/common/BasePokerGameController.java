@@ -37,6 +37,7 @@ import com.jjg.game.sampledata.bean.RobotCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static com.jjg.game.room.timer.RoomEventType.POKER_PLAYER_EVENT;
@@ -292,8 +293,8 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     }
 
     @Override
-    public final GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
-        GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, gameStartStatus);
+    public final GamePlayer onPlayerJoinRoom(PlayerController playerController, AtomicBoolean isReconnect) {
+        GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, isReconnect);
         PokerPlayerGameData pokerPlayerGameData = new PokerPlayerGameData();
         pokerPlayerGameData.setJoinTime(System.currentTimeMillis());
         gamePlayer.setPokerPlayerGameData(pokerPlayerGameData);

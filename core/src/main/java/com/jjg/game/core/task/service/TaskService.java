@@ -96,9 +96,15 @@ public class TaskService {
      * 检测玩家任务
      */
     public void checkTask(long playerId, TaskData taskData, TaskManager taskManager) {
-        removeExpiredTasks(playerId, taskData, taskManager);
-        if (addNewTasks(playerId, taskData, taskManager)) {
-            taskManager.updateRedDot(playerId);
+        try {
+            removeExpiredTasks(playerId, taskData, taskManager);
+            if (addNewTasks(playerId, taskData, taskManager)) {
+                taskManager.updateRedDot(playerId);
+            }
+        } catch (Exception e) {
+            log.error("checkTask 异常 playerId={}", playerId, e);
+        } finally {
+            taskData.setLastCheckTime(System.currentTimeMillis());
         }
     }
 

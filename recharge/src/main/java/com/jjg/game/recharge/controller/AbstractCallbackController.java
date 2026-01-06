@@ -4,15 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
-import com.jjg.game.core.data.Order;
-import com.jjg.game.core.data.OrderStatus;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerSessionInfo;
+import com.jjg.game.common.utils.ObjectMapperUtil;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.pb.NotifyRechargeServer;
+import com.jjg.game.core.recharge.dao.OfflineRechargeDao;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.PlayerSessionService;
@@ -38,6 +36,8 @@ public abstract class AbstractCallbackController {
     protected ClusterSystem clusterSystem;
     @Autowired
     protected CoreLogger coreLogger;
+    @Autowired
+    protected OfflineRechargeDao offlineRechargeDao;
 
     protected final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -94,34 +94,29 @@ public abstract class AbstractCallbackController {
      * @throws Exception
      */
     protected void notifyPlayerCurrentNode(PlayerSessionInfo info, Order order, String money, String regionCode, String channelProductId) throws Exception {
-        ClusterClient clusterClient;
-        boolean online = false;
-        if (info != null && !StringUtils.isEmpty(info.getNodeName())) {
-            clusterClient = clusterSystem.getClusterByPath(info.getCurrentNode());
-            online = true;
-        } else {
-            //如果玩家不在线，则随机找一个大厅节点
-            clusterClient = clusterSystem.randClientByType(NodeType.HALL);
-        }
-
-        if (clusterClient == null) {
-            return;
-        }
-
         NotifyRechargeServer notify = new NotifyRechargeServer();
         notify.playerId = order.getPlayerId();
         notify.orderId = order.getId();
         notify.regionCode = regionCode;
         notify.channelProductId = channelProductId;
         notify.money = money;
+        ClusterClient clusterClient;
+        if (info != null && !StringUtils.isEmpty(info.getNodeName())) {
+            //可能会出现玩家已经不在当前节点需要自行处理
+            clusterClient = clusterSystem.getClusterByPath(info.getCurrentNode());
+        } else {
+            log.info("因玩家不在线，已将充值成功添加到离线充值 playerId = {},orderId = {},toNodePath = {}", order.getPlayerId(), order.getId(), clusterClient.nodeConfig.getName());
+            //离线玩家登陆时处理,离线充值
+            offlineRechargeDao.addRecharge(order.getPlayerId(), ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(notify));
+            return;
+        }
+        if (clusterClient == null) {
+            return;
+        }
         PFMessage pfMessage = MessageUtil.getPFMessage(notify);
         ClusterMessage msg = new ClusterMessage(pfMessage);
         clusterClient.write(msg);
-        if (online) {
-            log.info("已将充值成功消息通知玩家所在节点 playerId = {},orderId = {},toNodePath = {}", order.getPlayerId(), order.getId(), clusterClient.nodeConfig.getName());
-        } else {
-            log.info("因玩家不在线，已将充值成功消息随机通知大厅节点 playerId = {},orderId = {},toNodePath = {}", order.getPlayerId(), order.getId(), clusterClient.nodeConfig.getName());
-        }
+        log.info("已将充值成功消息通知玩家所在节点 playerId = {},orderId = {},toNodePath = {}", order.getPlayerId(), order.getId(), clusterClient.nodeConfig.getName());
     }
 
     /**

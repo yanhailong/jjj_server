@@ -10,6 +10,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.core.recharge.service.RechargeService;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.task.manager.TaskManager;
@@ -43,6 +44,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     private SlotsFriendRoomDao slotsFriendRoomDao;
     @Autowired
     private TaskManager taskManager;
+    @Autowired
+    private RechargeService rechargeService;
 
     @Override
     public void sessionClose(PFSession session) {
@@ -109,6 +112,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 session.setReference(playerController);
                 //创建 PlayerGameData
                 gameManager.createPlayerGameData(playerController);
+                //大厅非重连会检查一次，这里再检查一次
+                rechargeService.loadOfflineRecharge(player.getId());
             }
         });
         slotsFactoryManager.clearPlayerEvent(player.getId());
@@ -144,6 +149,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 session.setReference(playerController);
                 //创建 PlayerGameData
                 gameManager.createPlayerGameData(playerController, RoomType.SLOTS_TEAM_UP_ROOM);
+                //大厅非重连会检查一次，这里再检查一次
+                rechargeService.loadOfflineRecharge(player.getId());
             }
         });
         slotsFactoryManager.clearPlayerEvent(player.getId());

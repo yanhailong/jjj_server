@@ -8,6 +8,7 @@ import com.jjg.game.common.listener.OnSwitchNode;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.ClockEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
@@ -47,8 +48,7 @@ import java.util.function.Supplier;
  * 负责任务的触发、进度更新、完成检查和奖励发放
  */
 @Component
-public class TaskManager implements ConfigExcelChangeListener, IRedDotService,
-        GameEventListener, OnSwitchNode {
+public class TaskManager implements ConfigExcelChangeListener, IRedDotService, OnSwitchNode {
 
     private static final Logger log = LoggerFactory.getLogger(TaskManager.class);
 
@@ -187,6 +187,10 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService,
                 log.error("玩家更新任务进度时 任务数据为null playerId:{} conditionId:{} param:{}", playerId, conditionId, param.get());
                 return;
             }
+            //检查是否需要重置所有任务
+            if (!TimeHelper.inSameDay(taskData.getLastCheckTime(), System.currentTimeMillis())) {
+                taskService.checkTask(playerId, taskData, this);
+            }
             //根据条件id计算出受影响的任务
             List<TaskCfg> taskConfigs = taskCfgMap.get(conditionId);
             //无事发生
@@ -298,7 +302,14 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService,
     public List<Task> getPlayerTaskList(long playerId, int type) {
         List<Task> taskList = new ArrayList<>();
         TaskData taskData = playerTaskMap.get(playerId);
-        if (taskData == null || taskData.getTaskDetails() == null || taskData.getTaskDetails().isEmpty()) {
+        if (taskData == null) {
+            return taskList;
+        }
+        //检查是否需要重置所有任务
+        if (!TimeHelper.inSameDay(taskData.getLastCheckTime(), System.currentTimeMillis())) {
+            taskService.checkTask(playerId, taskData, this);
+        }
+        if (taskData.getTaskDetails() == null || taskData.getTaskDetails().isEmpty()) {
             return taskList;
         }
         Map<Integer, TaskManager.TaskSortParam> map = new HashMap<>(taskData.getTaskDetails().size());
@@ -464,25 +475,6 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService,
         }
     }
 
-    public void initTaskData(Player player, boolean needCheckTask) {
-        long playerId = player.getId();
-        TaskManager taskManager = this;
-        PlayerExecutorGroupDisruptor.getDefaultExecutor()
-                .tryPublish(playerId, 0, new BaseHandler<String>() {
-                    @Override
-                    public void action() {
-                        TaskData taskData = loadTaskData(playerId);
-                        try {
-                            if (needCheckTask) {
-                                taskService.checkTask(playerId, taskData, taskManager);
-                            }
-                        } catch (Exception e) {
-                            log.error("初始化玩家任务失败 playerId={}, firstLogin={}, error={}", playerId, needCheckTask, e.getMessage(), e);
-                        }
-                    }
-                }.setHandlerParamWithSelf("task onPlayerLoginSuccess"));
-    }
-
     public void onExit(long playerId) {
         TaskData taskData = playerTaskMap.remove(playerId);
         if (taskData != null) {
@@ -494,14 +486,24 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService,
         }
     }
 
+    public void saveTask(long playerId) {
+        TaskData taskData = playerTaskMap.get(playerId);
+        if (taskData != null) {
+            //回存到redis
+            taskService.saveTask(playerId, taskData);
+            log.info("主动回存玩家任务信息成功 playerId:{}", playerId);
+        } else {
+            log.info("主动回存玩家 时保存任务数据错误 playerId={}", playerId);
+        }
+    }
 
-    public TaskData loadTaskData(long playerId) {
-        TaskData taskData = playerTaskMap.computeIfAbsent(playerId, k -> {
+
+    public void loadTaskData(long playerId) {
+        playerTaskMap.computeIfAbsent(playerId, k -> {
             log.info("玩家从redis加载任务信息成功 playerId:{}", playerId);
             return taskService.getPlayerTask(playerId);
         });
         log.info("玩家加载任务信息成功 playerId:{}", playerId);
-        return taskData;
     }
 
 
@@ -555,75 +557,5 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService,
             }
         }
         return redDotList;
-    }
-
-    /**
-     * 检查所有在线玩家的任务
-     * 在关键时间点（0点、12点）触发全局任务检查
-     *
-     * @param hour 触发的小时
-     */
-    private void checkAllOnlinePlayerTasks(int hour) {
-        try {
-            // 获取所有在线玩家ID
-            List<PFSession> onlinePlayerPFSessions = clusterSystem.getAllOnlinePlayerPFSession();
-            log.info("时钟事件[{}点]触发，开始检查{}个在线玩家的任务", hour, onlinePlayerPFSessions.size());
-            int failCount = 0;
-            for (PFSession pfSession : onlinePlayerPFSessions) {
-                long playerId = pfSession.playerId;
-                if (playerId <= 0) {
-                    continue;
-                }
-                try {
-                    final TaskManager taskManager = this;
-                    //分发到个玩家的线程中
-                    PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(pfSession.getWorkId(), 0, new BaseHandler<String>() {
-                        @Override
-                        public void action() {
-                            TaskData taskData = playerTaskMap.get(playerId);
-                            if (taskData == null || taskData.getTaskDetails() == null || taskData.getTaskDetails().isEmpty()) {
-                                log.error("定时检查玩家任务时 玩家数据为null playerId={}", playerId);
-                                return;
-                            }
-                            taskService.checkTask(playerId, taskData, taskManager);
-                            noticeUpdateAll(playerId);
-                        }
-                    }.setHandlerParamWithSelf("task checkAllOnlinePlayerTasks " + hour));
-                } catch (Exception e) {
-                    failCount++;
-                    log.error("时钟事件检查玩家[{}]任务失败: {}", playerId, e.getMessage(), e);
-                }
-            }
-            log.info("时钟事件[{}点]任务检查完成，total[{}] 失败: {}", hour, onlinePlayerPFSessions.size(), failCount);
-        } catch (Exception e) {
-            log.error("时钟事件[{}点]获取在线玩家列表失败: {}", hour, e.getMessage(), e);
-        }
-
-    }
-
-    /**
-     * 处理事件
-     *
-     * @param gameEvent 事件
-     */
-    @Override
-    public <T extends GameEvent> void handleEvent(T gameEvent) {
-        if (gameEvent instanceof ClockEvent clockEvent) {
-            int hour = clockEvent.getHour();
-            //处理日常任务
-            if (hour == 0) {
-                checkAllOnlinePlayerTasks(hour);
-            }
-        }
-    }
-
-    /**
-     * 需要监听的事件类型, 根据实际需要监听的类型写入，通过配置表配置或者手动配置，需尽量避免写入无关事件类型
-     *
-     * @return 事件类型列表
-     */
-    @Override
-    public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.CLOCK_EVENT);
     }
 }
