@@ -8,6 +8,7 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.config.ConfigChangeState;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.config.bean.LuckyTreasureConfig;
 import com.jjg.game.core.constant.AwardCodeType;
@@ -126,7 +127,9 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             //监听配置文件变化 如果有新增的夺宝奇兵配置则直接开始
             configManager.addUpdateConfigListener(LuckyTreasureConfig.class, (a, b, c) -> {
                 log.info("夺宝奇兵配置更新!检测是否需要新增!id={},b = {}", c.getId(), b);
-                startNewActivityForConfig(c);
+                if (b != ConfigChangeState.DELETE) {
+                    startNewActivityForConfig(c);
+                }
             });
 
         }
