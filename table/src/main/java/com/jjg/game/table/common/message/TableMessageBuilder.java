@@ -177,11 +177,20 @@ public class TableMessageBuilder {
         NotifyTableRoomPlayerInfoChange infoChange = new NotifyTableRoomPlayerInfoChange();
         PlayerChip playerChip = new PlayerChip();
         playerChip.chipId = playerController.getPlayer().getChipsId();
-        playerChip.playerId = playerController.playerId();
+        long playerId = playerController.playerId();
+        playerChip.playerId = playerId;
         infoChange.changedPlayer = playerChip;
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
         Map<Long, GamePlayer> sortedGamePlayers = getSortedGamePlayer(controller, dataVo, sendSize);
         List<GamePlayer> sortedPlayersByGold = new ArrayList<>(sortedGamePlayers.values());
+        //如果不包含自己的信息将最后一个替换成自己的信息
+        if (!sortedGamePlayers.containsKey(playerId)) {
+            GamePlayer gamePlayer = controller.getGamePlayer(playerId);
+            if (gamePlayer != null) {
+                sortedPlayersByGold.removeLast();
+                sortedPlayersByGold.add(gamePlayer);
+            }
+        }
         infoChange.totalPlayerNum = dataVo.getPlayerNum();
         for (GamePlayer gamePlayer : sortedPlayersByGold) {
             TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(controller, gamePlayer);
@@ -196,7 +205,7 @@ public class TableMessageBuilder {
      * @param playerGet 结算的玩家获得的金币
      */
     public static List<PlayerChangedGold> getPlayerSettleInfos(AbstractGameController<?, ?> gameController,
-            Map<Long, DefaultKeyValue<Long, Long>> playerGet, TableGameDataVo gameDataVo) {
+                                                               Map<Long, DefaultKeyValue<Long, Long>> playerGet, TableGameDataVo gameDataVo) {
         List<PlayerChangedGold> settleInfoArrayList = new ArrayList<>();
         for (Map.Entry<Long, DefaultKeyValue<Long, Long>> entry : playerGet.entrySet()) {
             PlayerChangedGold info = new PlayerChangedGold();
