@@ -135,6 +135,14 @@ public interface PointsAwardConstant {
              */
             int DAILY_OTHER_AWARD = 5;
             /**
+             * 周榜道具奖励邮件模板ID
+             */
+            int WEEK_ITEM_AWARD = 43;
+            /**
+             * 周榜其他奖励邮件模板ID
+             */
+            int WEEK_OTHER_AWARD = 44;
+            /**
              * 月榜道具奖励邮件模板ID
              */
             int MONTHLY_ITEM_AWARD = 6;

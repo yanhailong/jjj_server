@@ -53,6 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -399,14 +400,17 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         Boolean checked = playerActivityDao.checkCanTargetFirstLogin(player.getId());
         for (ActivityData data : activityData.values()) {
             BaseActivityController controller = data.getType().getController();
-            if (!playerCanJoinActivity(data, playerController.getPlayer())) {
+            if (!data.canRun()) {
+                continue;
+            }
+            info.activityInfos.add(controller.buildActivityInfo(data));
+            if (!data.getType().getController().checkPlayerCanJoinActivity(player, data)) {
                 continue;
             }
             //玩家首次登录执行
             if (firstLogin && Boolean.TRUE.equals(checked)) {
                 controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
             }
-            info.activityInfos.add(controller.buildActivityInfo(data));
         }
         if (firstLogin && Boolean.TRUE.equals(checked)) {
             //触发登录活动
@@ -549,7 +553,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         String cmd = gmOrders[0];
         if ("rechargeGold".equalsIgnoreCase(cmd)) {
             long count = Long.parseLong(gmOrders[1]);
-            addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), count
+            addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), RedisUtils.toLong(BigDecimal.valueOf(count))
                     , null);
             return new CommonResult<>(Code.SUCCESS);
         }
@@ -804,15 +808,15 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         List<RedDotDetails> redDotDetails = new ArrayList<>();
         for (ActivityData data : activityDataMap.values()) {
-                //判断该活动是否有红点
+            //判断该活动是否有红点
             boolean redDot = data.getType().getController().hasRedDot(playerId, data);
-                if (redDot) {
-                    RedDotDetails redDotDetailInfo = new RedDotDetails();
-                    redDotDetailInfo.setRedDotModule(getModule());
-                    redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
-                    redDotDetailInfo.setCount(1);
-                    redDotDetailInfo.setRedDotSubmodule(data.getType().getType());
-                    redDotDetails.add(redDotDetailInfo);
+            if (redDot) {
+                RedDotDetails redDotDetailInfo = new RedDotDetails();
+                redDotDetailInfo.setRedDotModule(getModule());
+                redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
+                redDotDetailInfo.setCount(1);
+                redDotDetailInfo.setRedDotSubmodule(data.getType().getType());
+                redDotDetails.add(redDotDetailInfo);
             }
         }
         return redDotDetails;

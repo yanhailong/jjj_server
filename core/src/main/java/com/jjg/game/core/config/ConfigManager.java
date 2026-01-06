@@ -222,7 +222,7 @@ public class ConfigManager {
      * @return 返回指定类型的配置列表
      */
     public <T extends AbstractExcelConfig> List<T> getConfigs(String name) {
-        Map<Integer, AbstractExcelConfig> excelConfigMap = localCache.get(name);
+        Map<Integer, AbstractExcelConfig> excelConfigMap = getRedisConfigMap().get(name);
         if (excelConfigMap == null) {
             return Collections.emptyList();
         }

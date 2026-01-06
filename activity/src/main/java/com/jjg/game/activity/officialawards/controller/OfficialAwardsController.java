@@ -157,9 +157,11 @@ public class OfficialAwardsController extends BaseActivityController {
                 remainPoint, reducedPair.getSecond(), addResult.data, Map.of(id, totalGet));
         addPlayerRecord(player, activityData.getId(), getRewards);
         res.infoList = new ArrayList<>();
+        long totalNum = 0;
         for (Long getReward : getRewards) {
-            res.infoList.add(ItemUtils.buildItemInfo(id, getReward));
+            totalNum += getReward;
         }
+        res.infoList.add(ItemUtils.buildItemInfo(id, totalNum));
         targetRobotAction(activityData, times);
         res.remainPoint = remainPoint;
         res.totalPool = reducedPair.getSecond();

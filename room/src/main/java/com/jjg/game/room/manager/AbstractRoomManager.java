@@ -1,5 +1,6 @@
 package com.jjg.game.room.manager;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.activity.wealthroulette.controller.WealthRouletteController;
@@ -28,6 +29,7 @@ import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.pb.ResExitGame;
+import com.jjg.game.core.recharge.service.RechargeService;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
@@ -112,6 +114,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected CoreMarqueeManager coreMarqueeManager;
     @Autowired
     protected CoreLogger coreLogger;
+    @Autowired
+    protected RechargeService rechargeService;
+
     // 不同类型的房间roomDao
     protected Map<Class<? extends Room>, AbstractRoomDao<? extends Room, ? extends RoomPlayer>> roomDaoMap
             = new HashMap<>();
@@ -245,6 +250,18 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         if (randomRoom == null) {
             return null;
         }
+        if (CollectionUtil.isNotEmpty(randomRoom.getRoomPlayers())) {
+            List<Long> removeIds = new ArrayList<>();
+            for (Map.Entry<Long, RoomPlayer> entry : randomRoom.getRoomPlayers().entrySet()) {
+                RoomPlayer roomPlayer = entry.getValue();
+                if (roomPlayer.isRobot()) {
+                    removeIds.add(entry.getKey());
+                }
+                randomRoom = roomDao.removePlayers(randomRoom.getGameType(), randomRoom.getRoomCfgId(), removeIds);
+                log.info("从redis加载房间数据时 移除异常的机器人 ids:{}", removeIds);
+            }
+        }
+
         return initWithRoom(gameType, roomCfgId, maxLimit, roomType, randomRoom);
     }
 
@@ -372,6 +389,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             if (!addResult.success()) {
                 return Code.JOIN_ROOM_FAILED;
             }
+            //断线重连加载离线充值数据
+            if (reconnect.get()) {
+                rechargeService.loadOfflineRecharge(playerController.playerId());
+            }
             R room = addResult.data;
             roomController.setRoom(room);
             //加入成功后还需要更新房间信息
@@ -434,8 +455,17 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                         playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
                 return;
             }
+            GamePlayer gamePlayer = roomController.getGameController().getGamePlayer(playerController.playerId());
+            if (gamePlayer == null) {
+                log.warn("掉线退出房间失败，该用户游戏数据不存在 gameType = {},roomId = {},playerId = {}",
+                        playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
+                return;
+            }
             // 房间断线逻辑
             roomController.disconnected(playerController);
+            //掉线时回存一次
+            roomController.getGameController().directlySavePlayerData(gamePlayer, true);
+            taskManager.saveTask(playerController.playerId());
             //更新在线状态
             roomController.updateRoomPlayer(playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId(),
                     (newRoomPlayer) -> newRoomPlayer.setOnline(false));

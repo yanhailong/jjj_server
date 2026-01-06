@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
@@ -136,9 +137,20 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      *
      * @return 返回进行数据复制后的GamePlayer对象
      */
-    public GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
+    public GamePlayer onPlayerJoinRoom(PlayerController playerController, AtomicBoolean isReconnect) {
         // 将玩家数据复制到玩家游戏数据中
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
+        if (isReconnect.get()) {
+            GamePlayer currentPlayer = gameDataVo.getGamePlayer(playerController.playerId());
+            if (currentPlayer != null) {
+                gameDataVo.setRoomDestroyTime(0);
+                currentPlayer.setEnterGameTime(TimeHelper.nowInt());
+                playerController.setPlayer(currentPlayer);
+                return currentPlayer;
+            } else {
+                log.error("玩家重连获取玩家信息失败 playerId: {} roomId:{}", playerController.playerId(), getRoom().getId());
+            }
+        }
         Player player = playerController.isRobotPlayer() ? playerController.getPlayer() : playerService.getOrUpdatePlayerController(playerController);
         GamePlayer gamePlayer;
         if (player instanceof RobotPlayer) {
@@ -228,7 +240,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 直接回存玩家数据
      */
-    protected void directlySavePlayerData(GamePlayer gamePlayer, boolean isExit) {
+    public void directlySavePlayerData(GamePlayer gamePlayer, boolean isExit) {
         if (gamePlayer == null || gamePlayer instanceof GameRobotPlayer) {
             return;
         }

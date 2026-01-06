@@ -1,40 +1,33 @@
 package com.jjg.game.core.handler;
 
 import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.Command;
-import com.jjg.game.core.base.gameevent.GameEventManager;
-import com.jjg.game.core.base.gameevent.PlayerEventCategory;
-import com.jjg.game.core.base.player.IRecharge;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.constant.TaskConstant;
-import com.jjg.game.core.dao.CountDao;
-import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Marquee;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.manager.AmazonBucketManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
-import com.jjg.game.core.pb.*;
+import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
+import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
+import com.jjg.game.core.pb.NotifyConfigUpdate;
+import com.jjg.game.core.pb.NotifyRechargeServer;
 import com.jjg.game.core.pb.gm.*;
+import com.jjg.game.core.recharge.service.RechargeService;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.LoginConfigService;
-import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.ShopService;
-import com.jjg.game.core.task.manager.TaskManager;
-import com.jjg.game.core.task.param.DefaultTaskConditionParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.math.BigDecimal;
-import java.util.Map;
-import java.util.function.Supplier;
 
 /**
  * @author 11
@@ -52,23 +45,17 @@ public class CoreToServerMessageHandler {
     @Autowired
     private CorePlayerService playerService;
     @Autowired
-    private OrderService orderService;
-    @Autowired
-    private GameEventManager gameEventManager;
-    @Autowired
     private NodeConfig nodeConfig;
     @Autowired
     private NodeManager nodeManager;
     @Autowired
     private ConfigManager configManager;
     @Autowired
-    private TaskManager taskManager;
-    @Autowired
     private AmazonBucketManager amazonBucketManager;
     @Autowired
     private LoginConfigService loginConfigService;
     @Autowired
-    private CountDao countDao;
+    private RechargeService rechargeService;
 
     /**
      * 其他节点推送的跑马灯信息
@@ -155,37 +142,7 @@ public class CoreToServerMessageHandler {
      */
     @Command(MessageConst.ToServer.NOTIFY_PLAYER_RECHARGE)
     public void notifyRecharge(NotifyRechargeServer notify) {
-        Player player = playerService.get(notify.playerId);
-        Order order = orderService.getOrder(notify.orderId);
-        if (order.getRechargeType() == RechargeType.SHOP) {
-            ShopProduct shopProduct = shopService.getShopProduct(Long.parseLong(order.getProductId()));
-            //接口通知
-            SystemInterfaceHolder.callGameSysAction(IRecharge.class, (f) -> f.rechargeSuccess(player, order, shopProduct));
-        }
-
-        //充值事件
-        gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order, notify.money, notify.regionCode, notify.channelProductId));
-        //任务条件参数
-        Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
-            DefaultTaskConditionParam param = new DefaultTaskConditionParam();
-            param.setAddValue(order.getPrice().multiply(BigDecimal.valueOf(100)).longValue());
-            return param;
-        };
-        //玩家累计充值
-//        countDao.incrBy(CountDao.CountType.RECHARGE.getParam(), String.valueOf(player.getId()), order.getPrice());
-        Map<String, Object> resMap = countDao.incrRechargeInfo(String.valueOf(player.getId()), order.getPrice());
-        //单笔充值任务
-        taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
-        //累计充值任务
-        taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_SUM_PAY, paramSupplier);
-
-        NotifyPayInfo notifyPayInfo = new NotifyPayInfo();
-        notifyPayInfo.orderId = order.getId();
-
-        notifyPayInfo.allRechargeCount = resMap == null ? 0 : ((Long) resMap.get(CountDao.CountType.RECHARGE_COUNT.getParam())).intValue();
-        clusterSystem.sendToPlayer(notifyPayInfo, player.getId());
-
-        log.info("充值成功，通知到玩家所在的当前节点 playerId = {},orderId = {}", player.getId(), order.getId());
+        rechargeService.notifyRecharge(notify, true);
     }
 
     /**

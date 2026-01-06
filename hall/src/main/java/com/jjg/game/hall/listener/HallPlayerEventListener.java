@@ -25,6 +25,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.MarqueeInfo;
+import com.jjg.game.core.recharge.service.RechargeService;
 import com.jjg.game.core.service.CarouselService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.task.manager.TaskManager;
@@ -94,6 +95,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private SharePromoteController sharePromoteController;
     @Autowired
     private TaskManager taskManager;
+    @Autowired
+    private RechargeService rechargeService;
 
     public void init() {
     }
@@ -294,7 +297,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             SystemInterfaceHolder.callGameSysAction(
                     IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, dayOfFirstLogin));
             //加载任务数据
-            taskManager.initTaskData(player, dayOfFirstLogin);
+            taskManager.loadTaskData(player.getId());
+            rechargeService.loadOfflineRecharge(player.getId());
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             session.send(res);

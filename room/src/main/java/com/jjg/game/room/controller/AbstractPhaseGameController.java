@@ -36,6 +36,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -239,8 +240,8 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     }
 
     @Override
-    public GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
-        GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, gameStartStatus);
+    public GamePlayer onPlayerJoinRoom(PlayerController playerController, AtomicBoolean isReconnect) {
+        GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, isReconnect);
         // 当玩家中途加入阶段时
         if (isGameStarted() && currentGamePhase != null) {
             currentGamePhase.onPlayerHalfwayJoinPhase(gamePlayer);

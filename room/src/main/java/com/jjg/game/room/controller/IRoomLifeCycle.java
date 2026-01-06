@@ -44,7 +44,9 @@ public interface IRoomLifeCycle {
     /**
      * 玩家断线
      */
-    default void disconnected(PlayerController playerController) {}
+    default void disconnected(PlayerController playerController) {
+
+    }
 
     /**
      * 玩家主动请求退出房间
