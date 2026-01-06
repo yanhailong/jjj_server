@@ -82,8 +82,9 @@ public class NettyServer extends Thread {
             }
             // 监听服务器关闭监听
             f.channel().closeFuture().sync();
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             log.error("\nnet server start error...\n", e);
+            Runtime.getRuntime().halt(1);
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
