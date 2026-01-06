@@ -277,5 +277,11 @@ public interface ActivityConstant {
         int RES_DAILY_RECHARGE_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x70;
         int RES_DAILY_RECHARGE_GIFT_BUY = BASE_MSG_PREFIX | 0x71;
         int RES_DAILY_RECHARGE_TYPE_INFO = BASE_MSG_PREFIX | 0x72;
+
+        //刮刮乐
+        //请求兑换道具
+        int REQ_SCRATCH_CARDS_EXCHANGE = BASE_MSG_PREFIX | 0x73;
+        //响应兑换道具
+        int RES_SCRATCH_CARDS_EXCHANGE = BASE_MSG_PREFIX | 0x74;
     }
 }
