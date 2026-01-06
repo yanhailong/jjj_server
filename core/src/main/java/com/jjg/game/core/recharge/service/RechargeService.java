@@ -64,11 +64,6 @@ public class RechargeService {
             if (CollectionUtil.isEmpty(offlineRechargeJson)) {
                 return;
             }
-            PFSession session = clusterSystem.getSession(playerId);
-            if (session == null) {
-                log.error("处理离线充值时玩家PFSession为null playerId={}", playerId);
-                return;
-            }
             ObjectMapper mapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
             for (String json : offlineRechargeJson) {
                 NotifyRechargeServer notifyRechargeServer = null;
