@@ -267,16 +267,6 @@ public class AbstractFrozenThroneGameManager extends AbstractSlotsGameManager<Fr
     }
 
     @Override
-    protected void offlineSaveGameDataDto(FrozenThronePlayerGameData gameData) {
-        try {
-            FrozenThronePlayerGameDataDTO dto = gameData.converToDto(FrozenThronePlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    @Override
     protected FrozenThroneResultLibDao getResultLibDao() {
         return this.libDao;
     }
@@ -289,6 +279,11 @@ public class AbstractFrozenThroneGameManager extends AbstractSlotsGameManager<Fr
     @Override
     protected FrozenThroneGameDataDao getGameDataDao() {
         return this.gameDataDao;
+    }
+
+    @Override
+    protected Class<FrozenThronePlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return FrozenThronePlayerGameDataDTO.class;
     }
 
     @Override

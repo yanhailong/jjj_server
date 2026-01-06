@@ -13,10 +13,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
-import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.data.SpecialGirdInfo;
+import com.jjg.game.slots.data.*;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.wealthbank.WealthBankConstant;
 import com.jjg.game.slots.game.wealthbank.dao.WealthBankGameDataDao;
@@ -798,17 +795,6 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
         return gameRunInfo;
     }
 
-    @Override
-    protected void offlineSaveGameDataDto(WealthBankPlayerGameData gameData) {
-        try {
-            WealthBankPlayerGameDataDTO dto = gameData.converToDto(WealthBankPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("[Wealth Bank] ", e);
-        }
-
-    }
-
     /**
      * 将库里面的中将线信息转化为消息
      *
@@ -903,6 +889,11 @@ public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<Weal
     @Override
     protected WealthBankGenerateManager getGenerateManager() {
         return this.generateManager;
+    }
+
+    @Override
+    protected Class<WealthBankPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return WealthBankPlayerGameDataDTO.class;
     }
 
     /**

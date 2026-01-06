@@ -14,6 +14,7 @@ import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.BetDivideInfo;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.game.thor.dao.ThorGameDataDao;
@@ -375,13 +376,8 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
     }
 
     @Override
-    protected void offlineSaveGameDataDto(ThorPlayerGameData gameData) {
-        try {
-            ThorPlayerGameDataDTO dto = gameData.converToDto(ThorPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
+    protected Class<ThorPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return ThorPlayerGameDataDTO.class;
     }
 
     @Override

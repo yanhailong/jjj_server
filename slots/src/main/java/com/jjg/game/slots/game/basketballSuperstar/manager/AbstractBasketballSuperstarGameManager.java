@@ -14,6 +14,7 @@ import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.OffLineEventData;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.basketballSuperstar.dao.BasketballSuperstarGameDataDao;
@@ -263,16 +264,6 @@ public class AbstractBasketballSuperstarGameManager extends AbstractSlotsGameMan
     }
 
     @Override
-    protected void offlineSaveGameDataDto(BasketballSuperstarPlayerGameData gameData) {
-        try {
-            BasketballSuperstarPlayerGameDataDTO dto = gameData.converToDto(BasketballSuperstarPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    @Override
     protected BasketballSuperstarResultLibDao getResultLibDao() {
         return this.libDao;
     }
@@ -285,6 +276,11 @@ public class AbstractBasketballSuperstarGameManager extends AbstractSlotsGameMan
     @Override
     protected BasketballSuperstarGameDataDao getGameDataDao() {
         return this.gameDataDao;
+    }
+
+    @Override
+    protected Class<BasketballSuperstarPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return BasketballSuperstarPlayerGameDataDTO.class;
     }
 
     @Override

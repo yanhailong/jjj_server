@@ -55,19 +55,6 @@ public class AbstractWealthGodGameManager extends AbstractSlotsGameManager<Wealt
         addUpdatePoolEvent();
     }
 
-    /**
-     * 玩家离线保存gameDataDto
-     */
-    @Override
-    protected void offlineSaveGameDataDto(WealthGodPlayerGameData gameData) {
-        try {
-            WealthGodPlayerGameDataDTO dto = gameData.converToDto(WealthGodPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
     @Override
     public int getGameType() {
         return CoreConst.GameType.WEALTH_GOD;
@@ -86,6 +73,11 @@ public class AbstractWealthGodGameManager extends AbstractSlotsGameManager<Wealt
     @Override
     protected WealthGodGenerateManager getGenerateManager() {
         return this.generateManager;
+    }
+
+    @Override
+    protected Class<WealthGodPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return WealthGodPlayerGameDataDTO.class;
     }
 
     /**

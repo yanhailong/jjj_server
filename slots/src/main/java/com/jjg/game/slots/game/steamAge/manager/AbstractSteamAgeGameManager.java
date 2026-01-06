@@ -260,16 +260,6 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
     }
 
     @Override
-    protected void offlineSaveGameDataDto(SteamAgePlayerGameData gameData) {
-        try {
-            SteamAgePlayerGameDataDTO dto = gameData.converToDto(SteamAgePlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    @Override
     protected SteamAgeResultLibDao getResultLibDao() {
         return this.libDao;
     }
@@ -282,6 +272,11 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
     @Override
     protected SteamAgeGameDataDao getGameDataDao() {
         return this.gameDataDao;
+    }
+
+    @Override
+    protected Class<SteamAgePlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return SteamAgePlayerGameDataDTO.class;
     }
 
     @Override

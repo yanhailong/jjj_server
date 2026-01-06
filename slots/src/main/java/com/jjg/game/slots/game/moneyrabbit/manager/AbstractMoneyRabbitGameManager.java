@@ -331,13 +331,8 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
     }
 
     @Override
-    protected void offlineSaveGameDataDto(MoneyRabbitPlayerGameData gameData) {
-        try {
-            MoneyRabbitPlayerGameDataDTO dto = gameData.converToDto(MoneyRabbitPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
+    protected Class<MoneyRabbitPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return MoneyRabbitPlayerGameDataDTO.class;
     }
 
     @Override

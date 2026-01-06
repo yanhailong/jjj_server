@@ -280,18 +280,13 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
     }
 
     @Override
-    public int getGameType() {
-        return CoreConst.GameType.CLEOPATRA;
+    protected Class<CleopatraPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return CleopatraPlayerGameDataDTO.class;
     }
 
     @Override
-    protected void offlineSaveGameDataDto(CleopatraPlayerGameData gameData) {
-        try {
-            CleopatraPlayerGameDataDTO dto = gameData.converToDto(CleopatraPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
+    public int getGameType() {
+        return CoreConst.GameType.CLEOPATRA;
     }
 
     @Override

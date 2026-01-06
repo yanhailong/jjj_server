@@ -1290,6 +1290,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     protected abstract <D extends AbstractSlotsGenerateManager> D getGenerateManager();
 
+    protected abstract <D extends SlotsPlayerGameDataDTO> Class<D> getSlotsPlayerGameDataDTOCla();
+
     /**
      * 更新奖池
      */
@@ -1319,7 +1321,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 玩家离线保存gameDataDto
      */
-    protected abstract void offlineSaveGameDataDto(T gameData);
+    protected void offlineSaveGameDataDto(T gameData){
+        try {
+            SlotsPlayerGameDataDTO dto = gameData.converToDto(getSlotsPlayerGameDataDTOCla());
+            getGameDataDao().saveGameData(dto);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
 
     /*****************************************************************************************************************************/
 

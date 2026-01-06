@@ -66,19 +66,9 @@ public class AbstractSuperStarGameManager extends AbstractSlotsGameManager<Super
         return superStarGenerateManager;
     }
 
-    /**
-     * 玩家离线保存gameDataDto
-     *
-     * @param gameData
-     */
     @Override
-    protected void offlineSaveGameDataDto(SuperStarPlayerGameData gameData) {
-        try {
-            SuperStarPlayerGameDataDTO dto = gameData.converToDto(SuperStarPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
+    protected Class<SuperStarPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return SuperStarPlayerGameDataDTO.class;
     }
 
     @Override

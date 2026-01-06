@@ -332,13 +332,8 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
     }
 
     @Override
-    protected void offlineSaveGameDataDto(GoldSnakeFortunePlayerGameData gameData) {
-        try {
-            GoldSnakeFortunePlayerGameDataDTO dto = gameData.converToDto(GoldSnakeFortunePlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
+    protected Class<GoldSnakeFortunePlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return GoldSnakeFortunePlayerGameDataDTO.class;
     }
 
     @Override

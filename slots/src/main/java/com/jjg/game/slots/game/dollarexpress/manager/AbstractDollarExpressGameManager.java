@@ -788,17 +788,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
         return gameRunInfo;
     }
 
-    @Override
-    protected void offlineSaveGameDataDto(DollarExpressPlayerGameData gameData) {
-        try {
-            DollarExpressPlayerGameDataDTO dto = gameData.converToDto(DollarExpressPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-
-    }
-
     /**
      * 将库里面的中将线信息转化为消息
      *
@@ -893,6 +882,11 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     @Override
     protected DollarExpressGenerateManager getGenerateManager() {
         return this.generateManager;
+    }
+
+    @Override
+    protected Class<DollarExpressPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return DollarExpressPlayerGameDataDTO.class;
     }
 
     /**

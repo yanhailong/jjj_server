@@ -278,16 +278,6 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
     }
 
     @Override
-    protected void offlineSaveGameDataDto(PegasusUnbridlePlayerGameData gameData) {
-        try {
-            PegasusUnbridlePlayerGameDataDTO dto = gameData.converToDto(PegasusUnbridlePlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    @Override
     protected PegasusUnbridleResultLibDao getResultLibDao() {
         return this.PegasusUnbridleResultLibDao;
     }
@@ -300,6 +290,11 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
     @Override
     protected PegasusUnbridleGameDataDao getGameDataDao() {
         return this.gameDataDao;
+    }
+
+    @Override
+    protected Class<PegasusUnbridlePlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return PegasusUnbridlePlayerGameDataDTO.class;
     }
 
     @Override

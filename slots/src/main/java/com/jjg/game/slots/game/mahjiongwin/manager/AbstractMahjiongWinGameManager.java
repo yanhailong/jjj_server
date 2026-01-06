@@ -270,16 +270,6 @@ public class AbstractMahjiongWinGameManager extends AbstractSlotsGameManager<Mah
     }
 
     @Override
-    protected void offlineSaveGameDataDto(MahjiongWinPlayerGameData gameData) {
-        try {
-            MahjiongWinPlayerGameDataDTO dto = gameData.converToDto(MahjiongWinPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    @Override
     protected MahjiongWinResultLibDao getResultLibDao() {
         return this.libDao;
     }
@@ -292,6 +282,11 @@ public class AbstractMahjiongWinGameManager extends AbstractSlotsGameManager<Mah
     @Override
     protected MahjiongWinGameDataDao getGameDataDao() {
         return this.gameDataDao;
+    }
+
+    @Override
+    protected Class<MahjiongWinPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return MahjiongWinPlayerGameDataDTO.class;
     }
 
     @Override
