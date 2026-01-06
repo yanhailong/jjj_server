@@ -13,6 +13,7 @@ import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.BetDivideInfo;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortuneGameRunInfo;
 import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortunePlayerGameData;
@@ -331,13 +332,8 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
     }
 
     @Override
-    protected void offlineSaveGameDataDto(MoneyRabbitPlayerGameData gameData) {
-        try {
-            MoneyRabbitPlayerGameDataDTO dto = gameData.converToDto(MoneyRabbitPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
+    protected Class<MoneyRabbitPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return MoneyRabbitPlayerGameDataDTO.class;
     }
 
     @Override

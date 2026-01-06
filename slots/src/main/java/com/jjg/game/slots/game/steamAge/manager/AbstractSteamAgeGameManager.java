@@ -13,6 +13,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.OffLineEventData;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 import com.jjg.game.slots.game.steamAge.dao.SteamAgeGameDataDao;
@@ -260,16 +261,6 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
     }
 
     @Override
-    protected void offlineSaveGameDataDto(SteamAgePlayerGameData gameData) {
-        try {
-            SteamAgePlayerGameDataDTO dto = gameData.converToDto(SteamAgePlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    @Override
     protected SteamAgeResultLibDao getResultLibDao() {
         return this.libDao;
     }
@@ -282,6 +273,11 @@ public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamA
     @Override
     protected SteamAgeGameDataDao getGameDataDao() {
         return this.gameDataDao;
+    }
+
+    @Override
+    protected Class<SteamAgePlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return SteamAgePlayerGameDataDTO.class;
     }
 
     @Override

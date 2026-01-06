@@ -16,6 +16,7 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleGameDataDao;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridlePlayerGameDataDTO;
@@ -278,16 +279,6 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
     }
 
     @Override
-    protected void offlineSaveGameDataDto(PegasusUnbridlePlayerGameData gameData) {
-        try {
-            PegasusUnbridlePlayerGameDataDTO dto = gameData.converToDto(PegasusUnbridlePlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    @Override
     protected PegasusUnbridleResultLibDao getResultLibDao() {
         return this.PegasusUnbridleResultLibDao;
     }
@@ -300,6 +291,11 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
     @Override
     protected PegasusUnbridleGameDataDao getGameDataDao() {
         return this.gameDataDao;
+    }
+
+    @Override
+    protected Class<PegasusUnbridlePlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return PegasusUnbridlePlayerGameDataDTO.class;
     }
 
     @Override

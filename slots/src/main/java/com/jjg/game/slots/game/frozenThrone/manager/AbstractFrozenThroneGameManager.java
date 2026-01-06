@@ -14,6 +14,7 @@ import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.OffLineEventData;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
@@ -267,16 +268,6 @@ public class AbstractFrozenThroneGameManager extends AbstractSlotsGameManager<Fr
     }
 
     @Override
-    protected void offlineSaveGameDataDto(FrozenThronePlayerGameData gameData) {
-        try {
-            FrozenThronePlayerGameDataDTO dto = gameData.converToDto(FrozenThronePlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    @Override
     protected FrozenThroneResultLibDao getResultLibDao() {
         return this.libDao;
     }
@@ -289,6 +280,11 @@ public class AbstractFrozenThroneGameManager extends AbstractSlotsGameManager<Fr
     @Override
     protected FrozenThroneGameDataDao getGameDataDao() {
         return this.gameDataDao;
+    }
+
+    @Override
+    protected Class<FrozenThronePlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return FrozenThronePlayerGameDataDTO.class;
     }
 
     @Override

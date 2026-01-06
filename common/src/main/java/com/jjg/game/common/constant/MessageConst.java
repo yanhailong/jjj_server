@@ -149,6 +149,8 @@ public interface MessageConst {
         int WEALTH_BANK = 0x3B;
         //神马飞扬
         int PEGASUS_UNBRIDLE = 0x3C;
+        //鼠鼠福福
+        int LUCKY_MOUSE = 0x3D;
     }
 
     interface ToClientConst {

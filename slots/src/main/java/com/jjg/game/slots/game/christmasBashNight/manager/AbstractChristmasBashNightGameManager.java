@@ -15,6 +15,7 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
 import com.jjg.game.slots.game.christmasBashNight.dao.ChristmasBashNightGameDataDao;
@@ -259,16 +260,6 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
     }
 
     @Override
-    protected void offlineSaveGameDataDto(ChristmasBashNightPlayerGameData gameData) {
-        try {
-            ChristmasBashNightPlayerGameDataDTO dto = gameData.converToDto(ChristmasBashNightPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    @Override
     protected ChristmasBashNightResultLibDao getResultLibDao() {
         return this.libDao;
     }
@@ -281,6 +272,11 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
     @Override
     protected ChristmasBashNightGameDataDao getGameDataDao() {
         return this.gameDataDao;
+    }
+
+    @Override
+    protected Class<ChristmasBashNightPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return ChristmasBashNightPlayerGameDataDTO.class;
     }
 
     @Override
