@@ -164,7 +164,6 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         gameRunInfo.setRemainDigCount(treasureChestLib.getDigTimes() - afterCount);
         gameRunInfo.setDigTimesMultiplier(treasureChestLib.getDigTimesMultiplier().get(afterCount - 1));
         gameRunInfo.setStatus(playerGameData.getStatus());
-        gameRunInfo.setAllWinGold(playerGameData.getOneBetScore() * gameRunInfo.getDigTimesMultiplier());
     }
 
     /**

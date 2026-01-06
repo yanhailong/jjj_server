@@ -214,8 +214,10 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
         if (gameRunInfo.success()) {
             if (gameRunInfo.getRemainDigCount() == 0) {
                 res.allGold = gameRunInfo.getAfterGold();
+                res.totalWinGold = gameRunInfo.getAllWinGold();
+            } else {
+                res.totalWinGold = gameRunInfo.getData().getOneBetScore() * gameRunInfo.getDigTimesMultiplier();
             }
-            res.totalWinGold = gameRunInfo.getAllWinGold();
             res.currentRate = gameRunInfo.getDigTimesMultiplier();
             res.remainDigCount = gameRunInfo.getRemainDigCount();
         } else {
