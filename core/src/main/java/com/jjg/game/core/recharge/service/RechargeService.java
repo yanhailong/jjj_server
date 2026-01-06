@@ -76,20 +76,22 @@ public class RechargeService {
                     continue;
                 }
                 log.info("离线充值成功 playerId = {},orderId = {}", playerId, notifyRechargeServer.orderId);
-                notifyRecharge(notifyRechargeServer);
+                notifyRecharge(notifyRechargeServer, false);
             }
         } catch (Exception e) {
             log.error("检查玩家离线充值数据异常 playerId = {}", playerId, e);
         }
     }
 
-    public void notifyRecharge(NotifyRechargeServer notify) {
+    public void notifyRecharge(NotifyRechargeServer notify, boolean needCheck) {
         try {
-            PFSession session = clusterSystem.getSession(notify.playerId);
-            if (session == null) {
-                log.error("处理充值时玩家PFSession为null playerId={}", notify.playerId);
-                offlineRechargeDao.addRecharge(notify.playerId, ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(notify));
-                return;
+            if (needCheck) {
+                PFSession session = clusterSystem.getSession(notify.playerId);
+                if (session == null) {
+                    log.error("处理充值时玩家PFSession为null playerId={}", notify.playerId);
+                    offlineRechargeDao.addRecharge(notify.playerId, ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(notify));
+                    return;
+                }
             }
             Player player = playerService.get(notify.playerId);
             Order order = orderService.getOrder(notify.orderId);

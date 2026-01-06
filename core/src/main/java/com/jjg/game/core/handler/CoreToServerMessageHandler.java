@@ -142,7 +142,7 @@ public class CoreToServerMessageHandler {
      */
     @Command(MessageConst.ToServer.NOTIFY_PLAYER_RECHARGE)
     public void notifyRecharge(NotifyRechargeServer notify) {
-        rechargeService.notifyRecharge(notify);
+        rechargeService.notifyRecharge(notify, true);
     }
 
     /**
