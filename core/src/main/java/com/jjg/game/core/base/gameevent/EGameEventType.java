@@ -10,6 +10,8 @@ import java.util.List;
 public enum EGameEventType {
     // 玩家升级
     PLAYER_LEVEL(true, "levelID"),    // 玩家升级
+    // 玩家升级
+    PLAYER_VIPLEVEL(true, "VIPlevelID"),    // 玩家VIP升级
     //充值
     RECHARGE(true),
     // 产生有效流水
