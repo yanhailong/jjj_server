@@ -16,16 +16,17 @@ import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.bean.PlayerChip;
 import com.jjg.game.table.common.message.req.ReqOnlinePlayerChipInfo;
+import com.jjg.game.table.common.message.req.ReqPlayerInfo;
 import com.jjg.game.table.common.message.req.ReqRoomBaseInfo;
 import com.jjg.game.table.common.message.req.ReqTablePlayerInfo;
 import com.jjg.game.table.common.message.res.ResOnlinePlayerChipInfo;
+import com.jjg.game.table.common.message.res.ResPlayerInfo;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.Map;
 
 /**
  * 下注对战类的消息分发器，目前主要处理实现了{@linkplain AbstractMsgDealRoomPhase}类的消息类
@@ -90,6 +91,23 @@ public class TableGroupMessageDispatcher extends BaseRoomMessageDispatcher {
             resOnlinePlayerChipInfo.code = Code.SUCCESS;
         }
         playerController.send(resOnlinePlayerChipInfo);
+    }
+
+    /**
+     * 请求牌桌上玩家信息
+     */
+    @Command(value = TableRoomMessageConstant.ReqMsgBean.REQ_PLAYER_INFO)
+    public void ReqPlayerInfo(PlayerController playerController, ReqPlayerInfo req) {
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
+        ResPlayerInfo msg = new ResPlayerInfo(Code.SUCCESS);
+        if (gameController instanceof BaseTableGameController<? extends TableGameDataVo> controller) {
+            GamePlayer gamePlayer = controller.getGamePlayer(playerController.playerId());
+            if (gamePlayer != null) {
+                msg.tablePlayerInfo = TableMessageBuilder.buildTablePlayerInfo(controller, gamePlayer);
+            }
+        }
+        playerController.send(msg);
     }
 
 
