@@ -103,14 +103,15 @@ public class PointsAwardLeaderboardService {
 
     /**
      * 根据玩家ID查询当前排名
-     * 未上榜返回 -1
+     *
+     * @return 排名 积分
      */
-    public int getRank(int type, long playerId) {
+    public Pair<Integer, Integer> getRank(int type, long playerId) {
         RankEntry rank = rankService.getRank(getRankKey(type), playerId);
         if (rank == null || resolveMinPoints(type) > rank.getPoints()) {
-            return -1;
+            return Pair.newPair(-1, 0);
         }
-        return (int) rank.getRank();
+        return Pair.newPair((int) rank.getRank(), (int) rank.getPoints());
     }
 
 

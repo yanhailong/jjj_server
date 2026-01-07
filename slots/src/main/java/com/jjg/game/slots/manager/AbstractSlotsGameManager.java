@@ -711,6 +711,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         }
                     }
                     offlineSaveGameDataDto(v1);
+                    taskManager.onExit(k1);
                 } catch (Exception e) {
                     log.error("", e);
                 }
@@ -1386,7 +1387,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     en.getValue().setAction(true);
                 }
             }
-
             offlineSaveGameDataDto(playerGameData);
             removePlayerGameData(playerController.playerId(), playerGameData.getRoomCfgId());
         } else {
