@@ -460,7 +460,11 @@ public class FriendRoomServices {
      * 在大厅给房间自动续费
      */
     private void autoRenewalRoomInHall(FriendRoom friendRoom) {
-        MarsNode node = clusterSystem.getNode(friendRoom.getPath());
+        ClusterClient client = getRoomNode(friendRoom);
+        if (client == null) {
+            return;
+        }
+        MarsNode node = client.marsNode;
         //待关服的不管
         if (node == null || node.getNodeConfig().waitClose()) {
             return;
@@ -473,6 +477,7 @@ public class FriendRoomServices {
         if (friendRoom.getPauseTime() != 0) {
             return;
         }
+
         // 查看房间剩余时间
         long resetTime = FriendRoomMessageBuilder.getRoomResetTime(friendRoom);
         // 还没到时间
@@ -525,8 +530,12 @@ public class FriendRoomServices {
                 return true;
             }
         });
-
-        hallRoomBridge.updateFriendRoom(friendRoom.getCreator(),friendRoom.getRoomCfgId(),friendRoom.getId(),roomExpendCfg.getId(),friendRoom.isAutoRenewal(),0,null);
+        // 单房间，直接等返回
+        GameRpcContext.getContext().setReqParameterBuilder(
+                RpcReqParameterBuilder.create()
+                        .addClusterClient(client)
+                        .setTryMillisPerClient(1000));
+        hallRoomBridge.updateFriendRoom(friendRoom.getCreator(), friendRoom.getRoomCfgId(), friendRoom.getId(), roomExpendCfg.getId(), friendRoom.isAutoRenewal(), 0, null);
 
         Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), (long) itemNum);
         ItemOperationResult itemOperationResult = new ItemOperationResult();
@@ -960,7 +969,7 @@ public class FriendRoomServices {
                         return true;
                     }
                 });
-        if (result.success() && updateFriendRoom.predictCostGoldNum > 0) {
+        if (result.success() && updateFriendRoom.predictCostGoldNum > 0 && friendRoom instanceof BetFriendRoom) {
             friendRoomDao.modifyRoomPool(result.data.getGameType(), result.data.getId(), updateFriendRoom.predictCostGoldNum);
         }
         if ((addTime > 0 || updateFriendRoom.predictCostGoldNum > 0) && friendRoom.isInGaming()) {
@@ -972,7 +981,7 @@ public class FriendRoomServices {
                                 .setTryMillisPerClient(1000));
                 // 请求尝试开启游戏，如果游戏处于暂停状态，可以考虑异步请求开启游戏
                 hallRoomBridge.operateFriendRoom(player.getId(), friendRoom.getId(), 1, friendRoom.getRoomCfgId());
-                hallRoomBridge.updateFriendRoom(player.getId(), friendRoom.getRoomCfgId(),friendRoom.getId(), updateFriendRoom.timeOfOpenRoom, updateFriendRoom.autoRenewal, updateFriendRoom.predictCostGoldNum, updateFriendRoom.roomAliasName);
+                hallRoomBridge.updateFriendRoom(player.getId(), friendRoom.getRoomCfgId(), friendRoom.getId(), updateFriendRoom.timeOfOpenRoom, updateFriendRoom.autoRenewal, updateFriendRoom.predictCostGoldNum, updateFriendRoom.roomAliasName);
             }
         }
         res.code = Code.SUCCESS;
@@ -1434,36 +1443,37 @@ public class FriendRoomServices {
 
     /**
      * 获取房间节点
+     *
      * @param friendRoom
      * @return
      */
-    public ClusterClient getRoomNode(FriendRoom friendRoom){
+    public ClusterClient getRoomNode(FriendRoom friendRoom) {
         ClusterClient client = clusterSystem.getClusterByPath(friendRoom.getPath());
-        if(client != null){
+        if (client != null) {
             return client;
         }
 
         //TODO 押注类和百人场是否要做同样的处理
-        if(CommonUtil.getMajorTypeByGameType(friendRoom.getGameType()) != CoreConst.GameMajorType.SLOTS){
+        if (CommonUtil.getMajorTypeByGameType(friendRoom.getGameType()) != CoreConst.GameMajorType.SLOTS) {
             return null;
         }
 
         List<ClusterClient> clusterList = clusterSystem.getNodesByType(NodeType.GAME, friendRoom.getGameType());
-        if(clusterList == null || clusterList.isEmpty()){
+        if (clusterList == null || clusterList.isEmpty()) {
             return null;
         }
 
-        for(ClusterClient cc : clusterList){
-            if(cc.nodeConfig.waitClose()){
+        for (ClusterClient cc : clusterList) {
+            if (cc.nodeConfig.waitClose()) {
                 continue;
             }
-            if(cc.nodeConfig.getWhiteIpList() != null && cc.nodeConfig.getWhiteIpList().length > 0){
+            if (cc.nodeConfig.getWhiteIpList() != null && cc.nodeConfig.getWhiteIpList().length > 0) {
                 continue;
             }
-            if(cc.nodeConfig.getWhiteIdList() != null && cc.nodeConfig.getWhiteIdList().length > 0){
+            if (cc.nodeConfig.getWhiteIdList() != null && cc.nodeConfig.getWhiteIdList().length > 0) {
                 continue;
             }
-            friendRoomDao.doSave(friendRoom.getGameType(),friendRoom.getId(), new DataSaveCallback<>() {
+            friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
                 @Override
                 public void updateData(FriendRoom dataEntity) {
                 }
