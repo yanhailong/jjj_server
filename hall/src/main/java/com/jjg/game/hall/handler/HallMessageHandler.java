@@ -20,7 +20,10 @@ import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.dao.PlayerSkinDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.ChooseWareListener;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.core.pb.ReqChooseWare;
+import com.jjg.game.core.pb.ResChooseWare;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.MailService;
@@ -65,7 +68,7 @@ import java.util.*;
  */
 @Component
 @MessageType(MessageConst.MessageTypeDef.HALL_TYPE)
-public class HallMessageHandler implements GmListener {
+public class HallMessageHandler implements GmListener, ChooseWareListener {
     private Logger log = LoggerFactory.getLogger(getClass());
     @Autowired
     private NodeManager nodeManager;
@@ -129,39 +132,6 @@ public class HallMessageHandler implements GmListener {
 
             res.wareHouseList = wareHouseConfigList;
             log.info("玩家选择游戏，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
-    }
-
-    /**
-     * 选择游戏场次进入
-     *
-     * @param playerController
-     * @param req
-     */
-    @Command(HallConstant.MsgBean.REQ_CHOOSE_WARE)
-    public void reqChooseWare(PlayerController playerController, ReqChooseWare req) {
-        ResChooseWare res = new ResChooseWare(HallCode.SUCCESS);
-        try {
-            log.info("收到玩家选择游戏场次 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            CommonResult<WareHouseConfigInfo> checkRes = checkBeforeJoinRoom(playerController, req.gameType, req.wareId);
-            if (checkRes.code != Code.SUCCESS) {
-                res.code = checkRes.code;
-                playerController.send(res);
-                return;
-            }
-            //slots类游戏没有房间
-            //是不是slots游戏
-            if (CommonUtil.getMajorTypeByGameType(req.gameType) == CoreConst.GameMajorType.SLOTS) {
-                res.code = hallRoomService.enterSlotsNode(playerController, req.wareId);
-            } else {
-                // 进入大厅加入房间的逻辑
-                res.code = hallRoomService.hallJoinRoom(playerController, req.wareId);
-            }
-            log.info("玩家选择场次，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -1189,5 +1159,32 @@ public class HallMessageHandler implements GmListener {
             packItemInfos.add(info);
         });
         return packItemInfos;
+    }
+
+    @Override
+    public void onChooseWare(PlayerController playerController, ReqChooseWare req) {
+        ResChooseWare res = new ResChooseWare(HallCode.SUCCESS);
+        try {
+            log.info("收到玩家选择游戏场次 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+            CommonResult<WareHouseConfigInfo> checkRes = checkBeforeJoinRoom(playerController, req.gameType, req.wareId);
+            if (checkRes.code != Code.SUCCESS) {
+                res.code = checkRes.code;
+                playerController.send(res);
+                return;
+            }
+            //slots类游戏没有房间
+            //是不是slots游戏
+            if (CommonUtil.getMajorTypeByGameType(req.gameType) == CoreConst.GameMajorType.SLOTS) {
+                res.code = hallRoomService.enterSlotsNode(playerController, req.wareId);
+            } else {
+                // 进入大厅加入房间的逻辑
+                res.code = hallRoomService.hallJoinRoom(playerController, req.wareId);
+            }
+            log.info("玩家选择场次，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
     }
 }
