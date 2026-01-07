@@ -107,6 +107,8 @@ public class GMController extends AbstractController {
     private BackendBridge backendBridge;
     @Autowired
     private OrderService orderService;
+    @Autowired
+    private CommonDao commonDao;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -637,9 +639,9 @@ public class GMController extends AbstractController {
             }
 
             List<String> subChannels = new ArrayList<>();
-            if(dto.subChannels() != null){
-                for(String str : dto.subChannels()){
-                    if(!StringUtils.isBlank(str)){
+            if (dto.subChannels() != null) {
+                for (String str : dto.subChannels()) {
+                    if (!StringUtils.isBlank(str)) {
                         subChannels.add(str);
                     }
                 }
@@ -1051,6 +1053,7 @@ public class GMController extends AbstractController {
 
     /**
      * 修改积分大奖积分
+     *
      * @param dto
      * @return
      */
@@ -1073,6 +1076,7 @@ public class GMController extends AbstractController {
 
     /**
      * 保存公告
+     *
      * @param dto
      * @return
      */
@@ -1108,6 +1112,7 @@ public class GMController extends AbstractController {
 
     /**
      * 删除公告
+     *
      * @param dto
      * @return
      */
@@ -1136,6 +1141,7 @@ public class GMController extends AbstractController {
 
     /**
      * 设置分享连接
+     *
      * @param dto
      * @return
      */
@@ -1157,6 +1163,7 @@ public class GMController extends AbstractController {
 
     /**
      * 批量获取玩家信息
+     *
      * @param dto
      * @return
      */
@@ -1200,6 +1207,7 @@ public class GMController extends AbstractController {
 
     /**
      * 后台充值
+     *
      * @param dto
      * @return
      */
@@ -1213,9 +1221,9 @@ public class GMController extends AbstractController {
             }
 
             RechargeType rechargeType = RechargeType.BACKEND;
-            if(dto.rechargeType() > 0){
+            if (dto.rechargeType() > 0) {
                 rechargeType = RechargeType.valueOf(dto.rechargeType());
-                if(rechargeType == null){
+                if (rechargeType == null) {
                     log.warn("参数错误,rechargeType无法识别 dto = {}", dto);
                     return fail("common.paramerror");
                 }
@@ -1275,6 +1283,27 @@ public class GMController extends AbstractController {
                 return fail("common.fail");
             }
             log.info("后台充值成功 dto = {},orderId = {}", dto, order.getId());
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 设置客服连接
+     *
+     * @param dto
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.CUSTOMER_URL_PREFIX)
+    public WebResult<String> customerUrlPrefix(@RequestBody CustomerUrlPrefixDto dto) {
+        log.info("收到客服分享连接 dto = {}", dto);
+        try {
+            if (StringUtils.isBlank(dto.url())) {
+                return fail("common.paramerror");
+            }
+            commonDao.setValue(GameConstant.CommonDaoId.CUSTOMER_TABLE_ID, dto.url());
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);
