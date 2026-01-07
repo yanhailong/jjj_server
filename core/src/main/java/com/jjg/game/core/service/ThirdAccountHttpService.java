@@ -17,6 +17,7 @@ import com.jjg.game.core.dao.VerCodeDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.VerCodeType;
 import com.jjg.game.core.data.ThirdServiceInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +67,12 @@ public class ThirdAccountHttpService {
         CommonResult<GoogleUserInfo> result = new CommonResult<>(Code.SUCCESS);
 
         try {
+            if (StringUtils.isBlank(thirdServiceInfo.getGoogleClientId())) {
+                result.code = Code.FAIL;
+                log.warn("google 配置中的 clientId 为空");
+                return result;
+            }
+
             HttpRequest httpRequest = HttpRequest.get(thirdServiceInfo.getGoogleVerifyUrl() + token);
 //            httpRequest.setProxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("192.168.3.46", 32649)));
 
@@ -94,7 +101,7 @@ public class ThirdAccountHttpService {
             String aud = jsonNode.get("aud").asText();
             if (!thirdServiceInfo.getGoogleClientId().equals(aud)) {
                 result.code = Code.FAIL;
-                log.warn("无效的受众 token = {},aud = {}", token, aud);
+                log.warn("无效的受众 token = {},aud = {},cfgClientId = {}", token, aud, thirdServiceInfo.getGoogleClientId());
                 return result;
             }
 
@@ -146,6 +153,14 @@ public class ThirdAccountHttpService {
         CommonResult<AppleUserInfo> result = new CommonResult<>(Code.SUCCESS);
 
         try {
+            if (thirdServiceInfo.getAppleAppId() == null || StringUtils.isBlank(thirdServiceInfo.getAppleBundleId()) ||
+                    StringUtils.isBlank(thirdServiceInfo.getAppleKeyId()) || StringUtils.isBlank(thirdServiceInfo.getAppleIssuerId())) {
+                result.code = Code.FAIL;
+                log.warn("apple配置缺失 appleId = {},appleBundleId = {},appleKeyId = {},appleIssuerId = {}",
+                        thirdServiceInfo.getAppleAppId(), thirdServiceInfo.getAppleBundleId(), thirdServiceInfo.getAppleKeyId(), thirdServiceInfo.getAppleIssuerId());
+                return result;
+            }
+
             // 解析 Token Header，获取 kid
             DecodedJWT tempJwt = JWT.decode(token);
             String kid = tempJwt.getHeaderClaim("kid").asString();
@@ -154,25 +169,25 @@ public class ThirdAccountHttpService {
             DecodedJWT decodedJWT = JWT.decode(token);
             if (!"https://appleid.apple.com".equals(decodedJWT.getIssuer())) {
                 result.code = Code.FORBID;
-                log.debug("非Apple发行的Token = {}", token);
+                log.warn("非Apple发行的Token = {}", token);
                 return result;
             }
             if (!decodedJWT.getAudience().contains(thirdServiceInfo.getAppleBundleId())) {
                 result.code = Code.FORBID;
-                log.debug("受众不匹配 configAud = {},jwtAud = {},token = {}", thirdServiceInfo.getAppleBundleId(), decodedJWT.getAudience(), token);
+                log.warn("受众不匹配 configAud = {},jwtAud = {},token = {}", thirdServiceInfo.getAppleBundleId(), decodedJWT.getAudience(), token);
                 return result;
             }
             Date now = new Date();
             if (decodedJWT.getExpiresAt().before(now)) {
                 result.code = Code.EXPIRE;
-                log.debug("apple token已过期 token = {}", token);
+                log.warn("apple token已过期 token = {}", token);
                 return result;
             }
             if (decodedJWT.getIssuedAt() != null) {
                 long tokenAge = (now.getTime() - decodedJWT.getIssuedAt().getTime()) / 1000;
                 if (tokenAge > MAX_TOKEN_AGE) {
                     result.code = Code.FORBID;
-                    log.debug("token签发时间过久 issuedAt = {},token = {}", decodedJWT.getIssuedAt().getTime(),token);
+                    log.warn("token签发时间过久 issuedAt = {},token = {}", decodedJWT.getIssuedAt().getTime(), token);
                     return result;
                 }
             }
@@ -183,7 +198,7 @@ public class ThirdAccountHttpService {
 
             if (publicKey == null) {
                 result.code = Code.FAIL;
-                log.debug("获取公钥失败 kid = {},token = {}",kid,token);
+                log.warn("获取公钥失败 kid = {},token = {}", kid, token);
                 return result;
             }
 
@@ -221,11 +236,17 @@ public class ThirdAccountHttpService {
         CommonResult<FacebookUserInfo> result = new CommonResult<>(Code.SUCCESS);
 
         try {
+            if (StringUtils.isBlank(thirdServiceInfo.getFacebookAppId()) || StringUtils.isBlank(thirdServiceInfo.getFacebookSecret())) {
+                result.code = Code.FAIL;
+                log.warn("facebook 配置缺失 facebookAppId = {},facebookSecret is null={}", thirdServiceInfo.getFacebookAppId(), StringUtils.isBlank(thirdServiceInfo.getFacebookSecret()));
+                return result;
+            }
+
             // 验证token
             HttpRequest httpRequest = HttpRequest.get(thirdServiceInfo.getFacebookDebugTokenUrl());
 //            httpRequest.setProxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("192.168.3.46", 32649)));
 
-            Map<String,Object> params = new HashMap<>();
+            Map<String, Object> params = new HashMap<>();
             params.put("input_token", token);
             params.put("access_token", thirdServiceInfo.getFacebookAppId() + "|" + thirdServiceInfo.getFacebookSecret());
             HttpResponse resp = httpRequest.form(params).execute();
@@ -257,7 +278,7 @@ public class ThirdAccountHttpService {
             // 验证应用 ID
             if (!data.get("app_id").asText().equals(thirdServiceInfo.getFacebookAppId())) {
                 result.code = Code.FAIL;
-                log.warn("facebook appid验证失败， token = {}", token);
+                log.warn("facebook appid验证失败， token = {},appId = {},cfgAppId = {}", token, data.get("app_id").asText(), thirdServiceInfo.getFacebookAppId());
                 return result;
             }
 
@@ -273,16 +294,16 @@ public class ThirdAccountHttpService {
 
             int now = TimeHelper.nowInt();
             //签发时间
-            if(data.get("issued_at").asInt() > now){
+            if (data.get("issued_at").asInt() > now) {
                 result.code = Code.FAIL;
-                log.warn("该token未生效 token = {}，issued_at = {}", token,data.get("issued_at"));
+                log.warn("该token未生效 token = {}，issued_at = {}", token, data.get("issued_at"));
                 return result;
             }
 
             //过期时间
-            if(data.get("expires_at").asInt() < now){
+            if (data.get("expires_at").asInt() < now) {
                 result.code = Code.FAIL;
-                log.warn("该token已过期 token = {}，expires_at = {}", token,data.get("expires_at"));
+                log.warn("该token已过期 token = {}，expires_at = {}", token, data.get("expires_at"));
                 return result;
             }
 

@@ -193,9 +193,13 @@ public class GoogleCallbackController extends AbstractCallbackController {
     public boolean verifyJwtToken(String authorizationHeader, String expectedAudience) {
         try {
             log.debug("authorizationHeader = {}", authorizationHeader);
+            if(StringUtils.isBlank(expectedAudience)) {
+                log.warn("google配置中的expectedAudience为空");
+                return false;
+            }
             // 1. 提取 Bearer Token
             if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-                log.debug("authorizationHeader 错误,  authorizationHeader = {}", authorizationHeader);
+                log.warn("authorizationHeader 错误,  authorizationHeader = {}", authorizationHeader);
                 return false;
             }
             String jwtToken = authorizationHeader.substring(7);
@@ -205,7 +209,7 @@ public class GoogleCallbackController extends AbstractCallbackController {
 
             // 加密算法
             if (!"RS256".equals(decodedJWT.getAlgorithm())) {
-                log.debug("加密算法不匹配 algorithm = {}", decodedJWT.getAlgorithm());
+                log.warn("加密算法不匹配 algorithm = {}", decodedJWT.getAlgorithm());
                 return false;
             }
 
@@ -216,11 +220,10 @@ public class GoogleCallbackController extends AbstractCallbackController {
 
             // 4. 从 Google JWKS 端点获取公钥
             String keyId = decodedJWT.getKeyId();
-            log.debug("kid = {}", keyId);
             RSAPublicKey publicKey = getPublicKeyFromJwks(keyId);
 
             if (publicKey == null) {
-                log.debug("获取公钥失败");
+                log.warn("获取公钥失败");
                 return false;
             }
 
@@ -238,7 +241,6 @@ public class GoogleCallbackController extends AbstractCallbackController {
             // 6. 验证通过，可以解析 payload 获取更多信息
             String payload = new String(java.util.Base64.getUrlDecoder().decode(decodedJWT.getPayload()));
             log.debug("JWT Payload: " + payload);
-
             return true;
 
         } catch (Exception e) {
@@ -258,9 +260,9 @@ public class GoogleCallbackController extends AbstractCallbackController {
                 return false;
             }
 
-            // 验证受众（应该是您的推送端点 URL）
+            // 验证受众
             if (!jwt.getAudience().contains(expectedAudience)) {
-                log.debug("aud 不匹配 aud = {}", jwt.getAudience());
+                log.debug("aud 不匹配 aud = {},cfgAud = {}", jwt.getAudience(), expectedAudience);
                 return false;
             }
 
