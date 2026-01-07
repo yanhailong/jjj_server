@@ -27,7 +27,7 @@ public class TaskCondition11002 extends AbstractTaskCondition<DefaultTaskConditi
      */
     @Override
     protected Long getCompareValue(TaskCfg taskCfg) {
-        return Long.valueOf(taskCfg.getTaskConditionId().get(1));
+        return taskCfg.getTaskConditionId().get(1);
     }
 
 }

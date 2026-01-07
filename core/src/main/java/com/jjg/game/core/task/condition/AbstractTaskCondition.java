@@ -52,7 +52,7 @@ public abstract class AbstractTaskCondition<T extends DefaultTaskConditionParam>
         boolean trigger = false;
         Set<Integer> finishConditions = taskDetail.getFinishConditionIds();
         //已完成的条件不增加进度了
-        if (finishConditions != null && finishConditions.contains(taskCfg.getTaskConditionId().getFirst())) {
+        if (finishConditions != null && finishConditions.contains(taskCfg.getTaskConditionId().getFirst().intValue())) {
             return trigger;
         }
         if (checkAddProgress(taskCfg, taskDetail, param)) {
@@ -61,7 +61,7 @@ public abstract class AbstractTaskCondition<T extends DefaultTaskConditionParam>
         }
         boolean finish = checkFinish(taskCfg, taskDetail, param);
         if (finish) {
-            taskDetail.getFinishConditionIds().add(taskCfg.getTaskConditionId().getFirst());
+            taskDetail.getFinishConditionIds().add(taskCfg.getTaskConditionId().getFirst().intValue());
         }
         return trigger;
     }
@@ -81,8 +81,8 @@ public abstract class AbstractTaskCondition<T extends DefaultTaskConditionParam>
      */
     protected void addProgress(long playerId, TaskCfg taskCfg, TaskDetail taskDetail, T param) {
         Map<Integer, Long> taskDataProgress = taskDetail.getProgress();
-        taskDataProgress.merge(taskCfg.getTaskConditionId().getFirst(), param.getAddValue(), Long::sum);
-        log.debug("玩家[{}]任务[{}]条件[{}]增加进度[{}]总进度[{}]", playerId, taskCfg.getId(), getConditionId(), param.getAddValue(), taskDataProgress.get(taskCfg.getTaskConditionId().getFirst()));
+        taskDataProgress.merge(taskCfg.getTaskConditionId().getFirst().intValue(), param.getAddValue(), Long::sum);
+        log.debug("玩家[{}]任务[{}]条件[{}]增加进度[{}]总进度[{}]", playerId, taskCfg.getId(), getConditionId(), param.getAddValue(), taskDataProgress.get(taskCfg.getTaskConditionId().getFirst().intValue()));
     }
 
     /**
@@ -95,7 +95,7 @@ public abstract class AbstractTaskCondition<T extends DefaultTaskConditionParam>
      */
     protected Long getProgress(TaskCfg taskCfg, TaskDetail taskDetail, T param) {
         Map<Integer, Long> taskDataProgress = taskDetail.getProgress();
-        return taskDataProgress.getOrDefault(taskCfg.getTaskConditionId().getFirst(), 0L);
+        return taskDataProgress.getOrDefault(taskCfg.getTaskConditionId().getFirst().intValue(), 0L);
     }
 
     /**
