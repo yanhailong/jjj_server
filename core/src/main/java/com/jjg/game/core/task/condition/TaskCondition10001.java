@@ -1,7 +1,6 @@
 package com.jjg.game.core.task.condition;
 
 import com.jjg.game.core.constant.TaskConstant;
-import com.jjg.game.core.task.db.TaskData;
 import com.jjg.game.core.task.db.TaskDetail;
 import com.jjg.game.core.task.param.TaskConditionParam10001;
 import com.jjg.game.sampledata.bean.TaskCfg;
@@ -25,9 +24,9 @@ public class TaskCondition10001 extends AbstractTaskCondition<TaskConditionParam
 
     @Override
     protected boolean checkAddProgress(TaskCfg taskCfg, TaskDetail taskDetail, TaskConditionParam10001 param) {
-        List<Integer> conditionId = taskCfg.getTaskConditionId();
-        int gameId = conditionId.get(1);
-        int checkValue = conditionId.get(2);
+        List<Long> conditionId = taskCfg.getTaskConditionId();
+        long gameId = conditionId.get(1);
+        long checkValue = conditionId.get(2);
         if (gameId > 0) {
             if (param.getGameId() != gameId) {
                 return false;
@@ -44,7 +43,7 @@ public class TaskCondition10001 extends AbstractTaskCondition<TaskConditionParam
      */
     @Override
     protected Long getCompareValue(TaskCfg taskCfg) {
-        return Long.valueOf(taskCfg.getTaskConditionId().get(3));
+        return taskCfg.getTaskConditionId().get(3);
     }
 
     /**
@@ -54,6 +53,6 @@ public class TaskCondition10001 extends AbstractTaskCondition<TaskConditionParam
     protected void addProgress(long playerId, TaskCfg taskCfg, TaskDetail taskDetail, TaskConditionParam10001 param) {
         Map<Integer, Long> taskDataProgress = taskDetail.getProgress();
         //下注次数 每次只+1
-        taskDataProgress.merge(taskCfg.getTaskConditionId().getFirst(), 1L, Long::sum);
+        taskDataProgress.merge(taskCfg.getTaskConditionId().getFirst().intValue(), 1L, Long::sum);
     }
 }

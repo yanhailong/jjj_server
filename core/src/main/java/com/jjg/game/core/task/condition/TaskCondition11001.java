@@ -31,7 +31,6 @@ public class TaskCondition11001 extends AbstractTaskCondition<DefaultTaskConditi
      * 检查是否满足增加任务进度的条件。
      *
      * @param taskCfg
-     * @param taskData
      * @param param    条件参数，包含触发条件的相关数据。
      * @return 如果满足增加任务进度的条件，返回true；否则返回false。
      */
@@ -39,7 +38,7 @@ public class TaskCondition11001 extends AbstractTaskCondition<DefaultTaskConditi
     protected boolean checkAddProgress(TaskCfg taskCfg, TaskDetail taskDetail, DefaultTaskConditionParam param) {
         try {
             long resultValue = param.getAddValue();
-            int compareValue = taskCfg.getTaskConditionId().get(1);
+            long compareValue = taskCfg.getTaskConditionId().get(1);
             return resultValue >= compareValue;
         } catch (Exception e) {
             log.error("", e);
@@ -55,14 +54,13 @@ public class TaskCondition11001 extends AbstractTaskCondition<DefaultTaskConditi
      */
     @Override
     protected Long getCompareValue(TaskCfg taskCfg) {
-        int value = taskCfg.getTaskConditionId().get(2);
-        return (long) value;
+        return taskCfg.getTaskConditionId().get(2);
     }
 
     @Override
     protected void addProgress(long playerId, TaskCfg taskCfg, TaskDetail taskDetail, DefaultTaskConditionParam param) {
         Map<Integer, Long> taskDataProgress = taskDetail.getProgress();
         //每次只+1
-        taskDataProgress.merge(taskCfg.getTaskConditionId().getFirst(), 1L, Long::sum);
+        taskDataProgress.merge(taskCfg.getTaskConditionId().getFirst().intValue(), 1L, Long::sum);
     }
 }
