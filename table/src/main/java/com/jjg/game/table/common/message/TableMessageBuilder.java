@@ -201,7 +201,7 @@ public class TableMessageBuilder {
         for (Map.Entry<Long, DefaultKeyValue<Long, Long>> entry : playerGet.entrySet()) {
             PlayerChangedGold info = new PlayerChangedGold();
             DefaultKeyValue<Long, Long> keyValue = entry.getValue();
-            info.playerWinGold = keyValue.getValue() - keyValue.getKey();
+            info.playerWinGold = keyValue.getValue();
             info.playerId = entry.getKey();
             info.playerBetGold = keyValue.getKey();
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(entry.getKey());

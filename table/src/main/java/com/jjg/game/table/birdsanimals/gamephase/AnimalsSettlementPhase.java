@@ -101,7 +101,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             SettlementData settlementData = calcSettlementGold(gamePlayer, winPosWeightCfgs, playerBetInfo, changeParam);
             PlayerChangedGold playerChangedGold = new PlayerChangedGold();
             playerChangedGold.playerId = playerId;
-            playerChangedGold.playerWinGold = settlementData.getBetWin();
+            playerChangedGold.playerWinGold = settlementData.getTotalWin();
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(settlementData.getTotalWin());
             // 给玩家添加金币
