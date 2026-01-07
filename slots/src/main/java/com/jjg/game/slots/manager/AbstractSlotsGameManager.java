@@ -27,8 +27,6 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.TaskConstant;
-import com.jjg.game.slots.controller.SlotsRoomController;
-import com.jjg.game.slots.dao.FriendRoomSlotsBillHistoryDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -43,6 +41,7 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.*;
 import com.jjg.game.slots.data.*;
 import com.jjg.game.slots.logger.SlotsLogger;
@@ -657,6 +656,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         }
                     }
                     offlineSaveGameDataDto(v1);
+                    taskManager.onExit(k1);
                 } catch (Exception e) {
                     log.error("", e);
                 }
@@ -1267,6 +1267,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected void onAutoExitAction(T gameData, int eventId) {
     }
 
+
     /**
      * 免费状态退出处理
      */
@@ -1321,7 +1322,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 玩家离线保存gameDataDto
      */
-    protected void offlineSaveGameDataDto(T gameData){
+    protected void offlineSaveGameDataDto(T gameData) {
         try {
             SlotsPlayerGameDataDTO dto = gameData.converToDto(getSlotsPlayerGameDataDTOCla());
             getGameDataDao().saveGameData(dto);
@@ -1479,7 +1480,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     en.getValue().setAction(true);
                 }
             }
-
             offlineSaveGameDataDto(playerGameData);
             removePlayerGameData(playerController.playerId(), playerGameData.getRoomCfgId());
         } else {
@@ -1490,6 +1490,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     data.setActionMills(now + data.getActionMills() + data.getDelayMills());
                 }
             }
+            taskManager.saveTask(playerController.playerId());
         }
         return playerGameData;
     }

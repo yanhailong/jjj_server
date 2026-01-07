@@ -226,7 +226,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             if (settlementData.getTotalWin() > 0) {
                 PlayerChangedGold playerGoldChange = new PlayerChangedGold();
                 playerGoldChange.playerId = playerEntry.getKey();
-                playerGoldChange.playerWinGold = settlementData.getBetWin();
+                playerGoldChange.playerWinGold = settlementData.getTotalWin();
                 playerGoldChange.playerBetGold = playerTotalBetGold;
                 // 给玩家添加金币
                 gameController.addItem(

@@ -18,9 +18,14 @@ public class TaskData {
     private long playerId;
 
     /**
+     * 上次检查时间
+     */
+    private long lastCheckTime;
+
+    /**
      * 任务详情
      */
-    private Map<Integer, TaskDetail> taskDetails = new ConcurrentHashMap<>();
+    private Map<Integer, TaskDetail> taskDetails;
 
 
     public long getPlayerId() {
@@ -53,10 +58,17 @@ public class TaskData {
         return taskDetails.get(configId);
     }
 
-    public boolean hasTask(int configId){
+    public boolean hasTask(int configId) {
         if (taskDetails == null) {
             return false;
         }
         return taskDetails.containsKey(configId);
+    }
+
+    public long getLastCheckTime() {
+        return lastCheckTime;
+    }
+    public void setLastCheckTime(long lastCheckTime) {
+        this.lastCheckTime = lastCheckTime;
     }
 }

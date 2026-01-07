@@ -2,6 +2,7 @@ package com.jjg.game.hall.pointsaward;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.PageUtils;
@@ -125,8 +126,8 @@ public class PointsAwardMessageHandler {
      */
     @Command(PointsAwardConstant.Message.REQ_TURNTABLE)
     public void turntableSpin(PlayerController playerController, ReqPointsAwardTurntableSpin message) {
-        CommonResult<ResPointsAwardTurntableSpin> result =  pointsAwardTurntableService.spin(playerController.playerId());
-        if(!result.success()){
+        CommonResult<ResPointsAwardTurntableSpin> result = pointsAwardTurntableService.spin(playerController.playerId());
+        if (!result.success()) {
             playerController.send(new ResPointsAwardTurntableSpin(result.code));
             return;
         }
@@ -154,8 +155,9 @@ public class PointsAwardMessageHandler {
     @Command(PointsAwardConstant.Message.REQ_POINT)
     public void point(PlayerController playerController, ReqPlayerPoint message) {
         NotifySyncPlayerPoint res = new NotifySyncPlayerPoint();
+        Pair<Integer, Integer> rank = pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerController.playerId());
+        res.setRank(rank.getFirst());
         res.setPoint(pointsAwardService.getPoints(playerController.playerId()));
-        res.setRank(pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerController.playerId()));
         res.setState(1);
         playerController.send(res);
         log.debug("返回玩家积分大奖积分 playerId = {},res = {}", playerController.playerId(), JSONObject.toJSONString(res));
@@ -169,17 +171,18 @@ public class PointsAwardMessageHandler {
         int type = message.getType();
         PageUtils.PageResult<PointsAwardLeaderboardData> pageResult = pointsAwardLeaderboardService.getData(type, message.getPageIndex(), message.getPageSize());
         //自己在排行榜上的名次 -1表示未上榜
-        int rank = pointsAwardLeaderboardService.getRank(type, playerController.playerId());
+        Pair<Integer, Integer> rank = pointsAwardLeaderboardService.getRank(type, playerController.playerId());
         ResLoadLeaderboard res = new ResLoadLeaderboard(Code.SUCCESS);
         res.setType(type);
         res.setDataList(pageResult.getData());
         res.setTotalCount(pageResult.getTotalCount());
         res.setPageIndex(pageResult.getPageIndex());
+        res.setSelfPoint(rank.getSecond());
+        res.setSelfIndex(rank.getFirst());
         res.setPageSize(pageResult.getPageSize());
         res.setMaxPageIndex(pageResult.getMaxPageIndex());
-        res.setSelfIndex(rank);
         playerController.send(res);
-        log.debug("返回玩家积分大奖排行榜数据 playerId = {},type = {},pageIndex = {}", playerController.playerId(),message.getType(),message.getPageIndex());
+        log.debug("返回玩家积分大奖排行榜数据 playerId = {},type = {},pageIndex = {}", playerController.playerId(), message.getType(), message.getPageIndex());
     }
 
     /**

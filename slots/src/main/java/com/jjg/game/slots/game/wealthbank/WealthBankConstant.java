@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.wealthbank;
 
-import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.slots.constant.SlotsConst;
 

@@ -102,7 +102,7 @@ public class MahjiongWinSendMessageManager extends BaseSendMessageManager {
             //本局获得金币
             res.allWinGold = gameRunInfo.getAllWinGold();
             //免费游戏中累计获得金币
-            res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
+            res.totalWinGold = gameRunInfo.getFreeModeTotalReward();
             //当前状态
             res.status = gameRunInfo.getStatus();
             //图标信息

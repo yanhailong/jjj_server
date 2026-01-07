@@ -13,6 +13,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.data.PlayerSessionToken;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.core.recharge.service.RechargeService;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.task.manager.TaskManager;
@@ -47,6 +48,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     private SlotsRoomManager slotsRoomManager;
     @Autowired
     private TaskManager taskManager;
+    @Autowired
+    private RechargeService rechargeService;
 
     @Override
     public void sessionClose(PFSession session) {
@@ -115,6 +118,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 taskManager.loadTaskData(player.getId());
                 //创建 PlayerGameData
                 gameManager.createPlayerGameData(playerController);
+                //大厅非重连会检查一次，这里再检查一次
+                rechargeService.loadOfflineRecharge(player.getId());
             }
         });
         PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(player.getId());
@@ -151,6 +156,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 if (playerGameData == null) {
                     log.warn("进入好友房slots失败，创建playerGameData失败 playerId = {}", player.getId());
                 }
+                //大厅非重连会检查一次，这里再检查一次
+                rechargeService.loadOfflineRecharge(player.getId());
             }
         });
         PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(player.getId());
@@ -181,12 +188,12 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         if (playerGameData == null) {
             return Code.SUCCESS;
         }
-        boolean isInSpecialModel = !gameManager.canExit(playerGameData);
-        if (initiativeExit && isInSpecialModel) {
+        boolean canExit = gameManager.canExit(playerGameData);
+        if (initiativeExit && !canExit) {
             return Code.FAIL;
         }
-        playerGameData = gameManager.exit(playerController, initiativeExit);
-        playerSessionService.offline(playerController.getPlayer(), isInSpecialModel);
+        playerGameData = gameManager.exit(playerController, initiativeExit || canExit);
+        playerSessionService.offline(playerController.getPlayer(), !canExit);
         //计算玩游戏的时长
         int onlineTimeLen = 0;
         if (playerGameData != null) {

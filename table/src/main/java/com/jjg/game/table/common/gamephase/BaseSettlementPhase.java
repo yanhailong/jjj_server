@@ -97,27 +97,27 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
         BigDecimal totalGet = BigDecimal.valueOf(betValue)
                 .multiply(BigDecimal.valueOf(odds))
                 .divide(BigDecimal.valueOf(100), 4, RoundingMode.DOWN);
-        //实际赢钱
-        BigDecimal realGet = totalGet.subtract(BigDecimal.valueOf(betValue).multiply(BigDecimal.valueOf(10000 - returnRate)
-                .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN)));
 
-        BigDecimal multiAdd = realGet.multiply(BigDecimal.valueOf((10000 - (weightCfg.getIsRatio() == 1 ? winRatio : 0))))
+        BigDecimal multiAdd = totalGet.multiply(BigDecimal.valueOf((10000 - (weightCfg.getIsRatio() == 1 ? winRatio : 0))))
                 .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
 
         // 赢的总值
-        long totalWin = multiAdd.longValue() + betValue;
+        long totalWin = multiAdd.longValue() + BigDecimal.valueOf(betValue)
+                .multiply(BigDecimal.valueOf(returnRate))
+                .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN)
+                .longValue();
         if (gamePlayer != null && !(gamePlayer instanceof GameRobotPlayer)) {
             log.info("玩家：{} {} 在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{}",
                     gamePlayer.getId(),
                     gameDataVo.roomLogInfo(),
                     weightCfg.getId(),
                     betValue,
-                    realGet,
+                    totalGet,
                     multiAdd,
                     totalWin);
         }
         // 倍率计算 + 压分返还 + 赢的总值
-        return new SettlementData(multiAdd.longValue(), totalWin, betValue, realGet.longValue() - multiAdd.longValue());
+        return new SettlementData(multiAdd.longValue(), totalWin, betValue, totalGet.longValue() - multiAdd.longValue());
     }
 
     /**

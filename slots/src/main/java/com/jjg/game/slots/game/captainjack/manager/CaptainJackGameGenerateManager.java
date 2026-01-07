@@ -429,6 +429,7 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
             return 0;
         }
         long count = 0;
+        int baseTimes = 1;
         long totalTimes = 0;
         for (SpecialAuxiliaryInfo info : lib.getSpecialAuxiliaryInfoList()) {
             if (CollectionUtil.isEmpty(info.getFreeGames())) {
@@ -436,7 +437,6 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
             }
             endIndex = Math.min(endIndex, info.getFreeGames().size());
             for (int i = 0; i < endIndex; i++) {
-                int baseTimes = 1;
                 JSONObject jsonObject = info.getFreeGames().get(i);
                 CaptainJackResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), CaptainJackResultLib.class);
                 if (CollectionUtil.isEmpty(tmpLib.getAddIconInfos())) {

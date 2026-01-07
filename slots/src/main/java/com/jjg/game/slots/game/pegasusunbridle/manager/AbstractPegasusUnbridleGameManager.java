@@ -90,6 +90,17 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         return startGame(playerController, playerGameData, stake, false);
     }
 
+    @Override
+    protected void onAutoExitAction(PegasusUnbridlePlayerGameData gameData, int eventId) {
+        if (gameData.getStatus() == PegasusUnbridleConstant.Status.REAL_FU_MA) {
+            PegasusUnbridleResultLib resultLib = gameData.getFuMa();
+            for (int i = gameData.getCurrentRandomIndex(); i < resultLib.getRandomResult().size(); i++) {
+                log.info("福马模式自动旋转 playerId = {},currentRandomIndex = {}", gameData.playerId(), gameData.getCurrentRandomIndex());
+                startGame(new PlayerController(null, null), gameData, gameData.getOneBetScore(), true);
+            }
+        }
+    }
+
     /**
      * 将库里面的中将线信息转化为消息
      *
@@ -121,10 +132,11 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         try {
             gameRunInfo.setAuto(auto);
 
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
+
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
 
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 

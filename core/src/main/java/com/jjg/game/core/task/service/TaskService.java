@@ -2,7 +2,6 @@ package com.jjg.game.core.task.service;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
-import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.ClusterRpcReference;
@@ -96,9 +95,15 @@ public class TaskService {
      * 检测玩家任务
      */
     public void checkTask(long playerId, TaskData taskData, TaskManager taskManager) {
-        removeExpiredTasks(playerId, taskData, taskManager);
-        if (addNewTasks(playerId, taskData, taskManager)) {
-            taskManager.updateRedDot(playerId);
+        try {
+            removeExpiredTasks(playerId, taskData, taskManager);
+            if (addNewTasks(playerId, taskData, taskManager)) {
+                taskManager.updateRedDot(playerId);
+            }
+        } catch (Exception e) {
+            log.error("checkTask 异常 playerId={}", playerId, e);
+        } finally {
+            taskData.setLastCheckTime(System.currentTimeMillis());
         }
     }
 

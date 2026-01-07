@@ -196,12 +196,12 @@ public class TableMessageBuilder {
      * @param playerGet 结算的玩家获得的金币
      */
     public static List<PlayerChangedGold> getPlayerSettleInfos(AbstractGameController<?, ?> gameController,
-            Map<Long, DefaultKeyValue<Long, Long>> playerGet, TableGameDataVo gameDataVo) {
+                                                               Map<Long, DefaultKeyValue<Long, Long>> playerGet, TableGameDataVo gameDataVo) {
         List<PlayerChangedGold> settleInfoArrayList = new ArrayList<>();
         for (Map.Entry<Long, DefaultKeyValue<Long, Long>> entry : playerGet.entrySet()) {
             PlayerChangedGold info = new PlayerChangedGold();
             DefaultKeyValue<Long, Long> keyValue = entry.getValue();
-            info.playerWinGold = keyValue.getValue() - keyValue.getKey();
+            info.playerWinGold = keyValue.getValue();
             info.playerId = entry.getKey();
             info.playerBetGold = keyValue.getKey();
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(entry.getKey());

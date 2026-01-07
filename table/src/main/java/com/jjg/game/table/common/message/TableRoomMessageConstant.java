@@ -22,6 +22,8 @@ public interface TableRoomMessageConstant {
         int REQ_ROOM_BASE_INFO = BASE_MSG_PREFIX | 0x04;
         // 请求在线玩家筹码皮肤id
         int REQ_ONLINE_PLAYER_CHIP_INFO = BASE_MSG_PREFIX | 0x05;
+        // 请求获取玩家信息
+        int REQ_PLAYER_INFO = BASE_MSG_PREFIX | 0x06;
     }
 
     interface RespMsgBean {
@@ -41,5 +43,7 @@ public interface TableRoomMessageConstant {
         int NOTIFY_TABLE_ROOM_CONF = BASE_MSG_PREFIX | 0x92;
         // 响应在线玩家筹码皮肤id
         int RES_ONLINE_PLAYER_CHIP_INFO = BASE_MSG_PREFIX | 0x93;
+        // 响应获取玩家信息
+        int RES_PLAYER_INFO = BASE_MSG_PREFIX | 0x94;
     }
 }
