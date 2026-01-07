@@ -102,7 +102,10 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
                 .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
 
         // 赢的总值
-        long totalWin = multiAdd.longValue() + betValue * returnRate;
+        long totalWin = multiAdd.longValue() + BigDecimal.valueOf(betValue)
+                .multiply(BigDecimal.valueOf(returnRate))
+                .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN)
+                .longValue();
         if (gamePlayer != null && !(gamePlayer instanceof GameRobotPlayer)) {
             log.info("玩家：{} {} 在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{}",
                     gamePlayer.getId(),
