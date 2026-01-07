@@ -306,12 +306,14 @@ public class ShopService implements OrderGenerate, GameEventListener {
                                 BigDecimal addNum = shopProduct.getMoney().multiply(BigDecimal.valueOf(add))
                                         .multiply(BigDecimal.valueOf(magnification)
                                                 .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN));
-                                List<LanguageParamData> languageParamData = new ArrayList<>();
-                                languageParamData.add(new LanguageParamData(0, shopProduct.getMoney().toPlainString()));
-                                languageParamData.add(new LanguageParamData(0, String.valueOf(player.getVipLevel())));
-                                languageParamData.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(add).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN))));
-                                languageParamData.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addNum))));
-                                mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum.longValue())), languageParamData);
+                                if (addNum.longValue() > 0) {
+                                    List<LanguageParamData> languageParamData = new ArrayList<>();
+                                    languageParamData.add(new LanguageParamData(0, shopProduct.getMoney().toPlainString()));
+                                    languageParamData.add(new LanguageParamData(0, String.valueOf(player.getVipLevel())));
+                                    languageParamData.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(add).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN))));
+                                    languageParamData.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addNum))));
+                                    mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum.longValue())), languageParamData);
+                                }
                             }
                         }
                     }
