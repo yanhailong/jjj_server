@@ -219,6 +219,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         // 玩家参加摇钱树抽奖接口
         ResCashCowJoin res = new ResCashCowJoin(Code.SUCCESS);
         long playerId = oldPlayer.getId();
+        oldPlayer = corePlayerService.get(playerId);
         long activityId = activityData.getId();
         Map<Integer, CashcowCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         CashcowCfg cfg = baseCfgBeanMap.get(detailId);

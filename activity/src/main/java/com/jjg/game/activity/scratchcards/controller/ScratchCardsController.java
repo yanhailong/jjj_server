@@ -352,6 +352,7 @@ public class ScratchCardsController extends BaseActivityController implements Ga
             msg.code = Code.SAMPLE_ERROR;
             return msg;
         }
+        player = corePlayerService.get(player.getId());
         //扣除道具添加道具
         CommonResult<ItemOperationResult> removeItems = playerPackService.removeItems(player, cfg.getCostItem(), AddType.ACTIVITY_SCRATCH_CARDS_EXCHANGE);
         if (!removeItems.success()) {
