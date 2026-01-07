@@ -51,7 +51,7 @@ public class RedBlackWarListener implements GmListener {
                 }
                 controller.getGameDataVo().setBlack(blackCardList);
                 controller.getGameDataVo().setRed(redCardList);
-                return new CommonResult<>();
+                return new CommonResult<>(Code.SUCCESS);
             }
 
         }
