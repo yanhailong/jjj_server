@@ -188,12 +188,12 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         if (playerGameData == null) {
             return Code.SUCCESS;
         }
-        boolean isInSpecialModel = !gameManager.canExit(playerGameData);
-        if (initiativeExit && isInSpecialModel) {
+        boolean canExit = gameManager.canExit(playerGameData);
+        if (initiativeExit && !canExit) {
             return Code.FAIL;
         }
-        playerGameData = gameManager.exit(playerController, initiativeExit);
-        playerSessionService.offline(playerController.getPlayer(), isInSpecialModel);
+        playerGameData = gameManager.exit(playerController, initiativeExit || canExit);
+        playerSessionService.offline(playerController.getPlayer(), !canExit);
         //计算玩游戏的时长
         int onlineTimeLen = 0;
         if (playerGameData != null) {
