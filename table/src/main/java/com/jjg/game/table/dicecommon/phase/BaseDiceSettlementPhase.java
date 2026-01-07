@@ -98,7 +98,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             SettlementData playerSettlementData = calcSettlementGold(gamePlayer, winPosWeightCfgs, playerBetInfo, changeParam);
             PlayerChangedGold playerChangedGold = new PlayerChangedGold();
             playerChangedGold.playerId = playerId;
-            playerChangedGold.playerWinGold = playerSettlementData.getBetWin();
+            playerChangedGold.playerWinGold = playerSettlementData.getTotalWin();
             playerChangedGolds.add(playerChangedGold);
             // 给玩家添加金币
             gameController.addItem(gamePlayer.getId(), playerSettlementData.getTotalWin(), AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");

@@ -93,7 +93,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             SettlementData playerSettlementData = calcGold(gamePlayer, winPosWeightCfg, playerBetTotal);
             PlayerChangedGold playerChangedGold = new PlayerChangedGold();
             playerChangedGold.playerId = playerId;
-            playerChangedGold.playerWinGold = playerSettlementData.getBetWin();
+            playerChangedGold.playerWinGold = playerSettlementData.getTotalWin();
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
             if (!(gamePlayer instanceof GameRobotPlayer)) {

@@ -13,6 +13,7 @@ import com.jjg.game.core.dao.VerCodeDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.VerCodeType;
 import com.jjg.game.core.data.ThirdServiceInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,7 @@ public class SmsService {
 
     /**
      * 发送验证码短信
+     *
      * @param phone
      * @param verCodeType
      * @return
@@ -56,6 +58,7 @@ public class SmsService {
 
     /**
      * 发送验证码短信
+     *
      * @param playerId
      * @param phone
      * @param verCodeType
@@ -130,6 +133,12 @@ public class SmsService {
      */
     private int sendOnbukaSms(String phoneNumber, String content, VerCodeType verCodeType) {
         try {
+            if (StringUtils.isBlank(thirdServiceInfo.getSmsSensSmsUrl()) || StringUtils.isBlank(thirdServiceInfo.getSmsAppId()) || StringUtils.isBlank(thirdServiceInfo.getSmsAppKey()) || StringUtils.isBlank(thirdServiceInfo.getSmsAppSecret())) {
+                log.warn("sms配置信息缺失 smsSensSmsUrl = {},smsAppId = {},smsAppKey = {},smsAppSecret is null={}",
+                        thirdServiceInfo.getSmsSensSmsUrl(), thirdServiceInfo.getSmsAppId(), thirdServiceInfo.getSmsAppKey(), StringUtils.isBlank(thirdServiceInfo.getSmsAppSecret()));
+                return Code.FAIL;
+            }
+
             HttpRequest httpRequest = HttpRequest.post(thirdServiceInfo.getSmsSensSmsUrl());
 
             //当前时间戳
@@ -161,7 +170,7 @@ public class SmsService {
             }
 
             int status = json.getInt("status");
-            if(status != 0){
+            if (status != 0) {
                 log.warn("发送短信失败1 phoneNumber = {},code = {},reason = {}", phoneNumber, json.getInt("status"), json.getStr("reason"));
                 return Code.FAIL;
             }

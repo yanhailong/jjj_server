@@ -3,6 +3,7 @@ package com.jjg.game.hall.pointsaward;
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.RpcCallSetting;
@@ -477,7 +478,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         NotifySyncPlayerPoint syncPlayerPoint = new NotifySyncPlayerPoint();
         syncPlayerPoint.setPoint(points);
         syncPlayerPoint.setState(2);
-        syncPlayerPoint.setRank(leaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, player));
+        Pair<Integer, Integer> rank = leaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, player);
+        syncPlayerPoint.setRank(rank.getFirst());
         PFSession pfSession = clusterSystem.getSession(player);
         if (pfSession != null) {
             pfSession.send(syncPlayerPoint);
