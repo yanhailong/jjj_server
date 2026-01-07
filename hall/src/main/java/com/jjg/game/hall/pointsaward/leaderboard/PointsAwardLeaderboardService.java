@@ -109,7 +109,7 @@ public class PointsAwardLeaderboardService {
     public Pair<Integer, Integer> getRank(int type, long playerId) {
         RankEntry rank = rankService.getRank(getRankKey(type), playerId);
         if (rank == null || resolveMinPoints(type) > rank.getPoints()) {
-            return Pair.newPair(-1, 0);
+            return Pair.newPair(-1, rank == null ? 0 : (int) rank.getPoints());
         }
         return Pair.newPair((int) rank.getRank(), (int) rank.getPoints());
     }
