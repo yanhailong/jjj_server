@@ -15,6 +15,7 @@ import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.*;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.ChooseWareListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.manager.CoreMarqueeManager;
@@ -22,8 +23,6 @@ import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.manager.SubscriptionManager;
 import com.jjg.game.core.pb.*;
-import com.jjg.game.core.pb.reddot.NotifyRedDot;
-import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.pb.reddot.ReqRedDot;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.OrderService;
@@ -73,6 +72,13 @@ public class CoreMessageHandler {
     private TaskManager taskManager;
     @Autowired
     private CountDao countDao;
+
+    public Map<String, ChooseWareListener> chooseWareListenerMap;
+
+    public void init() {
+        chooseWareListenerMap = CommonUtil.getContext().getBeansOfType(ChooseWareListener.class);
+    }
+
     /**
      *
      */
@@ -174,7 +180,7 @@ public class CoreMessageHandler {
 
                 long playerId = playerController.getPlayer().getId();
 //                countDao.incrBy(CountDao.CountType.RECHARGE.getParam(), String.valueOf(playerId), order.getPrice());
-                countDao.incrRechargeInfo(String.valueOf(playerId),order.getPrice());
+                countDao.incrRechargeInfo(String.valueOf(playerId), order.getPrice());
 
                 //单笔充值任务
                 taskManager.trigger(playerId, TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
@@ -342,7 +348,7 @@ public class CoreMessageHandler {
      */
     @Command(MessageConst.CoreMessage.REQ_RED_DOT)
     public void loadRedDot(PlayerController playerController, ReqRedDot req) {
-        redDotManager.notifyReddot(playerController,req.getModule(),req.getSubmodule());
+        redDotManager.notifyReddot(playerController, req.getModule(), req.getSubmodule());
     }
 
     /**
@@ -471,6 +477,23 @@ public class CoreMessageHandler {
             res.code = Code.EXCEPTION;
         }
         playerController.send(res);
+    }
+
+    /**
+     * 选择游戏场次进入
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(MessageConst.CoreMessage.REQ_CHOOSE_WARE)
+    public void reqChooseWare(PlayerController playerController, ReqChooseWare req) {
+        if (this.chooseWareListenerMap == null || this.chooseWareListenerMap.isEmpty()) {
+            log.warn("chooseWareListenerMap 为空，选择场次失败");
+            return;
+        }
+        this.chooseWareListenerMap.forEach((s, listener) -> {
+            listener.onChooseWare(playerController, req);
+        });
     }
 
 }

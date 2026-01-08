@@ -18,9 +18,7 @@ import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.SubscriptionManager;
 import com.jjg.game.core.pb.LuckyTreasureUpdateBroadcast;
-import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.hall.minigame.game.luckytreasure.bean.LuckyTreasureConsumeInfo;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureHistory;
@@ -293,6 +291,8 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         result.code = Code.SUCCESS;
         try {
             Player player = playerController.getPlayer();
+            player = playerService.get(player.getId());
+            playerController.setPlayer(player);
             // 购买数量无效
             if (count <= 0) {
                 TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50031);

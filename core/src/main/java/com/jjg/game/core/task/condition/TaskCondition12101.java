@@ -1,7 +1,6 @@
 package com.jjg.game.core.task.condition;
 
 import com.jjg.game.core.constant.TaskConstant;
-import com.jjg.game.core.task.db.TaskData;
 import com.jjg.game.core.task.db.TaskDetail;
 import com.jjg.game.core.task.param.TaskConditionParam12101;
 import com.jjg.game.sampledata.bean.TaskCfg;
@@ -29,7 +28,7 @@ public class TaskCondition12101 extends AbstractTaskCondition<TaskConditionParam
      */
     @Override
     protected boolean checkAddProgress(TaskCfg taskCfg, TaskDetail taskDetail, TaskConditionParam12101 param) {
-        int itemId = taskCfg.getTaskConditionId().get(1);
+        long itemId = taskCfg.getTaskConditionId().get(1);
         return param.getItemId() == itemId;
     }
 
@@ -41,7 +40,7 @@ public class TaskCondition12101 extends AbstractTaskCondition<TaskConditionParam
      */
     @Override
     protected Long getCompareValue(TaskCfg taskCfg) {
-        return Long.valueOf(taskCfg.getTaskConditionId().get(2));
+        return taskCfg.getTaskConditionId().get(2);
     }
 
 }
