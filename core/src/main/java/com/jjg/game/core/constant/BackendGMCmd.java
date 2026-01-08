@@ -66,8 +66,8 @@ public interface BackendGMCmd {
     String BATCH_GET_PLAYERS_INFO = "batchGetPlayersInfo";
     //后台充值
     String BACKEND_RECHARGE = "backendRecharge";
-    //设置客服连接
-    String CUSTOMER_URL_PREFIX = "customerUrlPrefix";
+    //设置设置链接
+    String SET_URL_PREFIX = "setUrlPrefix";
 
     /**
      * 配置相关q
