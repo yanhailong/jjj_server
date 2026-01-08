@@ -8,8 +8,11 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
+import com.jjg.game.core.listener.ChooseWareListener;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.core.pb.ReqChooseWare;
 import com.jjg.game.core.pb.ReqExitGame;
+import com.jjg.game.core.pb.ResChooseWare;
 import com.jjg.game.core.pb.ResExitGame;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
@@ -38,7 +41,7 @@ import java.util.Objects;
  */
 @Component
 @MessageType(MessageConst.MessageTypeDef.ROOM_TYPE)
-public class RoomMessageHandler {
+public class RoomMessageHandler implements ChooseWareListener {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final RoomManager roomManager;
@@ -178,4 +181,18 @@ public class RoomMessageHandler {
         return friendRoomController;
     }
 
+    @Override
+    public void onChooseWare(PlayerController playerController, ReqChooseWare req) {
+        ResChooseWare res = new ResChooseWare(Code.SUCCESS);
+        if (req.gameType == playerController.getPlayer().getGameType() && req.wareId == playerController.getPlayer().getRoomCfgId()) {
+            playerController.send(res);
+            return;
+        }
+
+        log.warn("玩家选择场次信息错误 playerId = {},playerGameType = {},playerWareId = {},reqGameType = {},reqRoomCfgId = {}"
+                , playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(),
+                req.gameType, req.wareId);
+        res.code = Code.FAIL;
+        playerController.send(res);
+    }
 }
