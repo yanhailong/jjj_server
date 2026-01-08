@@ -1,6 +1,5 @@
 package com.jjg.game.core.task.manager;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.listener.OnSwitchNode;
@@ -182,7 +181,7 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
                 return;
             }
             //检查是否需要重置所有任务
-            if (!TimeHelper.inSameDay(taskData.getLastCheckTime(), System.currentTimeMillis()) || CollectionUtil.isEmpty(taskData.getTaskDetails())) {
+            if (!TimeHelper.inSameDay(taskData.getLastCheckTime(), System.currentTimeMillis())) {
                 taskService.checkTask(playerId, taskData, this);
             }
             //根据条件id计算出受影响的任务
@@ -300,7 +299,7 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
             return taskList;
         }
         //检查是否需要重置所有任务
-        if (!TimeHelper.inSameDay(taskData.getLastCheckTime(), System.currentTimeMillis()) || taskData.getTaskDetails() == null || taskData.getTaskDetails().isEmpty()) {
+        if (!TimeHelper.inSameDay(taskData.getLastCheckTime(), System.currentTimeMillis())) {
             taskService.checkTask(playerId, taskData, this);
         }
         if (taskData.getTaskDetails() == null || taskData.getTaskDetails().isEmpty()) {
