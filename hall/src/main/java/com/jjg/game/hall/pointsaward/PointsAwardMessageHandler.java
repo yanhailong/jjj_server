@@ -1,5 +1,6 @@
 package com.jjg.game.hall.pointsaward;
 
+import cn.hutool.core.util.NumberUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.Pair;
@@ -207,7 +208,7 @@ public class PointsAwardMessageHandler {
         int checkValue = pointsAwardTurntableService.getRechargeCheckValue();
         ResTurntableRechargeInfo res = new ResTurntableRechargeInfo(Code.SUCCESS);
         res.setAddCount(addCount);
-        res.setRechargeValue(recharge.toPlainString());
+        res.setRechargeValue(NumberUtil.decimalFormat(",###.##",recharge));
         res.setConfigValue(checkValue);
         playerController.send(res);
         log.debug("返回玩家积分大奖转盘充值信息 playerId = {}", playerController.playerId());
@@ -218,14 +219,13 @@ public class PointsAwardMessageHandler {
      */
     @Command(PointsAwardConstant.Message.REQ_POINTS_AWARD_LADDER_REWARD)
     public void ladderReceiveInfo(PlayerController playerController, ReqPointsAwardLadderRewards msg) {
-        ResPointsAwardLadderRewards res = new ResPointsAwardLadderRewards(Code.SUCCESS);
-        long points = pointsAwardService.getTimePoints(playerController.playerId());
-        List<PointsAwardLadderRewardsInfo> configInfoList = pointsAwardService.getPointsAwardLadderRewardsInfoList(playerController.playerId());
-        res.setTotalPoints(points);
-        res.setLadderRewardsList(configInfoList);
-        playerController.send(res);
-//        pointsAwardService.resetTimePoints();
-        log.debug("返回玩家积分大奖阶梯奖励信息 playerId = {},points = {}", playerController.playerId(), points);
+//        ResPointsAwardLadderRewards res = new ResPointsAwardLadderRewards(Code.SUCCESS);
+//        long points = pointsAwardService.getTimePoints(playerController.playerId());
+//        List<PointsAwardLadderRewardsInfo> configInfoList = pointsAwardService.getPointsAwardLadderRewardsInfoList(playerController.playerId());
+//        res.setTotalPoints(points);
+//        res.setLadderRewardsList(configInfoList);
+//        playerController.send(res);
+//        log.debug("返回玩家积分大奖阶梯奖励信息 playerId = {},points = {}", playerController.playerId(), points);
     }
 
     /**
@@ -233,16 +233,17 @@ public class PointsAwardMessageHandler {
      */
     @Command(PointsAwardConstant.Message.REQ_RECEIVE_POINTS_AWARD_LADDER_REWARD)
     public void receiveLadderAward(PlayerController playerController, ReqReceivePointsAwardLadderRewards msg) {
-        long points = msg.getPoints();
-        int code = pointsAwardService.receiveLader(points, playerController.playerId(), false);
-        ResReceivePointsAwardLadderRewards res = new ResReceivePointsAwardLadderRewards(Code.SUCCESS);
-        res.setPoints(points);
-        res.code = code;
-        playerController.send(res);
-        log.debug("返回玩家领取积分大奖奖励 playerId = {},points = {},code = {}", playerController.playerId(), points, res.code);
-        if (code == Code.SUCCESS) {
-            redDotManager.updateRedDotByInitialize(pointsAwardService.getModule(), pointsAwardService.getSubmodule(), playerController.playerId());
-        }
+//        long points = msg.getPoints();
+//        int code = pointsAwardService.receiveLader(points, playerController.playerId(), false);
+//        ResReceivePointsAwardLadderRewards res = new ResReceivePointsAwardLadderRewards(Code.SUCCESS);
+//        res.setPoints(points);
+//        res.code = code;
+//        playerController.send(res);
+//        log.debug("返回玩家领取积分大奖奖励 playerId = {},points = {},code = {}", playerController.playerId(), points, res.code);
+//        if (code == Code.SUCCESS) {
+//            redDotManager.updateRedDotByInitialize(pointsAwardService.getModule(), pointsAwardService.getSubmodule(), playerController.playerId());
+//        }
     }
+
 
 }
