@@ -1,6 +1,5 @@
 package com.jjg.game.hall.pointsaward;
 
-import cn.hutool.core.util.NumberUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.Pair;
@@ -14,7 +13,6 @@ import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.req.ReqLuckyTreasureHistory;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
-import com.jjg.game.hall.pointsaward.pb.PointsAwardLadderRewardsInfo;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardData;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardSignInConfig;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardTurntableConfig;
@@ -208,7 +206,7 @@ public class PointsAwardMessageHandler {
         int checkValue = pointsAwardTurntableService.getRechargeCheckValue();
         ResTurntableRechargeInfo res = new ResTurntableRechargeInfo(Code.SUCCESS);
         res.setAddCount(addCount);
-        res.setRechargeValue(NumberUtil.decimalFormat(",###.##",recharge));
+        res.setRechargeValue(recharge.toPlainString());
         res.setConfigValue(checkValue);
         playerController.send(res);
         log.debug("返回玩家积分大奖转盘充值信息 playerId = {}", playerController.playerId());
@@ -225,6 +223,7 @@ public class PointsAwardMessageHandler {
 //        res.setTotalPoints(points);
 //        res.setLadderRewardsList(configInfoList);
 //        playerController.send(res);
+////        pointsAwardService.resetTimePoints();
 //        log.debug("返回玩家积分大奖阶梯奖励信息 playerId = {},points = {}", playerController.playerId(), points);
     }
 
@@ -244,6 +243,5 @@ public class PointsAwardMessageHandler {
 //            redDotManager.updateRedDotByInitialize(pointsAwardService.getModule(), pointsAwardService.getSubmodule(), playerController.playerId());
 //        }
     }
-
 
 }
