@@ -1291,7 +1291,7 @@ public class GMController extends AbstractController {
     }
 
     /**
-     * 设置客服连接
+     * 设置链接
      *
      * @param dto
      * @return

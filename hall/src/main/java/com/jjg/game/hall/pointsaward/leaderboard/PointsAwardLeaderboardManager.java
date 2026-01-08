@@ -45,6 +45,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -72,6 +73,8 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
     private List<Pair<Long, Integer>> robotList;
     private final RankService rankService;
     private final RobotUtil robotUtil;
+
+    private AtomicBoolean init = new AtomicBoolean(false);
     // ==================== 构造函数 ====================
 
     /**
@@ -120,6 +123,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             leaderboardService.init(this);
             cacheRankData();
             addRobotSchedule();
+            init.set(true);
             log.info("积分奖励排行榜管理器初始化完成");
         } catch (Exception e) {
             log.error("积分奖励排行榜管理器初始化失败", e);
@@ -407,7 +411,6 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
 
     /**
      * 清除机器人数据
-     *
      */
     private void clearRobotData() {
         if (isMaster()) {
@@ -764,8 +767,10 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
 
     @Override
     public void isLeader() {
-        addRobotSchedule();
-        log.info("成为主节点 添加机器人定时任务");
+        if(!init.get()){
+            addRobotSchedule();
+            log.info("成为主节点 添加机器人定时任务");
+        }
     }
 
     @Override
