@@ -165,10 +165,8 @@ public class ActivityMessageHandler {
     public void reqCashCowTotalPool(PlayerController playerController, ReqCashCowTotalPool req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.getType() == ActivityType.CASH_COW) {
-            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-                AbstractResponse res = cashCowController.reqCashCowTotalPool(req);
-                playerController.send(res);
-            }
+            AbstractResponse res = cashCowController.reqCashCowTotalPool(req);
+            playerController.send(res);
         }
     }
 
