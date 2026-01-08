@@ -31,6 +31,17 @@ public class NotifySyncPlayerPoint extends AbstractNotice {
     @ProtoDesc("更新状态 1=请求 2=主推")
     private int state;
 
+    @ProtoDesc("url")
+    private String url;
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
     public long getPoint() {
         return point;
     }
