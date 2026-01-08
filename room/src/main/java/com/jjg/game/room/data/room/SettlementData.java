@@ -58,7 +58,6 @@ public class SettlementData {
         this.betWin += settlementData.betWin;
         this.totalWin += settlementData.totalWin;
         this.taxation += settlementData.taxation;
-        this.betTotal += settlementData.betTotal;
         this.bankerWind += settlementData.bankerWind;
         return this;
     }

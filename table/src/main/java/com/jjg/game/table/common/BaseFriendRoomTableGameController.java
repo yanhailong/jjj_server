@@ -50,8 +50,6 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
 
     @Override
     protected boolean checkRoomCanNextRound() {
-        boolean checkRes = super.checkRoomCanNextRound();
-        if (checkRes) {
             // 进入下一个回合之前需要判断，庄家是否连续坐庄N次
             if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
                 // 获取当前庄家ID
@@ -113,8 +111,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                     }
                 }
             }
-        }
-        return checkRes;
+        return super.checkRoomCanNextRound();
     }
 
     /**
