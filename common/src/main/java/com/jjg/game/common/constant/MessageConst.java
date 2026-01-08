@@ -199,9 +199,9 @@ public interface MessageConst {
         int REQ_GM = BASE_MSG_PREFIX | 0x1;
         int RES_GM = BASE_MSG_PREFIX | 0x2;
 
-        //获取当前跑马灯
-//        int REQ_MARQUEE = BASE_MSG_PREFIX | 0x3;
-//        int RES_MARQUEE = BASE_MSG_PREFIX | 0x4;
+        //选择场次
+        int REQ_CHOOSE_WARE = BASE_MSG_PREFIX | 0x3;
+        int RES_CHOOSE_WARE = BASE_MSG_PREFIX | 0x4;
 
         //通知玩家基础信息变化
         int NOTICE_BASE_INFO_CHANGE = BASE_MSG_PREFIX | 0x99;

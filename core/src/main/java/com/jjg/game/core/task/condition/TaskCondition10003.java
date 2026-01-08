@@ -24,10 +24,10 @@ public class TaskCondition10003 extends AbstractTaskCondition<TaskConditionParam
 
     @Override
     protected boolean checkAddProgress(TaskCfg taskCfg, TaskDetail taskDetail, TaskConditionParam10003 param) {
-        List<Integer> conditionId = taskCfg.getTaskConditionId();
-        int gameId = conditionId.get(1);
-        int checkValue = conditionId.get(2);
-        int coinId = conditionId.get(4);
+        List<Long> conditionId = taskCfg.getTaskConditionId();
+        long gameId = conditionId.get(1);
+        long checkValue = conditionId.get(2);
+        long coinId = conditionId.get(4);
         //货币类型不匹配
         if (coinId != param.getCoinId()) {
             return false;
@@ -48,6 +48,6 @@ public class TaskCondition10003 extends AbstractTaskCondition<TaskConditionParam
      */
     @Override
     protected Long getCompareValue(TaskCfg taskCfg) {
-        return Long.valueOf(taskCfg.getTaskConditionId().get(3));
+        return taskCfg.getTaskConditionId().get(3);
     }
 }

@@ -162,4 +162,9 @@ public class GameConstant {
         int CODE_MIN = 100000;
         int CODE_MAX = 999999;
     }
+
+    public interface CommonDaoId{
+        //客服链接
+        int CUSTOMER_TABLE_ID = 1;
+    }
 }

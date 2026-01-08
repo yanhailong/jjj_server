@@ -14,6 +14,7 @@ import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ConditionUtil;
 import com.jjg.game.core.utils.ItemUtils;
@@ -54,7 +55,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     private final PlayerBuildingService playerBuildingService;
     private final PlayerPackService playerPackService;
     private final CasinoLogger casinoLogger;
-
+    private final CorePlayerService corePlayerService;
     private final TimerCenter timerCenter;
     private final NodeManager nodeManager;
     private final Map<Long, Map<Integer, PlayerBuilding>> dataMap = new ConcurrentHashMap<>();
@@ -64,13 +65,14 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     private TimerEvent<String> casinoCheck;
 
     public CasinoManager(PlayerBuildingService playerBuildingService,
-                         PlayerPackService playerPackService, CasinoLogger casinoLogger,
+                         PlayerPackService playerPackService, CasinoLogger casinoLogger, CorePlayerService corePlayerService,
                          TimerCenter timerCenter,
                          NodeManager nodeManager,
                          ClusterSystem clusterSystem) {
         this.playerBuildingService = playerBuildingService;
         this.playerPackService = playerPackService;
         this.casinoLogger = casinoLogger;
+        this.corePlayerService = corePlayerService;
         this.timerCenter = timerCenter;
         this.nodeManager = nodeManager;
         this.clusterSystem = clusterSystem;
@@ -571,6 +573,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                                                            ReqCasinoUpgradeMachine req) {
         ResCasinoUpgradeMachine res = new ResCasinoUpgradeMachine();
         Player player = playerController.getPlayer();
+        player = corePlayerService.get(player.getId());
+        playerController.setPlayer(player);
         try {
             CasinoInfo casinoInfo = getCasinoInfo(player.getId(), req.casinoId);
             if (Objects.isNull(casinoInfo)) {
@@ -727,7 +731,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
 
     /**
      * 获取楼层id
-     * @param casinoInfo 楼层信息
+     *
+     * @param casinoInfo        楼层信息
      * @param casinoMachineInfo 机台信息
      * @return 楼层id
      */

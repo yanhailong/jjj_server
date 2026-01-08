@@ -118,7 +118,7 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
                 Map<Integer, List<TaskCfg>> tempMap = new HashMap<>();
                 Map<Integer, List<TaskCfg>> tempGroupMap = new HashMap<>();
                 configList.forEach(taskCfg -> {
-                    tempMap.computeIfAbsent(taskCfg.getTaskConditionId().getFirst(), k -> new ArrayList<>())
+                    tempMap.computeIfAbsent(taskCfg.getTaskConditionId().getFirst().intValue(), k -> new ArrayList<>())
                             .add(taskCfg);
                     tempGroupMap.computeIfAbsent(taskCfg.getGroup(), k -> new ArrayList<>())
                             .add(taskCfg);
@@ -395,7 +395,7 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
         Map<Integer, Long> taskDataProgress = taskDetail.getProgress();
         // 判断进度是否为空，统一处理
         if (taskDataProgress == null || taskDataProgress.isEmpty()) {
-            addTaskConditionToList(playerId, taskCfg.getTaskConditionId().getFirst(), taskDetail, taskCfg, conditions);
+            addTaskConditionToList(playerId, taskCfg.getTaskConditionId().getFirst().intValue(), taskDetail, taskCfg, conditions);
         } else {
             taskDataProgress.forEach((taskId, progress) -> addTaskConditionToList(playerId, taskId, taskDetail, taskCfg, conditions));
         }

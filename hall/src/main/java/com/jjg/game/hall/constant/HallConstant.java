@@ -38,8 +38,8 @@ public interface HallConstant {
         int RES_ENTER_GAME = BASE_MSG_PREFIX | 0x4;
 
         //选择场次
-        int REQ_CHOOSE_WARE = BASE_MSG_PREFIX | 0x5;
-        int RES_CHOOSE_WARE = BASE_MSG_PREFIX | 0x6;
+//        int REQ_CHOOSE_WARE = BASE_MSG_PREFIX | 0x5;
+//        int RES_CHOOSE_WARE = BASE_MSG_PREFIX | 0x6;
 
         //获取奖池信息
         int REQ_POOL = BASE_MSG_PREFIX | 0x7;

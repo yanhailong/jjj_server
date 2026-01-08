@@ -3,6 +3,7 @@ package com.jjg.game.slots.manager;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.base.condition.ConditionType;
+import com.jjg.game.core.handler.CoreMessageHandler;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.core.task.manager.TaskManager;
@@ -36,6 +37,8 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
     private ActivityManager activityManager;
     @Autowired
     private TaskManager taskManager;
+    @Autowired
+    private CoreMessageHandler coreMessageHandler;
     //上下文
     private ApplicationContext context;
 
@@ -57,6 +60,7 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
         ConditionType.initData();
         //加载任务管理器
         taskManager.init();
+        coreMessageHandler.init();
         running = true;
     }
 
