@@ -45,6 +45,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -72,6 +73,8 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
     private List<Pair<Long, Integer>> robotList;
     private final RankService rankService;
     private final RobotUtil robotUtil;
+
+    private AtomicBoolean init = new AtomicBoolean(false);
     // ==================== 构造函数 ====================
 
     /**
@@ -120,6 +123,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             leaderboardService.init(this);
             cacheRankData();
             addRobotSchedule();
+            init.set(true);
             log.info("积分奖励排行榜管理器初始化完成");
         } catch (Exception e) {
             log.error("积分奖励排行榜管理器初始化失败", e);
@@ -135,16 +139,14 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             return;
         }
         try {
-            if (GameDataManager.getInstance().hasCfgContainer(GlobalConfigCfg.class)) {
-                //单位秒【倒计时下限_倒计时上限_最小增长积分_前X名用机器人占榜】
-                GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(48);
-                if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
-                    String[] config = StringUtils.split(globalConfigCfg.getValue(), "_");
-                    if (config.length != 4) {
-                        return;
-                    }
-                    WheelTimerUtil.schedule(this::robotAction, RandomUtil.randomInt(Integer.parseInt(config[0]), Integer.parseInt(config[1])), TimeUnit.SECONDS);
+            //单位秒【倒计时下限_倒计时上限_最小增长积分_前X名用机器人占榜】
+            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(48);
+            if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
+                String[] config = StringUtils.split(globalConfigCfg.getValue(), "_");
+                if (config.length != 4) {
+                    return;
                 }
+                WheelTimerUtil.schedule(this::robotAction, RandomUtil.randomInt(Integer.parseInt(config[0]), Integer.parseInt(config[1])), TimeUnit.SECONDS);
             }
         } catch (Exception e) {
             log.error("添加积分大奖机器人定时任务失败", e);
@@ -765,8 +767,10 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
 
     @Override
     public void isLeader() {
-        addRobotSchedule();
-        log.info("成为主节点 添加机器人定时任务");
+        if(!init.get()){
+            addRobotSchedule();
+            log.info("成为主节点 添加机器人定时任务");
+        }
     }
 
     @Override
