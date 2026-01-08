@@ -151,6 +151,8 @@ public interface MessageConst {
         int PEGASUS_UNBRIDLE = 0x3C;
         //鼠鼠福福
         int LUCKY_MOUSE = 0x3D;
+        //象财神
+        int ELEPHANT_GOD = 0x3E;
     }
 
     interface ToClientConst {
