@@ -253,6 +253,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         if (CollectionUtil.isNotEmpty(randomRoom.getRoomPlayers())) {
             List<Long> removeIds = new ArrayList<>();
             for (Map.Entry<Long, RoomPlayer> entry : randomRoom.getRoomPlayers().entrySet()) {
+               //roomDao.removePlayers 时 randomRoom会为空，判断下
+                if (randomRoom == null) {
+                    return null;
+                }
                 RoomPlayer roomPlayer = entry.getValue();
                 if (roomPlayer.isRobot()) {
                     removeIds.add(entry.getKey());

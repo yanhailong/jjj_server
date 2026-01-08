@@ -135,14 +135,16 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             return;
         }
         try {
-            //单位秒【倒计时下限_倒计时上限_最小增长积分_前X名用机器人占榜】
-            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(48);
-            if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
-                String[] config = StringUtils.split(globalConfigCfg.getValue(), "_");
-                if (config.length != 4) {
-                    return;
+            if (GameDataManager.getInstance().hasCfgContainer(GlobalConfigCfg.class)) {
+                //单位秒【倒计时下限_倒计时上限_最小增长积分_前X名用机器人占榜】
+                GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(48);
+                if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
+                    String[] config = StringUtils.split(globalConfigCfg.getValue(), "_");
+                    if (config.length != 4) {
+                        return;
+                    }
+                    WheelTimerUtil.schedule(this::robotAction, RandomUtil.randomInt(Integer.parseInt(config[0]), Integer.parseInt(config[1])), TimeUnit.SECONDS);
                 }
-                WheelTimerUtil.schedule(this::robotAction, RandomUtil.randomInt(Integer.parseInt(config[0]), Integer.parseInt(config[1])), TimeUnit.SECONDS);
             }
         } catch (Exception e) {
             log.error("添加积分大奖机器人定时任务失败", e);
@@ -407,7 +409,6 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
 
     /**
      * 清除机器人数据
-     *
      */
     private void clearRobotData() {
         if (isMaster()) {
