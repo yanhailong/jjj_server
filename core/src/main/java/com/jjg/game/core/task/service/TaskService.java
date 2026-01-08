@@ -393,9 +393,9 @@ public class TaskService {
         Map<Integer, TaskDetail> receiveMap = new HashMap<>();
         //检测是否有新任务
         availableTaskConfigs.forEach(taskCfg -> {
-            List<Integer> taskCfgTaskConditionId = taskCfg.getTaskConditionId();
+            List<Long> taskCfgTaskConditionId = taskCfg.getTaskConditionId();
             if (taskCfgTaskConditionId != null && !taskCfgTaskConditionId.isEmpty()) {
-                int conditionId = taskCfgTaskConditionId.getFirst();
+                int conditionId = taskCfgTaskConditionId.getFirst().intValue();
                 AbstractTaskCondition<DefaultTaskConditionParam> abstractTaskCondition = taskManager.getTaskCondition(conditionId);
                 //有处理器才给玩家领取任务
                 if (abstractTaskCondition != null) {

@@ -17,10 +17,7 @@ import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.player.IPlayerRegister;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.dao.AccountDao;
-import com.jjg.game.core.dao.CountDao;
-import com.jjg.game.core.dao.PlayerLastGameInfoDao;
-import com.jjg.game.core.dao.PlayerSessionTokenDao;
+import com.jjg.game.core.dao.*;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.RedDotManager;
@@ -97,6 +94,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private TaskManager taskManager;
     @Autowired
     private RechargeService rechargeService;
+    @Autowired
+    private CommonDao commonDao;
 
     public void init() {
     }
@@ -238,7 +237,10 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             } else {
                 res.registerRewardsState = 1;
             }
+            //货币符号
             res.moneySymbol = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_MONEY_SYMBOL).getValue();
+            //客服链接
+            res.customerUrl = commonDao.getStrValue(GameConstant.CommonDaoId.CUSTOMER_TABLE_ID);
             //更新session
             PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
 

@@ -70,6 +70,8 @@ public class ResLogin extends AbstractResponse {
     public int registerRewardsState;
     @ProtoDesc("货币符号")
     public String moneySymbol;
+    @ProtoDesc("客服链接")
+    public String customerUrl;
 
     public ResLogin(int code) {
         super(code);

@@ -4,6 +4,7 @@ import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.base.condition.ConditionType;
 import com.jjg.game.core.config.ConfigManager;
+import com.jjg.game.core.handler.CoreMessageHandler;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.core.service.LoginConfigService;
@@ -59,6 +60,8 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private NoticeService noticeService;
     @Autowired
     private TaskManager taskManager;
+    @Autowired
+    private CoreMessageHandler coreMessageHandler;
     private ApplicationContext context;
 
     private boolean running = false;
@@ -77,6 +80,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         pointsAwardManager.init();
         loginConfigService.init();
         noticeService.init();
+        coreMessageHandler.init();
         running = true;
     }
 

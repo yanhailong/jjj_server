@@ -31,8 +31,8 @@ public class TaskCfg extends BaseCfgBean {
   protected int jumpType;
   /** 任务描述 */
   protected int language;
-  /** 任务条件 */
-  protected List<Integer> taskConditionId;
+  /** 任务条件（充值货币单位是分，服务端会除以100） */
+  protected List<Long> taskConditionId;
   /** 任务图标 */
   protected String taskIcon;
   /** 任务类型 */
@@ -70,8 +70,8 @@ public class TaskCfg extends BaseCfgBean {
     return language;
   }
 
-  /** 返回任务条件 */
-  public List<Integer> getTaskConditionId() {
+  /** 返回任务条件（充值货币单位是分，服务端会除以100） */
+  public List<Long> getTaskConditionId() {
     return taskConditionId;
   }
 

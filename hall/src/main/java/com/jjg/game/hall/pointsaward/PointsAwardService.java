@@ -1,6 +1,5 @@
 package com.jjg.game.hall.pointsaward;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.proto.Pair;
@@ -9,11 +8,12 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
-import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.PointsAwardType;
-import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Order;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.RedDotManager;
@@ -28,12 +28,10 @@ import com.jjg.game.hall.pointsaward.pb.PointsAwardLadderRewardsInfo;
 import com.jjg.game.hall.pointsaward.pb.res.NotifySyncPlayerPoint;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
-import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.*;
 import org.redisson.client.codec.LongCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
@@ -41,10 +39,11 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * 积分大奖积分服务
@@ -64,8 +63,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     private final RedDotManager redDotManager;
     private final MailService mailService;
 
-    private Map<Long, PointsAwardLadderRewardsInfo> pointsAwardMap;
-    private List<PointsAwardLadderRewardsInfo> sortPointsAwardList;
+//    private Map<Long, PointsAwardLadderRewardsInfo> pointsAwardMap;
+//    private List<PointsAwardLadderRewardsInfo> sortPointsAwardList;
 
     /**
      * 玩家累计充值金额
@@ -132,10 +131,10 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                         if (rechargeMap != null) {
                             rechargeMap.clear();
                         }
-                        RMap<Long, String> ladderRewardsMap = getLadderRewardsMap();
-                        int deleted = ladderRewardsMap.size();
-                        ladderRewardsMap.delete();
-                        log.info("阶段奖励领取记录 删除数量: {}", deleted);
+//                        RMap<Long, String> ladderRewardsMap = getLadderRewardsMap();
+//                        int deleted = ladderRewardsMap.size();
+//                        ladderRewardsMap.delete();
+//                        log.info("阶段奖励领取记录 删除数量: {}", deleted);
                     });
             log.debug("充值数据记录map清除完成");
         }
@@ -508,22 +507,22 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         rechargeMap.addAndGet(order.getPlayerId(), RedisUtils.toLong(order.getPrice()));
     }
 
-    /**
-     * 获取玩家已经领取的阶梯奖励列表
-     */
-    public Set<Long> getLadderReceiveSet(long playerId) {
-        RMap<Long, String> rMap = getLadderRewardsMap();
-        String receiveStatus = rMap.get(playerId);
-        if (StringUtils.isEmpty(receiveStatus)) {
-            return new HashSet<>();
-        }
-        String[] receivedPoints = StringUtils.split(receiveStatus, ";");
-        return Arrays.stream(receivedPoints).map(Long::parseLong).collect(Collectors.toCollection(HashSet::new));
-    }
+//    /**
+//     * 获取玩家已经领取的阶梯奖励列表
+//     */
+//    public Set<Long> getLadderReceiveSet(long playerId) {
+//        RMap<Long, String> rMap = getLadderRewardsMap();
+//        String receiveStatus = rMap.get(playerId);
+//        if (StringUtils.isEmpty(receiveStatus)) {
+//            return new HashSet<>();
+//        }
+//        String[] receivedPoints = StringUtils.split(receiveStatus, ";");
+//        return Arrays.stream(receivedPoints).map(Long::parseLong).collect(Collectors.toCollection(HashSet::new));
+//    }
 
-    private RMap<Long, String> getLadderRewardsMap() {
-        return redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_LADDER_REWARDS_RECEIVE);
-    }
+//    private RMap<Long, String> getLadderRewardsMap() {
+//        return redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_LADDER_REWARDS_RECEIVE);
+//    }
 
     /**
      * 重置时间段积分
@@ -533,77 +532,77 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         //先全部读取，然后删除
         Map<Long, TimePoints> timePointsMap = playerTimePointsMap.readAllMap();
         playerTimePointsMap.delete();
-        if (this.pointsAwardMap == null || this.pointsAwardMap.isEmpty()) {
-            log.debug("积分大奖保底奖励为空，故阶段积分重置时无奖励");
-        } else {
-            timePointsMap.forEach((playerId, timePoints) -> {
-                this.pointsAwardMap.forEach((pointsAward, pointsAwardInfo) -> {
-                    if (pointsAwardInfo.getPoints() <= timePoints.getPoints()) {
-                        receiveLader(pointsAwardInfo.getPoints(), playerId, true);
-                    }
-                });
-            });
-        }
+//        if (this.pointsAwardMap == null || this.pointsAwardMap.isEmpty()) {
+//            log.debug("积分大奖保底奖励为空，故阶段积分重置时无奖励");
+//        } else {
+//            timePointsMap.forEach((playerId, timePoints) -> {
+//                this.pointsAwardMap.forEach((pointsAward, pointsAwardInfo) -> {
+//                    if (pointsAwardInfo.getPoints() <= timePoints.getPoints()) {
+//                        receiveLader(pointsAwardInfo.getPoints(), playerId, true);
+//                    }
+//                });
+//            });
+//        }
         log.debug("重置时间段积分 map.size = {}", timePointsMap.size());
     }
 
     /**
      * 玩家领取积分阶梯奖励
      */
-    public int receiveLader(long points, long playerId, boolean autoRecive) {
-        if (this.pointsAwardMap == null || this.pointsAwardMap.isEmpty()) {
-            log.debug("积分大奖保底奖励为空，玩家领取奖励失败 playerId = {},points = {},autoRecive = {}", playerId, points, autoRecive);
-            return Code.SAMPLE_ERROR;
-        }
-
-        PointsAwardLadderRewardsInfo info = this.pointsAwardMap.get(points);
-        if (info == null) {
-            log.debug("积分大奖奖励中无该阶段配置 playerId = {},points = {},autoRecive = {}", playerId, points, autoRecive);
-            return Code.SAMPLE_ERROR;
-        }
-        //获取积分
-        long timePoints = getTimePoints(playerId);
-        if (!autoRecive && timePoints < info.getPoints()) {
-            return Code.POINT_AWARD_POINT_NOT_ENOUGH;
-        }
-        int code = Code.FAIL;
-        RMap<Long, String> rewardReceiveMap = getLadderRewardsMap();
-        RLock rLock = rewardReceiveMap.getReadWriteLock(playerId).writeLock();
-        CommonResult<ItemOperationResult> addResult = null;
-        try {
-            if (rLock.tryLock()) {
-                Set<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
-                //已经领取过了
-                if (rewardReceiveSet.contains(info.getPoints())) {
-                    code = Code.REPEAT_OP;
-                } else {
-                    if (autoRecive) {
-                        Item item = new Item(info.getItemId(), info.getItemNum());
-                        mailService.addCfgMail(playerId, GameConstant.Mail.ID_POINTS_AWARD, List.of(item));
-                    } else {
-                        //奖励道具
-                        addResult = playerPackService.addItem(playerId, info.getItemId(), info.getItemNum(), AddType.POINTS_AWARD_LADDER_REWARDS);
-                        if (!addResult.success()) {
-                            log.warn("玩家领取积分阶梯奖励失败 playerId = {},points = {},code = {}", playerId, points, addResult.code);
-                            code = addResult.code;
-                        } else {
-                            rewardReceiveSet.add(info.getPoints());
-                            rewardReceiveMap.put(playerId, CollectionUtil.join(rewardReceiveSet, ";"));
-                            code = Code.SUCCESS;
-                        }
-                    }
-                }
-
-            }
-        } finally {
-            rLock.unlock();
-        }
-
-        if (code == Code.SUCCESS) {
-            pointsAwardLogger.ladderReward(playerId, points, addResult.data.getChangeGoldNum(), addResult.data.getGoldNum(), autoRecive);
-        }
-        return code;
-    }
+//    public int receiveLader(long points, long playerId, boolean autoRecive) {
+//        if (this.pointsAwardMap == null || this.pointsAwardMap.isEmpty()) {
+//            log.debug("积分大奖保底奖励为空，玩家领取奖励失败 playerId = {},points = {},autoRecive = {}", playerId, points, autoRecive);
+//            return Code.SAMPLE_ERROR;
+//        }
+//
+//        PointsAwardLadderRewardsInfo info = this.pointsAwardMap.get(points);
+//        if (info == null) {
+//            log.debug("积分大奖奖励中无该阶段配置 playerId = {},points = {},autoRecive = {}", playerId, points, autoRecive);
+//            return Code.SAMPLE_ERROR;
+//        }
+//        //获取积分
+//        long timePoints = getTimePoints(playerId);
+//        if (!autoRecive && timePoints < info.getPoints()) {
+//            return Code.POINT_AWARD_POINT_NOT_ENOUGH;
+//        }
+//        int code = Code.FAIL;
+//        RMap<Long, String> rewardReceiveMap = getLadderRewardsMap();
+//        RLock rLock = rewardReceiveMap.getReadWriteLock(playerId).writeLock();
+//        CommonResult<ItemOperationResult> addResult = null;
+//        try {
+//            if (rLock.tryLock()) {
+//                Set<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
+//                //已经领取过了
+//                if (rewardReceiveSet.contains(info.getPoints())) {
+//                    code = Code.REPEAT_OP;
+//                } else {
+//                    if (autoRecive) {
+//                        Item item = new Item(info.getItemId(), info.getItemNum());
+//                        mailService.addCfgMail(playerId, GameConstant.Mail.ID_POINTS_AWARD, List.of(item));
+//                    } else {
+//                        //奖励道具
+//                        addResult = playerPackService.addItem(playerId, info.getItemId(), info.getItemNum(), AddType.POINTS_AWARD_LADDER_REWARDS);
+//                        if (!addResult.success()) {
+//                            log.warn("玩家领取积分阶梯奖励失败 playerId = {},points = {},code = {}", playerId, points, addResult.code);
+//                            code = addResult.code;
+//                        } else {
+//                            rewardReceiveSet.add(info.getPoints());
+//                            rewardReceiveMap.put(playerId, CollectionUtil.join(rewardReceiveSet, ";"));
+//                            code = Code.SUCCESS;
+//                        }
+//                    }
+//                }
+//
+//            }
+//        } finally {
+//            rLock.unlock();
+//        }
+//
+//        if (code == Code.SUCCESS) {
+//            pointsAwardLogger.ladderReward(playerId, points, addResult.data.getChangeGoldNum(), addResult.data.getGoldNum(), autoRecive);
+//        }
+//        return code;
+//    }
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
@@ -633,25 +632,26 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
 
     @Override
     public List<RedDotDetails> initialize(long playerId, int submodule) {
-        if (this.sortPointsAwardList == null || this.sortPointsAwardList.isEmpty()) {
-            return List.of();
-        }
-        //获取玩家积分
-        long points = getTimePoints(playerId);
-        //获取领取列表
-        Set<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
-        RedDotDetails redDotDetails = new RedDotDetails();
-        redDotDetails.setRedDotModule(getModule());
-        redDotDetails.setRedDotSubmodule(getSubmodule());
-        redDotDetails.setRedDotType(RedDotDetails.RedDotType.COMMON);
-        for (PointsAwardLadderRewardsInfo rewardsInfo : this.sortPointsAwardList) {
-            //积分比配置大并且未领取的代表有后点
-            if (points >= rewardsInfo.getPoints() && !rewardReceiveSet.contains(rewardsInfo.getPoints())) {
-                redDotDetails.setCount(1);
-                break;
-            }
-        }
-        return List.of(redDotDetails);
+        return List.of();
+//        if (this.sortPointsAwardList == null || this.sortPointsAwardList.isEmpty()) {
+//            return List.of();
+//        }
+//        //获取玩家积分
+//        long points = getTimePoints(playerId);
+//        //获取领取列表
+//        Set<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
+//        RedDotDetails redDotDetails = new RedDotDetails();
+//        redDotDetails.setRedDotModule(getModule());
+//        redDotDetails.setRedDotSubmodule(getSubmodule());
+//        redDotDetails.setRedDotType(RedDotDetails.RedDotType.COMMON);
+//        for (PointsAwardLadderRewardsInfo rewardsInfo : this.sortPointsAwardList) {
+//            //积分比配置大并且未领取的代表有后点
+//            if (points >= rewardsInfo.getPoints() && !rewardReceiveSet.contains(rewardsInfo.getPoints())) {
+//                redDotDetails.setCount(1);
+//                break;
+//            }
+//        }
+//        return List.of(redDotDetails);
     }
 
     @Override
@@ -692,36 +692,36 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             pointsAwardLadderRewardsInfo.setItemNum(count);
             tmpPointsAwardMap.put(points, pointsAwardLadderRewardsInfo);
         }
-        this.sortPointsAwardList = tmpPointsAwardMap.values()
-                .stream()
-                .sorted(Comparator.comparingLong(PointsAwardLadderRewardsInfo::getPoints))
-                .toList();
-
-        this.pointsAwardMap = tmpPointsAwardMap;
+//        this.sortPointsAwardList = tmpPointsAwardMap.values()
+//                .stream()
+//                .sorted(Comparator.comparingLong(PointsAwardLadderRewardsInfo::getPoints))
+//                .toList();
+//
+//        this.pointsAwardMap = tmpPointsAwardMap;
         log.debug("加载 积分大奖配置结束 id = {}", PointsAwardConstant.GlobalConfig.ID_POINTS_AWARD);
     }
 
-    public List<PointsAwardLadderRewardsInfo> getPointsAwardLadderRewardsInfoList(long playerId) {
-        if (this.pointsAwardMap == null || this.pointsAwardMap.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        Set<Long> rewardReceiveIds = getLadderReceiveSet(playerId);
-        if (rewardReceiveIds == null || rewardReceiveIds.isEmpty()) {
-            return this.sortPointsAwardList;
-        } else {
-            List<PointsAwardLadderRewardsInfo> list = new ArrayList<>();
-            this.sortPointsAwardList.forEach(info -> {
-                PointsAwardLadderRewardsInfo newInfo = new PointsAwardLadderRewardsInfo();
-                BeanUtils.copyProperties(info, newInfo);
-                if (rewardReceiveIds.contains(info.getPoints())) {
-                    newInfo.setReceive(true);
-                }
-                list.add(newInfo);
-            });
-            return list;
-        }
-    }
+//    public List<PointsAwardLadderRewardsInfo> getPointsAwardLadderRewardsInfoList(long playerId) {
+//        if (this.pointsAwardMap == null || this.pointsAwardMap.isEmpty()) {
+//            return Collections.emptyList();
+//        }
+//
+//        Set<Long> rewardReceiveIds = getLadderReceiveSet(playerId);
+//        if (rewardReceiveIds == null || rewardReceiveIds.isEmpty()) {
+//            return this.sortPointsAwardList;
+//        } else {
+//            List<PointsAwardLadderRewardsInfo> list = new ArrayList<>();
+//            this.sortPointsAwardList.forEach(info -> {
+//                PointsAwardLadderRewardsInfo newInfo = new PointsAwardLadderRewardsInfo();
+//                BeanUtils.copyProperties(info, newInfo);
+//                if (rewardReceiveIds.contains(info.getPoints())) {
+//                    newInfo.setReceive(true);
+//                }
+//                list.add(newInfo);
+//            });
+//            return list;
+//        }
+//    }
 
     @Override
     public int getSubmodule() {
