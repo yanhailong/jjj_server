@@ -41,7 +41,7 @@ public class TenFoldGoldenBullMessageHandler {
      * 请求配置信息
      *
      */
-    @Command(TenFoldGoldenBullConstant.MsgBean.REQ_PEGASUS_UNBRIDLE_ENTER_GAME)
+    @Command(TenFoldGoldenBullConstant.MsgBean.REQ_TEN_FOLD_GOLDEN_BULL_ENTER_GAME)
     public void reqPegasusUnbridleEnterGame(PlayerController playerController, ReqTenFoldGoldenBullEnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
