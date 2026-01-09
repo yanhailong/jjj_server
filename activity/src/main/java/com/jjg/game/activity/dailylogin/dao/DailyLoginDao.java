@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class DailyLoginDao {
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate redisTemplate;
     //类型->活动id->玩家id
     private final String REDIS_DAILY_LOGIN = "activity:dailylogin:%d:%d";
     //活动id->玩家id
@@ -20,7 +20,7 @@ public class DailyLoginDao {
     //活动id->玩家id
     private final String REDIS_DAILY_LOGIN_CLAIM_TIME = "activity:dailyloginclaimtime:%d";
 
-    public DailyLoginDao(RedisTemplate<String, String> redisTemplate) {
+    public DailyLoginDao(RedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
@@ -101,11 +101,11 @@ public class DailyLoginDao {
      * 获取连续登录天数
      */
     public long getContinuousLoginDay(long activityId, long playerId) {
-        String days = (String) redisTemplate.opsForHash().get(getKey(activityId, ActivityConstant.DailyLogin.CONTINUE_TYPE), playerId);
-        if (StringUtils.isEmpty(days)) {
+        Object obj = redisTemplate.opsForHash().get(getKey(activityId, ActivityConstant.DailyLogin.CONTINUE_TYPE), playerId);
+        if(obj == null){
             return 0;
         }
-        return Integer.parseInt(days);
+        return Integer.parseInt(obj.toString());
     }
 
     /**
