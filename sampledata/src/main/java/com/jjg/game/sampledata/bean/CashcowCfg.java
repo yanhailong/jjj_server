@@ -19,6 +19,8 @@ public class CashcowCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "cashcow";
 
+  /** 实际中奖比例：奖金万分比_权重|…… */
+  protected List<List<Integer>> actualWinning;
   /** 达成条件 */
   protected int condition;
   /** 所占总奖池比例万分比 */
@@ -39,6 +41,11 @@ public class CashcowCfg extends BaseCfgBean {
   protected List<List<Integer>> weightQuota;
   /** 机器人中奖频率 */
   protected List<List<Integer>> winningFrequency;
+
+  /** 返回实际中奖比例：奖金万分比_权重|…… */
+  public List<List<Integer>> getActualWinning() {
+    return actualWinning;
+  }
 
   /** 返回达成条件 */
   public int getCondition() {

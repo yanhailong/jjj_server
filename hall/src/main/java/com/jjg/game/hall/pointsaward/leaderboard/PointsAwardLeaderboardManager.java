@@ -12,8 +12,8 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.AwardCodeType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.AwardCodeManager;
 import com.jjg.game.core.service.MailService;
@@ -31,7 +31,6 @@ import com.jjg.game.sampledata.bean.PointsAwardRobotCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
 import io.netty.util.Timeout;
 import org.apache.commons.lang.StringUtils;
-import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.redisson.api.RDeque;
 import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
@@ -52,7 +51,7 @@ import java.util.stream.Collectors;
  * 积分大奖排行榜管理器
  */
 @Component
-public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener {
+public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener,GmListener {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -783,5 +782,23 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             robotScheduleTimeout.cancel();
         }
         robotScheduleTimeout = null;
+    }
+
+
+    @Override
+    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
+        if (gmOrders.length < 2) {
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+        String code = gmOrders[0];
+        if ("targetRank".equalsIgnoreCase(code)) {
+            int snapshotType = Integer.parseInt(gmOrders[1]);
+            snapshotUnderLock(snapshotType);
+            leaderboardService.reset(snapshotType);
+            return result;
+        }
+        return result;
     }
 }

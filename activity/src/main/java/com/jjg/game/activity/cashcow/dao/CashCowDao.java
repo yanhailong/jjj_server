@@ -95,7 +95,7 @@ public class CashCowDao {
      * @return true 已领取，false 未领取
      */
     public boolean getFreeRewardsStatus(long playerId, long activityId) {
-        Object o = longRedisTemplate.opsForHash().get(PLAYER_FREE_KEY.formatted(activityId), playerId);
+        Object o = longRedisTemplate.opsForHash().get(PLAYER_FREE_KEY.formatted(activityId), String.valueOf(playerId));
         if (o == null) {
             return false;
         }
@@ -116,7 +116,7 @@ public class CashCowDao {
      * 存储当前时间戳（通过业务逻辑判断 inSameDay）。
      */
     public void addFreeRewardsCount(long playerId, long activityId) {
-        longRedisTemplate.opsForHash().put(PLAYER_FREE_KEY.formatted(activityId), playerId, TimeHelper.getCurrentDateZeroMilliTime());
+        longRedisTemplate.opsForHash().put(PLAYER_FREE_KEY.formatted(activityId), String.valueOf(playerId), TimeHelper.getCurrentDateZeroMilliTime());
     }
 
 
@@ -129,7 +129,7 @@ public class CashCowDao {
      */
     public long getPlayerActivityProgress(long playerId, long activityId) {
         String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, activityId);
-        Object o = longRedisTemplate.opsForHash().get(playerProgressKey, playerId);
+        Object o = longRedisTemplate.opsForHash().get(playerProgressKey, String.valueOf(playerId));
         if (o == null) {
             return 0;
         }
@@ -143,7 +143,7 @@ public class CashCowDao {
      */
     public long addPlayerActivityProgress(long playerId, long activityId, long addValue) {
         String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, activityId);
-        return longRedisTemplate.opsForHash().increment(playerProgressKey, playerId, addValue);
+        return longRedisTemplate.opsForHash().increment(playerProgressKey, String.valueOf(playerId), addValue);
     }
 
     /**
@@ -152,7 +152,7 @@ public class CashCowDao {
      */
     public void delPlayerActivityProgress(long playerId, long activityId) {
         String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, activityId);
-        longRedisTemplate.opsForHash().delete(playerProgressKey, playerId);
+        longRedisTemplate.opsForHash().delete(playerProgressKey, String.valueOf(playerId));
     }
 
 
