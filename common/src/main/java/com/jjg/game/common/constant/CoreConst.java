@@ -79,6 +79,8 @@ public class CoreConst {
         public static final int MONEY_RABBIT = 103501;
         //鼠鼠福福
         public static final int LUCKY_MOUSE = 103600;
+        //十倍金牛
+        public static final int TENFOLD_GOLDEN_BULL = 103700;
         //恶魔之子
         public static final int DEMON_CHILD = 103800;
 

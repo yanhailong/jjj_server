@@ -153,6 +153,8 @@ public interface MessageConst {
         int LUCKY_MOUSE = 0x3D;
         //象财神
         int ELEPHANT_GOD = 0x3E;
+        //十倍金牛
+        int TENFOLD_GOLDEN_BULL = 0x3F;
     }
 
     interface ToClientConst {
