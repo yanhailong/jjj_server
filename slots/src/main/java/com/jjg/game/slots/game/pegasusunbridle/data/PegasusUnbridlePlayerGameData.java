@@ -32,14 +32,4 @@ public class PegasusUnbridlePlayerGameData extends SlotsPlayerGameData {
     public void setCurrentRandomIndex(int currentRandomIndex) {
         this.currentRandomIndex = currentRandomIndex;
     }
-
-    @Override
-    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
-        T t = super.converToDto(cla);
-        if (t instanceof PegasusUnbridlePlayerGameDataDTO dataDTO) {
-            dataDTO.setFuMa(this.fuMa);
-            dataDTO.setCurrentRandomIndex(this.currentRandomIndex);
-        }
-        return t;
-    }
 }
