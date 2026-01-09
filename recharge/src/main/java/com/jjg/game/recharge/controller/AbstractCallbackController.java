@@ -114,6 +114,9 @@ public abstract class AbstractCallbackController {
             return;
         }
         if (clusterClient == null) {
+            log.info("因未找到玩家所在节点信息，已将充值成功添加到离线充值 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
+            //离线玩家登陆时处理,离线充值
+            offlineRechargeDao.addRecharge(order.getPlayerId(), ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(notify));
             return;
         }
         PFMessage pfMessage = MessageUtil.getPFMessage(notify);
