@@ -116,7 +116,7 @@ public class CashCowDao {
      * 存储当前时间戳（通过业务逻辑判断 inSameDay）。
      */
     public void addFreeRewardsCount(long playerId, long activityId) {
-        longRedisTemplate.opsForHash().put(PLAYER_FREE_KEY.formatted(activityId), String.valueOf(playerId), TimeHelper.getCurrentDateZeroMilliTime());
+        longRedisTemplate.opsForHash().put(PLAYER_FREE_KEY.formatted(activityId), String.valueOf(playerId), String.valueOf(TimeHelper.getCurrentDateZeroMilliTime()));
     }
 
 

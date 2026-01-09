@@ -928,7 +928,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             // 标记玩家已领取
             cashCowDao.addFreeRewardsCount(playerController.playerId(), req.activityId);
         } catch (Exception e) {
-            log.error("摇钱树请求领取免费道具失败 playerId:{} activityId:{}", playerController.playerId(), req.activityId);
+            log.error("摇钱树请求领取免费道具失败 playerId:{} activityId:{}", playerController.playerId(), req.activityId, e);
         } finally {
             redisLock.tryUnlock(playerFreeLockKey);
         }
