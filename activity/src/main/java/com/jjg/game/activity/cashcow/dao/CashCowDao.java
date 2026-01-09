@@ -74,7 +74,7 @@ public class CashCowDao {
     private final String POOL_KEY = "activity:cashcow:poll:%d";                // 活动奖池 key（Hash）
     private final String POOL_LOCK_KEY = "activity:cashcow:polllock:%d:%d";    // 活动奖池锁 key
     private final String PLAYER_PROGRESS_KEY = "activity:cashcow:player:%d";// 玩家进度 key
-    private final String PLAYER_FREE_KEY = "activity:cashcow:free:%d:%d";      // 玩家免费奖励 key
+    private final String PLAYER_FREE_KEY = "activity:cashcow:free:%d";      // 玩家免费奖励 key
     private final String PLAYER_FREE_LOCK_KEY = "activity:cashcow:freelock:%d:%d"; // 玩家免费奖励锁 key
 
 
@@ -95,12 +95,12 @@ public class CashCowDao {
      * @return true 已领取，false 未领取
      */
     public boolean getFreeRewardsStatus(long playerId, long activityId) {
-        String lastTime = longRedisTemplate.opsForValue().get(PLAYER_FREE_KEY.formatted(playerId, activityId));
-        if (lastTime == null) {
+        Object o = longRedisTemplate.opsForHash().get(PLAYER_FREE_KEY.formatted(activityId), playerId);
+        if (o == null) {
             return false;
         }
         // 判断是否在同一天（同一天 -> 已领取）
-        return TimeHelper.inSameDay(Long.parseLong(lastTime), TimeHelper.getCurrentDateZeroMilliTime());
+        return TimeHelper.inSameDay(Long.parseLong(o.toString()), TimeHelper.getCurrentDateZeroMilliTime());
     }
 
     /**
@@ -116,7 +116,7 @@ public class CashCowDao {
      * 存储当前时间戳（通过业务逻辑判断 inSameDay）。
      */
     public void addFreeRewardsCount(long playerId, long activityId) {
-        longRedisTemplate.opsForValue().set(PLAYER_FREE_KEY.formatted(playerId, activityId), String.valueOf(TimeHelper.getCurrentDateZeroMilliTime()));
+        longRedisTemplate.opsForHash().put(PLAYER_FREE_KEY.formatted(activityId), playerId, TimeHelper.getCurrentDateZeroMilliTime());
     }
 
 
