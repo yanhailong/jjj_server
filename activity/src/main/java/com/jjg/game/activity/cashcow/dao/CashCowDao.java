@@ -73,7 +73,7 @@ public class CashCowDao {
     private final String ALL_RECORD_KEY = "activity:cashcow:record:all:%d";    // 全部玩家的活动记录 key
     private final String POOL_KEY = "activity:cashcow:poll:%d";                // 活动奖池 key（Hash）
     private final String POOL_LOCK_KEY = "activity:cashcow:polllock:%d:%d";    // 活动奖池锁 key
-    private final String PLAYER_PROGRESS_KEY = "activity:cashcow:player:%d:%d";// 玩家进度 key
+    private final String PLAYER_PROGRESS_KEY = "activity:cashcow:player:%d";// 玩家进度 key
     private final String PLAYER_FREE_KEY = "activity:cashcow:free:%d:%d";      // 玩家免费奖励 key
     private final String PLAYER_FREE_LOCK_KEY = "activity:cashcow:freelock:%d:%d"; // 玩家免费奖励锁 key
 
@@ -128,9 +128,12 @@ public class CashCowDao {
      * @return 当前进度，默认为 0
      */
     public long getPlayerActivityProgress(long playerId, long activityId) {
-        String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, playerId, activityId);
-        String progress = longRedisTemplate.opsForValue().get(playerProgressKey);
-        return progress == null ? 0 : Long.parseLong(progress);
+        String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, activityId);
+        Object o = longRedisTemplate.opsForHash().get(playerProgressKey, playerId);
+        if (o == null) {
+            return 0;
+        }
+        return Long.parseLong(o.toString());
     }
 
     /**
@@ -139,9 +142,8 @@ public class CashCowDao {
      * @return 增加后的进度总值
      */
     public long addPlayerActivityProgress(long playerId, long activityId, long addValue) {
-        String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, playerId, activityId);
-        Long progress = longRedisTemplate.opsForValue().increment(playerProgressKey, addValue);
-        return progress == null ? 0 : progress;
+        String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, activityId);
+        return longRedisTemplate.opsForHash().increment(playerProgressKey, playerId, addValue);
     }
 
     /**
@@ -149,8 +151,8 @@ public class CashCowDao {
      * - 主要用于领奖后清理
      */
     public void delPlayerActivityProgress(long playerId, long activityId) {
-        String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, playerId, activityId);
-        longRedisTemplate.delete(playerProgressKey);
+        String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, activityId);
+        longRedisTemplate.opsForHash().delete(playerProgressKey, playerId);
     }
 
 
@@ -243,7 +245,7 @@ public class CashCowDao {
             String playerKey = String.format(PLAYER_RECORD_KEY, activityId, playerId);
             // 玩家个人记录（List 左进）
             recordRedisTemplate.opsForList().leftPush(playerKey, data);
-            if(!isFix){
+            if (!isFix) {
                 // 全局记录（List 左进）
                 recordRedisTemplate.opsForList().leftPush(String.format(ALL_RECORD_KEY, activityId), data);
             }
