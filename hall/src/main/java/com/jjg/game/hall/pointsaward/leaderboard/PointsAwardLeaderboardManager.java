@@ -799,6 +799,6 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             leaderboardService.reset(snapshotType);
             return result;
         }
-        return result;
+        return new CommonResult<>(Code.FAIL);
     }
 }
