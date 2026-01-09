@@ -181,16 +181,17 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      * 尝试开启游戏
      */
     protected void tryStartGameOnPlayerJoinIn(PlayerController playerController) {
+        boolean checkRoomCanContinue = checkRoomCanContinue();
         if (!playerController.isRobotPlayer()) {
             log.info("尝试启动游戏：玩家：{} 房间是否可以开始：{} 游戏是否可以开始：{} 游戏当前状态：{}",
                     playerController.playerId(),
-                    checkRoomCanContinue(),
+                    checkRoomCanContinue,
                     gameController.checkRoomCanStart(),
                     gameController.getGameState()
             );
         }
         // 检查房间开始的逻辑，由房间判断和游戏判断开启时机
-        if (checkRoomCanContinue() && gameController.checkRoomCanStart()) {
+        if (checkRoomCanContinue && gameController.checkRoomCanStart()) {
             // 检查通过开始游戏
             startGame();
         }
