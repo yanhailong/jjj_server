@@ -767,7 +767,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
 
     @Override
     public void isLeader() {
-        if(!init.get()){
+        if(init.get()){
             addRobotSchedule();
             log.info("成为主节点 添加机器人定时任务");
         }
