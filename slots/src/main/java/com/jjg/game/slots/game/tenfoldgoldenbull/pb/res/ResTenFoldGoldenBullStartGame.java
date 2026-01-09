@@ -20,7 +20,7 @@ public class ResTenFoldGoldenBullStartGame extends AbstractResponse {
     public List<Integer> iconList;
     @ProtoDesc("本局中奖金币")
     public long allWinGold;
-    @ProtoDesc("当前状态 0.正常 1.假福马模式 2福马")
+    @ProtoDesc("当前状态 0.正常 1.假福牛模式 2福牛")
     public int status;
     @ProtoDesc("玩家当前金币")
     public long allGold;
@@ -34,8 +34,8 @@ public class ResTenFoldGoldenBullStartGame extends AbstractResponse {
     public List<TenFoldGoldenBullWinIconInfo> winIconInfoList;
     @ProtoDesc("滚轴类型")
     public int scrollType;
-    @ProtoDesc("是否是福马模式")
-    public boolean isFuMaEnd;
+    @ProtoDesc("是否是福牛模式")
+    public boolean isLuckyBullEnd;
     public ResTenFoldGoldenBullStartGame(int code) {
         super(code);
     }

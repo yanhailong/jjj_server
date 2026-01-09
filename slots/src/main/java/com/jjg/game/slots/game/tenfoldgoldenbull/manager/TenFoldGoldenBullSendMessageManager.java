@@ -122,7 +122,7 @@ public class TenFoldGoldenBullSendMessageManager extends BaseSendMessageManager 
 
             res.winIconInfoList = gameRunInfo.getAwardLineInfos();
             res.scrollType = gameRunInfo.getScrollType();
-            res.isFuMaEnd = gameRunInfo.isFuMaEnd();
+            res.isLuckyBullEnd = gameRunInfo.isLuckyBullEnd();
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());

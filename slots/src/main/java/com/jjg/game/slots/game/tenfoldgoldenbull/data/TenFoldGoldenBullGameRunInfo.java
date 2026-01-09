@@ -16,18 +16,18 @@ public class TenFoldGoldenBullGameRunInfo extends GameRunInfo<TenFoldGoldenBullP
     }
 
     //是否是福马模式结束
-    private boolean isFuMaEnd;
+    private boolean isLuckyBullEnd;
     //中奖线信息
     private List<TenFoldGoldenBullWinIconInfo> awardLineInfos;
     //滚轴类型
     private int scrollType;
 
-    public boolean isFuMaEnd() {
-        return isFuMaEnd;
+    public boolean isLuckyBullEnd() {
+        return isLuckyBullEnd;
     }
 
-    public void setFuMaEnd(boolean fuMaEnd) {
-        isFuMaEnd = fuMaEnd;
+    public void setLuckyBullEnd(boolean luckyBullEnd) {
+        isLuckyBullEnd = luckyBullEnd;
     }
 
     public List<TenFoldGoldenBullWinIconInfo> getAwardLineInfos() {

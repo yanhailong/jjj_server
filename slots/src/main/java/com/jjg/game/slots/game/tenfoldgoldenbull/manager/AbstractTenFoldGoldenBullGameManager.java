@@ -214,7 +214,7 @@ public class AbstractTenFoldGoldenBullGameManager extends AbstractSlotsGameManag
             playerGameData.setLuckyBull(null);
             playerGameData.setCurrentRandomIndex(0);
             gameRunInfo.setBigShowId(luckyBullResult.getJackpotId());
-            gameRunInfo.setFuMaEnd(true);
+            gameRunInfo.setLuckyBullEnd(true);
             gameRunInfo.setBigPoolTimes(luckyBullResult.getTimes());
             gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(luckyBullResult.getAwardLineInfoList(), playerGameData.getOneBetScore()));
             gameRunInfo.setIconArr(luckyBullResult.getIconArr());
