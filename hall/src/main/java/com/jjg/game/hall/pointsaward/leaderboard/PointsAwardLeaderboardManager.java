@@ -710,7 +710,6 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                 RDeque<PointsAwardLeaderboardData> deque = redissonClient.getDeque(historyKey);
 
                 deque.addFirst(rankingData);
-
                 // 保持历史记录数量限制
                 while (deque.size() > PointsAwardConstant.Leaderboard.MAX_HISTORY_SIZE) {
                     deque.removeLast();

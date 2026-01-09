@@ -672,7 +672,6 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
                 playerController.send(res);
                 return;
             }
-
             List<ItemInfo> items = new ArrayList<>();
 
             result.data.forEach((k, v) -> {

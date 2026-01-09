@@ -173,7 +173,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         CommonResult<Map<Integer, Long>> result = new CommonResult<>(Code.SUCCESS);
         List<Mail> itemMails = mailDao.getItemMails(playerId, GameConstant.Mail.STATUS_GET_ITEMS);
         if (itemMails == null || itemMails.isEmpty()) {
-            result.code = Code.NOT_FOUND;
+            result.code = Code.MAIL_ITEM_ALL_GET;
             return result;
         }
 
