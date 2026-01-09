@@ -73,8 +73,8 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
     private List<Pair<Long, Integer>> robotList;
     private final RankService rankService;
     private final RobotUtil robotUtil;
-
-    private AtomicBoolean init = new AtomicBoolean(false);
+    private Timeout robotScheduleTimeout = null;
+    private final AtomicBoolean init = new AtomicBoolean(false);
     // ==================== 构造函数 ====================
 
     /**
@@ -138,6 +138,10 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
         if (!isMaster()) {
             return;
         }
+        if (robotScheduleTimeout != null) {
+            log.info("积分大奖机器人定时任务已经添加");
+            return;
+        }
         try {
             //单位秒【倒计时下限_倒计时上限_最小增长积分_前X名用机器人占榜】
             GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(48);
@@ -146,7 +150,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                 if (config.length != 4) {
                     return;
                 }
-                WheelTimerUtil.schedule(this::robotAction, RandomUtil.randomInt(Integer.parseInt(config[0]), Integer.parseInt(config[1])), TimeUnit.SECONDS);
+                robotScheduleTimeout = WheelTimerUtil.schedule(this::robotAction, RandomUtil.randomInt(Integer.parseInt(config[0]), Integer.parseInt(config[1])), TimeUnit.SECONDS);
             }
         } catch (Exception e) {
             log.error("添加积分大奖机器人定时任务失败", e);
@@ -767,7 +771,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
 
     @Override
     public void isLeader() {
-        if(init.get()){
+        if (init.get()) {
             addRobotSchedule();
             log.info("成为主节点 添加机器人定时任务");
         }
@@ -775,5 +779,9 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
 
     @Override
     public void notLeader() {
+        if (robotScheduleTimeout != null) {
+            robotScheduleTimeout.cancel();
+        }
+        robotScheduleTimeout = null;
     }
 }
