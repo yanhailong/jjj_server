@@ -211,7 +211,7 @@ public class AbstractPlayerService {
         P player = updatePlayerMethod.get();
         //记录日志
         if (player != null) {
-            if (isNotify && addType != AddType.GAME_SETTLEMENT) {
+            if (isNotify && addType != AddType.GAME_SETTLEMENT && addType != AddType.FRIEND_GAME_SETTLEMENT) {
 //                sendMessageManager.buildBaseInfoChangeMessage(player);
                 sendMessageManager.buildDiamondChangeMessage(player, addNum);
             }
