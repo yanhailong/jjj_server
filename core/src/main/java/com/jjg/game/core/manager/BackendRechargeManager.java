@@ -24,7 +24,7 @@ public class BackendRechargeManager implements GameEventListener {
         if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
             Order order = event.getOrder();
             Player player = event.getPlayer();
-            if (order.getRechargeType() != RechargeType.BACKEND || order.getRechargeType() != RechargeType.BACKEND_CALLBACK) {
+            if (order.getRechargeType() != RechargeType.BACKEND && order.getRechargeType() != RechargeType.BACKEND_CALLBACK) {
                 return;
             }
             dealBackendRecharge(player, order);
