@@ -9,8 +9,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
-import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
-import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackPoolValue;
 import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleGameRunInfo;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridlePlayerGameData;
@@ -65,7 +63,7 @@ public class PegasusUnbridleGameSendMessageManager extends BaseSendMessageManage
             res.status = playerGameData.getStatus();
             if (playerGameData.getStatus() == PegasusUnbridleConstant.Status.REAL_FU_MA) {
                 if (playerGameData.getFuMa() != null) {
-                    List<PegasusUnbridleResultLib> randomResult = playerGameData.getFuMa().getRandomResult();
+                    List<PegasusUnbridleResultLib> randomResult = playerGameData.getFuMa().getSpecialResult();
                     if (CollectionUtil.isNotEmpty(randomResult)) {
                         PegasusUnbridleResultLib resultLib = randomResult.get(playerGameData.getCurrentRandomIndex());
                         res.iconList = Arrays.stream(resultLib.getIconArr(), 1, resultLib.getIconArr().length).boxed().collect(Collectors.toList());

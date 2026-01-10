@@ -110,7 +110,7 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
     protected void onAutoExitAction(PegasusUnbridlePlayerGameData gameData, int eventId) {
         if (gameData.getStatus() == PegasusUnbridleConstant.Status.REAL_FU_MA) {
             PegasusUnbridleResultLib resultLib = gameData.getFuMa();
-            for (int i = gameData.getCurrentRandomIndex(); i < resultLib.getRandomResult().size(); i++) {
+            for (int i = gameData.getCurrentRandomIndex(); i < resultLib.getSpecialResult().size(); i++) {
                 log.info("福马模式自动旋转 playerId = {},currentRandomIndex = {}", gameData.playerId(), gameData.getCurrentRandomIndex());
                 startGame(new PlayerController(null, null), gameData, gameData.getOneBetScore(), true);
             }
@@ -202,7 +202,7 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
 
     private void fuMa(PegasusUnbridleGameRunInfo gameRunInfo, PegasusUnbridlePlayerGameData playerGameData, long betValue) {
         PegasusUnbridleResultLib fuMaResultLib = playerGameData.getFuMa();
-        if (fuMaResultLib == null || CollectionUtil.isEmpty(fuMaResultLib.getRandomResult())) {
+        if (fuMaResultLib == null || CollectionUtil.isEmpty(fuMaResultLib.getSpecialResult())) {
             playerGameData.setStatus(PegasusUnbridleConstant.Status.NORMAL);
             playerGameData.setFuMa(null);
             playerGameData.setCurrentRandomIndex(0);
@@ -210,7 +210,7 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
             return;
         }
         int currentRandomIndex = playerGameData.getCurrentRandomIndex();
-        List<PegasusUnbridleResultLib> randomResult = fuMaResultLib.getRandomResult();
+        List<PegasusUnbridleResultLib> randomResult = fuMaResultLib.getSpecialResult();
         if (currentRandomIndex >= randomResult.size()) {
             gameRunInfo.setCode(Code.PARAM_ERROR);
             return;
