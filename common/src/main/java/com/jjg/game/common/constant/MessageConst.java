@@ -155,6 +155,8 @@ public interface MessageConst {
         int ELEPHANT_GOD = 0x3E;
         //十倍金牛
         int TENFOLD_GOLDEN_BULL = 0x3F;
+        //虎虎生财
+        int TIGER_BRINGS_RICHES = 0x40;
     }
 
     interface ToClientConst {
