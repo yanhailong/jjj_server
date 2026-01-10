@@ -86,6 +86,7 @@ public class BaseLogger {
             json.put("addType", addType.getValue());
             json.put("deviceType", player.getDeviceType());
             json.put("desc", desc);
+            json.put("subChannel", player.getSubChannel());
             sendLog("goldChange", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -112,6 +113,7 @@ public class BaseLogger {
             json.put("addType", addType.getValue());
             json.put("deviceType", player.getDeviceType());
             json.put("desc", desc);
+            json.put("subChannel", player.getSubChannel());
             sendLog("goldChange", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -138,6 +140,7 @@ public class BaseLogger {
             json.put("addType", addType.getValue());
             json.put("desc", desc);
             json.put("deviceType", player.getDeviceType());
+            json.put("subChannel", player.getSubChannel());
             sendLog("diamondChange", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -165,6 +168,7 @@ public class BaseLogger {
             json.put("addType", addType.getValue());
             json.put("desc", desc);
             json.put("deviceType", player.getDeviceType());
+            json.put("subChannel", player.getSubChannel());
             sendLog("diamondChange", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -191,6 +195,7 @@ public class BaseLogger {
             json.put("addType", addType.getValue());
             json.put("desc", desc);
             json.put("deviceType", player.getDeviceType());
+            json.put("subChannel", player.getSubChannel());
             sendLog("goldChange", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -217,6 +222,7 @@ public class BaseLogger {
             json.put("addType", addType.getValue());
             json.put("desc", desc);
             json.put("deviceType", player.getDeviceType());
+            json.put("subChannel", player.getSubChannel());
             sendLog("diamondChange", player, json);
         } catch (Exception e) {
             log.error("", e);
