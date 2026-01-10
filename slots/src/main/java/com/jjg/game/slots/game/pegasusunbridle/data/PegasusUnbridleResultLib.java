@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.pegasusunbridle.data;
 
-import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.slots.data.SlotsResultLib;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -14,7 +13,7 @@ import java.util.List;
 @Document
 public class PegasusUnbridleResultLib extends SlotsResultLib<PegasusUnbridleAwardLineInfo> {
     private int jackpotId;
-    private List<PegasusUnbridleResultLib> randomResult;
+    private List<PegasusUnbridleResultLib> specialResult;
 
     public int getJackpotId() {
         return jackpotId;
@@ -24,19 +23,19 @@ public class PegasusUnbridleResultLib extends SlotsResultLib<PegasusUnbridleAwar
         this.jackpotId = jackpotId;
     }
 
-    public List<PegasusUnbridleResultLib> getRandomResult() {
-        return randomResult;
+    public List<PegasusUnbridleResultLib> getSpecialResult() {
+        return specialResult;
     }
 
-    public void setRandomResult(List<PegasusUnbridleResultLib> randomResult) {
-        this.randomResult = randomResult;
+    public void setSpecialResult(List<PegasusUnbridleResultLib> specialResult) {
+        this.specialResult = specialResult;
     }
 
-    public void addRandomResult(PegasusUnbridleResultLib result){
-        if (randomResult == null) {
-            randomResult = new ArrayList<>();
+    public void addSpecialResult(PegasusUnbridleResultLib result){
+        if (specialResult == null) {
+            specialResult = new ArrayList<>();
         }
-        randomResult.add(result);
+        specialResult.add(result);
     }
 
 }

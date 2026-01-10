@@ -33,11 +33,20 @@ public interface PegasusUnbridleConstant {
 
     interface SpecialMode {
         int NORMAL = 1;
+        int REAL_FU_MA = 2;
 
     }
-
+    interface ElementId {
+        int BASE_ELEMENT_ID = 1;
+        int BLANK = 9;
+        int WILD = 7;
+    }
 
     interface Common {
         int SPECIAL_PLAY_ID = 5034001;
+        //随机图标概率
+        int RANDOM_ICON_PLAY_ID = 5034002;
+        //随机到图标的概率(万分概率)
+        int GENERATE_ICON_PLAY_ID = 5034003;
     }
 }
