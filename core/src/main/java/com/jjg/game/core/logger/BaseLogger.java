@@ -303,6 +303,7 @@ public class BaseLogger {
             json.put("roomCfgId", roomCfgId);
             json.put("channel", player.getChannel().getValue());
             json.put("device", device);
+            json.put("subChannel", player.getSubChannel());
             sendLog("enterGame", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -325,6 +326,7 @@ public class BaseLogger {
             json.put("channel", player.getChannel().getValue());
             json.put("online", onlineTimeLen);
             json.put("device", device);
+            json.put("subChannel", player.getSubChannel());
             sendLog("exitGame", player, json);
         } catch (Exception e) {
             log.error("", e);
