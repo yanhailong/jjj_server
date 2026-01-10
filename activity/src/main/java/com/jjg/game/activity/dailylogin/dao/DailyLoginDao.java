@@ -3,6 +3,7 @@ package com.jjg.game.activity.dailylogin.dao;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.utils.TimeHelper;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -12,26 +13,14 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class DailyLoginDao {
-    private final RedisTemplate redisTemplate;
+    private final RedisTemplate<String, String> redisTemplate;
     //类型->活动id->玩家id
     private final String REDIS_DAILY_LOGIN = "activity:dailylogin:%d:%d";
     //活动id->玩家id
-    private final String REDIS_DAILY_LOGIN_LOCK = "activity:dailyloginlock:%d:%d";
-    //活动id->玩家id
     private final String REDIS_DAILY_LOGIN_CLAIM_TIME = "activity:dailyloginclaimtime:%d";
 
-    public DailyLoginDao(RedisTemplate redisTemplate) {
+    public DailyLoginDao(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
-    }
-
-    /**
-     * 获取redis Lock
-     *
-     * @param playerId 玩家id
-     * @return redis Lock
-     */
-    private String getLockKey(long activityId, long playerId) {
-        return REDIS_DAILY_LOGIN_LOCK.formatted(activityId, playerId);
     }
 
     /**
@@ -48,25 +37,29 @@ public class DailyLoginDao {
      * 更新领取时间
      */
     public void updateClaimTime(long activityId, long playerId) {
-        redisTemplate.opsForHash().put(REDIS_DAILY_LOGIN_CLAIM_TIME.formatted(activityId), playerId, TimeHelper.getCurrentDateZeroMilliTime());
+        getOpsForHash().put(REDIS_DAILY_LOGIN_CLAIM_TIME.formatted(activityId), String.valueOf(playerId), String.valueOf(TimeHelper.getCurrentDateZeroMilliTime()));
+    }
+
+    private HashOperations<String, String, String> getOpsForHash() {
+        return redisTemplate.opsForHash();
     }
 
     /**
      * 获取领取时间
      */
     public long getClaimTime(long activityId, long playerId) {
-        Object obj = redisTemplate.opsForHash().get(REDIS_DAILY_LOGIN_CLAIM_TIME.formatted(activityId), playerId);
+        String obj = getOpsForHash().get(REDIS_DAILY_LOGIN_CLAIM_TIME.formatted(activityId), String.valueOf(playerId));
         if (obj == null) {
             return 0;
         }
-        return Long.parseLong(obj.toString());
+        return Long.parseLong(obj);
     }
 
     /**
      * 获取累计登录天数
      */
     public int getCumulativeLoginDay(long activityId, long playerId) {
-        String days = (String) redisTemplate.opsForHash().get(getKey(activityId, ActivityConstant.DailyLogin.CUMULATIVE_TYPE), playerId);
+        String days = getOpsForHash().get(getKey(activityId, ActivityConstant.DailyLogin.CUMULATIVE_TYPE), String.valueOf(playerId));
         if (StringUtils.isEmpty(days)) {
             return 0;
         }
@@ -77,15 +70,14 @@ public class DailyLoginDao {
      * 增加累计登录天数
      */
     public long addCumulativeLoginDay(long activityId, long playerId) {
-        Long increment = redisTemplate.opsForHash().increment(getKey(activityId, ActivityConstant.DailyLogin.CUMULATIVE_TYPE), playerId, 1);
-        return increment == null ? 0 : increment;
+        return getOpsForHash().increment(getKey(activityId, ActivityConstant.DailyLogin.CUMULATIVE_TYPE), String.valueOf(playerId), 1);
     }
 
     /**
      * 删除累计登录天数
      */
     public void delCumulativeLoginDay(long activityId, long playerId) {
-        redisTemplate.opsForHash().delete(getKey(activityId, ActivityConstant.DailyLogin.CUMULATIVE_TYPE), playerId);
+        getOpsForHash().delete(getKey(activityId, ActivityConstant.DailyLogin.CUMULATIVE_TYPE), String.valueOf(playerId));
     }
 
 
@@ -93,25 +85,24 @@ public class DailyLoginDao {
      * 增加连续登录天数
      */
     public long addContinuousLoginDay(long activityId, long playerId) {
-        Long increment = redisTemplate.opsForHash().increment(getKey(activityId, ActivityConstant.DailyLogin.CONTINUE_TYPE), playerId, 1);
-        return increment == null ? 0 : increment;
+        return getOpsForHash().increment(getKey(activityId, ActivityConstant.DailyLogin.CONTINUE_TYPE), String.valueOf(playerId), 1);
     }
 
     /**
      * 获取连续登录天数
      */
     public long getContinuousLoginDay(long activityId, long playerId) {
-        Object obj = redisTemplate.opsForHash().get(getKey(activityId, ActivityConstant.DailyLogin.CONTINUE_TYPE), playerId);
-        if(obj == null){
+        String obj = getOpsForHash().get(getKey(activityId, ActivityConstant.DailyLogin.CONTINUE_TYPE), String.valueOf(playerId));
+        if (obj == null) {
             return 0;
         }
-        return Integer.parseInt(obj.toString());
+        return Integer.parseInt(obj);
     }
 
     /**
      * 删除连续登录天数
      */
     public void delContinuousLoginDay(long activityId, long playerId) {
-        redisTemplate.opsForHash().delete(getKey(activityId, ActivityConstant.DailyLogin.CONTINUE_TYPE), playerId);
+        getOpsForHash().delete(getKey(activityId, ActivityConstant.DailyLogin.CONTINUE_TYPE), String.valueOf(playerId));
     }
 }
