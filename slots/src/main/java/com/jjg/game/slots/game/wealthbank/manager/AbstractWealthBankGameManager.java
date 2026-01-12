@@ -27,7 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
 
-public class AbstractWealthBankGameManager extends AbstractSlotsGameManager<WealthBankPlayerGameData, WealthBankResultLib> {
+public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameManager<WealthBankPlayerGameData, WealthBankResultLib> {
     @Autowired
     protected WealthBankResultLibDao libDao;
     @Autowired

@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AbstractFrozenThroneGameManager extends AbstractSlotsGameManager<FrozenThronePlayerGameData, FrozenThroneResultLib> {
+public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameManager<FrozenThronePlayerGameData, FrozenThroneResultLib> {
     @Autowired
     private FrozenThroneResultLibDao libDao;
     @Autowired

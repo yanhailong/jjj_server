@@ -38,8 +38,7 @@ import java.util.Set;
  * @author lm
  * @date 2025/12/8 17:24
  */
-@Component
-public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager<PegasusUnbridlePlayerGameData, PegasusUnbridleResultLib> {
+public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager<PegasusUnbridlePlayerGameData, PegasusUnbridleResultLib> {
     private final PegasusUnbridleGameGenerateManager gameGenerateManager;
     private final PegasusUnbridleGameDataDao gameDataDao;
     private final PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao;

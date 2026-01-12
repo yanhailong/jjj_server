@@ -27,7 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamAgePlayerGameData, SteamAgeResultLib> {
+public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamAgePlayerGameData, SteamAgeResultLib> {
     @Autowired
     private SteamAgeResultLibDao libDao;
     @Autowired
