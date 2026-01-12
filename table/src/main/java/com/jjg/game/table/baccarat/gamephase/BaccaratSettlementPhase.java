@@ -424,7 +424,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                             cardList.add(gameDataVo.getCardList().get(i));
                         }
                     }
-                    if (!checkResult(List.copyOf(cardList))) {
+                    if (!checkResult(new ArrayList<>(cardList))) {
                         return null;
                     }
                     Arrays.sort(indexCardArr);
