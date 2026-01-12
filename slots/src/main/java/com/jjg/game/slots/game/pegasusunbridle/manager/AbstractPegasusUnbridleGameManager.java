@@ -62,21 +62,6 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         addUpdatePoolEvent();
     }
 
-
-    @Override
-    public void generate(Map<Integer, Integer> libTypeCountMap, boolean saveToDB) {
-        //神马飞扬的特殊模式存在大量重复 生成数量修改为1/10
-        log.info("神马飞扬原次数 count:{}", JSON.toJSONString(libTypeCountMap));
-        for (Map.Entry<Integer, Integer> entry : libTypeCountMap.entrySet()) {
-            if (entry.getKey() == PegasusUnbridleConstant.SpecialMode.NORMAL) {
-                continue;
-            }
-            entry.setValue(Math.max(1, entry.getValue() / 10));
-        }
-        log.info("神马飞扬修改后次数 count:{}", JSON.toJSONString(libTypeCountMap));
-        super.generate(libTypeCountMap, saveToDB);
-    }
-
     @Override
     public PegasusUnbridleGameRunInfo enterGame(PlayerController playerController) {
         //获取玩家游戏数据
