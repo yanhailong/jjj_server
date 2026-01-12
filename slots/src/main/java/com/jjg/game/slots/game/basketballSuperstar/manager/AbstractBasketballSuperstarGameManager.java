@@ -31,7 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AbstractBasketballSuperstarGameManager extends AbstractSlotsGameManager<BasketballSuperstarPlayerGameData, BasketballSuperstarResultLib> {
+public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlotsGameManager<BasketballSuperstarPlayerGameData, BasketballSuperstarResultLib> {
     @Autowired
     private BasketballSuperstarResultLibDao libDao;
     @Autowired
