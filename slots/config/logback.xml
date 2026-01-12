@@ -24,13 +24,12 @@
         <logger name="com.jjg.game" level="debug" />
         <logger name="org.apache.commons.httpclient" level="error" />
         <logger name="org.apache.kafka" level="WARN"/>
-        <logger name="com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.cleopatra.manager.CleopatraGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.superstar.manager.SuperStarGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.wealthgod.manager.WealthGodGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.thor.manager.ThorGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.christmasBashNight.manager.ChristmasBashNightGenerateManager" level="error"/>
+
+        <!-- 使用正则匹配的过滤器 -->
+        <turboFilter class="ch.qos.logback.classic.turbo.DynamicThresholdFilter">
+            <Key>GenerateManager</Key>
+            <DefaultThreshold>ERROR</DefaultThreshold>
+        </turboFilter>
 
         <root level="info">
                 <appender-ref ref="console" />

@@ -90,7 +90,7 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
             moneyChangeInfoList.add(buildMoneyChangeInfo(GameConstant.Item.TYPE_GOLD,goldChangeValue,player.getGold()));
         }
         if(diamondChangeValue != 0){
-            moneyChangeInfoList.add(buildMoneyChangeInfo(GameConstant.Item.TYPE_DIAMOND,goldChangeValue,player.getDiamond()));
+            moneyChangeInfoList.add(buildMoneyChangeInfo(GameConstant.Item.TYPE_DIAMOND,diamondChangeValue,player.getDiamond()));
         }
         buildMoneyChangeInfoMessage(session,moneyChangeInfoList);
     }
