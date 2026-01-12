@@ -277,9 +277,13 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
             if (!has(nodeConfig.gameMajorTypes, gameMajorType)) {
                 continue;
             }
-            if ((nodeConfig.whiteIdList == null || nodeConfig.whiteIdList.length == 0) && (nodeConfig.whiteIpList == null || nodeConfig.whiteIpList.length == 0)) {
+            if ((nodeConfig.whiteIdList == null || nodeConfig.whiteIdList.length == 0)
+                    && (nodeConfig.whiteIpList == null || nodeConfig.whiteIpList.length == 0)
+                    && (nodeConfig.flags == null || nodeConfig.flags.length == 0)) {
                 list.add(node);
-            } else if ((ClusterHelper.preciseInIdWhiteList(playerId, nodeConfig.whiteIdList) || ClusterHelper.preciseInIpWhiteList(ip, nodeConfig.whiteIpList))) {
+            } else if ((ClusterHelper.preciseInIdWhiteList(playerId, nodeConfig.whiteIdList)
+                    || ClusterHelper.preciseInIpWhiteList(ip, nodeConfig.whiteIpList))
+                    || ClusterHelper.preciseInFlagsList(this.nodeConfig.flags, nodeConfig.flags)) {
                 preciselist.add(node);
             }
         }
