@@ -424,6 +424,9 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                             cardList.add(gameDataVo.getCardList().get(i));
                         }
                     }
+                    if (!checkResult(List.copyOf(cardList))) {
+                        return null;
+                    }
                     Arrays.sort(indexCardArr);
                     for (int i = indexCardArr.length - 1; i >= 0; i--) {
                         int index = indexCardArr[i];
@@ -438,6 +441,36 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             }
         }
         return null;
+    }
+
+
+    private boolean checkResult(List<Byte> checkList) {
+        BaccaratSettlementInfo baccaratSettlementInfo = new BaccaratSettlementInfo();
+        baccaratSettlementInfo.playerCardIds = new ArrayList<>();
+        baccaratSettlementInfo.bankerCardIds = new ArrayList<>();
+        baccaratSettlementInfo.playerCardIds.add(removeFirst(checkList));
+        baccaratSettlementInfo.bankerCardIds.add(removeFirst(checkList));
+        baccaratSettlementInfo.playerCardIds.add(removeFirst(checkList));
+        baccaratSettlementInfo.bankerCardIds.add(removeFirst(checkList));
+        // 是否出现天王牌
+        checkHasKingCard(baccaratSettlementInfo);
+        // 是否有对子
+        checkHasDouble(baccaratSettlementInfo);
+        // 检查闲家是否补牌
+        if (!baccaratSettlementInfo.cardState.hasKingCard && checkNeedFillCard(baccaratSettlementInfo.playerCardIds, true, (byte) 0)) {
+            if (checkList.isEmpty()) {
+                return false;
+            }
+            baccaratSettlementInfo.extraPlayerCardId = removeFirst(checkList);
+        }
+        // 检查庄家是否补牌
+        if (!baccaratSettlementInfo.cardState.hasKingCard && checkNeedFillCard(baccaratSettlementInfo.bankerCardIds, false, baccaratSettlementInfo.extraPlayerCardId)) {
+            if (checkList.isEmpty()) {
+                return false;
+            }
+            baccaratSettlementInfo.extraBankerCardId = removeFirst(checkList);
+        }
+        return true;
     }
 
     /**
