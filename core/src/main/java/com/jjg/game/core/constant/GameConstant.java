@@ -166,5 +166,7 @@ public class GameConstant {
     public interface CommonDaoId{
         //客服链接
         int CUSTOMER_TABLE_ID = 1;
+        //积分大奖URL ID
+        int POINTS_AWARD_URL = 2;
     }
 }

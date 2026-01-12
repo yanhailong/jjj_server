@@ -672,7 +672,6 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
                 playerController.send(res);
                 return;
             }
-
             List<ItemInfo> items = new ArrayList<>();
 
             result.data.forEach((k, v) -> {
@@ -1087,7 +1086,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
     @Command(HallConstant.MsgBean.REQ_GET_REGISTER_REWARDS)
     public void ReqGetRegisterRewards(PlayerController playerController) {
         ResGetRegisterRewards res = new ResGetRegisterRewards(Code.SUCCESS);
-        boolean register = countDao.setIfAbsent(CountDao.CountType.PLAYER_COUNT.getParam().formatted("register"), String.valueOf(playerController.playerId()));
+        boolean register = countDao.setIfAbsentHash(CountDao.CountType.PLAYER_COUNT.getParam().formatted("register"), String.valueOf(playerController.playerId()));
         if (register) {
             //发送奖励
             GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(50);

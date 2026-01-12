@@ -1291,19 +1291,19 @@ public class GMController extends AbstractController {
     }
 
     /**
-     * 设置客服连接
+     * 设置链接
      *
      * @param dto
      * @return
      */
-    @RequestMapping(BackendGMCmd.CUSTOMER_URL_PREFIX)
-    public WebResult<String> customerUrlPrefix(@RequestBody CustomerUrlPrefixDto dto) {
-        log.info("收到客服分享连接 dto = {}", dto);
+    @RequestMapping(BackendGMCmd.SET_URL_PREFIX)
+    public WebResult<String> setUrlPrefix(@RequestBody SetUrlPrefixDto dto) {
+        log.info("收到设置链接 dto = {}", dto);
         try {
-            if (StringUtils.isBlank(dto.url())) {
+            if (StringUtils.isBlank(dto.url()) || dto.type() < 1) {
                 return fail("common.paramerror");
             }
-            commonDao.setValue(GameConstant.CommonDaoId.CUSTOMER_TABLE_ID, dto.url());
+            commonDao.setValue(dto.type(), dto.url());
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);

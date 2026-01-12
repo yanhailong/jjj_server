@@ -71,6 +71,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     protected GameDataTracker gameDataTracker;
     // 游戏事件管理器
     protected GameEventManager gameEventManager;
+    protected boolean init = false;
     /**
      * 任务管理器
      */
@@ -129,7 +130,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      */
     public boolean checkRoomCanStart() {
         // 房间玩家不为空
-        return gameState == EGameState.INIT_DONE;
+        return gameState == EGameState.INIT_DONE || !init;
     }
 
     /**

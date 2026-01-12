@@ -184,11 +184,17 @@ public class PointsAwardLeaderboardService {
      * @return
      */
     private int resolveMinPoints(int type) {
-        // 上周榜最低分
-        int dayMin = GameDataManager.getGlobalConfigCfg(41).getIntValue();
-        // 月榜最低分
-        int monthMin = GameDataManager.getGlobalConfigCfg(42).getIntValue();
-        return type == PointsAwardConstant.Leaderboard.TYPE_MONTH ? monthMin : dayMin;
+        int globalCfgId = switch (type) {
+            case PointsAwardConstant.Leaderboard.TYPE_MONTH -> 42;
+            case PointsAwardConstant.Leaderboard.DAY -> 41;
+            case PointsAwardConstant.Leaderboard.WEEK -> 110;
+            default -> 0;
+        };
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(globalCfgId);
+        if (globalConfigCfg != null) {
+            return globalConfigCfg.getIntValue();
+        }
+        return 0;
     }
 
     /**
