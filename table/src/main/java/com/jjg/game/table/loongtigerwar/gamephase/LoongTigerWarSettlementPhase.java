@@ -118,7 +118,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                 }
                 SettlementData data = entry.getValue();
                 changeParam.addTotalTaxRevenue(data.getTaxation());
-                changeParam.addBankerChangeGold(Math.max(0, data.getTotalGet() - data.getBetTotal()));
+                changeParam.addBankerChangeGold(Math.max(0, data.getTotalGet() - data.getBankerWind()));
             }
             calculationFinalBankerChange(changeParam);
             dealRoomPool(changeParam);

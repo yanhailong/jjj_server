@@ -7,6 +7,8 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.PageUtils;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.dao.CommonDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.manager.RedDotManager;
@@ -58,16 +60,17 @@ public class PointsAwardMessageHandler {
 
 
     private final RedDotManager redDotManager;
-
+    private final CommonDao commonDao;
     public PointsAwardMessageHandler(PointsAwardSignInService pointsAwardSignInService,
                                      PointsAwardLeaderboardService pointsAwardLeaderboardService,
                                      PointsAwardService pointsAwardService,
-                                     PointsAwardTurntableService pointsAwardTurntableService, RedDotManager redDotManager) {
+                                     PointsAwardTurntableService pointsAwardTurntableService, RedDotManager redDotManager, CommonDao commonDao) {
         this.pointsAwardSignInService = pointsAwardSignInService;
         this.pointsAwardLeaderboardService = pointsAwardLeaderboardService;
         this.pointsAwardService = pointsAwardService;
         this.pointsAwardTurntableService = pointsAwardTurntableService;
         this.redDotManager = redDotManager;
+        this.commonDao = commonDao;
     }
 
     /**
@@ -158,6 +161,7 @@ public class PointsAwardMessageHandler {
         res.setRank(rank.getFirst());
         res.setPoint(pointsAwardService.getPoints(playerController.playerId()));
         res.setState(1);
+        res.setUrl(commonDao.getStrValue(GameConstant.CommonDaoId.POINTS_AWARD_URL));
         playerController.send(res);
         log.debug("返回玩家积分大奖积分 playerId = {},res = {}", playerController.playerId(), JSONObject.toJSONString(res));
     }

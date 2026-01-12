@@ -24,7 +24,7 @@ public class RPCController extends AbstractCallbackController implements Backend
                 return Code.FAIL;
             }
             //调用充值
-            payCallback(order, order.getPrice().toPlainString(), "backend","backend");
+            payCallback(order, order.getPrice().toPlainString(), "backend","");
             return Code.SUCCESS;
         } catch (Exception e) {
             log.error("", e);

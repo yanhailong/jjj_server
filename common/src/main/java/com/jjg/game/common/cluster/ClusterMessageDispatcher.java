@@ -95,7 +95,11 @@ public class ClusterMessageDispatcher {
             }
             if (clusterMessage.getMsg().cmd == MessageConst.SessionConst.NOTIFY_SESSION_QUIT ||
                     clusterMessage.getMsg().cmd == MessageConst.SessionConst.NOTIFY_SESSION_ENTER) {
-                bindId = sessionId == null ? 0 : sessionId.hashCode() ^ (sessionId.hashCode() >>> 31);;
+                bindId = sessionId == null ? 0 : sessionId.hashCode() ^ (sessionId.hashCode() >>> 31);
+            }
+            if (clusterMessage.getMsg().cmd == MessageConst.SessionConst.RPC_RES_SERVICE_DATA_CARRIER) {
+                handle(connect, session, msg);
+                return;
             }
             final PFMessage finalMsg = msg;
             final PFSession finalPFSession = session;

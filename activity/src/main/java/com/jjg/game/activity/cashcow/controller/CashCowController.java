@@ -27,6 +27,7 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
@@ -235,7 +236,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         try {
             // 获取配置的中奖权重/概率列表（二维列表），以及单次分配的奖池数（distribution）
             List<List<Integer>> weight = cfg.getWeight();
-            if (CollectionUtil.isEmpty(weight) || cfg.getDistribution() <= 0) {
+            if (CollectionUtil.isEmpty(weight) || cfg.getDistribution() <= 0 || CollectionUtil.isEmpty(cfg.getActualWinning())) {
                 // 配置异常
                 res.code = Code.SAMPLE_ERROR;
                 return res;
@@ -292,7 +293,8 @@ public class CashCowController extends BaseActivityController implements TimerLi
                             boolean isFix = false;
                             if (RandomUtil.randomInt(10000) < probability) {
                                 // 从奖池中扣除 cfg.getDistribution() 并返回实际发奖数量（DAO 负责判空/原子减）
-                                get = cashCowDao.reduceActivityPool(activityId, cfg.getDistribution());
+                                int distribution = getRealDistribution(cfg);
+                                get = cashCowDao.reduceActivityPool(activityId, distribution);
                                 log.info("摇钱树 中奖 playerId:{} activityId:{} detailId:{} get:{}", playerId, activityId, detailId, get);
                             } else {
                                 get = fixedRewardCheck(cfg, activityId, joinTimes);
@@ -347,11 +349,33 @@ public class CashCowController extends BaseActivityController implements TimerLi
                     .multiply(BigDecimal.valueOf(cfg.getDistribution()))
                     .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
             res.totalPool = totalPool;
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             // 捕获外层异常，避免接口抛出未捕获异常
             log.error("玩家参加摇钱树  出现异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
         }
         return res;
+    }
+
+    /**
+     * 获取真正的中奖比例
+     *
+     * @param cfg 配置
+     * @return 真正中奖比例
+     */
+    private int getRealDistribution(CashcowCfg cfg) {
+        int distribution = cfg.getDistribution();
+        if (CollectionUtil.isNotEmpty(cfg.getActualWinning())) {
+            WeightRandom<Integer> random = new WeightRandom<>();
+            for (List<Integer> actualWinCfg : cfg.getActualWinning()) {
+                if (actualWinCfg.size() != 2) {
+                    continue;
+                }
+                random.add(actualWinCfg.get(0), actualWinCfg.get(1));
+            }
+            distribution = random.next();
+        }
+        return distribution;
     }
 
     /**
@@ -569,7 +593,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                     // 随机选一个机器人（机器人配置由 GameDataManager 提供）
                     RobotPlayer robotPlayer = robotUtil.randomRobotPlayer();
                     // 从奖池中扣除分配额度（DAO 负责原子检查与扣减）
-                    long get = cashCowDao.reduceActivityPool(activityData.getId(), cfg.getDistribution());
+                    long get = cashCowDao.reduceActivityPool(activityData.getId(), getRealDistribution(cfg));
                     if (get > 0) {
                         // 记录机器人中奖（不发包给“机器人账户”，只是写记录）
                         CashCowRecordData cashCowRecordData = new CashCowRecordData(activityData.getRound(), System.currentTimeMillis(), robotPlayer.getNickName(), cfg.getType(), get);
@@ -904,7 +928,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             // 标记玩家已领取
             cashCowDao.addFreeRewardsCount(playerController.playerId(), req.activityId);
         } catch (Exception e) {
-            log.error("摇钱树请求领取免费道具失败 playerId:{} activityId:{}", playerController.playerId(), req.activityId);
+            log.error("摇钱树请求领取免费道具失败 playerId:{} activityId:{}", playerController.playerId(), req.activityId, e);
         } finally {
             redisLock.tryUnlock(playerFreeLockKey);
         }

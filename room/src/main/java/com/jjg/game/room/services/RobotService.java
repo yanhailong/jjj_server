@@ -12,6 +12,7 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
 import com.jjg.game.sampledata.bean.RoomCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
@@ -66,9 +67,15 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
         if (warehouseCfg == null || roomCfg == null) {
             return null;
         }
+        long expend = 1;
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(111);
+        if (globalConfigCfg != null) {
+            expend = globalConfigCfg.getIntValue();
+        }
         lock.lock();
         try {
-            NavigableMap<Long, RobotCfg> subbedMap = robotCache.subMap((long) warehouseCfg.getEnterLimit(), true, Long.MAX_VALUE, true);
+            long enterLimit = warehouseCfg.getEnterLimit() * expend;
+            NavigableMap<Long, RobotCfg> subbedMap = robotCache.subMap(enterLimit, true, Long.MAX_VALUE, true);
             if (subbedMap == null || subbedMap.isEmpty()) {
                 return null;
             }
@@ -85,7 +92,7 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
                     checkNum = gold;
                 }
                 //货币检查
-                if (checkNum < warehouseCfg.getEnterLimit() || warehouseCfg.getEnterMax() != -1 && checkNum > warehouseCfg.getEnterMax()) {
+                if (checkNum < enterLimit || warehouseCfg.getEnterMax() != -1 && checkNum > warehouseCfg.getEnterMax()) {
                     continue;
                 }
                 it.remove();

@@ -51,71 +51,68 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
 
     @Override
     protected boolean checkRoomCanNextRound() {
-        boolean checkRes = super.checkRoomCanNextRound();
-        if (checkRes) {
-            // 进入下一个回合之前需要判断，庄家是否连续坐庄N次
-            if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
-                // 获取当前庄家ID
-                long roomBankerId = friendRoomController.getRoom().roomBankerId();
-                // 如果走到此处，庄家应该不会出现为0的情况
-                if (roomBankerId > 0) {
-                    boolean cancelBeBankerSuccess = false;
-                    // 如果当前庄家已经申请过下庄
-                    if (gameDataVo.getApplyCancelBeBankerPlayer() > 0) {
+        // 进入下一个回合之前需要判断，庄家是否连续坐庄N次
+        if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
+            // 获取当前庄家ID
+            long roomBankerId = friendRoomController.getRoom().roomBankerId();
+            // 如果走到此处，庄家应该不会出现为0的情况
+            if (roomBankerId > 0) {
+                boolean cancelBeBankerSuccess = false;
+                // 如果当前庄家已经申请过下庄
+                if (gameDataVo.getApplyCancelBeBankerPlayer() > 0) {
+                    AtomicLong backNum = new AtomicLong(0);
+                    // 下庄，下庄之后，下一个自动成为庄家
+                    int code = friendRoomController.cancelBeBanker(roomBankerId, backNum);
+                    if (code != Code.SUCCESS) {
+                        log.error("申请庄家下庄时失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
+                    } else {
+                        cancelBeBankerSuccess = true;
+                        gameDataVo.setApplyCancelBeBankerPlayer(0);
+                        log.info("玩家：{} 申请下庄成功", roomBankerId);
+                        //获取玩家如果没获取到发送邮件,获取到直接添加
+                        backBeBankerMoney(backNum, roomBankerId);
+                        friendRoomController.getBankerPredicateInfo().remove(roomBankerId);
+                    }
+                }
+                // 如果庄家没有申请下庄
+                if (!cancelBeBankerSuccess) {
+                    int maxRoundBeBanker = SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.BE_BANKER_MAX_ROUND);
+                    // 如果连续坐庄次数超过限制，需要手动下庄
+                    if (gameDataVo.getBeBankerTimes() >= maxRoundBeBanker) {
                         AtomicLong backNum = new AtomicLong(0);
                         // 下庄，下庄之后，下一个自动成为庄家
                         int code = friendRoomController.cancelBeBanker(roomBankerId, backNum);
                         if (code != Code.SUCCESS) {
-                            log.error("申请庄家下庄时失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
+                            log.error("检查庄家自动下庄时失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
                         } else {
                             cancelBeBankerSuccess = true;
-                            gameDataVo.setApplyCancelBeBankerPlayer(0);
-                            log.info("玩家：{} 申请下庄成功", roomBankerId);
-                            //获取玩家如果没获取到发送邮件,获取到直接添加
+                            log.info("玩家：{} 上庄次数达到上限，自动下庄", roomBankerId);
                             backBeBankerMoney(backNum, roomBankerId);
                             friendRoomController.getBankerPredicateInfo().remove(roomBankerId);
                         }
                     }
-                    // 如果庄家没有申请下庄
-                    if (!cancelBeBankerSuccess) {
-                        int maxRoundBeBanker = SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.BE_BANKER_MAX_ROUND);
-                        // 如果连续坐庄次数超过限制，需要手动下庄
-                        if (gameDataVo.getBeBankerTimes() >= maxRoundBeBanker) {
-                            AtomicLong backNum = new AtomicLong(0);
-                            // 下庄，下庄之后，下一个自动成为庄家
-                            int code = friendRoomController.cancelBeBanker(roomBankerId, backNum);
-                            if (code != Code.SUCCESS) {
-                                log.error("检查庄家自动下庄时失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
-                            } else {
-                                cancelBeBankerSuccess = true;
-                                log.info("玩家：{} 上庄次数达到上限，自动下庄", roomBankerId);
-                                backBeBankerMoney(backNum, roomBankerId);
-                                friendRoomController.getBankerPredicateInfo().remove(roomBankerId);
-                            }
-                        }
-                    }
-                    // 如果玩家连续坐庄次数没有达到上限，继续判断
-                    if (!cancelBeBankerSuccess) {
-                        // 如果庄家准备金不够也需要自动下庄
-                        int minBankerAmount = FriendRoomSampleUtils.getRoomMinBankerAmount(gameDataVo.getRoomCfg().getId());
-                        long resetGold = friendRoomController.getRoom().roomBankerResetGold();
-                        if (resetGold < minBankerAmount) {
-                            // 下庄，下庄之后，下一个自动成为庄家
-                            AtomicLong backNum = new AtomicLong(0);
-                            int code = friendRoomController.cancelBeBanker(roomBankerId, backNum);
-                            if (code != Code.SUCCESS) {
-                                log.error("检查庄家剩余准备金时，自动下庄失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
-                            } else {
-                                log.info("庄家：{} 准备金不足，自动下庄", roomBankerId);
-                                backBeBankerMoney(backNum, roomBankerId);
-                                friendRoomController.getBankerPredicateInfo().remove(roomBankerId);
-                            }
+                }
+                // 如果玩家连续坐庄次数没有达到上限，继续判断
+                if (!cancelBeBankerSuccess) {
+                    // 如果庄家准备金不够也需要自动下庄
+                    int minBankerAmount = FriendRoomSampleUtils.getRoomMinBankerAmount(gameDataVo.getRoomCfg().getId());
+                    long resetGold = friendRoomController.getRoom().roomBankerResetGold();
+                    if (resetGold < minBankerAmount) {
+                        // 下庄，下庄之后，下一个自动成为庄家
+                        AtomicLong backNum = new AtomicLong(0);
+                        int code = friendRoomController.cancelBeBanker(roomBankerId, backNum);
+                        if (code != Code.SUCCESS) {
+                            log.error("检查庄家剩余准备金时，自动下庄失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
+                        } else {
+                            log.info("庄家：{} 准备金不足，自动下庄", roomBankerId);
+                            backBeBankerMoney(backNum, roomBankerId);
+                            friendRoomController.getBankerPredicateInfo().remove(roomBankerId);
                         }
                     }
                 }
             }
         }
-        return checkRes;
+        return super.checkRoomCanNextRound();
     }
 
     /**
@@ -231,7 +228,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
             friendRoomController.broadFriendRoomChange();
         }
         // 如果处于暂停阶段，还需要通知前端，暂停原因
-        if (gameState == EGameState.PAUSED) {
+        if (gameState == EGameState.PAUSED || gameState == EGameState.INIT_DONE) {
             broadcastGamePauseInfo();
         }
     }
