@@ -533,6 +533,45 @@ public class GMController extends AbstractController {
     }
 
     /**
+     * 修改vip等级
+     */
+    @RequestMapping(BackendGMCmd.SET_VIPLEVEL)
+    public WebResult<String> setVip(@RequestBody SetVipDto dto) {
+        try {
+            log.debug("收到后台的设置vip等级的请求 dto = {}", dto);
+            if (dto.playerId() < 1) {
+                log.debug("设置vip等级，玩家id不能小于 1,playerId = {}", dto.playerId());
+                return fail("common.paramerror");
+            }
+            if (dto.vipLevel() < 1) {
+                log.debug("设置vip等级，增减数量错误 vipLevel = {}", dto.vipLevel());
+                return fail("common.paramerror");
+            }
+            Player player = playerService.get(dto.playerId());
+            if (player == null) {
+                log.debug("设置vip等级，未找到该用户 playerId = {}", dto.playerId());
+                return fail("common.paramerror");
+            }
+
+            boolean notifyNode = false;
+            CommonResult<Player> result;
+            result = playerService.setVip(dto.playerId(), dto.vipLevel(), AddType.GM_OPERATOR, null);
+            if (!result.success()) {
+                log.debug("设置vip等级错误 ,playerId = {},code = {}", dto.playerId(), result.code);
+                return fail("common.fail");
+            }
+            if (!notifyNode) {  //如果是账户修改，则要进行通知
+                coreSendMessageManager.buildBaseInfoChangeMessage(result.data);
+            }
+            //返回修改结果
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
      * 踢出玩家
      */
     @RequestMapping(BackendGMCmd.KICK_ACCOUNT)
