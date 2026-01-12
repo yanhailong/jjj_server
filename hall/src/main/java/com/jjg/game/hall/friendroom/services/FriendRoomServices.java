@@ -477,7 +477,6 @@ public class FriendRoomServices {
         if (friendRoom.getPauseTime() != 0) {
             return;
         }
-
         // 查看房间剩余时间
         long resetTime = FriendRoomMessageBuilder.getRoomResetTime(friendRoom);
         // 还没到时间
