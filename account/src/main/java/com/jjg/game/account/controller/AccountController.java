@@ -219,7 +219,7 @@ public class AccountController extends AbstractController {
             }
 
             serverUrlVo.setResourceUrls(accountConfig.getResourceurls());
-            log.info("获取服务器地址 playerId = {},token = {},gameServersUrls = {},resourceUrls = {}", playerId, token, accountConfig.getGameservers(), accountConfig.getResourceurls());
+            log.info("获取服务器地址 playerId = {},token = {},gameServersUrls = {},resourceUrls = {}", playerId, token, serverUrlVo.getGameServersUrls(), accountConfig.getResourceurls());
             return success(serverUrlVo);
         } catch (Exception e) {
             log.error("", e);
