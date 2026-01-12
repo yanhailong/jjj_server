@@ -42,10 +42,10 @@ public interface TigerBringsRichesConstant {
     }
 
     interface Common {
-        int SPECIAL_PLAY_ID = 5034001;
+        int SPECIAL_PLAY_ID = 5034011;
         //随机图标概率
-        int RANDOM_ICON_PLAY_ID = 5034002;
+        int RANDOM_ICON_PLAY_ID = 5034012;
         //随机到图标的概率(万分概率)
-        int GENERATE_ICON_PLAY_ID = 5034003;
+        int GENERATE_ICON_PLAY_ID = 5034013;
     }
 }
