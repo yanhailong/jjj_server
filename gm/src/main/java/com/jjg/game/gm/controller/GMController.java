@@ -11,6 +11,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
@@ -620,7 +621,7 @@ public class GMController extends AbstractController {
      * 封禁
      */
     @RequestMapping(BackendGMCmd.BAN_ACCOUNT)
-    public WebResult<String> banAccount(@RequestBody BanAccountDto dto) {
+    public WebResult<List<BanAccountVo>> banAccount(@RequestBody BanAccountDto dto) {
         try {
             log.info("收到后台封禁账号的请求 dto = {}", dto);
             AccountStatus accountStatus = AccountStatus.valueOf(dto.type());
@@ -639,26 +640,73 @@ public class GMController extends AbstractController {
             NotifyKickout notifyKickout = new NotifyKickout();
 
             List<Long> delTokenList = new ArrayList<>();
+
+            List<BanAccountVo> voList = new ArrayList<>();
             for (String str : arr) {
                 long playerId = Long.parseLong(str);
+                BanAccountVo vo = new BanAccountVo();
+                vo.setPlayerId(playerId);
 
                 if (accountStatus == AccountStatus.BAN) {  //封
+                    vo.setChangeStatus(AccountStatus.BAN.getCode());
                     delTokenList.add(playerId);
-                    accountDao.checkAndSave(playerId, a -> a.setStatus(AccountStatus.BAN.getCode()));
+                    Account resAccount = accountDao.checkAndSaveRes(playerId, new DataSaveCallback<>() {
+                        @Override
+                        public void updateData(Account dataEntity) {}
+
+                        @Override
+                        public boolean updateDataWithRes(Account dataEntity) {
+                            if(dataEntity.getStatus() == AccountStatus.NORMAL.getCode()){
+                                dataEntity.setStatus(AccountStatus.BAN.getCode());
+                                return true;
+                            }
+                            log.warn("玩家当前状态不能被封禁 playerId = {},status = {},toStatus = {}",dataEntity.getPlayerId(),dataEntity.getStatus(),AccountStatus.BAN.getCode());
+                            return false;
+                        }
+                    });
+                    if(resAccount == null){
+                        log.warn("玩家封禁账号失败 playerId = {}", playerId);
+                        vo.setSuccess(false);
+                        continue;
+                    }
+                    vo.setSuccess(true);
+
                     PFSession session = playerSessionService.getSession(playerId);
                     if (session == null) {
                         continue;
                     }
                     session.send(notifyKickout);
                 } else {  //解
-                    accountDao.checkAndSave(playerId, a -> a.setStatus(AccountStatus.NORMAL.getCode()));
+                    vo.setChangeStatus(AccountStatus.NORMAL.getCode());
+                    Account resAccount = accountDao.checkAndSaveRes(playerId, new  DataSaveCallback<>() {
+                        @Override
+                        public void updateData(Account dataEntity) {}
+
+                        @Override
+                        public boolean updateDataWithRes(Account dataEntity) {
+                            if(dataEntity.getStatus() == AccountStatus.BAN.getCode()){
+                                dataEntity.setStatus(AccountStatus.NORMAL.getCode());
+                                return true;
+                            }
+                            log.warn("玩家当前状态不能被解封 playerId = {},status = {},toStatus = {}",dataEntity.getPlayerId(),dataEntity.getStatus(),AccountStatus.NORMAL.getCode());
+                            return true;
+                        }
+                    });
+
+                    if(resAccount == null){
+                        log.warn("玩家解封账号失败 playerId = {}", playerId);
+                        vo.setSuccess(false);
+                    }else {
+                        vo.setSuccess(true);
+                    }
                 }
+                voList.add(vo);
             }
 
             //如果是封禁或者删除账号，则要删除当前token
             playerSessionTokenDao.delTokens(delTokenList);
             //返回修改结果
-            return success("common.success");
+            return success("common.success", voList);
         } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");

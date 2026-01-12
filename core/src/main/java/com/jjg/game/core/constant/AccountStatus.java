@@ -1,9 +1,9 @@
 package com.jjg.game.core.constant;
 
 public enum AccountStatus {
-    NORMAL(0),
-    BAN(1),
-    DELETE(2),
+    NORMAL(1),
+    BAN(2),
+    DELETE(3),
     ;
 
 
