@@ -48,5 +48,9 @@ public interface PegasusUnbridleConstant {
         int RANDOM_ICON_PLAY_ID = 5034002;
         //随机到图标的概率(万分概率)
         int GENERATE_ICON_PLAY_ID = 5034003;
+        //元素id_元素滚轴
+        int ELEMENT_ROLL = 5034004;
+        //奖池id
+        int JACKPOT_ID = 103400101;
     }
 }

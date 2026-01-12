@@ -17,7 +17,9 @@ import jodd.util.StringUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author lm
@@ -31,8 +33,14 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
 
     private Pair<Integer, Integer> modelRandom;
     private WeightRandom<Integer> iconRandom;
-    private int weight ;
-    private int jackpotId = 103400101;
+    //随机到图标得概率（万分比）
+    private int weight;
+    //转轴上最低出现元素个数
+    private int minIconCount;
+    //_随机图标变成wild概率
+    private int wildChance;
+    //元素id->滚轴id
+    private Map<Integer, Integer> elementRollMap;
 
     @Override
     public PegasusUnbridleResultLib checkAward(int[] arr, PegasusUnbridleResultLib lib, boolean freeModel) throws Exception {
@@ -57,9 +65,12 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
                 int[] temp = Arrays.copyOf(iconArr, iconArr.length);
                 //设置为空白元素
                 Arrays.fill(temp, PegasusUnbridleConstant.ElementId.BLANK);
+                // Iteratively populates slots; computes special result until full
+                int createElementCount = 0;
                 while (true) {
                     int iconCount = 0;
                     int changeCount = 0;
+                    int index = -1;
                     for (int i = 0; i < temp.length; i++) {
                         int oldIcon = temp[i];
                         if (oldIcon != PegasusUnbridleConstant.ElementId.BLANK) {
@@ -67,22 +78,30 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
                             continue;
                         }
                         if (weight > RandomUtil.randomInt(10000)) {
-                            temp[i] = RandomUtil.randomBoolean() ? icon : PegasusUnbridleConstant.ElementId.WILD;
+                            temp[i] = wildChance > RandomUtil.randomInt(10000) ? PegasusUnbridleConstant.ElementId.WILD : icon;
                             changeCount++;
+                            createElementCount++;
+                        } else {
+                            index = index == -1 ? i : RandomUtil.randomBoolean() ? i : index;
                         }
+                    }
+                    if (changeCount == 0 && createElementCount < minIconCount) {
+                        temp[index] = wildChance > RandomUtil.randomInt(10000) ? PegasusUnbridleConstant.ElementId.WILD : icon;
+                        changeCount++;
+                        createElementCount++;
                     }
                     //生成结果
                     PegasusUnbridleResultLib specialLib = new PegasusUnbridleResultLib();
                     specialLib.setId(RandomUtils.getUUid());
-                    specialLib.setRollerMode(lib.getRollerMode());
-                    lib.setGameType(this.gameType);
+                    specialLib.setRollerMode(elementRollMap.get(icon));
+                    specialLib.setGameType(lib.getGameType());
                     specialLib.setIconArr(Arrays.copyOf(temp, temp.length));
                     List<PegasusUnbridleAwardLineInfo> specialAwardLineInfoList = winLines(specialLib, freeModel);
                     specialLib.setAwardLineInfoList(specialAwardLineInfoList);
                     lib.addSpecialResult(specialLib);
                     calTimes(specialLib);
                     if (iconCount + changeCount == temp.length) {
-                        specialLib.setJackpotId(jackpotId);
+                        specialLib.setJackpotId(PegasusUnbridleConstant.Common.JACKPOT_ID);
                         break;
                     }
                     if (changeCount == 0) {
@@ -141,6 +160,8 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
         loadIconRandom();
 
         loadGenerateIcon();
+
+        loadElementRollMap();
     }
 
     private void loadModelRandom() {
@@ -177,6 +198,28 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
         if (specialPlayCfg == null || StringUtil.isEmpty(specialPlayCfg.getValue())) {
             return;
         }
-        weight = Integer.parseInt(specialPlayCfg.getValue());
+        String[] split = specialPlayCfg.getValue().split("_");
+        if (split.length != 3) {
+            return;
+        }
+        weight = Integer.parseInt(split[1]);
+        minIconCount = Integer.parseInt(split[0]);
+        wildChance = Integer.parseInt(split[2]);
+    }
+
+    private void loadElementRollMap() {
+        SpecialPlayCfg specialPlayCfg = GameDataManager.getSpecialPlayCfg(PegasusUnbridleConstant.Common.ELEMENT_ROLL);
+        if (specialPlayCfg == null || StringUtil.isEmpty(specialPlayCfg.getValue())) {
+            return;
+        }
+        Map<Integer, Integer> tempMap = new HashMap<>();
+        for (String cfg : specialPlayCfg.getValue().split(";")) {
+            String[] kekValue = cfg.split("_");
+            if (kekValue.length != 2) {
+                continue;
+            }
+            tempMap.put(Integer.parseInt(kekValue[0]), Integer.parseInt(kekValue[1]));
+        }
+        elementRollMap = tempMap;
     }
 }
