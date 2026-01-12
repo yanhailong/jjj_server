@@ -77,6 +77,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
         nextRoundStart();
         // 游戏中
         gameState = EGameState.GAMING;
+        init = true;
     }
 
     /**

@@ -12,8 +12,8 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.AwardCodeType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.AwardCodeManager;
 import com.jjg.game.core.service.MailService;
@@ -31,7 +31,6 @@ import com.jjg.game.sampledata.bean.PointsAwardRobotCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
 import io.netty.util.Timeout;
 import org.apache.commons.lang.StringUtils;
-import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.redisson.api.RDeque;
 import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
@@ -45,13 +44,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
  * 积分大奖排行榜管理器
  */
 @Component
-public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener {
+public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener,GmListener {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -72,6 +72,8 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
     private List<Pair<Long, Integer>> robotList;
     private final RankService rankService;
     private final RobotUtil robotUtil;
+    private Timeout robotScheduleTimeout = null;
+    private final AtomicBoolean init = new AtomicBoolean(false);
     // ==================== 构造函数 ====================
 
     /**
@@ -120,6 +122,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             leaderboardService.init(this);
             cacheRankData();
             addRobotSchedule();
+            init.set(true);
             log.info("积分奖励排行榜管理器初始化完成");
         } catch (Exception e) {
             log.error("积分奖励排行榜管理器初始化失败", e);
@@ -134,6 +137,10 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
         if (!isMaster()) {
             return;
         }
+        if (robotScheduleTimeout != null) {
+            log.info("积分大奖机器人定时任务已经添加");
+            return;
+        }
         try {
             //单位秒【倒计时下限_倒计时上限_最小增长积分_前X名用机器人占榜】
             GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(48);
@@ -142,7 +149,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                 if (config.length != 4) {
                     return;
                 }
-                WheelTimerUtil.schedule(this::robotAction, RandomUtil.randomInt(Integer.parseInt(config[0]), Integer.parseInt(config[1])), TimeUnit.SECONDS);
+                robotScheduleTimeout = WheelTimerUtil.schedule(this::robotAction, RandomUtil.randomInt(Integer.parseInt(config[0]), Integer.parseInt(config[1])), TimeUnit.SECONDS);
             }
         } catch (Exception e) {
             log.error("添加积分大奖机器人定时任务失败", e);
@@ -407,7 +414,6 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
 
     /**
      * 清除机器人数据
-     *
      */
     private void clearRobotData() {
         if (isMaster()) {
@@ -704,7 +710,6 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                 RDeque<PointsAwardLeaderboardData> deque = redissonClient.getDeque(historyKey);
 
                 deque.addFirst(rankingData);
-
                 // 保持历史记录数量限制
                 while (deque.size() > PointsAwardConstant.Leaderboard.MAX_HISTORY_SIZE) {
                     deque.removeLast();
@@ -764,11 +769,35 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
 
     @Override
     public void isLeader() {
-        addRobotSchedule();
-        log.info("成为主节点 添加机器人定时任务");
+        if (init.get()) {
+            addRobotSchedule();
+            log.info("成为主节点 添加机器人定时任务");
+        }
     }
 
     @Override
     public void notLeader() {
+        if (robotScheduleTimeout != null) {
+            robotScheduleTimeout.cancel();
+        }
+        robotScheduleTimeout = null;
+    }
+
+
+    @Override
+    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
+        if (gmOrders.length < 2) {
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+        String code = gmOrders[0];
+        if ("targetRank".equalsIgnoreCase(code)) {
+            int snapshotType = Integer.parseInt(gmOrders[1]);
+            snapshotUnderLock(snapshotType);
+            leaderboardService.reset(snapshotType);
+            return result;
+        }
+        return new CommonResult<>(Code.FAIL);
     }
 }

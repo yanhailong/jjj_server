@@ -2,6 +2,7 @@ package com.jjg.game.core.dao;
 
 import com.jjg.game.core.utils.RedisUtils;
 import org.redisson.api.*;
+import org.redisson.client.codec.LongCodec;
 import org.redisson.client.codec.StringCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,7 @@ public class CountDao {
 
     private final RedissonClient redissonClient;
     private final String TABLE_NAME = "count:%s:%s";
+    private final String HASH_TABLE_NAME = "count:%s";
 
     public CountDao(RedissonClient redissonClient) {
         this.redissonClient = redissonClient;
@@ -68,11 +70,16 @@ public class CountDao {
         return String.format(TABLE_NAME, featureId, customId);
     }
 
+    private String getHashKey(String featureId) {
+        return String.format(HASH_TABLE_NAME, featureId);
+    }
+
     /**
      * 设置计数（保留两位小数）
+     *
      * @param featureId 功能ID
-     * @param customId 功能子ID
-     * @param count 计数
+     * @param customId  功能子ID
+     * @param count     计数
      */
     public void setCount(String featureId, String customId, BigDecimal count) {
         RAtomicLong atomicLong = redissonClient.getAtomicLong(getKey(featureId, customId));
@@ -81,9 +88,10 @@ public class CountDao {
 
     /**
      * 设置计数（保留两位小数）
-     * @param featureId 功能ID
-     * @param customId 功能子ID
-     * @param count 计数
+     *
+     * @param featureId     功能ID
+     * @param customId      功能子ID
+     * @param count         计数
      * @param expireSeconds 过期时间
      */
     public void setCount(String featureId, String customId, BigDecimal count, long expireSeconds) {
@@ -101,9 +109,9 @@ public class CountDao {
      * 如果键不存在，则设置为 count 的值并设置过期时间。
      * 如果键存在，则自增 count 的值，但不刷新过期时间。
      *
-     * @param featureId 特性 ID
-     * @param customId 业务 ID
-     * @param count 要设置或自增的值
+     * @param featureId     特性 ID
+     * @param customId      业务 ID
+     * @param count         要设置或自增的值
      * @param expireSeconds 第一次设置时使用的过期时间（秒）
      * @return 自增或设置后的新值
      */
@@ -136,8 +144,8 @@ public class CountDao {
      * 只有当键存在且当前值 >= 要自减的值时，才执行自减。
      * 如果自减成功，返回新的值；否则返回 null。
      *
-     * @param featureId 特性 ID
-     * @param customId 业务 ID
+     * @param featureId      特性 ID
+     * @param customId       业务 ID
      * @param decrementValue 要自减的值 (必须为正数)
      * @return 成功自减后的新值 (Long)，失败返回 null。
      */
@@ -168,14 +176,25 @@ public class CountDao {
 
     /**
      * 获取计数（返回 BigDecimal）
+     *
      * @param featureId 功能ID
-     * @param customId 功能子ID
+     * @param customId  功能子ID
      * @return 计数
      */
     public BigDecimal getCount(String featureId, String customId) {
         String key = getKey(featureId, customId);
         long val = redissonClient.getAtomicLong(key).get();
         return RedisUtils.fromLong(val);
+    }
+
+    public BigDecimal getCountHash(String featureId, String customId) {
+        String hashKey = getHashKey(featureId);
+        RMap<String, Long> map = redissonClient.getMap(hashKey,LongCodec.INSTANCE);
+        Long l = map.get(customId);
+        if(l == null){
+            return BigDecimal.ZERO;
+        }
+        return RedisUtils.fromLong(l);
     }
 
     public Long getLongCount(String featureId, String customId) {
@@ -185,9 +204,10 @@ public class CountDao {
 
     /**
      * 原子自增（两位小数）
+     *
      * @param featureId 功能ID
-     * @param customId 功能子ID
-     * @param delta 自增步数
+     * @param customId  功能子ID
+     * @param delta     自增步数
      * @return 自增后的值
      */
     public BigDecimal incrBy(String featureId, String customId, BigDecimal delta) {
@@ -199,6 +219,7 @@ public class CountDao {
 
     /**
      * 原子批量自增（两位小数）
+     *
      * @param customId
      * @param deltaMap
      * @return
@@ -236,8 +257,9 @@ public class CountDao {
 
     /**
      * 自增1.00
+     *
      * @param featureId 功能ID
-     * @param customId 功能子ID
+     * @param customId  功能子ID
      * @return 自增后的值
      */
     public BigDecimal incr(String featureId, String customId) {
@@ -246,8 +268,9 @@ public class CountDao {
 
     /**
      * 重置计数
+     *
      * @param featureId 功能ID
-     * @param customId 功能子ID
+     * @param customId  功能子ID
      */
     public void reset(String featureId, String customId) {
         redissonClient.getAtomicLong(getKey(featureId, customId)).delete();
@@ -255,8 +278,9 @@ public class CountDao {
 
     /**
      * 是否存在
-     * @param featureId  功能ID
-     * @param customId 功能子ID
+     *
+     * @param featureId 功能ID
+     * @param customId  功能子ID
      * @return true存在 false不存在
      */
     public boolean exists(String featureId, String customId) {
@@ -265,16 +289,24 @@ public class CountDao {
 
     /**
      * 如果不存在就设置值
+     *
      * @param featureId 功能ID
-     * @param customId 功能子ID
+     * @param customId  功能子ID
      * @return true 设置成功 false设置失败
      */
     public boolean setIfAbsent(String featureId, String customId) {
         return redissonClient.getAtomicLong(getKey(featureId, customId)).compareAndSet(0, 100);
     }
 
+    public boolean setIfAbsentHash(String featureId, String customId) {
+        String hashKey = getHashKey(featureId);
+        RMap<String, Long> map = redissonClient.getMap(hashKey, LongCodec.INSTANCE);
+        return map.fastPutIfAbsent(customId, 100L);
+    }
+
     /**
      * 获取多个
+     *
      * @param featureId 功能id
      * @param customIds 功能子id集合
      * @return
@@ -304,6 +336,7 @@ public class CountDao {
 
     /**
      * 充值计数
+     *
      * @param customId
      * @param value
      */

@@ -106,7 +106,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
             if (changeParam != null && !(gamePlayer instanceof GameRobotPlayer)) {
-                changeParam.addBankerChangeGold(Math.max(0, playerSettlementData.getTotalGet() - playerSettlementData.getBetTotal()));
+                changeParam.addBankerChangeGold(Math.max(0, playerSettlementData.getTotalGet() - playerSettlementData.getBankerWind()));
                 changeParam.addTotalTaxRevenue(playerSettlementData.getTaxation());
             }
             settlementDataMap.put(playerId, playerSettlementData);

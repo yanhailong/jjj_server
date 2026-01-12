@@ -121,6 +121,8 @@ public interface Code {
     int WEALTH_ROULETTE_NOT_POINT = 80011;
     // 财富转盘购买上限
     int WEALTH_ROULETTE_BUY_LIMIT = 80029;
+    // 已领取所有带附件的邮件
+    int MAIL_ITEM_ALL_GET = 11010;
     // 服务器错误
     int EXCEPTION = 500;
 }
