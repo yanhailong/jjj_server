@@ -1198,16 +1198,21 @@ public class FriendRoomServices {
             playerController.send(res);
             return;
         }
-        ClusterClient client = null;
-        if (!StringUtils.isEmpty(friendRoom.getPath())) {
+        ClusterClient client;
+        if (StringUtils.isEmpty(friendRoom.getPath())) {
+            client = randomNode(playerController, friendRoom, playerId);
+        } else {
             client = clusterSystem.getClusterByPath(friendRoom.getPath());
-            // 被操作的房间不能为空
             if (client == null) {
-                // 房间对应的节点找不到
-                res.code = Code.FAIL;
-                playerController.send(res);
-                return;
+                client = randomNode(playerController, friendRoom, playerId);
             }
+        }
+        // 被操作的房间不能为空
+        if (client == null) {
+            // 房间对应的节点找不到
+            res.code = Code.FAIL;
+            playerController.send(res);
+            return;
         }
         switch (req.operateCode) {
             // 开始
@@ -1286,6 +1291,35 @@ public class FriendRoomServices {
             default:
                 break;
         }
+    }
+
+    private ClusterClient randomNode(PlayerController playerController, FriendRoom friendRoom, long playerId) {
+        String path;
+        MarsNode targetNode = nodeManager.getGameNodeByWeight(friendRoom.getGameType(), playerId, playerController.getPlayer().getIp());
+        if (targetNode != null) {
+            path = targetNode.getNodePath();
+            String finalPath = path;
+            CommonResult<FriendRoom> result = friendRoomDao.doSave(friendRoom, new DataSaveCallback<>() {
+                @Override
+                public void updateData(FriendRoom dataEntity) {
+                }
+
+                @Override
+                public boolean updateDataWithRes(FriendRoom dataEntity) {
+                    dataEntity.setPath(finalPath);
+                    return true;
+                }
+            });
+            if (!result.success()) {
+                log.error("未找到节点时，随机节点保存失败 playerId:{} roomId:{}", playerId, friendRoom.getId());
+                return null;
+            }
+            log.info("随机节点创建房间 playerId:{} roomId:{} oldPath:{} path:{}", playerId, friendRoom.getId(), friendRoom.getPath(), path);
+            friendRoom.setPath(result.data.getPath());
+            initFriendRoomInGameNode(friendRoom.getRoomCfgId(), friendRoom);
+            return clusterSystem.getClusterByPath(path);
+        }
+        return null;
     }
 
     /**
