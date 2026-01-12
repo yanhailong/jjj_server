@@ -116,6 +116,11 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
         if (whiteIdArray != null) {
             nodeConfig.setWhiteIdList(whiteIdArray.toArray(new String[0]));
         }
+
+        JSONArray flagsArray = jsonObject.getJSONArray("flags");
+        if (flagsArray != null) {
+            nodeConfig.setFlags(flagsArray.toArray(new String[0]));
+        }
         update();
     }
 
@@ -124,6 +129,8 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
             // 检查whiteIpList和whiteIdList是否为空或空数组
             nodeConfig.setWhiteIpList(checkNull(nodeConfig.getWhiteIpList()));
             nodeConfig.setWhiteIdList(checkNull(nodeConfig.getWhiteIdList()));
+            nodeConfig.setFlags(checkNull(nodeConfig.getFlags()));
+
             String path = CoreConst.Common.SEPARATOR + nodeConfig.getParentPath() + CoreConst.Common.SEPARATOR +
                     nodeConfig.getType() + CoreConst.Common.SEPARATOR +
                     nodeConfig.getName();
@@ -141,6 +148,7 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
             // 检查whiteIpList和whiteIdList是否为空或空数组
             nodeConfig.setWhiteIpList(checkNull(nodeConfig.getWhiteIpList()));
             nodeConfig.setWhiteIdList(checkNull(nodeConfig.getWhiteIdList()));
+            nodeConfig.setFlags(checkNull(nodeConfig.getFlags()));
 
             String path = CoreConst.Common.SEPARATOR +
                 nodeConfig.getParentPath() +

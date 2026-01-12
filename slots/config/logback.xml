@@ -25,11 +25,7 @@
         <logger name="org.apache.commons.httpclient" level="error" />
         <logger name="org.apache.kafka" level="WARN"/>
 
-        <!-- 使用正则匹配的过滤器 -->
-        <turboFilter class="ch.qos.logback.classic.turbo.DynamicThresholdFilter">
-            <Key>GenerateManager</Key>
-            <DefaultThreshold>ERROR</DefaultThreshold>
-        </turboFilter>
+        <turboFilter class="com.jjg.game.slots.data.GenerateManagerLevelFilter"/>
 
         <root level="info">
                 <appender-ref ref="console" />

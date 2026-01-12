@@ -13,6 +13,8 @@ public class AccountConfig {
     private long playerBeginId;
     //服务器ws地址
     private List<String> gameservers;
+    //未充值服务器ws地址
+    private List<String> poorGameservers;
     //资源地址
     private List<String> resourceurls;
 
@@ -30,6 +32,14 @@ public class AccountConfig {
 
     public void setGameservers(List<String> gameservers) {
         this.gameservers = gameservers;
+    }
+
+    public List<String> getPoorGameservers() {
+        return poorGameservers;
+    }
+
+    public void setPoorGameservers(List<String> poorGameservers) {
+        this.poorGameservers = poorGameservers;
     }
 
     public List<String> getResourceurls() {

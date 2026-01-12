@@ -329,7 +329,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
             log.warn("node not found or not has children,tpye is {}", nodeType);
             return null;
         }
-        return marsNode.randomOneMarsNodeWithWeight(ip, playerId);
+        return marsNode.randomOneMarsNodeWithWeight(ip, playerId, this.nodeConfig.flags);
     }
 
     /**
