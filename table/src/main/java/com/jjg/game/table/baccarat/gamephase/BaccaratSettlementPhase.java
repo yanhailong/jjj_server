@@ -386,13 +386,19 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                     SettlementData settlementData = null;
                     switch (areaBet.getKey()) {
                         case 2:
+                            if (winState == 3) {
                                 settlementData = calcGold(null, weightCfgMap.get(areaBet.getKey()), areaTotal);
+                            }
                             break;
                         case 4:
+                            if (winState == 2) {
                                 settlementData = calcGold(null, weightCfgMap.get(areaBet.getKey()), areaTotal);
+                            }
                             break;
                         case 5:
+                            if (winState == 1) {
                                 settlementData = calcGold(null, weightCfgMap.get(areaBet.getKey()), areaTotal);
+                            }
                             break;
                         default:
                             break;
@@ -524,6 +530,10 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                     indexCardArr[2] = index2;
                     cardArr[2] = key3;
                     for (Byte key4 : keysList4) {
+                        indexCardArr[4] = -1;
+                        indexCardArr[5] = -1;
+                        cardArr[4] = 0;
+                        cardArr[5] = 0;
                         if (pointIdMap.get(key4).isEmpty() || cardArr[2] == key4) {
                             continue;
                         }
@@ -536,7 +546,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                         //判断需要补牌不
                         // 检查闲家是否补牌
                         boolean has = (cardArr[0] + cardArr[2]) % 10 >= 8 || (cardArr[1] + cardArr[3]) % 10 >= 8;
-                        byte extraPlayerCardId = 0;
+                        byte playerThirdCardId = 0;
                         if (!has && checkNeedFillCard(List.of(cardIds.get(indexCardArr[0]), cardIds.get(indexCardArr[2])), true, (byte) 0)) {
                             for (Byte key5 : keysList5) {
                                 if (pointIdMap.get(key5).isEmpty()) {
@@ -548,11 +558,11 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                                 }
                                 indexCardArr[4] = index4;
                                 cardArr[4] = key5;
-                                extraPlayerCardId = cardIds.get(index4);
+                                playerThirdCardId = cardIds.get(indexCardArr[4]);
                             }
                         }
                         // 检查庄家是否补牌
-                        if (!has && checkNeedFillCard(List.of(cardIds.get(indexCardArr[1]), cardIds.get(indexCardArr[3])), false, extraPlayerCardId)) {
+                        if (!has && checkNeedFillCard(List.of(cardIds.get(indexCardArr[1]), cardIds.get(indexCardArr[3])), false, playerThirdCardId)) {
                             for (Byte key6 : keysList6) {
                                 if (pointIdMap.get(key6).isEmpty()) {
                                     continue;
@@ -568,10 +578,10 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                         //计算结果
                         int first = (cardArr[0] + cardArr[2] + cardArr[4]) % 10;
                         int second = (cardArr[1] + cardArr[3] + cardArr[5]) % 10;
-                        if (first > second && winState == 1) {
+                        if (first > second && winState == 2) {
                             return indexCardArr;
                         }
-                        if (first < second && winState == 2) {
+                        if (first < second && winState == 1) {
                             return indexCardArr;
                         }
                         if (first == second && winState == 3) {
