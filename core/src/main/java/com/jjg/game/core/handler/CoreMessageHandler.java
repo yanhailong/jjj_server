@@ -383,6 +383,7 @@ public class CoreMessageHandler {
             return;
         }
         log.debug("gm绑定第三方账户成功 playerId = {},orders = {}", playerController.playerId(), orders);
+        playerController.send(res);
     }
 
     @Command(MessageConst.CoreMessage.REQ_CONFIRM_PLAYER_SCENE)
