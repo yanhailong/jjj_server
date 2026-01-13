@@ -3,6 +3,8 @@ package com.jjg.game.activity.dailylogin.controller;
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
+import com.jjg.game.activity.common.data.ActivityTargetType;
+import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -20,6 +22,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.BindThirdAccountListener;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
@@ -40,7 +43,7 @@ import java.util.stream.Collectors;
  * @date 2025/9/3
  */
 @Component
-public class DailyLoginController extends BaseActivityController {
+public class DailyLoginController extends BaseActivityController implements BindThirdAccountListener {
 
     private final Logger log = LoggerFactory.getLogger(DailyLoginController.class);
     private final DailyLoginDao dailyLoginDao;
@@ -209,7 +212,7 @@ public class DailyLoginController extends BaseActivityController {
     /**
      * 构建每日签到活动详情
      *
-     * @param player   玩家数据
+     * @param player       玩家数据
      * @param activityData 活动ID
      * @param baseCfgBean  活动配置
      * @param data         玩家特权卡数据
@@ -346,10 +349,28 @@ public class DailyLoginController extends BaseActivityController {
 
     @Override
     public boolean checkPlayerCanJoinActivity(Player player, Object obj, ActivityData activityData) {
-        if(obj == null){
+        if (obj == null) {
             obj = accountDao.queryAccountByPlayerId(player.getId());
         }
 
         return conditionManager.isAchievement(player, obj, activityData.getCondition());
+    }
+
+    @Override
+    public void bind(Player player, Account account, LoginType loginType, ChannelUserInfo channelUserInfo) {
+        if (loginType != LoginType.PHONE) {
+            return;
+        }
+        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.DAILY_LOGIN);
+        if (CollectionUtil.isEmpty(dataMap)) {
+            return;
+        }
+        for (Map.Entry<Long, ActivityData> entry : dataMap.entrySet()) {
+            ActivityData data = entry.getValue();
+            if (!data.canRun() || !checkPlayerCanJoinActivity(player, account, data)) {
+                continue;
+            }
+            addPlayerProgress(player, data, 1, ActivityTargetType.BIND_PHONE.getTargetKey(), null);
+        }
     }
 }

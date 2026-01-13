@@ -375,7 +375,7 @@ public class CoreMessageHandler {
 
         ChannelUserInfo channelUserInfo = new ChannelUserInfo();
         channelUserInfo.setUserId(data);
-        CommonResult<Account> result = accountDao.addThirdAccount(playerController.playerId(), loginType, channelUserInfo);
+        CommonResult<Account> result = accountDao.addThirdAccount(playerController.getPlayer(), loginType, channelUserInfo);
         if(!result.success()){
             log.warn("gm绑定第三方账户失败 playerId = {},orders = {},code = {}", playerController.playerId(), orders,result.code);
             res.code = result.code;

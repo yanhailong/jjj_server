@@ -2,9 +2,11 @@ package com.jjg.game.core.dao;
 
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.BindThirdAccountListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -187,7 +189,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
      * @param channelUserInfo
      * @return
      */
-    public CommonResult<Account> addThirdAccount(long playerId, LoginType loginType, ChannelUserInfo channelUserInfo) {
+    public CommonResult<Account> addThirdAccount(Player player, LoginType loginType, ChannelUserInfo channelUserInfo) {
         CommonResult<Account> result = new CommonResult<>(Code.FAIL);
 
         //要加锁，防止重复绑定
@@ -200,7 +202,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
                 return result;
             }
 
-            Account tmpAccount = checkAndSave(playerId, a -> {
+            Account tmpAccount = checkAndSave(player.getId(), a -> {
                 setChannelValue(loginType, channelUserInfo, a);
             });
 
@@ -215,6 +217,11 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
 
         if(accountCommonResult.success()){
             save(accountCommonResult.data,loginType,channelUserInfo.getUserId(),false);
+
+            Map<String, BindThirdAccountListener> beans = CommonUtil.getContext().getBeansOfType(BindThirdAccountListener.class);
+            if(!beans.isEmpty()){
+                beans.forEach((key, listener) -> {listener.bind(player, accountCommonResult.data,loginType, channelUserInfo);});
+            }
         }
         return result;
     }
