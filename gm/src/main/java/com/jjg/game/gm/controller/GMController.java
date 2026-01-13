@@ -646,6 +646,7 @@ public class GMController extends AbstractController {
                 long playerId = Long.parseLong(str);
                 BanAccountVo vo = new BanAccountVo();
                 vo.setPlayerId(playerId);
+                voList.add(vo);
 
                 if (accountStatus == AccountStatus.BAN) {  //封
                     vo.setChangeStatus(AccountStatus.BAN.getCode());
@@ -700,7 +701,6 @@ public class GMController extends AbstractController {
                         vo.setSuccess(true);
                     }
                 }
-                voList.add(vo);
             }
 
             //如果是封禁或者删除账号，则要删除当前token

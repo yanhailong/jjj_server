@@ -1,5 +1,6 @@
 package com.jjg.game.account.manager;
 
+import com.jjg.game.account.config.AccountConfig;
 import com.jjg.game.account.dao.PlayerIdDao;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.service.BlackListService;
@@ -36,6 +37,8 @@ public class AccountStartManager implements SmartLifecycle, ApplicationContextAw
     private LoginConfigService loginConfigService;
     @Autowired
     private BlackListService blackListService;
+    @Autowired
+    private AccountConfig accountConfig;
 
     private ApplicationContext context;
 
