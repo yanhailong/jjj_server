@@ -2,6 +2,9 @@ package com.jjg.game.poker.game.blackjack.gamephase;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 import com.jjg.game.poker.game.blackjack.data.BlackJackBuilder;
 import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
@@ -20,6 +23,8 @@ import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.datatrack.DataTrackNameConstant;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.BlackjackCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -237,7 +242,8 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             settlementInfo.settlementInfo = blackJackSettlementInfo;
             blackJackSettlementInfo.playerId = playerId;
             Long totalGet = playerGet.getOrDefault(playerId, 0L);
-            long get = totalGet - controller.getPlayerTotalBet(playerId);
+            long totalBet = controller.getPlayerTotalBet(playerId);
+            long get = totalGet - totalBet;
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
             if (gamePlayer == null) {
                 log.error("21点结算时 gamePlayer=null playerId:{}", playerId);
@@ -250,7 +256,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                         .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getEffectiveRatio()))
                         .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
                 totalTax += radioBefore - get;
-                totalGet = controller.getPlayerTotalBet(playerId) + get;
+                totalGet = totalBet + get;
                 if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(1);
                 }
@@ -262,10 +268,8 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                 }
             }
             if (totalGet > 0) {
-                if (!(gamePlayer instanceof GameRobotPlayer)) {
-                    gameController.triggerSettlementAction(playerId, gameController.gameControlType().getGameTypeId(), 0, totalGet, controller.getGameTransactionItemId());
-                }
                 gameController.addItem(playerId, totalGet, AddType.GAME_SETTLEMENT);
+                playerGet.put(playerId, totalGet);
             }
             blackJackSettlementInfo.getGold = totalGet;
             blackJackSettlementInfo.win = get >= 0;
@@ -274,8 +278,50 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         }
         gameDataTracker.addGameLogData("tax", totalTax);
         log.info("21点结算信息: {}", JSON.toJSONString(settlementPlayerInfo));
+        addLog(controller, playerGet);
         gameDataVo.setSettlementInfo(settlementPlayerInfo);
         return settlementPlayerInfo;
+    }
+
+
+    public void addLog(BlackJackGameController controller, Map<Long, Long> playerGet) {
+        //构建玩家信息
+        for (PlayerSeatInfo playerSeatInfo : gameDataVo.getPlayerSeatInfoList()) {
+            long playerId = playerSeatInfo.getPlayerId();
+            boolean robot = RobotUtil.isRobot(playerId);
+            if (robot) {
+                continue;
+            }
+            long totalBet = controller.getPlayerTotalBet(playerId);
+            Long win = playerGet.getOrDefault(playerId, 0L);
+            Player gamePlayer = controller.getGamePlayer(playerId);
+            if (gamePlayer == null) {
+                //从内存加载
+                CorePlayerService playerService = controller.getRoomController().getRoomManager().getPlayerService();
+                gamePlayer = playerService.get(playerId);
+            }
+            if (gamePlayer == null) {
+                continue;
+            }
+            Set<Long> aceBuyPlayerIds = gameDataVo.getAceBuyPlayerIds();
+            if (aceBuyPlayerIds.contains(playerId)) {
+                totalBet += gameDataVo.getBaseBetInfo().getOrDefault(playerId, 0L);
+            }
+            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, totalBet);
+            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, win);
+            long income = win - totalBet;
+            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, income);
+            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, totalBet);
+            //增加个人
+            if (income > 0) {
+                //触发任务
+                gameController.triggerSettlementAction(gamePlayer.getId(), gameController.getRoom().getGameType(), 0,
+                        income, gameController.getGameTransactionItemId());
+            } else {
+                gameController.dealLose(gamePlayer, income);
+            }
+        }
+        gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
 
     /**

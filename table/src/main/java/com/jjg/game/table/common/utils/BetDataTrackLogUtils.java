@@ -42,15 +42,16 @@ public class BetDataTrackLogUtils {
     public static void recordBetLog(SettlementData settlementData, GamePlayer gamePlayer,
                                     AbstractPhaseGameController<Room_BetCfg, ?> controller, Map<Integer, List<Integer>> playerBetInfo) {
         GameDataTracker gameDataTracker = controller.getGameDataTracker();
+        long income = 0;
         if (playerBetInfo != null) {
             // 统计总押注
             settlementData.setBetTotal(playerBetInfo.values().stream()
                     .mapToLong(a -> a.stream().mapToInt(b -> b).sum())
                     .sum());
+            income = settlementData.getTotalWin() - settlementData.getBetTotal();
             if (!(gamePlayer instanceof GameRobotPlayer)) {
-                long effectiveWaterFlow = calculationEffectiveWaterFlow(playerBetInfo);
-                gameDataTracker.addPlayerLogData(
-                        gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, effectiveWaterFlow);
+                long effectiveWaterFlow = controller.calculationEffectiveWaterFlow(playerBetInfo);
+                gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, effectiveWaterFlow);
                 //添加活动进度
                 controller.getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
                     @Override
@@ -61,35 +62,17 @@ public class BetDataTrackLogUtils {
                         }
                     }
                 }.setHandlerParamWithSelf("recordBetLog"));
+                controller.triggerSettlementAction(gamePlayer.getId(), controller.getRoom().getGameType(), effectiveWaterFlow, income, controller.getGameTransactionItemId());
             }
         }
         // 添加流水数据
         gameDataTracker.addPlayerLogData(
-                gamePlayer, DataTrackNameConstant.INCOME, settlementData.getBetWin());
+                gamePlayer, DataTrackNameConstant.INCOME, income);
         gameDataTracker.addPlayerLogData(
                 gamePlayer, DataTrackNameConstant.TOTAL_BET, settlementData.getBetTotal());
         gameDataTracker.addPlayerLogData(
                 gamePlayer, DataTrackNameConstant.TOTAL_WIN, settlementData.getTotalWin());
     }
 
-    public static long calculationEffectiveWaterFlow(Map<Integer, List<Integer>> playerBetInfo) {
-        Map<Integer, Long> effectiveWaterFlow = new HashMap<>();
-        for (Map.Entry<Integer, List<Integer>> listEntry : playerBetInfo.entrySet()) {
-            Integer key = listEntry.getKey();
-            BetAreaCfg betAreaCfg = GameDataManager.getBetAreaCfg(key);
-            if (Objects.isNull(betAreaCfg)) {
-                continue;
-            }
-            List<Integer> value = listEntry.getValue();
-            int sum = value.stream().mapToInt(Integer::intValue).sum();
-            //计算有效流水
-            Long bet = effectiveWaterFlow.getOrDefault(betAreaCfg.getRepulsionID(), 0L);
-            if (bet > 0) {
-                effectiveWaterFlow.put(betAreaCfg.getRepulsionID(), sum - bet);
-            } else {
-                effectiveWaterFlow.put(key, (long) sum);
-            }
-        }
-        return effectiveWaterFlow.values().stream().mapToLong(Math::abs).sum();
-    }
+
 }

@@ -274,7 +274,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
     }
 
     public boolean isRobot(long playerId) {
-        return robotUtil.isRobot(playerId);
+        return RobotUtil.isRobot(playerId);
     }
 
     /**

@@ -187,7 +187,6 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
         AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = getRoomControllerByRoomId(roomId);
         if (roomController == null) {
             log.debug("操作房间，但找不到指定的房间：{}", roomId);
-            // TODO 如果是继续房间还需要查库和恢复房间的操作
             return;
         }
         if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {

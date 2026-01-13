@@ -253,7 +253,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         if (CollectionUtil.isNotEmpty(randomRoom.getRoomPlayers())) {
             List<Long> removeIds = new ArrayList<>();
             for (Map.Entry<Long, RoomPlayer> entry : randomRoom.getRoomPlayers().entrySet()) {
-               //roomDao.removePlayers 时 randomRoom会为空，判断下
+                //roomDao.removePlayers 时 randomRoom会为空，判断下
                 if (randomRoom == null) {
                     return null;
                 }
@@ -354,8 +354,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 return Code.ROOM_STOPPING;
             }
             if (roomId < 1) {
-                log.debug("roomId不能小于,加入房间失败 gameType = {},roomId = {} ,playerId = {}", gameType, roomId,
-                        playerController.playerId());
+                log.debug("roomId不能小于,加入房间失败 gameType = {},roomId = {} ,playerId = {}", gameType, roomId, playerController.playerId());
                 return Code.FAIL;
             }
             // 检查玩家重复加入房间的情况,如果是机器人重复加入直接退出,真人玩家进行兼容处理
@@ -387,6 +386,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 roomController = createRoomController(room, roomCfg);
                 registerRoomController(gameType, roomId, roomController);
             }
+            boolean isRobot = playerController.getPlayer() instanceof RobotPlayer;
+            if (!isRobot) {
+                taskManager.loadTaskData(playerController.playerId());
+            }
             //roomController不为空，那么room就是在本节点
             AtomicBoolean reconnect = new AtomicBoolean(false);
             CommonResult<R> addResult = roomController.joinRoom(playerController, reconnect);
@@ -401,7 +404,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             roomController.setRoom(room);
             //加入成功后还需要更新房间信息
             roomController.onJoinRoomSuccessAfter(playerController);
-            boolean isRobot = playerController.getPlayer() instanceof RobotPlayer;
             if (!isRobot) {
                 playerController.setPlayer(playerService.doSave(playerController.playerId(), p -> p.setRoomId(roomId)));
                 // gamePlayer需要同步更新数据
@@ -495,10 +497,14 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         return exitRoom(roomController.getPlayerController(playerId));
     }
 
+    public int exitRoom(PlayerController playerController) {
+        return exitRoom(playerController, true);
+    }
+
     /**
      * 玩家退出房间
      */
-    public <RC extends RoomCfg, R extends Room> int exitRoom(PlayerController playerController) {
+    public <RC extends RoomCfg, R extends Room> int exitRoom(PlayerController playerController, boolean removeTaskData) {
         try {
             if (playerController.roomId() < 1) {
                 log.debug("roomId不能小于,退出房间失败 gameType = {},playerId = {}", playerController.getPlayer().getGameType(),
@@ -533,7 +539,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             // 将玩家房间ID置为0
             if (!playerController.isRobotPlayer()) {
                 playerService.doSave(playerController.playerId(), p -> p.setRoomId(0));
-                taskManager.onExit(playerController.playerId());
+                if (removeTaskData) {
+                    taskManager.onExit(playerController.playerId());
+                }
                 log.debug("玩家退出房间成功 gameCfgId = {},roomId = {},playerId = {},房间人数：{}",
                         room.getRoomCfgId(),
                         room.getId(),
@@ -1132,7 +1140,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             return false;
         }
         //退出房间
-        int exited = exitRoom(playerController);
+        int exited = exitRoom(playerController, false);
         if (exited != Code.SUCCESS) {
             log.info("换房间时退出当前房间失败 playerId:{} oldRoomId:{} gameType:{} roomConfigId:{}",
                     oldRoomId, roomOtherId, gameType, roomCfgId);
