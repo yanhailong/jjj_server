@@ -1178,7 +1178,7 @@ public class GMController extends AbstractController {
             notice.setContent(dto.content());
             notice.setType(dto.type());
             notice.setSort(dto.sort());
-            notice.setOpen(dto.open());
+            notice.setOpen(dto.open() == 1);
             notice.setCornerMark(dto.corner_mark());
             notice.setBackdrop(dto.backdrop());
             notice.setButton(dto.button());
