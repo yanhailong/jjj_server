@@ -16,8 +16,8 @@ public record NoticeDto(
         int type,
         // 排序
         int sort,
-        // 是否开启
-        boolean open,
+        // 是否开启（1开 2闭）
+        int open,
         // 角标资源
         String corner_mark,
         // 背景图
