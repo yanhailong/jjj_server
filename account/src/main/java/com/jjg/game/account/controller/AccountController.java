@@ -125,6 +125,10 @@ public class AccountController extends AbstractController {
                 }
             }
 
+            if(StringUtils.isBlank(dto.getSubChannel())){
+                dto.setSubChannel("1");
+            }
+
             switch (loginType) {
                 case GUEST -> {
                     return guestLogin(dto, clientIp);
