@@ -13,6 +13,7 @@ import com.jjg.game.common.utils.HttpUtils;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.*;
+import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ChooseWareListener;
@@ -72,6 +73,8 @@ public class CoreMessageHandler {
     private TaskManager taskManager;
     @Autowired
     private CountDao countDao;
+    @Autowired
+    private AccountDao accountDao;
 
     public Map<String, ChooseWareListener> chooseWareListenerMap;
 
@@ -186,6 +189,11 @@ public class CoreMessageHandler {
                 taskManager.trigger(playerId, TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
                 //累计充值任务
                 taskManager.trigger(playerId, TaskConstant.ConditionType.PLAYER_SUM_PAY, paramSupplier);
+                return;
+            }
+
+            if("bindThird".equalsIgnoreCase(cmd)){
+                bindThirdAccount(res, playerController, arr);
                 return;
             }
 
@@ -331,6 +339,37 @@ public class CoreMessageHandler {
         }
         playerController.send(res);
         log.debug("添加道具成功 playerId = {},orders = {}", playerController.playerId(), orders);
+    }
+
+    private void bindThirdAccount(ResGm res, PlayerController playerController, String[] orders) {
+        if (orders.length < 3) {
+            res.code = Code.PARAM_ERROR;
+            log.debug("orders 为空，使用gm失败 playerId = {},orders = {}", playerController.playerId(), orders);
+            return;
+        }
+
+        LoginType loginType = LoginType.valueOf(Integer.parseInt(orders[1]));
+        if (loginType == null) {
+            res.code = Code.PARAM_ERROR;
+            log.debug("绑定第三方账号时，loginType未找到 playerId = {},orders = {}", playerController.playerId(), orders);
+            return;
+        }
+
+        String data = orders[2];
+        if (StringUtils.isEmpty(data)) {
+            res.code = Code.PARAM_ERROR;
+            log.debug("绑定第三方账号时，data不能为空 playerId = {},orders = {}", playerController.playerId(), orders);
+            return;
+        }
+
+        ChannelUserInfo channelUserInfo = new ChannelUserInfo();
+        channelUserInfo.setUserId(data);
+        CommonResult<Account> result = accountDao.addThirdAccount(playerController.playerId(), loginType, channelUserInfo);
+        if(!result.success()){
+            log.warn("gm绑定第三方账户失败 playerId = {},orders = {},code = {}", playerController.playerId(), orders,result.code);
+            return;
+        }
+        log.debug("gm绑定第三方账户成功 playerId = {},orders = {}", playerController.playerId(), orders);
     }
 
     @Command(MessageConst.CoreMessage.REQ_CONFIRM_PLAYER_SCENE)

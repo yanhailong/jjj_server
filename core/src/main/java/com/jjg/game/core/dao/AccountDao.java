@@ -192,7 +192,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
 
         //要加锁，防止重复绑定
         String lockKey = getBindLockKey(loginType, channelUserInfo.getUserId());
-        redisLock.executeWithLock(lockKey, GameConstant.Redis.TIME, TimeUnit.MILLISECONDS, () -> {
+        CommonResult<Account> accountCommonResult = redisLock.executeWithLock(lockKey, GameConstant.Redis.TIME, TimeUnit.MILLISECONDS, () -> {
             //查询该账号是否被绑定
             Account existBindAccount = queryThirdAccount(loginType, channelUserInfo.getUserId());
             if (existBindAccount != null) {
@@ -212,6 +212,10 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
             }
             return result;
         });
+
+        if(accountCommonResult.success()){
+            save(accountCommonResult.data,loginType,channelUserInfo.getUserId(),false);
+        }
         return result;
     }
 
@@ -287,7 +291,13 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
      * @return
      */
     public Account save(Account account, LoginType loginType, String data) {
-        redisTemplate.opsForHash().put(DATA_TABLE_NAME, account.getPlayerId(), account);
+        return save(account, loginType, data,true);
+    }
+
+    public Account save(Account account, LoginType loginType, String data,boolean saveData) {
+        if(saveData){
+            redisTemplate.opsForHash().put(DATA_TABLE_NAME, account.getPlayerId(), account);
+        }
         redisTemplate.opsForHash().put(thirdTableName(loginType), data, account.getPlayerId());
         return account;
     }
