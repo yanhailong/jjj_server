@@ -262,6 +262,7 @@ public class CoreMessageHandler {
         if (params == null || params.isEmpty()) {
             res.code = Code.PARAM_ERROR;
             log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(), order);
+            playerController.send(res);
             return;
         }
 
@@ -270,6 +271,7 @@ public class CoreMessageHandler {
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
+            playerController.send(res);
             return;
         }
         playerController.getPlayer().setGold(result.data.getGold());
@@ -284,6 +286,7 @@ public class CoreMessageHandler {
         if (params == null || params.isEmpty()) {
             res.code = Code.PARAM_ERROR;
             log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(), order);
+            playerController.send(res);
             return;
         }
 
@@ -292,6 +295,7 @@ public class CoreMessageHandler {
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
+            playerController.send(res);
             return;
         }
         playerController.getPlayer().setDiamond(result.data.getDiamond());
@@ -306,6 +310,7 @@ public class CoreMessageHandler {
         if (params == null || params.isEmpty()) {
             res.code = Code.PARAM_ERROR;
             log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(), order);
+            playerController.send(res);
             return;
         }
 
@@ -315,6 +320,7 @@ public class CoreMessageHandler {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {},params = {}", playerController.playerId(), order,
                     result.code, params);
+            playerController.send(res);
             return;
         }
         playerController.getPlayer().setVipLevel(result.data.getVipLevel());
@@ -325,6 +331,7 @@ public class CoreMessageHandler {
         if (orders.length < 3) {
             res.code = Code.PARAM_ERROR;
             log.debug("orders 为空，使用gm失败 playerId = {},orders = {}", playerController.playerId(), orders);
+            playerController.send(res);
             return;
         }
 
@@ -335,6 +342,7 @@ public class CoreMessageHandler {
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},orders = {}", playerController.playerId(), orders);
+            playerController.send(res);
             return;
         }
         playerController.send(res);
@@ -345,6 +353,7 @@ public class CoreMessageHandler {
         if (orders.length < 3) {
             res.code = Code.PARAM_ERROR;
             log.debug("orders 为空，使用gm失败 playerId = {},orders = {}", playerController.playerId(), orders);
+            playerController.send(res);
             return;
         }
 
@@ -352,6 +361,7 @@ public class CoreMessageHandler {
         if (loginType == null) {
             res.code = Code.PARAM_ERROR;
             log.debug("绑定第三方账号时，loginType未找到 playerId = {},orders = {}", playerController.playerId(), orders);
+            playerController.send(res);
             return;
         }
 
@@ -359,6 +369,7 @@ public class CoreMessageHandler {
         if (StringUtils.isEmpty(data)) {
             res.code = Code.PARAM_ERROR;
             log.debug("绑定第三方账号时，data不能为空 playerId = {},orders = {}", playerController.playerId(), orders);
+            playerController.send(res);
             return;
         }
 
@@ -367,6 +378,8 @@ public class CoreMessageHandler {
         CommonResult<Account> result = accountDao.addThirdAccount(playerController.playerId(), loginType, channelUserInfo);
         if(!result.success()){
             log.warn("gm绑定第三方账户失败 playerId = {},orders = {},code = {}", playerController.playerId(), orders,result.code);
+            res.code = result.code;
+            playerController.send(res);
             return;
         }
         log.debug("gm绑定第三方账户成功 playerId = {},orders = {}", playerController.playerId(), orders);
