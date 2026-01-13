@@ -199,6 +199,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
             return;
         }
         gameRunInfo.setScrollType(fuMaResultLib.getRollerMode());
+        gameRunInfo.setSpecialModeIcon(fuMaResultLib.getSpecialModeIcon());
         if (currentRandomIndex == randomResult.size() - 1) {
             PoolCfg poolCfg = GameDataManager.getPoolCfg(fuMaResultLib.getJackpotId());
             if (poolCfg != null) {

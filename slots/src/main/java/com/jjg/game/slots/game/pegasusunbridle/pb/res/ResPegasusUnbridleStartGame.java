@@ -37,6 +37,8 @@ public class ResPegasusUnbridleStartGame extends AbstractResponse {
     public int scrollType;
     @ProtoDesc("是否是福马模式")
     public boolean isFuMaEnd;
+    @ProtoDesc("特殊模式icon")
+    public int specialModeIcon;
     public ResPegasusUnbridleStartGame(int code) {
         super(code);
     }

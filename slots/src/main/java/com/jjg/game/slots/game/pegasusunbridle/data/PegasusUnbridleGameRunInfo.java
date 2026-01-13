@@ -22,7 +22,8 @@ public class PegasusUnbridleGameRunInfo extends GameRunInfo<PegasusUnbridlePlaye
     private List<PegasusUnbridleWinIconInfo> awardLineInfos;
     //滚轴类型
     private int scrollType;
-
+    //特殊模式icon
+    private int specialModeIcon;
     public boolean isFuMaEnd() {
         return isFuMaEnd;
     }
@@ -45,5 +46,13 @@ public class PegasusUnbridleGameRunInfo extends GameRunInfo<PegasusUnbridlePlaye
 
     public void setScrollType(int scrollType) {
         this.scrollType = scrollType;
+    }
+
+    public int getSpecialModeIcon() {
+        return specialModeIcon;
+    }
+
+    public void setSpecialModeIcon(int specialModeIcon) {
+        this.specialModeIcon = specialModeIcon;
     }
 }
