@@ -204,18 +204,18 @@ public class AccountController extends AbstractController {
 
             //组装返回信息
             ServerUrlVo serverUrlVo = new ServerUrlVo();
+            serverUrlVo.setGameServersUrls(accountConfig.getGameservers());
 
             //是否配置未充值的服务器地址
-            if(accountConfig.getPoorGameservers() != null && !accountConfig.getPoorGameservers().isEmpty()){
-                //查询玩家充值金额
-                Long rechargeValue = countDao.getCountLong(CountDao.CountType.RECHARGE.getParam(), String.valueOf(playerId));
-                if(rechargeValue == null || rechargeValue < 1){
-                    serverUrlVo.setGameServersUrls(accountConfig.getPoorGameservers());
-                }else {
-                    serverUrlVo.setGameServersUrls(accountConfig.getGameservers());
+            if (accountConfig.getFlags() != null && !accountConfig.getFlags().isEmpty()) {
+                List<String> poorList = accountConfig.getFlags().get("poor");
+                if (poorList != null && !poorList.isEmpty()) {
+                    //查询玩家充值金额
+                    Long rechargeValue = countDao.getCountLong(CountDao.CountType.RECHARGE.getParam(), String.valueOf(playerId));
+                    if (rechargeValue == null || rechargeValue < 1) {
+                        serverUrlVo.setGameServersUrls(poorList);
+                    }
                 }
-            }else {
-                serverUrlVo.setGameServersUrls(accountConfig.getGameservers());
             }
 
             serverUrlVo.setResourceUrls(accountConfig.getResourceurls());

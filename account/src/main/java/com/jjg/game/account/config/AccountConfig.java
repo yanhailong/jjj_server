@@ -3,6 +3,7 @@ package com.jjg.game.account.config;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author 11
@@ -13,8 +14,8 @@ public class AccountConfig {
     private long playerBeginId;
     //服务器ws地址
     private List<String> gameservers;
-    //未充值服务器ws地址
-    private List<String> poorGameservers;
+
+    private Map<String, List<String>> flags;
     //资源地址
     private List<String> resourceurls;
 
@@ -34,12 +35,12 @@ public class AccountConfig {
         this.gameservers = gameservers;
     }
 
-    public List<String> getPoorGameservers() {
-        return poorGameservers;
+    public Map<String, List<String>> getFlags() {
+        return flags;
     }
 
-    public void setPoorGameservers(List<String> poorGameservers) {
-        this.poorGameservers = poorGameservers;
+    public void setFlags(Map<String, List<String>> flags) {
+        this.flags = flags;
     }
 
     public List<String> getResourceurls() {
