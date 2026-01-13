@@ -386,19 +386,13 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                     SettlementData settlementData = null;
                     switch (areaBet.getKey()) {
                         case 2:
-                            if (winState == 3) {
                                 settlementData = calcGold(null, weightCfgMap.get(areaBet.getKey()), areaTotal);
-                            }
                             break;
                         case 4:
-                            if (winState == 2) {
                                 settlementData = calcGold(null, weightCfgMap.get(areaBet.getKey()), areaTotal);
-                            }
                             break;
                         case 5:
-                            if (winState == 1) {
                                 settlementData = calcGold(null, weightCfgMap.get(areaBet.getKey()), areaTotal);
-                            }
                             break;
                         default:
                             break;
