@@ -6,6 +6,7 @@ import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.PointsAwardType;
+import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.manager.RedDotManager;
@@ -351,7 +352,7 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
      * @return true 继续执行 false终止执行
      */
     @Override
-    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, Account account, boolean firstLogin) {
         long playerId = playerController.playerId();
         redisLock.lockAndRun(signLock(playerId), PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> {
             //检测玩家数据是否需要重置

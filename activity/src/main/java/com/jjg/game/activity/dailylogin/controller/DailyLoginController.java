@@ -18,9 +18,8 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.Player;
+import com.jjg.game.core.dao.AccountDao;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
@@ -45,9 +44,11 @@ public class DailyLoginController extends BaseActivityController {
 
     private final Logger log = LoggerFactory.getLogger(DailyLoginController.class);
     private final DailyLoginDao dailyLoginDao;
+    private final AccountDao accountDao;
 
-    public DailyLoginController(DailyLoginDao dailyLoginDao) {
+    public DailyLoginController(DailyLoginDao dailyLoginDao, AccountDao accountDao) {
         this.dailyLoginDao = dailyLoginDao;
+        this.accountDao = accountDao;
     }
 
     /**
@@ -343,4 +344,12 @@ public class DailyLoginController extends BaseActivityController {
                 .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
+    @Override
+    public boolean checkPlayerCanJoinActivity(Player player, Object obj, ActivityData activityData) {
+        if(obj == null){
+            obj = accountDao.queryAccountByPlayerId(player.getId());
+        }
+
+        return conditionManager.isAchievement(player, obj, activityData.getCondition());
+    }
 }

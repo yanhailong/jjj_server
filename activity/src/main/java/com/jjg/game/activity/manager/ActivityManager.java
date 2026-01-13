@@ -32,6 +32,7 @@ import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
+import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -394,7 +395,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     }
 
     @Override
-    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, Account account, boolean firstLogin) {
         NotifyActivityChange info = new NotifyActivityChange();
         info.activityInfos = new ArrayList<>();
         Boolean checked = playerActivityDao.checkCanTargetFirstLogin(player.getId());
@@ -404,7 +405,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 continue;
             }
             info.activityInfos.add(controller.buildActivityInfo(data));
-            if (!data.getType().getController().checkPlayerCanJoinActivity(player, data)) {
+            if (!data.getType().getController().checkPlayerCanJoinActivity(player, account, data)) {
                 continue;
             }
             //玩家首次登录执行

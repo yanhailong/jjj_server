@@ -3,12 +3,11 @@
   "gameservers": [
     "ws://192.168.3.31:8090"
   ],
-
   "flags": {
     "poor": [
+
     ]
   },
-
   "resourceurls": [
     "http://47.109.92.221:8099/Tmep/"
   ]
