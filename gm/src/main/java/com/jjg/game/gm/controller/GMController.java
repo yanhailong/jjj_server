@@ -335,6 +335,8 @@ public class GMController extends AbstractController {
             vo.setIsOffline(playerSessionService.hasSession(p.getId()) ? 0 : 1);
             vo.setMobile(account.getThirdAccount(LoginType.PHONE));
             vo.setLevel(p.getLevel());
+            vo.setGameType(p.getGameType());
+            vo.setRoomCfgId(p.getRoomCfgId());
 
             SafeVo safeVo = new SafeVo();
             safeVo.setSafeGold(p.getSafeBoxGold());
