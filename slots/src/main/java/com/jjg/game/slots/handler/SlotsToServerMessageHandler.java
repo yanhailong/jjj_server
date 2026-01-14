@@ -8,6 +8,7 @@ import com.jjg.game.core.handler.CoreToServerMessageHandler;
 import com.jjg.game.core.pb.gm.NotifyGenrateLib;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
+import com.jjg.game.slots.data.GenerateLibTask;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.manager.SlotsFactoryManager;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
@@ -16,10 +17,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author 11
@@ -32,6 +33,17 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
 
     @Autowired
     private SlotsFactoryManager slotsFactoryManager;
+
+    // 生成任务队列（包含gameType和count信息）
+    private final Queue<GenerateLibTask> generateTaskQueue = new LinkedList<>();
+    // 每个 gameType 是否正在执行
+    private final Set<Integer> runningGameTypes = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    // 正在执行的任务计数
+    private final AtomicInteger runningTasks = new AtomicInteger(0);
+    private final int MAX_CONCURRENT_TASKS = 2;
+
+    // 锁
+    private final Object queueLock = new Object();
 
     /**
      * 生成结果库
@@ -49,11 +61,14 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
                 return;
             }
 
-            boolean add = gameManager.addGenerateLibEvent(countMap(req.gameType, req.count));
-
-            if (add) {
-                log.info("添加生成结果库事件成功  gameType = {},count = {}", req.gameType, req.count);
+            // 任务入队
+            Map<Integer, Integer> countMap = countMap(req.gameType, req.count);
+            synchronized (queueLock) {
+                generateTaskQueue.offer(new GenerateLibTask(req.gameType, countMap));
+                log.info("任务已入队，当前队列长度: {}, gameType = {}", generateTaskQueue.size(), req.gameType);
             }
+            // 尝试启动任务
+            tryStartNextTask();
         } catch (Exception e) {
             log.error("", e);
         }
@@ -93,5 +108,56 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
             }
         });
         return countMap;
+    }
+
+    private void tryStartNextTask() {
+        log.info("尝试开启新的任务");
+        List<GenerateLibTask> tasksToStart = new ArrayList<>();
+
+        synchronized (queueLock) {
+            // 只从队列头取一个任务
+            while (!generateTaskQueue.isEmpty() && runningTasks.get() < MAX_CONCURRENT_TASKS) {
+                GenerateLibTask task = generateTaskQueue.poll();
+                int gameType = task.getGameType();
+
+                // 检查该 gameType 是否已有任务在运行
+                if (runningGameTypes.contains(gameType)) {
+                    log.debug("gameType = {} 已有任务在运行，故忽略该任务", gameType);
+                    continue;  // 继续检查新的队头
+                }
+
+                // 可以启动这个任务
+                tasksToStart.add(task);
+                runningTasks.incrementAndGet();
+                runningGameTypes.add(gameType);
+                log.info("添加可执行任务 gameTpye = {}", gameType);
+            }
+        }
+
+        for (GenerateLibTask task : tasksToStart) {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    log.info("开始执行生成任务，gameType = {}", task.getGameType());
+
+                    AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(task.getGameType());
+
+                    if (gameManager != null) {
+                        // 直接调用 generate 方法
+                        gameManager.generate(task.getLibTypeCountMap(), true);
+//                        Thread.sleep(60000);
+                        log.info("生成任务执行成功，gameType = {}", task.getGameType());
+                    }
+                } catch (Exception e) {
+                    log.error("执行生成任务异常，gameType = " + task.getGameType(), e);
+                } finally {
+                    log.info("任务执行结束 gameType = {}", task.getGameType());
+                    runningTasks.decrementAndGet();
+                    runningGameTypes.remove(task.getGameType());  // 移除标记
+                    // 任务完成后，尝试启动下一个
+                    tryStartNextTask();
+                }
+            });
+        }
+        log.info("tryStartNextTask执行结束 queueSize = {},runningGameTypes = {}", generateTaskQueue.size(), runningGameTypes);
     }
 }
