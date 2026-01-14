@@ -653,19 +653,20 @@ public class GMController extends AbstractController {
                     delTokenList.add(playerId);
                     Account resAccount = accountDao.checkAndSaveRes(playerId, new DataSaveCallback<>() {
                         @Override
-                        public void updateData(Account dataEntity) {}
+                        public void updateData(Account dataEntity) {
+                        }
 
                         @Override
                         public boolean updateDataWithRes(Account dataEntity) {
-                            if(dataEntity.getStatus() == AccountStatus.NORMAL.getCode()){
+                            if (dataEntity.getStatus() == AccountStatus.NORMAL.getCode()) {
                                 dataEntity.setStatus(AccountStatus.BAN.getCode());
                                 return true;
                             }
-                            log.warn("玩家当前状态不能被封禁 playerId = {},status = {},toStatus = {}",dataEntity.getPlayerId(),dataEntity.getStatus(),AccountStatus.BAN.getCode());
+                            log.warn("玩家当前状态不能被封禁 playerId = {},status = {},toStatus = {}", dataEntity.getPlayerId(), dataEntity.getStatus(), AccountStatus.BAN.getCode());
                             return false;
                         }
                     });
-                    if(resAccount == null){
+                    if (resAccount == null) {
                         log.warn("玩家封禁账号失败 playerId = {}", playerId);
                         vo.setSuccess(false);
                         continue;
@@ -679,25 +680,26 @@ public class GMController extends AbstractController {
                     session.send(notifyKickout);
                 } else {  //解
                     vo.setChangeStatus(AccountStatus.NORMAL.getCode());
-                    Account resAccount = accountDao.checkAndSaveRes(playerId, new  DataSaveCallback<>() {
+                    Account resAccount = accountDao.checkAndSaveRes(playerId, new DataSaveCallback<>() {
                         @Override
-                        public void updateData(Account dataEntity) {}
+                        public void updateData(Account dataEntity) {
+                        }
 
                         @Override
                         public boolean updateDataWithRes(Account dataEntity) {
-                            if(dataEntity.getStatus() == AccountStatus.BAN.getCode()){
+                            if (dataEntity.getStatus() == AccountStatus.BAN.getCode()) {
                                 dataEntity.setStatus(AccountStatus.NORMAL.getCode());
                                 return true;
                             }
-                            log.warn("玩家当前状态不能被解封 playerId = {},status = {},toStatus = {}",dataEntity.getPlayerId(),dataEntity.getStatus(),AccountStatus.NORMAL.getCode());
+                            log.warn("玩家当前状态不能被解封 playerId = {},status = {},toStatus = {}", dataEntity.getPlayerId(), dataEntity.getStatus(), AccountStatus.NORMAL.getCode());
                             return true;
                         }
                     });
 
-                    if(resAccount == null){
+                    if (resAccount == null) {
                         log.warn("玩家解封账号失败 playerId = {}", playerId);
                         vo.setSuccess(false);
-                    }else {
+                    } else {
                         vo.setSuccess(true);
                     }
                 }
@@ -734,7 +736,7 @@ public class GMController extends AbstractController {
                 }
             }
 
-            List<OnlinePlayer> list = onlinePlayerDao.query(dto.gameId(), dto.registerChannel(), subChannels, dto.pageSize(), dto.page());
+            List<OnlinePlayer> list = onlinePlayerDao.query(dto.gameId(), dto.registerChannel(), dto.playerId(), subChannels, dto.pageSize(), dto.page());
             if (list == null || list.isEmpty()) {
                 return success("common.success");
             }
@@ -759,7 +761,7 @@ public class GMController extends AbstractController {
                     vo.setDiamond(player.getDiamond());
                     vo.setGameType(player.getGameType());
                     vo.setRoomCfgId(player.getRoomCfgId());
-                }else {
+                } else {
                     vo.setGameType(olp.getGameType());
                     vo.setRoomCfgId(olp.getRoomCfgId());
                 }

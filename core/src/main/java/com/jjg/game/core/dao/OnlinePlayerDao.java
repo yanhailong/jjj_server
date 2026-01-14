@@ -47,7 +47,7 @@ public class OnlinePlayerDao extends MongoBaseDao<OnlinePlayer, Long> {
         mongoTemplate.remove(new Query(Criteria.where("playerId").in(playerIds)), OnlinePlayer.class);
     }
 
-    public List<OnlinePlayer> query(int gameType, int channel, List<String> subChannels, int pageSize, int page) {
+    public List<OnlinePlayer> query(int gameType, int channel, long playerId, List<String> subChannels, int pageSize, int page) {
         if (pageSize > 100) {
             pageSize = 100;
         }
@@ -66,6 +66,10 @@ public class OnlinePlayerDao extends MongoBaseDao<OnlinePlayer, Long> {
 
         if (subChannels != null && !subChannels.isEmpty()) {
             criteria.and("subChannel").in(subChannels);
+        }
+
+        if (playerId > 0) {
+            criteria.and("playerId").is(playerId);
         }
 
         Query query = Query.query(criteria)
