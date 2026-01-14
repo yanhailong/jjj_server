@@ -21,18 +21,21 @@ public class OnlinePlayerDao extends MongoBaseDao<OnlinePlayer, Long> {
         super(OnlinePlayer.class, mongoTemplate);
     }
 
-    public void online(long playerId, int channel, int gameType, String subChannel) {
+    public void online(long playerId, int channel, int gameType, int roomCfgId, String subChannel) {
         OnlinePlayer onlinePlayer = new OnlinePlayer();
         onlinePlayer.setPlayerId(playerId);
         onlinePlayer.setChannel(channel);
         onlinePlayer.setGameType(gameType);
+        onlinePlayer.setRoomCfgId(roomCfgId);
         onlinePlayer.setSubChannel(subChannel);
         mongoTemplate.save(onlinePlayer);
     }
 
-    public void changeGameType(long playerId, int gameType) {
+    public void changeGameType(long playerId, int gameType, int roomCfgId) {
         Query query = new Query(Criteria.where("playerId").is(playerId));
-        Update update = new Update().set("gameType", gameType);
+        Update update = new Update();
+        update.set("gameType", gameType);
+        update.set("roomCfgId", roomCfgId);
         mongoTemplate.updateFirst(query, update, OnlinePlayer.class);
     }
 
@@ -66,8 +69,8 @@ public class OnlinePlayerDao extends MongoBaseDao<OnlinePlayer, Long> {
         }
 
         Query query = Query.query(criteria)
-                        .skip((long) page * pageSize)
-                        .limit(pageSize);
+                .skip((long) page * pageSize)
+                .limit(pageSize);
 
         return mongoTemplate.find(query, OnlinePlayer.class);
     }

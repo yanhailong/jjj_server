@@ -757,6 +757,11 @@ public class GMController extends AbstractController {
                     vo.setCreateTime(player.getCreateTime());
                     vo.setGold(player.getGold());
                     vo.setDiamond(player.getDiamond());
+                    vo.setGameType(player.getGameType());
+                    vo.setRoomCfgId(player.getRoomCfgId());
+                }else {
+                    vo.setGameType(olp.getGameType());
+                    vo.setRoomCfgId(olp.getRoomCfgId());
                 }
                 vo.setRegisterChannel(olp.getChannel());
                 resultList.add(vo);
