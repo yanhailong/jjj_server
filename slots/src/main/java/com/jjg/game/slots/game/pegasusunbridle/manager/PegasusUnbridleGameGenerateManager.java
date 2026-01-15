@@ -59,6 +59,7 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
                 if (iconRandom != null) {
                     icon = iconRandom.next();
                 }
+                lib.setSpecialModeIcon(icon);
                 //随机
                 int[] iconArr = lib.getIconArr();
                 //进行元素随机
@@ -95,6 +96,7 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
                     specialLib.setId(RandomUtils.getUUid());
                     specialLib.setRollerMode(elementRollMap.get(icon));
                     specialLib.setGameType(lib.getGameType());
+                    specialLib.setSpecialModeIcon(icon);
                     specialLib.setIconArr(Arrays.copyOf(temp, temp.length));
                     List<PegasusUnbridleAwardLineInfo> specialAwardLineInfoList = winLines(specialLib, freeModel);
                     specialLib.setAwardLineInfoList(specialAwardLineInfoList);

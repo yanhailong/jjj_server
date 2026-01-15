@@ -329,7 +329,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
             log.warn("node not found or not has children,tpye is {}", nodeType);
             return null;
         }
-        return marsNode.randomOneMarsNodeWithWeight(ip, playerId);
+        return marsNode.randomOneMarsNodeWithWeight(ip, playerId, this.nodeConfig.flags);
     }
 
     /**
@@ -373,7 +373,8 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
                 int[] gameMajorTypes = clusterClient.nodeConfig.gameMajorTypes;
                 if (gameMajorTypes != null && clusterClient.nodeConfig.weight > 0 &&
                         (clusterClient.nodeConfig.getWhiteIpList() == null || clusterClient.nodeConfig.getWhiteIpList().length < 1) &&
-                        (clusterClient.nodeConfig.getWhiteIdList() == null || clusterClient.nodeConfig.getWhiteIdList().length < 1)) {
+                        (clusterClient.nodeConfig.getWhiteIdList() == null || clusterClient.nodeConfig.getWhiteIdList().length < 1) &&
+                        (clusterClient.nodeConfig.getFlags() == null || clusterClient.nodeConfig.getFlags().length < 1)) {
 
                     for (int mType : gameMajorTypes) {
                         if (mType == gameMajorType) {

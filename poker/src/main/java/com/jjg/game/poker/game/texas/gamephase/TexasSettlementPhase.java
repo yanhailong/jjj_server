@@ -177,9 +177,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         //生成记录
         TexasSaveHistory texasHistory = gameDataVo.getTexasHistory();
         Map<Long, List<Integer>> settlementAllCards = new HashMap<>();
-        for (TexasHistoryPlayerInfo info : texasHistory.getTotalPlayerBetInfo()) {
-            info.betValue = playerGet.getOrDefault(info.playerId, 0L) - info.betValue;
-        }
+
         texasHistory.setSettlementAllCards(settlementAllCards);
         texasHistory.setPotList(gameDataVo.getPool().stream().map(Pot::getAmount).collect(Collectors.toList()));
         //通知结算
@@ -224,10 +222,14 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(1);
                 }
+                playerGet.put(playerId, afterRatio);
             } else {
                 if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(2);
                 }
+            }
+            for (TexasHistoryPlayerInfo info : texasHistory.getTotalPlayerBetInfo()) {
+                info.betValue = playerGet.getOrDefault(info.playerId, -info.betValue);
             }
             pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
             pokerPlayerSettlementInfo.getGold = totalGet;
@@ -356,16 +358,16 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         //增加金币
         Long allBet = baseBetInfo.getOrDefault(playerId, 0L);
         long beforeRatio = total - allBet;
+        long get = beforeRatio * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
         //添加记录
         TexasSaveHistory texasHistory = gameDataVo.getTexasHistory();
         for (TexasHistoryPlayerInfo info : texasHistory.getTotalPlayerBetInfo()) {
             if (info.playerId == playerId) {
-                info.betValue = beforeRatio;
+                info.betValue = get;
                 continue;
             }
             info.betValue = -info.betValue;
         }
-        long get = beforeRatio * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
         controller.changePlayerGold(gamePlayer, allBet + get);
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         // 添加账单记录
@@ -394,8 +396,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             Long betValue = baseBetInfo.getOrDefault(info.playerId, 0L);
             SimplePlayerInfo simplePlayerInfo = new SimplePlayerInfo(info.playerId, info.playerName);
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.TOTAL_BET, betValue);
-            gameDataTracker.addPlayerLogData(
-                    simplePlayerInfo, DataTrackNameConstant.TOTAL_WIN, betValue + info.betValue);
+            gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.TOTAL_WIN, betValue + info.betValue);
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.INCOME, info.betValue);
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.EFFECTIVE_BET, betValue);
             //增加个人

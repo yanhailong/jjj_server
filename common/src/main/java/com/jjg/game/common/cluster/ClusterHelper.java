@@ -33,4 +33,19 @@ public class ClusterHelper {
         }
         return false;
     }
+
+    public static boolean preciseInFlagsList(String[] flag1, String[] flags2) {
+        if (flag1 == null || flag1.length == 0 || flags2 == null || flags2.length == 0) {
+            return false;
+        }
+
+        for(String str : flag1) {
+            for(String str2 : flags2) {
+                if(str.equals(str2)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }

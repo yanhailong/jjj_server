@@ -39,8 +39,7 @@ import java.util.Set;
  * @author lm
  * @date 2025/12/8 17:24
  */
-@Component
-public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager<PegasusUnbridlePlayerGameData, PegasusUnbridleResultLib> {
+public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager<PegasusUnbridlePlayerGameData, PegasusUnbridleResultLib> {
     private final PegasusUnbridleGameGenerateManager gameGenerateManager;
     private final PegasusUnbridleGameDataDao gameDataDao;
     private final PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao;
@@ -61,21 +60,6 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
         log.info("启动神马飞扬游戏管理器...");
         super.init();
         addUpdatePoolEvent();
-    }
-
-
-    @Override
-    public void generate(Map<Integer, Integer> libTypeCountMap, boolean saveToDB) {
-        //神马飞扬的特殊模式存在大量重复 生成数量修改为1/10
-        log.info("神马飞扬原次数 count:{}", JSON.toJSONString(libTypeCountMap));
-        for (Map.Entry<Integer, Integer> entry : libTypeCountMap.entrySet()) {
-            if (entry.getKey() == PegasusUnbridleConstant.SpecialMode.NORMAL) {
-                continue;
-            }
-            entry.setValue(Math.max(1, entry.getValue() / 10));
-        }
-        log.info("神马飞扬修改后次数 count:{}", JSON.toJSONString(libTypeCountMap));
-        super.generate(libTypeCountMap, saveToDB);
     }
 
     @Override
@@ -216,6 +200,7 @@ public class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager
             return;
         }
         gameRunInfo.setScrollType(fuMaResultLib.getRollerMode());
+        gameRunInfo.setSpecialModeIcon(fuMaResultLib.getSpecialModeIcon());
         if (currentRandomIndex == randomResult.size() - 1) {
             PoolCfg poolCfg = GameDataManager.getPoolCfg(fuMaResultLib.getJackpotId());
             if (poolCfg != null) {

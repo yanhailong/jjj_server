@@ -187,6 +187,11 @@ public class CountDao {
         return RedisUtils.fromLong(val);
     }
 
+    public Long getCountLong(String featureId, String customId) {
+        String key = getKey(featureId, customId);
+        return redissonClient.getAtomicLong(key).get();
+    }
+
     public BigDecimal getCountHash(String featureId, String customId) {
         String hashKey = getHashKey(featureId);
         RMap<String, Long> map = redissonClient.getMap(hashKey,LongCodec.INSTANCE);

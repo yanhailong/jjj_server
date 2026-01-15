@@ -450,7 +450,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         int now = TimeHelper.nowInt();
         for (Mail mail : serverMail) {
             try {
-                if(player.getCreateTime() > mail.getSendTime()){
+                if (player.getCreateTime() > mail.getSendTime()) {
                     continue;
                 }
 
@@ -602,7 +602,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     }
 
     @Override
-    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, Account account, boolean firstLogin) {
         playerGetServerMails(player);
     }
 

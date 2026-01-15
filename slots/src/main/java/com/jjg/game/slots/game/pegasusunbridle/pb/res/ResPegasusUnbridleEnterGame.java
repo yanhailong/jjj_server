@@ -30,6 +30,9 @@ public class ResPegasusUnbridleEnterGame extends AbstractResponse {
     public int scrollType;
     @ProtoDesc("奖池信息")
     public List<PegasusUnbridlePoolInfo> poolList;
+    @ProtoDesc("特殊模式icon")
+    public int specialModeIcon;
+
     public ResPegasusUnbridleEnterGame(int code) {
         super(code);
     }

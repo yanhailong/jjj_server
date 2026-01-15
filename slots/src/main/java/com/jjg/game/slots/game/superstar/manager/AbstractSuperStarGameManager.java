@@ -25,7 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.Arrays;
 import java.util.List;
 
-public class AbstractSuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlayerGameData, SuperStarResultLib> {
+public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlayerGameData, SuperStarResultLib> {
 
     @Autowired
     protected SuperStarResultLibDao superStarResultLibDao;

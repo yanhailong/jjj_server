@@ -49,6 +49,10 @@ public class NodeConfig {
     //机器人起始id
     public long robotStartId;
 
+    //节点标记，拥有同一标记的节点会形成一个子集群
+    //某些玩家(比如未充值)就只会在这些子集群中玩游戏
+    public String[] flags;
+
     public long getRobotStartId() {
         return robotStartId;
     }
@@ -202,5 +206,13 @@ public class NodeConfig {
      */
     public boolean waitClose() {
         return weight == 0;
+    }
+
+    public String[] getFlags() {
+        return flags;
+    }
+
+    public void setFlags(String[] flags) {
+        this.flags = flags;
     }
 }

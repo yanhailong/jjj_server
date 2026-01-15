@@ -11,6 +11,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
@@ -334,6 +335,8 @@ public class GMController extends AbstractController {
             vo.setIsOffline(playerSessionService.hasSession(p.getId()) ? 0 : 1);
             vo.setMobile(account.getThirdAccount(LoginType.PHONE));
             vo.setLevel(p.getLevel());
+            vo.setGameType(p.getGameType());
+            vo.setRoomCfgId(p.getRoomCfgId());
 
             SafeVo safeVo = new SafeVo();
             safeVo.setSafeGold(p.getSafeBoxGold());
@@ -533,6 +536,45 @@ public class GMController extends AbstractController {
     }
 
     /**
+     * 修改vip等级
+     */
+    @RequestMapping(BackendGMCmd.SET_VIPLEVEL)
+    public WebResult<String> setVip(@RequestBody SetVipDto dto) {
+        try {
+            log.debug("收到后台的设置vip等级的请求 dto = {}", dto);
+            if (dto.playerId() < 1) {
+                log.debug("设置vip等级，玩家id不能小于 1,playerId = {}", dto.playerId());
+                return fail("common.paramerror");
+            }
+            if (dto.vipLevel() < 1) {
+                log.debug("设置vip等级，增减数量错误 vipLevel = {}", dto.vipLevel());
+                return fail("common.paramerror");
+            }
+            Player player = playerService.get(dto.playerId());
+            if (player == null) {
+                log.debug("设置vip等级，未找到该用户 playerId = {}", dto.playerId());
+                return fail("common.paramerror");
+            }
+
+            boolean notifyNode = false;
+            CommonResult<Player> result;
+            result = playerService.setVip(dto.playerId(), dto.vipLevel(), AddType.GM_OPERATOR, null);
+            if (!result.success()) {
+                log.debug("设置vip等级错误 ,playerId = {},code = {}", dto.playerId(), result.code);
+                return fail("common.fail");
+            }
+            if (!notifyNode) {  //如果是账户修改，则要进行通知
+                coreSendMessageManager.buildBaseInfoChangeMessage(result.data);
+            }
+            //返回修改结果
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
      * 踢出玩家
      */
     @RequestMapping(BackendGMCmd.KICK_ACCOUNT)
@@ -581,7 +623,7 @@ public class GMController extends AbstractController {
      * 封禁
      */
     @RequestMapping(BackendGMCmd.BAN_ACCOUNT)
-    public WebResult<String> banAccount(@RequestBody BanAccountDto dto) {
+    public WebResult<List<BanAccountVo>> banAccount(@RequestBody BanAccountDto dto) {
         try {
             log.info("收到后台封禁账号的请求 dto = {}", dto);
             AccountStatus accountStatus = AccountStatus.valueOf(dto.type());
@@ -600,26 +642,75 @@ public class GMController extends AbstractController {
             NotifyKickout notifyKickout = new NotifyKickout();
 
             List<Long> delTokenList = new ArrayList<>();
+
+            List<BanAccountVo> voList = new ArrayList<>();
             for (String str : arr) {
                 long playerId = Long.parseLong(str);
+                BanAccountVo vo = new BanAccountVo();
+                vo.setPlayerId(playerId);
+                voList.add(vo);
 
                 if (accountStatus == AccountStatus.BAN) {  //封
+                    vo.setChangeStatus(AccountStatus.BAN.getCode());
                     delTokenList.add(playerId);
-                    accountDao.checkAndSave(playerId, a -> a.setStatus(AccountStatus.BAN.getCode()));
+                    Account resAccount = accountDao.checkAndSaveRes(playerId, new DataSaveCallback<>() {
+                        @Override
+                        public void updateData(Account dataEntity) {
+                        }
+
+                        @Override
+                        public boolean updateDataWithRes(Account dataEntity) {
+                            if (dataEntity.getStatus() == AccountStatus.NORMAL.getCode()) {
+                                dataEntity.setStatus(AccountStatus.BAN.getCode());
+                                return true;
+                            }
+                            log.warn("玩家当前状态不能被封禁 playerId = {},status = {},toStatus = {}", dataEntity.getPlayerId(), dataEntity.getStatus(), AccountStatus.BAN.getCode());
+                            return false;
+                        }
+                    });
+                    if (resAccount == null) {
+                        log.warn("玩家封禁账号失败 playerId = {}", playerId);
+                        vo.setSuccess(false);
+                        continue;
+                    }
+                    vo.setSuccess(true);
+
                     PFSession session = playerSessionService.getSession(playerId);
                     if (session == null) {
                         continue;
                     }
                     session.send(notifyKickout);
                 } else {  //解
-                    accountDao.checkAndSave(playerId, a -> a.setStatus(AccountStatus.NORMAL.getCode()));
+                    vo.setChangeStatus(AccountStatus.NORMAL.getCode());
+                    Account resAccount = accountDao.checkAndSaveRes(playerId, new DataSaveCallback<>() {
+                        @Override
+                        public void updateData(Account dataEntity) {
+                        }
+
+                        @Override
+                        public boolean updateDataWithRes(Account dataEntity) {
+                            if (dataEntity.getStatus() == AccountStatus.BAN.getCode()) {
+                                dataEntity.setStatus(AccountStatus.NORMAL.getCode());
+                                return true;
+                            }
+                            log.warn("玩家当前状态不能被解封 playerId = {},status = {},toStatus = {}", dataEntity.getPlayerId(), dataEntity.getStatus(), AccountStatus.NORMAL.getCode());
+                            return true;
+                        }
+                    });
+
+                    if (resAccount == null) {
+                        log.warn("玩家解封账号失败 playerId = {}", playerId);
+                        vo.setSuccess(false);
+                    } else {
+                        vo.setSuccess(true);
+                    }
                 }
             }
 
             //如果是封禁或者删除账号，则要删除当前token
             playerSessionTokenDao.delTokens(delTokenList);
             //返回修改结果
-            return success("common.success");
+            return success("common.success", voList);
         } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
@@ -647,7 +738,7 @@ public class GMController extends AbstractController {
                 }
             }
 
-            List<OnlinePlayer> list = onlinePlayerDao.query(dto.gameId(), dto.registerChannel(), subChannels, dto.pageSize(), dto.page());
+            List<OnlinePlayer> list = onlinePlayerDao.query(dto.gameId(), dto.registerChannel(), dto.playerId(), subChannels, dto.pageSize(), dto.page());
             if (list == null || list.isEmpty()) {
                 return success("common.success");
             }
@@ -670,6 +761,11 @@ public class GMController extends AbstractController {
                     vo.setCreateTime(player.getCreateTime());
                     vo.setGold(player.getGold());
                     vo.setDiamond(player.getDiamond());
+                    vo.setGameType(player.getGameType());
+                    vo.setRoomCfgId(player.getRoomCfgId());
+                } else {
+                    vo.setGameType(olp.getGameType());
+                    vo.setRoomCfgId(olp.getRoomCfgId());
                 }
                 vo.setRegisterChannel(olp.getChannel());
                 resultList.add(vo);
@@ -1091,7 +1187,7 @@ public class GMController extends AbstractController {
             notice.setContent(dto.content());
             notice.setType(dto.type());
             notice.setSort(dto.sort());
-            notice.setOpen(dto.open());
+            notice.setOpen(dto.open() == 1);
             notice.setCornerMark(dto.corner_mark());
             notice.setBackdrop(dto.backdrop());
             notice.setButton(dto.button());

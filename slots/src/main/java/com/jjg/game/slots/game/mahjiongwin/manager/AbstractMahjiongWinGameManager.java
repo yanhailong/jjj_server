@@ -30,7 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AbstractMahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWinPlayerGameData, MahjiongWinResultLib> {
+public abstract class AbstractMahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWinPlayerGameData, MahjiongWinResultLib> {
     @Autowired
     protected MahjiongWinResultLibDao libDao;
     @Autowired

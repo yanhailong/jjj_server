@@ -30,10 +30,7 @@ import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
@@ -435,7 +432,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
     }
 
     @Override
-    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, Account account, boolean firstLogin) {
         if (firstLogin) {
             if (isClose(player)) {
                 return;

@@ -94,8 +94,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected RoomSlotsPoolDao roomSlotsPoolDao;
     @Autowired
     protected SlotsRoomManager slotsRoomManager;
-    @Autowired
-    protected FriendRoomSlotsBillHistoryDao friendRoomSlotsBillHistoryDao;
+
 
     //游戏类型
     protected int gameType;
@@ -139,8 +138,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     //生成结果库事件
     protected TimerEvent<Map<Integer, Integer>> generateLibEvent;
 
-    //奖池id
-    protected List<Integer> poolIds;
 
     public AbstractSlotsGameManager(Class<T> playerGameDataClass, Class<L> libClass) {
         this.playerGameDataClass = playerGameDataClass;
@@ -1820,10 +1817,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         //先去获取测试数据
         TestLibData testLibData = playerGameData.pollTestLibData();
 
+        boolean gmLibType = false;
         L resultLib = null;
         if (testLibData != null) {
             libType = testLibData.getLibType();
             if (libType > 0) {
+                gmLibType = true;
                 log.debug("获取到测试数据 playerId = {},libType = {}", playerGameData.playerId(), libType);
             } else if (testLibData.getData() != null) {
                 resultLib = (L) testLibData.getData();
@@ -1848,7 +1847,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
 
             //如果gm中没有设置 libType，则需要根据配置获取 libType
-            if (libType < 1) {
+            if (!gmLibType && libType <= 1) {
                 //获取 specialResultLib 中的type
                 CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId(), playerGameData.getRoomType());
                 if (!resultLibTypeResult.success()) {

@@ -24,21 +24,8 @@
         <logger name="com.jjg.game" level="debug" />
         <logger name="org.apache.commons.httpclient" level="error" />
         <logger name="org.apache.kafka" level="WARN"/>
-        <logger name="com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.cleopatra.manager.CleopatraGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.superstar.manager.SuperStarGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.wealthgod.manager.WealthGodGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.thor.manager.ThorGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.christmasBashNight.manager.ChristmasBashNightGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.basketballSuperstar.manager.BasketballSuperstarGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.frozenThrone.manager.FrozenThroneGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.steamAge.manager.SteamAgeGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.captainjack.manager.CaptainJackGameGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.goldsnakefortune.manager.GoldSnakeFortuneGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.moneyrabbit.manager.MoneyRabbitGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.pegasusunbridle.manager.PegasusUnbridleGameGenerateManager" level="error"/>
-        <logger name="com.jjg.game.slots.game.wealthbank.manager.WealthBankGenerateManager" level="error"/>
+
+        <turboFilter class="com.jjg.game.slots.data.GenerateManagerLevelFilter"/>
 
         <root level="info">
                 <appender-ref ref="console" />

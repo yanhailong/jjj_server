@@ -2,6 +2,7 @@ package com.jjg.game.core.logger;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.Item;
+import com.jjg.game.core.utils.RobotUtil;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,10 @@ public class TaskLogger extends BaseLogger {
      * @param configId 任务配置id
      */
     public void receiveTask(long playerId, int configId) {
+        if (RobotUtil.isRobot(playerId)) {
+            return;
+        }
+
         JSONObject log = new JSONObject();
         log.put("playerId", playerId);
         log.put("taskConfigId", configId);
@@ -30,6 +35,10 @@ public class TaskLogger extends BaseLogger {
      * 任务完成
      */
     public void completeTask(long playerId, int configId) {
+        if (RobotUtil.isRobot(playerId)) {
+            return;
+        }
+
         JSONObject log = new JSONObject();
         log.put("playerId", playerId);
         log.put("taskConfigId", configId);
@@ -40,6 +49,9 @@ public class TaskLogger extends BaseLogger {
      * 任务奖励领取
      */
     public void receiveTaskAward(long playerId, int configId, List<Item> itemList, long points, int status) {
+        if (RobotUtil.isRobot(playerId)) {
+            return;
+        }
         JSONObject log = new JSONObject();
         log.put("playerId", playerId);
         log.put("taskConfigId", configId);

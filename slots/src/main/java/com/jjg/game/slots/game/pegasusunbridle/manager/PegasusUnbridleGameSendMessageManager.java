@@ -68,6 +68,7 @@ public class PegasusUnbridleGameSendMessageManager extends BaseSendMessageManage
                         PegasusUnbridleResultLib resultLib = randomResult.get(playerGameData.getCurrentRandomIndex());
                         res.iconList = Arrays.stream(resultLib.getIconArr(), 1, resultLib.getIconArr().length).boxed().collect(Collectors.toList());
                         res.scrollType = playerGameData.getFuMa().getRollerMode();
+                        res.specialModeIcon = playerGameData.getFuMa().getSpecialModeIcon();
                     }
                 }
             }
@@ -119,7 +120,7 @@ public class PegasusUnbridleGameSendMessageManager extends BaseSendMessageManage
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
-
+            res.specialModeIcon = gameRunInfo.getSpecialModeIcon();
             res.winIconInfoList = gameRunInfo.getAwardLineInfos();
             res.scrollType = gameRunInfo.getScrollType();
             res.isFuMaEnd = gameRunInfo.isFuMaEnd();

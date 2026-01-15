@@ -14,6 +14,8 @@ import java.util.List;
 public class PegasusUnbridleResultLib extends SlotsResultLib<PegasusUnbridleAwardLineInfo> {
     private int jackpotId;
     private List<PegasusUnbridleResultLib> specialResult;
+    //特殊模式icon
+    private int specialModeIcon;
 
     public int getJackpotId() {
         return jackpotId;
@@ -31,12 +33,19 @@ public class PegasusUnbridleResultLib extends SlotsResultLib<PegasusUnbridleAwar
         this.specialResult = specialResult;
     }
 
-    public void addSpecialResult(PegasusUnbridleResultLib result){
+    public void addSpecialResult(PegasusUnbridleResultLib result) {
         if (specialResult == null) {
             specialResult = new ArrayList<>();
         }
         specialResult.add(result);
     }
 
+    public int getSpecialModeIcon() {
+        return specialModeIcon;
+    }
+
+    public void setSpecialModeIcon(int specialModeIcon) {
+        this.specialModeIcon = specialModeIcon;
+    }
 }
 

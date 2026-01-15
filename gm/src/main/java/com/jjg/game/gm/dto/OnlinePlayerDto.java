@@ -8,6 +8,7 @@ import java.util.List;
  */
 public record OnlinePlayerDto(
         int gameId,
+        long playerId,
         int registerChannel,   //注册渠道
         List<String> subChannels,  //子渠道
         int pageSize, //页大小

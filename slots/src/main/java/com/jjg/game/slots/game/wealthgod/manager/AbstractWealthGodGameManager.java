@@ -33,7 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class AbstractWealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlayerGameData, WealthGodResultLib> {
+public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlayerGameData, WealthGodResultLib> {
     @Autowired
     protected WealthGodGenerateManager generateManager;
     @Autowired

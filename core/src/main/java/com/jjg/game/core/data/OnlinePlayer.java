@@ -15,6 +15,8 @@ public class OnlinePlayer {
     private int channel;
     //游戏
     private int gameType;
+    //场次id
+    private int roomCfgId;
     //游戏
     private String subChannel;
 
@@ -48,5 +50,13 @@ public class OnlinePlayer {
 
     public void setSubChannel(String subChannel) {
         this.subChannel = subChannel;
+    }
+
+    public int getRoomCfgId() {
+        return roomCfgId;
+    }
+
+    public void setRoomCfgId(int roomCfgId) {
+        this.roomCfgId = roomCfgId;
     }
 }

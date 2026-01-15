@@ -18,6 +18,8 @@ import com.jjg.game.room.data.room.TablePlayerGameData;
 import com.jjg.game.room.message.BaseRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.message.resp.NotifyRoomLongTimeNoOperate;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BetAreaCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
@@ -26,9 +28,7 @@ import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -261,4 +261,24 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         }
     }
 
+    public long calculationEffectiveWaterFlow(Map<Integer, List<Integer>> playerBetInfo) {
+        Map<Integer, Long> effectiveWaterFlow = new HashMap<>();
+        for (Map.Entry<Integer, List<Integer>> listEntry : playerBetInfo.entrySet()) {
+            Integer key = listEntry.getKey();
+            BetAreaCfg betAreaCfg = GameDataManager.getBetAreaCfg(key);
+            if (Objects.isNull(betAreaCfg)) {
+                continue;
+            }
+            List<Integer> value = listEntry.getValue();
+            int sum = value.stream().mapToInt(Integer::intValue).sum();
+            //计算有效流水
+            Long bet = effectiveWaterFlow.getOrDefault(betAreaCfg.getRepulsionID(), 0L);
+            if (bet > 0) {
+                effectiveWaterFlow.put(betAreaCfg.getRepulsionID(), sum - bet);
+            } else {
+                effectiveWaterFlow.put(key, (long) sum);
+            }
+        }
+        return effectiveWaterFlow.values().stream().mapToLong(Math::abs).sum();
+    }
 }
