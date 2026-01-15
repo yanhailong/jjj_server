@@ -198,8 +198,9 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
             gameRunInfo.setCode(Code.PARAM_ERROR);
             return;
         }
-        gameRunInfo.setScrollType(fuMaResultLib.getRollerMode());
-        gameRunInfo.setSpecialModeIcon(fuMaResultLib.getSpecialModeIcon());
+        PegasusUnbridleResultLib resultLib = randomResult.get(currentRandomIndex);
+        gameRunInfo.setScrollType(resultLib.getRollerMode());
+        gameRunInfo.setSpecialModeIcon(resultLib.getSpecialModeIcon());
         if (currentRandomIndex == randomResult.size() - 1) {
             PoolCfg poolCfg = GameDataManager.getPoolCfg(fuMaResultLib.getJackpotId());
             if (poolCfg != null) {
@@ -214,15 +215,14 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
             playerGameData.setStatus(PegasusUnbridleConstant.Status.NORMAL);
             playerGameData.setFuMa(null);
             playerGameData.setCurrentRandomIndex(0);
-            gameRunInfo.setBigShowId(fuMaResultLib.getJackpotId());
+            gameRunInfo.setBigShowId(resultLib.getJackpotId());
             gameRunInfo.setFuMaEnd(true);
-            gameRunInfo.setBigPoolTimes(fuMaResultLib.getTimes());
-            gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(fuMaResultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
-            gameRunInfo.setIconArr(fuMaResultLib.getIconArr());
+            gameRunInfo.setBigPoolTimes(resultLib.getTimes());
+            gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
+            gameRunInfo.setIconArr(resultLib.getIconArr());
             gameRunInfo.setStatus(PegasusUnbridleConstant.Status.REAL_FU_MA);
             return;
         }
-        PegasusUnbridleResultLib resultLib = randomResult.get(currentRandomIndex);
         playerGameData.setCurrentRandomIndex(currentRandomIndex + 1);
         gameRunInfo.setStatus(PegasusUnbridleConstant.Status.REAL_FU_MA);
         gameRunInfo.setIconArr(resultLib.getIconArr());
