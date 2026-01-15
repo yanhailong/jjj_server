@@ -91,7 +91,7 @@ public class MarsNode {
         return RandomUtil.randomEle(getAllChildren());
     }
 
-    public MarsNode randomOneMarsNodeWithWeight(String ip, long playerId) {
+    public MarsNode randomOneMarsNodeWithWeight(String ip, long playerId, String[] flags) {
         if (childrenNodes.isEmpty()) {
             return null;
         }
@@ -105,9 +105,12 @@ public class MarsNode {
                 continue;
             }
             if ((nodeConfig.whiteIdList == null || nodeConfig.whiteIdList.length == 0)
-                    && (nodeConfig.whiteIpList == null || nodeConfig.whiteIpList.length == 0)) {
+                    && (nodeConfig.whiteIpList == null || nodeConfig.whiteIpList.length == 0)
+                    && (nodeConfig.flags == null || nodeConfig.flags.length == 0)) {
                 tempNodes.add(marsNode);
-            } else if (ClusterHelper.preciseInIdWhiteList(playerId, nodeConfig.whiteIdList) || ClusterHelper.preciseInIpWhiteList(ip, nodeConfig.whiteIpList)) {
+            } else if (ClusterHelper.preciseInIdWhiteList(playerId, nodeConfig.whiteIdList)
+                    || ClusterHelper.preciseInIpWhiteList(ip, nodeConfig.whiteIpList)
+                    || ClusterHelper.preciseInFlagsList(flags, nodeConfig.flags)) {
                 preciselist.add(marsNode);
             }
         }

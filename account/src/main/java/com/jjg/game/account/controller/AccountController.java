@@ -1,8 +1,6 @@
 package com.jjg.game.account.controller;
 
 import com.alibaba.fastjson.JSONObject;
-import com.google.i18n.phonenumbers.PhoneNumberUtil;
-import com.google.i18n.phonenumbers.Phonenumber;
 import com.jjg.game.account.config.AccountConfig;
 import com.jjg.game.account.data.LoginResult;
 import com.jjg.game.account.dto.LoginConfigDto;
@@ -10,6 +8,7 @@ import com.jjg.game.account.dto.LoginDto;
 import com.jjg.game.account.dto.LoginSmsDto;
 import com.jjg.game.account.dto.ServerUrlDto;
 import com.jjg.game.account.service.AccountService;
+import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.service.ThirdAccountHttpService;
 import com.jjg.game.account.vo.LoginConfigVo;
 import com.jjg.game.account.vo.ServerUrlVo;
@@ -54,6 +53,8 @@ public class AccountController extends AbstractController {
     private SmsService smsService;
     @Autowired
     private LoginConfigService loginConfigService;
+    @Autowired
+    private CountDao countDao;
 
     /**
      * 获取开启的登录方式
@@ -122,6 +123,10 @@ public class AccountController extends AbstractController {
                     log.debug("该ip已被封禁，无法登录 ip = {},dto = {}", clientIp, JSONObject.toJSONString(dto));
                     return fail(Code.BAN_CAUSE_BLACK_LIST);
                 }
+            }
+
+            if(StringUtils.isBlank(dto.getSubChannel())){
+                dto.setSubChannel("1");
             }
 
             switch (loginType) {
@@ -201,10 +206,24 @@ public class AccountController extends AbstractController {
             //如果与缓存数据不一致，就更新缓存
             checkDiffAndSave(clientIp, dto, playerSessionToken);
 
+            //组装返回信息
             ServerUrlVo serverUrlVo = new ServerUrlVo();
             serverUrlVo.setGameServersUrls(accountConfig.getGameservers());
+
+            //是否配置未充值的服务器地址
+            if (accountConfig.getFlags() != null && !accountConfig.getFlags().isEmpty()) {
+                List<String> poorList = accountConfig.getFlags().get("poor");
+                if (poorList != null && !poorList.isEmpty()) {
+                    //查询玩家充值金额
+                    Long rechargeValue = countDao.getCountLong(CountDao.CountType.RECHARGE.getParam(), String.valueOf(playerId));
+                    if (rechargeValue == null || rechargeValue < 1) {
+                        serverUrlVo.setGameServersUrls(poorList);
+                    }
+                }
+            }
+
             serverUrlVo.setResourceUrls(accountConfig.getResourceurls());
-            log.info("获取服务器地址 playerId = {},token = {},gameServersUrls = {},resourceUrls = {}", playerId, token, accountConfig.getGameservers(), accountConfig.getResourceurls());
+            log.info("获取服务器地址 playerId = {},token = {},gameServersUrls = {},resourceUrls = {}", playerId, token, serverUrlVo.getGameServersUrls(), accountConfig.getResourceurls());
             return success(serverUrlVo);
         } catch (Exception e) {
             log.error("", e);

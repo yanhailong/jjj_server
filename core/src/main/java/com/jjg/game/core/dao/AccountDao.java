@@ -2,9 +2,11 @@ package com.jjg.game.core.dao;
 
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.BindThirdAccountListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,6 +98,37 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
         return null;
     }
 
+    public Account checkAndSaveRes(long playerId, DataSaveCallback<Account> cbk) {
+        String key = getLockKey(playerId);
+        boolean lock = false;
+        try {
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
+                log.error("获取锁失败 lockKey:{} playerId:{} ", key, playerId);
+                return null;
+            }
+            Account account = queryAccountByPlayerId(playerId);
+            if (account == null) {
+                log.debug("获取account为空 playerId = {}", playerId);
+                return null;
+            }
+            boolean flag = cbk.updateDataWithRes(account);
+            if(!flag){
+                log.debug("条件判断未通过 playerId = {}", playerId);
+                return null;
+            }
+            redisTemplate.opsForHash().put(DATA_TABLE_NAME, playerId, account);
+            return account;
+        } catch (Exception e) {
+            log.warn("保存account失败 playerId={}", playerId, e);
+        } finally {
+            if (lock) {
+                redisLock.tryUnlock(key);
+            }
+        }
+        return null;
+    }
+
     /**
      * 根据注册mac查询
      *
@@ -156,12 +189,12 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
      * @param channelUserInfo
      * @return
      */
-    public CommonResult<Account> addThirdAccount(long playerId, LoginType loginType, ChannelUserInfo channelUserInfo) {
+    public CommonResult<Account> addThirdAccount(Player player, LoginType loginType, ChannelUserInfo channelUserInfo) {
         CommonResult<Account> result = new CommonResult<>(Code.FAIL);
 
         //要加锁，防止重复绑定
         String lockKey = getBindLockKey(loginType, channelUserInfo.getUserId());
-        redisLock.executeWithLock(lockKey, GameConstant.Redis.TIME, TimeUnit.MILLISECONDS, () -> {
+        CommonResult<Account> accountCommonResult = redisLock.executeWithLock(lockKey, GameConstant.Redis.TIME, TimeUnit.MILLISECONDS, () -> {
             //查询该账号是否被绑定
             Account existBindAccount = queryThirdAccount(loginType, channelUserInfo.getUserId());
             if (existBindAccount != null) {
@@ -169,7 +202,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
                 return result;
             }
 
-            Account tmpAccount = checkAndSave(playerId, a -> {
+            Account tmpAccount = checkAndSave(player.getId(), a -> {
                 setChannelValue(loginType, channelUserInfo, a);
             });
 
@@ -181,6 +214,15 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
             }
             return result;
         });
+
+        if(accountCommonResult.success()){
+            save(accountCommonResult.data,loginType,channelUserInfo.getUserId(),false);
+
+            Map<String, BindThirdAccountListener> beans = CommonUtil.getContext().getBeansOfType(BindThirdAccountListener.class);
+            if(!beans.isEmpty()){
+                beans.forEach((key, listener) -> {listener.bind(player, accountCommonResult.data,loginType, channelUserInfo);});
+            }
+        }
         return result;
     }
 
@@ -256,7 +298,13 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
      * @return
      */
     public Account save(Account account, LoginType loginType, String data) {
-        redisTemplate.opsForHash().put(DATA_TABLE_NAME, account.getPlayerId(), account);
+        return save(account, loginType, data,true);
+    }
+
+    public Account save(Account account, LoginType loginType, String data,boolean saveData) {
+        if(saveData){
+            redisTemplate.opsForHash().put(DATA_TABLE_NAME, account.getPlayerId(), account);
+        }
         redisTemplate.opsForHash().put(thirdTableName(loginType), data, account.getPlayerId());
         return account;
     }

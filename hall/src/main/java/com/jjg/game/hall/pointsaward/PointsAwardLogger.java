@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardData;
 import com.jjg.game.hall.service.HallPlayerService;
 import org.slf4j.Logger;
@@ -33,6 +34,10 @@ public class PointsAwardLogger extends BaseLogger {
      */
     public void pointsChangeLog(long playerId, int points, int type, boolean flag, long afterValue) {
         try {
+            if(RobotUtil.isRobot(playerId)){
+                return;
+            }
+
             Player player = hallPlayerService.get(playerId);
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("points", points);
@@ -56,6 +61,10 @@ public class PointsAwardLogger extends BaseLogger {
      */
     public void signInLog(Player player, int signCount, int points, long afterValue) {
         try {
+            if(RobotUtil.isRobot(player.getId())){
+                return;
+            }
+
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("signCount", signCount);
             jsonObject.put("points", points);
@@ -72,6 +81,10 @@ public class PointsAwardLogger extends BaseLogger {
      */
     public void turntableLog(long playerId,int beforeCount, int changeCount, int afterCount, int consumePoints, int getPoints, long afterValue) {
         try {
+            if(RobotUtil.isRobot(playerId)){
+                return;
+            }
+
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("consumePoints", consumePoints);
             jsonObject.put("getPoints", getPoints);

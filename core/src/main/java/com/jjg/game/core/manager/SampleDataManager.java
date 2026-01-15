@@ -46,7 +46,7 @@ public class SampleDataManager implements FileLoader {
             //初始化excel配置表
             initSampleConfig();
             Map<String, ConfigExcelChangeListener> configExcelChangeListeners =
-                CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
+                    CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
             // 调用配置表监听回调数据初始化逻辑
             configExcelChangeListeners.values().forEach(listener -> {
                 listener.initSampleCallbackCollector();
@@ -63,7 +63,7 @@ public class SampleDataManager implements FileLoader {
 
         //初始化游戏配置表，比如hallConfig.json , dollarExpressConfig.json
         if (!StringUtils.isEmpty(getGameConfigName())) {
-            fileMonitor.addFileObserver(getGameConfigName(), this, true);
+            fileMonitor.addDirectoryObserver(getGameConfigName(), this);
         }
     }
 
@@ -72,11 +72,11 @@ public class SampleDataManager implements FileLoader {
      */
     private void initLoadCacheData() {
         Collection<File> sampleFile =
-            FileUtils.listFiles(new File(getSamplePath()), new String[]{"xlsx", "xls"}, true);
+                FileUtils.listFiles(new File(getSamplePath()), new String[]{"xlsx", "xls"}, true);
         sampleFile.forEach(file -> loadFile(file, false));
     }
 
-    private void initConfigJson(){
+    private void initConfigJson() {
         Collection<File> sampleFile =
                 FileUtils.listFiles(new File("config"), new String[]{"json"}, true);
         sampleFile.forEach(file -> loadFile(file, false));
@@ -101,8 +101,8 @@ public class SampleDataManager implements FileLoader {
      */
     protected Set<Class<?>> reloadSampleOnExcelChange(File file) throws Exception {
         Set<Class<? extends BaseCfgBean>> changeCfgBean =
-            GameDataManager.getInstance().loadDataByChangeFileList(
-                getSamplePath(), Collections.singletonList(file));
+                GameDataManager.getInstance().loadDataByChangeFileList(
+                        getSamplePath(), Collections.singletonList(file));
         return changeCfgBean.stream().map(aClass -> (Class<?>) aClass).collect(Collectors.toSet());
     }
 
@@ -128,9 +128,9 @@ public class SampleDataManager implements FileLoader {
      */
     public void loadFile(File file, boolean change) {
         if (file == null || !file.exists() || file.isHidden()
-            || file.getName().endsWith(".svn")
-            || file.getName().endsWith(".bak")
-            || file.getName().startsWith("~$")) {
+                || file.getName().endsWith(".svn")
+                || file.getName().endsWith(".bak")
+                || file.getName().startsWith("~$")) {
             return;
         }
         if (file.isDirectory()) {
@@ -149,7 +149,7 @@ public class SampleDataManager implements FileLoader {
                     hasKey = callbackCollector.containsKey(fileName);
                 }
 
-                if(!hasKey){
+                if (!hasKey) {
                     callbackCollector = ConfigExcelChangeListener.getInitCallbackCollector();
                     hasKey = callbackCollector.containsKey(fileName);
                 }
@@ -162,7 +162,7 @@ public class SampleDataManager implements FileLoader {
                     });
                 }
                 Map<String, ConfigExcelChangeListener> configExcelChangeListeners =
-                    CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
+                        CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
                 List<Class<?>> changedSampleList = changedSampleSet.stream().toList();
                 // 变化的配置文件列表
                 for (Class<?> changedSampleClass : changedSampleList) {
@@ -198,7 +198,7 @@ public class SampleDataManager implements FileLoader {
             String name = fileName.replace(".json", "");
             Object bean = CommonUtil.getContext().getBean(name);
             BeanUtils.copyProperties(jsonObject.toJavaObject(bean.getClass()), bean);
-            log.debug("加载json配置 name = {}",fileName);
+            log.debug("加载配置 jsonName = {},beanName = {}", fileName, bean.getClass().getSimpleName());
         } catch (NoSuchBeanDefinitionException e1) {
 
         } catch (Exception e) {

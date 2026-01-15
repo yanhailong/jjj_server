@@ -179,7 +179,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * @return true 继续执行 false终止执行
      */
     @Override
-    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, Account account, boolean firstLogin) {
         leaderboardService.login(player.getId());
     }
 
@@ -603,7 +603,6 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
 //        }
 //        return code;
 //    }
-
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
         CommonResult<String> result = new CommonResult<>(Code.SUCCESS);

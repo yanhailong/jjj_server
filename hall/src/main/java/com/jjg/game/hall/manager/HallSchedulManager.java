@@ -4,6 +4,7 @@ import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.OrderService;
+import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.pointsaward.PointsAwardService;
 import com.jjg.game.hall.service.HallPlayerService;
 import org.slf4j.Logger;
@@ -34,6 +35,8 @@ public class HallSchedulManager {
     private OrderService orderService;
     @Autowired
     private PointsAwardService pointsAwardService;
+    @Autowired
+    private HallPoolDao hallPoolDao;
 
     /**
      * 每天凌晨4点半定时执行
@@ -45,6 +48,18 @@ public class HallSchedulManager {
             hallPlayerService.clean();
             mailService.cleanMails();
             orderService.clean();
+        }
+    }
+
+    /**
+     * 每天凌晨0点定时执行
+     */
+    @Scheduled(cron = "0 0 0 * * ? ")
+//    @Scheduled(initialDelay = 10 * 1000, fixedRate = 40 * 1000)
+    private void dailyZero() {
+        //是主节点才能执行
+        if (marsCurator.isMaster()) {
+            hallPoolDao.snapshot();
         }
     }
 

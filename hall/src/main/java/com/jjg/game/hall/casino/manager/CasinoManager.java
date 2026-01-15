@@ -898,7 +898,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     }
 
     @Override
-    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, Account account, boolean firstLogin) {
         //我的赌场未保存完成进入新节点 切换到上个节点
         String lastNode = playerBuildingService.getLastNode(playerController.playerId());
         if (StringUtils.isNotEmpty(lastNode)) {

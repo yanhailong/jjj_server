@@ -5,7 +5,6 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -424,6 +423,10 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                             cardList.add(gameDataVo.getCardList().get(i));
                         }
                     }
+                    if (!checkResult(new ArrayList<>(cardList))) {
+                        log.error("百家乐随机结果检查失败 cardIds:{}", cardList);
+                        return null;
+                    }
                     Arrays.sort(indexCardArr);
                     for (int i = indexCardArr.length - 1; i >= 0; i--) {
                         int index = indexCardArr[i];
@@ -440,6 +443,36 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         return null;
     }
 
+
+    private boolean checkResult(List<Byte> checkList) {
+        BaccaratSettlementInfo baccaratSettlementInfo = new BaccaratSettlementInfo();
+        baccaratSettlementInfo.playerCardIds = new ArrayList<>();
+        baccaratSettlementInfo.bankerCardIds = new ArrayList<>();
+        baccaratSettlementInfo.playerCardIds.add(removeFirst(checkList));
+        baccaratSettlementInfo.bankerCardIds.add(removeFirst(checkList));
+        baccaratSettlementInfo.playerCardIds.add(removeFirst(checkList));
+        baccaratSettlementInfo.bankerCardIds.add(removeFirst(checkList));
+        // 是否出现天王牌
+        checkHasKingCard(baccaratSettlementInfo);
+        // 是否有对子
+        checkHasDouble(baccaratSettlementInfo);
+        // 检查闲家是否补牌
+        if (!baccaratSettlementInfo.cardState.hasKingCard && checkNeedFillCard(baccaratSettlementInfo.playerCardIds, true, (byte) 0)) {
+            if (checkList.isEmpty()) {
+                return false;
+            }
+            baccaratSettlementInfo.extraPlayerCardId = removeFirst(checkList);
+        }
+        // 检查庄家是否补牌
+        if (!baccaratSettlementInfo.cardState.hasKingCard && checkNeedFillCard(baccaratSettlementInfo.bankerCardIds, false, baccaratSettlementInfo.extraPlayerCardId)) {
+            if (checkList.isEmpty()) {
+                return false;
+            }
+            baccaratSettlementInfo.extraBankerCardId = removeFirst(checkList);
+        }
+        return true;
+    }
+
     /**
      * 找到符合获胜状态的牌 id
      *
@@ -451,7 +484,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         //点数->位置索引
         Map<Byte, List<Integer>> pointIdMap = new HashMap<>();
         for (int i = 0; i < cardIds.size(); i++) {
-            int pointId = PokerCardUtils.getPointId(cardIds.get(i)) % 10;
+            int pointId = getCardPointId(cardIds.get(i));
             pointIdMap.computeIfAbsent((byte) pointId, k -> new ArrayList<>()).add(i);
         }
         //多次循环遍历寻找符合条件的
@@ -497,6 +530,10 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                     indexCardArr[2] = index2;
                     cardArr[2] = key3;
                     for (Byte key4 : keysList4) {
+                        indexCardArr[4] = -1;
+                        indexCardArr[5] = -1;
+                        cardArr[4] = 0;
+                        cardArr[5] = 0;
                         if (pointIdMap.get(key4).isEmpty() || cardArr[2] == key4) {
                             continue;
                         }
@@ -508,9 +545,9 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                         cardArr[3] = key4;
                         //判断需要补牌不
                         // 检查闲家是否补牌
-                        int frist = (cardArr[0] + cardArr[1]) % 10;
-                        int second = (cardArr[2] + cardArr[3]) % 10;
-                        if (frist < 8 && checkNeedFillCard(List.of(cardArr[2], cardArr[3]), true, (byte) 0)) {
+                        boolean has = (cardArr[0] + cardArr[2]) % 10 >= 8 || (cardArr[1] + cardArr[3]) % 10 >= 8;
+                        byte playerThirdCardId = 0;
+                        if (!has && checkNeedFillCard(List.of(cardIds.get(indexCardArr[0]), cardIds.get(indexCardArr[2])), true, (byte) 0)) {
                             for (Byte key5 : keysList5) {
                                 if (pointIdMap.get(key5).isEmpty()) {
                                     continue;
@@ -521,10 +558,11 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                                 }
                                 indexCardArr[4] = index4;
                                 cardArr[4] = key5;
+                                playerThirdCardId = cardIds.get(indexCardArr[4]);
                             }
                         }
                         // 检查庄家是否补牌
-                        if (second < 8 && checkNeedFillCard(List.of(cardArr[0], cardArr[1]), false, cardArr[4])) {
+                        if (!has && checkNeedFillCard(List.of(cardIds.get(indexCardArr[1]), cardIds.get(indexCardArr[3])), false, playerThirdCardId)) {
                             for (Byte key6 : keysList6) {
                                 if (pointIdMap.get(key6).isEmpty()) {
                                     continue;
@@ -538,15 +576,15 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                             }
                         }
                         //计算结果
-                        frist = (cardArr[0] + cardArr[1] + cardArr[5]) % 10;
-                        second = (cardArr[2] + cardArr[3] + cardArr[4]) % 10;
-                        if (frist > second && winState == 1) {
+                        int first = (cardArr[0] + cardArr[2] + cardArr[4]) % 10;
+                        int second = (cardArr[1] + cardArr[3] + cardArr[5]) % 10;
+                        if (first > second && winState == 2) {
                             return indexCardArr;
                         }
-                        if (frist < second && winState == 2) {
+                        if (first < second && winState == 1) {
                             return indexCardArr;
                         }
-                        if (frist == second && winState == 3) {
+                        if (first == second && winState == 3) {
                             return indexCardArr;
                         }
                     }
@@ -572,16 +610,4 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         }
         return index;
     }
-
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
-
 }

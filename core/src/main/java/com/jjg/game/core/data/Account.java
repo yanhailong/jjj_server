@@ -30,7 +30,7 @@ public class Account {
     private long lastLoginTime;
     //最近一次离线时间
     private long lastOfflineTime;
-    //当前状态  0.正常  1.被封  2.被删除
+    //当前状态  1.正常  2.被封  3.被删除
     private int status;
     //渠道
     private ChannelType channel;

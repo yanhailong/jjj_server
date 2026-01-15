@@ -9,6 +9,8 @@ import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BetAreaCfg;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.gamephase.BaccaratSettlementPhase;
@@ -18,8 +20,8 @@ import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
 import com.jjg.game.table.baccarat.message.resp.RespBaccaratTableInfo;
 import com.jjg.game.table.common.BaseTableGameController;
 
-import java.util.LinkedHashSet;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 百家乐游戏控制器
@@ -84,5 +86,28 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
     @Override
     protected void phaseRunOver() {
 
+    }
+    public long calculationEffectiveWaterFlow(Map<Integer, List<Integer>> playerBetInfo) {
+        Map<Integer, Long> effectiveWaterFlow = new HashMap<>();
+        Map<Integer, BetAreaCfg> cfgMap = GameDataManager.getBetAreaCfgList().stream()
+                .filter(betAreaCfg -> betAreaCfg.getGameID() == EGameType.BACCARAT.getGameTypeId())
+                .collect(Collectors.toMap(BetAreaCfg::getAreaID, cfg -> cfg));
+        for (Map.Entry<Integer, List<Integer>> listEntry : playerBetInfo.entrySet()) {
+            Integer key = listEntry.getKey();
+            BetAreaCfg betAreaCfg = cfgMap.get(key);
+            if (Objects.isNull(betAreaCfg)) {
+                continue;
+            }
+            List<Integer> value = listEntry.getValue();
+            int sum = value.stream().mapToInt(Integer::intValue).sum();
+            //计算有效流水
+            Long bet = effectiveWaterFlow.getOrDefault(betAreaCfg.getRepulsionID(), 0L);
+            if (bet > 0) {
+                effectiveWaterFlow.put(betAreaCfg.getRepulsionID(), sum - bet);
+            } else {
+                effectiveWaterFlow.put(betAreaCfg.getId(), (long) sum);
+            }
+        }
+        return effectiveWaterFlow.values().stream().mapToLong(Math::abs).sum();
     }
 }

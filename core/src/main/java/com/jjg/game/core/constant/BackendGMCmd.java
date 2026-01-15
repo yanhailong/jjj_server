@@ -14,6 +14,8 @@ public interface BackendGMCmd {
     String QUERY_ACCOUNT = "queryAccount";
     //金币gm
     String GOLD_OPERATOR = "goldOperator";
+    //修改vip等级
+    String SET_VIPLEVEL = "setVipLevel";
     //发送邮件
     String SEND_EMAIL = "sendEmail";
     //踢玩家

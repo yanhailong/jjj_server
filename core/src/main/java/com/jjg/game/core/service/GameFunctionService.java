@@ -2,11 +2,13 @@ package com.jjg.game.core.service;
 
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.core.base.condition.ConditionType;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
-import com.jjg.game.core.constant.GameFunctionConstant;
+import com.jjg.game.core.dao.AccountDao;
+import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.ConditionManager;
@@ -20,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 游戏功能服务
@@ -35,12 +36,14 @@ public class GameFunctionService implements GameEventListener, ConfigExcelChange
      */
     private final ConditionManager conditionManager;
     private final PlayerSessionService playerSessionService;
+    private final AccountDao accountDao;
 
     private static final Logger log = LoggerFactory.getLogger(GameFunctionService.class);
 
-    public GameFunctionService(ConditionManager conditionManager, PlayerSessionService playerSessionService) {
+    public GameFunctionService(ConditionManager conditionManager, PlayerSessionService playerSessionService, AccountDao accountDao) {
         this.conditionManager = conditionManager;
         this.playerSessionService = playerSessionService;
+        this.accountDao = accountDao;
     }
 
     /**
@@ -130,11 +133,14 @@ public class GameFunctionService implements GameEventListener, ConfigExcelChange
             List<Integer> conditionCfg = new ArrayList<>();
             conditionCfg.add(integerIntegerEntry.getKey());
             conditionCfg.add(integerIntegerEntry.getValue());
-            if (integerIntegerEntry.getKey() == GameFunctionConstant.ConditionType.CONDITION_LEVEL) {
+            if (integerIntegerEntry.getKey() == ConditionType.PLAYER_LEVEL.getId()) {
                 achievement = conditionManager.isAchievement(player, player.getLevel(), conditionCfg);
-            } else if (integerIntegerEntry.getKey() == GameFunctionConstant.ConditionType.CONDITION_VIP_LEVEL) {
+            } else if (integerIntegerEntry.getKey() == ConditionType.PLAYER_VIP_LEVEL.getId()) {
                 achievement = conditionManager.isAchievement(player, player.getVipLevel(), conditionCfg);
-            }else {
+            } else if (integerIntegerEntry.getKey() == ConditionType.PLAYER_PHONE.getId()) {
+                Account account = accountDao.queryAccountByPlayerId(player.getId());
+                achievement = conditionManager.isAchievement(player, account, conditionCfg);
+            } else {
                 achievement = false;
             }
         }

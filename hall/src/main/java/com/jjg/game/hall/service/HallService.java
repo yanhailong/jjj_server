@@ -333,7 +333,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             loginType = LoginType.PHONE;
             PhoneUserInfo phoneUserInfo = new PhoneUserInfo();
             phoneUserInfo.setUserId(verResult.data);
-            CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(player.getId(), loginType, phoneUserInfo);
+            CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(player, loginType, phoneUserInfo);
             if (!accountCommonResult.success()) {
                 result.code = accountCommonResult.code;
                 log.debug("更新到数据库失败，确认验证码失败1 playerId = {},verCodeType = {},verCode = {},failCode = {}", player.getId(), verCodeType, verCode, accountCommonResult.code);
@@ -677,7 +677,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     return result;
                 }
 
-                addResult = accountDao.addThirdAccount(player.getId(), loginType, verifyResult.data);
+                addResult = accountDao.addThirdAccount(player, loginType, verifyResult.data);
                 mailId = GameConstant.Mail.ID_BIND_GOOGLE;
             } else if (loginType == LoginType.FACEBOOK) {
                 CommonResult<FacebookUserInfo> verifyResult = thirdAccountHttpService.verifyFacebookToken(token);
@@ -686,7 +686,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     return result;
                 }
 
-                addResult = accountDao.addThirdAccount(player.getId(), loginType, verifyResult.data);
+                addResult = accountDao.addThirdAccount(player, loginType, verifyResult.data);
                 mailId = GameConstant.Mail.ID_BIND_FACEBOOK;
             } else if (loginType == LoginType.APPLE) {
                 CommonResult<AppleUserInfo> verifyResult = thirdAccountHttpService.verifyAppleToken(token);
@@ -694,7 +694,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     result.code = verifyResult.code;
                     return result;
                 }
-                addResult = accountDao.addThirdAccount(player.getId(), loginType, verifyResult.data);
+                addResult = accountDao.addThirdAccount(player, loginType, verifyResult.data);
                 mailId = GameConstant.Mail.ID_BIND_APPLE;
             } else {
                 log.debug("该接口不支持该类型绑定，绑定第三方账号失败 type = {}", type);

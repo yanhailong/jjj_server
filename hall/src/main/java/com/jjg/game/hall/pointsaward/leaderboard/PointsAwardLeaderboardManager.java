@@ -51,7 +51,7 @@ import java.util.stream.Collectors;
  * 积分大奖排行榜管理器
  */
 @Component
-public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener,GmListener {
+public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener, GmListener {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -252,6 +252,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                 } catch (Exception e) {
                     log.error("积分大奖机器人逻辑处理失败");
                 } finally {
+                    robotScheduleTimeout = null;
                     addRobotSchedule();
                 }
             }
@@ -273,7 +274,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
     }
 
     public boolean isRobot(long playerId) {
-        return robotUtil.isRobot(playerId);
+        return RobotUtil.isRobot(playerId);
     }
 
     /**

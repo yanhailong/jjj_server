@@ -145,6 +145,18 @@ public abstract class BaseActivityController {
      */
     public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
         // 调用条件检查服务，验证触发条件是否完成
+        return checkPlayerCanJoinActivity(player, null, activityData);
+    }
+
+    /**
+     * 检查玩家是否能参与活动
+     * @param player
+     * @param obj
+     * @param activityData
+     * @return
+     */
+    public boolean checkPlayerCanJoinActivity(Player player, Object obj, ActivityData activityData) {
+        // 调用条件检查服务，验证触发条件是否完成
         return conditionManager.isAchievement(player, player.getLevel(), activityData.getCondition());
     }
 
@@ -173,8 +185,9 @@ public abstract class BaseActivityController {
 
     /**
      * 更新红点数据
+     *
      * @param playerId 玩家id
-     * @param data 活动数据
+     * @param data     活动数据
      * @param oldState 老的红点状态
      */
     public final void updateRodDot(long playerId, ActivityData data, boolean oldState, boolean compulsory) {
@@ -186,8 +199,9 @@ public abstract class BaseActivityController {
 
     /**
      * 更新红点数据
+     *
      * @param playerId 玩家id
-     * @param data 活动数据
+     * @param data     活动数据
      * @param oldState 老的红点状态
      */
     public final void updateRodDot(long playerId, ActivityData data, boolean oldState) {
@@ -345,9 +359,10 @@ public abstract class BaseActivityController {
 
     /**
      * 获取活动详细信息
-     * @param activityData 活动数据
-     * @param baseCfgBeanMap 配置信息
-     * @param player 玩家信息
+     *
+     * @param activityData          活动数据
+     * @param baseCfgBeanMap        配置信息
+     * @param player                玩家信息
      * @param playerActivityDataMap 玩家活动数据
      * @return 活动详细信息
      */
@@ -447,8 +462,9 @@ public abstract class BaseActivityController {
 
     /**
      * 获取活动订单生成配置
-     * @param player 玩家数据
-     * @param order 订单
+     *
+     * @param player   玩家数据
+     * @param order    订单
      * @param dealType 处理类型1加入活动 2购买礼包
      */
     public final void dealActivityRecharge(Player player, Order order, int dealType) {
@@ -481,6 +497,7 @@ public abstract class BaseActivityController {
 
     /**
      * 获取活动订单生成配置
+     *
      * @param productId 原id
      *
      */

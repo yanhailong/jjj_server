@@ -142,7 +142,7 @@ public class FirstPaymentController extends BaseActivityController implements Ga
     /**
      * 构建玩家首充活动详情
      *
-     * @param player 玩家数据
+     * @param player       玩家数据
      * @param activityData 活动ID
      * @param baseCfgBean  活动配置
      * @param data         玩家首充数据
@@ -229,8 +229,8 @@ public class FirstPaymentController extends BaseActivityController implements Ga
     }
 
     @Override
-    public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
-        boolean checked = super.checkPlayerCanJoinActivity(player, activityData);
+    public boolean checkPlayerCanJoinActivity(Player player, Object obj, ActivityData activityData) {
+        boolean checked = super.checkPlayerCanJoinActivity(player, obj, activityData);
         if (!checked) {
             return false;
         }
