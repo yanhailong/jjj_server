@@ -13,12 +13,6 @@ import java.util.Map;
  */
 @Document
 public class WealthGodResultLib extends SlotsResultLib<WealthGodAwardLineInfo> {
-
-    /**
-     * 本次触发的jackpotId
-     */
-    private int jackpotId;
-
     /**
      * 用于存储图标变更的映射关系。
      * k=index
@@ -37,14 +31,6 @@ public class WealthGodResultLib extends SlotsResultLib<WealthGodAwardLineInfo> {
      * v=变化后的icon
      */
     private Map<Integer, Integer> allIconChangeMap;
-
-    public int getJackpotId() {
-        return jackpotId;
-    }
-
-    public void setJackpotId(int jackpotId) {
-        this.jackpotId = jackpotId;
-    }
 
     public Map<Integer, Integer> getIconChangeMap() {
         return iconChangeMap;
