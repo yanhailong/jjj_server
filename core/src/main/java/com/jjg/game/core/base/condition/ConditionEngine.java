@@ -7,7 +7,7 @@ package com.jjg.game.core.base.condition;
 
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
-import com.jjg.game.sampledata.bean.ActivityConfigCfg;
+import com.jjg.game.sampledata.bean.*;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -50,6 +50,11 @@ public class ConditionEngine implements ConfigExcelChangeListener {
 
     @Override
     public void initSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(ActivityConfigCfg.EXCEL_NAME,this::reloadConfig);
+        addChangeSampleFileObserveWithCallBack(ActivityConfigCfg.EXCEL_NAME, this::reloadConfig)
+                .addChangeSampleFileObserveWithCallBack(DropConfigCfg.EXCEL_NAME, this::reloadConfig)
+                .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::reloadConfig)
+                .addChangeSampleFileObserveWithCallBack(GameFunctionCfg.EXCEL_NAME, this::reloadConfig)
+                .addChangeSampleFileObserveWithCallBack(DailyRewardsCfg.EXCEL_NAME, this::reloadConfig);
+
     }
 }
