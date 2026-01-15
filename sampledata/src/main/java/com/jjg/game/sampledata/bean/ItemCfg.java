@@ -33,6 +33,8 @@ public class ItemCfg extends BaseCfgBean {
   protected String icon;
   /** 名称多语言ID */
   protected int name;
+  /** 是否需要调用多语言 */
+  protected boolean needlanguage;
   /** 最大堆叠数量 */
   protected int prop;
   /** 道具品质 */
@@ -75,6 +77,11 @@ public class ItemCfg extends BaseCfgBean {
   /** 返回名称多语言ID */
   public int getName() {
     return name;
+  }
+
+  /** 返回是否需要调用多语言 */
+  public boolean getNeedlanguage() {
+    return needlanguage;
   }
 
   /** 返回最大堆叠数量 */

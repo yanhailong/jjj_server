@@ -7,7 +7,9 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.PFSession;
-import com.jjg.game.core.base.condition.check.record.PlayerEffectiveParam;
+import com.jjg.game.core.base.condition.MatchResult;
+import com.jjg.game.core.base.condition.MatchResultData;
+import com.jjg.game.core.base.condition.event.BetEvent;
 import com.jjg.game.core.base.drop.DropItemDao;
 import com.jjg.game.core.base.drop.DropItemLogger;
 import com.jjg.game.core.base.drop.ItemDropDataHolder;
@@ -35,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -203,28 +204,21 @@ public class DropItemManager implements GameEventListener {
             return List.of();
         }
         //暂时只有游戏流水条件
-        PlayerEffectiveParam effectiveParam = PlayerEffectiveParam.getPlayerEffectiveParam(CountDao.CountType.MY_CASINO.getParam(), player.getId(), event);
-        if (effectiveParam == null) {
+        BetEvent eventParam = BetEvent.getPlayerEffectiveParam(event);
+        if (eventParam == null) {
             return List.of();
         }
         //获取多个条件下的最小触发次数
-        BigDecimal triggerTimes = null;
-        for (String condition : dropConfigCfg.getDropCondition()) {
-            BigDecimal decimal = conditionManager.addProgressAndGetAchievements(player, effectiveParam, condition, false);
-            if (triggerTimes == null || triggerTimes.compareTo(decimal) > 0) {
-                triggerTimes = decimal;
-            }
+        int triggerTimes = 0;
+        MatchResultData matchResultData = conditionManager.addProgressAndGetAchievements(player, eventParam, CountDao.CountType.MY_CASINO.getParam(), dropConfigCfg.getDropCondition());
+        if (matchResultData.result() == MatchResult.MATCH) {
+            triggerTimes = matchResultData.achieveTimes();
         }
-        if (triggerTimes == null) {
+        if (triggerTimes == 0) {
             return List.of();
         }
-        if (triggerTimes.compareTo(BigDecimal.ZERO) > 0) {
-            for (String condition : dropConfigCfg.getDropCondition()) {
-                conditionManager.reduceProgress(effectiveParam, condition, triggerTimes.intValue());
-            }
-        }
         //扣除积分
-        Map<Integer, Long> dropItem = triggerDropItem(player, AddType.DROP_ITEM, player.getId() + "", dropConfigCfg.getId(), triggerTimes.intValue(), event);
+        Map<Integer, Long> dropItem = triggerDropItem(player, AddType.DROP_ITEM, player.getId() + "", dropConfigCfg.getId(), triggerTimes, event);
         if (CollectionUtil.isNotEmpty(dropItem)) {
             return List.of(MessageBuildUtil.buildActivityDropInfo(0, 0, event.getGameCfgId(), dropItem));
         }

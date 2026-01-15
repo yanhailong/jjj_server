@@ -104,6 +104,7 @@ public abstract class BaseActivityController {
     @Autowired
     protected RedDotManager redDotManager;
 
+
     /**
      * 增加玩家的活动进度
      *
@@ -139,25 +140,13 @@ public abstract class BaseActivityController {
     /**
      * 检查玩家是否能参与活动
      *
-     * @param activityData 活动数据
-     * @param player       玩家对象
-     * @return true 可以参与；false 不能参与
-     */
-    public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
-        // 调用条件检查服务，验证触发条件是否完成
-        return checkPlayerCanJoinActivity(player, null, activityData);
-    }
-
-    /**
-     * 检查玩家是否能参与活动
      * @param player
-     * @param obj
      * @param activityData
      * @return
      */
-    public boolean checkPlayerCanJoinActivity(Player player, Object obj, ActivityData activityData) {
+    public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
         // 调用条件检查服务，验证触发条件是否完成
-        return conditionManager.isAchievement(player, player.getLevel(), activityData.getCondition());
+        return conditionManager.isAchievement(player, "", activityData.getCondition());
     }
 
 

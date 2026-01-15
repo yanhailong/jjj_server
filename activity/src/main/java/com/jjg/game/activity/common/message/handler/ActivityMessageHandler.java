@@ -37,6 +37,7 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.utils.TipUtils;
 import org.springframework.stereotype.Component;
 
 /**
@@ -111,13 +112,16 @@ public class ActivityMessageHandler {
             return;
         }
         BaseActivityController controller = data.getType().getController();
-        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-            AbstractResponse response = controller.claimActivityRewards(playerController.getPlayer(), data, req.detailId);
-            if (response != null) {
-                playerController.send(response);
-                if (response.code == Code.SUCCESS) {
-                    controller.updateRodDot(playerController.playerId(), data, true);
-                }
+        int code = activityManager.playerJoinActivityCheck(data, playerController.getPlayer());
+        if (code != Code.SUCCESS) {
+            TipUtils.sendToastTip(playerController.playerId(), code);
+            return;
+        }
+        AbstractResponse response = controller.claimActivityRewards(playerController.getPlayer(), data, req.detailId);
+        if (response != null) {
+            playerController.send(response);
+            if (response.code == Code.SUCCESS) {
+                controller.updateRodDot(playerController.playerId(), data, true);
             }
         }
     }
