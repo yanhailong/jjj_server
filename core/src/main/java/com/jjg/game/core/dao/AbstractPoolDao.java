@@ -25,8 +25,7 @@ public abstract class AbstractPoolDao {
     protected final String fake_small_pool_prefix = "fakeSmallPool:";
 
     //房间池
-//    protected final String room_pool_prefix = "roomPool:";
-    protected final String room_pool_prefix = "pool:slotsroom";
+    protected final String room_pool_prefix = "roomPool";
 
     /**
      * 根据场次id获取池子
