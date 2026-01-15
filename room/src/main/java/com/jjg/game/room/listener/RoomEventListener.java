@@ -189,7 +189,6 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 roomManager.getProcessorExecutors().tryPublish(player.getRoomId(), 0, new BaseHandler<String>() {
                     @Override
                     public void action() {
-                        taskManager.loadTaskData(playerId);
                         PlayerController playerController = new PlayerController(session, player);
                         session.setReference(playerController);
                         int code = roomManager.joinRoom(playerController, finalInfo.getGameType(), finalInfo.getRoomCfgId(), player.getRoomId());

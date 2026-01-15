@@ -30,7 +30,11 @@ public enum ActivityTargetType {
     /**
      * 押注金币
      */
-    BET(5, 1 << 4);
+    BET(5, 1 << 4),
+    /**
+     * 绑定手机
+     */
+    BIND_PHONE(6, 1 << 5);
     //触发类型
     private final long type;
     //触发key

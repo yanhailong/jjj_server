@@ -18,6 +18,8 @@ public enum ConditionType {
     OPEN_SERVER_DAY(2, null),
     //等级条件
     PLAYER_VIP_LEVEL(3, new PlayerVipLevelCheck()),
+    //绑定手机
+    PLAYER_PHONE(4, new PlayerBindPhoneCheck()),
     //个人投注次数
     BET_COUNT(10001, new PlayerBetCountCheck()),
     //个人游戏次数

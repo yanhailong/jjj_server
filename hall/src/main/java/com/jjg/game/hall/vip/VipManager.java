@@ -216,14 +216,13 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
 
 
     @Override
-    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, Account account, boolean firstLogin) {
         if (firstLogin) {
             //vip经验衰减
             ViplevelCfg vipLevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
             if (Objects.nonNull(vipLevelCfg)) {
                 Integer interval = vipLevelCfg.getRollback().getFirst();
                 if (!interval.equals(-1)) {
-                    Account account = accountDao.queryAccountByPlayerId(player.getId());
                     if (Objects.nonNull(account)) {
                         long lastOfflineTime = account.getLastOfflineTime();
                         long timeMillis = TimeHelper.getCurrentDateZeroMilliTime();

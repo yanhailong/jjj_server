@@ -116,7 +116,7 @@ public class RobotUtil {
         return GameDataManager.getRobotCfg(configId);
     }
 
-    public boolean isRobot(long robotId) {
+    public static boolean isRobot(long robotId) {
         return robotId % GameConstant.ROBOT_ID_PRIME_NUMBER == 0;
     }
 

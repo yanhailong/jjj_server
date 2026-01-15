@@ -265,7 +265,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 PlayerController playerController = new PlayerController(session, player);
                 session.setReference(playerController);
                 SystemInterfaceHolder.callGameSysAction(
-                        IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, dayOfFirstLogin));
+                        IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, account, dayOfFirstLogin));
 
                 //更新token过期时间
                 playerSessionTokenDao.updateExpire(playerSessionToken);
@@ -297,7 +297,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             // 调用登录接口类
             SystemInterfaceHolder.callGameSysAction(
-                    IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, dayOfFirstLogin));
+                    IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, account, dayOfFirstLogin));
             //加载任务数据
             taskManager.loadTaskData(player.getId());
             rechargeService.loadOfflineRecharge(player.getId());

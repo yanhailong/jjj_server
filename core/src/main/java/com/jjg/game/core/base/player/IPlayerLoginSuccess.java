@@ -1,6 +1,7 @@
 package com.jjg.game.core.base.player;
 
 import com.jjg.game.common.baselogic.IGameSysFuncInterface;
+import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 
@@ -19,5 +20,5 @@ public interface IPlayerLoginSuccess extends IGameSysFuncInterface {
      * @param firstLogin       是否是首次登录
      * @return true 继续执行 false终止执行
      */
-    void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin);
+    void onPlayerLoginSuccess(PlayerController playerController, Player player, Account account, boolean firstLogin);
 }

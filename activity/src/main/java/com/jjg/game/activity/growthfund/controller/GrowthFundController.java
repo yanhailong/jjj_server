@@ -149,6 +149,7 @@ public class GrowthFundController extends BaseActivityController implements Game
     /**
      *
      * 获取购买能得到的奖励
+     *
      * @param activityData 活动数据
      * @return 奖励信息
      */
@@ -320,7 +321,7 @@ public class GrowthFundController extends BaseActivityController implements Game
     /**
      * 构建成长基金活动详情
      *
-     * @param player  玩家数据
+     * @param player       玩家数据
      * @param activityData 活动ID
      * @param baseCfgBean  活动配置
      * @param data         玩家特权卡数据
@@ -404,8 +405,8 @@ public class GrowthFundController extends BaseActivityController implements Game
     }
 
     @Override
-    public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
-        boolean checked = super.checkPlayerCanJoinActivity(player, activityData);
+    public boolean checkPlayerCanJoinActivity(Player player, Object obj, ActivityData activityData) {
+        boolean checked = super.checkPlayerCanJoinActivity(player, obj, activityData);
         if (!checked) {
             return false;
         }
@@ -419,7 +420,8 @@ public class GrowthFundController extends BaseActivityController implements Game
 
     /**
      * 是否全部领取
-     * @param activityData 活动数据
+     *
+     * @param activityData       活动数据
      * @param playerActivityData 玩家获得数据
      * @return true 全部领取 false没全部领取
      */

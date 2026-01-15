@@ -116,6 +116,11 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
         if (whiteIdArray != null) {
             nodeConfig.setWhiteIdList(whiteIdArray.toArray(new String[0]));
         }
+
+        JSONArray flagsArray = jsonObject.getJSONArray("flags");
+        if (flagsArray != null) {
+            nodeConfig.setFlags(flagsArray.toArray(new String[0]));
+        }
         update();
     }
 
@@ -124,6 +129,8 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
             // 检查whiteIpList和whiteIdList是否为空或空数组
             nodeConfig.setWhiteIpList(checkNull(nodeConfig.getWhiteIpList()));
             nodeConfig.setWhiteIdList(checkNull(nodeConfig.getWhiteIdList()));
+            nodeConfig.setFlags(checkNull(nodeConfig.getFlags()));
+
             String path = CoreConst.Common.SEPARATOR + nodeConfig.getParentPath() + CoreConst.Common.SEPARATOR +
                     nodeConfig.getType() + CoreConst.Common.SEPARATOR +
                     nodeConfig.getName();
@@ -141,6 +148,7 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
             // 检查whiteIpList和whiteIdList是否为空或空数组
             nodeConfig.setWhiteIpList(checkNull(nodeConfig.getWhiteIpList()));
             nodeConfig.setWhiteIdList(checkNull(nodeConfig.getWhiteIdList()));
+            nodeConfig.setFlags(checkNull(nodeConfig.getFlags()));
 
             String path = CoreConst.Common.SEPARATOR +
                 nodeConfig.getParentPath() +
@@ -269,9 +277,13 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
             if (!has(nodeConfig.gameMajorTypes, gameMajorType)) {
                 continue;
             }
-            if ((nodeConfig.whiteIdList == null || nodeConfig.whiteIdList.length == 0) && (nodeConfig.whiteIpList == null || nodeConfig.whiteIpList.length == 0)) {
+            if ((nodeConfig.whiteIdList == null || nodeConfig.whiteIdList.length == 0)
+                    && (nodeConfig.whiteIpList == null || nodeConfig.whiteIpList.length == 0)
+                    && (nodeConfig.flags == null || nodeConfig.flags.length == 0)) {
                 list.add(node);
-            } else if ((ClusterHelper.preciseInIdWhiteList(playerId, nodeConfig.whiteIdList) || ClusterHelper.preciseInIpWhiteList(ip, nodeConfig.whiteIpList))) {
+            } else if ((ClusterHelper.preciseInIdWhiteList(playerId, nodeConfig.whiteIdList)
+                    || ClusterHelper.preciseInIpWhiteList(ip, nodeConfig.whiteIpList))
+                    || ClusterHelper.preciseInFlagsList(this.nodeConfig.flags, nodeConfig.flags)) {
                 preciselist.add(node);
             }
         }

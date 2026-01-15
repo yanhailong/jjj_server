@@ -12,6 +12,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.RobotUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,10 +75,11 @@ public class BaseLogger {
      * @param addType
      */
     public void useGold(Player player, long beforeGold, long gold, AddType addType, String desc) {
-        if (player instanceof RobotPlayer) {
-            return;
-        }
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = new JSONObject();
 
             addGoldChange(json, beforeGold, gold, player.getGold());
@@ -101,10 +103,11 @@ public class BaseLogger {
      */
     public void transSafeBoxGold(Player player, long beforeGold, long beforeSafeBoxGold, long gold, AddType addType,
                                  String desc) {
-        if (player instanceof RobotPlayer) {
-            return;
-        }
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = new JSONObject();
 
             json = addGoldChange(json, beforeGold, gold, player.getGold());
@@ -128,10 +131,11 @@ public class BaseLogger {
      * @param addType
      */
     public void useDiamond(Player player, long beforeDiamond, long diamond, AddType addType, String desc) {
-        if (player instanceof RobotPlayer) {
-            return;
-        }
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = new JSONObject();
 
             json = addDiamondChange(json, beforeDiamond, diamond, player.getDiamond());
@@ -156,10 +160,11 @@ public class BaseLogger {
     public void transSafeBoxDiamond(Player player, long beforeDiamond, long beforeSafeBoxDiamond, long diamond,
                                     AddType addType, String desc) {
 
-        if (player instanceof RobotPlayer) {
-            return;
-        }
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = new JSONObject();
 
             json = addDiamondChange(json, beforeDiamond, diamond, player.getDiamond());
@@ -183,10 +188,11 @@ public class BaseLogger {
      * @param addType
      */
     public void useSafeBoxGold(Player player, long beforeGold, long gold, AddType addType, String desc) {
-        if (player instanceof RobotPlayer) {
-            return;
-        }
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = new JSONObject();
 
             json = addGoldChange(json, player.getGold(), 0, player.getGold());
@@ -210,10 +216,11 @@ public class BaseLogger {
      * @param addType
      */
     public void useSafeBoxDiamond(Player player, long beforeDiamond, long diamond, AddType addType, String desc) {
-        if (player instanceof RobotPlayer) {
-            return;
-        }
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = new JSONObject();
 
             json = addDiamondChange(json, beforeDiamond, diamond, player.getDiamond());
@@ -238,10 +245,11 @@ public class BaseLogger {
      * @param addType
      */
     public void vip(Player player, int beforeLevel, int vipLevel, AddType addType, String desc) {
-        if (player instanceof RobotPlayer) {
-            return;
-        }
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = new JSONObject();
             json.put("beforeLevel", beforeLevel);
             json.put("currentLevel", vipLevel);
@@ -262,10 +270,11 @@ public class BaseLogger {
      * @param result
      */
     public void level(Player player, int beforeLevel, int level, List<ItemInfo> items, CommonResult<ItemOperationResult> result) {
-        if (player instanceof RobotPlayer) {
-            return;
-        }
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = new JSONObject();
             json.put("beforeLevel", beforeLevel);
             json.put("currentLevel", level);
@@ -300,10 +309,11 @@ public class BaseLogger {
      * @return
      */
     public void enterGame(Player player, int gameType, int roomCfgId, int device) {
-        if (player instanceof RobotPlayer) {
-            return;
-        }
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = new JSONObject();
             json.put("gameType", gameType);
             json.put("roomCfgId", roomCfgId);
@@ -323,10 +333,11 @@ public class BaseLogger {
      * @return
      */
     public void exitGame(Player player, int onlineTimeLen, int device) {
-        if (player instanceof RobotPlayer) {
-            return;
-        }
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = new JSONObject();
             json.put("gameType", player.getGameType());
             json.put("channel", player.getChannel().getValue());
@@ -347,6 +358,10 @@ public class BaseLogger {
      */
     public void consumeItem(long playerId, Map<Integer, Long> beforeMap, Map<Integer, Long> costMap, Map<Integer, Long> afterMap, AddType addType) {
         try {
+            if (RobotUtil.isRobot(playerId)) {
+                return;
+            }
+
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
             //道具表  logType  1.获得   2.消耗
@@ -378,6 +393,10 @@ public class BaseLogger {
      */
     public void addItems(long playerId, Map<Integer, Long> beforeMap, Map<Integer, Long> map, Map<Integer, Long> afterMap, AddType addType, String desc) {
         try {
+            if (RobotUtil.isRobot(playerId)) {
+                return;
+            }
+
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
             //道具表  logType  1.获得   2.消耗
@@ -402,6 +421,9 @@ public class BaseLogger {
 
 
     public void order(Player player, Order order, String channelProductId, String regionCode) {
+        if (RobotUtil.isRobot(player.getId())) {
+            return;
+        }
         order(player, order, null, channelProductId, regionCode);
     }
 
@@ -412,11 +434,18 @@ public class BaseLogger {
      * @param order
      */
     public void order(Player player, Order order, String money, String channelProductId, String regionCode) {
+        if (RobotUtil.isRobot(player.getId())) {
+            return;
+        }
         order(player, order, money, channelProductId, regionCode, null);
     }
 
 
     public void order(Player player, Order order, String money, String channelProductId, String regionCode, String desc) {
+        if (RobotUtil.isRobot(player.getId())) {
+            return;
+        }
+
         String price = StringUtils.isEmpty(money) ? order.getPrice().toPlainString() : money;
 
         order(player, order.getId(), order.getChannelOrderId(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), price, channelProductId, order.getCreateTime(), order.getUpdateTime(),
@@ -430,6 +459,9 @@ public class BaseLogger {
      * @param order
      */
     public void shop(Player player, Order order, ShopProduct shopProduct, String money, String channelProductId, String region) {
+        if (RobotUtil.isRobot(player.getId())) {
+            return;
+        }
         shop(player, order.getId(), order.getChannelOrderId(), shopProduct.getType(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), money, channelProductId, order.getCreateTime(), order.getUpdateTime(),
                 order.getOrderStatus(), shopProduct.getPayType(), region);
     }
@@ -441,6 +473,9 @@ public class BaseLogger {
      * @param shopProduct
      */
     public void shop(Player player, ShopProduct shopProduct, int registerChannel, long money) {
+        if (RobotUtil.isRobot(player.getId())) {
+            return;
+        }
         int now = TimeHelper.nowInt();
         shop(player, null, null, shopProduct.getType(), registerChannel, player.getChannel().getValue(), RechargeType.SHOP, String.valueOf(money), null, now, now, OrderStatus.SUCCESS, shopProduct.getPayType(), null);
     }
@@ -582,6 +617,10 @@ public class BaseLogger {
      */
     public void sendVipLog(Player player, int rewardsType, Map<Integer, Long> rewards, ItemOperationResult result, long addExp) {
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = new JSONObject();
             json.put("rewardsType", rewardsType);
             json.put("functionType", 1);

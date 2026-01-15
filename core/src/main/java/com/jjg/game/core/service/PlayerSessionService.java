@@ -253,7 +253,7 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
         info.setGameType(gameType);
         info.setRoomCfgId(roomCfgId);
         save(info);
-        onlinePlayerDao.changeGameType(playerId, gameType);
+        onlinePlayerDao.changeGameType(playerId, gameType, roomCfgId);
     }
 
     public PlayerSessionInfo enterGameServer(Player player) {
@@ -264,7 +264,7 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
         playerLastGameInfo(player, 0, halfwayOffline, extra);
         PlayerSessionInfo info = getInfo(player.getId());
         save(info);
-        onlinePlayerDao.changeGameType(player.getId(), player.getGameType());
+        onlinePlayerDao.changeGameType(player.getId(), player.getGameType(), player.getRoomCfgId());
         return info;
     }
 
@@ -319,7 +319,7 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
             info.setSessionId(pfSession.sessionId());
         }
         save(info);
-        onlinePlayerDao.changeGameType(player.getId(), player.getGameType());
+        onlinePlayerDao.changeGameType(player.getId(), player.getGameType(), player.getRoomCfgId());
     }
 
     /**
@@ -378,7 +378,7 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
             info.setSessionId(pfSession.sessionId());
         }
         save(info);
-        onlinePlayerDao.online(player.getId(), player.getChannel().getValue(), gameType, player.getSubChannel());
+        onlinePlayerDao.online(player.getId(), player.getChannel().getValue(), gameType, player.getRoomCfgId(), player.getSubChannel());
         return info;
     }
 

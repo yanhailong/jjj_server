@@ -10,10 +10,7 @@ import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.PointsAwardType;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Order;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.RedDotManager;
@@ -179,7 +176,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * @return true 继续执行 false终止执行
      */
     @Override
-    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, Account account, boolean firstLogin) {
         leaderboardService.login(player.getId());
     }
 
@@ -603,7 +600,6 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
 //        }
 //        return code;
 //    }
-
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
         CommonResult<String> result = new CommonResult<>(Code.SUCCESS);

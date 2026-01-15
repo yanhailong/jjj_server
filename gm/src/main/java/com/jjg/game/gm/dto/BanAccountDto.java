@@ -5,7 +5,7 @@ package com.jjg.game.gm.dto;
  * @date 2025/8/25 14:46
  */
 public record BanAccountDto(
-        int type,  //1.封  2.解
+        int type,  //1.正常  2.封
         String playerIds
 ) {
 }
