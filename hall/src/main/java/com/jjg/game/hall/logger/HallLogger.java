@@ -1,9 +1,12 @@
 package com.jjg.game.hall.logger;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * @author 11
@@ -40,6 +43,23 @@ public class HallLogger extends BaseLogger {
             json.put("type", type);
             json.put("data", data);
             sendLog("bind", player, json);
+        } catch (Exception e) {
+            log.error("记录绑定日志异常", e);
+        }
+    }
+
+    public void pool(Map<Integer,Long> pool){
+        try {
+            JSONObject json = new JSONObject();
+            JSONArray array = new JSONArray();
+            for(Map.Entry<Integer,Long> en : pool.entrySet()){
+                JSONObject tmpJson = new JSONObject();
+                tmpJson.put("roomCfgId", en.getKey());
+                tmpJson.put("value", en.getValue());
+                array.add(tmpJson);
+            }
+            json.put("data", array);
+            sendLog("pool", null, json);
         } catch (Exception e) {
             log.error("记录绑定日志异常", e);
         }
