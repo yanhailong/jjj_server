@@ -40,7 +40,7 @@ public enum EGameType {
     MONEY_RABBIT(CoreConst.GameType.MONEY_RABBIT, RoomType.SLOTS, "金钱兔"),
     LUCKY_MOUSE(CoreConst.GameType.LUCKY_MOUSE, RoomType.SLOTS, "鼠鼠福福"),
     DEMON_CHILD(CoreConst.GameType.DEMON_CHILD, RoomType.SLOTS, "恶魔之子"),
-
+    ACE_DJ(CoreConst.GameType.ACE_DJ, RoomType.SLOTS, "王牌dj"),
 
     // TABLE
     RED_BLACK_WAR(CoreConst.GameType.RED_BLACK_WAR, RoomType.BET_ROOM, "红黑大战"),
@@ -55,7 +55,7 @@ public enum EGameType {
     RIVER_ANIMALS(CoreConst.GameType.FISH_SHRIMP_CRAB, RoomType.BET_ROOM, "鱼虾蟹"),
     APPLE_FRUITS(CoreConst.GameType.APPLE_FRUITS, RoomType.BET_ROOM, "苹果机-水果"),
     APPLE_ANIMAL(CoreConst.GameType.APPLE_ANIMAL, RoomType.BET_ROOM, "苹果机-动物"),
-
+    RUSSIAN_ROULETTE(CoreConst.GameType.RUSSIAN_ROULETTE, RoomType.BET_ROOM, "俄罗斯转盘"),
 
     // POKER
     BLACK_JACK(CoreConst.GameType.BLACK_JACK, RoomType.POKER_ROOM, "21点"),

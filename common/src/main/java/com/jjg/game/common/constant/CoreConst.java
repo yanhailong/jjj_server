@@ -71,6 +71,8 @@ public class CoreConst {
         public static final int FROZEN_THRONE = 102500;
         //象财神
         public static final int ELEPHANT_GOD = 102700;
+        //王牌Dj
+        public static final int ACE_DJ = 102800;
         //神马飞扬
         public static final int PEGASUS_UNBRIDLE = 103400;
         //金蛇招财

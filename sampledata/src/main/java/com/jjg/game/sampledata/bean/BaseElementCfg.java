@@ -27,6 +27,8 @@ public class BaseElementCfg extends BaseCfgBean {
   protected int languageID;
   /** 消除后变化元素ID */
   protected int postChangeElementId;
+  /** 向上占据格子 */
+  protected int space;
   /** 类型 */
   protected int type;
 
@@ -48,6 +50,11 @@ public class BaseElementCfg extends BaseCfgBean {
   /** 返回消除后变化元素ID */
   public int getPostChangeElementId() {
     return postChangeElementId;
+  }
+
+  /** 返回向上占据格子 */
+  public int getSpace() {
+    return space;
   }
 
   /** 返回类型 */

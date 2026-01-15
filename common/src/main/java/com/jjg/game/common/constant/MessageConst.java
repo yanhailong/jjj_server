@@ -75,7 +75,8 @@ public interface MessageConst {
         int SIZE_DICE_BABY_TYPE = 0x1B;
         //鱼虾蟹
         int FISH_SHRIMP_CRAB_TYPE = 0x1C;
-
+        //俄罗斯转盘
+        int RUSSIAN_ROULETTE_TYPE = 0x50;
 
         //21点
         int BLACK_JACK_TYPE = 0x1D;
@@ -157,6 +158,8 @@ public interface MessageConst {
         int TENFOLD_GOLDEN_BULL = 0x3F;
         //虎虎生财
         int TIGER_BRINGS_RICHES = 0x40;
+        //王牌dj
+        int ACE_DJ = 0x41;
     }
 
     interface ToClientConst {
