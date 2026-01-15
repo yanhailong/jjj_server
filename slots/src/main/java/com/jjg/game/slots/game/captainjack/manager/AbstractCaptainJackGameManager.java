@@ -143,12 +143,13 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
      */
     protected void treasureChest(CaptainJackGameRunInfo gameRunInfo, CaptainJackPlayerGameData playerGameData) {
         CaptainJackResultLib treasureChestLib = playerGameData.getResultLib();
-        if (treasureChestLib == null || playerGameData.getAlreadyDigCount() >= treasureChestLib.getDigTimes()) {
+        if (treasureChestLib == null || playerGameData.getAlreadyDigCount() > treasureChestLib.getDigTimes()) {
             gameRunInfo.setCode(Code.FAIL);
             return;
         }
         //增加挖宝次数
-        int afterCount = playerGameData.addAlreadyDigCount(1);
+        int afterCount = playerGameData.getAlreadyDigCount();
+        gameRunInfo.setRemainDigCount(treasureChestLib.getDigTimes() - afterCount);
         if (afterCount == treasureChestLib.getDigTimes()) {
             //重新计算总赔率
             int sum = treasureChestLib.getDigTimesMultiplier().stream().mapToInt(Integer::intValue).sum();
@@ -161,8 +162,9 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
             playerGameData.setResultLib(null);
             playerGameData.setAlreadyDigCount(null);
             log.debug("挖宝游戏次数结束，回归之前状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+        } else {
+            afterCount = playerGameData.addAlreadyDigCount(1);
         }
-        gameRunInfo.setRemainDigCount(treasureChestLib.getDigTimes() - afterCount);
         gameRunInfo.setDigTimesMultiplier(treasureChestLib.getDigTimesMultiplier().get(afterCount - 1));
         gameRunInfo.setStatus(playerGameData.getStatus());
         gameRunInfo.setAllWinGold(playerGameData.getOneBetScore() * gameRunInfo.getDigTimesMultiplier());
