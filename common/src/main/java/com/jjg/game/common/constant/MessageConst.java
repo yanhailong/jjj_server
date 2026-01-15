@@ -160,6 +160,8 @@ public interface MessageConst {
         int TIGER_BRINGS_RICHES = 0x40;
         //王牌dj
         int ACE_DJ = 0x41;
+        //绿巨人
+        int HULK = 0x42;
     }
 
     interface ToClientConst {
