@@ -21,6 +21,8 @@ public class GameFunctionCfg extends BaseCfgBean {
 
   /** 游戏中左侧列表按钮 */
   protected int butList;
+  /** 解锁条件 */
+  protected String condition;
   /** 显示区域类型 */
   protected int displayArea;
   /** 对应按钮节点 */
@@ -35,12 +37,15 @@ public class GameFunctionCfg extends BaseCfgBean {
   protected int serialNumber;
   /** 提示文本ID */
   protected int tips;
-  /** 解锁条件 */
-  protected Map<Integer,Integer> vipLevel;
 
   /** 返回游戏中左侧列表按钮 */
   public int getButList() {
     return butList;
+  }
+
+  /** 返回解锁条件 */
+  public String getCondition() {
+    return condition;
   }
 
   /** 返回显示区域类型 */
@@ -76,11 +81,6 @@ public class GameFunctionCfg extends BaseCfgBean {
   /** 返回提示文本ID */
   public int getTips() {
     return tips;
-  }
-
-  /** 返回解锁条件 */
-  public Map<Integer,Integer> getVipLevel() {
-    return vipLevel;
   }
 
   @Override

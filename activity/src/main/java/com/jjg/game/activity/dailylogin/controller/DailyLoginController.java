@@ -18,12 +18,23 @@ import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.condition.MatchResult;
+import com.jjg.game.core.base.condition.MatchResultData;
+import com.jjg.game.core.base.condition.event.PlayerRechargeEvent;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
+import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
-import com.jjg.game.core.data.*;
-import com.jjg.game.core.listener.BindThirdAccountListener;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
+import com.jjg.game.core.data.Order;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.pb.NoticeTip;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.DailyRewardsCfg;
@@ -43,15 +54,13 @@ import java.util.stream.Collectors;
  * @date 2025/9/3
  */
 @Component
-public class DailyLoginController extends BaseActivityController implements BindThirdAccountListener {
+public class DailyLoginController extends BaseActivityController {
 
     private final Logger log = LoggerFactory.getLogger(DailyLoginController.class);
     private final DailyLoginDao dailyLoginDao;
-    private final AccountDao accountDao;
 
-    public DailyLoginController(DailyLoginDao dailyLoginDao, AccountDao accountDao) {
+    public DailyLoginController(DailyLoginDao dailyLoginDao) {
         this.dailyLoginDao = dailyLoginDao;
-        this.accountDao = accountDao;
     }
 
     /**
@@ -91,11 +100,28 @@ public class DailyLoginController extends BaseActivityController implements Bind
             for (DailyRewardsCfg cfg : baseCfgBeanMap.values()) {
                 //连续奖励
                 if ((cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE && continuousLoginDay >= cfg.getDays())) {
-                    PlayerActivityData data = playerActivityData.computeIfAbsent(cfg.getId(), key -> new PlayerActivityData(activityId, activityData.getRound()));
-                    //未领取的设置为领取
-                    if (data.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
-                        data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
-                        change = true;
+                    if ((activityTargetKey & ActivityTargetType.LOGIN.getTargetKey()) != 0) {
+                        PlayerActivityData data = playerActivityData.computeIfAbsent(cfg.getId(), key -> new PlayerActivityData(activityId, activityData.getRound()));
+                        //未领取的设置为领取
+                        if (data.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
+                            change = true;
+                        }
+                    }
+                    if ((activityTargetKey & ActivityTargetType.RECHARGE.getTargetKey()) != 0) {
+                        PlayerActivityData data = playerActivityData.get(cfg.getId());
+                        if (data == null || data.getClaimStatus() != ActivityConstant.ClaimStatus.NOT_CLAIM) {
+                            continue;
+                        }
+                        if (additionalParameters instanceof Order order) {
+                            PlayerRechargeEvent playerRechargeEvent = new PlayerRechargeEvent();
+                            playerRechargeEvent.setChannelId(order.getPayChannel());
+                            playerRechargeEvent.setAmount(order.getPrice());
+                            MatchResultData matchResultData = conditionManager.addProgressAndGetAchievements(player, playerRechargeEvent, "", cfg.getCondition());
+                            if (matchResultData.result() == MatchResult.MATCH) {
+                                data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+                                change = true;
+                            }
+                        }
                     }
                 }
             }
@@ -135,6 +161,11 @@ public class DailyLoginController extends BaseActivityController implements Bind
         List<Pair<DailyRewardsCfg, PlayerActivityData>> changData = new ArrayList<>();
         CommonResult<ItemOperationResult> addedItems = null;
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
+        MatchResultData getResult = conditionManager.isAchievementAndGetResult(player, "", cfg.getCondition());
+        if (getResult.result() != MatchResult.MATCH) {
+            TipUtils.sendToastTip(playerId, getResult.errorCode(), Map.of(2, getResult.need().toPlainString()));
+            return null;
+        }
         // 加锁，保证领取操作原子性
         boolean lock = false;
         try {
@@ -231,6 +262,7 @@ public class DailyLoginController extends BaseActivityController implements Bind
         info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetItem());
         if (data != null) {
             info.claimStatus = data.getClaimStatus();
+            info.isToday = data.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM;
         }
         info.type = cfg.getType();
         info.needDays = cfg.getDays();
@@ -277,9 +309,11 @@ public class DailyLoginController extends BaseActivityController implements Bind
             }
             activityInfo.cumulativeDay = dailyLoginDao.getCumulativeLoginDay(entry.getKey(), player.getId());
             activityInfo.remainTime = TimeHelper.getNextDayRemainTime();
+
         }
         return cardTypeInfo;
     }
+
 
     @Override
     public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
@@ -347,30 +381,4 @@ public class DailyLoginController extends BaseActivityController implements Bind
                 .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
-    @Override
-    public boolean checkPlayerCanJoinActivity(Player player, Object obj, ActivityData activityData) {
-        if (obj == null) {
-            obj = accountDao.queryAccountByPlayerId(player.getId());
-        }
-
-        return conditionManager.isAchievement(player, obj, activityData.getCondition());
-    }
-
-    @Override
-    public void bind(Player player, Account account, LoginType loginType, ChannelUserInfo channelUserInfo) {
-        if (loginType != LoginType.PHONE) {
-            return;
-        }
-        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.DAILY_LOGIN);
-        if (CollectionUtil.isEmpty(dataMap)) {
-            return;
-        }
-        for (Map.Entry<Long, ActivityData> entry : dataMap.entrySet()) {
-            ActivityData data = entry.getValue();
-            if (!data.canRun() || !checkPlayerCanJoinActivity(player, account, data)) {
-                continue;
-            }
-            addPlayerProgress(player, data, 1, ActivityTargetType.BIND_PHONE.getTargetKey(), null);
-        }
-    }
 }

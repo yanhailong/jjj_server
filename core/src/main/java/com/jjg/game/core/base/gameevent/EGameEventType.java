@@ -1,63 +1,45 @@
 package com.jjg.game.core.base.gameevent;
 
+import com.jjg.game.sampledata.GameDataManager;
+
 import java.util.List;
 
 /**
  * 游戏事件类型
  *
  * @author 2CL
+ * useItemCount
  */
 public enum EGameEventType {
     // 玩家升级
-    PLAYER_LEVEL(true, "levelID"),    // 玩家升级
-    // 玩家升级
-    PLAYER_VIPLEVEL(true, "VIPlevelID"),    // 玩家VIP升级
+    PLAYER_LEVEL("playerLevel"),    // 玩家升级
     //玩家绑定手机号
-    PLAYER_PHONE(true, "playerPhone"),    // 玩家绑定手机号
+    BIND_PHONE("bindPhone"),    // 玩家绑定手机号
+    PLAYER_VIP_LEVEL("playerVipLevel"),    // 玩家vip等级
     //充值
-    RECHARGE(true),
+    RECHARGE(""),
     // 产生有效流水
-    EFFECTIVE_FLOWING(true, "effectiveFlowing"),
-    // 个人有效下注 不计算好友房
-    PLAYER_BET(true, "bet"),
-    // 个人有效下注 计算所有游戏
-    PLAYER_BETALL(true, "bet"),
-    // 个人有效下注 计算配置范围内的游戏
-    PLAY_GAME(true, "bet", "gameID"),
-    // 个人有效下注 计算不在配置范围内的游戏
-    NOTPLAY_GAME(true, "bet", "gameID"),
-    // 个人有效下注 计算不在配置范围内的游戏类型  Warehouse表中gameType字段值
-    PLAY_GAMETYPE(true, "bet", "gametype"),
-    // 个人有效下注 计算不在配置范围内的房间类型  Warehouse表中roomType字段值
-    PLAY_ROOMTYPE(true, "bet", "roomtype"),
+    EFFECTIVE_FLOWING(""),
     // 整点事件
-    CLOCK_EVENT(false),
+    CLOCK_EVENT(""),
     // 货币变化事件（主要用于在对战类游戏中更新游戏数据）
-    CURRENCY_CHANGE(false),
+    CURRENCY_CHANGE(""),
     ;
 
-    // 事件是否由玩家产生
-    final boolean isRelatedPlayer;
+    // 配置表中的类型
+    private final String configType;
 
-    // 绑定事件产生变化的属性，例如：玩家升级，绑定玩家的等级，LevelId. 如果
-    final List<String> bindProperties;
-
-    EGameEventType(boolean isRelatedPlayer, String... bindProperties) {
-        this.isRelatedPlayer = isRelatedPlayer;
-        this.bindProperties = List.of(bindProperties);
+    EGameEventType(String configType) {
+        this.configType = configType;
     }
 
-    public boolean isRelatedPlayer() {
-        return isRelatedPlayer;
-    }
-
-    public List<String> getBindProperties() {
-        return bindProperties;
+    public String getConfigType() {
+        return configType;
     }
 
     public static EGameEventType gameEventType(String name) {
         for (EGameEventType value : values()) {
-            if (value.name().equalsIgnoreCase(name)) {
+            if (value.getConfigType().equalsIgnoreCase(name)) {
                 return value;
             }
         }

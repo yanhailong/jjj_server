@@ -4,10 +4,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.utils.CommonUtil;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
-import com.jjg.game.core.base.gameevent.PlayerEventCategory;
+import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
@@ -18,6 +15,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ViplevelCfg;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.ss.formula.functions.T;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -48,7 +46,8 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
     private static Map<Integer, ViplevelCfg> VIP_LEVEL_CFG_MAP = new HashMap<>();
     private final RedDotManager redDotManager;
 
-    public VipCheckManager(NodeManager nodeManager, CoreSendMessageManager sendMessageManager, CorePlayerService playerService, RedDotManager redDotManager) {
+    public VipCheckManager(NodeManager nodeManager, CoreSendMessageManager sendMessageManager, CorePlayerService playerService,
+                           RedDotManager redDotManager, GameEventManager gameEventManager) {
         this.nodeManager = nodeManager;
         this.sendMessageManager = sendMessageManager;
         this.playerService = playerService;
@@ -150,15 +149,25 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
             }
         }
         if (chenge || newExp != player.getVipExp()) {
+            if (newLv > player.getVipLevel()) {
+                try {
+                    GameEventManager gameEventManager = CommonUtil.getContext().getBean(GameEventManager.class);
+                    gameEventManager.triggerEvent(new PlayerEvent(player, EGameEventType.PLAYER_VIP_LEVEL, player.getVipLevel(), newLv));
+                } catch (Exception e) {
+                    log.error("vip等级变化时触发事件失败 playerId:{}", player.getId(), e);
+                }
+            }
             player.setVipExp(newExp);
             player.setVipLevel(newLv);
             //发送日志
             try {
                 CoreLogger bean = CommonUtil.getContext().getBean(CoreLogger.class);
                 bean.sendVipLog(player, recharge ? 8 : 6, null, null, finalAddValue);
+
             } catch (BeansException e) {
                 log.error("发送日志失败 playerId:{} addValue:{}", player.getId(), addValue, e);
             }
+
         }
         return chenge;
     }
