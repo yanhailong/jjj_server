@@ -176,6 +176,6 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
         if (specialPlayCfg == null || StringUtil.isEmpty(specialPlayCfg.getValue())) {
             return;
         }
-        weight = Integer.parseInt(specialPlayCfg.getValue());
+//        weight = Integer.parseInt(specialPlayCfg.getValue());
     }
 }

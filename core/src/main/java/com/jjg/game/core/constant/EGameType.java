@@ -35,12 +35,17 @@ public enum EGameType {
     THOR(CoreConst.GameType.THOR, RoomType.SLOTS, "雷神"),
     STEAM_AGE(CoreConst.GameType.STEAM_AGE, RoomType.SLOTS, "蒸汽时代"),
     FROZEN_THRONE(CoreConst.GameType.FROZEN_THRONE, RoomType.SLOTS, "寒冰王座"),
+    ELEPHANT_GOD(CoreConst.GameType.ELEPHANT_GOD, RoomType.SLOTS, "象财神"),
+    ACE_DJ(CoreConst.GameType.ACE_DJ, RoomType.SLOTS, "王牌dj"),
+    HULK(CoreConst.GameType.HULK, RoomType.SLOTS, "绿巨人"),
     PEGASUS_UNBRIDLE(CoreConst.GameType.PEGASUS_UNBRIDLE, RoomType.SLOTS, "神马飞扬"),
     GOLD_SNAKE_FORTUNE(CoreConst.GameType.GOLD_SNAKE_FORTUNE, RoomType.SLOTS, "金蛇招财"),
     MONEY_RABBIT(CoreConst.GameType.MONEY_RABBIT, RoomType.SLOTS, "金钱兔"),
     LUCKY_MOUSE(CoreConst.GameType.LUCKY_MOUSE, RoomType.SLOTS, "鼠鼠福福"),
+    TENFOLD_GOLDEN_BULL(CoreConst.GameType.TENFOLD_GOLDEN_BULL, RoomType.SLOTS, "十倍金牛"),
     DEMON_CHILD(CoreConst.GameType.DEMON_CHILD, RoomType.SLOTS, "恶魔之子"),
-    ACE_DJ(CoreConst.GameType.ACE_DJ, RoomType.SLOTS, "王牌dj"),
+    TIGER_BRINGS_RICHES(CoreConst.GameType.TIGER_BRINGS_RICHES, RoomType.SLOTS, "虎虎生财"),
+
 
     // TABLE
     RED_BLACK_WAR(CoreConst.GameType.RED_BLACK_WAR, RoomType.BET_ROOM, "红黑大战"),
@@ -55,12 +60,14 @@ public enum EGameType {
     RIVER_ANIMALS(CoreConst.GameType.FISH_SHRIMP_CRAB, RoomType.BET_ROOM, "鱼虾蟹"),
     APPLE_FRUITS(CoreConst.GameType.APPLE_FRUITS, RoomType.BET_ROOM, "苹果机-水果"),
     APPLE_ANIMAL(CoreConst.GameType.APPLE_ANIMAL, RoomType.BET_ROOM, "苹果机-动物"),
+    RED_PACKET(CoreConst.GameType.RED_PACKET, RoomType.BET_ROOM, "红包扫雷"),
     RUSSIAN_ROULETTE(CoreConst.GameType.RUSSIAN_ROULETTE, RoomType.BET_ROOM, "俄罗斯转盘"),
 
     // POKER
     BLACK_JACK(CoreConst.GameType.BLACK_JACK, RoomType.POKER_ROOM, "21点"),
     TEXAS(CoreConst.GameType.TEXAS, RoomType.POKER_ROOM, "德州"),
     VEGAS_THREE(CoreConst.GameType.VEGAS_THREE, RoomType.POKER_ROOM, "拉斯维加斯拼三张"),
+    TO_SOUTH(CoreConst.GameType.TO_SOUTH, RoomType.POKER_ROOM, "南方前进"),
     ;
     // 游戏类型ID
     final int gameTypeId;

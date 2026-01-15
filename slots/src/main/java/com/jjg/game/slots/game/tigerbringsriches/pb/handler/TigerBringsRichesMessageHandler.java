@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/8/1 17:37
  */
 @Component
-@MessageType(MessageConst.MessageTypeDef.PEGASUS_UNBRIDLE)
+@MessageType(MessageConst.MessageTypeDef.TIGER_BRINGS_RICHES)
 public class TigerBringsRichesMessageHandler {
     private final Logger log = LoggerFactory.getLogger(getClass());
 

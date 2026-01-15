@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/8/1 17:37
  */
 @Component
-@MessageType(MessageConst.MessageTypeDef.PEGASUS_UNBRIDLE)
+@MessageType(MessageConst.MessageTypeDef.TENFOLD_GOLDEN_BULL)
 public class TenFoldGoldenBullMessageHandler {
     private final Logger log = LoggerFactory.getLogger(getClass());
 

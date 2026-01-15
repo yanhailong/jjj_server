@@ -73,6 +73,8 @@ public class CoreConst {
         public static final int ELEPHANT_GOD = 102700;
         //王牌Dj
         public static final int ACE_DJ = 102800;
+        //绿巨人
+        public static final int HULK = 103100;
         //神马飞扬
         public static final int PEGASUS_UNBRIDLE = 103400;
         //金蛇招财
