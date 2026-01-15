@@ -10,6 +10,7 @@ import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.sampledata.bean.FirstpaymentCfg;
 import com.jjg.game.sampledata.bean.PlayerLevelPackCfg;
 import com.jjg.game.sampledata.bean.PrivilegeCardCfg;
@@ -35,6 +36,10 @@ public class ActivityLogger extends BaseLogger {
      */
     public void sendPrivilegeCardJoinLog(Player player, ActivityData activityData, PrivilegeCardCfg cfg, ItemOperationResult result, Map<Integer, Long> rewards) {
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = buildBaseInfo(activityData, cfg.getId());
             json.put("operation", "join");
             json.put("subType", cfg.getType());
@@ -55,6 +60,10 @@ public class ActivityLogger extends BaseLogger {
      */
     public void sendPrivilegeCardRewardsLog(Player player, ActivityData activityData, PrivilegeCardCfg cfg, long remain, ItemOperationResult result, Map<Integer, Long> rewards) {
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = buildBaseInfo(activityData, cfg.getId());
             json.put("operation", "rewards");
             json.put("subType", cfg.getType());
@@ -75,6 +84,10 @@ public class ActivityLogger extends BaseLogger {
                                    Map<Integer, Long> cost, ItemOperationResult costAfter,
                                    long get, ItemOperationResult rewardsAfter) {
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = buildBaseInfo(activityData, detailId);
             json.put("operation", "join");
             json.put("cashCowType", cashCowType);
@@ -95,6 +108,10 @@ public class ActivityLogger extends BaseLogger {
                                    ItemOperationResult result,
                                    long progress, Map<Integer, Long> rewards) {
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = buildBaseInfo(activityData, detailId);
             json.put("operation", "rewards");
             json.put("rewards", objectMapper.writeValueAsString(rewards));
@@ -111,6 +128,10 @@ public class ActivityLogger extends BaseLogger {
      */
     public void sendCashCowFreeRewards(Player player, ActivityData activityData, ItemOperationResult result, Item reward) {
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = buildBaseInfo(activityData, 0);
             json.put("operation", "freeRewards");
             json.put("rewards", objectMapper.writeValueAsString((Map.of(reward.getId(), reward.getItemCount()))));
@@ -127,6 +148,10 @@ public class ActivityLogger extends BaseLogger {
     public void sendPiggyBankJoin(Player player, ActivityData activityData, PiggyBankData piggyBankData,
                                   int type, int detailId) {
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = buildBaseInfo(activityData, detailId);
             json.put("piggyBank", type);
             json.put("buyTime", piggyBankData.getBuyTime());
@@ -142,6 +167,10 @@ public class ActivityLogger extends BaseLogger {
     public void sendPiggyBankRewards(Player player, ActivityData activityData, PiggyBankData piggyBankData,
                                      int type, int detailId, ItemOperationResult result, Map<Integer, Long> rewards) {
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = buildBaseInfo(activityData, detailId);
             json.put("piggyBank", type);
             json.put("rewards", objectMapper.writeValueAsString(rewards));
@@ -162,6 +191,10 @@ public class ActivityLogger extends BaseLogger {
                                      int times, ItemOperationResult costAfter, ItemOperationResult addResult, Map<Integer, Long> totalRewards,
                                      List<ScratchCardsResult> scratchCardsResults) {
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = buildBaseInfo(activityData, 0);
             json.put("operation", "join");
             json.put("rewards", objectMapper.writeValueAsString(totalRewards));
@@ -182,6 +215,10 @@ public class ActivityLogger extends BaseLogger {
      */
     public void sendActivityGift(Player player, ActivityData activityData, ItemOperationResult result, Map<Integer, Long> rewards, Object costObject, int detailId) {
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = buildBaseInfo(activityData, detailId);
             json.put("rewards", objectMapper.writeValueAsString(rewards));
             if (costObject instanceof BigDecimal cost) {
@@ -222,6 +259,10 @@ public class ActivityLogger extends BaseLogger {
      */
     public void sendSharePromoteSubordinateRecharge(Player player, ActivityData activityData, int type, long superiorId, long rechargeAmount, long totalAdd) {
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject json = buildBaseInfo(activityData, 0);
             json.put("rechargeAmount", rechargeAmount);
             json.put("addType", type);

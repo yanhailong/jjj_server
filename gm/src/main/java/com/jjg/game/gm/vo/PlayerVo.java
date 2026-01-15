@@ -18,6 +18,8 @@ public class PlayerVo {
     private String mobile;
     private SafeVo safeVo;
     private int level;
+    private int gameType;
+    private int roomCfgId;
 
     public long getPlayerId() {
         return playerId;
@@ -121,5 +123,21 @@ public class PlayerVo {
 
     public void setLevel(int level) {
         this.level = level;
+    }
+
+    public int getGameType() {
+        return gameType;
+    }
+
+    public void setGameType(int gameType) {
+        this.gameType = gameType;
+    }
+
+    public int getRoomCfgId() {
+        return roomCfgId;
+    }
+
+    public void setRoomCfgId(int roomCfgId) {
+        this.roomCfgId = roomCfgId;
     }
 }

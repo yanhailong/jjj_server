@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.slots.data.GameRunInfo;
 import org.springframework.stereotype.Component;
 
@@ -43,6 +44,10 @@ public class SlotsLogger extends BaseLogger {
      */
     public void gameResult(Player player, GameRunInfo gameRunInfo, Object res) {
         try {
+            if(RobotUtil.isRobot(player.getId())){
+                return;
+            }
+
             JSONObject json = new JSONObject();
             //添加基础公共信息
             json = baseInfo(player,gameRunInfo,json);

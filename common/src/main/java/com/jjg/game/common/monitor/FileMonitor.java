@@ -50,17 +50,17 @@ public class FileMonitor extends FileAlterationListenerAdaptor {
             log.warn("添加文件监听错误，参数不能为空");
             return;
         }
+        if(fileLoader == null){
+            log.warn("添加文件监听错误，fileLoader 不能为空");
+            return;
+        }
         String[] fn = fileName.split("/");
         if (fn.length != 2) {
             log.warn("添加文件监听错误，参数不能为空，file=" + fileName);
             return;
         }
-        String dirName = fn[0];
         String fName = fn[1];
-        addDirectoryObserver(dirName, null);
-        if (fileLoader != null) {
-            fileLoaders.put(fName, fileLoader);
-        }
+        fileLoaders.put(fName, fileLoader);
         if (load) {
             onFileChange(new File(fileName));
         }
@@ -148,22 +148,4 @@ public class FileMonitor extends FileAlterationListenerAdaptor {
             log.warn("文件创建处理异常",e);
         }
     }
-
-    /*@Override
-    public void onApplicationEvent(ContextRefreshedEvent event) {
-        log.info("扫描上层文件监听器...");
-        Map<String, FileChangeListener> maps = event.getApplicationContext().getBeansOfType(FileChangeListener.class);
-        if (maps != null && !maps.isEmpty()) {
-            maps.values().forEach(f -> {
-                log.info(f.getFileName() + "->" + f.getClass());
-                List<FileChangeListener> list = fileChangeListenerMap.computeIfAbsent(f.getFileName(), k -> new ArrayList<>());
-                list.add(f);
-            });
-        }
-    }
-
-    @Override
-    public void run(String... args) throws Exception {
-        start();
-    }*/
 }

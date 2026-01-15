@@ -11,6 +11,8 @@ public class OnlinePlayerVo {
     private long gold;
     private long diamond;
     private int registerChannel;
+    private int gameType;
+    private int roomCfgId;
 
     public long getPlayerId() {
         return playerId;
@@ -58,5 +60,21 @@ public class OnlinePlayerVo {
 
     public void setRegisterChannel(int registerChannel) {
         this.registerChannel = registerChannel;
+    }
+
+    public int getGameType() {
+        return gameType;
+    }
+
+    public void setGameType(int gameType) {
+        this.gameType = gameType;
+    }
+
+    public int getRoomCfgId() {
+        return roomCfgId;
+    }
+
+    public void setRoomCfgId(int roomCfgId) {
+        this.roomCfgId = roomCfgId;
     }
 }

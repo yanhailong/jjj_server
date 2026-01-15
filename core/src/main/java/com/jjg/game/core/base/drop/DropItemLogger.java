@@ -6,6 +6,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
+import com.jjg.game.core.utils.RobotUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -30,6 +31,10 @@ public class DropItemLogger extends BaseLogger {
     public void recordDropItem(Player player, AddType addType, String desc, int gameCfgId, Map<Integer, Long> itemList,
                                ItemOperationResult result) {
         try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
             JSONObject data = new JSONObject();
             data.put("addType", addType.getValue());
             data.put("desc", desc);

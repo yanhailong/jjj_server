@@ -3,6 +3,7 @@ package com.jjg.game.hall.casino.logger;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.logger.BaseLogger;
+import com.jjg.game.core.utils.RobotUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -27,6 +28,10 @@ public class CasinoLogger extends BaseLogger {
     public void sendCasinoOperationLog(long playerId, int floorId, int operationType, int machineType, long accelerationTime
             , Map<Integer, Long> costItemMap, ItemOperationResult result, int currenLv) {
         try {
+            if(RobotUtil.isRobot(playerId)){
+                return;
+            }
+
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
             json.put("floorId", floorId);
@@ -51,6 +56,10 @@ public class CasinoLogger extends BaseLogger {
      */
     public void sendCasinoRewardsLog(long playerId, Map<Integer, Long> rewardsMap, ItemOperationResult result) {
         try {
+            if(RobotUtil.isRobot(playerId)){
+                return;
+            }
+
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
             json.put("rewardsMap", objectMapper.writeValueAsString(rewardsMap));
