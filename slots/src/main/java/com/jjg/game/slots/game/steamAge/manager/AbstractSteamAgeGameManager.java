@@ -37,7 +37,6 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
 
     public AbstractSteamAgeGameManager() {
         super(SteamAgePlayerGameData.class, SteamAgeResultLib.class);
-        this.log = LoggerFactory.getLogger(getClass());
     }
 
     @Override

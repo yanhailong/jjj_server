@@ -13,8 +13,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.OffLineEventData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.basketballSuperstar.dao.BasketballSuperstarGameDataDao;
@@ -25,7 +23,6 @@ import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarPlaye
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarResultLib;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.HashSet;
@@ -45,7 +42,6 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
 
     public AbstractBasketballSuperstarGameManager() {
         super(BasketballSuperstarPlayerGameData.class, BasketballSuperstarResultLib.class);
-        this.log = LoggerFactory.getLogger(getClass());
     }
 
     @Override

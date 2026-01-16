@@ -1,10 +1,6 @@
 package com.jjg.game.slots.game.steamAge.manager;
 
-import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.game.steamAge.dao.SteamAgeGameDataDao;
-import com.jjg.game.slots.game.steamAge.dao.SteamAgeResultLibDao;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,21 +12,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class SteamAgeGameManager extends AbstractSteamAgeGameManager {
 
-    @Autowired
-    private SteamAgeResultLibDao libDao;
-    @Autowired
-    private SteamAgeGenerateManager generateManager;
-    @Autowired
-    private SlotsPoolDao slotsPoolDao;
-    @Autowired
-    private SteamAgeGameDataDao gameDataDao;
-
     public SteamAgeGameManager() {
         super();
         this.log = LoggerFactory.getLogger(getClass());
     }
-
-
-
 
 }
