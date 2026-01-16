@@ -41,7 +41,7 @@ public class TodayDepositCondition extends BaseRedisCondition<PlayerRecharge> {
     }
 
     public boolean matchCheck(PlayerRechargeEvent event, PlayerRecharge config) {
-        return event.getChannelId() == config.channelId();
+        return config.channelId() == 0 || event.getChannelId() == config.channelId();
     }
 
     @Override

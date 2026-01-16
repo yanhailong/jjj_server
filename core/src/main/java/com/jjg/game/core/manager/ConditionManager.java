@@ -1,9 +1,14 @@
 package com.jjg.game.core.manager;
 
 import com.jjg.game.core.base.condition.ConditionEngine;
+import com.jjg.game.core.base.condition.MatchResult;
 import com.jjg.game.core.base.condition.MatchResultData;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.utils.TipUtils;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * @author lm
@@ -43,14 +48,25 @@ public class ConditionManager {
     }
 
     /**
-     * 是否达成条件返回错误码
+     * 是否达成条件并通知前端错误信息
      *
      * @param player    玩家
      * @param condition 条件参数
      * @return 是否达成条件
      */
-    public int isAchievementAndGetCode(Player player, String prefix, String condition) {
-        return conditionEngine.checkAndGetCode(player, prefix, condition).errorCode();
+    public boolean isAchievementAndNotify(Player player, String prefix, String condition) {
+        MatchResultData resultData = conditionEngine.checkAndGetCode(player, prefix, condition);
+        if (resultData.result() == MatchResult.MATCH) {
+            return true;
+        }
+        if (resultData.errorCode() > 0 && resultData.errorCode() != Code.SUCCESS) {
+            Map<Integer, String> param = Map.of();
+            if (resultData.need() != null) {
+                param = Map.of(2, resultData.need().toPlainString());
+            }
+            TipUtils.sendToastTip(player.getId(), resultData.errorCode(), param);
+        }
+        return false;
     }
 
     /**

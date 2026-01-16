@@ -112,9 +112,7 @@ public class ActivityMessageHandler {
             return;
         }
         BaseActivityController controller = data.getType().getController();
-        int code = activityManager.playerJoinActivityCheck(data, playerController.getPlayer());
-        if (code != Code.SUCCESS) {
-            TipUtils.sendToastTip(playerController.playerId(), code);
+        if (!activityManager.playerJoinActivityCheck(data, playerController.getPlayer())) {
             return;
         }
         AbstractResponse response = controller.claimActivityRewards(playerController.getPlayer(), data, req.detailId);

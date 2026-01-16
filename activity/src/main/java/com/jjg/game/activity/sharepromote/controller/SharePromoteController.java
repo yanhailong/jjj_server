@@ -2,6 +2,7 @@ package com.jjg.game.activity.sharepromote.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.EnumUtil;
+import cn.hutool.core.util.NumberUtil;
 import com.jjg.game.activity.activitylog.data.SharePromoteWeekRank;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.*;
@@ -686,7 +687,7 @@ public class SharePromoteController extends BaseActivityController {
                 //构建排行榜玩家基本信息
                 buildSharePromoteRankInfo(player, rankInfo, entry.getValue().longValue());
                 String key = String.valueOf(entry.getKey());
-                rankInfo.totalRecharge = counts.get(key).toPlainString();
+                rankInfo.totalRecharge = NumberUtil.decimalFormat(",###.##", counts.getOrDefault(key, BigDecimal.ZERO));
                 rankInfo.validFlow = effectiveFlowMap.get(key).longValue();
                 res.rankInfoList.add(rankInfo);
             }
