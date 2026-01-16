@@ -25,11 +25,23 @@
             <groupId>com.jjg.game</groupId>
             <artifactId>core</artifactId>
             <version>1.0.0-JJG-RELEASES</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.jjg.game</groupId>
             <artifactId>sampledata</artifactId>
             <version>1.0.0-JJG-RELEASES</version>
+        </dependency>
+        <!--高性能本地缓存-->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.1.8</version>
         </dependency>
     </dependencies>
     <build>
