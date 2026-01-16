@@ -405,7 +405,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         List<Integer> rewardPoolIds = checkLibPool(resultLib, playerGameData);
                         if (rewardPoolIds.isEmpty()) {  //如果发现lib可以中奖，但是不够资格
                             resultLib = afterForbidPoolLib(libCfgResult.data, resultLib);
-                            resultLib.setJackpotIds(null);
                         }
                     }
                 }

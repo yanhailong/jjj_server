@@ -172,7 +172,7 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable {
         this.jackpotIds = jackpotIds;
     }
 
-    public int getFirstJackpotId() {
+    public int firstJackpotId() {
         if(this.jackpotIds == null || this.jackpotIds.isEmpty()) {
             return 0;
         }
