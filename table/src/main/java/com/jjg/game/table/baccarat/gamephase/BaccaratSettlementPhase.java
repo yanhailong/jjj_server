@@ -235,10 +235,8 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 playerChangedGolds.put(playerEntry.getKey(), playerGoldChange);
             }
             settlementDataMap.put(gamePlayer.getId(), settlementData);
-            if (!(gamePlayer instanceof GameRobotPlayer)) {
-                // 记录押注日志
-                BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameController, playerBetInfo);
-            }
+            // 记录押注日志
+            BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameController, playerBetInfo);
         }
         if (changeParam != null) {
             calculationFinalBankerChange(changeParam);

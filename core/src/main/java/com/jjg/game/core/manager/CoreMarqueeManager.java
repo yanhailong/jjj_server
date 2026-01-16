@@ -194,9 +194,6 @@ public class CoreMarqueeManager implements TimerListener {
         }
 
         log.debug("删除跑马灯后打印 map.size = {}", this.marqueeMap.size());
-        for (Marquee m : this.sortedMarquees) {
-            System.out.println(JSON.toJSONString(m));
-        }
     }
 
     /**

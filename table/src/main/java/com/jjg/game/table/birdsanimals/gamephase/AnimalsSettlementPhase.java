@@ -250,10 +250,8 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             changeParam.addTotalTaxRevenue(settlementData.getTaxation());
             changeParam.addBankerChangeGold(Math.max(0, settlementData.getTotalGet() - settlementData.getBankerWind()));
         }
-        if (!(gamePlayer instanceof GameRobotPlayer)) {
-            // 总押注
-            BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameController, playerBetInfo);
-        }
+        // 总押注
+        BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameController, playerBetInfo);
         return settlementData;
     }
 
