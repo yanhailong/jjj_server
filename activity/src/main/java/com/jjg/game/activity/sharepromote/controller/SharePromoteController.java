@@ -1,7 +1,6 @@
 package com.jjg.game.activity.sharepromote.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.core.util.EnumUtil;
 import cn.hutool.core.util.NumberUtil;
 import com.jjg.game.activity.activitylog.data.SharePromoteWeekRank;
 import com.jjg.game.activity.common.controller.BaseActivityController;
@@ -44,7 +43,10 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -331,22 +333,23 @@ public class SharePromoteController extends BaseActivityController {
         res.code = result.code;
         if (res.code == Code.SUCCESS) {
             //修改玩家数据
-            String lock = sharePromoteDao.getLock(playerId);
+            Long superiorId = result.data;
+            String lock = sharePromoteDao.getLock(superiorId);
             boolean save = false;
             boolean isLock = false;
             try {
                 isLock = redisLock.tryLockWithDefaultTime(lock);
                 if (!isLock) {
                     res.code = Code.FAIL;
-                    log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} invitationCode:{} ", lock, playerId, activityData.getId(), req.invitationCode);
+                    log.error("获取锁失败 lockKey:{} superiorId:{} activityId:{} invitationCode:{} ", lock, superiorId, activityData.getId(), req.invitationCode);
                     return res;
                 }
-                playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
+                playerInfoData = sharePromoteDao.getPlayerInfoData(superiorId);
                 playerInfoData.setBindCount(playerInfoData.getBindCount() + 1);
-                sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
+                sharePromoteDao.savePlayerInfoData(superiorId, playerInfoData);
                 save = true;
             } catch (Exception e) {
-                log.error("推广分享绑定成功 修改数据异常 playerId:{} code:{}", playerId, req.invitationCode);
+                log.error("推广分享绑定成功 修改数据异常 superiorId:{} code:{}", superiorId, req.invitationCode);
             } finally {
                 if (isLock) {
                     redisLock.tryUnlock(lock);
@@ -354,7 +357,7 @@ public class SharePromoteController extends BaseActivityController {
             }
             if (save) {
                 //发送日志
-                activityLogger.sendSharePromoteAddRewards(player, activityData, result.data, 2,
+                activityLogger.sendSharePromoteAddRewards(player, activityData, superiorId, 2,
                         0, 1, 0, 0, 0, 1);
             }
         }
