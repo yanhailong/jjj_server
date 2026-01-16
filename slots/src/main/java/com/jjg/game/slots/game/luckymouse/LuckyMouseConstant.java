@@ -7,26 +7,24 @@ public interface LuckyMouseConstant {
     interface MsgBean {
         int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.LUCKY_MOUSE << MessageConst.MessageCommon.RIGHT_MOVE;
         //请求配置
-        int REQ_CONFIG_INFO = BASE_MSG_PREFIX | 0x1;
-        int RES_CONFIG_INFO = BASE_MSG_PREFIX | 0x2;
+        int REQ_LUCKY_MOUSE_CONFIG_INFO = BASE_MSG_PREFIX | 0x1;
+        int RES_LUCKY_MOUSE_CONFIG_INFO = BASE_MSG_PREFIX | 0x2;
 
         //开始游戏
-        int REQ_START_GAME = BASE_MSG_PREFIX | 0x3;
-        int RES_START_GAME = BASE_MSG_PREFIX | 0x4;
+        int REQ_LUCKY_MOUSE_START_GAME = BASE_MSG_PREFIX | 0x3;
+        int RES_LUCKY_MOUSE_START_GAME = BASE_MSG_PREFIX | 0x4;
 
         //请求奖池
-        int REQ_POOL_INFO = BASE_MSG_PREFIX | 0x5;
-        int RES_POOL_INFO = BASE_MSG_PREFIX | 0x6;
+        int REQ_LUCKY_MOUSE_POOL_INFO = BASE_MSG_PREFIX | 0x5;
+        int RES_LUCKY_MOUSE_POOL_INFO = BASE_MSG_PREFIX | 0x6;
     }
 
     interface Status{
         int NORMAL = SlotsConst.Status.NORMAL;
-        //免费模式
-        int FREE = SlotsConst.Status.FREE;
         //触发真免费
-        int REAL_FREE = 2;
+        int REAL_FU_SHU = SlotsConst.Status.FREE;
         //触发假免费
-        int FAKE_FREE = 3;
+        int FAKE_FU_SHU = 2;
     }
 
     interface BaseElement{
@@ -46,9 +44,7 @@ public interface LuckyMouseConstant {
     }
 
     interface SpecialPlay{
-        //免费游戏出现在2、3、4、5轴时变成百搭，并一直粘连，直至退出此模式
-        int TYPE_STICKY_WILD= 1;
-        //增加免费次数
-        int TYPE_ADD_FREE_COUNT = 5;
+        int FU_SHU_TRIGGER_ID = 5036001;
+
     }
 }

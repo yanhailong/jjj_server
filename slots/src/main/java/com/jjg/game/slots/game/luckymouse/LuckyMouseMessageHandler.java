@@ -11,6 +11,7 @@ import com.jjg.game.slots.game.luckymouse.manager.LuckyMouseGameManager;
 import com.jjg.game.slots.game.luckymouse.manager.LuckyMouseRoomGameManager;
 import com.jjg.game.slots.game.luckymouse.manager.LuckyMouseSendMessageManager;
 import com.jjg.game.slots.game.luckymouse.pb.ReqLuckyMouseEnterGame;
+import com.jjg.game.slots.game.luckymouse.pb.ReqLuckyMousePoolValue;
 import com.jjg.game.slots.game.luckymouse.pb.ReqLuckyMouseStartGame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +36,7 @@ public class LuckyMouseMessageHandler {
      * @param playerController
      * @param req
      */
-    @Command(LuckyMouseConstant.MsgBean.REQ_CONFIG_INFO)
+    @Command(LuckyMouseConstant.MsgBean.REQ_LUCKY_MOUSE_CONFIG_INFO)
     public void reqConfigInfo(PlayerController playerController, ReqLuckyMouseEnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
@@ -60,20 +61,44 @@ public class LuckyMouseMessageHandler {
      * @param playerController
      * @param req
      */
-    @Command(LuckyMouseConstant.MsgBean.REQ_START_GAME)
+    @Command(LuckyMouseConstant.MsgBean.REQ_LUCKY_MOUSE_START_GAME)
     public void reqStartGame(PlayerController playerController, ReqLuckyMouseStartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             LuckyMouseGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
-//                gameRunInfo = gameManager.playerStartGame(playerController, req.stakeVlue);
+                gameRunInfo = gameManager.playerStartGame(playerController, req.stakeValue);
             } else if (playerController.getScene() instanceof SlotsRoomController) {
-//                gameRunInfo = roomGameManager.playerStartGame(playerController, req.stakeVlue);
+                gameRunInfo = roomGameManager.playerStartGame(playerController, req.stakeValue);
             } else {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
-//            sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
+            sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 奖池
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(LuckyMouseConstant.MsgBean.REQ_LUCKY_MOUSE_POOL_INFO)
+    public void reqLuckyMousePoolValue(PlayerController playerController, ReqLuckyMousePoolValue req) {
+        try {
+            LuckyMouseGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.getPoolValue(playerController,req.stakeValue);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.getPoolValue(playerController,req.stakeValue);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
+            sendMessageManager.sendPoolValueMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

@@ -36,7 +36,7 @@ public class ElephantGodMessageHandler {
      * @param playerController
      * @param req
      */
-    @Command(LuckyMouseConstant.MsgBean.REQ_CONFIG_INFO)
+    @Command(LuckyMouseConstant.MsgBean.REQ_LUCKY_MOUSE_CONFIG_INFO)
     public void reqConfigInfo(PlayerController playerController, ReqLuckyMouseEnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
@@ -61,20 +61,20 @@ public class ElephantGodMessageHandler {
      * @param playerController
      * @param req
      */
-    @Command(LuckyMouseConstant.MsgBean.REQ_START_GAME)
+    @Command(LuckyMouseConstant.MsgBean.REQ_LUCKY_MOUSE_START_GAME)
     public void reqStartGame(PlayerController playerController, ReqLuckyMouseStartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             LuckyMouseGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
-//                gameRunInfo = gameManager.playerStartGame(playerController, req.stakeVlue);
+                gameRunInfo = gameManager.playerStartGame(playerController, req.stakeValue);
             } else if (playerController.getScene() instanceof SlotsRoomController) {
-//                gameRunInfo = roomGameManager.playerStartGame(playerController, req.stakeVlue);
+                gameRunInfo = roomGameManager.playerStartGame(playerController, req.stakeValue);
             } else {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
-//            sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
+            sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

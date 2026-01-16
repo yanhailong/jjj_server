@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.luckymouse.manager;
 
+import cn.hutool.core.collection.CollUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
@@ -7,17 +8,20 @@ import com.jjg.game.core.manager.BaseSendMessageManager;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.luckymouse.data.LuckyMouseGameRunInfo;
+import com.jjg.game.slots.game.luckymouse.pb.LuckyMousePoolInfo;
 import com.jjg.game.slots.game.luckymouse.pb.ResLuckyMouseEnterGame;
+import com.jjg.game.slots.game.luckymouse.pb.ResLuckyMousePoolValue;
 import com.jjg.game.slots.game.luckymouse.pb.ResLuckyMouseStartGame;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Component
 public class LuckyMouseSendMessageManager extends BaseSendMessageManager {
@@ -49,6 +53,26 @@ public class LuckyMouseSendMessageManager extends BaseSendMessageManager {
             }
 
             res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
+            res.poolValue = gameManager.getPoolValueByRoomCfgId(config.getId());
+            res.status = gameRunInfo.getData().getStatus();
+            res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
+            // 奖池信息
+            if (CollUtil.isNotEmpty(prizePoolIdList)) {
+                res.poolList = new ArrayList<>();
+                for (int poolId : prizePoolIdList) {
+                    PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+                    if (poolCfg == null) {
+                        continue;
+                    }
+                    LuckyMousePoolInfo poolInfo = new LuckyMousePoolInfo();
+                    poolInfo.id = poolId;
+                    poolInfo.initTimes = poolCfg.getFakePoolInitTimes();
+                    poolInfo.maxTimes = poolCfg.getFakePoolMax();
+                    poolInfo.perSomeSec = poolCfg.getGrowthRate().get(0);
+                    poolInfo.updateProp = poolCfg.getGrowthRate().get(1);
+                    res.poolList.add(poolInfo);
+                }
+            }
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -73,14 +97,17 @@ public class LuckyMouseSendMessageManager extends BaseSendMessageManager {
             res.allGold = gameRunInfo.getAfterGold();
             //总计获得金币
             res.allWinGold = gameRunInfo.getAllWinGold();
+            res.status = gameRunInfo.getStatus();
+            res.remainFreeCount = gameRunInfo.getRemainFreeCount();
             //图标信息
-            res.iconList = IntStream.range(1, gameRunInfo.getIconArr().length).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
+            res.iconList = Arrays.stream(gameRunInfo.getIconArr(), 1, gameRunInfo.getIconArr().length).boxed().collect(Collectors.toList());
             //大奖展示id
             res.bigWinShow = gameRunInfo.getBigShowId();
+            res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
-
+            res.winIconInfoList = gameRunInfo.getAwardLineInfos();
             logger.gameResult(playerController.getPlayer(), gameRunInfo,res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
@@ -89,5 +116,18 @@ public class LuckyMouseSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回押注结果", false);
+    }
+
+    public void sendPoolValueMessage(PlayerController playerController, LuckyMouseGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+        ResLuckyMousePoolValue res = new ResLuckyMousePoolValue(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+            res.major = gameRunInfo.getMajor();
+        } else {
+            log.debug("奖池结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回奖池结果", false);
     }
 }

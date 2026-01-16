@@ -6,9 +6,9 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.slots.game.luckymouse.LuckyMouseConstant;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.LUCKY_MOUSE, cmd = LuckyMouseConstant.MsgBean.REQ_START_GAME)
-@ProtoDesc("请求配置信息")
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.LUCKY_MOUSE, cmd = LuckyMouseConstant.MsgBean.REQ_LUCKY_MOUSE_START_GAME)
+@ProtoDesc("请求开始游戏")
 public class ReqLuckyMouseStartGame extends AbstractMessage {
     @ProtoDesc("下注金额")
-    public long stakeVlue;
+    public long stakeValue;
 }

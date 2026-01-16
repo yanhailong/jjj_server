@@ -8,7 +8,7 @@ import com.jjg.game.slots.game.luckymouse.LuckyMouseConstant;
 
 import java.util.List;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.LUCKY_MOUSE, cmd = LuckyMouseConstant.MsgBean.RES_CONFIG_INFO, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.LUCKY_MOUSE, cmd = LuckyMouseConstant.MsgBean.RES_LUCKY_MOUSE_CONFIG_INFO, resp = true)
 @ProtoDesc("进入游戏，返回配置信息")
 public class ResLuckyMouseEnterGame extends AbstractResponse {
     @ProtoDesc("押注列表")
@@ -19,6 +19,10 @@ public class ResLuckyMouseEnterGame extends AbstractResponse {
     public long poolValue;
     @ProtoDesc("状态  0.普通   1.真免费   2.假免费")
     public int status;
+    @ProtoDesc("剩余免费次数")
+    public int remainFreeCount;
+    @ProtoDesc("奖池配置信息")
+    public List<LuckyMousePoolInfo> poolList;
 
     public ResLuckyMouseEnterGame(int code) {
         super(code);
