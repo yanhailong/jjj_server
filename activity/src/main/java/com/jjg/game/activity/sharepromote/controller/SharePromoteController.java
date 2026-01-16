@@ -318,12 +318,6 @@ public class SharePromoteController extends BaseActivityController {
             TipUtils.sendToastTip(playerId, 62044);
             return null;
         }
-        //获取玩家的推广分享数据
-        SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
-        if (playerInfoData == null) {
-            res.code = Code.PARAM_ERROR;
-            return res;
-        }
         if (StringUtils.isEmpty(req.invitationCode)) {
             res.code = Code.CODE_ERROR;
             return res;
@@ -344,7 +338,7 @@ public class SharePromoteController extends BaseActivityController {
                     log.error("获取锁失败 lockKey:{} superiorId:{} activityId:{} invitationCode:{} ", lock, superiorId, activityData.getId(), req.invitationCode);
                     return res;
                 }
-                playerInfoData = sharePromoteDao.getPlayerInfoData(superiorId);
+                SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(superiorId);
                 playerInfoData.setBindCount(playerInfoData.getBindCount() + 1);
                 sharePromoteDao.savePlayerInfoData(superiorId, playerInfoData);
                 save = true;
@@ -380,27 +374,24 @@ public class SharePromoteController extends BaseActivityController {
                 log.warn("绑定上级失败，获取不到上级玩家信息 playerId = {},shareId = {}", player.getId(), shareId);
                 return;
             }
-
             ActivityData activityData = activityManager.getOpenActivityData(superPlayer, ActivityType.SHARE_PROMOTE);
             if (activityData == null) {
                 log.warn("上级玩家不能参与推广分享活动 playerId = {},superPlayerId = {}", player.getId(), superPlayer.getId());
                 return;
             }
-
-            ResSharePromoteGlobalInfo res = (ResSharePromoteGlobalInfo) reqSharePromoteGlobalInfo(player, activityData);
-            if (res.code != Code.SUCCESS) {
-                log.warn("绑定上级失败时生成邀请码失败 playerId = {},superPlayerId = {},code = {}", player.getId(), shareId, res.code);
+            SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(superPlayer.getId());
+            if (playerInfoData == null) {
+                log.warn("绑定上级失败时 获取上级信息失败 playerId = {},superPlayerId = {}", player.getId(), shareId);
                 return;
             }
-
             ReqSharePromoteBindPlayer req = new ReqSharePromoteBindPlayer();
-            req.invitationCode = res.invitationCode;
-            ResSharePromoteBindPlayer bindRes = (ResSharePromoteBindPlayer) reqSharePromoteBindPlayer(superPlayer, activityData, req);
+            req.invitationCode = playerInfoData.getCode();
+            ResSharePromoteBindPlayer bindRes = (ResSharePromoteBindPlayer) reqSharePromoteBindPlayer(player, activityData, req);
             if (bindRes == null || bindRes.code != Code.SUCCESS) {
                 log.warn("绑定上级失败 playerId = {},superPlayerId = {},code = {}", player.getId(), shareId, bindRes == null ? "null" : bindRes.code);
                 return;
             }
-            log.info("玩家绑定上级成功 playerId = {},superPlayerId = {},invitationCode = {}", player.getId(), superPlayer.getId(), res.invitationCode);
+            log.info("玩家绑定上级成功 playerId = {},superPlayerId = {},invitationCode = {}", player.getId(), superPlayer.getId(), req.invitationCode);
         } catch (Exception e) {
             log.error("", e);
         }
