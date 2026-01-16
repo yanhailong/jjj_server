@@ -89,6 +89,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                                     showAuxiliaryIdSet.add(miniGameId);
                                     log.debug("showAuxiliaryIdSet 添加 miniGameId = {}", miniGameId);
                                 }
+                                lib.addJackpotId(cfg.getJackpotID());
                                 specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
                             }
                         });

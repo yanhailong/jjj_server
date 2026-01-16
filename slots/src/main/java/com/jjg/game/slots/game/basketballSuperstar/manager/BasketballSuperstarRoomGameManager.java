@@ -1,8 +1,6 @@
 package com.jjg.game.slots.game.basketballSuperstar.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.sampledata.bean.PoolCfg;
-import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarPlayerGameData;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -17,11 +15,6 @@ public class BasketballSuperstarRoomGameManager extends AbstractBasketballSupers
     public BasketballSuperstarRoomGameManager() {
         super();
         this.log = LoggerFactory.getLogger(getClass());
-    }
-
-    @Override
-    protected PoolCfg randWinPool(BasketballSuperstarPlayerGameData playerGameData, int poolId) {
-        return null;
     }
 
     @Override

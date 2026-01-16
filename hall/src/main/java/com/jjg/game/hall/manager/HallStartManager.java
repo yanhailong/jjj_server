@@ -2,7 +2,6 @@ package com.jjg.game.hall.manager;
 
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.service.MarsCoreStartService;
-import com.jjg.game.core.base.condition.ConditionType;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.handler.CoreMessageHandler;
 import com.jjg.game.core.manager.CoreMarqueeManager;
@@ -75,7 +74,6 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         hallPlayerEventListener.init();
         marqueeManager.init();
         activityManager.initData();
-        ConditionType.initData();
         minigameManager.init();
         pointsAwardManager.init();
         loginConfigService.init();

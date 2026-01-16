@@ -2,11 +2,12 @@ package com.jjg.game.core.dao;
 
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
-import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.listener.BindThirdAccountListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +33,8 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
     private RedisLock redisLock;
     @Autowired
     private RedisTemplate redisTemplate;
-
+    @Autowired
+    private GameEventManager gameEventManager;
     private final String DATA_TABLE_NAME = "account:data";
     private final String THIRD_TABLE_NAME = "account:";
     private final String LOCK_TABLE_NAME = "lockaccount:";
@@ -113,7 +115,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
                 return null;
             }
             boolean flag = cbk.updateDataWithRes(account);
-            if(!flag){
+            if (!flag) {
                 log.debug("条件判断未通过 playerId = {}", playerId);
                 return null;
             }
@@ -215,13 +217,9 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
             return result;
         });
 
-        if(accountCommonResult.success()){
-            save(accountCommonResult.data,loginType,channelUserInfo.getUserId(),false);
-
-            Map<String, BindThirdAccountListener> beans = CommonUtil.getContext().getBeansOfType(BindThirdAccountListener.class);
-            if(!beans.isEmpty()){
-                beans.forEach((key, listener) -> {listener.bind(player, accountCommonResult.data,loginType, channelUserInfo);});
-            }
+        if (accountCommonResult.success()) {
+            save(accountCommonResult.data, loginType, channelUserInfo.getUserId(), false);
+            gameEventManager.triggerEvent(new PlayerEvent(player, EGameEventType.BIND_PHONE, accountCommonResult.data, accountCommonResult.data));
         }
         return result;
     }
@@ -298,11 +296,11 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
      * @return
      */
     public Account save(Account account, LoginType loginType, String data) {
-        return save(account, loginType, data,true);
+        return save(account, loginType, data, true);
     }
 
-    public Account save(Account account, LoginType loginType, String data,boolean saveData) {
-        if(saveData){
+    public Account save(Account account, LoginType loginType, String data, boolean saveData) {
+        if (saveData) {
             redisTemplate.opsForHash().put(DATA_TABLE_NAME, account.getPlayerId(), account);
         }
         redisTemplate.opsForHash().put(thirdTableName(loginType), data, account.getPlayerId());

@@ -38,7 +38,7 @@ public enum ActivityType {
             ActivityTargetType.getTagetKey(ActivityTargetType.RECHARGE), true, true),
     //每日签到
     DAILY_LOGIN(10, DailyLoginController.class, true, false,
-            ActivityTargetType.getTagetKey(ActivityTargetType.LOGIN,ActivityTargetType.BIND_PHONE), false, false),
+            ActivityTargetType.getTagetKey(ActivityTargetType.LOGIN, ActivityTargetType.RECHARGE), false, false),
     //首充
     FIRST_PAYMENT(11, FirstPaymentController.class, false, false,
             ActivityTargetType.RECHARGE.getTargetKey(), false, false),

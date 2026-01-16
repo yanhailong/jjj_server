@@ -6,10 +6,11 @@ import java.util.*;
 
 /**
  * slots 结果库
+ *
  * @author 11
  * @date 2025/7/2 11:46
  */
-public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
+public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable {
     @Id
     protected String id;
     //游戏类型
@@ -28,6 +29,8 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
     protected List<SpecialGirdInfo> specialGirdInfoList;
     //小游戏奖励信息
     protected List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList;
+    //本次触发的jackpotId
+    protected List<Integer> jackpotIds;
 
     public String getId() {
         return id;
@@ -90,14 +93,14 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
     }
 
     public void addLibType(int libType) {
-        if(this.libTypeSet == null) {
+        if (this.libTypeSet == null) {
             this.libTypeSet = new HashSet<>();
         }
         this.libTypeSet.add(libType);
     }
 
     public void delLibType(int libType) {
-        if(this.libTypeSet == null) {
+        if (this.libTypeSet == null) {
             return;
         }
         this.libTypeSet.remove(libType);
@@ -112,7 +115,7 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
     }
 
     public void addSpecialGirdInfo(SpecialGirdInfo specialGirdInfo) {
-        if(this.specialGirdInfoList == null) {
+        if (this.specialGirdInfoList == null) {
             this.specialGirdInfoList = new ArrayList<>();
         }
         this.specialGirdInfoList.add(specialGirdInfo);
@@ -127,38 +130,75 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
     }
 
     public void addSpecialAuxiliaryInfo(SpecialAuxiliaryInfo specialAuxiliaryInfo) {
-        if(this.specialAuxiliaryInfoList == null) {
+        if (this.specialAuxiliaryInfoList == null) {
             this.specialAuxiliaryInfoList = new ArrayList<>();
         }
         this.specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
     }
 
     public void addSpecialAuxiliaryInfo(List<SpecialAuxiliaryInfo> list) {
-        if(list == null || list.isEmpty()) {
+        if (list == null || list.isEmpty()) {
             return;
         }
 
-        if(this.specialAuxiliaryInfoList == null) {
+        if (this.specialAuxiliaryInfoList == null) {
             this.specialAuxiliaryInfoList = new ArrayList<>();
         }
         this.specialAuxiliaryInfoList.addAll(list);
     }
 
     public void addAwardLineInfo(T awardLineInfo) {
-        if(this.awardLineInfoList == null) {
+        if (this.awardLineInfoList == null) {
             this.awardLineInfoList = new ArrayList<>();
         }
         this.awardLineInfoList.add(awardLineInfo);
     }
 
     public void addAllAwardLineInfo(List<T> awardLineInfos) {
-        if(awardLineInfos == null || awardLineInfos.isEmpty()) {
+        if (awardLineInfos == null || awardLineInfos.isEmpty()) {
             return;
         }
-        if(this.awardLineInfoList == null) {
+        if (this.awardLineInfoList == null) {
             this.awardLineInfoList = new ArrayList<>();
         }
         this.awardLineInfoList.addAll(awardLineInfos);
+    }
+
+    public List<Integer> getJackpotIds() {
+        return jackpotIds;
+    }
+
+    public void setJackpotIds(List<Integer> jackpotIds) {
+        this.jackpotIds = jackpotIds;
+    }
+
+    public int firstJackpotId() {
+        if(this.jackpotIds == null || this.jackpotIds.isEmpty()) {
+            return 0;
+        }
+        return this.jackpotIds.get(0);
+    }
+
+    public void addJackpotId(int jackpotId) {
+        if(this.jackpotIds == null) {
+            this.jackpotIds = new ArrayList<>();
+        }
+
+        if(jackpotId < 1){
+            return;
+        }
+        this.jackpotIds.add(jackpotId);
+    }
+
+    public boolean containsJackpotId(int jackpotId) {
+        if(this.jackpotIds == null || this.jackpotIds.isEmpty()) {
+            return false;
+        }
+        return this.jackpotIds.contains(jackpotId);
+    }
+
+    public boolean jackpotEmpty(){
+        return this.jackpotIds == null || this.jackpotIds.isEmpty();
     }
 
     @Override
@@ -173,7 +213,7 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
         return Objects.hashCode(id);
     }
 
-    public Object clone() throws CloneNotSupportedException{
+    public Object clone() throws CloneNotSupportedException {
         return super.clone();
     }
 }

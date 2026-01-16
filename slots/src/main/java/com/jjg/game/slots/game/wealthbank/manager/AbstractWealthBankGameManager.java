@@ -927,7 +927,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
                 log.debug("[Wealth Bank] 获取的池子id小于1 trainCoinId = {},poolId = {}", wealthBankTrainInfo.type, poolId);
                 continue;
             }
-            PoolCfg poolCfg = randWinPool(playerGameData, poolId);
+            PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
             if (poolCfg == null) {
                 continue;
             }
@@ -1081,5 +1081,11 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
 
     public WealthBankCollectDollarConfig getDollarExpressCollectDollarConfig() {
         return wealthBankCollectDollarConfig;
+    }
+
+    @Override
+    protected WealthBankResultLib afterForbidPoolLib(SpecialResultLibCfg specialResultLibCfg, WealthBankResultLib resultLib) {
+        resultLib.setJackpotIds(null);
+        return resultLib;
     }
 }

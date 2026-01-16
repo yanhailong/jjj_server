@@ -103,8 +103,8 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
                 });
             }
 
-            if (lib.getJackpotId() < 1) {
-                lib.setJackpotId(cfg.getJackpotID());
+            if(lib.getJackpotIds() == null || lib.getJackpotIds().isEmpty()){
+                lib.addJackpotId(cfg.getJackpotID());
             }
         }
         return specialAuxiliaryInfoList;
@@ -299,7 +299,7 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
      * @return
      */
     private boolean checkJackpool(FrozenThroneResultLib lib) {
-        if (lib.getJackpotId() < 1) {
+        if (lib.jackpotEmpty()) {
             return false;
         }
 

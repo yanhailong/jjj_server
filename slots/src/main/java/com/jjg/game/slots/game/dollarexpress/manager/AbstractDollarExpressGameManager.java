@@ -920,7 +920,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 log.debug("获取的池子id小于1 trainCoinId = {},poolId = {}", trainInfo.type, poolId);
                 continue;
             }
-            PoolCfg poolCfg = randWinPool(playerGameData, poolId);
+            PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
             if (poolCfg == null) {
                 continue;
             }
@@ -1071,5 +1071,11 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
 
     public DollarExpressCollectDollarConfig getDollarExpressCollectDollarConfig() {
         return dollarExpressCollectDollarConfig;
+    }
+
+    @Override
+    protected DollarExpressResultLib afterForbidPoolLib(SpecialResultLibCfg specialResultLibCfg, DollarExpressResultLib resultLib) {
+        resultLib.setJackpotIds(null);
+        return resultLib;
     }
 }

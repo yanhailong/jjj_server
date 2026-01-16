@@ -1,8 +1,6 @@
 package com.jjg.game.slots.game.goldsnakefortune.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.sampledata.bean.PoolCfg;
-import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortunePlayerGameData;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -11,11 +9,6 @@ public class GoldSnakeFortuneRoomGameManager extends AbstractGoldSnakeFortuneGam
     public GoldSnakeFortuneRoomGameManager() {
         super();
         this.log =  LoggerFactory.getLogger(getClass());
-    }
-
-    @Override
-    protected PoolCfg randWinPool(GoldSnakeFortunePlayerGameData playerGameData, int poolId) {
-        return null;
     }
 
     @Override

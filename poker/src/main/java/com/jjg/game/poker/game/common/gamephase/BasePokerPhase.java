@@ -6,7 +6,7 @@ import com.jjg.game.room.base.AbstractRoomPhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.robot.RobotUtil;
+import com.jjg.game.room.robot.RobotScheduleUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ChessRobotCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -43,7 +43,7 @@ public abstract class BasePokerPhase<T extends BasePokerGameDataVo> extends Abst
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
             if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                 ChessRobotCfg chessRobotCfg = GameDataManager.getChessRobotCfg(robotPlayer.getActionId());
-                int chessExecutionDelay = RobotUtil.getChessExecutionDelay(robotPlayer.getActionId());
+                int chessExecutionDelay = RobotScheduleUtil.getChessExecutionDelay(robotPlayer.getActionId());
                 int pro;
                 if (robotPlayer.getLastWin() == 0) {
                     //刚刚加入房间

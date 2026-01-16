@@ -38,7 +38,7 @@ import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.robot.RobotUtil;
+import com.jjg.game.room.robot.RobotScheduleUtil;
 import com.jjg.game.sampledata.bean.BlackjackCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
@@ -460,9 +460,9 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         //机器人处理
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(nextExePlayer.getPlayerId());
         if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
-            int chessExecutionDelay = RobotUtil.getChessExecutionDelay(robotPlayer.getActionId());
+            int chessExecutionDelay = RobotScheduleUtil.getChessExecutionDelay(robotPlayer.getActionId());
             BlackJackRobotHandler handler = new BlackJackRobotHandler(robotPlayer, BlackJackRobotHandler.DO_STRATEGY, this);
-            RobotUtil.schedule(getRoomController(), handler, chessExecutionDelay);
+            RobotScheduleUtil.schedule(getRoomController(), handler, chessExecutionDelay);
         }
     }
 

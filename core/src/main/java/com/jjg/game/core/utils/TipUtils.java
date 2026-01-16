@@ -1,5 +1,6 @@
 package com.jjg.game.core.utils;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.data.NoticeTipBuilder;
@@ -7,6 +8,8 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.NoticeTip;
 import org.springframework.context.ApplicationContext;
 
+import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -117,6 +120,22 @@ public class TipUtils {
     public static void sendToastTip(long playerId, long languageId) {
         NoticeTip notice = NoticeTipBuilder.builder().languageId(languageId).build();
         sendTip(playerId, TipType.TOAST, () -> notice);
+    }
+
+    /**
+     * 发送Toast提示消息给指定玩家ID
+     *
+     * @param playerId   玩家ID
+     * @param languageId 多语言ID
+     */
+    public static void sendToastTip(long playerId, long languageId, Map<Integer, String> param) {
+        NoticeTipBuilder builder = NoticeTipBuilder.builder().languageId(languageId);
+        if(CollectionUtil.isNotEmpty(param)){
+            for (Map.Entry<Integer, String> entry : param.entrySet()) {
+                builder.addArg(entry.getKey(), entry.getValue());
+            }
+        }
+        sendTip(playerId, TipType.TOAST, builder::build);
     }
 
 }

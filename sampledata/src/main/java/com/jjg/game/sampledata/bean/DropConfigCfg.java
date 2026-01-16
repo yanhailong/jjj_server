@@ -20,14 +20,14 @@ public class DropConfigCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "dropConfig";
 
   /** 掉落条件 */
-  protected List<String> dropCondition;
+  protected String dropCondition;
   /** 道具掉落包ID */
   protected List<Integer> dropId;
   /** 进度触发类型 */
   protected Map<Integer,Integer> triggerType;
 
   /** 返回掉落条件 */
-  public List<String> getDropCondition() {
+  public String getDropCondition() {
     return dropCondition;
   }
 

@@ -1,8 +1,6 @@
 package com.jjg.game.slots.game.superstar.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.sampledata.bean.PoolCfg;
-import com.jjg.game.slots.game.superstar.data.SuperStarPlayerGameData;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -14,11 +12,6 @@ public class SuperStarRoomGameManager extends AbstractSuperStarGameManager {
     public SuperStarRoomGameManager() {
         super();
         this.log =  LoggerFactory.getLogger(getClass());
-    }
-
-    @Override
-    protected PoolCfg randWinPool(SuperStarPlayerGameData playerGameData, int poolId) {
-        return null;
     }
 
     @Override

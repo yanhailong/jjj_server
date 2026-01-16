@@ -90,8 +90,8 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
                 });
             }
 
-            if (lib.getJackpotId() < 1) {
-                lib.setJackpotId(cfg.getJackpotID());
+            if(lib.getJackpotIds() == null || lib.getJackpotIds().isEmpty()){
+                lib.addJackpotId(cfg.getJackpotID());
             }
         }
         return specialAuxiliaryInfoList;
@@ -591,7 +591,7 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
      * @return
      */
     private boolean checkJackpool(SteamAgeResultLib lib) {
-        if (lib.getJackpotId() < 1) {
+        if (lib.jackpotEmpty()) {
             return false;
         }
         int count = 0;

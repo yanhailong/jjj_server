@@ -41,6 +41,9 @@ public class BetDataTrackLogUtils {
      */
     public static void recordBetLog(SettlementData settlementData, GamePlayer gamePlayer,
                                     AbstractPhaseGameController<Room_BetCfg, ?> controller, Map<Integer, List<Integer>> playerBetInfo) {
+        if (gamePlayer == null || gamePlayer instanceof GameRobotPlayer) {
+            return;
+        }
         GameDataTracker gameDataTracker = controller.getGameDataTracker();
         long income = 0;
         if (playerBetInfo != null) {
@@ -49,21 +52,19 @@ public class BetDataTrackLogUtils {
                     .mapToLong(a -> a.stream().mapToInt(b -> b).sum())
                     .sum());
             income = settlementData.getTotalWin() - settlementData.getBetTotal();
-            if (!(gamePlayer instanceof GameRobotPlayer)) {
-                long effectiveWaterFlow = controller.calculationEffectiveWaterFlow(playerBetInfo);
-                gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, effectiveWaterFlow);
-                //添加活动进度
-                controller.getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
-                    @Override
-                    public void action() {
-                        SaveLogUtil.dealEffectiveWaterFlow(controller, gamePlayer, effectiveWaterFlow, settlementData.getBetTotal());
-                        if (settlementData.getTotalWin() <= 0) {
-                            controller.dealLose(gamePlayer, settlementData.getBetTotal());
-                        }
+            long effectiveWaterFlow = controller.calculationEffectiveWaterFlow(playerBetInfo);
+            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, effectiveWaterFlow);
+            //添加活动进度
+            controller.getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
+                @Override
+                public void action() {
+                    SaveLogUtil.dealEffectiveWaterFlow(controller, gamePlayer, effectiveWaterFlow, settlementData.getBetTotal());
+                    if (settlementData.getTotalWin() <= 0) {
+                        controller.dealLose(gamePlayer, settlementData.getBetTotal());
                     }
-                }.setHandlerParamWithSelf("recordBetLog"));
-                controller.triggerSettlementAction(gamePlayer.getId(), controller.getRoom().getGameType(), effectiveWaterFlow, income, controller.getGameTransactionItemId());
-            }
+                }
+            }.setHandlerParamWithSelf("recordBetLog"));
+            controller.triggerSettlementAction(gamePlayer.getId(), controller.getRoom().getGameType(), effectiveWaterFlow, income, controller.getGameTransactionItemId());
         }
         // 添加流水数据
         gameDataTracker.addPlayerLogData(

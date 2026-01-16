@@ -1,12 +1,9 @@
 package com.jjg.game.slots.game.captainjack.data;
 
 import com.jjg.game.slots.data.SlotsResultLib;
-import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAddIconInfo;
-import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAwardLineInfo;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -19,8 +16,6 @@ public class CaptainJackResultLib extends SlotsResultLib<CaptainJackAwardLineInf
     private List<CaptainJackAddIconInfo> addIconInfos;
     //增加的免费次数
     private int addFreeCount;
-    //本次触发的jackpotId
-    private int jackpotId;
     //探宝次数
     private int digTimes;
     //探宝倍率
@@ -63,14 +58,6 @@ public class CaptainJackResultLib extends SlotsResultLib<CaptainJackAwardLineInf
 
     public void setAddFreeCount(int addFreeCount) {
         this.addFreeCount = addFreeCount;
-    }
-
-    public int getJackpotId() {
-        return jackpotId;
-    }
-
-    public void setJackpotId(int jackpotId) {
-        this.jackpotId = jackpotId;
     }
 
     @Override

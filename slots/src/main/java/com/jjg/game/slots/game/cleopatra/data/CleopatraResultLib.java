@@ -13,8 +13,6 @@ import java.util.*;
 public class CleopatraResultLib extends SlotsResultLib<CleopatraAddColumnInfo> {
     //中奖图标id ->坐标id集合
     private Map<Integer,Set<Integer>> winIcons;
-    //可以中奖的奖池id
-    private List<Integer> jackpotIds;
     //奖池图标坐标
     private Set<Integer> poolIconIndexSet;
 
@@ -24,21 +22,6 @@ public class CleopatraResultLib extends SlotsResultLib<CleopatraAddColumnInfo> {
 
     public void setWinIcons(Map<Integer, Set<Integer>> winIcons) {
         this.winIcons = winIcons;
-    }
-
-    public List<Integer> getJackpotIds() {
-        return jackpotIds;
-    }
-
-    public void setJackpotIds(List<Integer> jackpotIds) {
-        this.jackpotIds = jackpotIds;
-    }
-
-    public void addJackpotId(int jackpotId) {
-        if(this.jackpotIds == null) {
-            this.jackpotIds = new ArrayList<>();
-        }
-        this.jackpotIds.add(jackpotId);
     }
 
     public void addWinIcon(int winIcon,Set<Integer> indexSet) {

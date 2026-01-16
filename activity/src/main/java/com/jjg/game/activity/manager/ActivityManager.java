@@ -25,7 +25,15 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.condition.check.record.PlayerEffectiveParam;
+import com.jjg.game.core.base.condition.ConditionNode;
+import com.jjg.game.core.base.condition.ConditionParser;
+import com.jjg.game.core.base.condition.MatchResult;
+import com.jjg.game.core.base.condition.MatchResultData;
+import com.jjg.game.core.base.condition.conditionnode.AndNode;
+import com.jjg.game.core.base.condition.conditionnode.AtomicNode;
+import com.jjg.game.core.base.condition.conditionnode.NotNode;
+import com.jjg.game.core.base.condition.conditionnode.OrNode;
+import com.jjg.game.core.base.condition.event.BetEvent;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
@@ -50,16 +58,14 @@ import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import com.jjg.game.sampledata.bean.DropConfigCfg;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -127,11 +133,15 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     private final CountDao countDao;
 
+    private final ConditionParser conditionParser;
+    private Map<EGameEventType, List<ActivityData>> activityConditionCache = new HashMap<>();
+
 
     public ActivityManager(TimerCenter timerCenter, ClusterSystem clusterSystem,
                            CoreMarqueeManager marqueeManager,
                            MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager,
-                           ConditionManager conditionManager, PlayerActivityDao playerActivityDao, DropItemManager dropItemManager, CountDao countDao) {
+                           ConditionManager conditionManager, PlayerActivityDao playerActivityDao,
+                           DropItemManager dropItemManager, CountDao countDao, ConditionParser conditionParser) {
         this.timerCenter = timerCenter;
         this.clusterSystem = clusterSystem;
         this.marqueeManager = marqueeManager;
@@ -142,6 +152,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         this.playerActivityDao = playerActivityDao;
         this.dropItemManager = dropItemManager;
         this.countDao = countDao;
+        this.conditionParser = conditionParser;
     }
 
 
@@ -405,7 +416,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 continue;
             }
             info.activityInfos.add(controller.buildActivityInfo(data));
-            if (!data.getType().getController().checkPlayerCanJoinActivity(player, account, data)) {
+            if (!data.getType().getController().checkPlayerCanJoinActivity(player, data)) {
                 continue;
             }
             //玩家首次登录执行
@@ -445,8 +456,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 continue;
             }
             for (ActivityData data : activityDataMap.values()) {
-                //检查活动参加条件
-                if (!playerCanJoinActivity(data, player)) {
+                //检查活动参加条件 //首次登陆不检查
+                if (!playerCanJoinActivity(data, player) && (activityTargetKey & ActivityTargetType.LOGIN.getTargetKey()) == 0) {
                     continue;
                 }
                 try {
@@ -616,30 +627,48 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         return data.canRun() && data.getType().getController().checkPlayerCanJoinActivity(player, data);
     }
 
+    /**
+     * 判断玩家是否能参加活动
+     *
+     * @param data   活动数据
+     * @param player 玩家数据
+     * @return 错误码
+     */
+    public boolean playerJoinActivityCheck(ActivityData data, Player player) {
+        if (data == null || player == null) {
+            return false;
+        }
+        return data.canRun() && conditionManager.isAchievementAndNotify(player, "", data.getCondition());
+    }
+
     @Override
     public <T extends GameEvent> void handleEvent(T gameEvent) {
         switch (gameEvent) {
             case PlayerEventCategory.PlayerRechargeEvent event -> {
+                if (event.getGameEventType() != EGameEventType.RECHARGE) {
+                    return;
+                }
                 //充值类型的扩大了100倍
                 addPlayerActivityProgress(event.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), RedisUtils.toLong(event.getOrder().getPrice()), event.getOrder());
             }
             case PlayerEvent playerEvent -> {
+                Player player = playerEvent.getPlayer();
                 if (playerEvent.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
-                    Player player = playerEvent.getPlayer();
                     //添加其他活动进度
                     addPlayerActivityProgress(player, ActivityTargetType.LEVEL.getTargetKey(), player.getLevel(), playerEvent.getNewlyValue());
-                    //更新活动变化
-                    List<ActivityData> openActivityData = new ArrayList<>();
-                    for (ActivityData data : activityData.values()) {
+                }
+                //更新活动变化
+                List<ActivityData> openActivityData = new ArrayList<>();
+                List<ActivityData> dataList = activityConditionCache.get(playerEvent.getGameEventType());
+                if (CollectionUtil.isNotEmpty(dataList)) {
+                    for (ActivityData data : dataList) {
                         if (!data.canRun()) {
                             continue;
                         }
-                        if (conditionManager.isAchievement(player, playerEvent.getEventChangeValue(), data.getCondition())) {
+                        if (!conditionManager.isAchievement(player, "", data.getCondition())) {
                             continue;
                         }
-                        if (conditionManager.isAchievement(player, playerEvent.getNewlyValue(), data.getCondition())) {
-                            openActivityData.add(data);
-                        }
+                        openActivityData.add(data);
                     }
                     if (CollectionUtil.isNotEmpty(openActivityData)) {
                         NotifyActivityChange change = new NotifyActivityChange();
@@ -711,7 +740,14 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.PLAYER_LEVEL, EGameEventType.CLOCK_EVENT, EGameEventType.RECHARGE);
+        Set<EGameEventType> set = new HashSet<>();
+        set.add(EGameEventType.CLOCK_EVENT);
+        set.add(EGameEventType.RECHARGE);
+        if (CollectionUtil.isEmpty(activityConditionCache)) {
+            loadActivityConditionCache();
+        }
+        set.addAll(activityConditionCache.keySet());
+        return new ArrayList<>(set);
     }
 
     @Override
@@ -759,6 +795,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             dataMap.put(activityInfoId, data);
             log.info("活动更新成功 activityId:{} activityData:{}", activityInfoId, JSON.toJSONString(activityData));
         }
+        loadActivityConditionCache();
     }
 
     /**
@@ -831,7 +868,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         if (param instanceof PlayerEventCategory.PlayerEffectiveFlowingEvent effectiveFlowingEvent) {
             //只支持有效流水条件检查
-            PlayerEffectiveParam effectiveParam = PlayerEffectiveParam.getPlayerEffectiveParam(null, player.getId(), effectiveFlowingEvent);
+            BetEvent effectiveParam = BetEvent.getPlayerEffectiveParam(effectiveFlowingEvent);
             if (effectiveParam == null) {
                 return List.of();
             }
@@ -851,22 +888,19 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 if (dropConfigCfg == null) {
                     continue;
                 }
-                List<String> dropCondition = dropConfigCfg.getDropCondition();
-                if (CollectionUtil.isEmpty(dropCondition)) {
+                String dropCondition = dropConfigCfg.getDropCondition();
+                if (StringUtils.isEmpty(dropCondition)) {
                     continue;
                 }
                 //每个活动单独计数
-                effectiveParam.setFunction(CountDao.CountType.ACTIVITY_CONDITIONS.getParam().formatted(activityData.getId()));
-                long triggerTimes = Long.MAX_VALUE;
-                for (String condition : dropCondition) {
-                    triggerTimes = Math.min(triggerTimes, conditionManager.addProgressAndGetAchievements(player, effectiveParam, condition, false).longValue());
+                String key = CountDao.CountType.ACTIVITY_CONDITIONS.getParam().formatted(activityData.getId());
+                long triggerTimes = 0;
+                MatchResultData matchResultData = conditionManager.addProgressAndGetAchievements(player, effectiveParam, key, dropCondition);
+                if (matchResultData.result() == MatchResult.MATCH) {
+                    triggerTimes = matchResultData.achieveTimes();
                 }
                 log.debug("activity id: {} 参数：{} checkRes: {}", activityId, JSON.toJSONString(effectiveParam), triggerTimes);
-                if (triggerTimes > 0 && triggerTimes != Long.MAX_VALUE) {
-                    //删除进度值
-                    for (String condition : dropCondition) {
-                        conditionManager.reduceProgress(effectiveParam, condition, triggerTimes);
-                    }
+                if (triggerTimes > 0) {
                     // 触发次数
                     // 触发掉落逻辑
                     Map<Integer, Long> dropItems = dropItemManager.triggerDropItem(player, AddType.ACTIVITY, activityData.getId() + "", activityData.getDropId(), (int) triggerTimes, effectiveFlowingEvent);
@@ -875,7 +909,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                         itemDropInfos.add(activityItemDropInfo);
                         log.info("玩家：{} 在活动中：{} 游戏：{} 产生有效流水：{} 产出道具：{}",
                                 player.getId(), activityId, effectiveFlowingEvent.getGameCfgId(),
-                                effectiveParam.getParamList().getFirst(), JSON.toJSONString(dropItems));
+                                effectiveParam.getBetAmount(), JSON.toJSONString(dropItems));
                     }
                 }
             }
@@ -884,5 +918,34 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         return List.of();
     }
 
+    private void loadActivityConditionCache() {
+        Map<EGameEventType, List<ActivityData>> tempMap = new HashMap<>();
+        for (ActivityData data : activityData.values()) {
+            ConditionNode node = conditionParser.parse(data.getCondition());
+            analysisCondition(data, node, tempMap);
+        }
+        activityConditionCache = tempMap;
+    }
 
+    private void analysisCondition(ActivityData activityData, ConditionNode node, Map<EGameEventType, List<ActivityData>> tmpGameTypeOfFuncCache) {
+        switch (node) {
+            case AtomicNode<?> atomicNode -> {
+                String type = atomicNode.getHandler().type();
+                // 获取游戏事件类型
+                EGameEventType gameEventType = EGameEventType.gameEventType(type);
+                if (gameEventType == null) {
+                    log.error("活动表配置异常，配置的事件触发类型：{} 在游戏事件枚举中缺失", type);
+                    return;
+                }
+                tmpGameTypeOfFuncCache.computeIfAbsent(gameEventType, k -> new ArrayList<>()).add(activityData);
+            }
+            case AndNode andNode ->
+                    andNode.getChildren().forEach(child -> analysisCondition(activityData, child, tmpGameTypeOfFuncCache));
+            case OrNode orNode ->
+                    orNode.getChildren().forEach(child -> analysisCondition(activityData, child, tmpGameTypeOfFuncCache));
+            case NotNode notNode -> analysisCondition(activityData, notNode.getChild(), tmpGameTypeOfFuncCache);
+            default -> {
+            }
+        }
+    }
 }

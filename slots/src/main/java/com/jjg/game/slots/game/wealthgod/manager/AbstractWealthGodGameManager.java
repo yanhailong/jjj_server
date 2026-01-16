@@ -120,12 +120,12 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
             respinAnalysis(resultLib, playerGameData.getOneBetScore(), infoList, betValue, gameRunInfo);
             gameRunInfo.setSpinInfo(infoList);
             //记录奖池id
-            gameRunInfo.setJackpotId(resultLib.getJackpotId());
+            gameRunInfo.setJackpotId(resultLib.firstJackpotId());
 
             //从奖池扣除，并给玩家加钱
             rewardFromBigPool(gameRunInfo, playerGameData);
             //奖池中奖
-            rewardFromSmallPool(gameRunInfo, playerGameData, gameRunInfo.getJackpotId(), false);
+            rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task

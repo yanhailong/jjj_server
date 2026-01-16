@@ -112,14 +112,14 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
             //记录spin数据
             SuperStarSpinInfo spinInfo = spinAnalysis(resultLib, playerGameData.getOneBetScore());
             //记录奖池id
-            spinInfo.setJackpotId(resultLib.getJackpotId());
+            spinInfo.setJackpotId(resultLib.firstJackpotId());
             gameRunInfo.setSpinInfo(spinInfo);
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
 
             //从奖池扣除，并给玩家加钱
             rewardFromBigPool(gameRunInfo, playerGameData);
             //奖池中奖
-            rewardFromSmallPool(gameRunInfo, playerGameData, gameRunInfo.getSpinInfo().getJackpotId(), false);
+            rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
@@ -162,7 +162,7 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
                 return resultLineInfo;
             }).toList();
             spinInfo.setResultLineInfoList(resultLineInfos);
-            spinInfo.setJackpotId(resultLib.getJackpotId());
+            spinInfo.setJackpotId(resultLib.firstJackpotId());
         }
         List<Integer> iconList = Arrays.stream(resultLib.getIconArr())
                 .filter(v -> v != 0)

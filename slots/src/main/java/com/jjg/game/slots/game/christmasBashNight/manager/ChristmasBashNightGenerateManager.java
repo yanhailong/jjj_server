@@ -87,8 +87,8 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
                 });
             }
 
-            if(lib.getJackpotId() < 1){
-                lib.setJackpotId(cfg.getJackpotID());
+            if(lib.getJackpotIds() == null || lib.getJackpotIds().isEmpty()){
+                lib.addJackpotId(cfg.getJackpotID());
             }
         }
         return specialAuxiliaryInfoList;
@@ -587,7 +587,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
      * @return
      */
     private boolean checkJackpool(ChristmasBashNightResultLib lib) {
-        if(lib.getJackpotId() < 1){
+        if (lib.jackpotEmpty()) {
             return false;
         }
 

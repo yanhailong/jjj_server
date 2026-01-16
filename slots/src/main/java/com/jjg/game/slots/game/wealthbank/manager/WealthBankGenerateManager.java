@@ -93,6 +93,7 @@ public class WealthBankGenerateManager extends AbstractSlotsGenerateManager<Weal
                                     showAuxiliaryIdSet.add(miniGameId);
                                     log.debug("[Wealth Bank] showAuxiliaryIdSet 添加 miniGameId = {}", miniGameId);
                                 }
+                                lib.addJackpotId(cfg.getJackpotID());
                                 specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
                             }
                         });

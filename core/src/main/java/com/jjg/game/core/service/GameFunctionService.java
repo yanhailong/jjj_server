@@ -2,13 +2,17 @@ package com.jjg.game.core.service;
 
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.protostuff.PFSession;
-import com.jjg.game.core.base.condition.ConditionType;
+import com.jjg.game.core.base.condition.ConditionNode;
+import com.jjg.game.core.base.condition.ConditionParser;
+import com.jjg.game.core.base.condition.conditionnode.AndNode;
+import com.jjg.game.core.base.condition.conditionnode.AtomicNode;
+import com.jjg.game.core.base.condition.conditionnode.NotNode;
+import com.jjg.game.core.base.condition.conditionnode.OrNode;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.dao.AccountDao;
-import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.ConditionManager;
@@ -29,21 +33,20 @@ import java.util.*;
  * @author 2CL
  */
 @Service
-public class GameFunctionService implements GameEventListener, ConfigExcelChangeListener {
+public class GameFunctionService implements GameEventListener {
 
     /**
      * 条件检查服务
      */
     private final ConditionManager conditionManager;
     private final PlayerSessionService playerSessionService;
-    private final AccountDao accountDao;
-
     private static final Logger log = LoggerFactory.getLogger(GameFunctionService.class);
+    private final ConditionParser conditionParser;
 
-    public GameFunctionService(ConditionManager conditionManager, PlayerSessionService playerSessionService, AccountDao accountDao) {
+    public GameFunctionService(ConditionManager conditionManager, PlayerSessionService playerSessionService, ConditionParser conditionParser) {
         this.conditionManager = conditionManager;
         this.playerSessionService = playerSessionService;
-        this.accountDao = accountDao;
+        this.conditionParser = conditionParser;
     }
 
     /**
@@ -126,25 +129,8 @@ public class GameFunctionService implements GameEventListener, ConfigExcelChange
         if (!functionCfg.getIsOpen()) {
             return false;
         }
-        Map<Integer, Integer> conditionTypeMap = functionCfg.getVipLevel();
-
-        boolean achievement = true;
-        for (Map.Entry<Integer, Integer> integerIntegerEntry : conditionTypeMap.entrySet()) {
-            List<Integer> conditionCfg = new ArrayList<>();
-            conditionCfg.add(integerIntegerEntry.getKey());
-            conditionCfg.add(integerIntegerEntry.getValue());
-            if (integerIntegerEntry.getKey() == ConditionType.PLAYER_LEVEL.getId()) {
-                achievement = conditionManager.isAchievement(player, player.getLevel(), conditionCfg);
-            } else if (integerIntegerEntry.getKey() == ConditionType.PLAYER_VIP_LEVEL.getId()) {
-                achievement = conditionManager.isAchievement(player, player.getVipLevel(), conditionCfg);
-            } else if (integerIntegerEntry.getKey() == ConditionType.PLAYER_PHONE.getId()) {
-                Account account = accountDao.queryAccountByPlayerId(player.getId());
-                achievement = conditionManager.isAchievement(player, account, conditionCfg);
-            } else {
-                achievement = false;
-            }
-        }
-
+        String check = functionCfg.getCondition();
+        boolean achievement = conditionManager.isAchievement(player, null, check);
         // 检查是否触发成功
         if (!achievement && notify) {
             TipUtils.sendToastTip(player.getId(), 16030);
@@ -162,12 +148,6 @@ public class GameFunctionService implements GameEventListener, ConfigExcelChange
         return needMonitorEvents;
     }
 
-
-    @Override
-    public void initSampleCallbackCollector() {
-        addInitSampleFileObserveWithCallBack(GameFunctionCfg.EXCEL_NAME, this::loadConfig);
-    }
-
     private void loadConfig() {
         Map<EGameEventType, List<GameFunctionCfg>> tmpGameTypeOfFuncCache = new HashMap<>();
         List<GameFunctionCfg> functionCfg = GameDataManager.getGameFunctionCfgList();
@@ -175,24 +155,29 @@ public class GameFunctionService implements GameEventListener, ConfigExcelChange
             if (!gameFunctionCfg.getIsOpen()) {
                 continue;
             }
-            // 条件类型
-            Set<Integer> conditionTypeSet = gameFunctionCfg.getVipLevel().keySet();
-            for (Integer conditionType : conditionTypeSet) {
-                ConditionCfg conditionCfg = GameDataManager.getConditionCfg(conditionType);
-                if (conditionCfg == null) {
-                    continue;
-                }
+            ConditionNode node = conditionParser.parse(gameFunctionCfg.getCondition());
+            analysisCondition(gameFunctionCfg, node, tmpGameTypeOfFuncCache);
+        }
+        this.gameTypeOfFuncCache = tmpGameTypeOfFuncCache;
+    }
+
+    private void analysisCondition(GameFunctionCfg gameFunctionCfg, ConditionNode node, Map<EGameEventType, List<GameFunctionCfg>> tmpGameTypeOfFuncCache) {
+        switch (node) {
+            case AtomicNode<?> atomicNode -> {
+                String type = atomicNode.getHandler().type();
                 // 获取游戏事件类型
-                EGameEventType gameEventType = EGameEventType.gameEventType(conditionCfg.getTriggerEventType());
+                EGameEventType gameEventType = EGameEventType.gameEventType(type);
                 if (gameEventType == null) {
-                    log.error("条件表配置异常，配置的事件触发类型：{} 在游戏事件枚举中缺失", conditionCfg.getTriggerEventType());
-                    continue;
+                    log.error("条件表配置异常，配置的事件触发类型：{} 在游戏事件枚举中缺失", type);
+                    return;
                 }
                 tmpGameTypeOfFuncCache.computeIfAbsent(gameEventType, k -> new ArrayList<>()).add(gameFunctionCfg);
             }
-
-
+            case AndNode andNode -> andNode.getChildren().forEach(child -> analysisCondition(gameFunctionCfg, child, tmpGameTypeOfFuncCache));
+            case OrNode orNode -> orNode.getChildren().forEach(child -> analysisCondition(gameFunctionCfg, child, tmpGameTypeOfFuncCache));
+            case NotNode notNode -> analysisCondition(gameFunctionCfg, notNode.getChild(), tmpGameTypeOfFuncCache);
+            default -> {
+            }
         }
-        this.gameTypeOfFuncCache = tmpGameTypeOfFuncCache;
     }
 }
