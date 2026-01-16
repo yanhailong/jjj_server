@@ -215,6 +215,14 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
+        //检查该手机号是否已经绑定玩家
+        Account phoneAccount = accountDao.queryThirdAccount(LoginType.PHONE, data);
+        if(phoneAccount != null){
+            result.code = Code.PHONE_NUMBER_ERROR;
+            log.warn("该手机号已经绑定账号，不能重复绑定 playerId = {},phone = {},bindPlayerId = {}", playerId, data,phoneAccount.getPlayerId());
+            return result;
+        }
+
         Account account = accountDao.queryAccountByPlayerId(playerId);
         if (account == null) {
             result.code = Code.NOT_FOUND;
@@ -222,9 +230,10 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        if (data.equals(account.getThirdAccount(LoginType.PHONE))) {
-            result.code = Code.REPEAT_OP;
-            log.debug("玩家当前绑定手机号与新手机号一致，绑定手机号失败 playerId = {},oldPhone = {},newPhone = {}", playerId, account.getThirdAccount(LoginType.PHONE), data);
+        String oldPhone = account.getThirdAccount(LoginType.PHONE);
+        if (!StringUtils.isEmpty(oldPhone)) {
+            result.code = Code.PHONE_NUMBER_ERROR;
+            log.debug("该账号已经绑定手机号 playerId = {},phone = {},oldPhone = {}", playerId, data, oldPhone);
             return result;
         }
 
@@ -298,19 +307,19 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         VerCodeType smsType = VerCodeType.getType(verCodeType);
         if (smsType == null) {
             result.code = Code.PARAM_ERROR;
-            log.debug("验证码类型错误，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
+            log.warn("验证码类型错误，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
             return result;
         }
 
         if (smsType != VerCodeType.MAIL_BIND_MAIL && smsType != VerCodeType.SMS_BIND_PHONE) {
             result.code = Code.PARAM_ERROR;
-            log.debug("验证码类型错误，确认验证码失败2 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
+            log.warn("验证码类型错误，确认验证码失败2 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
             return result;
         }
 
         if (verCode < GameConstant.VerCode.CODE_MIN || verCode > GameConstant.VerCode.CODE_MAX) {
             result.code = Code.PARAM_ERROR;
-            log.debug("验证码不在范围内，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
+            log.warn("验证码不在范围内，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
             return result;
         }
 
@@ -323,7 +332,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         Account account = accountDao.queryAccountByPlayerId(player.getId());
         if (account == null) {
             result.code = Code.NOT_FOUND;
-            log.debug("没有找到玩家账号信息，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
+            log.warn("没有找到玩家账号信息，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
             return result;
         }
 
@@ -336,7 +345,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(player, loginType, phoneUserInfo);
             if (!accountCommonResult.success()) {
                 result.code = accountCommonResult.code;
-                log.debug("更新到数据库失败，确认验证码失败1 playerId = {},verCodeType = {},verCode = {},failCode = {}", player.getId(), verCodeType, verCode, accountCommonResult.code);
+                log.warn("更新到数据库失败，确认验证码失败1 playerId = {},verCodeType = {},verCode = {},failCode = {}", player.getId(), verCodeType, verCode, accountCommonResult.code);
                 return result;
             }
             update = true;
