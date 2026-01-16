@@ -418,27 +418,6 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
     }
 
     /**
-     * 计算中奖线的倍数
-     *
-     * @param list
-     * @return
-     */
-    public int calFinalLineTimes(List<CaptainJackAwardLineInfo> list) {
-        if (list == null || list.isEmpty()) {
-            return 0;
-        }
-        int baseTimes = 1;
-        int times = 0;
-        int count = 0;
-        for (CaptainJackAwardLineInfo awardLineInfo : list) {
-            awardLineInfo.setBaseTimes(awardLineInfo.getBaseTimes() * (baseTimes + count / needTimes * addTimes));
-            times += awardLineInfo.getBaseTimes();
-            count++;
-        }
-        return times;
-    }
-
-    /**
      * 计算消除补齐后的中奖倍数
      *
      * @param addIconInfos
@@ -458,6 +437,7 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
                 awardLineInfo.setBaseTimes(awardLineInfo.getBaseTimes() * (baseTimes + baseCount / needTimes * addTimes));
                 times += awardLineInfo.getBaseTimes();
             }
+            baseCount++;
         }
         return times;
     }
@@ -485,10 +465,9 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
                     continue;
                 }
                 //中奖线
-                int times = calFinalLineTimes(tmpLib.getAwardLineInfoList());
-                tmpLib.addTimes(times);
+                tmpLib.addTimes(calLineTimes(tmpLib.getAwardLineInfoList()));
                 //消除后新增图标
-                tmpLib.addTimes(calAfterFinalAddIcons(tmpLib.getAwardLineInfoList().size(), tmpLib.getAddIconInfos()));
+                tmpLib.addTimes(calAfterFinalAddIcons(1, tmpLib.getAddIconInfos()));
                 totalTimes += tmpLib.getTimes();
                 info.getFreeGames().set(i, (JSONObject) JSONObject.toJSON(tmpLib));
             }

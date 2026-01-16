@@ -24,10 +24,7 @@ import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteBindPlayer;
 import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteSelfRankInfo;
 import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteWeekRankInfo;
 import com.jjg.game.activity.wealthroulette.controller.WealthRouletteController;
-import com.jjg.game.activity.wealthroulette.message.req.ReqWealthRouletteBuyGood;
-import com.jjg.game.activity.wealthroulette.message.req.ReqWealthRouletteDetailInfo;
-import com.jjg.game.activity.wealthroulette.message.req.ReqWealthRouletteDraw;
-import com.jjg.game.activity.wealthroulette.message.req.ReqWealthRouletteShopInfos;
+import com.jjg.game.activity.wealthroulette.message.req.*;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
@@ -380,6 +377,18 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_WEALTH_ROULETTE_BUY_GOOD)
     public void reqWealthRouletteBuyGood(PlayerController playerController, ReqWealthRouletteBuyGood req) {
         AbstractResponse abstractResponse = wealthRouletteController.reqWealthRouletteBuyGood(playerController.getPlayer(), req);
+        playerController.send(abstractResponse);
+    }
+
+
+    /**
+     * 财富转盘 请求历史记录
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(ActivityConstant.MsgBean.REQ_WEALTH_ROULETTE_HISTORY)
+    public void reqWealthRouletteHistory(PlayerController playerController, ReqWealthRouletteHistory req) {
+        AbstractResponse abstractResponse = wealthRouletteController.reqWealthRouletteHistory(playerController.getPlayer(), req);
         playerController.send(abstractResponse);
     }
 

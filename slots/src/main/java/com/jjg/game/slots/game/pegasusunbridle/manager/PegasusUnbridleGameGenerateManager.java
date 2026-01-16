@@ -9,6 +9,8 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
 import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
+import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.data.SameInfo;
 import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleAwardLineInfo;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleResultLib;
@@ -16,10 +18,7 @@ import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import jodd.util.StringUtil;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author lm
@@ -42,6 +41,59 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
     //元素id->滚轴id
     private Map<Integer, Integer> elementRollMap;
 
+    /**
+     * 判断两个icon是否一样
+     *
+     * @param sameInfo
+     * @param iconIdFront 前一个图标
+     * @param iconIdBack  后一个图标
+     * @return
+     */
+    protected SameInfo iconSame(SameInfo sameInfo, int iconIdFront, int iconIdBack) {
+        if (iconIdFront >= SlotsConst.Common.INVALID_ICON_BEGIN_ID || iconIdBack >= SlotsConst.Common.INVALID_ICON_BEGIN_ID) {
+            return sameInfo;
+        }
+
+        Set<Integer> noralIconSet = this.iconsMap.get(SlotsConst.BaseElement.TYPE_NORMAL);
+        Set<Integer> wildIconSet = this.iconsMap.get(SlotsConst.BaseElement.TYPE_WILD);
+
+        //是不是普通图标
+        boolean normal_Front = noralIconSet.contains(iconIdFront);
+        boolean normal_Back = noralIconSet.contains(iconIdBack);
+
+        //是不是wild
+        boolean wild_Front = wildIconSet.contains(iconIdFront);
+        boolean wild_Back = wildIconSet.contains(iconIdBack);
+
+        if (wild_Front) {  //表示front是wild图标
+            if (wild_Back) {  //均为wild，相同
+                sameInfo.setSame(true);
+                sameInfo.setBaseIconId(iconIdFront);
+            } else {
+                //如果2是普通图标
+                if (normal_Back) {
+                    if (sameInfo.getBaseIconId() > 0) {
+                        sameInfo.setSame(sameInfo.getBaseIconId() == iconIdBack);
+                    } else {
+                        sameInfo.setSame(true);
+                        sameInfo.setBaseIconId(iconIdBack);
+                    }
+                }
+            }
+        } else if (normal_Front) {  //表示fornt是普通图标
+            if (wild_Back) { //back是wild
+                sameInfo.setSame(true);
+                sameInfo.setBaseIconId(iconIdFront);
+            } else {
+                //如果front是普通，back是非wild，则只有两者id相同
+                if (iconIdFront == iconIdBack) {
+                    sameInfo.setSame(true);
+                    sameInfo.setBaseIconId(iconIdFront);
+                }
+            }
+        }
+        return sameInfo;
+    }
     @Override
     public PegasusUnbridleResultLib checkAward(int[] arr, PegasusUnbridleResultLib lib, boolean freeModel) throws Exception {
         lib.setGameType(this.gameType);

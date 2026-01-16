@@ -1,22 +1,24 @@
 package com.jjg.game.activity.wealthroulette.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.activity.activitylog.ActivityLogger;
+import com.jjg.game.activity.common.dao.RecordDao;
 import com.jjg.game.activity.wealthroulette.dao.WealthRouletteDao;
 import com.jjg.game.activity.wealthroulette.message.bean.WealthRouletteDrawInfo;
 import com.jjg.game.activity.wealthroulette.message.bean.WealthRouletteDrawItemInfo;
 import com.jjg.game.activity.wealthroulette.message.bean.WealthRouletteGoodInfo;
+import com.jjg.game.activity.wealthroulette.message.bean.WealthRouletteHistoryInfo;
 import com.jjg.game.activity.wealthroulette.message.req.ReqWealthRouletteBuyGood;
 import com.jjg.game.activity.wealthroulette.message.req.ReqWealthRouletteDraw;
-import com.jjg.game.activity.wealthroulette.message.res.ResWealthRouletteBuyGood;
-import com.jjg.game.activity.wealthroulette.message.res.ResWealthRouletteDetailInfo;
-import com.jjg.game.activity.wealthroulette.message.res.ResWealthRouletteDraw;
-import com.jjg.game.activity.wealthroulette.message.res.ResWealthRouletteShopInfos;
+import com.jjg.game.activity.wealthroulette.message.req.ReqWealthRouletteHistory;
+import com.jjg.game.activity.wealthroulette.message.res.*;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
@@ -73,10 +75,11 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
     private final ClusterSystem clusterSystem;
     private final RedDotManager redDotManager;
     private final ActivityLogger activityLogger;
+    private final RecordDao recordDao;
     private Map<Integer, RouletteShopCfg> dataCache = new HashMap<>();
 
     public WealthRouletteController(CountDao countDao, GameFunctionService gameFunctionService, PlayerPackService playerPackService,
-                                    WealthRouletteDao wealthRouletteDao, ClusterSystem clusterSystem, RedDotManager redDotManager, ActivityLogger activityLogger) {
+                                    WealthRouletteDao wealthRouletteDao, ClusterSystem clusterSystem, RedDotManager redDotManager, ActivityLogger activityLogger, RecordDao recordDao) {
         this.countDao = countDao;
         this.gameFunctionService = gameFunctionService;
         this.playerPackService = playerPackService;
@@ -84,6 +87,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         this.clusterSystem = clusterSystem;
         this.redDotManager = redDotManager;
         this.activityLogger = activityLogger;
+        this.recordDao = recordDao;
     }
 
     @Override
@@ -322,6 +326,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         //发送日志
         int toDayMax = getTodayMaxPoint(playerId);
         activityLogger.sendWealthRouletteLog(player, toDayMax, needPoint, result.intValue(), 1, finalRewardMap, addItems);
+        addHistoryRecord(playerId, 1, needPoint, finalRewardMap);
         //构建响应信息
         res.remainPoint = result.intValue();
         res.drawInfos = new ArrayList<>();
@@ -386,7 +391,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         //发送日志
         int toDayMax = getTodayMaxPoint(playerId);
         activityLogger.sendWealthRouletteLog(player, toDayMax, needPoint, remainPoint.intValue(), 2, addItemMap, addResult);
-
+        addHistoryRecord(playerId, 2, needPoint, addItemMap);
         res.goodInfo = buildWealthRouletteGoodInfo(cfg, result.intValue());
         res.remainPoint = remainPoint.intValue();
         res.buyNum = req.buyNum;
@@ -397,6 +402,28 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             }
         }
         return res;
+    }
+
+    /**
+     * 添加历史记录
+     *
+     * @param playerId   玩家id
+     * @param cost       花费积分
+     * @param type       类型 1旋转 2兑换
+     * @param addItemMap 奖励道具
+     */
+    private void addHistoryRecord(long playerId, int type, int cost, Map<Integer, Long> addItemMap) {
+        //记录玩家日志
+        try {
+            WealthRouletteHistoryInfo wealthRouletteHistoryInfo = new WealthRouletteHistoryInfo();
+            wealthRouletteHistoryInfo.cost = cost;
+            wealthRouletteHistoryInfo.date = System.currentTimeMillis();
+            wealthRouletteHistoryInfo.type = type;
+            wealthRouletteHistoryInfo.itemInfo = ItemUtils.buildItemInfo(addItemMap);
+            recordDao.addRecord(PREFIX, 0, playerId, wealthRouletteHistoryInfo, 100, false);
+        } catch (Exception e) {
+            log.error("财富轮盘添加历史记录失败 playerId:{} cost:{} type:{} addItemMap:{}", playerId, cost, type, JSON.toJSON(addItemMap), e);
+        }
     }
 
     public AbstractResponse reqWealthRouletteShopInfos(Player player) {
@@ -523,5 +550,30 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
     @Override
     public int getSubmodule() {
         return 999;
+    }
+
+    /**
+     * 请求财富轮盘历史记录
+     *
+     * @param player 玩家数据
+     * @param req    请求参数
+     * @return 响应结果
+     */
+    public AbstractResponse reqWealthRouletteHistory(Player player, ReqWealthRouletteHistory req) {
+        ResWealthRouletteHistory res = new ResWealthRouletteHistory(Code.SUCCESS);
+        if (isClose(player)) {
+            res.code = Code.ERROR_REQ;
+            return res;
+        }
+        // 查询玩家或全局中奖记录（分页）
+        Pair<Boolean, List<WealthRouletteHistoryInfo>> historyRecodes = recordDao.getPlayerRecords(PREFIX, 0, player.getId(),
+                req.startIndex, req.size, WealthRouletteHistoryInfo.class);
+        res.hasNext = historyRecodes.getFirst();
+        List<WealthRouletteHistoryInfo> historyRecords = historyRecodes.getSecond();
+        if (CollectionUtil.isNotEmpty(historyRecords)) {
+            res.wealthRouletteHistoryInfos = historyRecords;
+        }
+        res.startIndex = req.startIndex;
+        return res;
     }
 }
