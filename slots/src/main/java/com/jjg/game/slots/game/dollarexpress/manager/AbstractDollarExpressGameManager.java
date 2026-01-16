@@ -39,7 +39,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
 
     public AbstractDollarExpressGameManager() {
         super(DollarExpressPlayerGameData.class, DollarExpressResultLib.class);
-        this.log = LoggerFactory.getLogger(getClass());
     }
 
     @Override
