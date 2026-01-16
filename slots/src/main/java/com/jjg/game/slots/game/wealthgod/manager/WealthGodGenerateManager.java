@@ -224,7 +224,7 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
 
             //触发jackpot
             if (cfg.getJackpotID() > 0) {
-                lib.setJackpotId(cfg.getJackpotID());
+                lib.addJackpotId(cfg.getJackpotID());
             }
         }
         return specialAuxiliaryInfoList;

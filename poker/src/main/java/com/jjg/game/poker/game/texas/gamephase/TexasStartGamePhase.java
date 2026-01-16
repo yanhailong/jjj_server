@@ -13,7 +13,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.robot.RobotUtil;
+import com.jjg.game.room.robot.RobotScheduleUtil;
 
 import java.util.*;
 
@@ -37,7 +37,7 @@ public class TexasStartGamePhase extends BaseStartGamePhase<TexasGameDataVo> {
     public void robotPhaseScheduleAction(GameRobotPlayer robotPlayer, int chessExecutionDelay, int pro) {
         if (gameController instanceof TexasGameController controller) {
             TexasRobotHandler handler = new TexasRobotHandler(robotPlayer, TexasRobotHandler.GO_READY, controller, pro);
-            RobotUtil.schedule(controller.getRoomController(), handler, chessExecutionDelay);
+            RobotScheduleUtil.schedule(controller.getRoomController(), handler, chessExecutionDelay);
         }
     }
 

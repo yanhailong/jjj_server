@@ -2,6 +2,7 @@ package com.jjg.game.activity.sharepromote.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.EnumUtil;
+import cn.hutool.core.util.NumberUtil;
 import com.jjg.game.activity.activitylog.data.SharePromoteWeekRank;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.*;
@@ -17,10 +18,10 @@ import com.jjg.game.activity.sharepromote.message.res.*;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.condition.ConditionType;
-import com.jjg.game.core.base.condition.check.record.BaseCheckParam;
-import com.jjg.game.core.base.condition.check.record.PlayerRechargeParam;
-import com.jjg.game.core.base.condition.check.record.PlayerSampleParam;
+import com.jjg.game.core.base.condition.MatchResult;
+import com.jjg.game.core.base.condition.MatchResultData;
+import com.jjg.game.core.base.condition.event.BetEvent;
+import com.jjg.game.core.base.condition.event.PlayerRechargeEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
@@ -173,48 +174,21 @@ public class SharePromoteController extends BaseActivityController {
         if (globalConfigCfg == null || StringUtils.isEmpty(globalConfigCfg.getValue())) {
             return;
         }
-        String[] conditionCfg = StringUtils.split(globalConfigCfg.getValue(), "|");
-        int conditionNum = 0;
-        int passNum = 0;
-        for (String cfg : conditionCfg) {
-            String[] cfgArr = StringUtils.split(cfg, "_");
-            if (cfgArr.length == 0) {
-                break;
-            }
-            conditionNum++;
-            ConditionType type = EnumUtil.getBy(ConditionType.class, (t) -> t.getId() == Integer.parseInt(cfgArr[0]));
-            if (type == ConditionType.PLAYER_SUM_PAY && additionalParameters instanceof Order order) {
-                PlayerRechargeParam param = new PlayerRechargeParam();
-                param.setPlayerId(playerId);
-                param.setFunction(SHARE_PROMOTE);
-                param.setAmount(RedisUtils.fromLong(progress));
-                param.setChannelId(order.getPayChannel());
-                if (BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0) {
-                    passNum++;
-                }
-                continue;
-            }
-            if (type == ConditionType.PLAYER_CUMULATIVE_BET && additionalParameters instanceof Integer id) {
-                if (id != ItemUtils.getGoldItemId()) {
-                    continue;
-                }
-                PlayerSampleParam param = new PlayerSampleParam();
-                param.setPlayerId(playerId);
-                param.setFunction(SHARE_PROMOTE);
-                param.setParamList(List.of(progress));
-                if (BigDecimal.ONE.compareTo(conditionManager.addProgressAndGetAchievements(player, param, cfg, false)) == 0) {
-                    passNum++;
-                }
-                continue;
-            }
-            BaseCheckParam baseCheckParam = new BaseCheckParam();
-            baseCheckParam.setPlayerId(playerId);
-            baseCheckParam.setFunction(SHARE_PROMOTE);
-            if (conditionManager.isAchievement(player, baseCheckParam, cfg)) {
-                passNum++;
-            }
+        String cfgValue = globalConfigCfg.getValue();
+        Object event = null;
+        if (additionalParameters instanceof Order order) {
+            PlayerRechargeEvent tempEvent = new PlayerRechargeEvent();
+            tempEvent.setAmount(RedisUtils.fromLong(progress));
+            tempEvent.setChannelId(order.getPayChannel());
+            event = tempEvent;
         }
-        if (conditionNum == passNum) {
+        if (additionalParameters instanceof Integer id && id == ItemUtils.getGoldItemId()) {
+            BetEvent tempEvent = new BetEvent();
+            tempEvent.setBetAmount(progress);
+            event = tempEvent;
+        }
+        MatchResultData resultData = conditionManager.addProgressAndGetAchievements(player, event, SHARE_PROMOTE, cfgValue);
+        if (resultData.result() == MatchResult.MATCH) {
             //添加到有效下级
             String key = sharePromoteDao.getLock(beneficiaryPlayerId);
             SharePromotePlayerData newPlayerInfoData = null;
@@ -243,7 +217,8 @@ public class SharePromoteController extends BaseActivityController {
                 activityLogger.sendSharePromoteAddRewards(beneficiaryPlayer, activityData, playerId, 10,
                         0, 1, 0, 0, 0, 0);
             }
-
+            log.info("beneficiaryPlayerId:{} 清除下级进度:{}", beneficiaryPlayerId, playerId);
+            conditionManager.delete(player, SHARE_PROMOTE, cfgValue);
             log.info("beneficiaryPlayerId:{} 新增有效下级:{}", beneficiaryPlayerId, playerId);
         }
     }
@@ -712,7 +687,7 @@ public class SharePromoteController extends BaseActivityController {
                 //构建排行榜玩家基本信息
                 buildSharePromoteRankInfo(player, rankInfo, entry.getValue().longValue());
                 String key = String.valueOf(entry.getKey());
-                rankInfo.totalRecharge = counts.get(key).toPlainString();
+                rankInfo.totalRecharge = NumberUtil.decimalFormat(",###.##", counts.getOrDefault(key, BigDecimal.ZERO));
                 rankInfo.validFlow = effectiveFlowMap.get(key).longValue();
                 res.rankInfoList.add(rankInfo);
             }

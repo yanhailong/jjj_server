@@ -174,6 +174,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         settlementPlayerInfo.endTime = gameDataVo.getPhaseEndTime() + (showDealer ? (long) sendCards.size() * PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) : 0);
         //计算总税收
         long totalTax = 0;
+        Map<Long, List<List<Integer>>> playerCards = new HashMap<>();
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
             if (info.isDelState()) {
                 continue;
@@ -181,6 +182,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             long playerId = info.getPlayerId();
             BlackJackSettlementInfo settlementInfo = new BlackJackSettlementInfo();
             int size = info.getCards().size();
+            playerCards.put(playerId, info.getCards());
             //获胜牌组索引
             settlementInfo.cardGroupState = new ArrayList<>(size);
             for (int i = 0; i < size; i++) {
@@ -277,6 +279,8 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             settlementPlayerInfo.settlementInfos.add(settlementInfo);
         }
         gameDataTracker.addGameLogData("tax", totalTax);
+        gameDataTracker.addGameLogData("dealerCards", settlementPlayerInfo.cardIds);
+        gameDataTracker.addGameLogData("playerCards", playerCards);
         log.info("21点结算信息: {}", JSON.toJSONString(settlementPlayerInfo));
         addLog(controller, playerGet);
         gameDataVo.setSettlementInfo(settlementPlayerInfo);
@@ -288,8 +292,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         //构建玩家信息
         for (PlayerSeatInfo playerSeatInfo : gameDataVo.getPlayerSeatInfoList()) {
             long playerId = playerSeatInfo.getPlayerId();
-            boolean robot = RobotUtil.isRobot(playerId);
-            if (robot) {
+            if (RobotUtil.isRobot(playerId)) {
                 continue;
             }
             long totalBet = controller.getPlayerTotalBet(playerId);

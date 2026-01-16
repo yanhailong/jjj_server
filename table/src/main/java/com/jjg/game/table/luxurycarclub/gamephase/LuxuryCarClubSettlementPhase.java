@@ -96,10 +96,8 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             playerChangedGold.playerWinGold = playerSettlementData.getTotalWin();
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
-            if (!(gamePlayer instanceof GameRobotPlayer)) {
-                // 添加日志埋点数据
-                BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
-            }
+            // 添加日志埋点数据
+            BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
             // 给玩家添加金币
             gameController.addItem(gamePlayer.getId(), playerSettlementData.getTotalWin(), AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
             playerChangedGold.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
@@ -124,9 +122,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
                     TableMessageBuilder.buildPlayerBetInfo(settlement.settlementInfo.betTableInfos, gameDataVo, playerId);
             Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
             if (playerBetInfo != null) {
-                gameDataTracker.addPlayerLogData(
-                        entry.getValue(), DataTrackNameConstant.AREA_DATA,
-                        JSON.toJSONString(settlement.settlementInfo.betTableInfos));
+                gameDataTracker.addPlayerLogData(entry.getValue(), DataTrackNameConstant.AREA_DATA, JSON.toJSONString(settlement.settlementInfo.betTableInfos));
             }
             // 给玩家发送结算数据
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
@@ -177,7 +173,6 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
                 totalWin += settlementData.getBankerWind() + totalGet.longValue();
             }
             if (totalWin > 0 && totalWin >= totalLose) {
-                System.out.println("totalWin " + totalWin + " totalLose " + totalLose + " key " + JSONObject.toJSONString(winPosWeightCfg));
                 return winPosWeightCfg;
             }
 

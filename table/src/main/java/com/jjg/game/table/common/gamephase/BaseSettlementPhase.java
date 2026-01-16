@@ -315,10 +315,8 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
                 }
             }
         }
-        if (!(gamePlayer instanceof GameRobotPlayer)) {
-            // 记录日志
-            BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
-        }
+        // 记录日志
+        BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
         return playerSettlementData;
     }
 }

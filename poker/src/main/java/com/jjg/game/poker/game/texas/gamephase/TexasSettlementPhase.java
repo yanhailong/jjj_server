@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.texas.gamephase;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.data.FriendRoom;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
@@ -36,7 +37,7 @@ import com.jjg.game.room.data.room.SimplePlayerInfo;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.robot.RobotUtil;
+import com.jjg.game.room.robot.RobotScheduleUtil;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.math.BigDecimal;
@@ -98,9 +99,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 for (PlayerSeatInfo playerSeatInfo : playerSeatInfoList) {
                     GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerSeatInfo.getPlayerId());
                     if (gamePlayer instanceof GameRobotPlayer robotPlayer && playerSeatInfo.getOperationType() == PokerConstant.PlayerOperation.DISCARD) {
-                        int chessExecutionDelay = RobotUtil.getChessExecutionDelay(robotPlayer.getActionId());
+                        int chessExecutionDelay = RobotScheduleUtil.getChessExecutionDelay(robotPlayer.getActionId());
                         TexasRobotHandler handler = new TexasRobotHandler(robotPlayer, TexasRobotHandler.SHOW_CARDS, controller);
-                        RobotUtil.schedule(gameController.getRoomController(), handler, chessExecutionDelay);
+                        RobotScheduleUtil.schedule(gameController.getRoomController(), handler, chessExecutionDelay);
                     }
                 }
             }
@@ -393,6 +394,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         //构建玩家信息
         for (TexasHistoryPlayerInfo info : texasHistory.totalPlayerBetInfo) {
+            if (RobotUtil.isRobot(info.playerId)) {
+                continue;
+            }
             Long betValue = baseBetInfo.getOrDefault(info.playerId, 0L);
             SimplePlayerInfo simplePlayerInfo = new SimplePlayerInfo(info.playerId, info.playerName);
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.TOTAL_BET, betValue);
@@ -401,7 +405,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.EFFECTIVE_BET, betValue);
             //增加个人
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.playerId);
-            if (gamePlayer != null && !(gamePlayer instanceof GameRobotPlayer)) {
+            if (gamePlayer != null) {
                 if (info.betValue > 0) {
                     //触发任务
                     gameController.triggerSettlementAction(gamePlayer.getId(), gameController.getRoom().getGameType(), 0,

@@ -19,12 +19,19 @@ public class DailyRewardsCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "DailyRewards";
 
+  /** 领取奖励条件 */
+  protected String condition;
   /** 签到天数 */
   protected int days;
   /** 签到奖励 */
   protected Map<Integer,Long> getItem;
   /** 类型 */
   protected int type;
+
+  /** 返回领取奖励条件 */
+  public String getCondition() {
+    return condition;
+  }
 
   /** 返回签到天数 */
   public int getDays() {

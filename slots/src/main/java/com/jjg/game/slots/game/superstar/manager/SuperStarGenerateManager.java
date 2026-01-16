@@ -124,7 +124,7 @@ public class SuperStarGenerateManager extends AbstractSlotsGenerateManager<Super
         //触发jackpot
         if (jackpotId > 0) {
             awardLineInfo.setJackpotId(jackpotId);
-            lib.setJackpotId(jackpotId);
+            lib.addJackpotId(jackpotId);
         }
         return awardLineInfo;
     }

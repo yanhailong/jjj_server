@@ -229,8 +229,8 @@ public class FirstPaymentController extends BaseActivityController implements Ga
     }
 
     @Override
-    public boolean checkPlayerCanJoinActivity(Player player, Object obj, ActivityData activityData) {
-        boolean checked = super.checkPlayerCanJoinActivity(player, obj, activityData);
+    public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
+        boolean checked = super.checkPlayerCanJoinActivity(player, activityData);
         if (!checked) {
             return false;
         }

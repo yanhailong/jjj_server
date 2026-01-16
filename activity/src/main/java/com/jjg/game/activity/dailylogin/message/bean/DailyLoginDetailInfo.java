@@ -15,4 +15,6 @@ public class DailyLoginDetailInfo extends BaseActivityDetailInfo {
     public int type;
     @ProtoDesc("需要天数")
     public int needDays;
+    @ProtoDesc("是否是今天要领取的")
+    public boolean isToday;
 }
