@@ -183,6 +183,10 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable {
         if(this.jackpotIds == null) {
             this.jackpotIds = new ArrayList<>();
         }
+
+        if(jackpotId < 1){
+            return;
+        }
         this.jackpotIds.add(jackpotId);
     }
 
