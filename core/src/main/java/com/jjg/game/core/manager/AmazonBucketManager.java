@@ -43,15 +43,14 @@ public class AmazonBucketManager {
             for (String name : nameList) {
                 String[] arr = name.split("#");
 
-                String originFileName = arr[0];
                 String replaceFileName = "";
                 if (arr.length < 2) {
                     replaceFileName = arr[0];
-                    log.warn("name = {} 分割失败，所以直接下载 fileName = {}", name, originFileName);
+                    log.warn("name = {} 分割失败，所以直接下载 fileName = {}", name, replaceFileName);
                 } else {
-                    replaceFileName = arr[1];
+                    replaceFileName = name;
                 }
-                this.dowmload(originFileName, replaceFileName);
+                this.dowmload(name, replaceFileName);
             }
         }
     }
