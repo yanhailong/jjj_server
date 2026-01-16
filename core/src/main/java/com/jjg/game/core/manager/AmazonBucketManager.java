@@ -40,38 +40,51 @@ public class AmazonBucketManager {
      */
     public void dowmloadFiles(List<String> nameList) {
         if (nameList != null && !nameList.isEmpty()) {
-            nameList.forEach(this::dowmload);
+            for (String name : nameList) {
+                String[] arr = name.split("#");
+
+                String originFileName = arr[0];
+                String replaceFileName = "";
+                if (arr.length < 2) {
+                    replaceFileName = arr[0];
+                    log.warn("name = {} 分割失败，所以直接下载 fileName = {}", name, originFileName);
+                } else {
+                    replaceFileName = arr[1];
+                }
+                this.dowmload(originFileName, replaceFileName);
+            }
         }
     }
 
     /**
      * 下载并替换配置文件
      *
-     * @param fileName
+     * @param originFileName
+     * @param replaceFileName
      */
-    public void dowmload(String fileName) {
+    public synchronized void dowmload(String originFileName, String replaceFileName) {
         try {
             if (this.s3Client == null) {
-                log.warn("s3Client 为空，下载文件失败,请检查是否添加相关配置 fileName = {}", fileName);
+                log.warn("s3Client 为空，下载文件失败,请检查是否添加相关配置 originFileName = {},replaceFileName = {}", originFileName, replaceFileName);
                 return;
             }
 
-            String localPath = CoreConst.Common.SAMPLE_ROOT_PATH + fileName;
+            String localPath = CoreConst.Common.SAMPLE_ROOT_PATH + replaceFileName;
             File localFile = new File(localPath);
             if (!localFile.exists()) {
-                log.debug("本地之前不存在该文件，所以不需要下载 fileName = {}", fileName);
+                log.debug("本地之前不存在该文件，所以不需要下载 originFileName = {},replaceFileName = {}", originFileName, replaceFileName);
                 return;
             }
 
             GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                     .bucket(this.bucketName)
-                    .key(fileName)
+                    .key(originFileName)
                     .build();
 
             ResponseInputStream<GetObjectResponse> resp = s3Client.getObject(getObjectRequest);
 
             //先创建到临时目录
-            String tmpPath = fileName;
+            String tmpPath = originFileName;
             File tmpFile = new File(tmpPath);
             if (tmpFile.exists()) {
                 tmpFile.delete();
@@ -90,7 +103,7 @@ public class AmazonBucketManager {
             Path targetPath = Paths.get(localPath);
             Files.move(tempPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
 
-            log.debug("替换文件成功  fileName = {}", fileName);
+            log.debug("替换文件成功  originFileName = {},replaceFileName = {}", originFileName, replaceFileName);
         } catch (Exception e) {
             log.error("", e);
         }
