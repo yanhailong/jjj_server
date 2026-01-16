@@ -49,7 +49,7 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.PokerPlayerGameData;
 import com.jjg.game.room.message.BaseRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.robot.RobotUtil;
+import com.jjg.game.room.robot.RobotScheduleUtil;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import com.jjg.game.sampledata.bean.TexasCfg;
 
@@ -501,9 +501,9 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         //机器人处理
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(nextExePlayer.getPlayerId());
         if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
-            int chessExecutionDelay = RobotUtil.getChessExecutionDelay(robotPlayer.getActionId());
+            int chessExecutionDelay = RobotScheduleUtil.getChessExecutionDelay(robotPlayer.getActionId());
             TexasRobotHandler handler = new TexasRobotHandler(robotPlayer, TexasRobotHandler.DO_STRATEGY, this);
-            RobotUtil.schedule(getRoomController(), handler, chessExecutionDelay);
+            RobotScheduleUtil.schedule(getRoomController(), handler, chessExecutionDelay);
         }
     }
 

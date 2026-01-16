@@ -17,7 +17,7 @@ import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.robot.RobotUtil;
+import com.jjg.game.room.robot.RobotScheduleUtil;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.*;
@@ -59,7 +59,7 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
     public void robotPhaseScheduleAction(GameRobotPlayer robotPlayer, int chessExecutionDelay, int pro) {
         if (gameController instanceof BlackJackGameController controller) {
             BlackJackRobotHandler handler = new BlackJackRobotHandler(robotPlayer, BlackJackRobotHandler.BET, controller, pro);
-            RobotUtil.schedule(controller.getRoomController(), handler, chessExecutionDelay);
+            RobotScheduleUtil.schedule(controller.getRoomController(), handler, chessExecutionDelay);
         }
     }
 

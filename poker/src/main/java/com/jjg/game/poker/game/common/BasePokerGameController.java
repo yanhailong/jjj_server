@@ -28,7 +28,7 @@ import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.PokerPlayerGameData;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.robot.RobotUtil;
+import com.jjg.game.room.robot.RobotScheduleUtil;
 import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomTimerEvent;
 import com.jjg.game.sampledata.GameDataManager;
@@ -359,15 +359,15 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
             switch (this) {
                 case TexasGameController controller -> {
                     respRoomInitInfo(playerController);
-                    int chessExecutionDelay = RobotUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
+                    int chessExecutionDelay = RobotScheduleUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
                     TexasRobotHandler handler = new TexasRobotHandler(gameRobotPlayer, TexasRobotHandler.GO_READY, controller, 10000);
-                    RobotUtil.schedule(getRoomController(), handler, chessExecutionDelay);
+                    RobotScheduleUtil.schedule(getRoomController(), handler, chessExecutionDelay);
                 }
                 case BlackJackGameController controller -> {
                     respRoomInitInfo(playerController);
-                    int chessExecutionDelay = RobotUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
+                    int chessExecutionDelay = RobotScheduleUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
                     BlackJackRobotHandler handler = new BlackJackRobotHandler(gameRobotPlayer, BlackJackRobotHandler.BET, controller, 10000);
-                    RobotUtil.schedule(getRoomController(), handler, chessExecutionDelay);
+                    RobotScheduleUtil.schedule(getRoomController(), handler, chessExecutionDelay);
                 }
                 default -> {
                 }

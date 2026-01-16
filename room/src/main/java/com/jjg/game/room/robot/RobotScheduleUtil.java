@@ -14,14 +14,12 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 机器人工具类
+ * 机器人定时工具类
  *
  * @author lm
  * @date 2025/9/30 10:12
  */
-public class RobotUtil {
-
-    private static final Logger log = LoggerFactory.getLogger(RobotUtil.class);
+public class RobotScheduleUtil {
 
     /**
      * 获取机器人延迟执行时间
