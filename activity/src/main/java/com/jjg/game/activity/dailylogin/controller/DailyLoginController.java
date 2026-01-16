@@ -157,15 +157,13 @@ public class DailyLoginController extends BaseActivityController {
             res.code = Code.PARAM_ERROR;
             return res;
         }
+        if (!conditionManager.isAchievementAndNotify(player, "", cfg.getCondition())) {
+            return null;
+        }
         PlayerActivityData data = null;
         List<Pair<DailyRewardsCfg, PlayerActivityData>> changData = new ArrayList<>();
         CommonResult<ItemOperationResult> addedItems = null;
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-        MatchResultData getResult = conditionManager.isAchievementAndGetResult(player, "", cfg.getCondition());
-        if (getResult.result() != MatchResult.MATCH) {
-            TipUtils.sendToastTip(playerId, getResult.errorCode(), Map.of(2, getResult.need().toPlainString()));
-            return null;
-        }
         // 加锁，保证领取操作原子性
         boolean lock = false;
         try {

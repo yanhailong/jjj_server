@@ -634,14 +634,11 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * @param player 玩家数据
      * @return 错误码
      */
-    public int playerJoinActivityCheck(ActivityData data, Player player) {
+    public boolean playerJoinActivityCheck(ActivityData data, Player player) {
         if (data == null || player == null) {
-            return Code.PARAM_ERROR;
+            return false;
         }
-        if (!data.canRun()) {
-            return Code.ERROR_REQ;
-        }
-        return conditionManager.isAchievementAndGetCode(player, "", data.getCondition());
+        return data.canRun() && conditionManager.isAchievementAndNotify(player, "", data.getCondition());
     }
 
     @Override

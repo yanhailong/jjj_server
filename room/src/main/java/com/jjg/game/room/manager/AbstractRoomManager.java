@@ -262,8 +262,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                     removeIds.add(entry.getKey());
                 }
                 randomRoom = roomDao.removePlayers(randomRoom.getGameType(), randomRoom.getId(), removeIds);
-                log.info("从redis加载房间数据时 移除异常的机器人 ids:{}", removeIds);
             }
+            log.info("从redis加载房间数据时 移除异常的机器人 ids:{}", removeIds);
         }
 
         return initWithRoom(gameType, roomCfgId, maxLimit, roomType, randomRoom);
