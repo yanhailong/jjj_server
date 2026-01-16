@@ -679,6 +679,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
             CommonResult<Account> addResult;
             int mailId = 0;
+            String userId = "";
             if (loginType == LoginType.GOOGLE) {
                 CommonResult<GoogleUserInfo> verifyResult = thirdAccountHttpService.verifyGoogleToken(token);
                 if (!verifyResult.success()) {
@@ -688,6 +689,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
                 addResult = accountDao.addThirdAccount(player, loginType, verifyResult.data);
                 mailId = GameConstant.Mail.ID_BIND_GOOGLE;
+                userId = verifyResult.data.getUserId();
             } else if (loginType == LoginType.FACEBOOK) {
                 CommonResult<FacebookUserInfo> verifyResult = thirdAccountHttpService.verifyFacebookToken(token);
                 if (!verifyResult.success()) {
@@ -697,6 +699,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
                 addResult = accountDao.addThirdAccount(player, loginType, verifyResult.data);
                 mailId = GameConstant.Mail.ID_BIND_FACEBOOK;
+                userId = verifyResult.data.getUserId();
             } else if (loginType == LoginType.APPLE) {
                 CommonResult<AppleUserInfo> verifyResult = thirdAccountHttpService.verifyAppleToken(token);
                 if (!verifyResult.success()) {
@@ -705,6 +708,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 }
                 addResult = accountDao.addThirdAccount(player, loginType, verifyResult.data);
                 mailId = GameConstant.Mail.ID_BIND_APPLE;
+                userId = verifyResult.data.getUserId();
             } else {
                 log.debug("该接口不支持该类型绑定，绑定第三方账号失败 type = {}", type);
                 result.code = Code.FAIL;
@@ -731,7 +735,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             result.data = ItemUtils.buildItems(loginConfigCfg.getAwardItem());
 
             mailService.addCfgMail(player.getId(), mailId, result.data);
-            hallLogger.bind(player, type, token);
+            hallLogger.bind(player, type, userId);
             log.debug("已发送绑定账号奖励邮件 playerId = {},type = {},rewaredList = {}", player.getId(), type, result.data);
         } catch (Exception e) {
             log.error("", e);
