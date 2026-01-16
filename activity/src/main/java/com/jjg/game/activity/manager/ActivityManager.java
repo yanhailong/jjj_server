@@ -118,7 +118,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     /**
      * 开服时间（毫秒）
      */
-    private final long startServerTime = 1756656000000L;
+    private long startServerTime;
     /**
      * 玩家获得数据dao
      */
@@ -169,6 +169,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     public void initData() {
         ActivityType.initialize();
+        //添加开服时间
+        checkStartServerTime();
         Map<Long, ActivityData> tempActivityData = new ConcurrentHashMap<>();
         //要添加定时器的列表 时间戳 活动id
         List<Pair<Long, Long>> timerList = new ArrayList<>();
@@ -186,6 +188,19 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         //检查是否要主动开启
         for (ActivityData data : activityData.values()) {
             checkActivityStatus(data, currentTime);
+        }
+    }
+
+    /**
+     * 检查开服时间
+     */
+    private void checkStartServerTime() {
+        long serverStartTime = TimeHelper.getCurrentDateZeroSecondTime();
+        boolean ifAbsent = countDao.setIfAbsent(CountDao.CountType.SYSTEM.getParam(), "openServerTime", BigDecimal.valueOf(serverStartTime));
+        if (ifAbsent) {
+            startServerTime = serverStartTime;
+        } else {
+            startServerTime = countDao.getCount(CountDao.CountType.SYSTEM.getParam(), "openServerTime").longValue();
         }
     }
 

@@ -61,6 +61,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private TaskManager taskManager;
     @Autowired
     private CoreMessageHandler coreMessageHandler;
+
     private ApplicationContext context;
 
     private boolean running = false;
