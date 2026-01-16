@@ -109,6 +109,8 @@ public interface Code {
     int ALREADY_WORN = 439;
     // 待关闭服务器禁止修改房间信息
     int WAIT_CLOSE_NOT_MODIFICATION = 441;
+    // 手机号码错误
+    int PHONE_NUMBER_ERROR = 442;
     //积分大奖积分不足
     int POINT_AWARD_POINT_NOT_ENOUGH = 66019;
     //积分大奖次数不足

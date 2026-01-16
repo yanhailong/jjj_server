@@ -202,7 +202,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
 
         if (!CoreUtil.validPhoneNumber(data)) {
-            result.code = Code.PARAM_ERROR;
+            result.code = Code.PHONE_NUMBER_ERROR;
             log.debug("手机号格式错误,获取绑定手机验证码失败 playerId = {},phone = {}", playerId, data);
             return result;
         }
