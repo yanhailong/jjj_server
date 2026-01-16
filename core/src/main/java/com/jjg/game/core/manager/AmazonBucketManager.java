@@ -45,10 +45,10 @@ public class AmazonBucketManager {
 
                 String replaceFileName = "";
                 if (arr.length < 2) {
-                    replaceFileName = arr[0];
+                    replaceFileName = name;
                     log.warn("name = {} 分割失败，所以直接下载 fileName = {}", name, replaceFileName);
                 } else {
-                    replaceFileName = name;
+                    replaceFileName = arr[0];
                 }
                 this.dowmload(name, replaceFileName);
             }
