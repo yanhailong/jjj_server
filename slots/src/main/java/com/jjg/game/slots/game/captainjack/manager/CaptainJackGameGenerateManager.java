@@ -410,10 +410,54 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
         if (list == null || list.isEmpty()) {
             return 0;
         }
-
         int times = 0;
         for (CaptainJackAwardLineInfo awardLineInfo : list) {
             times += awardLineInfo.getBaseTimes();
+        }
+        return times;
+    }
+
+    /**
+     * 计算中奖线的倍数
+     *
+     * @param list
+     * @return
+     */
+    public int calFinalLineTimes(List<CaptainJackAwardLineInfo> list) {
+        if (list == null || list.isEmpty()) {
+            return 0;
+        }
+        int baseTimes = 1;
+        int times = 0;
+        int count = 0;
+        for (CaptainJackAwardLineInfo awardLineInfo : list) {
+            awardLineInfo.setBaseTimes(awardLineInfo.getBaseTimes() * (baseTimes + count / needTimes * addTimes));
+            times += awardLineInfo.getBaseTimes();
+            count++;
+        }
+        return times;
+    }
+
+    /**
+     * 计算消除补齐后的中奖倍数
+     *
+     * @param addIconInfos
+     * @return
+     */
+    public long calAfterFinalAddIcons(int baseCount, List<CaptainJackAddIconInfo> addIconInfos) {
+        if (CollectionUtil.isEmpty(addIconInfos)) {
+            return 0;
+        }
+        long times = 0;
+        int baseTimes = 1;
+        for (CaptainJackAddIconInfo info : addIconInfos) {
+            if (CollectionUtil.isEmpty(info.getAwardLineInfoList())) {
+                continue;
+            }
+            for (CaptainJackAwardLineInfo awardLineInfo : info.getAwardLineInfoList()) {
+                awardLineInfo.setBaseTimes(awardLineInfo.getBaseTimes() * (baseTimes + baseCount / needTimes * addTimes));
+                times += awardLineInfo.getBaseTimes();
+            }
         }
         return times;
     }
@@ -428,7 +472,6 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
         if (CollectionUtil.isEmpty(lib.getSpecialAuxiliaryInfoList())) {
             return 0;
         }
-        long count = 0;
         long totalTimes = 0;
         for (SpecialAuxiliaryInfo info : lib.getSpecialAuxiliaryInfoList()) {
             if (CollectionUtil.isEmpty(info.getFreeGames())) {
@@ -436,22 +479,18 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
             }
             endIndex = Math.min(endIndex, info.getFreeGames().size());
             for (int i = 0; i < endIndex; i++) {
-                int baseTimes = 1;
                 JSONObject jsonObject = info.getFreeGames().get(i);
                 CaptainJackResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), CaptainJackResultLib.class);
                 if (CollectionUtil.isEmpty(tmpLib.getAddIconInfos())) {
                     continue;
                 }
                 //中奖线
-                tmpLib.addTimes(calLineTimes(tmpLib.getAwardLineInfoList()));
+                int times = calFinalLineTimes(tmpLib.getAwardLineInfoList());
+                tmpLib.addTimes(times);
                 //消除后新增图标
-                tmpLib.addTimes(calAfterAddIcons(tmpLib.getAddIconInfos()));
-                if (tmpLib.getTimes() > 0) {
-                    tmpLib.setTimes(tmpLib.getTimes() * (baseTimes + count / needTimes * addTimes));
-                }
-                jsonObject.put("times", tmpLib.getTimes());
+                tmpLib.addTimes(calAfterFinalAddIcons(tmpLib.getAwardLineInfoList().size(), tmpLib.getAddIconInfos()));
                 totalTimes += tmpLib.getTimes();
-                count += tmpLib.getAddIconInfos().size();
+                info.getFreeGames().set(i, (JSONObject) JSONObject.toJSON(tmpLib));
             }
         }
         return totalTimes;
