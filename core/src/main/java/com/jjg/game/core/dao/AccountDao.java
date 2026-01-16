@@ -219,7 +219,9 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
 
         if (accountCommonResult.success()) {
             save(accountCommonResult.data, loginType, channelUserInfo.getUserId(), false);
-            gameEventManager.triggerEvent(new PlayerEvent(player, EGameEventType.BIND_PHONE, accountCommonResult.data, accountCommonResult.data));
+            if(loginType == LoginType.PHONE){
+                gameEventManager.triggerEvent(new PlayerEvent(player, EGameEventType.BIND_PHONE, accountCommonResult.data, accountCommonResult.data));
+            }
         }
         return result;
     }
