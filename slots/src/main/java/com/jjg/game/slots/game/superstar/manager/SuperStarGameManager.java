@@ -138,7 +138,7 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
             //记录spin数据
             SuperStarSpinInfo spinInfo = spinAnalysis(resultLib, playerGameData.getOneBetScore());
             //记录奖池id
-            spinInfo.setJackpotId(resultLib.getJackpotId());
+            spinInfo.setJackpotId(resultLib.getFirstJackpotId());
             gameRunInfo.setSpinInfo(spinInfo);
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
             //标准池
@@ -208,7 +208,7 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
                 return resultLineInfo;
             }).toList();
             spinInfo.setResultLineInfoList(resultLineInfos);
-            spinInfo.setJackpotId(resultLib.getJackpotId());
+            spinInfo.setJackpotId(resultLib.getFirstJackpotId());
         }
         List<Integer> iconList = Arrays.stream(resultLib.getIconArr())
                 .filter(v -> v != 0)

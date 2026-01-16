@@ -11,10 +11,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.PoolCfg;
-import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
-import com.jjg.game.sampledata.bean.SpecialGirdCfg;
-import com.jjg.game.sampledata.bean.SpecialPlayCfg;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
@@ -994,10 +991,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 log.debug("获取的池子id小于1 trainCoinId = {},poolId = {}", trainInfo.type, poolId);
                 continue;
             }
-            PoolCfg poolCfg = randWinPool(playerGameData, poolId);
-            if (poolCfg == null) {
+
+            if (!lib.containsJackpotId(poolId)) {
                 continue;
             }
+
+            PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
             //计算奖池金额
             //车厢节数+1，是因为要加上最后一个奖池车厢
             //总的延迟时间
@@ -1184,5 +1183,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
     public DollarExpressCollectDollarConfig getDollarExpressCollectDollarConfig() {
         return dollarExpressCollectDollarConfig;
+    }
+
+    @Override
+    protected DollarExpressResultLib afterForbidPoolLib(SpecialResultLibCfg specialResultLibCfg, DollarExpressResultLib resultLib) {
+        return resultLib;
     }
 }

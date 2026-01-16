@@ -397,19 +397,24 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
             //如果获取结果库失败，会重试，所以用循环
             for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
-                //获取倍数区间
-                CommonResult<Integer> resultLibSectionResult = getResultLibSection(libCfgResult.data.getModelId(), libType);
-                if (!resultLibSectionResult.success()) {
+                //根据倍数区间从结果库里面随机获取一条
+                resultLib = getLib(libCfgResult.data, libType);
+                if (resultLib != null) {
+                    //检查该lib是否中奖jackpot
+                    if (resultLib.getJackpotIds() != null && !resultLib.getJackpotIds().isEmpty()) {
+                        List<Integer> rewardPoolIds = checkLibPool(resultLib, playerGameData);
+                        if (rewardPoolIds.isEmpty()) {  //如果发现lib可以中奖，但是不够资格
+                            resultLib = afterForbidPoolLib(libCfgResult.data, resultLib);
+                            resultLib.setJackpotIds(null);
+                        }
+                    }
+                }
+
+                if (resultLib == null) {
+                    log.warn("获取结果库失败 gameType = {},modelId = {},libType = {},retry = {}", this.gameType, libCfgResult.data.getModelId(), libType, i);
                     continue;
                 }
 
-                //根据倍数区间从结果库里面随机获取一条
-                resultLib = (L) getResultLibDao().getLibBySectionIndex(libType, resultLibSectionResult.data, this.libClass);
-                if (resultLib == null) {
-                    log.debug("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, libCfgResult.data.getModelId(), libType, resultLibSectionResult.data, i);
-                    continue;
-                }
-                sectionIndex = resultLibSectionResult.data;
                 log.debug("成功获取结果库  playerId = {},lib = {}", playerGameData.playerId(), JSON.toJSONString(resultLib));
                 break;
             }
@@ -965,64 +970,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
-     * 计算是否奖池中奖
-     *
-     * @param playerGameData
-     * @param poolId
-     * @return
-     * @throws Exception
-     */
-    protected PoolCfg randWinPool(T playerGameData, int poolId) {
-        //获取玩家累计贡献金额
-        long contribt = playerGameData.getAllContribtPoolGold();
-        if (contribt < 1) {
-            return null;
-        }
-        log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.playerId(), contribt, poolId);
-
-        //真奖池
-        Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
-        if (smallPoolNumber == null) {
-            log.debug("获取小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
-            return null;
-        }
-        //假奖池
-        Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
-        if (fakeSmallPoolNumber == null) {
-            log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
-            return null;
-        }
-
-        //当真奖池 >= 假奖池时，才允许中奖
-        long smallPool = smallPoolNumber.longValue();
-        long fakeSmallPool = fakeSmallPoolNumber.longValue();
-
-        if (smallPool < fakeSmallPool) {
-            log.debug("真奖池小于假奖池，不允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
-            return null;
-        }
-
-        log.debug("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
-        BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
-
-
-        PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
-        if (poolCfg == null) {
-            log.debug("获取的池子配置为空 poolId = {}", poolId);
-            return null;
-        }
-        //中奖概率,这里保留了8位，所以最后可以取int值
-        int propV = BigDecimal.valueOf(contribt).divide(pool, 8, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(poolCfg.getPoolProp()), 8, BigDecimal.ROUND_HALF_UP).multiply(oneHundredMillionBigDecimal).intValue();
-        int rand = RandomUtils.randomInt(oneHundredMillion);
-//            rand = 1;
-        if (rand >= propV) {
-            log.debug("随机概率，未中奖 rand = {},propV = {}", rand, propV);
-            return null;
-        }
-        return poolCfg;
-    }
-
-    /**
      * 计算奖池金额
      *
      * @param stake
@@ -1123,7 +1070,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
     }
 
-/**
+    /**
      * 离线执行
      *
      * @param playerGameData   玩家数据
@@ -1621,7 +1568,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     }
 
-       /**
+    /**
      * 初始化离线事件
      *
      * @return
@@ -1652,5 +1599,91 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     public boolean canExit(SlotsPlayerGameData playerGameData) {
         return playerGameData.getStatus() == SlotsConst.Status.NORMAL;
+    }
+
+    /**
+     * 检查该resultLib是否中jackpot
+     * 如果是则判断是否有资格中奖
+     * 如果否则重新获取
+     *
+     * @param resultLib
+     * @param playerGameData
+     * @return
+     */
+    protected List<Integer> checkLibPool(L resultLib, T playerGameData) {
+        //获取玩家累计贡献金额
+        long contribt = playerGameData.getAllContribtPoolGold();
+        if (contribt < 1) {
+            return Collections.emptyList();
+        }
+        log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.playerId(), contribt, resultLib.getJackpotIds());
+
+        //真奖池
+        Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
+        if (smallPoolNumber == null) {
+            log.debug("获取小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), resultLib.getJackpotIds());
+            return Collections.emptyList();
+        }
+        //假奖池
+        Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
+        if (fakeSmallPoolNumber == null) {
+            log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), resultLib.getJackpotIds());
+            return Collections.emptyList();
+        }
+
+        //当真奖池 >= 假奖池时，才允许中奖
+        long smallPool = smallPoolNumber.longValue();
+        long fakeSmallPool = fakeSmallPoolNumber.longValue();
+
+        if (smallPool < fakeSmallPool) {
+            log.debug("真奖池小于假奖池，不允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
+            return Collections.emptyList();
+        }
+
+        log.info("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
+        BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
+
+        List<Integer> jackpotIds = new ArrayList<>();
+        for (Object obj : resultLib.getJackpotIds()) {
+            int jackpotId = (int) obj;
+            PoolCfg poolCfg = GameDataManager.getPoolCfg(jackpotId);
+            if (poolCfg == null) {
+                log.debug("获取的池子配置为空 poolId = {}", jackpotId);
+                continue;
+            }
+
+            //中奖概率,这里保留了8位，所以最后可以取int值
+            int propV = BigDecimal.valueOf(contribt).divide(pool, 8, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(poolCfg.getPoolProp()), 8, BigDecimal.ROUND_HALF_UP).multiply(oneHundredMillionBigDecimal).intValue();
+            int rand = RandomUtils.randomInt(oneHundredMillion);
+            if (rand >= propV) {
+                log.debug("随机概率，未中奖 rand = {},propV = {}", rand, propV);
+            } else {
+                jackpotIds.add(jackpotId);
+            }
+        }
+        return jackpotIds;
+    }
+
+    /**
+     * 如果系统判断玩家不能中奖池后的处理办法，获取一个普通的结果
+     *
+     * @param specialResultLibCfg
+     * @param resultLib
+     * @return
+     */
+    protected L afterForbidPoolLib(SpecialResultLibCfg specialResultLibCfg, L resultLib) {
+        return getLib(specialResultLibCfg, 1);
+    }
+
+    protected L getLib(SpecialResultLibCfg specialResultLibCfg, int libType) {
+        //获取倍数区间
+        CommonResult<Integer> resultLibSectionResult = getResultLibSection(specialResultLibCfg.getModelId(), libType);
+        if (!resultLibSectionResult.success()) {
+            log.warn("获取区间失败 modelId = {},libtype = {}", specialResultLibCfg.getModelId(), libType);
+            return null;
+        }
+
+        //根据倍数区间从结果库里面随机获取一条
+        return (L) getResultLibDao().getLibBySectionIndex(libType, resultLibSectionResult.data, this.libClass);
     }
 }
