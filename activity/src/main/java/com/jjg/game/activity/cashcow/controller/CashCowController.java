@@ -3,6 +3,8 @@ package com.jjg.game.activity.cashcow.controller;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.RandomUtil;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.jjg.game.activity.cashcow.dao.CashCowDao;
 import com.jjg.game.activity.cashcow.data.CashCowPlayerActivityData;
 import com.jjg.game.activity.cashcow.data.CashCowRecordData;
@@ -49,8 +51,12 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -94,6 +100,11 @@ public class CashCowController extends BaseActivityController implements TimerLi
     private final CorePlayerService corePlayerService;
     //邮件服务
     private final MailService mailService;
+    //奖池本地缓存
+    private final Cache<Long, Long> poolCache = Caffeine.newBuilder()
+            .expireAfterWrite(Duration.ofSeconds(3))
+            .maximumSize(50)
+            .build();
 
     public CashCowController(CashCowDao cashCowDao, TimerCenter timerCenter, CountDao countDao, CorePlayerService corePlayerService, MailService mailService, RobotUtil robotUtil) {
         this.cashCowDao = cashCowDao;
@@ -314,6 +325,8 @@ public class CashCowController extends BaseActivityController implements TimerLi
                                 if (vipGet != null) {
                                     cashCowDao.addActivityPool(activityId, -vipGet.getSecond());
                                 }
+                                //使缓存失效
+                                poolCache.invalidate(activityId);
                             }
                             // 匹配到范围后跳出循环（每次 join 只匹配一个范围）
                             break;
@@ -756,7 +769,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
     public AbstractResponse reqCashCowTotalPool(ReqCashCowTotalPool req) {
         ResCashCowTotalPool res = new ResCashCowTotalPool(Code.SUCCESS);
         res.activityId = req.activityId;
-        res.totalNum = cashCowDao.getSpecifiedActivityPool(req.activityId);
+        res.totalNum = poolCache.get(req.activityId, cashCowDao::getSpecifiedActivityPool);
         return res;
     }
 
@@ -950,4 +963,5 @@ public class CashCowController extends BaseActivityController implements TimerLi
         }
         cashCowDao.delPlayerActivityProgress(playerId, activityData.getId());
     }
+
 }
