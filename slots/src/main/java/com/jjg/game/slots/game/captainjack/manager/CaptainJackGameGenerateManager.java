@@ -89,13 +89,13 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
             if (indexSet == null || elementsCount != cfg.getRewardNum()) {
                 continue;
             }
-            if (lib.getJackpotId() > 0 && lib.getJackpotId() != cfg.getJackpotID()) {
+            if (lib.getJackpotIds() != null && !lib.getJackpotIds().isEmpty() && !lib.getJackpotIds().contains(cfg.getJackpotID())) {
                 log.error("杰克船长出现奖池配置错误");
                 throw new RuntimeException("杰克船长出现奖池配置错误");
             }
             //触发奖池
             if (cfg.getJackpotID() > 0) {
-                lib.setJackpotId(cfg.getJackpotID());
+                lib.addJackpotId(cfg.getJackpotID());
             }
 
             //是否触发小游戏

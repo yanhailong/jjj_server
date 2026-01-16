@@ -966,64 +966,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
-     * 计算是否奖池中奖
-     *
-     * @param playerGameData
-     * @param poolId
-     * @return
-     * @throws Exception
-     */
-    protected PoolCfg randWinPool(T playerGameData, int poolId) {
-        //获取玩家累计贡献金额
-        long contribt = playerGameData.getAllContribtPoolGold();
-        if (contribt < 1) {
-            return null;
-        }
-        log.info("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.playerId(), contribt, poolId);
-
-        //真奖池
-        Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
-        if (smallPoolNumber == null) {
-            log.warn("获取小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
-            return null;
-        }
-        //假奖池
-        Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
-        if (fakeSmallPoolNumber == null) {
-            log.warn("获取(假)小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
-            return null;
-        }
-
-        //当真奖池 >= 假奖池时，才允许中奖
-        long smallPool = smallPoolNumber.longValue();
-        long fakeSmallPool = fakeSmallPoolNumber.longValue();
-
-        if (smallPool < fakeSmallPool) {
-            log.debug("真奖池小于假奖池，不允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
-            return null;
-        }
-
-        log.info("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
-        BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
-
-
-        PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
-        if (poolCfg == null) {
-            log.warn("获取的池子配置为空 poolId = {}", poolId);
-            return null;
-        }
-        //中奖概率,这里保留了8位，所以最后可以取int值
-        int propV = BigDecimal.valueOf(contribt).divide(pool, 8, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(poolCfg.getPoolProp()), 8, BigDecimal.ROUND_HALF_UP).multiply(oneHundredMillionBigDecimal).intValue();
-        int rand = RandomUtils.randomInt(oneHundredMillion);
-//            rand = 1;
-        if (rand >= propV) {
-            log.debug("随机概率，未中奖 rand = {},propV = {}", rand, propV);
-            return null;
-        }
-        return poolCfg;
-    }
-
-    /**
      * 从奖池扣除，并给玩家加钱
      *
      * @param gameRunInfo
@@ -1062,11 +1004,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      *
      * @param gameRunInfo
      * @param playerGameData
-     * @param jackpotId
-     * @param rand
      */
-    protected void rewardFromSmallPool(GameRunInfo gameRunInfo, T playerGameData, int jackpotId, boolean rand) {
-        if (jackpotId < 1) {
+    protected void rewardFromSmallPool(GameRunInfo gameRunInfo, T playerGameData, List<Integer> jackpotIds) {
+        if (jackpotIds == null || jackpotIds.isEmpty()) {
             return;
         }
 
@@ -1075,30 +1015,24 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return;
         }
 
-        long poolValue = 0;
-        if (rand) {
-            PoolCfg poolCfg = randWinPool(playerGameData, jackpotId);
-            if (poolCfg == null) {
+        for (int poolId : jackpotIds) {
+            long poolValue = getPoolValueByPoolId(poolId, playerGameData.getOneBetScore());
+            if (poolValue < 1) {
+                continue;
+            }
+
+            //给玩家加钱
+            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), poolValue, AddType.SLOTS_TRAIN, poolId + "");
+            if (!result.success()) {
+                log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
                 return;
             }
-            poolValue = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), poolCfg.getDelayTime());
-        } else {
-            poolValue = getPoolValueByPoolId(jackpotId, playerGameData.getOneBetScore());
-        }
-        if (poolValue < 1) {
-            return;
-        }
-        //给玩家加钱
-        CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), poolValue, AddType.SLOTS_TRAIN, jackpotId + "");
-        if (!result.success()) {
-            log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
-            return;
-        }
-        playerGameData.addSmallPoolReward(poolValue);
-        gameRunInfo.addSmallPoolGold(poolValue);
-        playerGameData.setPlayer(result.data);
+            playerGameData.addSmallPoolReward(poolValue);
+            gameRunInfo.addSmallPoolGold(poolValue);
+            playerGameData.setPlayer(result.data);
 
-        log.info("玩家奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), jackpotId, poolValue);
+            log.info("玩家奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), poolId, poolValue);
+        }
     }
 
     /**
@@ -1873,7 +1807,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 }
 
                 if (resultLib == null) {
-                    log.warn("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, libCfgResult.data.getModelId(), libType, resultLibSectionResult.data, i);
+                    log.warn("获取结果库失败 gameType = {},modelId = {},libType = {},retry = {}", this.gameType, libCfgResult.data.getModelId(), libType, i);
                     continue;
                 }
 //                sectionIndex = resultLibSectionResult.data;

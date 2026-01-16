@@ -14,8 +14,6 @@ import java.util.List;
  */
 @Document
 public class SteamAgeResultLib extends SlotsResultLib<SteamAgeAwardLineInfo> {
-    //本次触发的jackpotId
-    private int jackpotId;
     //增加的免费次数
     private int addFreeCount;
     //免费 新增列次数
@@ -29,14 +27,6 @@ public class SteamAgeResultLib extends SlotsResultLib<SteamAgeAwardLineInfo> {
 
     public void setAddIconInfos(List<SteamAgeExpandIconInfo> addIconInfos) {
         this.addIconInfos = addIconInfos;
-    }
-
-    public int getJackpotId() {
-        return jackpotId;
-    }
-
-    public void setJackpotId(int jackpotId) {
-        this.jackpotId = jackpotId;
     }
 
     public int getAddFreeCount() {

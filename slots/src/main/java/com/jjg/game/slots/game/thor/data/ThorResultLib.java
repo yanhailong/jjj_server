@@ -11,18 +11,8 @@ import java.util.Set;
  */
 @Document
 public class ThorResultLib extends SlotsResultLib<ThorAwardLineInfo> {
-    //本次触发的jackpotId
-    private int jackpotId;
     //冻结的wild
     private Set<Integer> freezeWildSet;
-
-    public int getJackpotId() {
-        return jackpotId;
-    }
-
-    public void setJackpotId(int jackpotId) {
-        this.jackpotId = jackpotId;
-    }
 
     public Set<Integer> getFreezeWildSet() {
         return freezeWildSet;

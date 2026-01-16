@@ -202,7 +202,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
         gameRunInfo.setScrollType(resultLib.getRollerMode());
         gameRunInfo.setSpecialModeIcon(resultLib.getSpecialModeIcon());
         if (currentRandomIndex == randomResult.size() - 1) {
-            PoolCfg poolCfg = GameDataManager.getPoolCfg(fuMaResultLib.getJackpotId());
+            PoolCfg poolCfg = GameDataManager.getPoolCfg(fuMaResultLib.firstJackpotId());
             if (poolCfg != null) {
                 //检查是否中大奖
                 CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(),
@@ -215,7 +215,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
             playerGameData.setStatus(PegasusUnbridleConstant.Status.NORMAL);
             playerGameData.setFuMa(null);
             playerGameData.setCurrentRandomIndex(0);
-            gameRunInfo.setBigShowId(resultLib.getJackpotId());
+            gameRunInfo.setBigShowId(resultLib.firstJackpotId());
             gameRunInfo.setFuMaEnd(true);
             gameRunInfo.setBigPoolTimes(resultLib.getTimes());
             gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));

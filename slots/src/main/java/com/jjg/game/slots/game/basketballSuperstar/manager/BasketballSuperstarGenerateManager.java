@@ -100,9 +100,8 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
                 });
             }
 
-            if (lib.getJackpotId() < 1) {
-                lib.setJackpotId(cfg.getJackpotID());
-                log.info("lib.getJackpotId()  {}", lib.getJackpotId());
+            if (lib.getJackpotIds() == null || lib.getJackpotIds().isEmpty()) {
+                lib.addJackpotId(cfg.getJackpotID());
             }
 
         }
@@ -512,7 +511,7 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
      * @return
      */
     private boolean checkJackpool(BasketballSuperstarResultLib lib) {
-        if (lib.getJackpotId() < 1) {
+        if (lib.jackpotEmpty()) {
             return false;
         }
         int[] newArr = new int[lib.getIconArr().length];

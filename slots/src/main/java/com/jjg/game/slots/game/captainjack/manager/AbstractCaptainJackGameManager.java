@@ -201,7 +201,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
         //检查是否中大奖
-        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotId(), false);
+        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
 
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
         gameRunInfo.setIconArr(resultLib.getIconArr());

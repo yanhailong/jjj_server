@@ -97,7 +97,7 @@ public class GoldSnakeFortuneGenerateManager extends AbstractSlotsGenerateManage
                 }
             }
 
-            lib.setJackpotId(cfg.getJackpotID());
+            lib.addJackpotId(cfg.getJackpotID());
         }
         return specialAuxiliaryInfoList;
     }

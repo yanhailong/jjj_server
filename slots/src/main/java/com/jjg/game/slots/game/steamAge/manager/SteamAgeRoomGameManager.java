@@ -1,8 +1,6 @@
 package com.jjg.game.slots.game.steamAge.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.sampledata.bean.PoolCfg;
-import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameData;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -18,11 +16,6 @@ public class SteamAgeRoomGameManager extends AbstractSteamAgeGameManager {
     public SteamAgeRoomGameManager() {
         super();
         this.log = LoggerFactory.getLogger(getClass());
-    }
-
-    @Override
-    protected PoolCfg randWinPool(SteamAgePlayerGameData playerGameData, int poolId) {
-        return null;
     }
 
     @Override

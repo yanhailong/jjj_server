@@ -103,7 +103,7 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
                     lib.addSpecialResult(specialLib);
                     calTimes(specialLib);
                     if (iconCount + changeCount == temp.length) {
-                        specialLib.setJackpotId(PegasusUnbridleConstant.Common.JACKPOT_ID);
+                        specialLib.addJackpotId(PegasusUnbridleConstant.Common.JACKPOT_ID);
                         break;
                     }
                     if (changeCount == 0) {

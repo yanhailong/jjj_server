@@ -198,7 +198,7 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
         checkCoinInfo(gameRunInfo, playerGameData, resultLib);
 
         //检查是否中大奖
-        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotId(), true);
+        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
 
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setStake(betValue);

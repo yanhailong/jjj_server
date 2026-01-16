@@ -11,18 +11,8 @@ import java.util.Set;
  */
 @Document
 public class FrozenThroneResultLib extends SlotsResultLib<FrozenThroneAwardLineInfo> {
-    //本次触发的jackpotId
-    private int jackpotId;
     //增加的免费次数
     private int addFreeCount;
-
-    public int getJackpotId() {
-        return jackpotId;
-    }
-
-    public void setJackpotId(int jackpotId) {
-        this.jackpotId = jackpotId;
-    }
 
     public int getAddFreeCount() {
         return addFreeCount;

@@ -98,8 +98,8 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
                 });
             }
 
-            if (lib.getJackpotId() < 1) {
-                lib.setJackpotId(cfg.getJackpotID());
+            if (lib.getJackpotIds() == null || lib.getJackpotIds().isEmpty()) {
+                lib.addJackpotId(cfg.getJackpotID());
             }
         }
         return specialAuxiliaryInfoList;
@@ -458,7 +458,7 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
      * @return
      */
     private boolean checkJackpool(ThorResultLib lib) {
-        if (lib.getJackpotId() < 1) {
+        if (lib.jackpotEmpty()) {
             return false;
         }
 

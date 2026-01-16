@@ -97,7 +97,7 @@ public class MoneyRabbitGenerateManager extends AbstractSlotsGenerateManager<Mon
                 }
             }
 
-            lib.setJackpotId(cfg.getJackpotID());
+            lib.addJackpotId(cfg.getJackpotID());
         }
         return specialAuxiliaryInfoList;
     }

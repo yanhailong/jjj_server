@@ -177,12 +177,7 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
             //检查是否有奖池奖励
             if (tmpLib.getJackpotIds() != null && !tmpLib.getJackpotIds().isEmpty()) {
                 //判断中奖概率
-                int poolId = tmpLib.getJackpotIds().get(0);
-//                poolCfg = randWinPool(playerGameData, poolId);
-//                if (poolCfg == null) { //为空表示不能奖池中奖，重新获取
-//                    log.debug("获取的结果库中奖池，但是配置不允许中奖，所以重试 playerId = {},libId = {}", playerGameData.playerId(), tmpLib.getId());
-//                    continue;
-//                }
+                int poolId = tmpLib.firstJackpotId();
                 poolCfg = GameDataManager.getPoolCfg(poolId);
             } else {
                 poolCfg = null;

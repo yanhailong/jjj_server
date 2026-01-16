@@ -197,6 +197,10 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable {
         return this.jackpotIds.contains(jackpotId);
     }
 
+    public boolean jackpotEmpty(){
+        return this.jackpotIds == null || this.jackpotIds.isEmpty();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
