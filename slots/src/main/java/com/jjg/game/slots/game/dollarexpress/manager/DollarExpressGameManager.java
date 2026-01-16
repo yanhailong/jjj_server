@@ -1187,6 +1187,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
     @Override
     protected DollarExpressResultLib afterForbidPoolLib(SpecialResultLibCfg specialResultLibCfg, DollarExpressResultLib resultLib) {
+        resultLib.setJackpotIds(null);
         return resultLib;
     }
 }

@@ -143,7 +143,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             respinAnalysis(resultLib, playerGameData.getOneBetScore(), infoList, betValue, gameRunInfo);
             gameRunInfo.setSpinInfo(infoList);
             //记录奖池id
-            gameRunInfo.setJackpotId(resultLib.getFirstJackpotId());
+            gameRunInfo.setJackpotId(resultLib.firstJackpotId());
 
             //房间配置id
             int roomCfgId = player.getRoomCfgId();
