@@ -247,8 +247,8 @@ public class AccountController extends AbstractController {
             }
 
             String phone = dto.getPhone().trim();
-            boolean valid = CoreUtil.validPhoneNumber(phone);
-            if (!valid) {
+            String realPhone = CoreUtil.validPhoneNumber(phone);
+            if (StringUtils.isEmpty(realPhone)) {
                 log.debug("获取登录验证码失败,手机号格式错误 phone = {}", dto.getPhone());
                 return fail(Code.PARAM_ERROR);
             }
@@ -374,8 +374,8 @@ public class AccountController extends AbstractController {
             return fail(Code.PARAM_ERROR);
         }
 
-        boolean valid = CoreUtil.validPhoneNumber(phone);
-        if (!valid) {
+        String realPhone = CoreUtil.validPhoneNumber(phone);
+        if (StringUtils.isEmpty(realPhone)) {
             log.debug("手机登录失败,手机号格式错误 phone = {}", phone);
             return fail(Code.PARAM_ERROR);
         }

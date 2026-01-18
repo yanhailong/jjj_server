@@ -201,7 +201,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        if (!CoreUtil.validPhoneNumber(data)) {
+        String realPhone = CoreUtil.validPhoneNumber(data);
+        if (StringUtils.isEmpty(realPhone)) {
             result.code = Code.PHONE_NUMBER_ERROR;
             log.debug("手机号格式错误,获取绑定手机验证码失败 playerId = {},phone = {}", playerId, data);
             return result;

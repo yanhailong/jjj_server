@@ -54,7 +54,8 @@ public class NoSignGmController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if (!CoreUtil.validPhoneNumber(dto.phone())) {
+            String realPhone = CoreUtil.validPhoneNumber(dto.phone());
+            if (StringUtils.isEmpty(realPhone)) {
                 log.debug("删除账号时，手机格式错误 dto = {}", dto);
                 return fail("common.paramerror");
             }
