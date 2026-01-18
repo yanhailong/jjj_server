@@ -393,7 +393,7 @@ public class AccountController extends AbstractController {
         }
 
         //组装返回结果
-        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.APPLE, accountResult.data, accountResult.isRegister(), dto, ip);
+        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.PHONE, accountResult.data, accountResult.isRegister(), dto, ip);
 
         log.info("phone登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(), loginVoWebResult.getData().getToken());
         return loginVoWebResult;
