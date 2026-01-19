@@ -154,11 +154,7 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
         awardLineInfoList.forEach(info -> {
             indexSet.addAll(info.getSameIconSet());
             winIconSet.add(info.getSameIcon());
-            if (gameData.getRemainFreeCount().get() == 0) {
-                iconInfo.win += info.getBaseTimes() * oneBetScore;
-            } else {
-                iconInfo.win += generateManager.getAddTimes() * oneBetScore;
-            }
+            iconInfo.win += info.getBaseTimes() * oneBetScore;
         });
 
         iconInfo.iconIndexes = new ArrayList<>(indexSet);
@@ -214,8 +210,10 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
         if (gameRunInfo.success()) {
             if (gameRunInfo.getRemainDigCount() == 0) {
                 res.allGold = gameRunInfo.getAfterGold();
+                res.totalWinGold = gameRunInfo.getAllWinGold();
+            } else {
+                res.totalWinGold = gameRunInfo.getData().getOneBetScore() * gameRunInfo.getDigTimesMultiplier();
             }
-            res.totalWinGold = gameRunInfo.getAllWinGold();
             res.currentRate = gameRunInfo.getDigTimesMultiplier();
             res.remainDigCount = gameRunInfo.getRemainDigCount();
         } else {
