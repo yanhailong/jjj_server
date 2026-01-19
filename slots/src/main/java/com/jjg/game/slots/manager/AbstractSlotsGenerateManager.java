@@ -1,5 +1,6 @@
 package com.jjg.game.slots.manager;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
@@ -375,7 +376,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         }
         log.debug("开始检查中奖线信息");
         List<A> awardLineInfoList = new ArrayList<>();
-
         Map<Integer, BaseLineCfg> lineCfgMap = this.baseLineCfgMap.get(0);
         if (lineCfgMap == null || lineCfgMap.isEmpty()) {
             if (freeModel) {
@@ -384,71 +384,94 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 lineCfgMap = this.baseLineCfgMap.get(1);
             }
         }
-
+        Set<Integer> wildIconSet = this.iconsMap.get(SlotsConst.BaseElement.TYPE_WILD);
+        Set<Integer> noralIconSet = this.iconsMap.get(SlotsConst.BaseElement.TYPE_NORMAL);
+        Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_NORMAL);
+        //元素id 配置信息
+        Map<Integer, List<BaseElementRewardCfg>> elementRewardCfgMap = new HashMap<>();
+        for (BaseElementRewardCfg rewardCfg : normalRewardCfgMap.values()) {
+            rewardCfg.getElementId().forEach(elementId -> elementRewardCfgMap.computeIfAbsent(elementId, k -> new ArrayList<>()).add(rewardCfg));
+        }
         for (Map.Entry<Integer, BaseLineCfg> en : lineCfgMap.entrySet()) {
             BaseLineCfg cfg = en.getValue();
-
             if (cfg.getGameMode() > 0) {
                 //免费模式对应 该配置表的gameMode = 2
                 if (freeModel && cfg.getGameMode() == 1) {
                     continue;
                 }
             }
-
             List<Integer> lineList = cfg.getPosLocation();
-
-            SameInfo sameInfo = new SameInfo();
-
-            int last = lineList.size() - 1;
-
+            int lastElementIcon;
             for (int direction : cfg.getDirection()) {
                 //标记是否连线
                 int sameCount = 0;
-                for (int i = 0; i < last; i++) {
-                    int index1;
-                    int index2;
-                    //检查方向算法
-                    if (direction == SlotsConst.BaseLine.DIRECTION_LEFT) {
-                        index1 = lineList.get(i);
-                        index2 = lineList.get(i + 1);
-                    } else if (direction == SlotsConst.BaseLine.DIRECTION_RIGHT) {
-                        index1 = lineList.get(last - i);
-                        index2 = lineList.get(last - i - 1);
-                    } else {
-                        index1 = lineList.get(i);
-                        index2 = lineList.get(i + 1);
+                lastElementIcon = 0;
+                switch (direction) {
+                    case SlotsConst.BaseLine.DIRECTION_LEFT -> {
+                        for (Integer index : lineList) {
+                            int icon = arr[index];
+                            lastElementIcon = isIconSame(lastElementIcon, icon, wildIconSet, noralIconSet);
+                            if (lastElementIcon == 0) {
+                                break;
+                            }
+                            sameCount++;
+                        }
                     }
-
-//                log.debug("index1={}, index2={}", index1, index2);
-                    sameInfo = iconSame(sameInfo, arr[index1], arr[index2]);
-                    if (sameInfo.isSame()) {
-                        sameInfo.setSame(false);
-                        sameCount = sameCount < 1 ? 2 : sameCount + 1;
-                    } else {
-                        break;
+                    case SlotsConst.BaseLine.DIRECTION_RIGHT -> {
+                        for (int i = lineList.size() - 1; i >= 0; i--) {
+                            Integer index = lineList.get(i);
+                            int icon = arr[index];
+                            lastElementIcon = isIconSame(lastElementIcon, icon, wildIconSet, noralIconSet);
+                            if (lastElementIcon == 0) {
+                                break;
+                            }
+                            sameCount++;
+                        }
                     }
                 }
-
                 //如果有连线
                 if (sameCount > 1) {
-                    log.debug("cfgId = {},sameCount = {},sameInfo = {}", cfg.getId(), sameCount, JSON.toJSONString(sameInfo));
-                    Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_NORMAL);
-                    for (Map.Entry<Integer, BaseElementRewardCfg> rewardEn : normalRewardCfgMap.entrySet()) {
-                        BaseElementRewardCfg rewardCfg = rewardEn.getValue();
-                        //匹配连线的元素id和个数
-                        if (!rewardCfg.getElementId().contains(sameInfo.getBaseIconId()) || sameCount != rewardCfg.getRewardNum()) {
-                            continue;
+                    log.debug("cfgId = {},sameCount = {},sameInfo = {}", cfg.getId(), sameCount, lastElementIcon);
+                    List<BaseElementRewardCfg> baseElementRewardCfgs = elementRewardCfgMap.get(lastElementIcon);
+                    if (CollectionUtil.isNotEmpty(baseElementRewardCfgs)) {
+                        for (BaseElementRewardCfg rewardCfg : baseElementRewardCfgs) {
+                            //匹配连线的元素id和个数
+                            if (sameCount != rewardCfg.getRewardNum()) {
+                                continue;
+                            }
+                            A info = addAwardLineInfo(cfg, rewardCfg, sameCount, lastElementIcon, lineList, arr);
+                            awardLineInfoList.add(info);
+                            break;
                         }
-
-                        A info = addAwardLineInfo(cfg, rewardCfg, sameCount, sameInfo.getBaseIconId(), lineList, arr);
-                        awardLineInfoList.add(info);
-                        break;
                     }
                 }
             }
 
         }
         return awardLineInfoList;
+    }
+
+
+    protected int isIconSame(int lastIcon, int currentIcon, Set<Integer> wildIconSet, Set<Integer> noralIconSet) {
+        //基础元素不是wild 或者0  如果下一个是wild直接跳过，否则比较
+        boolean contains = wildIconSet.contains(currentIcon);
+        //不是基础元素或者wild
+        if (!noralIconSet.contains(currentIcon) && !contains) {
+            return 0;
+        }
+        //第一个元素
+        if (lastIcon == 0) {
+            return currentIcon;
+        }
+        //wild直接跳过
+        if (contains) {
+            return lastIcon;
+        }
+        //上一个是wild或者和当前相等
+        if (wildIconSet.contains(lastIcon) || lastIcon == currentIcon) {
+            return currentIcon;
+        }
+        return 0;
     }
 
     /**
