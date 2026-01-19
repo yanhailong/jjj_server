@@ -14,6 +14,7 @@ import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackAddIconInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackAwardLineInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
+import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAwardLineInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import jodd.util.StringUtil;
 import org.apache.commons.lang.StringUtils;
@@ -230,7 +231,30 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
         CaptainJackAwardLineInfo info = new CaptainJackAwardLineInfo();
         info.setSameIconSet(sameIconIndexSet);
         info.setSameIcon(cfg.getElementId().getFirst());
-        info.setBaseTimes(cfg.getBet());
+
+        if(info.getSameIconSet() != null && !info.getSameIconSet().isEmpty()) {
+            //记录每一列中奖的个数
+            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+
+            Map<Integer,Integer> columIconCountMap = new HashMap<>();
+            for(int index : info.getSameIconSet()) {
+                //根据坐标，计算它在哪一列
+                int colId = index / baseInitCfg.getRows();
+                if((index % baseInitCfg.getRows()) != 0){
+                    colId++;
+                }
+                columIconCountMap.merge(colId, 1, Integer::sum);
+            }
+
+            int addTimes = 1;
+            for(Map.Entry<Integer,Integer> en : columIconCountMap.entrySet()){
+                addTimes *= en.getValue();
+            }
+
+            info.setBaseTimes(cfg.getBet() * addTimes);
+        }else {
+            info.setBaseTimes(cfg.getBet());
+        }
         return info;
     }
 
