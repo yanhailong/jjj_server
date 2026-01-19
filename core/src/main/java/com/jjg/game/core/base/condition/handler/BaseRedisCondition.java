@@ -4,6 +4,8 @@ import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.dao.CountDao;
 
+import java.math.BigDecimal;
+
 /**
  * @author lm
  * @date 2026/1/15 10:55
@@ -26,5 +28,9 @@ public abstract class BaseRedisCondition<C> implements ConditionHandler<C> {
 
     public String getFeatureId(ConditionContext ctx) {
         return type() + ctx.getPrefix();
+    }
+
+    public void addBaseProgress(long playerId, BigDecimal addValue){
+
     }
 }

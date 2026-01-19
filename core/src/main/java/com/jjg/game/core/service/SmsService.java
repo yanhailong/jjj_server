@@ -97,7 +97,7 @@ public class SmsService {
             SmsConfigInfo smsConfigInfo = randSmsConfigInfoList();
             if (smsConfigInfo == null) {
                 log.warn("获取sms配置失败");
-                return Code.FAIL;
+                return Code.SMS_CONFIGURATION_MISSING_CAPTCHA_FAILED;
             }
 
             HttpRequest httpRequest = HttpRequest.post(smsConfigInfo.getSendSmsUrl());
@@ -127,13 +127,13 @@ public class SmsService {
 
             if (!resp.isOk()) {
                 log.warn("发送短信失败 phoneNumber = {},code = {},reason = {}", phoneNumber, json.getInt("status"), json.getStr("reason"));
-                return Code.FAIL;
+                return Code.SEND_SMS_FAILED;
             }
 
             int status = json.getInt("status");
             if (status != 0) {
                 log.warn("发送短信失败1 phoneNumber = {},code = {},reason = {}", phoneNumber, json.getInt("status"), json.getStr("reason"));
-                return Code.FAIL;
+                return Code.SEND_SMS_FAILED;
             }
 
             log.info("发送短信成功 smsType = {},content = {},resp = {}", verCodeType, content, body);
