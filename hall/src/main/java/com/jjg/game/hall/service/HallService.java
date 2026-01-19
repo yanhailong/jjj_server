@@ -201,8 +201,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        if (!CoreUtil.validPhoneNumber(data)) {
-            result.code = Code.PARAM_ERROR;
+        String realPhone = CoreUtil.validPhoneNumber(data);
+        if (StringUtils.isEmpty(realPhone)) {
+            result.code = Code.PHONE_NUMBER_ERROR;
             log.debug("手机号格式错误,获取绑定手机验证码失败 playerId = {},phone = {}", playerId, data);
             return result;
         }
@@ -215,6 +216,14 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
+        //检查该手机号是否已经绑定玩家
+        Account phoneAccount = accountDao.queryThirdAccount(LoginType.PHONE, data);
+        if(phoneAccount != null){
+            result.code = Code.PHONE_NUMBER_ERROR;
+            log.warn("该手机号已经绑定账号，不能重复绑定 playerId = {},phone = {},bindPlayerId = {}", playerId, data,phoneAccount.getPlayerId());
+            return result;
+        }
+
         Account account = accountDao.queryAccountByPlayerId(playerId);
         if (account == null) {
             result.code = Code.NOT_FOUND;
@@ -222,9 +231,10 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        if (data.equals(account.getThirdAccount(LoginType.PHONE))) {
-            result.code = Code.REPEAT_OP;
-            log.debug("玩家当前绑定手机号与新手机号一致，绑定手机号失败 playerId = {},oldPhone = {},newPhone = {}", playerId, account.getThirdAccount(LoginType.PHONE), data);
+        String oldPhone = account.getThirdAccount(LoginType.PHONE);
+        if (!StringUtils.isEmpty(oldPhone)) {
+            result.code = Code.PHONE_NUMBER_ERROR;
+            log.debug("该账号已经绑定手机号 playerId = {},phone = {},oldPhone = {}", playerId, data, oldPhone);
             return result;
         }
 
@@ -298,19 +308,19 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         VerCodeType smsType = VerCodeType.getType(verCodeType);
         if (smsType == null) {
             result.code = Code.PARAM_ERROR;
-            log.debug("验证码类型错误，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
+            log.warn("验证码类型错误，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
             return result;
         }
 
         if (smsType != VerCodeType.MAIL_BIND_MAIL && smsType != VerCodeType.SMS_BIND_PHONE) {
             result.code = Code.PARAM_ERROR;
-            log.debug("验证码类型错误，确认验证码失败2 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
+            log.warn("验证码类型错误，确认验证码失败2 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
             return result;
         }
 
         if (verCode < GameConstant.VerCode.CODE_MIN || verCode > GameConstant.VerCode.CODE_MAX) {
             result.code = Code.PARAM_ERROR;
-            log.debug("验证码不在范围内，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
+            log.warn("验证码不在范围内，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
             return result;
         }
 
@@ -323,7 +333,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         Account account = accountDao.queryAccountByPlayerId(player.getId());
         if (account == null) {
             result.code = Code.NOT_FOUND;
-            log.debug("没有找到玩家账号信息，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
+            log.warn("没有找到玩家账号信息，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
             return result;
         }
 
@@ -336,7 +346,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(player, loginType, phoneUserInfo);
             if (!accountCommonResult.success()) {
                 result.code = accountCommonResult.code;
-                log.debug("更新到数据库失败，确认验证码失败1 playerId = {},verCodeType = {},verCode = {},failCode = {}", player.getId(), verCodeType, verCode, accountCommonResult.code);
+                log.warn("更新到数据库失败，确认验证码失败1 playerId = {},verCodeType = {},verCode = {},failCode = {}", player.getId(), verCodeType, verCode, accountCommonResult.code);
                 return result;
             }
             update = true;
@@ -670,6 +680,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
             CommonResult<Account> addResult;
             int mailId = 0;
+            String userId = "";
             if (loginType == LoginType.GOOGLE) {
                 CommonResult<GoogleUserInfo> verifyResult = thirdAccountHttpService.verifyGoogleToken(token);
                 if (!verifyResult.success()) {
@@ -679,6 +690,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
                 addResult = accountDao.addThirdAccount(player, loginType, verifyResult.data);
                 mailId = GameConstant.Mail.ID_BIND_GOOGLE;
+                userId = verifyResult.data.getUserId();
             } else if (loginType == LoginType.FACEBOOK) {
                 CommonResult<FacebookUserInfo> verifyResult = thirdAccountHttpService.verifyFacebookToken(token);
                 if (!verifyResult.success()) {
@@ -688,6 +700,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
                 addResult = accountDao.addThirdAccount(player, loginType, verifyResult.data);
                 mailId = GameConstant.Mail.ID_BIND_FACEBOOK;
+                userId = verifyResult.data.getUserId();
             } else if (loginType == LoginType.APPLE) {
                 CommonResult<AppleUserInfo> verifyResult = thirdAccountHttpService.verifyAppleToken(token);
                 if (!verifyResult.success()) {
@@ -696,6 +709,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 }
                 addResult = accountDao.addThirdAccount(player, loginType, verifyResult.data);
                 mailId = GameConstant.Mail.ID_BIND_APPLE;
+                userId = verifyResult.data.getUserId();
             } else {
                 log.debug("该接口不支持该类型绑定，绑定第三方账号失败 type = {}", type);
                 result.code = Code.FAIL;
@@ -722,7 +736,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             result.data = ItemUtils.buildItems(loginConfigCfg.getAwardItem());
 
             mailService.addCfgMail(player.getId(), mailId, result.data);
-            hallLogger.bind(player, type, token);
+            hallLogger.bind(player, type, userId);
             log.debug("已发送绑定账号奖励邮件 playerId = {},type = {},rewaredList = {}", player.getId(), type, result.data);
         } catch (Exception e) {
             log.error("", e);

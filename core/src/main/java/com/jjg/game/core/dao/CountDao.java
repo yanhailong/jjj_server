@@ -194,9 +194,9 @@ public class CountDao {
 
     public BigDecimal getCountHash(String featureId, String customId) {
         String hashKey = getHashKey(featureId);
-        RMap<String, Long> map = redissonClient.getMap(hashKey,LongCodec.INSTANCE);
+        RMap<String, Long> map = redissonClient.getMap(hashKey, LongCodec.INSTANCE);
         Long l = map.get(customId);
-        if(l == null){
+        if (l == null) {
             return BigDecimal.ZERO;
         }
         return RedisUtils.fromLong(l);
@@ -300,7 +300,19 @@ public class CountDao {
      * @return true 设置成功 false设置失败
      */
     public boolean setIfAbsent(String featureId, String customId) {
-        return redissonClient.getAtomicLong(getKey(featureId, customId)).compareAndSet(0, 100);
+        return setIfAbsent(featureId, customId, BigDecimal.ONE);
+    }
+
+    /**
+     * 如果不存在就设置值
+     *
+     * @param featureId 功能ID
+     * @param customId  功能子ID
+     * @return true 设置成功 false设置失败
+     */
+    public boolean setIfAbsent(String featureId, String customId, BigDecimal delta) {
+        long deltaLong = RedisUtils.toLong(delta);
+        return redissonClient.getAtomicLong(getKey(featureId, customId)).compareAndSet(0, deltaLong);
     }
 
     public boolean setIfAbsentHash(String featureId, String customId) {
@@ -381,7 +393,8 @@ public class CountDao {
         RECHARGE_COUNT("recharge:count"),
         //玩家计数
         PLAYER_COUNT("player:%s"),
-        ;
+        //系统参数
+        SYSTEM("system"),;
         private final String param;
 
         CountType(String param) {

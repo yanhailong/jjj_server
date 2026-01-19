@@ -57,9 +57,9 @@ public class SharePromoteDao {
     private final String SHARE_PROMOTE_ALREADY_BIND_KEY = "activity:sharepromote:alreadybind:%s";  // 被绑定玩家
     private final String SHARE_PROMOTE_CODE = "activity:sharepromote:code";                         // 全局唯一邀请码 Hash
     private final String SHARE_PROMOTE_REWARDS_RANK = "activity:sharepromote:rank";               // 总收益排行榜 ZSet
-    private final String SHARE_PROMOTE_REWARDS_INCOME_RANK = "activity:sharepromote:incomerank:%d"; // 玩家来源收益排行榜
+    private final String SHARE_PROMOTE_REWARDS_INCOME_RANK = "activity:sharepromote:incomerank:%s"; // 玩家来源收益排行榜
     private final String SHARE_PROMOTE_REWARDS_INCOME = "activity:sharepromote:income:%d";       // 玩家可领取收益
-    private final String SHARE_PROMOTE_REWARDS_HISTORY_INCOME = "activity:sharepromote:historyincome:%d"; // 玩家历史总收益
+    private final String SHARE_PROMOTE_REWARDS_HISTORY_INCOME = "activity:sharepromote:historyincome:%s"; // 玩家历史总收益
     private final String SHARE_PROMOTE_PLAYER_INFO = "activity:sharepromote:player:%d";           // 玩家信息
     private final String SHARE_PROMOTE_LOCK = "activity:sharepromote:lock:%d";                    // 玩家操作锁
     private final String SHARE_PROMOTE_ERROR_CODE_TIME = "activity:sharepromote:errorcodetime:%d";                    // 玩家邀请码输入错误下次能输入时间
@@ -280,49 +280,48 @@ public class SharePromoteDao {
      * 玩家绑定推广码
      *
      * @param playerId 请求绑定的玩家
-     * @param code     推广码
+     * @param code     上级邀请码
      * @return Code.SUCCESS/Code.ALREADY_BOUND/Code.ALREADY_OTHER_BOUND/Code.CODE_ERROR
      */
     public CommonResult<Long> bindPlayer(long playerId, String code) {
         CommonResult<Long> result = new CommonResult<>(Code.FAIL);
         try {
-            String createPlayerId = getHashOperations().get(SHARE_PROMOTE_CODE, code);
-            if (createPlayerId == null) {
+            //上级
+            String superiorPlayerId = getHashOperations().get(SHARE_PROMOTE_CODE, code);
+            if (superiorPlayerId == null) {
                 addPlayerCodeErrorPrint(playerId);
                 result.code = Code.CODE_ERROR;
                 return result;
             }
-            long createId = Long.parseLong(createPlayerId);
-            if (playerId == createId) {
+            long superiorId = Long.parseLong(superiorPlayerId);
+            if (playerId == superiorId) {
                 result.code = Code.BOUND_SELF;
                 return result;
             }
             // 被绑定玩家是否已绑定过
-            Boolean success = redisTemplate.opsForValue().setIfAbsent(
-                    SHARE_PROMOTE_ALREADY_BIND_KEY.formatted(createPlayerId), getBindString(playerId));
+            Boolean success = redisTemplate.opsForValue().setIfAbsent(SHARE_PROMOTE_ALREADY_BIND_KEY.formatted(playerId), getBindString(superiorId));
             if (Boolean.FALSE.equals(success)) {
                 log.info("绑定失败 playerId={} 已经被绑定", playerId);
                 result.code = Code.ALREADY_BOUND;
                 return result;
             }
-
-            String bindKey = SHARE_PROMOTE_BIND_KEY.formatted(createPlayerId);
-            Boolean member = redisTemplate.opsForSet().isMember(bindKey, String.valueOf(playerId));
+            String bindKey = SHARE_PROMOTE_BIND_KEY.formatted(playerId);
+            Boolean member = redisTemplate.opsForSet().isMember(bindKey, superiorPlayerId);
             if (Boolean.TRUE.equals(member)) {
                 result.code = Code.ALREADY_BOUND;
                 return result;
             }
 
             // 保存绑定关系
-            String requestBindKey = SHARE_PROMOTE_BIND_KEY.formatted(playerId);
-            redisTemplate.opsForSet().add(requestBindKey, createPlayerId);
+            String requestBindKey = SHARE_PROMOTE_BIND_KEY.formatted(superiorPlayerId);
+            redisTemplate.opsForSet().add(requestBindKey, String.valueOf(playerId));
 
             log.info("绑定成功 playerId={} code={}", playerId, code);
 
             // 初始化来源排行榜
-            String incomeKey = SHARE_PROMOTE_REWARDS_INCOME_RANK.formatted(playerId);
-            redisTemplate.opsForZSet().add(incomeKey, createPlayerId, 0);
-            result.data = createId;
+            String incomeKey = SHARE_PROMOTE_REWARDS_INCOME_RANK.formatted(superiorPlayerId);
+            redisTemplate.opsForZSet().add(incomeKey, String.valueOf(playerId), 0);
+            result.data = superiorId;
             result.code = Code.SUCCESS;
         } catch (Exception e) {
             log.error("绑定玩家出现异常 playerId={} code={}", playerId, code, e);

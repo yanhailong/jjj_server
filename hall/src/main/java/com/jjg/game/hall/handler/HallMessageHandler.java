@@ -1031,6 +1031,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
         ResFunctionOpenList res = new ResFunctionOpenList(Code.SUCCESS);
         res.openedFunctionIdList = openedFuncIdList;
         playerController.send(res);
+        log.info("玩家获取功能开放列表 playerId = {},openedFuncIdList = {}", playerController.playerId(), openedFuncIdList);
     }
 
     /**
