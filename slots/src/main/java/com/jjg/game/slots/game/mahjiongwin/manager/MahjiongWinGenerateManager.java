@@ -38,7 +38,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
     @Override
     public MahjiongWinResultLib checkAward(int[] arr, MahjiongWinResultLib lib, boolean freeModel) throws Exception {
-        if(freeModel){
+        if (freeModel) {
             lib.setGameType(this.gameType);
             lib.setIconArr(arr);
 
@@ -66,7 +66,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
             calTimes(lib);
             return lib;
-        }else {
+        } else {
             lib.setGameType(this.gameType);
             lib.setIconArr(arr);
 
@@ -85,7 +85,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
             int[] newArr = new int[arr.length];
             System.arraycopy(arr, 0, newArr, 0, arr.length);
 
-            if(lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
+            if (lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
                 lib.getLibTypeSet().forEach(type -> {
                     //是否有消除
                     repairIcons(type, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
@@ -103,35 +103,14 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
     @Override
     protected MahjiongWinAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
-        MahjiongWinAwardLineInfo info = new MahjiongWinAwardLineInfo();
-
-        info.setSameIconSet(sameIconIndexSet);
+        MahjiongWinAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg);
         info.setSameIcon(cfg.getElementId().getFirst() % 10);
-
-        if(info.getSameIconSet() != null && !info.getSameIconSet().isEmpty()) {
-            //记录每一列中奖的个数
-            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-
-            Map<Integer,Integer> columIconCountMap = new HashMap<>();
-            for(int index : info.getSameIconSet()) {
-                //根据坐标，计算它在哪一列
-                int colId = index / baseInitCfg.getRows();
-                if((index % baseInitCfg.getRows()) != 0){
-                    colId++;
-                }
-                columIconCountMap.merge(colId, 1, Integer::sum);
-            }
-
-            int addTimes = 1;
-            for(Map.Entry<Integer,Integer> en : columIconCountMap.entrySet()){
-                addTimes *= en.getValue();
-            }
-
-            info.setBaseTimes(cfg.getBet() * addTimes);
-        }else {
-            info.setBaseTimes(cfg.getBet());
-        }
         return info;
+    }
+
+    @Override
+    protected MahjiongWinAwardLineInfo getAwardLineInfo() {
+        return new MahjiongWinAwardLineInfo();
     }
 
     @Override
@@ -373,9 +352,9 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
     @Override
     public void calTimes(MahjiongWinResultLib lib) throws Exception {
-        if(lib.getSpecialAuxiliaryInfoList() != null && !lib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            for(SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()){
-                if(specialAuxiliaryInfo.getFreeGames() != null && !specialAuxiliaryInfo.getFreeGames().isEmpty()) {
+        if (lib.getSpecialAuxiliaryInfoList() != null && !lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+                if (specialAuxiliaryInfo.getFreeGames() != null && !specialAuxiliaryInfo.getFreeGames().isEmpty()) {
                     Set<Integer> libTypeSet = new HashSet<>();
                     libTypeSet.add(MahjiongWinConstant.SpecialMode.FREE);
                     lib.setLibTypeSet(libTypeSet);
