@@ -164,12 +164,13 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
     }
 
     @Override
-    protected SteamAgeAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
-        SteamAgeAwardLineInfo info = new SteamAgeAwardLineInfo();
+    protected SteamAgeAwardLineInfo getAwardLineInfo() {
+        return new SteamAgeAwardLineInfo();
+    }
 
-        info.setSameIconSet(sameIconIndexSet);
-        info.setSameIcon(cfg.getElementId().getFirst() % 10);
-        info.setBaseTimes(1);
+    @Override
+    protected SteamAgeAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
+        SteamAgeAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg);
         info.setLineTimes(cfg.getBet());
         info.setTotalTimes(info.getLineTimes());
         return info;

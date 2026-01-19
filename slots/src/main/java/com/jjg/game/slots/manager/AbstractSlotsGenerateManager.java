@@ -2,16 +2,12 @@ package com.jjg.game.slots.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.*;
-import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressAwardLineInfo;
-import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortuneResultLib;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -857,6 +853,38 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     }
 
     protected A addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
+        A awardLineInfo = getAwardLineInfo();
+        if (awardLineInfo instanceof FullAwardLineInfo info) {
+            info.setSameIconSet(sameIconIndexSet);
+            info.setSameIcon(cfg.getElementId().getFirst());
+            if (info.getSameIconSet() != null && !info.getSameIconSet().isEmpty()) {
+                //记录每一列中奖的个数
+                BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+
+                Map<Integer, Integer> columIconCountMap = new HashMap<>();
+                for (int index : info.getSameIconSet()) {
+                    //根据坐标，计算它在哪一列
+                    int colId = index / baseInitCfg.getRows();
+                    if ((index % baseInitCfg.getRows()) != 0) {
+                        colId++;
+                    }
+                    columIconCountMap.merge(colId, 1, Integer::sum);
+                }
+
+                int addTimes = 1;
+                for (Map.Entry<Integer, Integer> en : columIconCountMap.entrySet()) {
+                    addTimes *= en.getValue();
+                }
+
+                info.setBaseTimes(cfg.getBet() * addTimes);
+            } else {
+                info.setBaseTimes(cfg.getBet());
+            }
+        }
+        return awardLineInfo;
+    }
+
+    protected A getAwardLineInfo() {
         return null;
     }
 

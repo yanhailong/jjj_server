@@ -87,7 +87,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
                 });
             }
 
-            if(lib.getJackpotIds() == null || lib.getJackpotIds().isEmpty()){
+            if (lib.getJackpotIds() == null || lib.getJackpotIds().isEmpty()) {
                 lib.addJackpotId(cfg.getJackpotID());
             }
         }
@@ -162,35 +162,14 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
 
     @Override
     protected ChristmasBashNightAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
-        ChristmasBashNightAwardLineInfo info = new ChristmasBashNightAwardLineInfo();
-
-        info.setSameIconSet(sameIconIndexSet);
+        ChristmasBashNightAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg);
         info.setSameIcon(cfg.getElementId().getFirst() % 10);
-
-        if (info.getSameIconSet() != null && !info.getSameIconSet().isEmpty()) {
-            //记录每一列中奖的个数
-            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-
-            Map<Integer, Integer> columIconCountMap = new HashMap<>();
-            for (int index : info.getSameIconSet()) {
-                //根据坐标，计算它在哪一列
-                int colId = index / baseInitCfg.getRows();
-                if ((index % baseInitCfg.getRows()) != 0) {
-                    colId++;
-                }
-                columIconCountMap.merge(colId, 1, Integer::sum);
-            }
-
-            int addTimes = 1;
-            for (Map.Entry<Integer, Integer> en : columIconCountMap.entrySet()) {
-                addTimes *= en.getValue();
-            }
-
-            info.setBaseTimes(cfg.getBet() * addTimes);
-        } else {
-            info.setBaseTimes(cfg.getBet());
-        }
         return info;
+    }
+
+    @Override
+    protected ChristmasBashNightAwardLineInfo getAwardLineInfo() {
+        return new ChristmasBashNightAwardLineInfo();
     }
 
     @Override
@@ -437,10 +416,10 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
             throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
         }
 
-        if(triggerFreeLib(lib, ChristmasBashNightConstant.SpecialMode.FREE)){
+        if (triggerFreeLib(lib, ChristmasBashNightConstant.SpecialMode.FREE)) {
             //免费
             lib.addTimes(calFree(lib));
-        }else {
+        } else {
             //中奖线
             lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
             //消除后新增图标
@@ -604,6 +583,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
         }
         return count >= 2 && jackpool > 0;
     }
+
     /**
      * 检查免费触发局
      *

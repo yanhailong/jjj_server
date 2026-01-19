@@ -227,35 +227,8 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
     }
 
     @Override
-    protected CaptainJackAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
-        CaptainJackAwardLineInfo info = new CaptainJackAwardLineInfo();
-        info.setSameIconSet(sameIconIndexSet);
-        info.setSameIcon(cfg.getElementId().getFirst());
-
-        if(info.getSameIconSet() != null && !info.getSameIconSet().isEmpty()) {
-            //记录每一列中奖的个数
-            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-
-            Map<Integer,Integer> columIconCountMap = new HashMap<>();
-            for(int index : info.getSameIconSet()) {
-                //根据坐标，计算它在哪一列
-                int colId = index / baseInitCfg.getRows();
-                if((index % baseInitCfg.getRows()) != 0){
-                    colId++;
-                }
-                columIconCountMap.merge(colId, 1, Integer::sum);
-            }
-
-            int addTimes = 1;
-            for(Map.Entry<Integer,Integer> en : columIconCountMap.entrySet()){
-                addTimes *= en.getValue();
-            }
-
-            info.setBaseTimes(cfg.getBet() * addTimes);
-        }else {
-            info.setBaseTimes(cfg.getBet());
-        }
-        return info;
+    protected CaptainJackAwardLineInfo getAwardLineInfo() {
+        return new CaptainJackAwardLineInfo();
     }
 
     private void triggerFree(CaptainJackResultLib superiorLib, int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg,

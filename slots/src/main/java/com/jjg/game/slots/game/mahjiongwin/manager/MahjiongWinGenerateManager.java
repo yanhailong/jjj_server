@@ -5,7 +5,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
-import com.jjg.game.slots.data.SlotsResultLib;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
@@ -100,38 +99,16 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
             return lib;
         }
     }
-
     @Override
     protected MahjiongWinAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
-        MahjiongWinAwardLineInfo info = new MahjiongWinAwardLineInfo();
-
-        info.setSameIconSet(sameIconIndexSet);
+        MahjiongWinAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg);
         info.setSameIcon(cfg.getElementId().getFirst() % 10);
-
-        if(info.getSameIconSet() != null && !info.getSameIconSet().isEmpty()) {
-            //记录每一列中奖的个数
-            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-
-            Map<Integer,Integer> columIconCountMap = new HashMap<>();
-            for(int index : info.getSameIconSet()) {
-                //根据坐标，计算它在哪一列
-                int colId = index / baseInitCfg.getRows();
-                if((index % baseInitCfg.getRows()) != 0){
-                    colId++;
-                }
-                columIconCountMap.merge(colId, 1, Integer::sum);
-            }
-
-            int addTimes = 1;
-            for(Map.Entry<Integer,Integer> en : columIconCountMap.entrySet()){
-                addTimes *= en.getValue();
-            }
-
-            info.setBaseTimes(cfg.getBet() * addTimes);
-        }else {
-            info.setBaseTimes(cfg.getBet());
-        }
         return info;
+    }
+
+    @Override
+    protected MahjiongWinAwardLineInfo getAwardLineInfo() {
+        return new MahjiongWinAwardLineInfo();
     }
 
     @Override
