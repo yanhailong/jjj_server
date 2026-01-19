@@ -77,12 +77,17 @@ public class NoSignGmController extends AbstractController {
                 return fail("common.paramerror");
             }
 
+            VerCode vc = new VerCode();
+            vc.setPlayerId(dto.playerId());
+            vc.setVerCodeType(VerCodeType.DELETE_ACCOUNT);
+
             if (dto.type() == 1) {  //请求验证码
-                CommonResult<Integer> smsResult = smsService.sendCode(dto.playerId(), dbPhone, VerCodeType.DELETE_ACCOUNT);
+                CommonResult<VerCode> smsResult = smsService.sendCode(vc);
                 if (!smsResult.success()) {
                     log.debug("删除账号时，发送验证码失败 type = {}，code = {}", dto.type(), smsResult.code);
                     return fail("common.paramerror");
                 }
+                log.info("获取删除账号的验证码成功 playerId = {},smsCode = {}", vc.getPlayerId(), smsResult.data.getCode());
                 //返回修改结果
                 return success("common.success");
             }
@@ -93,7 +98,8 @@ public class NoSignGmController extends AbstractController {
                     return fail("common.paramerror");
                 }
 
-                CommonResult<String> verifyResult = verCodeDao.verifyVerCode(dto.playerId(), VerCodeType.DELETE_ACCOUNT, dto.smsCode());
+                vc.setCode(dto.smsCode());
+                CommonResult<String> verifyResult = verCodeDao.verifySmsVerCode(vc);
                 if (!verifyResult.success()) {
                     log.debug("删除账号时，验证码错误 dto = {}", dto);
                     return fail("common.paramerror");

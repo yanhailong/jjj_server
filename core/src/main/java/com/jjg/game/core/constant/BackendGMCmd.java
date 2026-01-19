@@ -71,6 +71,15 @@ public interface BackendGMCmd {
     //设置设置链接
     String SET_URL_PREFIX = "setUrlPrefix";
 
+    //玩家绑定手机或解绑
+    String PLAYER_BIND_PHONE = "playerBindPhone";
+    //查询sms配置
+    String QUERY_SMS_CONFIG = "querySmsConfig";
+    //保存sms配置
+    String SAVE_SMS_CONFIG = "saveSmsConfig";
+    //玩家最后一条短信
+    String PLAYER_LAST_SMS = "playerLastSms";
+
     /**
      * 配置相关q
      */

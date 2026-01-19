@@ -1,6 +1,7 @@
 package com.jjg.game.hall.service;
 
 import cn.hutool.core.util.EnumUtil;
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.timer.TimerCenter;
@@ -208,19 +209,24 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        int now = TimeHelper.nowInt();
-        result = verCodeDao.verCodeIdleTime(playerId, VerCodeType.SMS_BIND_PHONE);
-        if (now <= result.data) {
-            log.debug("操作频繁，请稍后再试获取绑定手机验证码 playerId = {},data = {}", playerId, data);
-            result.code = Code.REPEAT_OP;
-            return result;
+        VerCode vc = new VerCode(realPhone);
+        vc.setPlayerId(playerId);
+        vc.setVerCodeType(VerCodeType.SMS_BIND_PHONE);
+        CommonResult<VerCode> verCodeCommonResult = verCodeDao.querySmsVerCodeInfo(vc);
+        if (verCodeCommonResult.success()) {
+            int now = TimeHelper.nowInt();
+            if (now <= verCodeCommonResult.data.getIdleTime()) {
+                log.debug("操作频繁，请稍后再试获取绑定手机验证码 playerId = {},data = {}", playerId, data);
+                result.code = Code.REPEAT_OP;
+                return result;
+            }
         }
 
         //检查该手机号是否已经绑定玩家
         Account phoneAccount = accountDao.queryThirdAccount(LoginType.PHONE, data);
-        if(phoneAccount != null){
+        if (phoneAccount != null) {
             result.code = Code.PHONE_NUMBER_ERROR;
-            log.warn("该手机号已经绑定账号，不能重复绑定 playerId = {},phone = {},bindPlayerId = {}", playerId, data,phoneAccount.getPlayerId());
+            log.warn("该手机号已经绑定账号，不能重复绑定 playerId = {},phone = {},bindPlayerId = {}", playerId, data, phoneAccount.getPlayerId());
             return result;
         }
 
@@ -238,13 +244,15 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        CommonResult<Integer> sendCodeResult = smsService.sendCode(playerId, data, VerCodeType.SMS_BIND_PHONE);
+        vc.setData(realPhone);
+        CommonResult<VerCode> sendCodeResult = smsService.sendCode(vc);
         if (!sendCodeResult.success()) {
             log.debug("发送短信失败 playerId = {},phone = {},code = {}", playerId, data, sendCodeResult.code);
             result.code = sendCodeResult.code;
             return result;
         }
-        result.data = sendCodeResult.data;
+
+        result.data = sendCodeResult.data.getCode();
         return result;
     }
 
@@ -269,9 +277,18 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
+        VerCode vc = new VerCode();
+        vc.setPlayerId(playerId);
+        vc.setVerCodeType(VerCodeType.MAIL_BIND_MAIL);
+        CommonResult<VerCode> verCodeResult = verCodeDao.queryMailVerCodeInfo(vc);
+        if (!verCodeResult.success()) {
+            log.debug("获取验证码信息失败 playerId = {},data = {}", playerId, data);
+            result.code = Code.NOT_FOUND;
+            return result;
+        }
+
         int now = TimeHelper.nowInt();
-        result = verCodeDao.verCodeIdleTime(playerId, VerCodeType.MAIL_BIND_MAIL);
-        if (now <= result.data) {
+        if (now <= verCodeResult.data.getIdleTime()) {
             log.debug("操作频繁，请稍后再试获取绑定邮箱验证码 playerId = {},data = {}", playerId, data);
             result.code = Code.REPEAT_OP;
             return result;
@@ -291,7 +308,12 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
 
         int verCode = RandomUtils.randomNum(GameConstant.VerCode.CODE_MIN, GameConstant.VerCode.CODE_MAX);
-        verCodeDao.addVerCode(playerId, VerCodeType.MAIL_BIND_MAIL, data, verCode);
+
+        vc.setVerCodeType(VerCodeType.MAIL_BIND_MAIL);
+        vc.setData(data);
+        vc.setCode(verCode);
+
+        result.code = verCodeDao.addMailVerCode(vc);
         result.data = verCode;
         return result;
     }
@@ -324,25 +346,25 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        CommonResult<String> verResult = verCodeDao.verifyVerCode(player.getId(), smsType, verCode);
-        if (!verResult.success()) {
-            result.code = verResult.code;
-            return result;
-        }
-
-        Account account = accountDao.queryAccountByPlayerId(player.getId());
-        if (account == null) {
-            result.code = Code.NOT_FOUND;
-            log.warn("没有找到玩家账号信息，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", player.getId(), verCodeType, verCode);
-            return result;
-        }
-
         boolean update = false;
         LoginType loginType = null;
+
+        VerCode vc = new VerCode();
+        vc.setPlayerId(player.getId());
+        vc.setVerCodeType(smsType);
+        vc.setCode(verCode);
+
         if (smsType == VerCodeType.SMS_BIND_PHONE) {
+            CommonResult<VerCode> verResult = verCodeDao.verifySmsVerCode(vc);
+            if (!verResult.success()) {
+                result.code = verResult.code;
+                log.warn("绑定手机时验证码校验失败 playerId = {}", player.getId());
+                return result;
+            }
+
             loginType = LoginType.PHONE;
             PhoneUserInfo phoneUserInfo = new PhoneUserInfo();
-            phoneUserInfo.setUserId(verResult.data);
+            phoneUserInfo.setUserId(verResult.data.getData());
             CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(player, loginType, phoneUserInfo);
             if (!accountCommonResult.success()) {
                 result.code = accountCommonResult.code;
@@ -350,10 +372,19 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return result;
             }
             update = true;
+            result.data = phoneUserInfo.getUserId();
 
         } else if (smsType == VerCodeType.MAIL_BIND_MAIL) {
+            CommonResult<String> verResult = verCodeDao.verifyMailVerCode(vc);
+            if (!verResult.success()) {
+                result.code = verResult.code;
+                log.warn("绑定邮箱时验证码校验失败 playerId = {}", player.getId());
+                return result;
+            }
+
             loginType = LoginType.EMAIL;
             update = accountDao.checkAndSave(player.getId(), a -> a.setEmail(verResult.data)) != null;
+            result.data = verResult.data;
         }
 
         if (!update) {
@@ -362,9 +393,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        //删除验证码
-        verCodeDao.delVerCode(player.getId(), smsType);
-        result.data = verResult.data;
         hallLogger.bind(player, loginType.getValue(), result.data);
 
         //绑定手机号要发送奖励邮件

@@ -3,6 +3,8 @@ package com.jjg.game.core.data;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 /**
  * 第三方服务配置信息
  * @author 11
@@ -46,17 +48,7 @@ public class ThirdServiceInfo {
     @Value("${thirdservice.apple.sandbox:true}")
     private boolean sandbox;
 
-
-    //短信配置信息
-    @Value("${thirdservice.sms.send_sms_url:}")
-    private String smsSensSmsUrl;
-    @Value("${thirdservice.sms.app_id:}")
-    private String smsAppId;
-    @Value("${thirdservice.sms.app_key:}")
-    private String smsAppKey;
-    @Value("${thirdservice.sms.app_secret:}")
-    private String smsAppSecret;
-
+    private List<SmsConfigInfo> smsConfigInfoList;
 
     public String getGoogleVerifyUrl() {
         return googleVerifyUrl;
@@ -178,35 +170,11 @@ public class ThirdServiceInfo {
         this.sandbox = sandbox;
     }
 
-    public String getSmsSensSmsUrl() {
-        return smsSensSmsUrl;
+    public List<SmsConfigInfo> getSmsConfigInfoList() {
+        return smsConfigInfoList;
     }
 
-    public void setSmsSensSmsUrl(String smsSensSmsUrl) {
-        this.smsSensSmsUrl = smsSensSmsUrl;
-    }
-
-    public String getSmsAppId() {
-        return smsAppId;
-    }
-
-    public void setSmsAppId(String smsAppId) {
-        this.smsAppId = smsAppId;
-    }
-
-    public String getSmsAppKey() {
-        return smsAppKey;
-    }
-
-    public void setSmsAppKey(String smsAppKey) {
-        this.smsAppKey = smsAppKey;
-    }
-
-    public String getSmsAppSecret() {
-        return smsAppSecret;
-    }
-
-    public void setSmsAppSecret(String smsAppSecret) {
-        this.smsAppSecret = smsAppSecret;
+    public void setSmsConfigInfoList(List<SmsConfigInfo> smsConfigInfoList) {
+        this.smsConfigInfoList = smsConfigInfoList;
     }
 }

@@ -8,6 +8,7 @@ import com.jjg.game.account.dto.LoginDto;
 import com.jjg.game.account.dto.LoginSmsDto;
 import com.jjg.game.account.dto.ServerUrlDto;
 import com.jjg.game.account.service.AccountService;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.service.ThirdAccountHttpService;
 import com.jjg.game.account.vo.LoginConfigVo;
@@ -125,7 +126,7 @@ public class AccountController extends AbstractController {
                 }
             }
 
-            if(StringUtils.isBlank(dto.getSubChannel())){
+            if (StringUtils.isBlank(dto.getSubChannel())) {
                 dto.setSubChannel("1");
             }
 
@@ -252,10 +253,24 @@ public class AccountController extends AbstractController {
                 log.debug("获取登录验证码失败,手机号格式错误 phone = {}", dto.getPhone());
                 return fail(Code.PARAM_ERROR);
             }
-            int code = smsService.sendCode(phone, VerCodeType.SMS_LOGIN);
-            if (code != Code.SUCCESS) {
-                return fail(code);
+
+            VerCode dbVerCode = smsService.getSmsCodeByPhone(realPhone);
+            if (dbVerCode != null) {
+                int now = TimeHelper.nowInt();
+                if (now < dbVerCode.getIdleTime()) {
+                    log.debug("获取登录验证码频繁,请稍后再试 phone = {}", dto.getPhone());
+                    return fail(Code.PARAM_ERROR);
+                }
             }
+
+            VerCode vc = new VerCode();
+            vc.setData(realPhone);
+            vc.setVerCodeType(VerCodeType.SMS_LOGIN);
+            CommonResult<VerCode> result = smsService.sendCode(vc);
+            if (!result.success()) {
+                return fail(result.code);
+            }
+            log.info("玩家请求登录短信成功 phone = {},smsCode = {}", phone, result.data.getCode());
             return success();
         } catch (Exception e) {
             log.error("", e);
@@ -381,13 +396,23 @@ public class AccountController extends AbstractController {
         }
 
         int code = Integer.parseInt(arr[1].trim());
-        CommonResult<PhoneUserInfo> userInfoResult = thirdAccountHttpService.verifyPhoneLoginCode(phone, code);
-        if (!userInfoResult.success()) {
-            return fail(Code.BAN_CAUSE_BLACK_LIST);
+
+        VerCode vc = new VerCode();
+        vc.setData(realPhone);
+        vc.setCode(code);
+        vc.setVerCodeType(VerCodeType.SMS_LOGIN);
+        //校验验证码
+        CommonResult<VerCode> verCodeCommonResult = smsService.verifySmsVerCode(vc);
+        if (!verCodeCommonResult.success()) {
+            log.warn("登录验证码校验失败 phone = {}, code = {}", phone, code);
+            return fail(verCodeCommonResult.code);
         }
 
+        PhoneUserInfo userInfo = new PhoneUserInfo();
+        userInfo.setUserId(realPhone);
+
         //登录逻辑
-        LoginResult<Account> accountResult = accountService.login(LoginType.PHONE, userInfoResult.data, dto, ip);
+        LoginResult<Account> accountResult = accountService.login(LoginType.PHONE, userInfo, dto, ip);
         if (!accountResult.success()) {
             return fail(accountResult.code);
         }
@@ -395,7 +420,7 @@ public class AccountController extends AbstractController {
         //组装返回结果
         WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.PHONE, accountResult.data, accountResult.isRegister(), dto, ip);
 
-        log.info("phone登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(), loginVoWebResult.getData().getToken());
+        log.info("phone登录获取 token成功 playerId = {},phone = {},token = {}", accountResult.data.getPlayerId(), phone, loginVoWebResult.getData().getToken());
         return loginVoWebResult;
     }
 

@@ -580,6 +580,21 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
         return marsCurator.getMarsNode(path);
     }
 
+    public List<ClusterClient> getNodes(Set<String> nodeTypes) {
+        if (clusterClientMap.isEmpty() || nodeTypes == null || nodeTypes.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<ClusterClient> list = new ArrayList<>();
+        for (Map.Entry<MarsNode, ClusterClient> en : clusterClientMap.entrySet()) {
+            ClusterClient value = en.getValue();
+            if(nodeTypes.contains(value.getType())) {
+                list.add(value);
+            }
+        }
+        return list;
+    }
+
     public ClusterClient getClusterByPath(String path) {
         MarsNode marsNode = marsCurator.getMarsNode(path);
         if (marsNode == null) {
