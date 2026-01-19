@@ -136,7 +136,7 @@ public class SmsService {
             if (StringUtils.isBlank(thirdServiceInfo.getSmsSensSmsUrl()) || StringUtils.isBlank(thirdServiceInfo.getSmsAppId()) || StringUtils.isBlank(thirdServiceInfo.getSmsAppKey()) || StringUtils.isBlank(thirdServiceInfo.getSmsAppSecret())) {
                 log.warn("sms配置信息缺失 smsSensSmsUrl = {},smsAppId = {},smsAppKey = {},smsAppSecret is null={}",
                         thirdServiceInfo.getSmsSensSmsUrl(), thirdServiceInfo.getSmsAppId(), thirdServiceInfo.getSmsAppKey(), StringUtils.isBlank(thirdServiceInfo.getSmsAppSecret()));
-                return Code.FAIL;
+                return Code.SMS_CONFIGURATION_MISSING_CAPTCHA_FAILED;
             }
 
             HttpRequest httpRequest = HttpRequest.post(thirdServiceInfo.getSmsSensSmsUrl());
@@ -166,13 +166,13 @@ public class SmsService {
 
             if (!resp.isOk()) {
                 log.warn("发送短信失败 phoneNumber = {},code = {},reason = {}", phoneNumber, json.getInt("status"), json.getStr("reason"));
-                return Code.FAIL;
+                return Code.SEND_SMS_FAILED;
             }
 
             int status = json.getInt("status");
             if (status != 0) {
                 log.warn("发送短信失败1 phoneNumber = {},code = {},reason = {}", phoneNumber, json.getInt("status"), json.getStr("reason"));
-                return Code.FAIL;
+                return Code.SEND_SMS_FAILED;
             }
 
             log.info("发送短信成功 smsType = {},content = {},resp = {}", verCodeType, content, body);

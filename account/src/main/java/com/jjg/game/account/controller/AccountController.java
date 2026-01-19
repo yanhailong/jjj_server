@@ -101,18 +101,18 @@ public class AccountController extends AbstractController {
             log.debug("收到登录消息 dto = {}", JSONObject.toJSONString(dto));
             if (StringUtils.isEmpty(dto.getData())) {
                 log.debug("参数为空，登录失败 dto = {}", JSONObject.toJSONString(dto));
-                return fail(Code.PARAM_ERROR);
+                return fail(Code.REQ_LOGIN_PARAMS_EMPTY);
             }
 
             LoginType loginType = LoginType.valueOf(dto.getLoginType());
             if (loginType == null) {
                 log.debug("登录类型错误，登录失败 dto = {}", JSONObject.toJSONString(dto));
-                return fail(Code.PARAM_ERROR);
+                return fail(Code.LOGIN_TYPE_EMPTY_OR_NOT_EXIST);
             }
 
             if (!loginConfigService.isOpen(dto.getLoginType())) {
                 log.debug("该登录类型被后台关闭，登录失败 dto = {}", JSONObject.toJSONString(dto));
-                return fail(Code.FORBID);
+                return fail(Code.LOGIN_TYPE_NOT_ENABLED);
             }
 
             //检查是否在黑名单中
@@ -121,7 +121,7 @@ public class AccountController extends AbstractController {
                 boolean blackIp = blackListService.isBlackIp(clientIp);
                 if (blackIp) {
                     log.debug("该ip已被封禁，无法登录 ip = {},dto = {}", clientIp, JSONObject.toJSONString(dto));
-                    return fail(Code.BAN_CAUSE_BLACK_LIST);
+                    return fail(Code.IP_BLOCKED_LOGIN_DISABLED);
                 }
             }
 
@@ -146,7 +146,7 @@ public class AccountController extends AbstractController {
                     return phoneLogin(dto, clientIp);
                 }
                 default -> {
-                    return fail(Code.PARAM_ERROR);
+                    return fail(Code.LOGIN_TYPE_EMPTY_OR_NOT_EXIST);
                 }
             }
         } catch (Exception e) {
@@ -162,18 +162,21 @@ public class AccountController extends AbstractController {
     private WebResult<ServerUrlVo> serverUrl(@RequestBody ServerUrlDto dto, @RequestHeader("token") String token, HttpServletRequest request) {
         try {
             long playerId = dto.getPlayerId();
-            if (StringUtils.isEmpty(token) || playerId < 0) {
-                log.debug("参数不能为空，获取服务器地址失败 token = {},playerId = {}", token, playerId);
-                return fail(Code.PARAM_ERROR);
+            if (StringUtils.isEmpty(token)) {
+                log.debug("参数不能为空，获取服务器地址失败 token = {}", token);
+                return fail(Code.SERVER_URL_TOKEN_EMPTY);
             }
-
+            if (playerId < 0) {
+                log.debug("参数不能为空，获取服务器地址失败 playerId = {}", playerId);
+                return fail(Code.PLAYER_ID_NOT_EXIST);
+            }
             //检查是否在黑名单中
             String clientIp = getClientIp(request);
             if (StringUtils.isNotEmpty(clientIp)) {
                 boolean blackIp = blackListService.isBlackIp(clientIp);
                 if (blackIp) {
                     log.debug("该ip已被封禁，获取服务器地址失败 ip = {},dto = {}", clientIp, JSONObject.toJSONString(dto));
-                    return fail(Code.BAN_CAUSE_BLACK_LIST);
+                    return fail(Code.IP_BLOCKED_SERVER_URL_UNAVAILABLE);
                 }
             }
 
@@ -181,7 +184,7 @@ public class AccountController extends AbstractController {
             boolean blackId = blackListService.isBlackId(playerId);
             if (blackId) {
                 log.debug("该playerId已被封禁，获取服务器地址失败 ip = {},dto = {}", clientIp, JSONObject.toJSONString(dto));
-                return fail(Code.BAN_CAUSE_BLACK_LIST);
+                return fail(Code.PLAYER_ID_BLOCKED_SERVER_URL_UNAVAILABLE);
             }
 
             //从数据库查询PlayerSessionToken对象信息
@@ -194,13 +197,13 @@ public class AccountController extends AbstractController {
             //校验token
             if (!playerSessionToken.getToken().equals(token)) {
                 log.debug("token校验失败,获取服务器地址失败, playerId = {},dbToken = {},reqToken = {}", playerId, playerSessionToken.getToken(), token);
-                return fail(Code.EXPIRE);
+                return fail(Code.TOKEN_EXPIRED_SERVER_URL_UNAVAILABLE);
             }
 
             //检查该登录类型是否被关闭
             if (!loginConfigService.isOpen(playerSessionToken.getLoginType())) {
                 log.debug("该登录类型被后台关闭，获取服务器地址失败 dto = {}", JSONObject.toJSONString(dto));
-                return fail(Code.FORBID);
+                return fail(Code.LOGIN_TYPE_NOT_ENABLED);
             }
 
             //如果与缓存数据不一致，就更新缓存
@@ -243,14 +246,14 @@ public class AccountController extends AbstractController {
         try {
             if (StringUtils.isEmpty(dto.getPhone())) {
                 log.debug("获取登录验证码失败,手机号不能为空 phone = {}", dto.getPhone());
-                return fail(Code.PARAM_ERROR);
+                return fail(Code.PHONE_NUMBER_EMPTY);
             }
 
             String phone = dto.getPhone().trim();
             String realPhone = CoreUtil.validPhoneNumber(phone);
             if (StringUtils.isEmpty(realPhone)) {
                 log.debug("获取登录验证码失败,手机号格式错误 phone = {}", dto.getPhone());
-                return fail(Code.PARAM_ERROR);
+                return fail(Code.PHONE_NUMBER_FORMAT_INVALID);
             }
             int code = smsService.sendCode(phone, VerCodeType.SMS_LOGIN);
             if (code != Code.SUCCESS) {
@@ -365,19 +368,19 @@ public class AccountController extends AbstractController {
         String[] arr = dto.getData().split(",");
         if (arr.length != 2) {
             log.debug("手机登录参数错误,应该包含手机号和验证码 dto = {}", JSONObject.toJSONString(dto));
-            return fail(Code.PARAM_ERROR);
+            return fail(Code.VERIFICATION_CODE_ERROR);
         }
 
         String phone = arr[0].trim();
         if (StringUtils.isEmpty(phone)) {
             log.debug("手机登录失败,手机号不能为空 phone = {}", phone);
-            return fail(Code.PARAM_ERROR);
+            return fail(Code.PHONE_NUMBER_EMPTY);
         }
 
         String realPhone = CoreUtil.validPhoneNumber(phone);
         if (StringUtils.isEmpty(realPhone)) {
             log.debug("手机登录失败,手机号格式错误 phone = {}", phone);
-            return fail(Code.PARAM_ERROR);
+            return fail(Code.PHONE_NUMBER_FORMAT_INVALID);
         }
 
         int code = Integer.parseInt(arr[1].trim());
