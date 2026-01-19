@@ -24,7 +24,8 @@ public class ResWealthRouletteHistory extends AbstractResponse {
     public int startIndex;
     @ProtoDesc("是否还有数据")
     public boolean hasNext;
-
+    @ProtoDesc("总条数")
+    public long totalCount;
     public ResWealthRouletteHistory(int code) {
         super(code);
     }

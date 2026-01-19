@@ -569,6 +569,9 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         Pair<Boolean, List<WealthRouletteHistoryInfo>> historyRecodes = recordDao.getPlayerRecords(PREFIX, 0, player.getId(),
                 req.startIndex, req.size, WealthRouletteHistoryInfo.class);
         res.hasNext = historyRecodes.getFirst();
+        if (req.startIndex == 0) {
+            res.totalCount = recordDao.getPlayerRecordCount(PREFIX, 0, player.getId());
+        }
         List<WealthRouletteHistoryInfo> historyRecords = historyRecodes.getSecond();
         if (CollectionUtil.isNotEmpty(historyRecords)) {
             res.wealthRouletteHistoryInfos = historyRecords;
