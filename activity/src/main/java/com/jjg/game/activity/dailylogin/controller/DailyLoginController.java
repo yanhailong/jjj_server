@@ -107,20 +107,14 @@ public class DailyLoginController extends BaseActivityController {
                             change = true;
                         }
                     }
-                    if ((activityTargetKey & ActivityTargetType.RECHARGE.getTargetKey()) != 0) {
+                    if ((activityTargetKey & (ActivityTargetType.RECHARGE.getTargetKey() | ActivityTargetType.BIND_PHONE.getTargetKey())) != 0) {
                         PlayerActivityData data = playerActivityData.get(cfg.getId());
                         if (data == null || data.getClaimStatus() != ActivityConstant.ClaimStatus.NOT_CLAIM) {
                             continue;
                         }
-                        if (additionalParameters instanceof Order order) {
-                            PlayerRechargeEvent playerRechargeEvent = new PlayerRechargeEvent();
-                            playerRechargeEvent.setChannelId(order.getPayChannel());
-                            playerRechargeEvent.setAmount(order.getPrice());
-                            MatchResultData matchResultData = conditionManager.addProgressAndGetAchievements(player, playerRechargeEvent, "", cfg.getCondition());
-                            if (matchResultData.result() == MatchResult.MATCH) {
-                                data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
-                                change = true;
-                            }
+                        if (conditionManager.isAchievement(player, "", cfg.getCondition())) {
+                            data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+                            change = true;
                         }
                     }
                 }

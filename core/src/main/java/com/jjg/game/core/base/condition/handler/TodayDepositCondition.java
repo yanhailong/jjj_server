@@ -6,9 +6,10 @@ import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.data.PlayerRecharge;
 import com.jjg.game.core.base.condition.event.PlayerRechargeEvent;
 import com.jjg.game.core.dao.CountDao;
-import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -23,6 +24,8 @@ import java.util.List;
 @Component
 public class TodayDepositCondition extends BaseRedisCondition<PlayerRecharge> {
 
+
+    private static final Logger log = LoggerFactory.getLogger(TodayDepositCondition.class);
 
     protected TodayDepositCondition(CountDao countDao) {
         super(countDao);
@@ -79,6 +82,16 @@ public class TodayDepositCondition extends BaseRedisCondition<PlayerRecharge> {
             return conditionCfg.getLanguageID();
         }
         return 0;
+    }
+
+    @Override
+    public void addBaseProgress(long playerId, BigDecimal addValue) {
+        String customId = String.valueOf(playerId) + TimeHelper.getCurrentDateZeroSecondTime();
+        String featureId = type();
+        BigDecimal count = countDao.incrementWithoutExpireRefresh(featureId, customId, addValue, TimeHelper.DAY_SECOND);
+        if (count.compareTo(BigDecimal.ZERO) == 0) {
+            log.error("添加每日充值进度失败 playerId={} addValue={}", playerId, addValue.toPlainString());
+        }
     }
 
     @Override
