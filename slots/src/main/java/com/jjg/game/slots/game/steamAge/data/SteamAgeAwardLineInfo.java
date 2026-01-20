@@ -8,8 +8,8 @@ import com.jjg.game.slots.data.FullAwardLineInfo;
  */
 public class SteamAgeAwardLineInfo extends FullAwardLineInfo {
 
-    //线倍数
-    private int lineTimes;
+    //连续倍数
+    private int continuousTimes;
     //总倍数 线倍数*连续倍数
     private int totalTimes;
 
@@ -21,12 +21,11 @@ public class SteamAgeAwardLineInfo extends FullAwardLineInfo {
         this.totalTimes = totalTimes;
     }
 
-    public int getLineTimes() {
-        return lineTimes;
+    public int getContinuousTimes() {
+        return continuousTimes;
     }
 
-    public void setLineTimes(int lineTimes) {
-        this.lineTimes = lineTimes;
+    public void setContinuousTimes(int continuousTimes) {
+        this.continuousTimes = continuousTimes;
     }
-
 }
