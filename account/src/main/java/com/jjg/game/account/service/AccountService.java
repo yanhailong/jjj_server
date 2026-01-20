@@ -45,7 +45,7 @@ public class AccountService {
     public LoginResult<Account> login(LoginType loginType, ChannelUserInfo channelUserInfo, LoginDto loginDto, String ip) {
         LoginResult<Account> accountResult = getOrCreateAccount(loginType, channelUserInfo, loginDto, ip);
         if (!accountResult.success()) {
-            log.warn("获取或者创建账号失败,登录失败 loginType = {},channelUserId = {}", loginType, channelUserInfo.getUserId());
+            log.warn("获取或者创建账号失败,登录失败 loginType = {},channelUserId = {},code = {}", loginType, channelUserInfo.getUserId(), accountResult.code);
             return accountResult;
         }
 
@@ -98,6 +98,12 @@ public class AccountService {
             //查询该账号是否存在
             Account account = accountDao.queryThirdAccount(loginType, channelUserInfo.getUserId());
             if (account == null) {
+                //只能是游客登录才能创建账号，其他方式登录返回错误提示
+                if (loginType != LoginType.GUEST) {
+                    result.code = Code.THIRD_NOT_BIND_FORBID_LOGIN;
+                    return result;
+                }
+
                 //注册新账号
                 long playerId = playerIdDao.getNewId();
                 // 如果player获取为0，则失败
