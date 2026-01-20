@@ -9,19 +9,19 @@ import com.jjg.game.slots.constant.SlotsConst;
  * @date 2025/7/2 10:28
  */
 public interface DollarExpressConstant {
-    interface GameType{
+    interface GameType {
         //支持的游戏
         int[] SUPPORT_GAME_TYPES = {CoreConst.GameType.DOLLAR_EXPRESS};
     }
 
-    interface Common{
+    interface Common {
         int MINI_POOL_ID = 100100101;
         int MINOR_POOL_ID = 100100102;
         int MAJOR_POOL_ID = 100100103;
         int GRAND_POOL_ID = 100100104;
     }
 
-    interface Status{
+    interface Status {
         int NORMAL = SlotsConst.Status.NORMAL;
         //处于普通二选一
         int NOTMAL_ALL_BOARD = 1;
@@ -35,7 +35,7 @@ public interface DollarExpressConstant {
         int ALL_BOARD_FREE = 5;
     }
 
-    interface SpecialMode{
+    interface SpecialMode {
         //普通旋转
         int TYPE_NORMAL = 1;
         //拉火车触发局
@@ -54,7 +54,7 @@ public interface DollarExpressConstant {
     /**
      * 基础元素
      */
-    interface BaseElement{
+    interface BaseElement {
         //金火车
         int ID_GOLD_TRAIN = 15;
         //保险箱
@@ -77,7 +77,7 @@ public interface DollarExpressConstant {
         int ID_FREE = 30;
     }
 
-    interface SpecialPlay{
+    interface SpecialPlay {
         //美元收集
         int TYPE_COLLECT_DOLLAR = 1;
         //投资3次中奖
@@ -88,13 +88,13 @@ public interface DollarExpressConstant {
         int TYPE_ALL_BOARD = 7;
     }
 
-    interface SpecialGird{
+    interface SpecialGird {
         int ID_COLLECT_DOLLAR = 3;
         int ID_AGAIN_GOLD_TRAIN = 4;
         int ID_NORMAL_GOLD_TRAIN = 5;
     }
 
-    interface SpecialAuxiliary{
+    interface SpecialAuxiliary {
         //绿火车
         int TYPE_GREEN_TRAIN = 31001;
         //蓝火车
@@ -122,6 +122,8 @@ public interface DollarExpressConstant {
         int TYPE_INVERS_WIN = 31302;
         //投资地图-地图全解锁
         int TYPE_INVERS_ALL_UNLOCK = 31303;
+        //二选一免费次数配置表id
+        int FREE_COUNT_CONFIG_ID = 30010007;
     }
 
     interface MsgBean {

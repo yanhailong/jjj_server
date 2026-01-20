@@ -8,6 +8,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.*;
@@ -77,6 +78,11 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             res.dollarTargetCount = gameManager.getDollarExpressCollectDollarConfig().getMax();
             res.collectMinStake = gameManager.getDollarExpressCollectDollarConfig().getStakeAllBetScoreMin();
             res.dollarCollectedCount = gameRunInfo.getTotalDollars();
+            SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig = generateManager.getSpecialAuxiliaryPropConfigMap().get(DollarExpressConstant.SpecialAuxiliary.FREE_COUNT_CONFIG_ID);
+            if (specialAuxiliaryPropConfig != null) {
+                res.freeCount = specialAuxiliaryPropConfig.getTriggerCountPropInfo().getRandKey();
+            }
+            res.remainFreeCount = gameRunInfo.getRemainFreeCount();
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -123,6 +129,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
+            res.freeModeTotalReward = gameRunInfo.getFreeModeTotalReward();
 
             logger.gameResult(playerController.getPlayer(), gameRunInfo,res);
         } else {
@@ -145,6 +152,8 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
     public void sendChooseOneMessage(PlayerController playerController, DollarExpressGameRunInfo gameRunInfo) {
         SendInfo sendInfo = new SendInfo();
         ResChooseFreeModel res = new ResChooseFreeModel(gameRunInfo.getCode());
+        res.freeCount = gameRunInfo.getRemainFreeCount();
+        res.status = gameRunInfo.getStatus();
 
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);

@@ -12,7 +12,7 @@ import java.util.List;
  * @author 11
  * @date 2025/6/12 17:11
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE, cmd = DollarExpressConstant.MsgBean.RES_START_GAME,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE, cmd = DollarExpressConstant.MsgBean.RES_START_GAME, resp = true)
 @ProtoDesc("开始游戏结果返回")
 public class ResStartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")
@@ -43,6 +43,8 @@ public class ResStartGame extends AbstractResponse {
     public int level;
     @ProtoDesc("经验")
     public long exp;
+    @ProtoDesc("免费模式累计奖励")
+    public long freeModeTotalReward;
 
 
     public ResStartGame(int code) {
