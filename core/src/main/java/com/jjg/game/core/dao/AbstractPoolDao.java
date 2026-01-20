@@ -15,7 +15,7 @@ public abstract class AbstractPoolDao {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    protected RedisTemplate redisTemplate;
+    protected RedisTemplate<Object,Object> redisTemplate;
 
     //标准池
     protected final String pool_prefix = "pool:";

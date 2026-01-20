@@ -3,6 +3,7 @@ package com.jjg.game.common.rpc;
 import cn.hutool.core.convert.BasicType;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.jjg.game.common.cluster.ClusterConnect;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
@@ -10,6 +11,7 @@ import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.rpc.msg.ReqRpcServiceData;
 import com.jjg.game.common.rpc.msg.RespRpcServiceData;
+import com.jjg.game.common.utils.ObjectMapperUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -136,7 +138,11 @@ public class RpcServerService {
 
         // 只有非void方法才设置responseData
         if (!method.getReturnType().equals(Void.TYPE)) {
-            resp.responseData = JSON.toJSONString(o);
+            try {
+                resp.responseData = ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(o);
+            } catch (JsonProcessingException e) {
+                log.error("返回rpc结果时,json解析失败");
+            }
         } else {
             resp.responseData = null;
         }

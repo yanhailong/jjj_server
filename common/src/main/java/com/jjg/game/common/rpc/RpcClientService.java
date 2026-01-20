@@ -2,6 +2,7 @@ package com.jjg.game.common.rpc;
 
 import cn.hutool.core.lang.Snowflake;
 import com.alibaba.fastjson.JSON;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
@@ -10,6 +11,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.rpc.msg.ReqRpcServiceData;
 import com.jjg.game.common.rpc.msg.RespRpcServiceData;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.common.utils.ObjectMapperUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +53,7 @@ public class RpcClientService {
      */
     public Object tryInvokeRemote(
             String className, Method method, Object[] args, ClusterRpcReference reference)
-            throws TimeoutException, ExecutionException, InterruptedException {
+            throws TimeoutException, ExecutionException, InterruptedException, JsonProcessingException {
 
         // 【新增】优先检测本地调用
         Pair<Boolean, Object> pairResult = tryInvokeLocal(className, method, args);
@@ -189,7 +191,7 @@ public class RpcClientService {
      */
     private Object flushMessageAndWait(
             List<ClusterClient> clusterClients, ReqRpcServiceData message, int waitTime, Class<?> returnType)
-            throws TimeoutException, ExecutionException, InterruptedException {
+            throws TimeoutException, ExecutionException, InterruptedException, JsonProcessingException {
         if (clusterClients.size() == 1) {
             return dealSingleClientRpcMsg(clusterClients.getFirst(), message, waitTime, returnType);
         } else {
@@ -202,7 +204,7 @@ public class RpcClientService {
      */
     private Object dealSingleClientRpcMsg(
             ClusterClient clusterClient, ReqRpcServiceData message, int waitTime, Class<?> returnType)
-            throws TimeoutException, ExecutionException, InterruptedException {
+            throws TimeoutException, ExecutionException, InterruptedException, JsonProcessingException {
         Object responseData = null;
         String nodePath = clusterClient.marsNode.getNodePath();
         CompletableFuture<RespRpcServiceData> completableFuture = new CompletableFuture<>();
@@ -230,10 +232,10 @@ public class RpcClientService {
             // 要有返回值
             if (!Void.TYPE.isAssignableFrom(returnType) && responseObject != null) {
                 if (responseObject.responseData != null && responseObject.success) {
-                    responseData = JSON.parseObject(responseObject.responseData, returnType);
+                    responseData = ObjectMapperUtil.getDefualtConfigObjectMapper().readValue(responseObject.responseData, returnType);
                 }
             }
-        } catch (InterruptedException | ExecutionException exception) {
+        } catch (InterruptedException | ExecutionException | JsonProcessingException exception) {
             log.warn("SingleClientRpcMsg 调用RPC向节点：{} 发出消息：{} 异常", nodePath, message, exception);
             throw exception;
         } catch (TimeoutException exception) {

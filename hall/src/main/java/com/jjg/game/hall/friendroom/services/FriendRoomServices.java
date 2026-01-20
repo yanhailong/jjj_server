@@ -15,7 +15,9 @@ import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.*;
+import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.dao.room.AbstractFriendRoomDao.CreateFriendsRoom;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao.GameBillResult;
@@ -30,12 +32,12 @@ import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.core.utils.SampleDataUtils;
-import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.friendroom.constant.FriendRoomConstant;
 import com.jjg.game.hall.friendroom.constant.FriendRoomErrorCode;
 import com.jjg.game.hall.friendroom.dao.FriendRoomFollowDao;
 import com.jjg.game.hall.friendroom.dao.FriendRoomRedisDao;
 import com.jjg.game.hall.friendroom.dao.HallFriendRoomDao;
+import com.jjg.game.hall.friendroom.dao.RoomSlotsPoolDao;
 import com.jjg.game.hall.friendroom.data.FriendRoomFollowBean;
 import com.jjg.game.hall.friendroom.message.FriendRoomMessageBuilder;
 import com.jjg.game.hall.friendroom.message.req.*;
@@ -100,9 +102,9 @@ public class FriendRoomServices {
     @Autowired
     private RobotUtil robotUtil;
     @Autowired
-    private HallPoolDao hallPoolDao;
-    @Autowired
     private CoreLogger coreLogger;
+    @Autowired
+    private RoomSlotsPoolDao roomSlotsPoolDao;
     @Lazy
     @Autowired
     protected SnowflakeManager snowflakeManager;
@@ -414,17 +416,10 @@ public class FriendRoomServices {
         notifyFriendRoomPanelData.roomFriendInfos =
                 buildFriendRoomPlayerInfoList(followedPlayerId, followedplayerList, friendRoomFollowBeanMap);
         // 房间信息
-        List<FriendRoomBaseData> friendRoomBaseDataList = new ArrayList<>();
         friendRoomList.sort((o1, o2) -> Long.compare(o2.getCreateTime(), o1.getCreateTime()));
-        for (FriendRoom friendRoom : friendRoomList) {
-            if (friendRoom.getStatus() == 3) {
-                continue;
-            }
-            FriendRoomBaseData friendRoomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
-            friendRoomBaseDataList.add(friendRoomBaseData);
-            // 检查房间的自动续费
-            autoRenewalRoomInHall(friendRoom);
-        }
+        //构建房间基础数据
+        List<FriendRoomBaseData> friendRoomBaseDataList = buildFriendRoomInfos(friendRoomList, true);
+
         notifyFriendRoomPanelData.roomBaseDataList = friendRoomBaseDataList;
         notifyFriendRoomPanelData.invitationCode = playerController.getPlayer().getFriendRoomInvitationCode();
         GlobalConfigCfg globalConfigCfg =
@@ -454,6 +449,45 @@ public class FriendRoomServices {
         log.debug("好友面板数据：{} ", JSON.toJSONString(notifyFriendRoomPanelData));
         // 发送数据
         playerController.send(notifyFriendRoomPanelData);
+    }
+
+    private List<FriendRoomBaseData> buildFriendRoomInfos(List<FriendRoom> friendRoomList, boolean isSelf) {
+        Map<Long, Long> bigPoolByRoomIds = getSlotsRoomPool(friendRoomList);
+        List<FriendRoomBaseData> dataArrayList = new ArrayList<>(friendRoomList.size());
+        for (FriendRoom friendRoom : friendRoomList) {
+            if (friendRoom.getStatus() == 3) {
+                continue;
+            }
+            FriendRoomBaseData friendRoomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
+            if (friendRoom instanceof SlotsFriendRoom) {
+                friendRoomBaseData.predictCostGoldNum = bigPoolByRoomIds.getOrDefault(friendRoom.getId(), 0L);
+            }
+            dataArrayList.add(friendRoomBaseData);
+            // 检查房间的自动续费
+            if (isSelf) {
+                autoRenewalRoomInHall(friendRoom);
+            }
+        }
+        return dataArrayList;
+    }
+
+    /**
+     * 获取slotsroom的奖池
+     *
+     * @param friendRoomList 好友房列表
+     * @return 奖池Mmap
+     */
+    private Map<Long, Long> getSlotsRoomPool(List<FriendRoom> friendRoomList) {
+        List<Object> slotsRoomList = new ArrayList<>(friendRoomList.size());
+        for (FriendRoom friendRoom : friendRoomList) {
+            if (friendRoom instanceof SlotsFriendRoom) {
+                slotsRoomList.add(friendRoom.getId());
+            }
+        }
+        if (slotsRoomList.isEmpty()) {
+            return Map.of();
+        }
+        return roomSlotsPoolDao.getBigPoolByRoomIds(slotsRoomList);
     }
 
     /**
@@ -529,13 +563,6 @@ public class FriendRoomServices {
                 return true;
             }
         });
-        // 单房间，直接等返回
-        GameRpcContext.getContext().setReqParameterBuilder(
-                RpcReqParameterBuilder.create()
-                        .addClusterClient(client)
-                        .setTryMillisPerClient(1000));
-        hallRoomBridge.updateFriendRoom(friendRoom.getCreator(), friendRoom.getRoomCfgId(), friendRoom.getId(), roomExpendCfg.getId(), friendRoom.isAutoRenewal(), 0, null);
-
         Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), (long) itemNum);
         ItemOperationResult itemOperationResult = new ItemOperationResult();
         itemOperationResult.setDiamond(friendRoom.getPredictCostGoldNum());
@@ -693,20 +720,8 @@ public class FriendRoomServices {
         List<FriendRoom> friendRoomList = friendRoomDao.getPlayerAllFriendRoom(req.playerId);
         friendRoomList.sort((o1, o2) -> Long.compare(o2.getCreateTime(), o1.getCreateTime()));
         // 房间信息
-        List<FriendRoomBaseData> friendRoomBaseDataList = new ArrayList<>();
         boolean isSelf = req.playerId == playerController.playerId();
-        for (FriendRoom friendRoom : friendRoomList) {
-            if (friendRoom.getStatus() == 3) {
-                continue;
-            }
-            FriendRoomBaseData friendRoomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
-            friendRoomBaseDataList.add(friendRoomBaseData);
-            if (isSelf) {
-                // 检查房间的自动续费
-                autoRenewalRoomInHall(friendRoom);
-            }
-        }
-        res.roomList = friendRoomBaseDataList;
+        res.roomList = buildFriendRoomInfos(friendRoomList, isSelf);
         res.code = Code.SUCCESS;
         res.playerId = req.playerId;
         log.debug("返回好友房列表： {}", JSON.toJSONString(res));
@@ -940,47 +955,55 @@ public class FriendRoomServices {
             }
         }
         int finalAddTime = addTime;
-        CommonResult<FriendRoom> result = friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(),
-                new DataSaveCallback<>() {
-                    @Override
-                    public void updateData(FriendRoom dataEntity) {
-                    }
+        boolean isSlotsRoom = friendRoom instanceof SlotsFriendRoom;
+        CommonResult<FriendRoom> result = new CommonResult<>(Code.SUCCESS, friendRoom);
+        if (!isSlotsRoom) {
+            result = friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(),
+                    new DataSaveCallback<>() {
+                        @Override
+                        public void updateData(FriendRoom dataEntity) {
+                        }
 
-                    @Override
-                    public boolean updateDataWithRes(FriendRoom dataEntity) {
-                        if (!StringUtils.isEmpty(updateFriendRoom.roomAliasName)) {
-                            dataEntity.setAliasName(updateFriendRoom.roomAliasName);
-                        }
-                        dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum() + updateFriendRoom.predictCostGoldNum);
-                        dataEntity.setPool(dataEntity.getPool() + updateFriendRoom.predictCostGoldNum);
-                        dataEntity.setAutoRenewal(updateFriendRoom.autoRenewal);
-                        if (finalAddTime > 0) {
-                            long curTime = System.currentTimeMillis();
-                            // 不管时间是否暂停，都只需要给原有的过期时间加上增量时间
-                            if (dataEntity.getOverdueTime() < curTime) {
-                                // 房间已经过期，续时间
-                                dataEntity.setOverdueTime(curTime + finalAddTime);
-                            } else {
-                                // 房间未过期，续时间
-                                dataEntity.setOverdueTime(dataEntity.getOverdueTime() + finalAddTime);
+                        @Override
+                        public boolean updateDataWithRes(FriendRoom dataEntity) {
+                            if (!StringUtils.isEmpty(updateFriendRoom.roomAliasName)) {
+                                dataEntity.setAliasName(updateFriendRoom.roomAliasName);
                             }
+                            dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum() + updateFriendRoom.predictCostGoldNum);
+                            dataEntity.setPool(dataEntity.getPool() + updateFriendRoom.predictCostGoldNum);
+                            dataEntity.setAutoRenewal(updateFriendRoom.autoRenewal);
+                            if (finalAddTime > 0) {
+                                long curTime = System.currentTimeMillis();
+                                // 不管时间是否暂停，都只需要给原有的过期时间加上增量时间
+                                if (dataEntity.getOverdueTime() < curTime) {
+                                    // 房间已经过期，续时间
+                                    dataEntity.setOverdueTime(curTime + finalAddTime);
+                                } else {
+                                    // 房间未过期，续时间
+                                    dataEntity.setOverdueTime(dataEntity.getOverdueTime() + finalAddTime);
+                                }
+                            }
+                            return true;
                         }
-                        return true;
-                    }
-                });
-        if (result.success() && updateFriendRoom.predictCostGoldNum > 0 && friendRoom instanceof BetFriendRoom) {
-            friendRoomDao.modifyRoomPool(result.data.getGameType(), result.data.getId(), updateFriendRoom.predictCostGoldNum);
+                    });
+            if (result.success() && updateFriendRoom.predictCostGoldNum > 0 && friendRoom instanceof BetFriendRoom) {
+                friendRoomDao.modifyRoomPool(result.data.getGameType(), result.data.getId(), updateFriendRoom.predictCostGoldNum);
+            }
         }
         if ((addTime > 0 || updateFriendRoom.predictCostGoldNum > 0) && friendRoom.isInGaming()) {
             if (!StringUtils.isEmpty(friendRoom.getPath())) {
-                // 单房间，直接等返回
                 GameRpcContext.getContext().setReqParameterBuilder(
                         RpcReqParameterBuilder.create()
                                 .addClusterClient(client)
                                 .setTryMillisPerClient(1000));
-                // 请求尝试开启游戏，如果游戏处于暂停状态，可以考虑异步请求开启游戏
-                hallRoomBridge.operateFriendRoom(player.getId(), friendRoom.getId(), 1, friendRoom.getRoomCfgId());
-                hallRoomBridge.updateFriendRoom(player.getId(), friendRoom.getRoomCfgId(), friendRoom.getId(), updateFriendRoom.timeOfOpenRoom, updateFriendRoom.autoRenewal, updateFriendRoom.predictCostGoldNum, updateFriendRoom.roomAliasName);
+                if (isSlotsRoom) {
+                    result = hallRoomBridge.updateFriendRoom(player.getId(), friendRoom.getRoomCfgId(), friendRoom.getId(), addTime,
+                            updateFriendRoom.autoRenewal, updateFriendRoom.predictCostGoldNum, updateFriendRoom.roomAliasName);
+                } else {
+                    // 单房间，直接等返回
+                    // 请求尝试开启游戏，如果游戏处于暂停状态，可以考虑异步请求开启游戏
+                    hallRoomBridge.operateFriendRoom(player.getId(), friendRoom.getId(), 1, friendRoom.getRoomCfgId());
+                }
             }
         }
         res.code = Code.SUCCESS;

@@ -19,6 +19,5 @@ public class SlotsSchedulManager {
     @Scheduled(fixedRate = 60000)
     private void slotsCollect() {
         slotsRoomManager.slotsRoomCollect();
-        slotsRoomManager.updatePool();
     }
 }
