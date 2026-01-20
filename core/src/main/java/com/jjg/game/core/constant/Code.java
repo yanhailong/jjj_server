@@ -161,4 +161,6 @@ public interface Code {
     int VERIFICATION_CODE_ERROR = 17028;
     // 获取验证码频繁,请稍后再试
     int VERCODE_IDLE = 460;
+    //手机号已经被绑定
+    int PHONE_HAS_BIND = 461;
 }

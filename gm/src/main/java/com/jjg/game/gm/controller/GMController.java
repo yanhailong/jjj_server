@@ -1568,8 +1568,17 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
+            //如果是绑定账号，要检查该号码是否已经被绑定
+            if (vercodeType == VerCodeType.SMS_BIND_PHONE) {
+                Account phoneAccount = accountDao.queryThirdAccount(LoginType.PHONE, realPhone);
+                if (phoneAccount != null) {
+                    log.warn("该手机号已经绑定账号，不能重复绑定  dto = {}", dto);
+                    return fail("common.paramerror");
+                }
+            }
+
             Player player = playerService.get(dto.playerId());
-            if(player == null){
+            if (player == null) {
                 log.warn("玩家不存在，发送短信失败  dto = {}", dto);
                 return fail("common.paramerror");
             }

@@ -223,9 +223,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
 
         //检查该手机号是否已经绑定玩家
-        Account phoneAccount = accountDao.queryThirdAccount(LoginType.PHONE, data);
+        Account phoneAccount = accountDao.queryThirdAccount(LoginType.PHONE, realPhone);
         if (phoneAccount != null) {
-            result.code = Code.PHONE_NUMBER_ERROR;
+            result.code = Code.PHONE_HAS_BIND;
             log.warn("该手机号已经绑定账号，不能重复绑定 playerId = {},phone = {},bindPlayerId = {}", playerId, data, phoneAccount.getPlayerId());
             return result;
         }
