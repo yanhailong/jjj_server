@@ -1,8 +1,6 @@
 package com.jjg.game.hall.handler;
 
-import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.handler.CoreRPCController;

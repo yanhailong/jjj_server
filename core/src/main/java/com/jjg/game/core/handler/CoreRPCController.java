@@ -11,11 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author 11
  * @date 2026/1/19
  */
-public class CoreRPCController implements GmToAllBridge {
+public abstract class CoreRPCController implements GmToAllBridge {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private SmsService smsService;
+    protected SmsService smsService;
 
     @Override
     public int reload(int reloadType) {
