@@ -68,6 +68,7 @@ public class TigerBringsRichesGameSendMessageManager extends BaseSendMessageMana
                         TigerBringsRichesResultLib resultLib = randomResult.get(playerGameData.getCurrentRandomIndex());
                         res.iconList = Arrays.stream(resultLib.getIconArr(), 1, resultLib.getIconArr().length).boxed().collect(Collectors.toList());
                         res.scrollType = playerGameData.getSpecialLib().getRollerMode();
+                        res.specialModeIcon = resultLib.getSpecialModeIcon();
                     }
                 }
             }
@@ -121,7 +122,11 @@ public class TigerBringsRichesGameSendMessageManager extends BaseSendMessageMana
             res.exp = playerController.getPlayer().getExp();
 
             res.winIconInfoList = gameRunInfo.getAwardLineInfos();
+
+            res.specialModeIcon = gameRunInfo.getSpecialModeIcon();
+
             res.scrollType = gameRunInfo.getScrollType();
+
             res.isSpecialModeEnd = gameRunInfo.isSpecialModeEnd();
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {

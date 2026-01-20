@@ -27,7 +27,6 @@ import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesResultLib
 import com.jjg.game.slots.game.tigerbringsriches.pb.bean.TigerBringsRichesWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,7 +58,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
         super.init();
         addUpdatePoolEvent();
     }
-    
+
     @Override
     public TigerBringsRichesGameRunInfo enterGame(PlayerController playerController) {
         //获取玩家游戏数据
@@ -183,8 +182,8 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
     }
 
     private void specialMode(TigerBringsRichesGameRunInfo gameRunInfo, TigerBringsRichesPlayerGameData playerGameData, long betValue) {
-        TigerBringsRichesResultLib fuMaResultLib = playerGameData.getSpecialLib();
-        if (fuMaResultLib == null || CollectionUtil.isEmpty(fuMaResultLib.getSpecialResult())) {
+        TigerBringsRichesResultLib specialLib = playerGameData.getSpecialLib();
+        if (specialLib == null || CollectionUtil.isEmpty(specialLib.getSpecialResult())) {
             playerGameData.setStatus(TigerBringsRichesConstant.Status.NORMAL);
             playerGameData.setSpecialLib(null);
             playerGameData.setCurrentRandomIndex(0);
@@ -192,14 +191,16 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
             return;
         }
         int currentRandomIndex = playerGameData.getCurrentRandomIndex();
-        List<TigerBringsRichesResultLib> randomResult = fuMaResultLib.getSpecialResult();
+        List<TigerBringsRichesResultLib> randomResult = specialLib.getSpecialResult();
         if (currentRandomIndex >= randomResult.size()) {
             gameRunInfo.setCode(Code.PARAM_ERROR);
             return;
         }
-        gameRunInfo.setScrollType(fuMaResultLib.getRollerMode());
+        TigerBringsRichesResultLib resultLib = randomResult.get(currentRandomIndex);
+        gameRunInfo.setScrollType(resultLib.getRollerMode());
+        gameRunInfo.setSpecialModeIcon(resultLib.getSpecialModeIcon());
         if (currentRandomIndex == randomResult.size() - 1) {
-            PoolCfg poolCfg = GameDataManager.getPoolCfg(fuMaResultLib.getJackpotId());
+            PoolCfg poolCfg = GameDataManager.getPoolCfg(specialLib.firstJackpotId());
             if (poolCfg != null) {
                 //检查是否中大奖
                 CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(),
@@ -212,15 +213,14 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
             playerGameData.setStatus(TigerBringsRichesConstant.Status.NORMAL);
             playerGameData.setSpecialLib(null);
             playerGameData.setCurrentRandomIndex(0);
-            gameRunInfo.setBigShowId(fuMaResultLib.getJackpotId());
+            gameRunInfo.setBigShowId(resultLib.firstJackpotId());
             gameRunInfo.setSpecialModeEnd(true);
-            gameRunInfo.setBigPoolTimes(fuMaResultLib.getTimes());
-            gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(fuMaResultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
-            gameRunInfo.setIconArr(fuMaResultLib.getIconArr());
+            gameRunInfo.setBigPoolTimes(resultLib.getTimes());
+            gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
+            gameRunInfo.setIconArr(resultLib.getIconArr());
             gameRunInfo.setStatus(TigerBringsRichesConstant.Status.REAL_TIGER_BRINGS_RICHES);
             return;
         }
-        TigerBringsRichesResultLib resultLib = randomResult.get(currentRandomIndex);
         playerGameData.setCurrentRandomIndex(currentRandomIndex + 1);
         gameRunInfo.setStatus(TigerBringsRichesConstant.Status.REAL_TIGER_BRINGS_RICHES);
         gameRunInfo.setIconArr(resultLib.getIconArr());

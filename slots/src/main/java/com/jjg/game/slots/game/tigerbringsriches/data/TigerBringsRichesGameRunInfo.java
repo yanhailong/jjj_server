@@ -21,6 +21,16 @@ public class TigerBringsRichesGameRunInfo extends GameRunInfo<TigerBringsRichesP
     private List<TigerBringsRichesWinIconInfo> awardLineInfos;
     //滚轴类型
     private int scrollType;
+    //特殊模式icon
+    private int specialModeIcon;
+
+    public int getSpecialModeIcon() {
+        return specialModeIcon;
+    }
+
+    public void setSpecialModeIcon(int specialModeIcon) {
+        this.specialModeIcon = specialModeIcon;
+    }
 
     public boolean isSpecialModeEnd() {
         return isSpecialModeEnd;

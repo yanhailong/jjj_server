@@ -9,7 +9,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
 import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
-import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
 import com.jjg.game.slots.game.tigerbringsriches.constant.TigerBringsRichesConstant;
 import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesAwardLineInfo;
 import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesResultLib;
@@ -18,7 +17,9 @@ import jodd.util.StringUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author lm
@@ -32,8 +33,14 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
 
     private Pair<Integer, Integer> modelRandom;
     private WeightRandom<Integer> iconRandom;
+    //随机到图标得概率（万分比）
     private int weight;
-    private int jackpotId;
+    //转轴上最低出现元素个数
+    private int minIconCount;
+    //_随机图标变成wild概率
+    private int wildChance;
+    //元素id->滚轴id
+    private Map<Integer, Integer> elementRollMap;
 
     @Override
     public TigerBringsRichesResultLib checkAward(int[] arr, TigerBringsRichesResultLib lib, boolean freeModel) throws Exception {
@@ -52,15 +59,19 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
                 if (iconRandom != null) {
                     icon = iconRandom.next();
                 }
+                lib.setSpecialModeIcon(icon);
                 //随机
                 int[] iconArr = lib.getIconArr();
                 //进行元素随机
                 int[] temp = Arrays.copyOf(iconArr, iconArr.length);
                 //设置为空白元素
                 Arrays.fill(temp, TigerBringsRichesConstant.ElementId.BLANK);
+                // Iteratively populates slots; computes special result until full
+                int createElementCount = 0;
                 while (true) {
                     int iconCount = 0;
                     int changeCount = 0;
+                    int index = -1;
                     for (int i = 0; i < temp.length; i++) {
                         int oldIcon = temp[i];
                         if (oldIcon != TigerBringsRichesConstant.ElementId.BLANK) {
@@ -68,22 +79,31 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
                             continue;
                         }
                         if (weight > RandomUtil.randomInt(10000)) {
-                            temp[i] = RandomUtil.randomBoolean() ? icon : TigerBringsRichesConstant.ElementId.WILD;
+                            temp[i] = wildChance > RandomUtil.randomInt(10000) ? TigerBringsRichesConstant.ElementId.WILD : icon;
                             changeCount++;
+                            createElementCount++;
+                        } else {
+                            index = index == -1 ? i : RandomUtil.randomBoolean() ? i : index;
                         }
+                    }
+                    if (changeCount == 0 && createElementCount < minIconCount) {
+                        temp[index] = wildChance > RandomUtil.randomInt(10000) ? TigerBringsRichesConstant.ElementId.WILD : icon;
+                        changeCount++;
+                        createElementCount++;
                     }
                     //生成结果
                     TigerBringsRichesResultLib specialLib = new TigerBringsRichesResultLib();
                     specialLib.setId(RandomUtils.getUUid());
-                    specialLib.setRollerMode(lib.getRollerMode());
-                    lib.setGameType(this.gameType);
+                    specialLib.setRollerMode(elementRollMap.get(icon));
+                    specialLib.setGameType(lib.getGameType());
+                    specialLib.setSpecialModeIcon(icon);
                     specialLib.setIconArr(Arrays.copyOf(temp, temp.length));
                     List<TigerBringsRichesAwardLineInfo> specialAwardLineInfoList = winLines(specialLib, freeModel);
                     specialLib.setAwardLineInfoList(specialAwardLineInfoList);
                     lib.addSpecialResult(specialLib);
                     calTimes(specialLib);
                     if (iconCount + changeCount == temp.length) {
-                        specialLib.setJackpotId(jackpotId);
+                        specialLib.addJackpotId(TigerBringsRichesConstant.Common.JACKPOT_ID);
                         break;
                     }
                     if (changeCount == 0) {
@@ -140,6 +160,8 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
         loadIconRandom();
 
         loadGenerateIcon();
+
+        loadElementRollMap();
     }
 
     private void loadModelRandom() {
@@ -176,6 +198,28 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
         if (specialPlayCfg == null || StringUtil.isEmpty(specialPlayCfg.getValue())) {
             return;
         }
-//        weight = Integer.parseInt(specialPlayCfg.getValue());
+        String[] split = specialPlayCfg.getValue().split("_");
+        if (split.length != 3) {
+            return;
+        }
+        weight = Integer.parseInt(split[1]);
+        minIconCount = Integer.parseInt(split[0]);
+        wildChance = Integer.parseInt(split[2]);
+    }
+
+    private void loadElementRollMap() {
+        SpecialPlayCfg specialPlayCfg = GameDataManager.getSpecialPlayCfg(TigerBringsRichesConstant.Common.ELEMENT_ROLL);
+        if (specialPlayCfg == null || StringUtil.isEmpty(specialPlayCfg.getValue())) {
+            return;
+        }
+        Map<Integer, Integer> tempMap = new HashMap<>();
+        for (String cfg : specialPlayCfg.getValue().split(";")) {
+            String[] kekValue = cfg.split("_");
+            if (kekValue.length != 2) {
+                continue;
+            }
+            tempMap.put(Integer.parseInt(kekValue[0]), Integer.parseInt(kekValue[1]));
+        }
+        elementRollMap = tempMap;
     }
 }

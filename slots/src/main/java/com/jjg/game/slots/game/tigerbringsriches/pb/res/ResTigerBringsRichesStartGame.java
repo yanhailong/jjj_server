@@ -36,6 +36,8 @@ public class ResTigerBringsRichesStartGame extends AbstractResponse {
     public int scrollType;
     @ProtoDesc("特殊模式是否结束")
     public boolean isSpecialModeEnd;
+    @ProtoDesc("特殊模式icon")
+    public int specialModeIcon;
     public ResTigerBringsRichesStartGame(int code) {
         super(code);
     }

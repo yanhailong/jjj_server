@@ -47,5 +47,9 @@ public interface TigerBringsRichesConstant {
         int RANDOM_ICON_PLAY_ID = 5034012;
         //随机到图标的概率(万分概率)
         int GENERATE_ICON_PLAY_ID = 5034013;
+        //元素id_元素滚轴
+        int ELEMENT_ROLL = 5034014;
+        //奖池id
+        int JACKPOT_ID = 103401101;
     }
 }
