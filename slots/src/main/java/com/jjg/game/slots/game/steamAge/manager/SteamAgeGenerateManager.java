@@ -171,8 +171,8 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
     @Override
     protected SteamAgeAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
         SteamAgeAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg);
-        info.setLineTimes(cfg.getBet());
-        info.setTotalTimes(info.getLineTimes());
+        info.setContinuousTimes(1);
+        info.setTotalTimes(info.getBaseTimes()*info.getContinuousTimes());
         return info;
     }
 
@@ -335,8 +335,8 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
             SteamAgeExpandRollerInfo steamAgeExpandRollerInfo = steamAgeExpandRollerInfoMap.get(libType).get(expandTimes);
             Integer times = steamAgeExpandRollerInfo.getBaseTimes();
             SteamAgeAwardLineInfo steamAgeAwardLineInfo = list.get(i);
-            steamAgeAwardLineInfo.setBaseTimes(times);
-            steamAgeAwardLineInfo.setTotalTimes(times * steamAgeAwardLineInfo.getLineTimes());
+            steamAgeAwardLineInfo.setContinuousTimes(times);
+            steamAgeAwardLineInfo.setTotalTimes(steamAgeAwardLineInfo.getContinuousTimes() * steamAgeAwardLineInfo.getBaseTimes());
         }
     }
 

@@ -9,11 +9,9 @@ import cn.hutool.json.JSONUtil;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.dao.SmsConfigDao;
 import com.jjg.game.core.dao.VerCodeDao;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.VerCodeType;
-import com.jjg.game.core.data.ThirdServiceInfo;
-import org.apache.commons.lang3.StringUtils;
+import com.jjg.game.core.data.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +19,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author 11
@@ -34,96 +35,56 @@ public class SmsService {
     private ThirdServiceInfo thirdServiceInfo;
     @Autowired
     private VerCodeDao verCodeDao;
+    @Autowired
+    private SmsConfigDao smsConfigDao;
 
+    public void reloadConfig() {
+        thirdServiceInfo.setSmsConfigInfoList(getAll());
+        log.info("加载sms配置 ,size={}", thirdServiceInfo.getSmsConfigInfoList() == null ? 0 : thirdServiceInfo.getSmsConfigInfoList().size());
+    }
 
-    /**
-     * 发送验证码短信
-     *
-     * @param phone
-     * @param verCodeType
-     * @return
-     */
-    public int sendCode(String phone, VerCodeType verCodeType) {
-        //生成验证码
-        int verCode = RandomUtils.randomNum(GameConstant.VerCode.CODE_MIN, GameConstant.VerCode.CODE_MAX);
-        String content = verCode + " is your verification code";
-        int sendResultCode = sendOnbukaSms(phone, content, verCodeType);
-        if (sendResultCode != Code.SUCCESS) {
-            return sendResultCode;
+    public List<SmsConfigInfo> getAll() {
+        return smsConfigDao.getAll();
+    }
+
+    public VerCode getSmsCodeByPlayerId(long playerId) {
+        return verCodeDao.getSmsVerCodeByPlayerId(playerId);
+    }
+
+    public VerCode getSmsCodeByPhone(String phone) {
+        return verCodeDao.getSmsVerCodeByPhone(phone);
+    }
+
+    public void save(List<SmsConfigInfo> list) {
+        Map<Integer, SmsConfigInfo> map = new HashMap<>();
+        if (list != null && !list.isEmpty()) {
+            list.forEach(c -> map.put(c.getCfgId(), c));
         }
-        //缓存验证码
-        verCodeDao.addVerCode(phone, verCodeType, verCode);
-        return Code.SUCCESS;
+        smsConfigDao.save(map);
     }
 
     /**
      * 发送验证码短信
      *
-     * @param playerId
-     * @param phone
-     * @param verCodeType
+     * @param vc
      * @return
      */
-    public CommonResult<Integer> sendCode(long playerId, String phone, VerCodeType verCodeType) {
-        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
+    public CommonResult<VerCode> sendCode(VerCode vc) {
+        CommonResult<VerCode> result = new CommonResult<>(Code.SUCCESS);
         //生成验证码
         int verCode = RandomUtils.randomNum(GameConstant.VerCode.CODE_MIN, GameConstant.VerCode.CODE_MAX);
         String content = verCode + " is your verification code";
-        int sendResultCode = sendOnbukaSms(phone, content, verCodeType);
+        int sendResultCode = sendOnbukaSms(vc.getData(), content, vc.getVerCodeType());
         if (sendResultCode != Code.SUCCESS) {
             result.code = sendResultCode;
             return result;
         }
+
+        vc.setCode(verCode);
         //缓存验证码
-        verCodeDao.addVerCode(playerId, verCodeType, phone, verCode);
-        result.data = verCode;
+        result.code = verCodeDao.addSmsVerCode(vc);
+        result.data = vc;
         return result;
-    }
-
-
-    /**
-     * 发送短信(颂量)
-     *
-     * @param phoneNumber
-     */
-    private int sendItniotechSms(String phoneNumber, String content, VerCodeType verCodeType) {
-        try {
-            HttpRequest httpRequest = HttpRequest.post(thirdServiceInfo.getSmsSensSmsUrl());
-
-            //当前时间戳
-            String now = String.valueOf(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().getEpochSecond());
-            //签名
-            String sign = SecureUtil.md5(thirdServiceInfo.getSmsAppKey().concat(thirdServiceInfo.getSmsAppSecret()).concat(now));
-
-            httpRequest.header(Header.CONNECTION, "Keep-Alive")
-                    .header(Header.CONTENT_TYPE, "application/json;charset=UTF-8")
-                    .header("Sign", sign)
-                    .header("Timestamp", now)
-                    .header("Api-Key", thirdServiceInfo.getSmsAppKey());
-
-
-            String params = JSONUtil.createObj()
-                    .set("appId", thirdServiceInfo.getSmsAppId())
-                    .set("numbers", phoneNumber)
-                    .set("content", content)
-                    .toString();
-
-            HttpResponse resp = httpRequest.body(params).execute();
-            String body = resp.body();
-
-            JSONObject json = JSONUtil.parseObj(body);
-
-            if (!resp.isOk()) {
-                log.warn("发送短信失败 phoneNumber = {},code = {},reason = {}", phoneNumber, json.getInt("status"), json.getStr("reason"));
-                return Code.FAIL;
-            }
-
-            log.info("发送短信成功 smsType = {},content = {},resp = {}", verCodeType, content, body);
-            return Code.SUCCESS;
-        } catch (Exception e) {
-            log.error("", e);
-            return Code.EXCEPTION;
-        }
     }
 
     /**
@@ -133,28 +94,28 @@ public class SmsService {
      */
     private int sendOnbukaSms(String phoneNumber, String content, VerCodeType verCodeType) {
         try {
-            if (StringUtils.isBlank(thirdServiceInfo.getSmsSensSmsUrl()) || StringUtils.isBlank(thirdServiceInfo.getSmsAppId()) || StringUtils.isBlank(thirdServiceInfo.getSmsAppKey()) || StringUtils.isBlank(thirdServiceInfo.getSmsAppSecret())) {
-                log.warn("sms配置信息缺失 smsSensSmsUrl = {},smsAppId = {},smsAppKey = {},smsAppSecret is null={}",
-                        thirdServiceInfo.getSmsSensSmsUrl(), thirdServiceInfo.getSmsAppId(), thirdServiceInfo.getSmsAppKey(), StringUtils.isBlank(thirdServiceInfo.getSmsAppSecret()));
-                return Code.FAIL;
+            SmsConfigInfo smsConfigInfo = randSmsConfigInfoList();
+            if (smsConfigInfo == null) {
+                log.warn("获取sms配置失败");
+                return Code.SMS_CONFIGURATION_MISSING_CAPTCHA_FAILED;
             }
 
-            HttpRequest httpRequest = HttpRequest.post(thirdServiceInfo.getSmsSensSmsUrl());
+            HttpRequest httpRequest = HttpRequest.post(smsConfigInfo.getSendSmsUrl());
 
             //当前时间戳
             String now = String.valueOf(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().getEpochSecond());
             //签名
-            String sign = SecureUtil.md5(thirdServiceInfo.getSmsAppKey().concat(thirdServiceInfo.getSmsAppSecret()).concat(now));
+            String sign = SecureUtil.md5(smsConfigInfo.getAppKey().concat(smsConfigInfo.getAppSecret()).concat(now));
 
             httpRequest.header(Header.CONNECTION, "Keep-Alive")
                     .header(Header.CONTENT_TYPE, "application/json;charset=UTF-8")
                     .header("Sign", sign)
                     .header("Timestamp", now)
-                    .header("Api-Key", thirdServiceInfo.getSmsAppKey());
+                    .header("Api-Key", smsConfigInfo.getAppKey());
 
 
             String params = JSONUtil.createObj()
-                    .set("appId", thirdServiceInfo.getSmsAppId())
+                    .set("appId", smsConfigInfo.getAppId())
                     .set("numbers", phoneNumber)
                     .set("content", content)
                     .toString();
@@ -166,13 +127,13 @@ public class SmsService {
 
             if (!resp.isOk()) {
                 log.warn("发送短信失败 phoneNumber = {},code = {},reason = {}", phoneNumber, json.getInt("status"), json.getStr("reason"));
-                return Code.FAIL;
+                return Code.SEND_SMS_FAILED;
             }
 
             int status = json.getInt("status");
             if (status != 0) {
                 log.warn("发送短信失败1 phoneNumber = {},code = {},reason = {}", phoneNumber, json.getInt("status"), json.getStr("reason"));
-                return Code.FAIL;
+                return Code.SEND_SMS_FAILED;
             }
 
             log.info("发送短信成功 smsType = {},content = {},resp = {}", verCodeType, content, body);
@@ -181,5 +142,16 @@ public class SmsService {
             log.error("", e);
             return Code.EXCEPTION;
         }
+    }
+
+    private SmsConfigInfo randSmsConfigInfoList() {
+        if (thirdServiceInfo.getSmsConfigInfoList() == null) {
+            return null;
+        }
+        return thirdServiceInfo.getSmsConfigInfoList().stream().filter(c -> c.isOpen()).findFirst().orElse(null);
+    }
+
+    public CommonResult<VerCode> verifySmsVerCode(VerCode reqVerCode){
+        return verCodeDao.verifySmsVerCode(reqVerCode);
     }
 }

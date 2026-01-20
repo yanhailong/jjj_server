@@ -14,8 +14,8 @@ public enum VerCodeType {
     SMS_LOGIN(2),
     //删除账号
     DELETE_ACCOUNT(3),
-
-
+    //验证用户
+    VERIFY_ACCOUNT(4),
     ;
 
 
@@ -39,6 +39,12 @@ public enum VerCodeType {
             }
             case 2 -> {
                 return SMS_LOGIN;
+            }
+            case 3 -> {
+                return DELETE_ACCOUNT;
+            }
+            case 4 -> {
+                return VERIFY_ACCOUNT;
             }
             default -> {return null;}
         }

@@ -2,11 +2,11 @@ package com.jjg.game.recharge.controller;
 
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Order;
-import com.jjg.game.core.rpc.BackendBridge;
+import com.jjg.game.core.rpc.GmToRechargeBridge;
 import org.springframework.stereotype.Component;
 
 @Component
-public class RPCController extends AbstractCallbackController implements BackendBridge {
+public class RPCController extends AbstractCallbackController implements GmToRechargeBridge {
 
     @Override
     public int recharge(String selfOrderId, String channelOrderId) {

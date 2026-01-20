@@ -19,14 +19,21 @@ public class IponeAreacodeConfigCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "iponeAreacodeConfig";
 
-  /** 需要屏蔽的号段 */
+  /** 首位电话号码屏蔽数字 */
+  protected String blockedFirstNumber;
+  /** 需要屏蔽的号段(手机前面几位数字) */
   protected List<String> blockedNumber;
   /** 名称 */
   protected int langId;
   /** 区号 */
   protected int type;
 
-  /** 返回需要屏蔽的号段 */
+  /** 返回首位电话号码屏蔽数字 */
+  public String getBlockedFirstNumber() {
+    return blockedFirstNumber;
+  }
+
+  /** 返回需要屏蔽的号段(手机前面几位数字) */
   public List<String> getBlockedNumber() {
     return blockedNumber;
   }

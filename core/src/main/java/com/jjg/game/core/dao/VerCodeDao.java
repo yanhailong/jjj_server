@@ -1,9 +1,12 @@
 package com.jjg.game.core.dao;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.VerCode;
 import com.jjg.game.core.data.VerCodeType;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,10 +25,15 @@ import java.util.concurrent.TimeUnit;
 public class VerCodeDao {
     private Logger log = LoggerFactory.getLogger(getClass());
 
-    //短信验证码
+    //短信验证码(存储无法获知playerId时的验证码)
     private String smsVercodeTableName = "vercode:sms:";
-    //邮箱验证码
+    //短信验证码
+    private String smsPlayerVercodeTableName = "vercode:sms:player:";
+
+    //邮箱验证码(存储无法获知playerId时的验证码)
     private String mailVercodeTableName = "vercode:mail:";
+    //邮箱验证码
+    private String mailPlayerVercodeTableName = "vercode:mail:player:";
 
     //缓存要绑定的信息，多少分钟后过期自动删除(分钟)
     private int PRE_EXPIRE_TIME = 10;
@@ -35,216 +43,227 @@ public class VerCodeDao {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
-    private String smsVercodeTableName(VerCodeType verCodeType, long playerId) {
-        return smsVercodeTableName + verCodeType.name() + playerId;
+    public String smsTableName(String phone) {
+        return smsVercodeTableName + phone;
     }
 
-    private String smsVercodeTableName(VerCodeType verCodeType, String phone) {
-        return smsVercodeTableName + verCodeType.name() + phone;
+    public String smsPlayerTableName(long playerId) {
+        return smsPlayerVercodeTableName + playerId;
     }
 
-    private String mailVercodeTableName(VerCodeType verCodeType, long playerId) {
-        return mailVercodeTableName + verCodeType.name() + playerId;
+    public String mailTableName(String mail) {
+        return mailVercodeTableName + mail;
     }
 
-    private String mailVercodeTableName(VerCodeType verCodeType, String mail) {
-        return mailVercodeTableName + verCodeType.name() + mail;
+    public String mailPlayerTableName(long playerId) {
+        return mailPlayerVercodeTableName + playerId;
     }
 
     /**
-     * 缓存验证码
+     * 添加短信验证码
      *
-     * @param playerId
-     * @param verCodeType
-     * @param data
      * @param verCode
      */
-    public void addVerCode(long playerId, VerCodeType verCodeType, String data, int verCode) {
-        if (verCodeType == VerCodeType.MAIL_BIND_MAIL) {
-            redisTemplate.opsForValue().set(mailVercodeTableName(verCodeType, playerId), verCodeValue(data, verCode), PRE_EXPIRE_TIME, TimeUnit.MINUTES);
-        } else {
-            redisTemplate.opsForValue().set(smsVercodeTableName(verCodeType, playerId), verCodeValue(data, verCode), PRE_EXPIRE_TIME, TimeUnit.MINUTES);
-        }
-    }
-
-    /**
-     * 缓存验证码
-     *
-     * @param data
-     * @param verCodeType
-     * @param verCode
-     */
-    public void addVerCode(String data, VerCodeType verCodeType, int verCode) {
-        if (verCodeType == VerCodeType.MAIL_BIND_MAIL) {
-            redisTemplate.opsForValue().set(mailVercodeTableName(verCodeType, data), verCodeValue(verCode), PRE_EXPIRE_TIME, TimeUnit.MINUTES);
-        } else {
-            redisTemplate.opsForValue().set(smsVercodeTableName(verCodeType, data), verCodeValue(verCode), PRE_EXPIRE_TIME, TimeUnit.MINUTES);
-        }
-    }
-
-    /**
-     * 获取验证码
-     *
-     * @param playerId
-     * @param verCodeType
-     * @return
-     */
-    public Object getVerCode(long playerId, VerCodeType verCodeType) {
-        if (verCodeType == VerCodeType.MAIL_BIND_MAIL) {
-            return redisTemplate.opsForValue().get(mailVercodeTableName(verCodeType, playerId));
-        }
-        return redisTemplate.opsForValue().get(smsVercodeTableName(verCodeType, playerId));
-    }
-
-    /**
-     * 获取验证码
-     *
-     * @param data
-     * @param verCodeType
-     * @return
-     */
-    public Object getVerCode(String data, VerCodeType verCodeType) {
-        if (verCodeType == VerCodeType.MAIL_BIND_MAIL) {
-            return redisTemplate.opsForValue().get(mailVercodeTableName(verCodeType, data));
-        }
-        return redisTemplate.opsForValue().get(smsVercodeTableName(verCodeType, data));
-    }
-
-    /**
-     * 校验验证码
-     *
-     * @param playerId
-     * @param verCodeType
-     * @param verCode
-     * @return
-     */
-    public CommonResult<String> verifyVerCode(long playerId, VerCodeType verCodeType, int verCode) {
-        CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
-        Object o = getVerCode(playerId, verCodeType);
-
-        if (o == null) {
-            result.code = Code.NOT_FOUND;
-            log.warn("未找到该类型的验证码 playerId = {}, verCodeType = {}, verCode = {}", playerId, verCodeType, verCode);
-            return result;
-        }
-
-        String[] arr = o.toString().split("&");
-        int cacheCode = Integer.parseInt(arr[1]);
-        if (cacheCode != verCode) {
-            result.code = Code.FAIL;
-            log.warn("验证码不匹配，校验失败 playerId = {}, verCodeType = {},verCode = {},cacheCode = {}", playerId, verCodeType, verCode, cacheCode);
-            return result;
-        }
-
-        result.data = arr[0];
-        delVerCode(playerId, verCodeType);
-        return result;
-    }
-
-    /**
-     * 校验验证码
-     *
-     * @param data
-     * @param verCodeType
-     * @param verCode
-     * @return
-     */
-    public CommonResult<String> verifyVerCode(String data, VerCodeType verCodeType, int verCode) {
-        CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
-        Object o = getVerCode(data, verCodeType);
-
-        if (o == null) {
-            result.code = Code.NOT_FOUND;
-            log.warn("未找到该类型的验证码 data = {}, verCodeType = {}, verCode = {}", data, verCodeType, verCode);
-            return result;
-        }
-
-        String[] arr = o.toString().split("&");
-        int cacheCode = Integer.parseInt(arr[0]);
-        if (cacheCode != verCode) {
-            result.code = Code.FAIL;
-            log.warn("验证码不匹配，校验失败 data = {}, verCodeType = {},verCode = {}", data, verCodeType, verCode);
-            return result;
-        }
-
-        delVerCode(data, verCodeType);
-        result.data = arr[0];
-        return result;
-    }
-
-    /**
-     * 获取空闲时间
-     *
-     * @param playerId
-     * @return
-     */
-    public CommonResult<Integer> verCodeIdleTime(long playerId, VerCodeType verCodeType) {
-        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
-        Object o = getVerCode(playerId, verCodeType);
-
-        if (o == null) {
-            result.data = 0;
-            return result;
-        }
-        String[] arr = o.toString().split("&");
-        result.data = Integer.parseInt(arr[2]);
-        return result;
-    }
-
-    /**
-     * 获取空闲时间
-     *
-     * @param data
-     * @return
-     */
-    public CommonResult<Integer> verCodeIdleTime(String data, VerCodeType verCodeType) {
-        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
-        Object o = getVerCode(data, verCodeType);
-
-        if (o == null) {
-            result.data = 0;
-            return result;
-        }
-        String[] arr = o.toString().split("&");
-        result.data = Integer.parseInt(arr[1]);
-        return result;
-    }
-
-    /**
-     * 移除验证码
-     *
-     * @param playerId
-     */
-    public void delVerCode(long playerId, VerCodeType verCodeType) {
-        if (verCodeType == VerCodeType.MAIL_BIND_MAIL) {
-            redisTemplate.delete(mailVercodeTableName(verCodeType, playerId));
-        } else {
-            redisTemplate.delete(smsVercodeTableName(verCodeType, playerId));
-        }
-    }
-
-    /**
-     * 移除验证码
-     *
-     * @param data
-     * @param verCodeType
-     */
-    public void delVerCode(String data, VerCodeType verCodeType) {
-        if (verCodeType == VerCodeType.MAIL_BIND_MAIL) {
-            redisTemplate.delete(mailVercodeTableName(verCodeType, data));
-        } else {
-            redisTemplate.delete(smsVercodeTableName(verCodeType, data));
-        }
-
-    }
-
-    private String verCodeValue(String data, int verCode) {
+    public int addSmsVerCode(VerCode verCode) {
         int idleTime = TimeHelper.nowInt() + VER_CODE_IDLE_TIME * 60;
-        return data + "&" + verCode + "&" + idleTime;
+        verCode.setIdleTime(idleTime);
+
+        if (verCode.getPlayerId() < 1) {
+            if (StringUtils.isNotBlank(verCode.getData())) {
+                redisTemplate.opsForValue().set(smsTableName(verCode.getData()), verCode, PRE_EXPIRE_TIME, TimeUnit.MINUTES);
+            } else {
+                return Code.PARAM_ERROR;
+            }
+        } else {
+            redisTemplate.opsForValue().set(smsPlayerTableName(verCode.getPlayerId()), verCode, PRE_EXPIRE_TIME, TimeUnit.MINUTES);
+        }
+        return Code.SUCCESS;
     }
 
-    private String verCodeValue(int verCode) {
+    /**
+     * 添加邮件验证码
+     *
+     * @param verCode
+     */
+    public int addMailVerCode(VerCode verCode) {
         int idleTime = TimeHelper.nowInt() + VER_CODE_IDLE_TIME * 60;
-        return verCode + "&" + idleTime;
+        verCode.setIdleTime(idleTime);
+
+        if (verCode.getPlayerId() < 1) {
+            if (StringUtils.isNotBlank(verCode.getData())) {
+                redisTemplate.opsForValue().set(mailTableName(verCode.getData()), verCode, PRE_EXPIRE_TIME, TimeUnit.MINUTES);
+            } else {
+                return Code.PARAM_ERROR;
+            }
+        } else {
+            redisTemplate.opsForValue().set(mailPlayerTableName(verCode.getPlayerId()), verCode, PRE_EXPIRE_TIME, TimeUnit.MINUTES);
+        }
+        return Code.SUCCESS;
+    }
+
+    public VerCode getSmsVerCodeByPlayerId(long playerId) {
+        return (VerCode) redisTemplate.opsForValue().get(smsPlayerTableName(playerId));
+    }
+
+    public VerCode getSmsVerCodeByPhone(String phone) {
+        return (VerCode) redisTemplate.opsForValue().get(smsTableName(phone));
+    }
+
+    public VerCode getMailVerCodeByPlayerId(long playerId) {
+        return (VerCode) redisTemplate.opsForValue().get(mailPlayerTableName(playerId));
+    }
+
+    public VerCode getMailVerCodeByMail(String mail) {
+        return (VerCode) redisTemplate.opsForValue().get(mailTableName(mail));
+    }
+
+    /**
+     * 校验短信验证码
+     *
+     * @param reqVerCode
+     * @return
+     */
+    public CommonResult<VerCode> verifySmsVerCode(VerCode reqVerCode) {
+        CommonResult<VerCode> result = new CommonResult<>(Code.SUCCESS);
+
+        VerCode dbVerCode;
+        if (reqVerCode.getPlayerId() < 1) {
+            dbVerCode = getSmsVerCodeByPhone(reqVerCode.getData());
+        } else {
+            dbVerCode = getSmsVerCodeByPlayerId(reqVerCode.getPlayerId());
+        }
+
+        if (dbVerCode == null) {
+            result.code = Code.NOT_FOUND;
+            log.warn("未找到该玩家的验证码 reqVerCode = {}", JSON.toJSONString(reqVerCode));
+            return result;
+        }
+
+        if (reqVerCode.getVerCodeType() != dbVerCode.getVerCodeType()) {
+            result.code = Code.NOT_FOUND;
+            log.warn("未找到该玩家的验证码1 reqVerCode = {}, dbVerCode = {}", JSON.toJSONString(reqVerCode), JSON.toJSONString(dbVerCode));
+            return result;
+        }
+
+        if (reqVerCode.getCode() != dbVerCode.getCode()) {
+            result.code = Code.FAIL;
+            log.warn("验证码不匹配，校验失败 reqVerCode = {}, dbVerCode = {}", JSON.toJSONString(reqVerCode), JSON.toJSONString(dbVerCode));
+            return result;
+        }
+
+        result.data = dbVerCode;
+        if (dbVerCode.getPlayerId() < 1) {
+            redisTemplate.delete(smsTableName(dbVerCode.getData()));
+        } else {
+            redisTemplate.delete(smsPlayerTableName(dbVerCode.getPlayerId()));
+        }
+        return result;
+    }
+
+    /**
+     * 校验邮件验证码
+     *
+     * @param reqVerCode
+     * @return
+     */
+    public CommonResult<String> verifyMailVerCode(VerCode reqVerCode) {
+        CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
+
+        VerCode dbVerCode;
+        if (reqVerCode.getPlayerId() < 1) {
+            dbVerCode = getMailVerCodeByMail(reqVerCode.getData());
+        } else {
+            dbVerCode = getMailVerCodeByPlayerId(reqVerCode.getPlayerId());
+        }
+
+        if (dbVerCode == null) {
+            result.code = Code.NOT_FOUND;
+            log.warn("未找到该玩家的邮件验证码 reqVerCode = {}", JSON.toJSONString(reqVerCode));
+            return result;
+        }
+
+        if (reqVerCode.getVerCodeType() != dbVerCode.getVerCodeType()) {
+            result.code = Code.NOT_FOUND;
+            log.warn("未找到该玩家的邮件验证码1 reqVerCode = {}, dbVerCode = {}", JSON.toJSONString(reqVerCode), JSON.toJSONString(dbVerCode));
+            return result;
+        }
+
+        if (reqVerCode.getCode() != dbVerCode.getCode()) {
+            result.code = Code.FAIL;
+            log.warn("邮件验证码不匹配，校验失败 reqVerCode = {}, dbVerCode = {}", JSON.toJSONString(reqVerCode), JSON.toJSONString(dbVerCode));
+            return result;
+        }
+
+        result.data = dbVerCode.getData();
+        if (dbVerCode.getPlayerId() < 1) {
+            redisTemplate.delete(mailTableName(dbVerCode.getData()));
+        } else {
+            redisTemplate.delete(mailPlayerTableName(dbVerCode.getPlayerId()));
+        }
+        return result;
+    }
+
+    /**
+     * 获取短信验证码信息
+     *
+     * @return
+     */
+    public CommonResult<VerCode> querySmsVerCodeInfo(VerCode reqVerCode) {
+        CommonResult<VerCode> result = new CommonResult<>(Code.SUCCESS);
+        VerCode dbVerCode;
+        if (reqVerCode.getPlayerId() < 1) {
+            dbVerCode = getSmsVerCodeByPhone(reqVerCode.getData());
+        } else {
+            dbVerCode = getSmsVerCodeByPlayerId(reqVerCode.getPlayerId());
+        }
+
+        if (dbVerCode == null) {
+            result.code = Code.NOT_FOUND;
+            log.warn("未找到该玩家的验证码3 reqVerCode = {}", JSON.toJSONString(reqVerCode));
+            return result;
+        }
+
+        if (reqVerCode.getVerCodeType() != null) {
+            if (reqVerCode.getVerCodeType() != dbVerCode.getVerCodeType()) {
+                result.code = Code.NOT_FOUND;
+                log.warn("未找到该玩家的验证码34 reqVerCode = {}, dbVerCode = {}", JSON.toJSONString(reqVerCode), JSON.toJSONString(dbVerCode));
+                return result;
+            }
+        }
+
+        result.data = dbVerCode;
+        return result;
+    }
+
+    /**
+     * 获取邮件验证码信息
+     *
+     * @return
+     */
+    public CommonResult<VerCode> queryMailVerCodeInfo(VerCode reqVerCode) {
+        CommonResult<VerCode> result = new CommonResult<>(Code.SUCCESS);
+        VerCode dbVerCode;
+        if (reqVerCode.getPlayerId() < 1) {
+            dbVerCode = getMailVerCodeByMail(reqVerCode.getData());
+        } else {
+            dbVerCode = getMailVerCodeByPlayerId(reqVerCode.getPlayerId());
+        }
+
+        if (dbVerCode == null) {
+            result.code = Code.NOT_FOUND;
+            log.warn("未找到该玩家的邮件验证码3 reqVerCode = {}", JSON.toJSONString(reqVerCode));
+            return result;
+        }
+
+        if (reqVerCode.getVerCodeType() != null) {
+            if (reqVerCode.getVerCodeType() != dbVerCode.getVerCodeType()) {
+                result.code = Code.NOT_FOUND;
+                log.warn("未找到该玩家的邮件验证码34 reqVerCode = {}, dbVerCode = {}", JSON.toJSONString(reqVerCode), JSON.toJSONString(dbVerCode));
+                return result;
+            }
+        }
+
+        result.data = dbVerCode;
+        return result;
     }
 }

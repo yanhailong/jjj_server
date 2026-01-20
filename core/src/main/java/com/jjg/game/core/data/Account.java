@@ -144,4 +144,12 @@ public class Account {
         }
         return thirdAccounts.get(loginType);
     }
+
+    public String removeThirdAccount(LoginType loginType){
+        if(thirdAccounts == null){
+            return null;
+        }
+
+        return thirdAccounts.remove(loginType);
+    }
 }

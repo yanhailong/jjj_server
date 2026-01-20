@@ -232,8 +232,8 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
             SteamAgeAwardLineInfo info = awardLineInfoList.get(i);
             indexSet.addAll(info.getSameIconSet());
             winIconSet.add(info.getSameIcon());
-            iconInfo.win += info.getLineTimes() * oneBetScore;
-            iconInfo.baseTimes = info.getBaseTimes();
+            iconInfo.win += info.getBaseTimes() * oneBetScore;
+            iconInfo.baseTimes = info.getContinuousTimes();
 //            //没有中奖 倍数是默认1 过来的 重新赋值
             if (info.getBaseTimes() == 1
                     && (info.getSameIconSet() == null || info.getSameIconSet().isEmpty())) {

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.ObjectMapperUtil;
+import com.jjg.game.core.base.condition.handler.TodayDepositCondition;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.TaskConstant;
@@ -41,6 +42,7 @@ public class RechargeService {
     private final CountDao countDao;
     private final TaskManager taskManager;
     private final ClusterSystem clusterSystem;
+    private final TodayDepositCondition todayDepositCondition;
 
     public RechargeService(OfflineRechargeDao offlineRechargeDao,
                            CorePlayerService playerService,
@@ -48,7 +50,7 @@ public class RechargeService {
                            GameEventManager gameEventManager,
                            CountDao countDao,
                            TaskManager taskManager,
-                           ClusterSystem clusterSystem) {
+                           ClusterSystem clusterSystem, TodayDepositCondition conditionManager) {
         this.offlineRechargeDao = offlineRechargeDao;
         this.playerService = playerService;
         this.orderService = orderService;
@@ -56,6 +58,7 @@ public class RechargeService {
         this.countDao = countDao;
         this.taskManager = taskManager;
         this.clusterSystem = clusterSystem;
+        this.todayDepositCondition = conditionManager;
     }
 
     public void loadOfflineRecharge(long playerId) {
@@ -95,6 +98,8 @@ public class RechargeService {
             }
             Player player = playerService.get(notify.playerId);
             Order order = orderService.getOrder(notify.orderId);
+
+            todayDepositCondition.addBaseProgress(player.getId(), order.getPrice());
             //充值事件
             gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order, notify.money, notify.regionCode, notify.channelProductId));
             //任务条件参数
@@ -108,7 +113,6 @@ public class RechargeService {
             taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
             //累计充值任务
             taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_SUM_PAY, paramSupplier);
-
             NotifyPayInfo notifyPayInfo = new NotifyPayInfo();
             notifyPayInfo.orderId = order.getId();
 
