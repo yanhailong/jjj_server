@@ -229,8 +229,8 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
     }
 
     @Override
-    public int updateFriendRoom(long playerId, int roomCfgId, long roomId, int roomExpendCfgId, boolean autoRenewal, long predictCostGoldNum, String roomAliasName) {
-        return Code.SUCCESS;
+    public CommonResult<FriendRoom> updateFriendRoom(long playerId, int roomCfgId, long roomId, int roomExpendCfgId, boolean autoRenewal, long predictCostGoldNum, String roomAliasName) {
+        return new CommonResult<>(Code.ERROR_REQ);
     }
 
     @Override

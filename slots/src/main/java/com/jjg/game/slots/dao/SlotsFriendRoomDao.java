@@ -11,8 +11,10 @@ import java.util.Map;
 
 @Repository
 public class SlotsFriendRoomDao extends AbstractFriendRoomDao<SlotsFriendRoom, RoomPlayer> {
-    public SlotsFriendRoomDao() {
+    private final RoomSlotsPoolDao roomSlotsPoolDao;
+    public SlotsFriendRoomDao(RoomSlotsPoolDao roomSlotsPoolDao) {
         super(SlotsFriendRoom.class);
+        this.roomSlotsPoolDao = roomSlotsPoolDao;
     }
 
     @Override
@@ -41,6 +43,8 @@ public class SlotsFriendRoomDao extends AbstractFriendRoomDao<SlotsFriendRoom, R
             log.warn("获取好友房失败,未找到房间信息 roomCfgId = {},roomId = {}", roomCfgId, roomId);
             return null;
         }
+        Number number = roomSlotsPoolDao.getBigPoolByRoomId(roomId);
+        room.setPredictCostGoldNum(number == null ? 0 : number.longValue());
         return room;
     }
 }

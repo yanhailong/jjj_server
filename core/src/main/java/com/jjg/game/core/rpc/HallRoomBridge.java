@@ -1,6 +1,7 @@
 package com.jjg.game.core.rpc;
 
 import com.jjg.game.common.rpc.IGameRpc;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.FriendRoom;
 
 /**
@@ -39,10 +40,10 @@ public interface HallRoomBridge extends IGameRpc {
      *
      * @param playerId
      * @param roomId
-     * @param roomExpendCfgId    申请开房时长，RoomExpend cfg id
+     * @param addTime    增加时长
      * @param autoRenewal
      * @param predictCostGoldNum 添加的庄家准备金
      * @param roomAliasName
      */
-    int updateFriendRoom(long playerId, int roomCfgId, long roomId, int roomExpendCfgId, boolean autoRenewal, long predictCostGoldNum, String roomAliasName);
+    CommonResult<FriendRoom> updateFriendRoom(long playerId, int roomCfgId, long roomId, int addTime, boolean autoRenewal, long predictCostGoldNum, String roomAliasName);
 }
