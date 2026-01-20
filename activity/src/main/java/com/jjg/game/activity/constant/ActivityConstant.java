@@ -283,5 +283,8 @@ public interface ActivityConstant {
         int REQ_SCRATCH_CARDS_EXCHANGE = BASE_MSG_PREFIX | 0x73;
         //响应兑换道具
         int RES_SCRATCH_CARDS_EXCHANGE = BASE_MSG_PREFIX | 0x74;
+        //财富转盘 请求历史记录
+        int REQ_WEALTH_ROULETTE_HISTORY = BASE_MSG_PREFIX | 0x75;
+        int RES_WEALTH_ROULETTE_HISTORY = BASE_MSG_PREFIX | 0x76;
     }
 }

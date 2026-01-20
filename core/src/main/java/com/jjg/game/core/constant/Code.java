@@ -111,6 +111,8 @@ public interface Code {
     int ALREADY_WORN = 439;
     // 待关闭服务器禁止修改房间信息
     int WAIT_CLOSE_NOT_MODIFICATION = 441;
+    // 手机号码错误
+    int PHONE_NUMBER_ERROR = 442;
     //积分大奖积分不足
     int POINT_AWARD_POINT_NOT_ENOUGH = 66019;
     //积分大奖次数不足
@@ -125,4 +127,40 @@ public interface Code {
     int MAIL_ITEM_ALL_GET = 11010;
     // 服务器错误
     int EXCEPTION = 500;
+
+    // 登录多语言 /login
+    // 请求登录的信息参数为空
+    int REQ_LOGIN_PARAMS_EMPTY = 445;
+    // 登录类型为空或不存在
+    int LOGIN_TYPE_EMPTY_OR_NOT_EXIST = 446;
+    // 该登录类型未开启
+    int LOGIN_TYPE_NOT_ENABLED = 447;
+    // 该IP地址已被封禁，无法登录
+    int IP_BLOCKED_LOGIN_DISABLED = 448;
+
+    // 获取服务器地址多语言 /serverurl
+    // 获取服务器地址的token为空
+    int SERVER_URL_TOKEN_EMPTY = 450;
+    // 玩家 ID 不存在
+    int PLAYER_ID_NOT_EXIST = 451;
+    // 该IP地址已被封禁，无法获取服务器地址
+    int IP_BLOCKED_SERVER_URL_UNAVAILABLE = 452;
+    // 该玩家ID已被封禁，无法获取服务器地址
+    int PLAYER_ID_BLOCKED_SERVER_URL_UNAVAILABLE = 453;
+    // token已失效，无法获取服务器地址
+    int TOKEN_EXPIRED_SERVER_URL_UNAVAILABLE = 454;
+
+    //  登录验证码多语言 /loginsms
+    // 手机号不能为空
+    int PHONE_NUMBER_EMPTY = 456;
+    // 手机号格式有误
+    int PHONE_NUMBER_FORMAT_INVALID = 457;
+    // sms配置信息缺失，获取验证码失败
+    int SMS_CONFIGURATION_MISSING_CAPTCHA_FAILED = 458;
+    // 发送短信失败
+    int SEND_SMS_FAILED = 459;
+    // 验证码错误
+    int VERIFICATION_CODE_ERROR = 17028;
+    // 获取验证码频繁,请稍后再试
+    int VERCODE_IDLE = 460;
 }

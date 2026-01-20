@@ -2,7 +2,10 @@ package com.jjg.game.core.rpc;
 
 import com.jjg.game.common.rpc.IGameRpc;
 
-public interface BackendBridge extends IGameRpc {
+/**
+ * gm调用recharge
+ */
+public interface GmToRechargeBridge extends IGameRpc {
     /**
      * 充值
      *

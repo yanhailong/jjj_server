@@ -58,7 +58,6 @@ public class RecordDao {
     }
 
 
-
     public <T> void addRecord(String functionName, long id, long playerId, T record, int maxNum, boolean addAll) {
         String recordJson;
         try {
@@ -150,10 +149,10 @@ public class RecordDao {
      * @param start    开始索引
      * @param size     记录数
      * @param clazz    反序列化类
-     * @param <T>      记录类
+     * @param <K>      记录类
      * @return 记录(是否还有记录,记录数据)
      */
-    private <T> Pair<Boolean, List<T>> getRecords(String redisKey, int start, int size, Class<T> clazz) throws Exception {
+    private <K> Pair<Boolean, List<K>> getRecords(String redisKey, int start, int size, Class<K> clazz) throws Exception {
         List<String> records = redisTemplate.opsForList().range(redisKey, start, start + size);
         if (records == null || records.isEmpty()) {
             return Pair.newPair(false, List.of());
@@ -163,10 +162,26 @@ public class RecordDao {
             records.removeLast();
             hasNext = true;
         }
-        List<T> recordList = new ArrayList<>();
+        List<K> recordList = new ArrayList<>();
         for (String record : records) {
             recordList.add(objectMapper.readValue(record, clazz));
         }
         return Pair.newPair(hasNext, recordList);
     }
+
+
+    /**
+     * 获取玩家记录数
+     *
+     * @param functionName 功能名称
+     * @param id           功能 id
+     * @param playerId     玩家 id
+     * @return 获取记录数
+     */
+    public long getPlayerRecordCount(String functionName, long id, long playerId) {
+        String key = RECORD_KEY.formatted(functionName, id, playerId);
+        Long size = redisTemplate.opsForList().size(key);
+        return size == null ? 0 : size;
+    }
+
 }

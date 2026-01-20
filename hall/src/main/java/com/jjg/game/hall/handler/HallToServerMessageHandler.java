@@ -40,21 +40,15 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
     private final CoreLogger coreLogger;
     private final LuckyTreasureService luckyTreasureService;
     private final ActivityManager activityManager;
-    private final PointsAwardService pointsAwardService;
-    private final ClusterSystem clusterSystem;
     private final NoticeService noticeService;
 
     public HallToServerMessageHandler(LuckyTreasureService luckyTreasureService,
                                       HallService hallService,
                                       CoreLogger coreLogger,
-                                      PointsAwardService pointsAwardService,
-                                      ClusterSystem clusterSystem,
                                       ActivityManager activityManager, NoticeService noticeService) {
         this.luckyTreasureService = luckyTreasureService;
         this.hallService = hallService;
         this.coreLogger = coreLogger;
-        this.pointsAwardService = pointsAwardService;
-        this.clusterSystem = clusterSystem;
         this.activityManager = activityManager;
         this.noticeService = noticeService;
     }

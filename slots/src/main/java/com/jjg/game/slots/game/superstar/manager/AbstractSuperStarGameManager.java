@@ -38,7 +38,6 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
 
     public AbstractSuperStarGameManager() {
         super(SuperStarPlayerGameData.class, SuperStarResultLib.class);
-        this.log = LoggerFactory.getLogger(getClass());
     }
 
     @Override

@@ -118,7 +118,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     /**
      * 开服时间（毫秒）
      */
-    private final long startServerTime = 1756656000000L;
+    private long startServerTime;
     /**
      * 玩家获得数据dao
      */
@@ -133,7 +133,16 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     private final CountDao countDao;
 
+    /**
+     * 条件解析
+     */
     private final ConditionParser conditionParser;
+
+    /**
+     * 事件管理
+     */
+    private final GameEventManager gameEventManager;
+
     private Map<EGameEventType, List<ActivityData>> activityConditionCache = new HashMap<>();
 
 
@@ -141,7 +150,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                            CoreMarqueeManager marqueeManager,
                            MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager,
                            ConditionManager conditionManager, PlayerActivityDao playerActivityDao,
-                           DropItemManager dropItemManager, CountDao countDao, ConditionParser conditionParser) {
+                           DropItemManager dropItemManager, CountDao countDao, ConditionParser conditionParser,
+                           GameEventManager gameEventManager) {
         this.timerCenter = timerCenter;
         this.clusterSystem = clusterSystem;
         this.marqueeManager = marqueeManager;
@@ -153,6 +163,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         this.dropItemManager = dropItemManager;
         this.countDao = countDao;
         this.conditionParser = conditionParser;
+        this.gameEventManager = gameEventManager;
     }
 
 
@@ -169,6 +180,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     public void initData() {
         ActivityType.initialize();
+        //添加开服时间
+        checkStartServerTime();
         Map<Long, ActivityData> tempActivityData = new ConcurrentHashMap<>();
         //要添加定时器的列表 时间戳 活动id
         List<Pair<Long, Long>> timerList = new ArrayList<>();
@@ -186,6 +199,23 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         //检查是否要主动开启
         for (ActivityData data : activityData.values()) {
             checkActivityStatus(data, currentTime);
+        }
+        if (CollectionUtil.isEmpty(activityConditionCache)) {
+            loadActivityConditionCache();
+            gameEventManager.registerEventListener(this);
+        }
+    }
+
+    /**
+     * 检查开服时间
+     */
+    private void checkStartServerTime() {
+        long serverStartTime = TimeHelper.getCurrentDateZeroSecondTime();
+        boolean ifAbsent = countDao.setIfAbsent(CountDao.CountType.SYSTEM.getParam(), "openServerTime", BigDecimal.valueOf(serverStartTime));
+        if (ifAbsent) {
+            startServerTime = serverStartTime;
+        } else {
+            startServerTime = countDao.getCount(CountDao.CountType.SYSTEM.getParam(), "openServerTime").longValue();
         }
     }
 
@@ -657,6 +687,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     //添加其他活动进度
                     addPlayerActivityProgress(player, ActivityTargetType.LEVEL.getTargetKey(), player.getLevel(), playerEvent.getNewlyValue());
                 }
+                if (playerEvent.getGameEventType() == EGameEventType.BIND_PHONE) {
+                    addPlayerActivityProgress(player, ActivityTargetType.BIND_PHONE.getTargetKey(), player.getLevel(), playerEvent.getNewlyValue());
+                }
                 //更新活动变化
                 List<ActivityData> openActivityData = new ArrayList<>();
                 List<ActivityData> dataList = activityConditionCache.get(playerEvent.getGameEventType());
@@ -796,6 +829,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             log.info("活动更新成功 activityId:{} activityData:{}", activityInfoId, JSON.toJSONString(activityData));
         }
         loadActivityConditionCache();
+        gameEventManager.registerEventListener(this);
     }
 
     /**

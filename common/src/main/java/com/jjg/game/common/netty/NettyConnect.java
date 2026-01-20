@@ -3,15 +3,16 @@ package com.jjg.game.common.netty;
 import com.jjg.game.common.net.Connect;
 import com.jjg.game.common.net.ConnectListener;
 import com.jjg.game.common.net.NetAddress;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.net.SocketException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -46,45 +47,55 @@ public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> imp
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
             throws Exception {
-        //cause.printStackTrace();
-        if (cause instanceof SocketException) {
-
-        } else {
-            log.error("tips caught exception,ctx={}", ctx, cause);
-        }
+        log.error("Netty caught exception,ctx={}", ctx, cause);
         close();
     }
 
     @Override
     public boolean write(Object msg) {
+        if (ctx == null || !ctx.channel().isActive()) {
+            ReferenceCountUtil.release(msg);
+            return false;
+        }
+        if (!ctx.channel().isWritable()) {
+            log.warn("channel not writable, drop msg, remote={}", remoteAddress);
+            ReferenceCountUtil.release(msg);
+            return false;
+        }
         try {
-            ctx.writeAndFlush(msg).addListener(future -> {
-                if (!future.isSuccess()) {
-                    Throwable e = future.cause();
-                    if (e != null) {
-                        log.error("发送消息出现异常", e);
-                        throw new RuntimeException("发送消息出现异常", e);
-                    }
+            ctx.writeAndFlush(msg).addListener((Future<? super Void> f) -> {
+                if (!f.isSuccess()) {
+                    log.error("发送消息失败, remote={}", remoteAddress, f.cause());
+                    ReferenceCountUtil.release(msg);
+                    ctx.close();
                 }
             });
         } catch (Exception e) {
             log.error("发送消息出现异常", e);
-            throw new RuntimeException("发送消息出现异常", e);
+            ctx.close();
         }
-
         return true;
     }
 
     /**
      * 发送消息并添加自定义监听
      */
-    public void writeWithFuture(Object msg, GenericFutureListener<? extends Future<? super Void>> future) {
-        try {
-            ctx.writeAndFlush(msg).addListener(future);
-        } catch (Exception e) {
-            log.error("发送消息出现异常", e);
-            throw new RuntimeException("发送消息出现异常", e);
+    public void writeWithFuture(Object msg, GenericFutureListener<Future<? super Void>> listener) {
+        if (!ctx.channel().isActive()) {
+            ReferenceCountUtil.release(msg);
+            return;
         }
+        ctx.writeAndFlush(msg).addListener((Future<? super Void> f) -> {
+            try {
+                listener.operationComplete(f);
+            } catch (Throwable t) {
+                log.error("future listener error", t);
+            }
+            if (!f.isSuccess()) {
+                ReferenceCountUtil.release(msg);
+                ctx.close();
+            }
+        });
     }
 
 
@@ -112,12 +123,11 @@ public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> imp
     public void writeAndClose(Object obj) {
         log.debug("服务器主动关闭连接并通知,netAddress={},ctx={}", remoteAddress, ctx);
         try {
-            ctx.writeAndFlush(obj).addListener(future -> {
-                if (isActive()) {
-                    // TODO 玩家不在线处理流程
-                    ctx.close();
-                }
-            });
+            if (!ctx.channel().isActive()) {
+                ReferenceCountUtil.release(obj);
+                return;
+            }
+            ctx.writeAndFlush(obj).addListener(ChannelFutureListener.CLOSE);
         } catch (Exception e) {
             log.error("关闭连接异常,netAddress={},ctx={}", remoteAddress, ctx, e);
         }

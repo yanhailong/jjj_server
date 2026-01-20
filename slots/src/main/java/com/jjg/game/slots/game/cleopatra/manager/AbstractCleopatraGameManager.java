@@ -45,7 +45,6 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
 
     public AbstractCleopatraGameManager() {
         super(CleopatraPlayerGameData.class, CleopatraResultLib.class);
-        this.log = LoggerFactory.getLogger(getClass());
     }
 
     @Override

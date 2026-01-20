@@ -142,7 +142,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     public AbstractSlotsGameManager(Class<T> playerGameDataClass, Class<L> libClass) {
         this.playerGameDataClass = playerGameDataClass;
         this.libClass = libClass;
-        this.log = LoggerFactory.getLogger(getClass());
     }
 
     /**

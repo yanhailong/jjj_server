@@ -42,6 +42,8 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
     //元素id->滚轴id
     private Map<Integer, Integer> elementRollMap;
 
+
+
     @Override
     public PegasusUnbridleResultLib checkAward(int[] arr, PegasusUnbridleResultLib lib, boolean freeModel) throws Exception {
         lib.setGameType(this.gameType);

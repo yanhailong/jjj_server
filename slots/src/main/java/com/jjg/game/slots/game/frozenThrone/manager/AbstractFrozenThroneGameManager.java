@@ -13,8 +13,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.OffLineEventData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
@@ -26,7 +24,6 @@ import com.jjg.game.slots.game.frozenThrone.data.FrozenThronePlayerGameDataDTO;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneResultLib;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -44,7 +41,6 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
 
     public AbstractFrozenThroneGameManager() {
         super(FrozenThronePlayerGameData.class, FrozenThroneResultLib.class);
-        this.log = LoggerFactory.getLogger(getClass());
     }
 
     @Override

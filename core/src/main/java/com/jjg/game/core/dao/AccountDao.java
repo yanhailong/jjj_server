@@ -8,6 +8,7 @@ import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.*;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -200,6 +201,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
             //查询该账号是否被绑定
             Account existBindAccount = queryThirdAccount(loginType, channelUserInfo.getUserId());
             if (existBindAccount != null) {
+                log.warn("该账号已经存在，绑定失败 playerId={},loginType = {},bindData = {},hasBindPlayerId = {}", player.getId(), loginType, channelUserInfo.getUserId(), existBindAccount.getPlayerId());
                 result.code = Code.EXIST;
                 return result;
             }
@@ -219,8 +221,42 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
 
         if (accountCommonResult.success()) {
             save(accountCommonResult.data, loginType, channelUserInfo.getUserId(), false);
-            gameEventManager.triggerEvent(new PlayerEvent(player, EGameEventType.BIND_PHONE, accountCommonResult.data, accountCommonResult.data));
+            if (loginType == LoginType.PHONE) {
+                gameEventManager.triggerEvent(new PlayerEvent(player, EGameEventType.BIND_PHONE, accountCommonResult.data, accountCommonResult.data));
+            }
         }
+        return result;
+    }
+
+    /**
+     * 解绑第三方账号
+     *
+     * @param loginType
+     * @return
+     */
+    public CommonResult<Account> removeThirdAccount(Player player, LoginType loginType) {
+        CommonResult<Account> result = new CommonResult<>(Code.FAIL);
+
+        //要加锁
+        String lockKey = getLockKey(player.getId());
+        redisLock.executeWithLock(lockKey, GameConstant.Redis.TIME, TimeUnit.MILLISECONDS, () -> {
+            Account tmpAccount = checkAndSave(player.getId(), a -> {
+                String thirdAccountData = a.removeThirdAccount(loginType);
+                if(StringUtils.isNotBlank(thirdAccountData)){
+                    redisTemplate.opsForHash().delete(thirdTableName(loginType), thirdAccountData);
+                }
+            });
+
+            if (tmpAccount == null) {
+                log.warn("解绑第三方账号时获取account数据未找到 playerId={}", player.getId());
+                result.code = Code.NOT_FOUND;
+            } else {
+                result.code = Code.SUCCESS;
+                result.data = tmpAccount;
+            }
+            return result;
+        });
+
         return result;
     }
 
