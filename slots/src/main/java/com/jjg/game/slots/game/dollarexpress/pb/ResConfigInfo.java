@@ -27,6 +27,10 @@ public class ResConfigInfo extends AbstractResponse {
     public long collectMinStake;
     @ProtoDesc("当前已收集美元个数")
     public int dollarCollectedCount;
+    @ProtoDesc("二选一免费次数")
+    public int freeCount;
+    @ProtoDesc("剩余免费次数")
+    public int remainFreeCount;
 
     public ResConfigInfo(int code) {
         super(code);

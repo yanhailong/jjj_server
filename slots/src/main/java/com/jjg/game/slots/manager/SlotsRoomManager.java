@@ -1,21 +1,25 @@
 package com.jjg.game.slots.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.util.concurrent.Striped;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.service.MailService;
-import com.jjg.game.sampledata.bean.RoomExpendCfg;
-import com.jjg.game.slots.dao.FriendRoomSlotsBillHistoryDao;
 import com.jjg.game.core.rpc.HallRoomBridge;
+import com.jjg.game.core.service.MailService;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.RoomExpendCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.controller.SlotsRoomController;
+import com.jjg.game.slots.dao.FriendRoomSlotsBillHistoryDao;
 import com.jjg.game.slots.dao.RoomSlotsPoolDao;
 import com.jjg.game.slots.dao.SlotsFriendRoomDao;
 import com.jjg.game.slots.logger.SlotsLogger;
@@ -27,6 +31,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
 
 @Component
 public class SlotsRoomManager implements HallRoomBridge {
@@ -48,10 +53,10 @@ public class SlotsRoomManager implements HallRoomBridge {
     private SlotsLogger slotsLogger;
     @Autowired
     private MarsCurator marsCurator;
-
+    private final Striped<Lock> roomLocks = Striped.lock(1024);
     private final ConcurrentHashMap<Long, SlotsRoomController> roomControllers = new ConcurrentHashMap<>();
 
-    private Map<Long, Long> poolMap;
+    private final Map<Long, Long> poolMap = new ConcurrentHashMap<>();
 
     public void init() {
     }
@@ -69,16 +74,30 @@ public class SlotsRoomManager implements HallRoomBridge {
         if (slotsRoomController != null) {
             return slotsRoomController;
         }
-        SlotsFriendRoom room = slotsFriendRoomDao.getRoom(gameType, roomId);
+        SlotsFriendRoom room = null;
+        Lock lock = roomLocks.get(roomId);
+        lock.lock();
+        try {
+            room = slotsFriendRoomDao.getRoom(gameType, roomId);
+            if (room == null) {
+                log.warn("进入好友房失败,未找到房间信息 playerId = {},gameType = {},roomId = {}", playerId, gameType, roomId);
+                return null;
+            }
+            if (!this.marsCurator.nodePath.equals(room.getPath())) {
+                return null;
+            }
+            Number number = roomSlotsPoolDao.getBigPoolByRoomId(roomId);
+            poolMap.put(roomId, number == null ? 0 : number.longValue());
+        } catch (Exception e) {
+            log.error("enterRoom error", e);
+        } finally {
+            lock.unlock();
+        }
         if (room == null) {
-            log.warn("进入好友房失败,未找到房间信息 playerId = {},gameType = {},roomId = {}", playerId, gameType, roomId);
             return null;
         }
-
-        if (!this.marsCurator.nodePath.equals(room.getPath())) {
-            return null;
-        }
-        return roomControllers.computeIfAbsent(roomId, k -> new SlotsRoomController(room));
+        SlotsFriendRoom finalRoom = room;
+        return roomControllers.computeIfAbsent(roomId, k -> new SlotsRoomController(finalRoom));
     }
 
     /**
@@ -95,7 +114,7 @@ public class SlotsRoomManager implements HallRoomBridge {
                 log.warn("创建好友房失败,未找到房间信息 roomCfgId = {},roomId = {}", roomCfgId, roomId);
                 return;
             }
-
+            room.setInGaming(true);
             roomControllers.computeIfAbsent(roomId, k -> new SlotsRoomController(room));
             roomSlotsPoolDao.initRoomPool(roomId, room.getPredictCostGoldNum());
             log.info("slots初始化房间成功 roomCfgId = {},roomId = {}", roomCfgId, roomId);
@@ -174,9 +193,10 @@ public class SlotsRoomManager implements HallRoomBridge {
 
     /**
      * 自动续费
+     *
      * @param slotsRoomController
      */
-    public void autoRenewal(SlotsRoomController slotsRoomController){
+    public void autoRenewal(SlotsRoomController slotsRoomController) {
         long now = System.currentTimeMillis();
         //检查到期时间
         if (slotsRoomController.getRoom().getOverdueTime() >= now) {
@@ -184,8 +204,9 @@ public class SlotsRoomManager implements HallRoomBridge {
         }
 
         // 如果时间到期且没有开启自动续费，先暂停游戏
+        long roomId = slotsRoomController.getRoom().getId();
         if (!slotsRoomController.getRoom().isAutoRenewal() || this.nodeConfig.waitClose()) {
-            log.info("房间时长到期 roomId = {},roomCfgId = {}", slotsRoomController.getRoom().getId(), slotsRoomController.getRoom().getRoomCfgId());
+            log.info("房间时长到期 roomId = {},roomCfgId = {}", roomId, slotsRoomController.getRoom().getRoomCfgId());
             return;
         }
 
@@ -195,14 +216,14 @@ public class SlotsRoomManager implements HallRoomBridge {
             params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
             params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
             mailService.addCfgMail(slotsRoomController.getRoom().getCreator(), 2, null, params);
-            log.info("房间时长到期,没有玩家暂停续费 roomId = {},roomCfgId = {}", slotsRoomController.getRoom().getId(), slotsRoomController.getRoom().getRoomCfgId());
+            log.info("房间时长到期,没有玩家暂停续费 roomId = {},roomCfgId = {}", roomId, slotsRoomController.getRoom().getRoomCfgId());
             return;
         }
 
         // 自动续费，检查玩家金币是否足够
         RoomExpendCfg roomExpendCfg = getAutoRenewalCfg();
         if (roomExpendCfg == null) {
-            log.warn("未检查到自动续费配置 roomId = {},roomCfgId = {}", slotsRoomController.getRoom().getId(), slotsRoomController.getRoom().getRoomCfgId());
+            log.warn("未检查到自动续费配置 roomId = {},roomCfgId = {}", roomId, slotsRoomController.getRoom().getRoomCfgId());
             return;
         }
 
@@ -236,7 +257,8 @@ public class SlotsRoomManager implements HallRoomBridge {
             //如果房间续费
             //因为续费金额从保证金里面扣除
             //所以这里要从池子里面扣除
-            roomSlotsPoolDao.addToBigPool(slotsRoomController.getRoom().getId(), -totalTake);
+            Long remain = roomSlotsPoolDao.addToBigPool(roomId, -totalTake);
+            updatePoolValue(roomId, remain);
         }
 
         // 续费时长
@@ -247,7 +269,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         ItemOperationResult itemOperationResult = new ItemOperationResult();
         itemOperationResult.setDiamond(slotsRoomController.getRoom().getPredictCostGoldNum());
         slotsLogger.roomOperate(slotsRoomController.getRoom(), 2, roomExpendCfg.getDurationTime(), itemMap, itemOperationResult);
-        log.info("房间自动续费成功, roomId = {},roomCfgId = {},overdueTime={} totalTake={}", slotsRoomController.getRoom().getId(), slotsRoomController.getRoom().getRoomCfgId(), overdueTime, totalTake);
+        log.error("房间自动续费成功, roomId = {},roomCfgId = {},overdueTime={} totalTake={}", roomId, slotsRoomController.getRoom().getRoomCfgId(), overdueTime, totalTake);
     }
 
     /**
@@ -296,64 +318,57 @@ public class SlotsRoomManager implements HallRoomBridge {
     }
 
     @Override
-    public int updateFriendRoom(long playerId, int roomCfgId, long roomId, int roomExpendCfgId, boolean autoRenewal, long predictCostGoldNum, String roomAliasName) {
+    public CommonResult<FriendRoom> updateFriendRoom(long playerId, int roomCfgId, long roomId, int addTime, boolean autoRenewal, long predictCostGoldNum, String roomAliasName) {
         SlotsRoomController roomController = roomControllers.get(roomId);
+        CommonResult<FriendRoom> result = new CommonResult<>(Code.SUCCESS);
         if (roomController == null) {
             SlotsFriendRoom room = slotsFriendRoomDao.getRoomByCfgId(roomCfgId, roomId);
             if (room == null) {
                 log.warn("修改好友房失败,未找到房间信息 playerId = {},roomCfgId = {},roomId = {}", playerId, roomCfgId, roomId);
-                return Code.NOT_FOUND;
+                result.code = Code.NOT_FOUND;
+                return result;
             }
 
             if (!this.marsCurator.nodePath.equals(room.getPath())) {
-                return Code.NOT_FOUND;
+                result.code = Code.NOT_FOUND;
+                return result;
             }
 
             roomController = roomControllers.computeIfAbsent(roomId, k -> new SlotsRoomController(room));
         }
 
-        if (playerId != roomController.getRoom().getCreator()) {
-            log.warn("修改好友房失败,房主不匹配 playerId = {},roomCfgId = {},roomId = {},roomCreator = {}", playerId, roomCfgId, roomId, roomController.getRoom().getCreator());
-            return Code.FORBID;
+        SlotsFriendRoom friendRoom = roomController.getRoom();
+        if (playerId != friendRoom.getCreator()) {
+            log.warn("修改好友房失败,房主不匹配 playerId = {},roomCfgId = {},roomId = {},roomCreator = {}", playerId, roomCfgId, roomId, friendRoom.getCreator());
+            result.code = Code.FORBID;
+            return result;
         }
 
         if (!StringUtils.isEmpty(roomAliasName)) {
-            roomController.getRoom().setAliasName(roomAliasName);
+            friendRoom.setAliasName(roomAliasName);
         }
-
         if (predictCostGoldNum > 0) {
-            roomController.getRoom().setPredictCostGoldNum(roomController.getRoom().getPredictCostGoldNum() + predictCostGoldNum);
-            roomSlotsPoolDao.addToBigPool(roomId, predictCostGoldNum);
+            Long remain = roomSlotsPoolDao.addToBigPool(roomId, predictCostGoldNum);
+            friendRoom.setPredictCostGoldNum(remain);
+            updatePoolValue(roomId, remain);
         }
-        roomController.getRoom().setAutoRenewal(autoRenewal);
+        friendRoom.setAutoRenewal(autoRenewal);
 
-        if (roomExpendCfgId > 0) {
-            RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(roomExpendCfgId);
-            int addTime = roomExpendCfg.getDurationTime() * TimeHelper.ONE_MINUTE_OF_MILLIS;
-            if (addTime > 0) {
-                int itemNum = roomExpendCfg.getRequiredMoney().get(1);
-                long curTime = System.currentTimeMillis();
-                // 不管时间是否暂停，都只需要给原有的过期时间加上增量时间
-                if (roomController.getRoom().getOverdueTime() < curTime) {
-                    // 房间已经过期，续时间
-                    roomController.getRoom().setOverdueTime(curTime + addTime);
-                } else {
-                    // 房间未过期，续时间
-                    roomController.getRoom().setOverdueTime(roomController.getRoom().getOverdueTime() + addTime);
-                }
-
-                if (itemNum > 0) {
-                    //如果房间续费
-                    //因为续费金额从保证金里面扣除
-                    //所以这里要从池子里面扣除
-                    roomSlotsPoolDao.addToBigPool(roomId, -itemNum);
-                }
+        if (addTime > 0) {
+            long curTime = System.currentTimeMillis();
+            // 不管时间是否暂停，都只需要给原有的过期时间加上增量时间
+            if (friendRoom.getOverdueTime() < curTime) {
+                // 房间已经过期，续时间
+                friendRoom.setOverdueTime(curTime + addTime);
+            } else {
+                // 房间未过期，续时间
+                friendRoom.setOverdueTime(friendRoom.getOverdueTime() + addTime);
             }
         }
-
         log.info("修改好友房信息成功 playerId = {},roomCfgId = {},roomId = {},roomExpendCfgId = {},autoRenewal = {},predictCostGoldNum = {},roomAliasName = {}",
-                playerId, roomCfgId, roomId, roomExpendCfgId, autoRenewal, predictCostGoldNum, roomAliasName);
-        return Code.SUCCESS;
+                playerId, roomCfgId, roomId, addTime, autoRenewal, predictCostGoldNum, roomAliasName);
+        result.data = friendRoom;
+        return result;
     }
 
     /**
@@ -403,7 +418,6 @@ public class SlotsRoomManager implements HallRoomBridge {
             //先将所有房间切换
             Set<SlotsFriendRoom> rooms = new HashSet<>();
             for (Map.Entry<Long, SlotsRoomController> en : tmpRoomControllers.entrySet()) {
-                en.getValue().getRoom().toggleFlag();
                 rooms.add(en.getValue().getRoom());
             }
 
@@ -457,25 +471,27 @@ public class SlotsRoomManager implements HallRoomBridge {
         }
     }
 
-    /**
-     * 更新缓存的奖池
-     */
-    public void updatePool(){
-        List<Long> roomIds = new ArrayList<>();
-        for(Map.Entry<Long, SlotsRoomController> en : this.roomControllers.entrySet()){
-            roomIds.add(en.getKey());
-        }
-        this.poolMap = roomSlotsPoolDao.getPools(roomIds);
-    }
 
     public long getPoolValue(long roomId) {
-        if (roomId < 1 || this.poolMap == null) {
+        if (roomId < 1) {
             return 0;
         }
-        Long v = this.poolMap.get(roomId);
-        if(v == null){
+        SlotsRoomController slotsRoomController = roomControllers.get(roomId);
+        if (slotsRoomController == null) {
             return 0;
         }
-        return v;
+        return this.poolMap.getOrDefault(roomId, 0L);
+    }
+
+    public void updatePoolValue(long roomId, long newValue) {
+        if (roomId < 1) {
+            return;
+        }
+        SlotsRoomController slotsRoomController = roomControllers.get(roomId);
+        if (slotsRoomController == null) {
+            return;
+        }
+        slotsRoomController.getRoom().setPredictCostGoldNum(newValue);
+        this.poolMap.put(roomId, newValue);
     }
 }

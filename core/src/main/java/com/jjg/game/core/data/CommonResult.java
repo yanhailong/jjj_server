@@ -2,6 +2,8 @@ package com.jjg.game.core.data;
 
 import com.jjg.game.core.constant.Code;
 
+import java.beans.Transient;
+
 /**
  * @author 11
  * @date 2025/5/26 11:34
@@ -26,6 +28,7 @@ public class CommonResult<T>{
         return this.code == Code.SUCCESS;
     }
 
+    @Transient
     public CommonResult<Void> getVoid(){
         return new CommonResult<>(this.code);
     }

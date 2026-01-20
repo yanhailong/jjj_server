@@ -152,10 +152,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 playerController.setScene(slotsRoomController);
                 //创建 PlayerGameData
                 taskManager.loadTaskData(player.getId());
-                SlotsPlayerGameData playerGameData = gameManager.createPlayerGameData(playerController);
-                if (playerGameData == null) {
-                    log.warn("进入好友房slots失败，创建playerGameData失败 playerId = {}", player.getId());
-                }
+                gameManager.createPlayerGameData(playerController);
                 //大厅非重连会检查一次，这里再检查一次
                 rechargeService.loadOfflineRecharge(player.getId());
             }
