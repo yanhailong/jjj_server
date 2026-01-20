@@ -32,15 +32,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AbstractLuckyMouseGameManager extends AbstractSlotsGameManager<LuckyMousePlayerGameData, LuckyMouseResultLib> {
+public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameManager<LuckyMousePlayerGameData, LuckyMouseResultLib> {
     @Autowired
     private LuckyMouseResultLibDao libDao;
     @Autowired
     private LuckyMouseGenerateManager gameGenerateManager;
     @Autowired
     private SlotsPoolDao slotsPoolDao;
-    @Autowired
-    private SlotsLogger logger;
     @Autowired
     private LuckyMouseGameDataDao gameDataDao;
 

@@ -37,8 +37,7 @@ import java.util.Set;
  * @author lm
  * @date 2025/12/8 17:24
  */
-@Component
-public class AbstractTenFoldGoldenBullGameManager extends AbstractSlotsGameManager<TenFoldGoldenBullPlayerGameData, TenFoldGoldenBullResultLib> {
+public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlotsGameManager<TenFoldGoldenBullPlayerGameData, TenFoldGoldenBullResultLib> {
     private final TenFoldGoldenBullGameGenerateManager gameGenerateManager;
     private final TenFoldGoldenBullGameDataDao gameDataDao;
     private final TenFoldGoldenBullResultLibDao TenFoldGoldenBullResultLibDao;

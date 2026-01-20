@@ -3,6 +3,7 @@ package com.jjg.game.slots.game.tigerbringsriches.manager;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesGameDataDao;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesResultLibDao;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 public class TigerBringsRichesRoomGameManager extends AbstractTigerBringsRichesGameManager {
     public TigerBringsRichesRoomGameManager(TigerBringsRichesGameGenerateManager gameGenerateManager, TigerBringsRichesGameDataDao gameDataDao, TigerBringsRichesResultLibDao TigerBringsRichesResultLibDao) {
         super(gameGenerateManager, gameDataDao, TigerBringsRichesResultLibDao);
+        this.log = LoggerFactory.getLogger(getClass());
     }
 
     @Override

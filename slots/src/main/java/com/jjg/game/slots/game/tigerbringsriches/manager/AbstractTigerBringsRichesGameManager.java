@@ -37,8 +37,7 @@ import java.util.Set;
  * @author lm
  * @date 2025/12/8 17:24
  */
-@Component
-public class AbstractTigerBringsRichesGameManager extends AbstractSlotsGameManager<TigerBringsRichesPlayerGameData, TigerBringsRichesResultLib> {
+public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlotsGameManager<TigerBringsRichesPlayerGameData, TigerBringsRichesResultLib> {
     private final TigerBringsRichesGameGenerateManager gameGenerateManager;
     private final TigerBringsRichesGameDataDao gameDataDao;
     private final TigerBringsRichesResultLibDao TigerBringsRichesResultLibDao;

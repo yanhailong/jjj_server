@@ -1,25 +1,19 @@
 package com.jjg.game.slots.game.elephantgod.manager;
 
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.game.elephantgod.dao.ElephantGodGameDataDao;
 import com.jjg.game.slots.game.elephantgod.dao.ElephantGodResultLibDao;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodPlayerGameData;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodPlayerGameDataDTO;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodResultLib;
-import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class AbstractElephantGodGameManager extends AbstractSlotsGameManager<ElephantGodPlayerGameData, ElephantGodResultLib> {
+public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameManager<ElephantGodPlayerGameData, ElephantGodResultLib> {
     @Autowired
     private ElephantGodResultLibDao libDao;
     @Autowired
     private ElephantGodGenerateManager generateManager;
-    @Autowired
-    private SlotsPoolDao slotsPoolDao;
-    @Autowired
-    private SlotsLogger logger;
     @Autowired
     private ElephantGodGameDataDao gameDataDao;
 
