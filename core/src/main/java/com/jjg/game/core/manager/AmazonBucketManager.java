@@ -7,9 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -105,6 +107,42 @@ public class AmazonBucketManager {
             log.debug("替换文件成功  originFileName = {},replaceFileName = {}", originFileName, replaceFileName);
         } catch (Exception e) {
             log.error("", e);
+        }
+    }
+
+
+    /**
+     * 上传文件到S3
+     *
+     * @param file     要上传的文件
+     * @return 上传成功返回true，失败返回false
+     */
+    public synchronized boolean upload(File file) {
+        if (this.s3Client == null) {
+            log.warn("s3Client 为空，上传文件失败");
+            return false;
+        }
+
+        if (file == null || !file.exists()) {
+            log.warn("文件不存在或为空，上传失败");
+            return false;
+        }
+
+        try {
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(this.bucketName)
+                    .key(file.getName())
+//                    .contentType(getContentType(fileName))
+                    .build();
+
+            // 使用文件路径上传，避免内存占用过大
+            this.s3Client.putObject(putObjectRequest, RequestBody.fromFile(file));
+
+            log.info("上传文件成功 fileName = {}", file.getName());
+            return true;
+        } catch (Exception e) {
+            log.error("上传文件失败 fileName = {}", file, e);
+            return false;
         }
     }
 }
