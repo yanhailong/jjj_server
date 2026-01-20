@@ -1,5 +1,6 @@
 package com.jjg.game.core.handler;
 
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.ReloadType;
 import com.jjg.game.core.rpc.GmToAllBridge;
 import com.jjg.game.core.service.SmsService;
@@ -25,9 +26,10 @@ public abstract class CoreRPCController implements GmToAllBridge {
             switch (type) {
                 case SMS_CONFIG -> smsService.reloadConfig();
             }
+            return Code.SUCCESS;
         } catch (Exception e) {
             log.error("", e);
+            return Code.SUCCESS;
         }
-        return 0;
     }
 }

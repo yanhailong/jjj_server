@@ -1493,10 +1493,10 @@ public class GMController extends AbstractController {
      * @return
      */
     @RequestMapping(BackendGMCmd.SAVE_SMS_CONFIG)
-    public WebResult<String> saveSmsConfig(@RequestBody List<SmsConfigInfo> list) {
-        log.info("收到保存sms配置的消息 list.size = {}", list == null ? null : list.size());
+    public WebResult<String> saveSmsConfig(@RequestBody SaveSmsConfigDto dto) {
+        log.info("收到保存sms配置的消息 dto = {}", dto);
         try {
-            smsService.save(list);
+            smsService.save(dto.list());
             List<ClusterClient> nodes = clusterSystem.getNodes(Set.of(NodeType.HALL.toString(), NodeType.ACCOUNT.toString()));
             if (nodes != null && !nodes.isEmpty()) {
                 nodes.forEach(node -> {
