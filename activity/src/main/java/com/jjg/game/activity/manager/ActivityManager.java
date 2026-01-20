@@ -133,7 +133,16 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     private final CountDao countDao;
 
+    /**
+     * 条件解析
+     */
     private final ConditionParser conditionParser;
+
+    /**
+     * 事件管理
+     */
+    private final GameEventManager gameEventManager;
+
     private Map<EGameEventType, List<ActivityData>> activityConditionCache = new HashMap<>();
 
 
@@ -141,7 +150,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                            CoreMarqueeManager marqueeManager,
                            MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager,
                            ConditionManager conditionManager, PlayerActivityDao playerActivityDao,
-                           DropItemManager dropItemManager, CountDao countDao, ConditionParser conditionParser) {
+                           DropItemManager dropItemManager, CountDao countDao, ConditionParser conditionParser,
+                           GameEventManager gameEventManager) {
         this.timerCenter = timerCenter;
         this.clusterSystem = clusterSystem;
         this.marqueeManager = marqueeManager;
@@ -153,6 +163,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         this.dropItemManager = dropItemManager;
         this.countDao = countDao;
         this.conditionParser = conditionParser;
+        this.gameEventManager = gameEventManager;
     }
 
 
@@ -188,6 +199,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         //检查是否要主动开启
         for (ActivityData data : activityData.values()) {
             checkActivityStatus(data, currentTime);
+        }
+        if (CollectionUtil.isEmpty(activityConditionCache)) {
+            loadActivityConditionCache();
+            gameEventManager.registerEventListener(this);
         }
     }
 
@@ -672,6 +687,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     //添加其他活动进度
                     addPlayerActivityProgress(player, ActivityTargetType.LEVEL.getTargetKey(), player.getLevel(), playerEvent.getNewlyValue());
                 }
+                if (playerEvent.getGameEventType() == EGameEventType.BIND_PHONE) {
+                    addPlayerActivityProgress(player, ActivityTargetType.BIND_PHONE.getTargetKey(), player.getLevel(), playerEvent.getNewlyValue());
+                }
                 //更新活动变化
                 List<ActivityData> openActivityData = new ArrayList<>();
                 List<ActivityData> dataList = activityConditionCache.get(playerEvent.getGameEventType());
@@ -811,6 +829,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             log.info("活动更新成功 activityId:{} activityData:{}", activityInfoId, JSON.toJSONString(activityData));
         }
         loadActivityConditionCache();
+        gameEventManager.registerEventListener(this);
     }
 
     /**

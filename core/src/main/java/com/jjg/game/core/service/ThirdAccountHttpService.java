@@ -13,14 +13,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.core.data.*;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.dao.VerCodeDao;
 import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.VerCodeType;
 import com.jjg.game.core.data.ThirdServiceInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.security.interfaces.RSAPublicKey;
@@ -39,8 +36,6 @@ public class ThirdAccountHttpService {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     private final ThirdServiceInfo thirdServiceInfo;
-    @Autowired
-    private VerCodeDao verCodeDao;
 
     private final JwkProvider appleJwkProvider;
 
@@ -310,32 +305,6 @@ public class ThirdAccountHttpService {
             FacebookUserInfo userInfo = new FacebookUserInfo();
             userInfo.setUserId(data.get("user_id").asText());
 
-            result.data = userInfo;
-            return result;
-        } catch (Exception e) {
-            log.error("", e);
-            result.code = Code.EXCEPTION;
-        }
-        return result;
-    }
-
-    /**
-     * 验证登录短信
-     *
-     * @return
-     */
-    public CommonResult<PhoneUserInfo> verifyPhoneLoginCode(String phone, int code) {
-        CommonResult<PhoneUserInfo> result = new CommonResult<>(Code.SUCCESS);
-
-        try {
-            CommonResult<String> verResult = verCodeDao.verifyVerCode(phone, VerCodeType.SMS_LOGIN, code);
-            if (!verResult.success()) {
-                result.code = verResult.code;
-                return result;
-            }
-
-            PhoneUserInfo userInfo = new PhoneUserInfo();
-            userInfo.setUserId(phone);
             result.data = userInfo;
             return result;
         } catch (Exception e) {

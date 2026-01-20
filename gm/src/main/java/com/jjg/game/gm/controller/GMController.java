@@ -31,9 +31,12 @@ import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.gm.*;
-import com.jjg.game.core.rpc.BackendBridge;
+import com.jjg.game.core.rpc.GmToAllBridge;
+import com.jjg.game.core.rpc.GmToHallBridge;
+import com.jjg.game.core.rpc.GmToRechargeBridge;
 import com.jjg.game.core.rpc.HallPointsAwardBridge;
 import com.jjg.game.core.service.*;
+import com.jjg.game.core.utils.CoreUtil;
 import com.jjg.game.gm.dao.SlotsLibDao;
 import com.jjg.game.gm.dto.*;
 import com.jjg.game.gm.util.NetUtil;
@@ -105,11 +108,17 @@ public class GMController extends AbstractController {
     @Autowired
     private SharePromoteDao sharePromoteDao;
     @ClusterRpcReference()
-    private BackendBridge backendBridge;
+    private GmToRechargeBridge gmToRechargeBridge;
     @Autowired
     private OrderService orderService;
     @Autowired
     private CommonDao commonDao;
+    @ClusterRpcReference
+    private GmToHallBridge gmToHallBridge;
+    @Autowired
+    private SmsService smsService;
+    @ClusterRpcReference
+    private GmToAllBridge gmToAllBridge;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -1373,7 +1382,7 @@ public class GMController extends AbstractController {
             }
 
             //rpc调用充值
-            int code = backendBridge.recharge(order.getId(), dto.channelOrderId());
+            int code = gmToRechargeBridge.recharge(order.getId(), dto.channelOrderId());
             if (code != Code.SUCCESS) {
                 log.warn("后台充值失败 code = {}", code);
                 return fail("common.fail");
@@ -1419,6 +1428,252 @@ public class GMController extends AbstractController {
                 slotsLibDao.exportGameResultLib(dto.gameType());
             });
 
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+
+    /**
+     * 绑定或解绑手机
+     *
+     * @param dto
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.PLAYER_BIND_PHONE)
+    public WebResult<String> playerBindPhone(@RequestBody PlayerBindPhoneDto dto) {
+        log.info("收到绑定手机或解绑消息 dto = {}", dto);
+        try {
+            if (dto.playerId() < 1 || (dto.type() != 1 && dto.type() != 2)) {
+                log.warn("参数错误  dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            if (StringUtils.isNotBlank(dto.phone())) {
+                String realPhone = CoreUtil.validPhoneNumber(dto.phone());
+                if (StringUtils.isBlank(realPhone)) {
+                    log.warn("手机号格式校验失败  dto = {}", dto);
+                    return fail("common.paramerror");
+                }
+            }
+
+            ClusterClient clusterClient;
+            PlayerSessionInfo info = playerSessionService.getInfo(dto.playerId());
+            if (info == null) {
+                clusterClient = clusterSystem.randClientByType(NodeType.HALL);
+            } else {
+                clusterClient = clusterSystem.getClusterByPath(info.getCurrentNode());
+            }
+
+            if (clusterClient == null) {
+                log.debug("绑定手机或解绑时，未找到对应的游戏节点");
+                return fail("common.fail");
+            }
+
+            GameRpcContext.getContext().withReqParameterBuilder(
+                    RpcReqParameterBuilder.create()
+                            .addClusterClient(clusterClient)
+                            .setTryMillisPerClient(1000));
+
+            int bindCode = gmToHallBridge.playerBindPhone(dto.playerId(), dto.phone(), dto.type());
+            if (bindCode != Code.SUCCESS) {
+                log.warn("调用gmToHallBridge.playerBindPhone返回失败 client = {},errorCode = {}", clusterClient.marsNode.getNodePath(), bindCode);
+                return fail("common.fail");
+            }
+
+            log.info("后台调用绑定或解绑手机成功 dto = {}", dto);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 获取sms配置
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.QUERY_SMS_CONFIG)
+    public WebResult<List<SmsConfigInfo>> querySmsConfig() {
+        log.info("收到查询sms配置的消息");
+        try {
+            return success("common.success", smsService.getAll());
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 保存sms配置
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.SAVE_SMS_CONFIG)
+    public WebResult<String> saveSmsConfig(@RequestBody List<SmsConfigInfo> list) {
+        log.info("收到保存sms配置的消息 list.size = {}", list == null ? null : list.size());
+        try {
+            smsService.save(list);
+            List<ClusterClient> nodes = clusterSystem.getNodes(Set.of(NodeType.HALL.toString(), NodeType.ACCOUNT.toString()));
+            if (nodes != null && !nodes.isEmpty()) {
+                nodes.forEach(node -> {
+                    GameRpcContext.getContext().withReqParameterBuilder(
+                            RpcReqParameterBuilder.create()
+                                    .addClusterClient(node)
+                                    .setTryMillisPerClient(1000));
+
+                    int code = gmToAllBridge.reload(ReloadType.SMS_CONFIG.getValue());
+                    if (code == Code.SUCCESS) {
+                        log.info("通知节点重新加载sms配置成功 nodePath = {}", node.marsNode.getNodePath());
+                    } else {
+                        log.info("通知节点重新加载sms配置失败 nodePath = {}", node.marsNode.getNodePath());
+                    }
+                });
+            }
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 获取玩家最新的短信信息
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.PLAYER_LAST_SMS)
+    public WebResult<VerCode> playerLastSms(@RequestBody PlayerLastSmsDto dto) {
+        log.info("收到获取玩家最新的短信信息 dto = {}", dto);
+        try {
+            if (dto.playerId() < 1) {
+                log.warn("参数错误 dto = {}", dto);
+                return fail("common.fail");
+            }
+
+            return success("common.success", smsService.getSmsCodeByPlayerId(dto.playerId()));
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 给玩家发送短信
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.PLAYER_SMS)
+    public WebResult<VerCode> playerSms(@RequestBody PlayerSmsDto dto) {
+        log.info("收到后台给玩家发送短信 dto = {}", dto);
+        try {
+            if (dto.playerId() < 1 || StringUtils.isBlank(dto.phone())) {
+                log.warn("参数错误 dto = {}", dto);
+                return fail("common.fail");
+            }
+
+            VerCodeType vercodeType = VerCodeType.getType(dto.type());
+            if (vercodeType == null) {
+                log.warn("获取vercodeType失败 dto = {}", dto);
+                return fail("common.fail");
+            }
+
+            //校验手机号格式
+            String realPhone = CoreUtil.validPhoneNumber(dto.phone());
+            if (StringUtils.isBlank(realPhone)) {
+                log.warn("手机号格式校验失败  dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            Player player = playerService.get(dto.playerId());
+            if (player == null) {
+                log.warn("玩家不存在，发送短信失败  dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            VerCode vc = new VerCode();
+            vc.setPlayerId(dto.playerId());
+            vc.setVerCodeType(vercodeType);
+            vc.setData(realPhone);
+            CommonResult<VerCode> result = smsService.sendCode(vc);
+            if (!result.success()) {
+                log.warn("发送短信失败  dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            log.info("发送短信成功 dto = {},smsCode = {}", dto, result.data.getCode());
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 验证短信
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.VERIFY_PLAYER_SMS)
+    public WebResult<VerCode> verifyPlayerSms(@RequestBody PlayerSmsDto dto) {
+        log.info("收到后台验证短信 dto = {}", dto);
+        try {
+            if (dto.playerId() < 1 || StringUtils.isBlank(dto.phone()) || dto.smsCode() < 1) {
+                log.warn("参数错误，验证短信失败 dto = {}", dto);
+                return fail("common.fail");
+            }
+
+            VerCodeType vercodeType = VerCodeType.getType(dto.type());
+            if (vercodeType == null) {
+                log.warn("获取vercodeType失败，验证短信失败 dto = {}", dto);
+                return fail("common.fail");
+            }
+
+            //校验手机号格式
+            String realPhone = CoreUtil.validPhoneNumber(dto.phone());
+            if (StringUtils.isBlank(realPhone)) {
+                log.warn("手机号格式校验失败，验证短信失败  dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            VerCode vc = new VerCode();
+            vc.setPlayerId(dto.playerId());
+            vc.setVerCodeType(vercodeType);
+            vc.setData(realPhone);
+            vc.setCode(dto.smsCode());
+            CommonResult<VerCode> result = smsService.verifySmsVerCode(vc);
+            if (!result.success()) {
+                log.warn("短信验证失败  dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            ClusterClient clusterClient;
+            PlayerSessionInfo info = playerSessionService.getInfo(dto.playerId());
+            if (info == null) {
+                clusterClient = clusterSystem.randClientByType(NodeType.HALL);
+            } else {
+                clusterClient = clusterSystem.getClusterByPath(info.getCurrentNode());
+            }
+
+            if (clusterClient == null) {
+                log.debug("后台验证短信成功后，未找到对应的游戏节点处理后续逻辑");
+                return fail("common.fail");
+            }
+
+            GameRpcContext.getContext().withReqParameterBuilder(
+                    RpcReqParameterBuilder.create()
+                            .addClusterClient(clusterClient)
+                            .setTryMillisPerClient(1000));
+
+            int bindCode = gmToHallBridge.afterVerifySmsSuccess(dto.playerId(), dto.phone(), dto.type());
+            if (bindCode != Code.SUCCESS) {
+                log.debug("后台验证短信成功后，游戏节点处理后续逻辑失败 dto = {},errorCode = {}", dto, bindCode);
+                return fail("common.fail");
+            }
+            log.info("短信验证成功 dto = {}", dto);
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);

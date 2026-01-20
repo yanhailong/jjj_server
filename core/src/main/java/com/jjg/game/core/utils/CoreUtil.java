@@ -6,6 +6,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.IponeAreacodeConfigCfg;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,21 +34,25 @@ public class CoreUtil {
             String tmpPhone = phoneNumber.substring(1);
             for (Map.Entry<Integer, IponeAreacodeConfigCfg> en : GameDataManager.getIponeAreacodeConfigCfgMap().entrySet()) {
                 IponeAreacodeConfigCfg c = en.getValue();
-                String str = String.valueOf(c.getType());
-                if (!tmpPhone.startsWith(str)) {
+                //国际编码
+                String code = String.valueOf(c.getType());
+                if (!tmpPhone.startsWith(code)) {
                     continue;
                 }
                 cfg = c;
                 //去掉国际编码
-                String tmpRealPhone = tmpPhone.substring(str.length());
+                String tmpRealPhone = tmpPhone.substring(code.length());
                 if (tmpRealPhone.isEmpty()) {
-                    log.warn("手机号去除国际编码后为空 phoneNumber = {},str = {}", phoneNumber, str);
+                    log.warn("手机号去除国际编码后为空 phoneNumber = {},code = {}", phoneNumber, code);
                     return null;
                 }
 
-                if (tmpRealPhone.startsWith("0")) {
-                    tmpRealPhone = tmpRealPhone.substring(1);
-                    realPhone = "+" + str + tmpRealPhone;
+                //检测是否有需要
+                if (StringUtils.isNotBlank(cfg.getBlockedFirstNumber())) {
+                    if (tmpRealPhone.startsWith(cfg.getBlockedFirstNumber())) {
+                        tmpRealPhone = tmpRealPhone.substring(cfg.getBlockedFirstNumber().length());
+                        realPhone = "+" + code + tmpRealPhone;
+                    }
                 }
 
                 //检查被屏蔽的号段
