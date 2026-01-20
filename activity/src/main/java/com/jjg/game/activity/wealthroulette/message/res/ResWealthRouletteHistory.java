@@ -15,7 +15,7 @@ import java.util.List;
  * @author lm
  * @date 2025/12/1 10:15
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.RES_WEALTH_ROULETTE_HISTORY)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.RES_WEALTH_ROULETTE_HISTORY, resp = true)
 @ProtoDesc("财富轮盘历史记录")
 public class ResWealthRouletteHistory extends AbstractResponse {
     @ProtoDesc("历史记录")
@@ -26,6 +26,7 @@ public class ResWealthRouletteHistory extends AbstractResponse {
     public boolean hasNext;
     @ProtoDesc("总条数")
     public long totalCount;
+
     public ResWealthRouletteHistory(int code) {
         super(code);
     }
