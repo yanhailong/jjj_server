@@ -24,6 +24,9 @@ public class IpCountryUtil {
 
     public static String getCountryCode(String ip) {
         try {
+            if(reader == null) {
+                return null;
+            }
             InetAddress ipAddress = InetAddress.getByName(ip);
             CountryResponse response = reader.country(ipAddress);
             return response.getCountry().getIsoCode(); // CN / JP / US
