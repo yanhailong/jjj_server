@@ -159,4 +159,6 @@ public interface Code {
     int SEND_SMS_FAILED = 459;
     // 验证码错误
     int VERIFICATION_CODE_ERROR = 17028;
+    // 获取验证码频繁,请稍后再试
+    int VERCODE_IDLE = 460;
 }

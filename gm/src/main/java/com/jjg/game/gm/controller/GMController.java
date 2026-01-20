@@ -1459,7 +1459,7 @@ public class GMController extends AbstractController {
 
             int bindCode = gmToHallBridge.playerBindPhone(dto.playerId(), dto.phone(), dto.type());
             if (bindCode != Code.SUCCESS) {
-                log.warn("调用gmToHallBridge.playerBindPhone返回失败 client = {},errorCode = {}", clusterClient.marsNode.getNodePath(),bindCode);
+                log.warn("调用gmToHallBridge.playerBindPhone返回失败 client = {},errorCode = {}", clusterClient.marsNode.getNodePath(), bindCode);
                 return fail("common.fail");
             }
 
@@ -1529,12 +1529,132 @@ public class GMController extends AbstractController {
     public WebResult<VerCode> playerLastSms(@RequestBody PlayerLastSmsDto dto) {
         log.info("收到获取玩家最新的短信信息 dto = {}", dto);
         try {
-            if(dto.playerId() < 1){
+            if (dto.playerId() < 1) {
                 log.warn("参数错误 dto = {}", dto);
                 return fail("common.fail");
             }
 
-            return success("common.success",smsService.getSmsCodeByPlayerId(dto.playerId()));
+            return success("common.success", smsService.getSmsCodeByPlayerId(dto.playerId()));
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 给玩家发送短信
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.PLAYER_SMS)
+    public WebResult<VerCode> playerSms(@RequestBody PlayerSmsDto dto) {
+        log.info("收到后台给玩家发送短信 dto = {}", dto);
+        try {
+            if (dto.playerId() < 1 || StringUtils.isBlank(dto.phone())) {
+                log.warn("参数错误 dto = {}", dto);
+                return fail("common.fail");
+            }
+
+            VerCodeType vercodeType = VerCodeType.getType(dto.type());
+            if (vercodeType == null) {
+                log.warn("获取vercodeType失败 dto = {}", dto);
+                return fail("common.fail");
+            }
+
+            //校验手机号格式
+            String realPhone = CoreUtil.validPhoneNumber(dto.phone());
+            if (StringUtils.isBlank(realPhone)) {
+                log.warn("手机号格式校验失败  dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            Player player = playerService.get(dto.playerId());
+            if(player == null){
+                log.warn("玩家不存在，发送短信失败  dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            VerCode vc = new VerCode();
+            vc.setPlayerId(dto.playerId());
+            vc.setVerCodeType(vercodeType);
+            vc.setData(realPhone);
+            CommonResult<VerCode> result = smsService.sendCode(vc);
+            if (!result.success()) {
+                log.warn("发送短信失败  dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            log.info("发送短信成功 dto = {},smsCode = {}", dto, result.data.getCode());
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 验证短信
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.VERIFY_PLAYER_SMS)
+    public WebResult<VerCode> verifyPlayerSms(@RequestBody PlayerSmsDto dto) {
+        log.info("收到后台验证短信 dto = {}", dto);
+        try {
+            if (dto.playerId() < 1 || StringUtils.isBlank(dto.phone()) || dto.smsCode() < 1) {
+                log.warn("参数错误，验证短信失败 dto = {}", dto);
+                return fail("common.fail");
+            }
+
+            VerCodeType vercodeType = VerCodeType.getType(dto.type());
+            if (vercodeType == null) {
+                log.warn("获取vercodeType失败，验证短信失败 dto = {}", dto);
+                return fail("common.fail");
+            }
+
+            //校验手机号格式
+            String realPhone = CoreUtil.validPhoneNumber(dto.phone());
+            if (StringUtils.isBlank(realPhone)) {
+                log.warn("手机号格式校验失败，验证短信失败  dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            VerCode vc = new VerCode();
+            vc.setPlayerId(dto.playerId());
+            vc.setVerCodeType(vercodeType);
+            vc.setData(realPhone);
+            vc.setCode(dto.smsCode());
+            CommonResult<VerCode> result = smsService.verifySmsVerCode(vc);
+            if (!result.success()) {
+                log.warn("短信验证失败  dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            ClusterClient clusterClient;
+            PlayerSessionInfo info = playerSessionService.getInfo(dto.playerId());
+            if (info == null) {
+                clusterClient = clusterSystem.randClientByType(NodeType.HALL);
+            } else {
+                clusterClient = clusterSystem.getClusterByPath(info.getCurrentNode());
+            }
+
+            if (clusterClient == null) {
+                log.debug("后台验证短信成功后，未找到对应的游戏节点处理后续逻辑");
+                return fail("common.fail");
+            }
+
+            GameRpcContext.getContext().withReqParameterBuilder(
+                    RpcReqParameterBuilder.create()
+                            .addClusterClient(clusterClient)
+                            .setTryMillisPerClient(1000));
+
+            int bindCode = gmToHallBridge.afterVerifySmsSuccess(dto.playerId(), dto.phone(), dto.type());
+            if (bindCode != Code.SUCCESS) {
+                log.debug("后台验证短信成功后，游戏节点处理后续逻辑失败 dto = {},errorCode = {}", dto, bindCode);
+                return fail("common.fail");
+            }
+            log.info("短信验证成功 dto = {}", dto);
+            return success("common.success");
         } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");

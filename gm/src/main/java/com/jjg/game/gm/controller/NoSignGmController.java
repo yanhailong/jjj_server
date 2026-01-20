@@ -99,7 +99,7 @@ public class NoSignGmController extends AbstractController {
                 }
 
                 vc.setCode(dto.smsCode());
-                CommonResult<String> verifyResult = verCodeDao.verifySmsVerCode(vc);
+                CommonResult<VerCode> verifyResult = verCodeDao.verifySmsVerCode(vc);
                 if (!verifyResult.success()) {
                     log.debug("删除账号时，验证码错误 dto = {}", dto);
                     return fail("common.paramerror");

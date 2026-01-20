@@ -80,6 +80,11 @@ public interface BackendGMCmd {
     //玩家最后一条短信
     String PLAYER_LAST_SMS = "playerLastSms";
 
+    //给玩家发送短信
+    String PLAYER_SMS = "playerSms";
+    //验证短信
+    String VERIFY_PLAYER_SMS = "verifyPlayerSms";
+
     /**
      * 配置相关q
      */

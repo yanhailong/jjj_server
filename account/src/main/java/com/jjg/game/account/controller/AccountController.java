@@ -262,7 +262,7 @@ public class AccountController extends AbstractController {
                 int now = TimeHelper.nowInt();
                 if (now < dbVerCode.getIdleTime()) {
                     log.debug("获取登录验证码频繁,请稍后再试 phone = {}", dto.getPhone());
-                    return fail(Code.PARAM_ERROR);
+                    return fail(Code.VERCODE_IDLE);
                 }
             }
 

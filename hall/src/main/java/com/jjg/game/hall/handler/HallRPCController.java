@@ -7,18 +7,10 @@ import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.handler.CoreRPCController;
 import com.jjg.game.core.rpc.GmToHallBridge;
-import com.jjg.game.core.service.MailService;
-import com.jjg.game.core.utils.CoreUtil;
-import com.jjg.game.core.utils.ItemUtils;
-import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.service.HallPlayerService;
-import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.LoginConfigCfg;
-import org.apache.commons.lang3.StringUtils;
+import com.jjg.game.hall.service.HallService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 /**
  * @author 11
@@ -32,9 +24,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     @Autowired
     private HallPlayerService playerService;
     @Autowired
-    private HallLogger hallLogger;
-    @Autowired
-    private MailService mailService;
+    private HallService hallService;
 
     @Override
     public int playerBindPhone(long playerId, String phone, int type) {
@@ -48,28 +38,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             }
 
             if (type == 1) {  //绑定
-                String realPhone = CoreUtil.validPhoneNumber(phone);
-                if (StringUtils.isBlank(realPhone)) {
-                    log.warn("后台绑定或解绑手机时，手机号格式验证错误 playerId = {},phone = {},type = {}", playerId, phone, type);
-                    return Code.PARAM_ERROR;
-                }
-
-                PhoneUserInfo phoneUserInfo = new PhoneUserInfo();
-                phoneUserInfo.setUserId(realPhone);
-                CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(player, LoginType.PHONE, phoneUserInfo);
-                if (!accountCommonResult.success()) {
-                    log.warn("绑定或解绑手机失败 playerId = {},failCode = {}", player.getId(), accountCommonResult.code);
-                    return accountCommonResult.code;
-                }
-
-                List<Item> items = null;
-                LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(cfg -> cfg.getType() == LoginType.PHONE.getValue()).findFirst().orElse(null);
-                if (loginConfigCfg != null && loginConfigCfg.getAwardItem() != null && !loginConfigCfg.getAwardItem().isEmpty()) {
-                    items = ItemUtils.buildItems(loginConfigCfg.getAwardItem());
-                    mailService.addCfgMail(player.getId(), GameConstant.Mail.ID_BIND_PHONE, items);
-                }
-                hallLogger.bind(player, LoginType.PHONE.getValue(), phone);
-                log.info("玩家绑定手机成功 playerId = {},phone = {},type = {},addMailItems = {}", playerId, phone, type, items == null ? null : JSONObject.toJSONString(items));
+                return hallService.playerBindPhone(player, phone).code;
             } else if (type == 2) {  //解绑
                 CommonResult<Account> accountCommonResult = accountDao.removeThirdAccount(player, LoginType.PHONE);
                 if (!accountCommonResult.success()) {
@@ -86,5 +55,28 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             code = Code.EXCEPTION;
         }
         return code;
+    }
+
+    @Override
+    public int afterVerifySmsSuccess(long playerId, String phone, int type) {
+        try {
+            log.info("大厅收到后台在短信验证成功后的消息 playerId = {},phone = {},type = {}", playerId, phone, type);
+            VerCodeType verCodeType = VerCodeType.getType(type);
+            if (verCodeType == null) {
+                return Code.SUCCESS;
+            }
+
+            Player player = null;
+            switch (verCodeType) {
+                case SMS_BIND_PHONE:
+                    player = playerService.get(playerId);
+                    return hallService.playerBindPhone(player, phone).code;
+                default:
+                    return Code.SUCCESS;
+            }
+        } catch (Exception e) {
+            log.error("", e);
+            return Code.EXCEPTION;
+        }
     }
 }
