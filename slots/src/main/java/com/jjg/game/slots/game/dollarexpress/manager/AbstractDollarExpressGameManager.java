@@ -78,6 +78,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 autoStartGame(playerGameData, playerGameData.getAllBetScore());
             }
 
+            gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
             gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
         } catch (Exception e) {
             log.error("", e);
@@ -130,6 +131,8 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 gameRunInfo.setCode(code);
                 return gameRunInfo;
             }
+            gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
+            gameRunInfo.setStatus(playerGameData.getStatus());
             log.info("玩家进行二选一，playerId = {},gameType = {},roomCfgId = {},chooseStatus = {}", playerController.playerId(), playerGameData.getGameType(), playerController.getPlayer().getRoomCfgId(), chooseStatus);
             return gameRunInfo;
         } catch (Exception e) {
@@ -519,7 +522,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
         log.debug("进入二选一之拉火车流程 playerId = {}", playerGameData.playerId());
 
         CommonResult<DollarExpressResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
-        if(!libResult.success()){
+        if (!libResult.success()) {
             return null;
         }
         DollarExpressResultLib trainLib = libResult.data;
@@ -561,7 +564,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
         log.debug("进入二选一之拉黄金火车流程 playerId = {}", playerGameData.playerId());
 
         CommonResult<DollarExpressResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
-        if(!libResult.success()){
+        if (!libResult.success()) {
             return null;
         }
         DollarExpressResultLib goldTrainLib = libResult.data;
@@ -608,6 +611,9 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             playerGameData.setStatus(DollarExpressConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
+            //最后一局，通知客户端，累计免费模式的中奖金额
+            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
+            playerGameData.setFreeAllWin(0);
         }
 
         gameRunInfo.setIconArr(freeGame.getIconArr());
@@ -635,7 +641,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
         log.debug("进入地图全部解锁，奖励黄金火车流程 playerId = {}", playerGameData.playerId());
 
         CommonResult<DollarExpressResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
-        if(!libResult.success()){
+        if (!libResult.success()) {
             return null;
         }
         DollarExpressResultLib goldTrainLib = libResult.data;

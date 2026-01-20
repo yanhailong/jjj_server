@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.dollarexpress.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -842,5 +841,9 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 set.add(info.getCfgId());
             }
         });
+    }
+
+    public Map<Integer, SpecialAuxiliaryPropConfig> getSpecialAuxiliaryPropConfigMap() {
+        return specialAuxiliaryPropConfigMap;
     }
 }
