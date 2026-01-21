@@ -69,7 +69,7 @@ public class CaptainJackGameSendMessageManager extends BaseSendMessageManager {
             if (playerGameData.getStatus() == CaptainJackConstant.Status.FREE) {
                 AtomicInteger freeIndex = playerGameData.getFreeIndex();
                 if (playerGameData.getFreeLib() instanceof CaptainJackResultLib lib) {
-                    res.freeAmount = generateManager.calFree(lib, freeIndex.get()) * playerGameData.getOneBetScore();
+                    res.freeAmount = generateManager.calFreeTimes(lib, freeIndex.get()) * playerGameData.getOneBetScore();
                 }
             }
             res.poolList = new ArrayList<>();

@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.texas.data;
 import com.jjg.game.poker.game.texas.message.bean.TexasHistoryPlayerInfo;
 import com.jjg.game.poker.game.texas.message.bean.TexasHistoryRoundInfo;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,6 +37,16 @@ public class TexasSaveHistory {
     private List<TexasHistoryRoundInfo> texasHistoryRoundInfos;
     //最后池信息
     private List<Long> potList;
+    //总税收
+    private Map<Long, Long> totalTax;
+
+    public Map<Long, Long> getTotalTax() {
+        return totalTax;
+    }
+
+    public void setTotalTax(Map<Long, Long> totalTax) {
+        this.totalTax = totalTax;
+    }
 
     public List<Long> getPotList() {
         return potList;
@@ -127,5 +138,12 @@ public class TexasSaveHistory {
 
     public void setTexasHistoryRoundInfos(List<TexasHistoryRoundInfo> texasHistoryRoundInfos) {
         this.texasHistoryRoundInfos = texasHistoryRoundInfos;
+    }
+
+    public void addTotalTax(long playerId, long tax) {
+        if (totalTax == null) {
+            totalTax = new HashMap<>();
+        }
+        totalTax.put(playerId, tax);
     }
 }

@@ -38,6 +38,10 @@ public class SmsService {
     @Autowired
     private SmsConfigDao smsConfigDao;
 
+    public void init(){
+        reloadConfig();
+    }
+
     public void reloadConfig() {
         thirdServiceInfo.setSmsConfigInfoList(getAll());
         log.info("加载sms配置 ,size={}", thirdServiceInfo.getSmsConfigInfoList() == null ? 0 : thirdServiceInfo.getSmsConfigInfoList().size());
@@ -93,14 +97,18 @@ public class SmsService {
      * @param phoneNumber
      */
     private int sendOnbukaSms(String phoneNumber, String content, VerCodeType verCodeType) {
+        int cfgId = 0;
         try {
             SmsConfigInfo smsConfigInfo = randSmsConfigInfoList();
             if (smsConfigInfo == null) {
                 log.warn("获取sms配置失败");
                 return Code.SMS_CONFIGURATION_MISSING_CAPTCHA_FAILED;
             }
+            cfgId = smsConfigInfo.getCfgId();
 
             HttpRequest httpRequest = HttpRequest.post(smsConfigInfo.getSendSmsUrl());
+
+//            httpRequest.setHttpProxy("127.0.0.1", 7897);
 
             //当前时间戳
             String now = String.valueOf(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().getEpochSecond());
@@ -126,21 +134,21 @@ public class SmsService {
             JSONObject json = JSONUtil.parseObj(body);
 
             if (!resp.isOk()) {
-                log.warn("发送短信失败 phoneNumber = {},code = {},reason = {}", phoneNumber, json.getInt("status"), json.getStr("reason"));
+                log.warn("发送短信失败 phoneNumber = {},code = {},reason = {},cfgId = {}", phoneNumber, json.getInt("status"), json.getStr("reason"), smsConfigInfo.getCfgId());
                 return Code.SEND_SMS_FAILED;
             }
 
             int status = json.getInt("status");
             if (status != 0) {
-                log.warn("发送短信失败1 phoneNumber = {},code = {},reason = {}", phoneNumber, json.getInt("status"), json.getStr("reason"));
+                log.warn("发送短信失败1 phoneNumber = {},code = {},reason = {},cfgId = {}", phoneNumber, json.getInt("status"), json.getStr("reason"), smsConfigInfo.getCfgId());
                 return Code.SEND_SMS_FAILED;
             }
 
-            log.info("发送短信成功 smsType = {},content = {},resp = {}", verCodeType, content, body);
+            log.info("发送短信成功 smsType = {},content = {},resp = {},cfgId = {}", verCodeType, content, body, smsConfigInfo.getCfgId());
             return Code.SUCCESS;
         } catch (Exception e) {
-            log.error("", e);
-            return Code.EXCEPTION;
+            log.error("cfgId={}", cfgId, e);
+            return Code.SEND_SMS_FAILED;
         }
     }
 
@@ -151,7 +159,7 @@ public class SmsService {
         return thirdServiceInfo.getSmsConfigInfoList().stream().filter(c -> c.isOpen()).findFirst().orElse(null);
     }
 
-    public CommonResult<VerCode> verifySmsVerCode(VerCode reqVerCode){
+    public CommonResult<VerCode> verifySmsVerCode(VerCode reqVerCode) {
         return verCodeDao.verifySmsVerCode(reqVerCode);
     }
 }

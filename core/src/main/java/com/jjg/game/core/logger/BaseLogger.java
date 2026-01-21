@@ -446,7 +446,10 @@ public class BaseLogger {
             return;
         }
 
-        String price = StringUtils.isEmpty(money) ? order.getPrice().toPlainString() : money;
+        String price = money;
+        if (StringUtils.isEmpty(money) && order.getPrice() != null) {
+            price = order.getPrice().toPlainString();
+        }
 
         order(player, order.getId(), order.getChannelOrderId(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), price, channelProductId, order.getCreateTime(), order.getUpdateTime(),
                 order.getOrderStatus(), 0, regionCode, desc);
@@ -462,7 +465,13 @@ public class BaseLogger {
         if (RobotUtil.isRobot(player.getId())) {
             return;
         }
-        shop(player, order.getId(), order.getChannelOrderId(), shopProduct.getType(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), money, channelProductId, order.getCreateTime(), order.getUpdateTime(),
+
+        String price = money;
+        if (StringUtils.isEmpty(money) && order.getPrice() != null) {
+            price = order.getPrice().toPlainString();
+        }
+
+        shop(player, order.getId(), order.getChannelOrderId(), shopProduct.getType(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), price, channelProductId, order.getCreateTime(), order.getUpdateTime(),
                 order.getOrderStatus(), shopProduct.getPayType(), region);
     }
 
