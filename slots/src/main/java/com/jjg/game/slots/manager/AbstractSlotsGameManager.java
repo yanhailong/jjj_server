@@ -135,8 +135,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     //在更新结果库后，要开启清除旧结果库的定时事件
     protected TimerEvent<String> clearAllLibEvent;
-    //生成结果库事件
-    protected TimerEvent<Map<Integer, Integer>> generateLibEvent;
 
 
     public AbstractSlotsGameManager(Class<T> playerGameDataClass, Class<L> libClass) {
@@ -155,42 +153,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         initConfig();
         //初始化离线处理定时器
         WheelTimerUtil.scheduleAtFixedRate(this::checkOffLine, 1, 1, TimeUnit.SECONDS);
-    }
-
-    /**
-     * 添加生成结果库事件
-     *
-     * @param libTypeCountMap
-     * @return
-     */
-    public boolean addGenerateLibEvent(Map<Integer, Integer> libTypeCountMap) {
-        if (this.generateLibEvent != null) {
-            log.debug("当前有未执行的生成结果库任务，所以添加失败");
-            return false;
-        }
-
-        if (libTypeCountMap == null || libTypeCountMap.isEmpty()) {
-            log.debug("libTypeCountMap 为空，生成失败");
-            return false;
-        }
-
-        boolean lock = getResultLibDao().getGenerateLock(this.gameType);
-        if (lock) {
-            log.debug("当前正在执行生成结果库任务，请勿打扰.... ");
-            return false;
-        }
-        this.generateLibEvent = new TimerEvent<>(this, 10, libTypeCountMap).withTimeUnit(TimeUnit.SECONDS);
-        this.timerCenter.add(this.generateLibEvent);
-        return true;
-    }
-
-    /**
-     * 生成结果集
-     *
-     * @param libTypeCountMap 生成条数
-     */
-    protected void generate(Map<Integer, Integer> libTypeCountMap) {
-        generate(libTypeCountMap, true);
     }
 
     /**
@@ -1097,9 +1059,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             getResultLibDao().clearRedisLib(this.gameType);
             this.clearAllLibEvent = null;
             getResultLibDao().removeGenerateLock(this.gameType);
-        } else if (this.generateLibEvent == e) {
-            generate(this.generateLibEvent.getParameter());
-            this.generateLibEvent = null;
         }
     }
 

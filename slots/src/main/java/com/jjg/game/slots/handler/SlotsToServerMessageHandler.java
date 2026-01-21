@@ -5,6 +5,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.handler.CoreToServerMessageHandler;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.gm.NotifyGenrateLib;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
@@ -53,19 +54,21 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
     @Command(MessageConst.ToServer.NOTICE_GENERATE_LIB)
     public void genrateLib(NotifyGenrateLib req) {
         try {
-            log.info("收到生成结果库的请求 gameType = {},count = {}", req.gameType, req.count);
+            log.info("收到生成结果库的请求 list={}", JSON.toJSONString(req.list));
 
-            AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(req.gameType);
-            if (gameManager == null) {
-                log.debug("获取 gameManager 为空，生成结果库失败 gameType = {},count = {}", req.gameType, req.count);
-                return;
-            }
+            for (KVInfo info : req.list) {
+                AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(info.key);
+                if (gameManager == null) {
+                    log.debug("获取 gameManager 为空，生成结果库失败 gameType = {},count = {}", info.key, info.value);
+                    return;
+                }
 
-            // 任务入队
-            Map<Integer, Integer> countMap = countMap(req.gameType, req.count);
-            synchronized (queueLock) {
-                generateTaskQueue.offer(new GenerateLibTask(req.gameType, countMap));
-                log.info("任务已入队，当前队列长度: {}, gameType = {}", generateTaskQueue.size(), req.gameType);
+                // 任务入队
+                Map<Integer, Integer> countMap = countMap(info.key, info.value);
+                synchronized (queueLock) {
+                    generateTaskQueue.offer(new GenerateLibTask(info.key, countMap));
+                    log.info("任务已入队，当前队列长度: {}, gameType = {}", generateTaskQueue.size(), info.key);
+                }
             }
             // 尝试启动任务
             tryStartNextTask();
