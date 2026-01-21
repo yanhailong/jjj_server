@@ -391,14 +391,14 @@ public class GMController extends AbstractController {
             }
 
             if (StringUtils.isEmpty(dto.designated())) {  //为空表示全服邮件
-                mailService.addAllServerMail(dto.title(), dto.content(), mailItems);
+                mailService.addAllServerMail(dto.title(), dto.content(), mailItems, AddType.BACKEND_OPERATOR);
             } else {
                 List<Long> playerIds = new ArrayList<>();
                 String[] arr = dto.designated().split(",");
                 for (String str : arr) {
                     playerIds.add(Long.parseLong(str));
                 }
-                mailService.addMails(playerIds, dto.title(), dto.content(), mailItems);
+                mailService.addMails(playerIds, dto.title(), dto.content(), mailItems, AddType.BACKEND_OPERATOR);
             }
 
             //返回修改结果
@@ -534,8 +534,7 @@ public class GMController extends AbstractController {
                 }
             }
 
-            log.info("后台修改玩家货币成功 playerId = {},beforeGold={},beforeDiamond={},beforeSafeGold={},beforeSafeDiamond={},afterGold={},afterDiamond={},afterSafeGold={},afterSafeDiamond={}",
-                    player.getId(), beforeGold, beforeDiamond, beforeSafeGold, beforeSafeDiamond, player.getGold(), player.getDiamond(), player.getSafeBoxGold(), player.getSafeBoxDiamond());
+            log.info("后台修改玩家货币成功 playerId = {},beforeGold={},beforeDiamond={},beforeSafeGold={},beforeSafeDiamond={},afterGold={},afterDiamond={},afterSafeGold={},afterSafeDiamond={}", player.getId(), beforeGold, beforeDiamond, beforeSafeGold, beforeSafeDiamond, player.getGold(), player.getDiamond(), player.getSafeBoxGold(), player.getSafeBoxDiamond());
             //返回修改结果
             return success("common.success");
         } catch (Exception e) {
