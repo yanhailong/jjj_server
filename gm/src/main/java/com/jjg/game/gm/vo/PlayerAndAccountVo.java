@@ -79,6 +79,8 @@ public class PlayerAndAccountVo {
     private int status;
     //第三方账号
     private Map<LoginType, String> thirdAccounts;
+    //子渠道
+    private String subChannel;
 
     public long getId() {
         return id;
@@ -374,5 +376,13 @@ public class PlayerAndAccountVo {
 
     public void setThirdAccounts(Map<LoginType, String> thirdAccounts) {
         this.thirdAccounts = thirdAccounts;
+    }
+
+    public String getSubChannel() {
+        return subChannel;
+    }
+
+    public void setSubChannel(String subChannel) {
+        this.subChannel = subChannel;
     }
 }

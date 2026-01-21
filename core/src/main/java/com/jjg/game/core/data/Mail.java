@@ -1,5 +1,6 @@
 package com.jjg.game.core.data;
 
+import com.jjg.game.core.constant.AddType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -32,6 +33,8 @@ public class Mail implements Cloneable{
     private List<Item> items;
     //邮件状态 0.未阅读  1.已阅读  2.已领取
     private int status;
+    //添加类型
+    private AddType addType;
 
     public long getId() {
         return id;
@@ -103,6 +106,14 @@ public class Mail implements Cloneable{
 
     public void setStatus(int status) {
         this.status = status;
+    }
+
+    public AddType getAddType() {
+        return addType;
+    }
+
+    public void setAddType(AddType addType) {
+        this.addType = addType;
     }
 
     @Override
