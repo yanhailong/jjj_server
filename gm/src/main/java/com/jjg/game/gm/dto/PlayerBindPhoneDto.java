@@ -7,6 +7,7 @@ package com.jjg.game.gm.dto;
 public record PlayerBindPhoneDto(
         long playerId,
         String phone,
-        int type  //1.绑定  2.解绑
+        int type,  //1.绑定  2.解绑
+        boolean reward  //是否给绑定奖励
 ) {
 }

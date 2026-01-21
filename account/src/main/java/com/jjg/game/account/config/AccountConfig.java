@@ -19,6 +19,9 @@ public class AccountConfig {
     //资源地址
     private List<String> resourceurls;
 
+    //是否禁止中国大陆ip
+    private boolean forbidCNIp = true;
+
     public long getPlayerBeginId() {
         return playerBeginId;
     }
@@ -49,5 +52,13 @@ public class AccountConfig {
 
     public void setResourceurls(List<String> resourceurls) {
         this.resourceurls = resourceurls;
+    }
+
+    public boolean isForbidCNIp() {
+        return forbidCNIp;
+    }
+
+    public void setForbidCNIp(boolean forbidCNIp) {
+        this.forbidCNIp = forbidCNIp;
     }
 }

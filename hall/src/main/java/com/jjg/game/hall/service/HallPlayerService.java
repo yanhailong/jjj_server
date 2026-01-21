@@ -1,5 +1,9 @@
 package com.jjg.game.hall.service;
 
+import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
+import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
@@ -7,15 +11,22 @@ import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.AbstractPlayerService;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.task.service.TaskService;
 import com.jjg.game.hall.casino.service.PlayerBuildingService;
+import com.jjg.game.hall.constant.HallConstant;
+import com.jjg.game.hall.pb.res.ResFunctionOpenList;
 import com.jjg.game.hall.vip.service.VipService;
+import com.jjg.game.sampledata.bean.GameFunctionCfg;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -23,7 +34,7 @@ import java.util.Set;
  * @date 2025/5/26 16:49
  */
 @Service
-public class HallPlayerService extends AbstractPlayerService {
+public class HallPlayerService extends AbstractPlayerService implements ConfigExcelChangeListener {
 
     @Autowired
     private PlayerLastGameInfoDao playerLastGameInfoDao;
@@ -43,7 +54,10 @@ public class HallPlayerService extends AbstractPlayerService {
     private AccountDao accountDao;
     @Autowired
     private PlayerSessionTokenDao playerSessionTokenDao;
-
+    @Autowired
+    private ClusterSystem clusterSystem;
+    @Autowired
+    private GameFunctionService gameFunctionService;
 
     /**
      * 仅在登录时调用
@@ -180,5 +194,31 @@ public class HallPlayerService extends AbstractPlayerService {
         accountDao.moveToMongo(playerId);
         playerSessionTokenDao.delToken(playerId);
         return true;
+    }
+
+    public void sendFunctionReload() {
+        for (PFSession pfSession : clusterSystem.getAllOnlinePlayerPFSession()) {
+            if (pfSession.getPlayerId() > 0 && pfSession.getReference() instanceof PlayerController) {
+                PlayerExecutorGroupDisruptor.getDefaultExecutor()
+                        .tryPublish(pfSession.getPlayerId(), HallConstant.MsgBean.REQ_FUNCTION_OPEN_LIST, new BaseHandler<String>() {
+                            @Override
+                            public void action() {
+                                if (pfSession.getPlayerId() > 0 && pfSession.getReference() instanceof PlayerController playerController) {
+                                    Player player = get(playerController.playerId());
+                                    List<Integer> openedFuncIdList = gameFunctionService.getOpenedFuncIdList(player);
+                                    ResFunctionOpenList res = new ResFunctionOpenList(Code.SUCCESS);
+                                    res.openedFunctionIdList = openedFuncIdList;
+                                    playerController.send(res);
+                                    log.info("推送玩家获取功能开放列表 playerId = {},openedFuncIdList = {}", playerController.playerId(), openedFuncIdList);
+                                }
+                            }
+                        });
+            }
+        }
+    }
+
+    @Override
+    public void initSampleCallbackCollector() {
+        addChangeSampleFileObserveWithCallBack(GameFunctionCfg.EXCEL_NAME, this::sendFunctionReload);
     }
 }

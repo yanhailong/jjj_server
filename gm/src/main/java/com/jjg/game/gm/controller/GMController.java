@@ -205,8 +205,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if (StringUtils.isEmpty(dto.content()) || dto.showTime() < 0 || dto.interval_time() < 0 || dto.priority() < 0 ||
-                    StringUtils.isEmpty(dto.start_time()) || StringUtils.isEmpty(dto.end_time())) {
+            if (StringUtils.isEmpty(dto.content()) || dto.showTime() < 0 || dto.interval_time() < 0 || dto.priority() < 0 || StringUtils.isEmpty(dto.start_time()) || StringUtils.isEmpty(dto.end_time())) {
                 log.debug("从后台收到的跑马灯参数错误");
                 return fail("common.paramerror");
             }
@@ -380,13 +379,7 @@ public class GMController extends AbstractController {
             List<Item> mailItems = null;
             //解析邮件中的道具
             if (StringUtils.isNotEmpty(dto.items())) {
-                mailItems = mailItemsPattern.matcher(dto.items())
-                        .results()
-                        .map(match -> new Item(
-                                Integer.parseInt(match.group(1)),
-                                Long.parseLong(match.group(2))
-                        ))
-                        .collect(Collectors.toList());
+                mailItems = mailItemsPattern.matcher(dto.items()).results().map(match -> new Item(Integer.parseInt(match.group(1)), Long.parseLong(match.group(2)))).collect(Collectors.toList());
 
                 for (Item item : mailItems) {
                     ItemCfg itemCfg = GameDataManager.getItemCfg(item.getId());
@@ -464,6 +457,11 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
+            long beforeGold = player.getGold();
+            long beforeDiamond = player.getDiamond();
+            long beforeSafeGold = player.getSafeBoxGold();
+            long beforeSafeDiamond = player.getSafeBoxDiamond();
+
             boolean notifyNode = false;
             AddType addType = AddType.GM_OPERATOR;
             CommonResult<Player> result;
@@ -536,6 +534,8 @@ public class GMController extends AbstractController {
                 }
             }
 
+            log.info("后台修改玩家货币成功 playerId = {},beforeGold={},beforeDiamond={},beforeSafeGold={},beforeSafeDiamond={},afterGold={},afterDiamond={},afterSafeGold={},afterSafeDiamond={}",
+                    player.getId(), beforeGold, beforeDiamond, beforeSafeGold, beforeSafeDiamond, player.getGold(), player.getDiamond(), player.getSafeBoxGold(), player.getSafeBoxDiamond());
             //返回修改结果
             return success("common.success");
         } catch (Exception e) {
@@ -884,8 +884,7 @@ public class GMController extends AbstractController {
                 return fail("common.fail");
             }
 
-            if (NodeType.GAME.name().equals(clusterClient.nodeConfig.getType()) &&
-                    clusterClient.nodeConfig.getGameMajorTypes()[0] != CoreConst.GameMajorType.SLOTS) {
+            if (NodeType.GAME.name().equals(clusterClient.nodeConfig.getType()) && clusterClient.nodeConfig.getGameMajorTypes()[0] != CoreConst.GameMajorType.SLOTS) {
                 log.debug("只能是slots的游戏节点才需要生成结果库 param = {}", param);
                 return fail("common.fail");
             }
@@ -1281,9 +1280,7 @@ public class GMController extends AbstractController {
             }
 
             // 去重，避免重复查询
-            List<Long> ids = dto.playerIds().stream()
-                    .distinct()
-                    .collect(Collectors.toList());
+            List<Long> ids = dto.playerIds().stream().distinct().collect(Collectors.toList());
 
             if (ids.size() > 100) {
                 log.warn("批量查询玩家数量不能超过100");
@@ -1357,10 +1354,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            GameRpcContext.getContext().withReqParameterBuilder(
-                    RpcReqParameterBuilder.create()
-                            .addClusterClient(client)
-                            .setTryMillisPerClient(1000));
+            GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
 
             Player player = playerService.get(dto.playerId());
             if (player == null) {
@@ -1472,12 +1466,9 @@ public class GMController extends AbstractController {
                 return fail("common.fail");
             }
 
-            GameRpcContext.getContext().withReqParameterBuilder(
-                    RpcReqParameterBuilder.create()
-                            .addClusterClient(clusterClient)
-                            .setTryMillisPerClient(1000));
+            GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(clusterClient).setTryMillisPerClient(1000));
 
-            int bindCode = gmToHallBridge.playerBindPhone(dto.playerId(), dto.phone(), dto.type());
+            int bindCode = gmToHallBridge.playerBindPhone(dto.playerId(), dto.phone(), dto.type(), dto.reward());
             if (bindCode != Code.SUCCESS) {
                 log.warn("调用gmToHallBridge.playerBindPhone返回失败 client = {},errorCode = {}", clusterClient.marsNode.getNodePath(), bindCode);
                 return fail("common.fail");
@@ -1513,17 +1504,14 @@ public class GMController extends AbstractController {
      * @return
      */
     @RequestMapping(BackendGMCmd.SAVE_SMS_CONFIG)
-    public WebResult<String> saveSmsConfig(@RequestBody List<SmsConfigInfo> list) {
-        log.info("收到保存sms配置的消息 list.size = {}", list == null ? null : list.size());
+    public WebResult<String> saveSmsConfig(@RequestBody SaveSmsConfigDto dto) {
+        log.info("收到保存sms配置的消息 dto = {}", dto);
         try {
-            smsService.save(list);
+            smsService.save(dto.list());
             List<ClusterClient> nodes = clusterSystem.getNodes(Set.of(NodeType.HALL.toString(), NodeType.ACCOUNT.toString()));
             if (nodes != null && !nodes.isEmpty()) {
                 nodes.forEach(node -> {
-                    GameRpcContext.getContext().withReqParameterBuilder(
-                            RpcReqParameterBuilder.create()
-                                    .addClusterClient(node)
-                                    .setTryMillisPerClient(1000));
+                    GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(node).setTryMillisPerClient(1000));
 
                     int code = gmToAllBridge.reload(ReloadType.SMS_CONFIG.getValue());
                     if (code == Code.SUCCESS) {
@@ -1586,6 +1574,15 @@ public class GMController extends AbstractController {
             if (StringUtils.isBlank(realPhone)) {
                 log.warn("手机号格式校验失败  dto = {}", dto);
                 return fail("common.paramerror");
+            }
+
+            //如果是绑定账号，要检查该号码是否已经被绑定
+            if (vercodeType == VerCodeType.SMS_BIND_PHONE) {
+                Account phoneAccount = accountDao.queryThirdAccount(LoginType.PHONE, realPhone);
+                if (phoneAccount != null) {
+                    log.warn("该手机号已经绑定账号，不能重复绑定  dto = {}", dto);
+                    return fail("common.paramerror");
+                }
             }
 
             Player player = playerService.get(dto.playerId());
@@ -1663,10 +1660,7 @@ public class GMController extends AbstractController {
                 return fail("common.fail");
             }
 
-            GameRpcContext.getContext().withReqParameterBuilder(
-                    RpcReqParameterBuilder.create()
-                            .addClusterClient(clusterClient)
-                            .setTryMillisPerClient(1000));
+            GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(clusterClient).setTryMillisPerClient(1000));
 
             int bindCode = gmToHallBridge.afterVerifySmsSuccess(dto.playerId(), dto.phone(), dto.type());
             if (bindCode != Code.SUCCESS) {

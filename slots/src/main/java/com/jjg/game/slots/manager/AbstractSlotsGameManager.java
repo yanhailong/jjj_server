@@ -1178,6 +1178,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 //                        onAutoExitAction(playerGameData);
                         offlineSaveGameDataDto(playerGameData);
                         removePlayerGameData(playerGameData.playerId(), playerGameData.getRoomCfgId());
+                        log.debug("保存离线玩家数据 playerId = {}", playerController.playerId());
                     }
                 }.setHandlerParamWithSelf("slots offlineDelete"));
     }
