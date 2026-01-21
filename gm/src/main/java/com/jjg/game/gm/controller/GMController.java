@@ -1500,6 +1500,7 @@ public class GMController extends AbstractController {
                     }
                 });
             }
+            smsService.reloadConfig();
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);
