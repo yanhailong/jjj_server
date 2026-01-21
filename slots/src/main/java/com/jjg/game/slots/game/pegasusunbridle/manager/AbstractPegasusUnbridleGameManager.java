@@ -53,6 +53,12 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
         this.PegasusUnbridleResultLibDao = PegasusUnbridleResultLibDao;
     }
 
+    @Override
+    public void generate(Map<Integer, Integer> libTypeCountMap, boolean saveToDB) {
+        Integer jackpotCount = libTypeCountMap.getOrDefault(PegasusUnbridleConstant.SpecialMode.JACKPOT, 0);
+        libTypeCountMap.put(PegasusUnbridleConstant.SpecialMode.JACKPOT, jackpotCount / 10);
+        super.generate(libTypeCountMap, saveToDB);
+    }
 
     @Override
     public void init() {
