@@ -27,6 +27,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.AmazonBucketManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.RechargeType;
@@ -890,8 +891,10 @@ public class GMController extends AbstractController {
             }
 
             NotifyGenrateLib notify = new NotifyGenrateLib();
-            notify.gameType = param.gameType();
-            notify.count = param.count();
+            KVInfo kvInfo = new KVInfo();
+            kvInfo.key = param.gameType();
+            kvInfo.value = param.count();
+            notify.list = List.of(kvInfo);
 
             PFMessage pfMessage = MessageUtil.getPFMessage(notify);
             ClusterMessage msg = new ClusterMessage(pfMessage);

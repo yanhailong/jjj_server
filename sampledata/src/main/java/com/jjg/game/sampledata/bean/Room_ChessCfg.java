@@ -19,7 +19,7 @@ public class Room_ChessCfg extends RoomCfg {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Room_Chess";
 
-  /** 系统抽水 */
+  /** 系统赢抽水 */
   protected int EffectiveRatio;
   /** 请离房间（毫秒） */
   protected int EscTime;
@@ -27,6 +27,8 @@ public class Room_ChessCfg extends RoomCfg {
   protected int EscTipText;
   /** 机器人加入房间间隔（毫秒） */
   protected List<Integer> IntervalTime;
+  /** 玩家赢抽水 */
+  protected int WinRatio;
   /** 底注 */
   protected int betBase;
   /** 阶段信息 */
@@ -35,6 +37,8 @@ public class Room_ChessCfg extends RoomCfg {
   protected int gameID;
   /** 玩家手牌数量 */
   protected int handPoker;
+  /** 初始化标准池 */
+  protected long initBasePool;
   /** 跑马触发金额 */
   protected List<Long> marqueeTrigger;
   /** 最多人数 */
@@ -54,7 +58,7 @@ public class Room_ChessCfg extends RoomCfg {
   /** 交易项目ID */
   protected int transactionItemId;
 
-  /** 返回系统抽水 */
+  /** 返回系统赢抽水 */
   public int getEffectiveRatio() {
     return EffectiveRatio;
   }
@@ -72,6 +76,11 @@ public class Room_ChessCfg extends RoomCfg {
   /** 返回机器人加入房间间隔（毫秒） */
   public List<Integer> getIntervalTime() {
     return IntervalTime;
+  }
+
+  /** 返回玩家赢抽水 */
+  public int getWinRatio() {
+    return WinRatio;
   }
 
   /** 返回底注 */
@@ -92,6 +101,11 @@ public class Room_ChessCfg extends RoomCfg {
   /** 返回玩家手牌数量 */
   public int getHandPoker() {
     return handPoker;
+  }
+
+  /** 返回初始化标准池 */
+  public long getInitBasePool() {
+    return initBasePool;
   }
 
   /** 返回跑马触发金额 */

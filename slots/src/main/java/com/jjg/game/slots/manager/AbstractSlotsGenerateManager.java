@@ -401,7 +401,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 }
             }
             List<Integer> lineList = cfg.getPosLocation();
-            int lastElementIcon;
+            int lastElementIcon, firstElementIcon;
             for (int direction : cfg.getDirection()) {
                 //标记是否连线
                 int sameCount = 0;
@@ -410,9 +410,11 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                     case SlotsConst.BaseLine.DIRECTION_LEFT -> {
                         for (Integer index : lineList) {
                             int icon = arr[index];
-                            lastElementIcon = isIconSame(lastElementIcon, icon, wildIconSet, noralIconSet);
-                            if (lastElementIcon == 0) {
+                            int elementIcon = isIconSame( lastElementIcon, icon, wildIconSet, noralIconSet);
+                            if (elementIcon == 0) {
                                 break;
+                            }else {
+                                lastElementIcon = elementIcon;
                             }
                             sameCount++;
                         }
@@ -421,9 +423,11 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                         for (int i = lineList.size() - 1; i >= 0; i--) {
                             Integer index = lineList.get(i);
                             int icon = arr[index];
-                            lastElementIcon = isIconSame(lastElementIcon, icon, wildIconSet, noralIconSet);
-                            if (lastElementIcon == 0) {
+                            int elementIcon = isIconSame(lastElementIcon, icon, wildIconSet, noralIconSet);
+                            if (elementIcon == 0) {
                                 break;
+                            }else {
+                                lastElementIcon = elementIcon;
                             }
                             sameCount++;
                         }
@@ -834,26 +838,22 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         List<A> resultList = new ArrayList<>();
         log.debug("开始检测 连线_分散_数量");
         //遍历所有中奖线配置
-        GameDataManager.getBaseLineCfgList().stream()
-                .filter(cfg -> cfg.getGameType() == this.gameType)
-                .forEach(baseLineCfg -> {
-                    List<Integer> posLocation = baseLineCfg.getPosLocation();
-                    //k:图标id -> v:图标数量
-                    Map<Integer, Integer> countMap = new HashMap<>();
-                    posLocation.forEach(location -> {
-                        int icon = arr[location];
-                        countMap.merge(icon, 1, Integer::sum);
-                    });
-                    //根据图标id和数量查看奖励配置是否存在
-                    countMap.forEach((icon, count) -> dispersionLineCountCfgMap.values().stream()
-                            .filter(cfg -> cfg.getElementId().contains(icon) && cfg.getRewardNum() == count)
-                            .forEach(cfg -> {
-                                A rewardInfo = addDispersionLineCountAwardInfo(countMap, baseLineCfg, cfg, icon, count);
-                                if (rewardInfo != null) {
-                                    resultList.add(rewardInfo);
-                                }
-                            }));
-                });
+        GameDataManager.getBaseLineCfgList().stream().filter(cfg -> cfg.getGameType() == this.gameType).forEach(baseLineCfg -> {
+            List<Integer> posLocation = baseLineCfg.getPosLocation();
+            //k:图标id -> v:图标数量
+            Map<Integer, Integer> countMap = new HashMap<>();
+            posLocation.forEach(location -> {
+                int icon = arr[location];
+                countMap.merge(icon, 1, Integer::sum);
+            });
+            //根据图标id和数量查看奖励配置是否存在
+            countMap.forEach((icon, count) -> dispersionLineCountCfgMap.values().stream().filter(cfg -> cfg.getElementId().contains(icon) && cfg.getRewardNum() == count).forEach(cfg -> {
+                A rewardInfo = addDispersionLineCountAwardInfo(countMap, baseLineCfg, cfg, icon, count);
+                if (rewardInfo != null) {
+                    resultList.add(rewardInfo);
+                }
+            }));
+        });
         return resultList;
     }
 
@@ -1573,16 +1573,9 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
     @Override
     public void changeSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(BaseInitCfg.EXCEL_NAME, this::baseRollerCfg)
-                .addChangeSampleFileObserveWithCallBack(BaseElementCfg.EXCEL_NAME, this::baseElementConfig)
-                .addChangeSampleFileObserveWithCallBack(BaseElementRewardCfg.EXCEL_NAME, this::baseElementRewardConfig)
-                .addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, this::baseLineConfig)
+        addChangeSampleFileObserveWithCallBack(BaseInitCfg.EXCEL_NAME, this::baseRollerCfg).addChangeSampleFileObserveWithCallBack(BaseElementCfg.EXCEL_NAME, this::baseElementConfig).addChangeSampleFileObserveWithCallBack(BaseElementRewardCfg.EXCEL_NAME, this::baseElementRewardConfig).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, this::baseLineConfig)
 
-                .addChangeSampleFileObserveWithCallBack(SpecialModeCfg.EXCEL_NAME, this::specialModeConfig)
-                .addChangeSampleFileObserveWithCallBack(SpecialAuxiliaryCfg.EXCEL_NAME, this::specialAuxiliaryConfig)
-                .addChangeSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, this::specialGirdConfig)
-                .addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, this::specialPlayConfig)
-                .addChangeSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, this::specialResultLibConfig);
+                .addChangeSampleFileObserveWithCallBack(SpecialModeCfg.EXCEL_NAME, this::specialModeConfig).addChangeSampleFileObserveWithCallBack(SpecialAuxiliaryCfg.EXCEL_NAME, this::specialAuxiliaryConfig).addChangeSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, this::specialGirdConfig).addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, this::specialPlayConfig).addChangeSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, this::specialResultLibConfig);
     }
 
     public void setSpecialResultLibCacheData(SpecialResultLibCacheData specialResultLibCacheData) {

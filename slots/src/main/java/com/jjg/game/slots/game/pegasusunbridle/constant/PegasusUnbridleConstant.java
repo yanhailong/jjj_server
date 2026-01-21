@@ -33,7 +33,7 @@ public interface PegasusUnbridleConstant {
 
     interface SpecialMode {
         int NORMAL = 1;
-        int REAL_FU_MA = 2;
+        int JACKPOT = 3;
 
     }
     interface ElementId {

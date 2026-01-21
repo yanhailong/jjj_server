@@ -19,7 +19,7 @@ public class RoomCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Room";
 
-  /** 系统抽水 */
+  /** 系统赢抽水 */
   protected int EffectiveRatio;
   /** 请离房间（毫秒） */
   protected int EscTime;
@@ -35,7 +35,7 @@ public class RoomCfg extends BaseCfgBean {
   protected int TipText;
   /** 不操作提示倒计时秒 */
   protected int WaitTime;
-  /** 中奖时扣除比例万分比 */
+  /** 玩家赢抽水 */
   protected int WinRatio;
   /** 是否允许庄家参与游戏 */
   protected int bankerBets;
@@ -74,7 +74,7 @@ public class RoomCfg extends BaseCfgBean {
   /** 交易项目ID */
   protected int transactionItemId;
 
-  /** 返回系统抽水 */
+  /** 返回系统赢抽水 */
   public int getEffectiveRatio() {
     return EffectiveRatio;
   }
@@ -114,7 +114,7 @@ public class RoomCfg extends BaseCfgBean {
     return WaitTime;
   }
 
-  /** 返回中奖时扣除比例万分比 */
+  /** 返回玩家赢抽水 */
   public int getWinRatio() {
     return WinRatio;
   }
