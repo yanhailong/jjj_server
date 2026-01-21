@@ -29,7 +29,7 @@ public class DecryptRequestBodyAdvice implements RequestBodyAdvice {
         if(noSign){
             return false;
         }
-        return false; // 全局启用，也可以判断注解开关
+        return true; // 全局启用，也可以判断注解开关
     }
 
     @Override
