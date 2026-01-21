@@ -125,7 +125,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
 
                 String desc = String.valueOf(mailId);
                 if (mail.getAddType() == AddType.BACKEND_OPERATOR) {  //如果是后台发送的邮件，要修改desc的格式
-                    desc = desc + "&" + mail.getTitle();
+                    desc = desc + "&" + mail.getTitle().getContent();
                 }
                 playerPackService.addItems(playerId, map, addType, desc);
             }
@@ -203,7 +203,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
 
             String desc = String.valueOf(mail.getId());
             if (mail.getAddType() == AddType.BACKEND_OPERATOR) {  //如果是后台发送的邮件，要修改desc的格式
-                desc = desc + "&" + mail.getTitle();
+                desc = desc + "&" + mail.getTitle().getContent();
             }
 
             CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, map, AddType.GET_ALL_MAILS_ITEMS, desc);
