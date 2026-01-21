@@ -1,5 +1,6 @@
 package com.jjg.game.core.handler;
 
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.ReloadType;
 import com.jjg.game.core.rpc.GmToAllBridge;
 import com.jjg.game.core.service.SmsService;
@@ -11,11 +12,11 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author 11
  * @date 2026/1/19
  */
-public class CoreRPCController implements GmToAllBridge {
+public abstract class CoreRPCController implements GmToAllBridge {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private SmsService smsService;
+    protected SmsService smsService;
 
     @Override
     public int reload(int reloadType) {
@@ -25,9 +26,10 @@ public class CoreRPCController implements GmToAllBridge {
             switch (type) {
                 case SMS_CONFIG -> smsService.reloadConfig();
             }
+            return Code.SUCCESS;
         } catch (Exception e) {
             log.error("", e);
+            return Code.SUCCESS;
         }
-        return 0;
     }
 }

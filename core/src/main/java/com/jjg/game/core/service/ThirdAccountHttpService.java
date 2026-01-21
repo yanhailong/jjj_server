@@ -148,11 +148,9 @@ public class ThirdAccountHttpService {
         CommonResult<AppleUserInfo> result = new CommonResult<>(Code.SUCCESS);
 
         try {
-            if (thirdServiceInfo.getAppleAppId() == null || StringUtils.isBlank(thirdServiceInfo.getAppleBundleId()) ||
-                    StringUtils.isBlank(thirdServiceInfo.getAppleKeyId()) || StringUtils.isBlank(thirdServiceInfo.getAppleIssuerId())) {
+            if (thirdServiceInfo.getAppleAppId() == null || StringUtils.isBlank(thirdServiceInfo.getAppleBundleId())) {
                 result.code = Code.FAIL;
-                log.warn("apple配置缺失 appleId = {},appleBundleId = {},appleKeyId = {},appleIssuerId = {}",
-                        thirdServiceInfo.getAppleAppId(), thirdServiceInfo.getAppleBundleId(), thirdServiceInfo.getAppleKeyId(), thirdServiceInfo.getAppleIssuerId());
+                log.warn("apple配置缺失 appleId = {},appleBundleId = {}", thirdServiceInfo.getAppleAppId(), thirdServiceInfo.getAppleBundleId());
                 return result;
             }
 

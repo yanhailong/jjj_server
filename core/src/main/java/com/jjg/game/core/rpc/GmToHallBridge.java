@@ -17,7 +17,7 @@ public interface GmToHallBridge extends IGameRpc {
      * @param type
      * @return
      */
-    int playerBindPhone(long playerId, String phone, int type);
+    int playerBindPhone(long playerId, String phone, int type,boolean reward);
 
     /**
      * 后台验证短信成功后调用

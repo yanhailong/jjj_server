@@ -41,10 +41,6 @@ public class ThirdServiceInfo {
     private String appleBundleId;
     @Value("${thirdservice.apple.jwks_url:}")
     private String appleJwksUrl;
-    @Value("${thirdservice.apple.key_id:}")
-    private String appleKeyId;
-    @Value("${thirdservice.apple.issuer_id:}")
-    private String appleIssuerId;
     @Value("${thirdservice.apple.sandbox:true}")
     private boolean sandbox;
 
@@ -122,28 +118,12 @@ public class ThirdServiceInfo {
         this.facebookSecret = facebookSecret;
     }
 
-    public String getAppleKeyId() {
-        return appleKeyId;
-    }
-
-    public void setAppleKeyId(String appleKeyId) {
-        this.appleKeyId = appleKeyId;
-    }
-
     public Long getAppleAppId() {
         return appleAppId;
     }
 
     public void setAppleAppId(Long appleAppId) {
         this.appleAppId = appleAppId;
-    }
-
-    public String getAppleIssuerId() {
-        return appleIssuerId;
-    }
-
-    public void setAppleIssuerId(String appleIssuerId) {
-        this.appleIssuerId = appleIssuerId;
     }
 
     public String getAppleBundleId() {

@@ -8,6 +8,7 @@ import com.jjg.game.account.dto.LoginDto;
 import com.jjg.game.account.dto.LoginSmsDto;
 import com.jjg.game.account.dto.ServerUrlDto;
 import com.jjg.game.account.service.AccountService;
+import com.jjg.game.account.utils.IpCountryUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.service.ThirdAccountHttpService;
@@ -116,14 +117,11 @@ public class AccountController extends AbstractController {
                 return fail(Code.LOGIN_TYPE_NOT_ENABLED);
             }
 
-            //检查是否在黑名单中
-            String clientIp = getClientIp(request);
-            if (StringUtils.isNotEmpty(clientIp)) {
-                boolean blackIp = blackListService.isBlackIp(clientIp);
-                if (blackIp) {
-                    log.debug("该ip已被封禁，无法登录 ip = {},dto = {}", clientIp, JSONObject.toJSONString(dto));
-                    return fail(Code.IP_BLOCKED_LOGIN_DISABLED);
-                }
+            //检查ip
+            CommonResult<String> ipResult = checkIp(request);
+            if (!ipResult.success()) {
+                log.debug("ip已被封禁，无法登录 dto = {}", JSONObject.toJSONString(dto));
+                return fail(ipResult.code);
             }
 
             if (StringUtils.isBlank(dto.getSubChannel())) {
@@ -132,19 +130,19 @@ public class AccountController extends AbstractController {
 
             switch (loginType) {
                 case GUEST -> {
-                    return guestLogin(dto, clientIp);
+                    return guestLogin(dto, ipResult.data);
                 }
                 case GOOGLE -> {
-                    return googleLogin(dto, clientIp);
+                    return googleLogin(dto, ipResult.data);
                 }
                 case APPLE -> {
-                    return appleLogin(dto, clientIp);
+                    return appleLogin(dto, ipResult.data);
                 }
                 case FACEBOOK -> {
-                    return facebookLogin(dto, clientIp);
+                    return facebookLogin(dto, ipResult.data);
                 }
                 case PHONE -> {
-                    return phoneLogin(dto, clientIp);
+                    return phoneLogin(dto, ipResult.data);
                 }
                 default -> {
                     return fail(Code.LOGIN_TYPE_EMPTY_OR_NOT_EXIST);
@@ -171,20 +169,18 @@ public class AccountController extends AbstractController {
                 log.debug("参数不能为空，获取服务器地址失败 playerId = {}", playerId);
                 return fail(Code.PLAYER_ID_NOT_EXIST);
             }
-            //检查是否在黑名单中
-            String clientIp = getClientIp(request);
-            if (StringUtils.isNotEmpty(clientIp)) {
-                boolean blackIp = blackListService.isBlackIp(clientIp);
-                if (blackIp) {
-                    log.debug("该ip已被封禁，获取服务器地址失败 ip = {},dto = {}", clientIp, JSONObject.toJSONString(dto));
-                    return fail(Code.IP_BLOCKED_SERVER_URL_UNAVAILABLE);
-                }
+
+            //检查ip
+            CommonResult<String> ipResult = checkIp(request);
+            if (!ipResult.success()) {
+                log.debug("ip已被封禁，获取服务器地址失败dto = {}", JSONObject.toJSONString(dto));
+                return fail(ipResult.code);
             }
 
             //检查玩家id是否被封禁
             boolean blackId = blackListService.isBlackId(playerId);
             if (blackId) {
-                log.debug("该playerId已被封禁，获取服务器地址失败 ip = {},dto = {}", clientIp, JSONObject.toJSONString(dto));
+                log.debug("该playerId已被封禁，获取服务器地址失败 playerId = {},dto = {}", playerId, JSONObject.toJSONString(dto));
                 return fail(Code.PLAYER_ID_BLOCKED_SERVER_URL_UNAVAILABLE);
             }
 
@@ -208,7 +204,7 @@ public class AccountController extends AbstractController {
             }
 
             //如果与缓存数据不一致，就更新缓存
-            checkDiffAndSave(clientIp, dto, playerSessionToken);
+            checkDiffAndSave(ipResult.data, dto, playerSessionToken);
 
             //组装返回信息
             ServerUrlVo serverUrlVo = new ServerUrlVo();
@@ -255,6 +251,13 @@ public class AccountController extends AbstractController {
             if (StringUtils.isEmpty(realPhone)) {
                 log.debug("获取登录验证码失败,手机号格式错误 phone = {}", dto.getPhone());
                 return fail(Code.PHONE_NUMBER_FORMAT_INVALID);
+            }
+
+            //检查ip
+            CommonResult<String> ipResult = checkIp(request);
+            if (!ipResult.success()) {
+                log.debug("ip已被封禁，获取登录短信失败 dto = {}", JSONObject.toJSONString(dto));
+                return fail(ipResult.code);
             }
 
             VerCode dbVerCode = smsService.getSmsCodeByPhone(realPhone);
@@ -520,5 +523,38 @@ public class AccountController extends AbstractController {
         if (change) {
             playerSessionTokenDao.save(playerSessionToken);
         }
+    }
+
+    /**
+     * 检查ip
+     * @param request
+     * @return
+     */
+    private CommonResult<String> checkIp(HttpServletRequest request) {
+        CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
+        try {
+            String clientIp = getClientIp(request);
+            if (StringUtils.isEmpty(clientIp)) {
+                return result;
+            }
+
+            if (accountConfig.isForbidCNIp()) {
+                if ("CN".equals(IpCountryUtil.getCountryCode(clientIp))) {
+                    log.debug("禁止中国大陆用户登录，获取服务器地址失败 ip = {}", clientIp);
+                    result.code = Code.IP_BLOCKED_SERVER_URL_UNAVAILABLE;
+                    return result;
+                }
+            }
+
+            boolean blackIp = blackListService.isBlackIp(clientIp);
+            if (blackIp) {
+                log.debug("该ip已被封禁，获取服务器地址失败 ip = {}", clientIp);
+                result.code = Code.IP_BLOCKED_SERVER_URL_UNAVAILABLE;
+                return result;
+            }
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        return result;
     }
 }
