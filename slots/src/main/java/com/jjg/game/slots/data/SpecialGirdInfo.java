@@ -57,9 +57,6 @@ public class SpecialGirdInfo {
     }
 
     public boolean emptyInfo(){
-        if((this.valueMap == null || this.valueMap.isEmpty()) && this.valueType < 1 && this.miniGameId < 1){
-            return true;
-        }
-        return false;
+        return (this.valueMap == null || this.valueMap.isEmpty()) && this.valueType < 1 && this.miniGameId < 1;
     }
 }
