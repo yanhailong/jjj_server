@@ -93,9 +93,11 @@ public class FileHelper {
         if (!file.exists()) {
             try {
                 if (file.getParentFile() != null) {
-                    boolean mkDirs = file.getParentFile().mkdirs();
-                    if (!mkDirs) {
-                        throw new RuntimeException("创建文件夹失败");
+                    if (!file.getParentFile().exists()) {
+                        boolean mkDirs = file.getParentFile().mkdirs();
+                        if (!mkDirs) {
+                            throw new RuntimeException("创建文件夹失败");
+                        }
                     }
                 }
                 boolean newFile = file.createNewFile();

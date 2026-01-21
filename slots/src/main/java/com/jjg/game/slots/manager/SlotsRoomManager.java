@@ -371,15 +371,6 @@ public class SlotsRoomManager implements HallRoomBridge {
         return result;
     }
 
-    public static void main(String[] args) throws JsonProcessingException {
-        CommonResult<FriendRoom> result = new CommonResult<>();
-        result.code = Code.SUCCESS;
-        result.data = new SlotsFriendRoom();
-        ObjectMapper mapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
-        System.out.println(mapper.writeValueAsString(result));
-        System.out.println(JSON.toJSONString(result));
-    }
-
     /**
      * 记录slots房间下注统计信息
      *
@@ -427,7 +418,6 @@ public class SlotsRoomManager implements HallRoomBridge {
             //先将所有房间切换
             Set<SlotsFriendRoom> rooms = new HashSet<>();
             for (Map.Entry<Long, SlotsRoomController> en : tmpRoomControllers.entrySet()) {
-                en.getValue().getRoom().toggleFlag();
                 rooms.add(en.getValue().getRoom());
             }
 

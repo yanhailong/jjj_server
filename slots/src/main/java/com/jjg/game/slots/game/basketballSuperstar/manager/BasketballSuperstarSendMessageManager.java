@@ -72,6 +72,7 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
                 res.status = SteamAgeConstant.Status.NORMAL;
             }
             if (res.status == BasketballSuperstarConstant.Status.FREE) {
+                res.defaultBet = gameRunInfo.getData().getAllBetScore();
                 BasketballSuperstarResultLib freeLib = (BasketballSuperstarResultLib) gameRunInfo.getData().getFreeLib();
                 List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = freeLib.getSpecialAuxiliaryInfoList();
                 if (specialAuxiliaryInfoList != null && !specialAuxiliaryInfoList.isEmpty()) {

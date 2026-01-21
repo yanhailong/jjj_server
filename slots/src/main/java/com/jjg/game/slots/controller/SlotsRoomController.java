@@ -21,8 +21,8 @@ public class SlotsRoomController {
     /**
      * 房间暂停
      */
-    public void pauseGame(){
-        if(this.room.getStatus() == 1){
+    public void pauseGame() {
+        if (this.room.getStatus() == 1) {
             this.room.setPauseTime(System.currentTimeMillis());
         }
     }
@@ -30,7 +30,7 @@ public class SlotsRoomController {
     /**
      * 解散
      */
-    public void destroyOnNextRoundStart(){
+    public void destroyOnNextRoundStart() {
         this.room.setStatus(3);
         this.room.setPauseTime(System.currentTimeMillis());
     }
@@ -40,7 +40,7 @@ public class SlotsRoomController {
         return room;
     }
 
-    public void playerBet(long roomId, long playerId, long betValue){
-        room.addBet(roomId,playerId,betValue);
+    public void playerBet(long playerId, long betValue, long roomInCome) {
+        room.addBet(playerId, betValue, roomInCome);
     }
 }
