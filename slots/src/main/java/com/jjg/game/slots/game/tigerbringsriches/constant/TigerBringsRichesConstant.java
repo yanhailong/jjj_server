@@ -38,7 +38,7 @@ public interface TigerBringsRichesConstant {
 
     interface SpecialMode {
         int NORMAL = 1;
-        int TIGER_BRINGS_RICHES = 2;
+        int JACKPOT = 3;
     }
 
     interface Common {

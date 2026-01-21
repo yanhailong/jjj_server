@@ -51,7 +51,7 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
         lib.setAwardLineInfoList(awardLineInfoList);
         if (CollectionUtil.isNotEmpty(lib.getLibTypeSet())) {
             for (Integer libType : lib.getLibTypeSet()) {
-                if (libType != TigerBringsRichesConstant.SpecialMode.TIGER_BRINGS_RICHES) {
+                if (libType == TigerBringsRichesConstant.SpecialMode.NORMAL) {
                     continue;
                 }
                 //随机元素
@@ -63,34 +63,17 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
                 //随机
                 int[] iconArr = lib.getIconArr();
                 //进行元素随机
-                int[] temp = Arrays.copyOf(iconArr, iconArr.length);
+                int[] temp = new int[iconArr.length];
+                System.arraycopy(iconArr, 1, iconArr, 0, iconArr.length - 1);
                 //设置为空白元素
-                Arrays.fill(temp, TigerBringsRichesConstant.ElementId.BLANK);
-                // Iteratively populates slots; computes special result until full
+                Arrays.fill(temp, 1, temp.length, TigerBringsRichesConstant.ElementId.BLANK);
+                int realCount = temp.length - 1;
+                int maxRandomNum = libType == TigerBringsRichesConstant.SpecialMode.JACKPOT ? realCount : realCount - 1;
+                int minRandomNum = libType == TigerBringsRichesConstant.SpecialMode.JACKPOT ? realCount : minIconCount;
                 int createElementCount = 0;
                 while (true) {
-                    int iconCount = 0;
-                    int changeCount = 0;
-                    int index = -1;
-                    for (int i = 0; i < temp.length; i++) {
-                        int oldIcon = temp[i];
-                        if (oldIcon != TigerBringsRichesConstant.ElementId.BLANK) {
-                            iconCount++;
-                            continue;
-                        }
-                        if (weight > RandomUtil.randomInt(10000)) {
-                            temp[i] = wildChance > RandomUtil.randomInt(10000) ? TigerBringsRichesConstant.ElementId.WILD : icon;
-                            changeCount++;
-                            createElementCount++;
-                        } else {
-                            index = index == -1 ? i : RandomUtil.randomBoolean() ? i : index;
-                        }
-                    }
-                    if (changeCount == 0 && createElementCount < minIconCount) {
-                        temp[index] = wildChance > RandomUtil.randomInt(10000) ? TigerBringsRichesConstant.ElementId.WILD : icon;
-                        changeCount++;
-                        createElementCount++;
-                    }
+                    TigerBringsRichesGameGenerateManager.RandomIconResult randomIcon = getRandomIcon(temp, icon, createElementCount, minRandomNum, maxRandomNum);
+                    createElementCount = randomIcon.createElementCount;
                     //生成结果
                     TigerBringsRichesResultLib specialLib = new TigerBringsRichesResultLib();
                     specialLib.setId(RandomUtils.getUUid());
@@ -102,11 +85,11 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
                     specialLib.setAwardLineInfoList(specialAwardLineInfoList);
                     lib.addSpecialResult(specialLib);
                     calTimes(specialLib);
-                    if (iconCount + changeCount == temp.length) {
+                    if (randomIcon.createElementCount == realCount) {
                         specialLib.addJackpotId(TigerBringsRichesConstant.Common.JACKPOT_ID);
                         break;
                     }
-                    if (changeCount == 0) {
+                    if (randomIcon.changeCount == 0) {
                         break;
                     }
                 }
@@ -114,6 +97,37 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
         }
         calTimes(lib);
         return lib;
+    }
+
+    public TigerBringsRichesGameGenerateManager.RandomIconResult getRandomIcon(int[] temp, int icon, int createElementCount, int minIconCount, int maxRandomNum) {
+        int changeCount = 0;
+        int index = -1;
+        for (int i = 1; i < temp.length; i++) {
+            int oldIcon = temp[i];
+            if (oldIcon != TigerBringsRichesConstant.ElementId.BLANK) {
+                continue;
+            }
+            if (maxRandomNum == createElementCount) {
+                return new TigerBringsRichesGameGenerateManager.RandomIconResult(changeCount, createElementCount);
+            }
+            if (weight > RandomUtil.randomInt(10000)) {
+                temp[i] = wildChance > RandomUtil.randomInt(10000) ? TigerBringsRichesConstant.ElementId.WILD : icon;
+                changeCount++;
+                createElementCount++;
+            } else {
+                index = index == -1 ? i : RandomUtil.randomBoolean() ? i : index;
+            }
+        }
+        if (changeCount == 0 && createElementCount < minIconCount) {
+            temp[index] = wildChance > RandomUtil.randomInt(10000) ? TigerBringsRichesConstant.ElementId.WILD : icon;
+            changeCount++;
+            createElementCount++;
+        }
+        return new TigerBringsRichesGameGenerateManager.RandomIconResult(changeCount, createElementCount);
+    }
+
+    public record RandomIconResult(int changeCount, int createElementCount) {
+
     }
 
     @Override
