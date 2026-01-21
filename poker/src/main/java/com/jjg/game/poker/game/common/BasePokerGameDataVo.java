@@ -2,6 +2,7 @@ package com.jjg.game.poker.game.common;
 
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.core.data.Room;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
@@ -206,5 +207,16 @@ public abstract class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
         cards = null;
         playerSeatInfoList.clear();
         this.playerTimerEvent = null;
+    }
+
+    public int getRealPlayerBetCount() {
+        int count = 0;
+        for (PlayerSeatInfo playerSeatInfo : playerSeatInfoList) {
+            if (RobotUtil.isRobot(playerSeatInfo.getPlayerId())) {
+                continue;
+            }
+            count++;
+        }
+        return count;
     }
 }

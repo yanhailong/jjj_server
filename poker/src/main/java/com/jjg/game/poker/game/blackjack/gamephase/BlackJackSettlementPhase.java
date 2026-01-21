@@ -1,6 +1,7 @@
 package com.jjg.game.poker.game.blackjack.gamephase;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.service.CorePlayerService;
@@ -127,6 +128,10 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
      * 正常结算
      */
     public NotifyBlackJackSettlementInfo normalSettlement(BlackJackGameController controller) {
+        Pair<Long, Long> poolPair = canTriggerRecycling();
+        if (poolPair != null) {
+            log.error("21点结算 当前池:{} 标准池:{}", poolPair.getFirst(), poolPair.getSecond());
+        }
         //获取总点数
         List<Integer> dealerCards = gameDataVo.getDealerCards();
         boolean showDealer = gameDataVo.isShowDealer();
@@ -153,13 +158,21 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         Map<Long, Map<Integer, Long>> allBetInfo = gameDataVo.getAllBetInfo();
 
         Set<Long> aceBuyPlayerIds = gameDataVo.getAceBuyPlayerIds();
-        if (gameDataVo.isCanBuyACE() && !aceBuyPlayerIds.isEmpty() && tianHu) {
-            //购买ACE发奖
+        long poolWinValue = 0;
+        long poolLoseValue = 0;
+        if (gameDataVo.isCanBuyACE() && !aceBuyPlayerIds.isEmpty()) {
             for (Long playerId : aceBuyPlayerIds) {
                 int insurance = blackjackCfg.getInsurance();
                 Long betValue = baseBetInfo.getOrDefault(playerId, 0L);
-                playerGet.put(playerId, BlackJackDataHelper.getGetWinValue(betValue, insurance));
+                if (tianHu) {
+                    //购买ACE发奖
+                    playerGet.put(playerId, BlackJackDataHelper.getGetWinValue(betValue, insurance));
+                    poolLoseValue -= betValue;
+                } else {
+                    poolWinValue += poolWinValue;
+                }
             }
+
         }
         //结算信息
         NotifyBlackJackSettlementInfo settlementPlayerInfo = new NotifyBlackJackSettlementInfo();
@@ -252,21 +265,25 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                 continue;
             }
             if (get > 0) {
+                if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+                    robotPlayer.setLastWin(1);
+                } else {
+                    poolLoseValue += get;
+                }
                 long radioBefore = get;
                 //扣除抽水
                 get = BigDecimal.valueOf(get)
-                        .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getEffectiveRatio()))
+                        .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getWinRatio()))
                         .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
                 totalTax += radioBefore - get;
                 totalGet = totalBet + get;
-                if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
-                    robotPlayer.setLastWin(1);
-                }
+
             } else {
                 if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(2);
                 } else {
                     gameController.dealLose(gamePlayer, get);
+                    poolWinValue += Math.abs(get);
                 }
             }
             if (totalGet > 0) {
@@ -284,6 +301,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         log.info("21点结算信息: {}", JSON.toJSONString(settlementPlayerInfo));
         addLog(controller, playerGet);
         gameDataVo.setSettlementInfo(settlementPlayerInfo);
+        dealRoomPool(poolWinValue, poolLoseValue);
         return settlementPlayerInfo;
     }
 
