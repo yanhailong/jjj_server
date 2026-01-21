@@ -6,6 +6,7 @@ import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.service.BlackListService;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.core.service.LoginConfigService;
+import com.jjg.game.core.service.SmsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -38,7 +39,7 @@ public class AccountStartManager implements SmartLifecycle, ApplicationContextAw
     @Autowired
     private BlackListService blackListService;
     @Autowired
-    private AccountConfig accountConfig;
+    private SmsService smsService;
 
     private ApplicationContext context;
 
@@ -53,6 +54,7 @@ public class AccountStartManager implements SmartLifecycle, ApplicationContextAw
         this.blackListService.init();
         this.playerIdDao.init();
         createPidFile();
+        this.smsService.init();
         this.running = true;
     }
 

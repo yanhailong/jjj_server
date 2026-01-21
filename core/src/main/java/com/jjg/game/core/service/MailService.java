@@ -122,7 +122,12 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
 
             if (!map.isEmpty()) {
                 mailDao.getMailItems(playerId, mailId);
-                playerPackService.addItems(playerId, map, addType, String.valueOf(mailId));
+
+                String desc = String.valueOf(mailId);
+                if (mail.getAddType() == AddType.BACKEND_OPERATOR) {  //如果是后台发送的邮件，要修改desc的格式
+                    desc = desc + "&" + mail.getTitle();
+                }
+                playerPackService.addItems(playerId, map, addType, desc);
             }
             //邮件变化时通知客户端刷新小红点
             redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, -1);
@@ -196,24 +201,26 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
                 }
             });
 
-            mailIds.add(mail.getId());
+            String desc = String.valueOf(mail.getId());
+            if (mail.getAddType() == AddType.BACKEND_OPERATOR) {  //如果是后台发送的邮件，要修改desc的格式
+                desc = desc + "&" + mail.getTitle();
+            }
+
+            CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, map, AddType.GET_ALL_MAILS_ITEMS, desc);
+            if (!addItemsResult.success()) {
+                log.debug("一键领取失败 playerId = {},code = {},mailId = {}", playerId, addItemsResult.code, mail.getId());
+            } else {
+                mailIds.add(mail.getId());
+            }
         }
 
         if (map.isEmpty()) {
             result.data = map;
             return result;
         }
-
         long count = mailDao.batchUpdateMailStatus(mailIds, GameConstant.Mail.STATUS_GET_ITEMS);
-        CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, map, AddType.GET_ALL_MAILS_ITEMS);
-        if (!addItemsResult.success()) {
-            log.debug("一键领取失败 playerId = {},code = {}", playerId, addItemsResult.code);
-            result.code = addItemsResult.code;
-            return result;
-        }
         result.data = map;
-        log.info("一键领取结果 playerId = {}, batchUpdateCount = {}, addItemsResultCode = {}", playerId, count,
-                addItemsResult.code);
+        log.info("一键领取结果 playerId = {}, batchUpdateCount = {}", playerId, count);
         //邮件变化时通知客户端刷新小红点
         redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, -mailIds.size());
         return result;
@@ -244,8 +251,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     /**
      * 添加系统配置邮件
      */
-    public Mail addCfgMail(
-            long playerId, int titleLanId, int contentId, List<Item> items, List<LanguageParamData> params) {
+    public Mail addCfgMail(long playerId, int titleLanId, int contentId, List<Item> items, List<LanguageParamData> params) {
         LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, "");
         LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, "");
         titleData.setLangId(titleLanId);
@@ -306,6 +312,10 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, 1);
     }
 
+    public void addMails(List<Long> playerIds, String title, String content, List<Item> items) {
+        addMails(playerIds, title, content, items, null);
+    }
+
     /**
      * 批量保存邮件
      *
@@ -314,7 +324,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
      * @param content
      * @param items
      */
-    public void addMails(List<Long> playerIds, String title, String content, List<Item> items) {
+    public void addMails(List<Long> playerIds, String title, String content, List<Item> items, AddType addType) {
         List<Mail> mails = new ArrayList<>();
 
         LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, title);
@@ -324,6 +334,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             Mail mail = createMail(titleData, contentData, items, false);
             mail.setId(IdUtil.getSnowflakeNextId());
             mail.setPlayerId(playerId);
+            mail.setAddType(addType);
             mails.add(mail);
         }
         long saveCount = mailDao.batchSaveMails(mails);
@@ -348,6 +359,10 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         }
     }
 
+    public void addAllServerMail(String title, String content, List<Item> items) {
+        addAllServerMail(title, content, items, null);
+    }
+
     /**
      * 添加全服邮件
      *
@@ -358,12 +373,13 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     /**
      * 给所有在线玩家发送全服邮件（分批执行，防止内存或查询压力过大）
      */
-    public void addAllServerMail(String title, String content, List<Item> items) {
+    public void addAllServerMail(String title, String content, List<Item> items, AddType addType) {
         LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, title);
         LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, content);
 
         // 创建并保存全服邮件模板
         Mail mail = createMail(titleData, contentData, items, true);
+        mail.setAddType(addType);
         mailDao.saveServerMail(mail);
 
         // 获取所有在线玩家
@@ -402,8 +418,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             List<Mail> batchMails = mailDao.getItemsMailsCount(batchIds);
 
             // 按玩家分组统计数量
-            Map<Long, Long> countMap = batchMails.stream()
-                    .collect(Collectors.groupingBy(Mail::getPlayerId, Collectors.counting()));
+            Map<Long, Long> countMap = batchMails.stream().collect(Collectors.groupingBy(Mail::getPlayerId, Collectors.counting()));
 
             // 给这批玩家逐个发红点通知
             for (Long playerId : batchIds) {
@@ -458,8 +473,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
                 boolean reve = mailDao.playerHasServerMail(player.getId(), mail.getId());
                 //检查邮件是否过期
                 if (mail.getTimeout() < now) {
-                    log.info("检测到系统邮件到期 mailId = {},title = {},timeout = {}", mail.getId(), mail.getTitle(),
-                            mail.getTimeout());
+                    log.info("检测到系统邮件到期 mailId = {},title = {},timeout = {}", mail.getId(), mail.getTitle(), mail.getTimeout());
                     if (reve) {
                         mailDao.removeServerMail(mail.getId());
                     }
@@ -510,8 +524,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
 
         mail.setItems(items);
 
-        int expireTime =
-                GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.DEFAULT_MAIL_VALID_TIME).getIntValue();
+        int expireTime = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.DEFAULT_MAIL_VALID_TIME).getIntValue();
         mail.setTimeout(mail.getSendTime() + expireTime);
         return mail;
     }
@@ -524,9 +537,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             processAutoClaimMails(result.getMailsToAutoClaim());
         }
 
-        log.info("邮件清理完成: 删除无附件邮件{}封, 删除已领取附件邮件{}封, 自动领取附件邮件{}封, 删除全服邮件{}封",
-                result.getNoItemsDeletedCount(), result.getClaimedItemsDeletedCount(),
-                result.getMailsToAutoClaim().size(), result.getServerMailsDeletedCount());
+        log.info("邮件清理完成: 删除无附件邮件{}封, 删除已领取附件邮件{}封, 自动领取附件邮件{}封, 删除全服邮件{}封", result.getNoItemsDeletedCount(), result.getClaimedItemsDeletedCount(), result.getMailsToAutoClaim().size(), result.getServerMailsDeletedCount());
     }
 
     /**
@@ -534,8 +545,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
      */
     private void processAutoClaimMails(List<Mail> mails) {
         // 按玩家ID分组，便于批量处理
-        Map<Long, List<Mail>> playerMailsMap = mails.stream()
-                .collect(Collectors.groupingBy(Mail::getPlayerId));
+        Map<Long, List<Mail>> playerMailsMap = mails.stream().collect(Collectors.groupingBy(Mail::getPlayerId));
 
         Set<Long> mailIdsToDelete = new HashSet<>();
         for (Map.Entry<Long, List<Mail>> entry : playerMailsMap.entrySet()) {

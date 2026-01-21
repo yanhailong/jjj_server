@@ -31,8 +31,7 @@ public class TableRoomDao extends AbstractGoldRoomDao<BetTableRoom, RoomPlayer> 
         if (modifyValue == 0) {
             return 0;
         }
-        Long increment = redisTemplate.opsForHash().increment(getRoomPoolKey(gameType), roomCfgId, modifyValue);
-        return increment == null ? 0 : increment;
+        return redisTemplate.opsForHash().increment(getRoomPoolKey(gameType), roomCfgId, modifyValue);
     }
 
     /**
@@ -47,7 +46,7 @@ public class TableRoomDao extends AbstractGoldRoomDao<BetTableRoom, RoomPlayer> 
         switch (object) {
             case null -> {
                 Boolean absent = redisTemplate.opsForHash().putIfAbsent(getRoomPoolKey(gameType), roomCfgId, initRoomPool);
-                if (Boolean.FALSE.equals(absent)) {
+                if (!absent) {
                     log.error("初始化房间池失败，gameType: {}, roomCfgId: {}", gameType, roomCfgId);
                     return 0;
                 }
