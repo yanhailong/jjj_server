@@ -225,6 +225,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                         .increaseBySettlementData(new SettlementData(afterRatio, totalGet, bet, tempTotalGet.longValue() - afterRatio)));
                 if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(1);
+                } else {
+                    texasHistory.addTotalTax(playerId, tempTotalGet.longValue() - afterRatio);
                 }
                 playerGet.put(playerId, afterRatio);
             } else {
@@ -365,6 +367,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         long get = beforeRatio * (10000 - gameDataVo.getRoomCfg().getWinRatio()) / 10000;
         //添加记录
         TexasSaveHistory texasHistory = gameDataVo.getTexasHistory();
+        texasHistory.addTotalTax(playerId, beforeRatio - get);
         for (TexasHistoryPlayerInfo info : texasHistory.getTotalPlayerBetInfo()) {
             if (info.playerId == playerId) {
                 info.betValue = get;
@@ -375,10 +378,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         controller.changePlayerGold(gamePlayer, allBet + get);
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         // 添加账单记录
-        settlementDataMap.put(
-                playerId, settlementDataMap.getOrDefault(playerId, new SettlementData())
-                        .increaseBySettlementData(new SettlementData(get, beforeRatio, allBet, beforeRatio - get)));
-
+        settlementDataMap.put(playerId, settlementDataMap.getOrDefault(playerId, new SettlementData())
+                .increaseBySettlementData(new SettlementData(get, beforeRatio, allBet, beforeRatio - get)));
         addCreateRecord(controller, settlementDataMap);
         pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
         pokerPlayerSettlementInfo.getGold = allBet + get;
@@ -413,7 +414,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.playerId);
             if (gamePlayer != null) {
                 if (info.betValue > 0) {
-                    poolLoseValue += info.betValue;
+                    poolLoseValue += info.betValue + texasSaveHistory.getTotalTax().getOrDefault(info.playerId, 0L);
                     //触发任务
                     gameController.triggerSettlementAction(gamePlayer.getId(), gameController.getRoom().getGameType(), 0,
                             info.betValue, gameController.getGameTransactionItemId());
