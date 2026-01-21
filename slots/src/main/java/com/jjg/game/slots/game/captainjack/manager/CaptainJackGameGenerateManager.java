@@ -472,6 +472,29 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
         return totalTimes;
     }
 
+
+    public long calFreeTimes(CaptainJackResultLib lib, int endIndex) {
+        if (CollectionUtil.isEmpty(lib.getSpecialAuxiliaryInfoList())) {
+            return 0;
+        }
+        long totalTimes = 0;
+        for (SpecialAuxiliaryInfo info : lib.getSpecialAuxiliaryInfoList()) {
+            if (CollectionUtil.isEmpty(info.getFreeGames())) {
+                continue;
+            }
+            endIndex = Math.min(endIndex, info.getFreeGames().size());
+            for (int i = 0; i < endIndex; i++) {
+                JSONObject jsonObject = info.getFreeGames().get(i);
+                CaptainJackResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), CaptainJackResultLib.class);
+                if (CollectionUtil.isEmpty(tmpLib.getAddIconInfos())) {
+                    continue;
+                }
+                totalTimes += tmpLib.getTimes();
+            }
+        }
+        return totalTimes;
+    }
+
     /**
      * 计算消除补齐后的中奖倍数
      *
