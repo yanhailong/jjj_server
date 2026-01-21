@@ -4,6 +4,7 @@ import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.manager.SampleDataManager;
+import com.jjg.game.core.service.SmsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -31,6 +32,8 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
     private SampleDataManager sampleDataManager;
     @Autowired
     private ConfigManager configManager;
+    @Autowired
+    private SmsService smsService;
 
     private ApplicationContext context;
 
@@ -39,7 +42,7 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
     @Override
     public void start() {
         //为了安全，必须配置齐全才能启动服务
-        if(nodeConfig.getWhiteIpList() == null || nodeConfig.getWhiteIpList().length < 1){
+        if (nodeConfig.getWhiteIpList() == null || nodeConfig.getWhiteIpList().length < 1) {
             throw new IllegalStateException("IP白名单检查失败，拒绝启动服务");
         }
 
@@ -47,6 +50,7 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
         sampleDataManager.init();
         //需要处理所有配置数据 默认加载所有
         configManager.loadAll();
+        smsService.init();
         running = true;
     }
 
@@ -75,7 +79,7 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
     /**
      * 检查api密钥
      */
-    private void checkApiSecret(){
+    private void checkApiSecret() {
 
     }
 }
