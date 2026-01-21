@@ -1178,6 +1178,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 //                        onAutoExitAction(playerGameData);
                         offlineSaveGameDataDto(playerGameData);
                         removePlayerGameData(playerGameData.playerId(), playerGameData.getRoomCfgId());
+                        log.debug("保存离线玩家数据 playerId = {}", playerController.playerId());
                     }
                 }.setHandlerParamWithSelf("slots offlineDelete"));
     }
@@ -1917,6 +1918,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return null;
         }
 
+        if (libType == 1) {
+            //根据倍数区间从结果库里面随机获取一条
+            return (L) getResultLibDao().getLibBySectionIndex(libType, 11, this.libClass);
+        }
         //根据倍数区间从结果库里面随机获取一条
         return (L) getResultLibDao().getLibBySectionIndex(libType, resultLibSectionResult.data, this.libClass);
     }

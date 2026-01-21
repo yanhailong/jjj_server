@@ -12,9 +12,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.game.thor.dao.ThorGameDataDao;
@@ -115,7 +113,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         try {
             gameRunInfo.setAuto(auto);
 
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
@@ -357,7 +355,10 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
 
     @Override
     protected void onAutoExitAction(ThorPlayerGameData gameData, int eventId) {
-        //TODO
+        if (gameData.getStatus() == ThorConstant.Status.ICE || gameData.getStatus() == ThorConstant.Status.FIRE) {
+            freeStateAction(gameData, (playerGameData) ->
+                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
+        }
     }
 
     @Override

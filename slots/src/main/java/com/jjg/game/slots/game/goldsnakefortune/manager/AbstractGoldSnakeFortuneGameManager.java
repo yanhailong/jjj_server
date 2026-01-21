@@ -299,7 +299,7 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
                 coinInfo.index = en.getKey();
                 coinInfo.value = playerGameData.getOneBetScore() * en.getValue();
                 coinInfoList.add(coinInfo);
-                log.debug("添加金钱信息 girdId = {},value = {}", coinInfo.index, coinInfo.value);
+//                log.debug("添加金钱信息 girdId = {},value = {}", coinInfo.index, coinInfo.value);
             }
         }
         gameRunInfo.setCoinInfoList(coinInfoList);
@@ -314,6 +314,14 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
         }
 
         this.fake_free_prop = Integer.parseInt(specialPlayCfg.getValue().split(",")[1]);
+    }
+
+    @Override
+    protected void onAutoExitAction(GoldSnakeFortunePlayerGameData gameData, int eventId) {
+        if (gameData.getStatus() == GoldSnakeFortuneConstant.Status.FREE) {
+            freeStateAction(gameData, (playerGameData) ->
+                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
+        }
     }
 
     @Override

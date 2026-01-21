@@ -23,6 +23,7 @@ import com.jjg.game.slots.game.moneyrabbit.dao.MoneyRabbitResultLibDao;
 import com.jjg.game.slots.game.moneyrabbit.data.*;
 import com.jjg.game.slots.game.moneyrabbit.pb.MoneyRabbitCoinInfo;
 import com.jjg.game.slots.game.moneyrabbit.pb.MoneyRabbitWinIconInfo;
+import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -94,7 +95,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
         try {
             gameRunInfo.setAuto(auto);
 
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
@@ -298,7 +299,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
                 coinInfo.index = en.getKey();
                 coinInfo.value = playerGameData.getOneBetScore() * en.getValue();
                 coinInfoList.add(coinInfo);
-                log.debug("添加金钱信息 girdId = {},value = {}", coinInfo.index, coinInfo.value);
+//                log.debug("添加金钱信息 girdId = {},value = {}", coinInfo.index, coinInfo.value);
             }
         }
         gameRunInfo.setCoinInfoList(coinInfoList);
@@ -313,6 +314,14 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
         }
 
         this.fake_free_prop = Integer.parseInt(specialPlayCfg.getValue().split(",")[1]);
+    }
+
+    @Override
+    protected void onAutoExitAction(MoneyRabbitPlayerGameData gameData, int eventId) {
+        if (gameData.getStatus() == MoneyRabbitConstant.Status.FREE) {
+            freeStateAction(gameData, (playerGameData) ->
+                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
+        }
     }
 
     @Override
