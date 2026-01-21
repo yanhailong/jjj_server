@@ -1457,7 +1457,7 @@ public class GMController extends AbstractController {
                             .addClusterClient(clusterClient)
                             .setTryMillisPerClient(1000));
 
-            int bindCode = gmToHallBridge.playerBindPhone(dto.playerId(), dto.phone(), dto.type());
+            int bindCode = gmToHallBridge.playerBindPhone(dto.playerId(), dto.phone(), dto.type(), dto.reward());
             if (bindCode != Code.SUCCESS) {
                 log.warn("调用gmToHallBridge.playerBindPhone返回失败 client = {},errorCode = {}", clusterClient.marsNode.getNodePath(), bindCode);
                 return fail("common.fail");

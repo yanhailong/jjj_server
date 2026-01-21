@@ -25,7 +25,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private HallService hallService;
 
     @Override
-    public int playerBindPhone(long playerId, String phone, int type) {
+    public int playerBindPhone(long playerId, String phone, int type, boolean reward) {
         log.info("收到绑定或解绑手机请求 playerId = {},phone = {},type = {}", playerId, phone, type);
         int code = Code.SUCCESS;
         try {
@@ -36,7 +36,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             }
 
             if (type == 1) {  //绑定
-                return hallService.playerBindPhone(player, phone).code;
+                return hallService.playerBindPhone(player, phone, reward).code;
             } else if (type == 2) {  //解绑
                 CommonResult<Account> accountCommonResult = accountDao.removeThirdAccount(player, LoginType.PHONE);
                 if (!accountCommonResult.success()) {
@@ -68,7 +68,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             switch (verCodeType) {
                 case SMS_BIND_PHONE:
                     player = playerService.get(playerId);
-                    return hallService.playerBindPhone(player, phone).code;
+                    return hallService.playerBindPhone(player, phone, true).code;
                 default:
                     return Code.SUCCESS;
             }

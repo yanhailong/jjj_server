@@ -356,7 +356,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return result;
             }
 
-            CommonResult<String> bindResult = playerBindPhone(player, verResult.data.getData());
+            CommonResult<String> bindResult = playerBindPhone(player, verResult.data.getData(), true);
             if (!bindResult.success()) {
                 log.warn("玩家绑定手机号失败 playerId = {},phone = {},errorCode = {}", player.getId(), verResult.data.getData(), bindResult.code);
                 result.code = bindResult.code;
@@ -997,7 +997,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      * @param phone
      * @return
      */
-    public CommonResult<String> playerBindPhone(Player player, String phone) {
+    public CommonResult<String> playerBindPhone(Player player, String phone, boolean reward) {
         CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
         if (player == null) {
             log.warn("绑定玩家时，player不能为空");
@@ -1022,17 +1022,20 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
         result.data = phoneUserInfo.getUserId();
 
-        LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(cfg -> cfg.getType() == LoginType.PHONE.getValue()).findFirst().orElse(null);
-        if (loginConfigCfg == null || loginConfigCfg.getAwardItem() == null || loginConfigCfg.getAwardItem().isEmpty()) {
-            log.debug("未找到绑定手机号的奖励 playerId = {}, type = {}", player.getId(), LoginType.PHONE.getValue());
-            result.code = Code.NOT_FOUND;
-            return result;
-        }
-
-        List<Item> list = ItemUtils.buildItems(loginConfigCfg.getAwardItem());
-        mailService.addCfgMail(player.getId(), GameConstant.Mail.ID_BIND_PHONE, list);
         hallLogger.bind(player, LoginType.PHONE.getValue(), result.data);
-        log.debug("已发送绑定手机奖励邮件 playerId = {},rewaredList = {}", player.getId(), list);
+        if (reward) {
+            LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(cfg -> cfg.getType() == LoginType.PHONE.getValue()).findFirst().orElse(null);
+            if (loginConfigCfg == null || loginConfigCfg.getAwardItem() == null || loginConfigCfg.getAwardItem().isEmpty()) {
+                log.debug("未找到绑定手机号的奖励 playerId = {}, type = {}", player.getId(), LoginType.PHONE.getValue());
+                result.code = Code.NOT_FOUND;
+                return result;
+            }
+
+            List<Item> list = ItemUtils.buildItems(loginConfigCfg.getAwardItem());
+            mailService.addCfgMail(player.getId(), GameConstant.Mail.ID_BIND_PHONE, list);
+
+            log.debug("已发送绑定手机奖励邮件 playerId = {},rewaredList = {}", player.getId(), list);
+        }
         return result;
     }
 }
