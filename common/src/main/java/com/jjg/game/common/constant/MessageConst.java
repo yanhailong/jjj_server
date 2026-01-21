@@ -162,6 +162,8 @@ public interface MessageConst {
         int ACE_DJ = 0x41;
         //绿巨人
         int HULK = 0x42;
+        //恶魔之子
+        int DEMON_CHILD = 0x43;
     }
 
     interface ToClientConst {
