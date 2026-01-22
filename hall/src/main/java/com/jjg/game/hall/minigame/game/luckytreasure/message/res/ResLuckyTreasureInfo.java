@@ -49,6 +49,10 @@ public class ResLuckyTreasureInfo extends AbstractResponse {
      */
     @ProtoDesc("当前页码")
     private int currPage;
+    @ProtoDesc("商品价值货币的图标")
+    private String icon;
+    @ProtoDesc("抢购商品所需要的道具ID(仅在界面左上角处显示的抢购消耗道具的信息)")
+    private int itemId;
 
     public ResLuckyTreasureInfo(int code) {
         super(code);
@@ -92,5 +96,21 @@ public class ResLuckyTreasureInfo extends AbstractResponse {
 
     public void setPageSize(int pageSize) {
         this.pageSize = pageSize;
+    }
+
+    public String getIcon() {
+        return icon;
+    }
+
+    public void setIcon(String icon) {
+        this.icon = icon;
+    }
+
+    public int getItemId() {
+        return itemId;
+    }
+
+    public void setItemId(int itemId) {
+        this.itemId = itemId;
     }
 }
