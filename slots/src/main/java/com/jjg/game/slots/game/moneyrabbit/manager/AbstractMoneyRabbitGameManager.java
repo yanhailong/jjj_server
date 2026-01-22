@@ -227,9 +227,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             playerGameData.setStatus(MoneyRabbitConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
-
             playerGameData.setFreeAllWin(0);
-
             log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
         }
 

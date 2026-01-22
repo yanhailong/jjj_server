@@ -99,7 +99,7 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
         try {
             gameRunInfo.setAuto(auto);
 
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getPlayer().getRoomCfgId());
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
@@ -231,6 +231,7 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
             playerGameData.setFreeAllWin(0);
+            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
         }
 
         //设置金钱信息
