@@ -32,6 +32,7 @@ public class SlotsConst {
         specialModeJackpotModeIds.put(CoreConst.GameType.GOLD_SNAKE_FORTUNE, Set.of(3));
         specialModeJackpotModeIds.put(CoreConst.GameType.PEGASUS_UNBRIDLE, Set.of(3));
         specialModeJackpotModeIds.put(CoreConst.GameType.MONEY_RABBIT, Set.of(3));
+        specialModeJackpotModeIds.put(CoreConst.GameType.DEMON_CHILD, Set.of(3));
 
         //免费触发局的类型id
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.DOLLAR_EXPRESS, Set.of(6));
