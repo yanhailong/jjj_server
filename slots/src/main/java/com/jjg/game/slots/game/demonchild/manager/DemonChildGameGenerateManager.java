@@ -3,16 +3,15 @@ package com.jjg.game.slots.game.demonchild.manager;
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
+import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
+import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.demonchild.data.DemonChildAwardLineInfo;
 import com.jjg.game.slots.game.demonchild.data.DemonChildResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -41,53 +40,15 @@ public class DemonChildGameGenerateManager extends AbstractSlotsGenerateManager<
         return lib;
     }
 
-    /**
-     * 检查免费旋转
-     *
-     */
-    protected void triggerFree(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig, SpecialAuxiliaryInfo specialAuxiliaryInfo) {
-        if (specialAuxiliaryPropConfig.getTriggerCountPropInfo() == null) {
-            return;
-        }
-
-        //检查是否有免费旋转次数，免费旋转的结果，通过specialMode生成
-        Integer freeCount = specialAuxiliaryPropConfig.getTriggerCountPropInfo().getRandKey();
-        if (freeCount == null || freeCount < 1) {
-            return;
-        }
-
-        for (int i = 0; i < freeCount; i++) {
-            //检查是否有修改图案策略组id
-            int specialGroupGirdID = 0;
-            if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
-                Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
-                if (randKey != null && randKey > 0) {
-                    specialGroupGirdID = randKey;
-                }
-            }
-
-            DemonChildResultLib freeLib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
-            List<SpecialAuxiliaryInfo> auxiliaryInfos = freeLib.getSpecialAuxiliaryInfoList();
-            if (CollectionUtil.isNotEmpty(auxiliaryInfos)) {
-                List<JSONObject> freeLibList = new ArrayList<>();
-                specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(freeLib));
-                for (int j = auxiliaryInfos.size() - 1; j >= 0; j--) {
-                    SpecialAuxiliaryInfo auxiliaryInfo = auxiliaryInfos.get(j);
-                    if (CollectionUtil.isNotEmpty(auxiliaryInfo.getFreeGames())) {
-                        freeLibList.addAll(auxiliaryInfo.getFreeGames());
-                    }
-                    auxiliaryInfos.remove(j);
-                }
-                freeLib.setAddFreeCount(freeLibList.size());
-                specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(freeLib));
-                specialAuxiliaryInfo.getFreeGames().addAll(freeLibList);
-
-            } else {
-                specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(freeLib));
-            }
-        }
+    @Override
+    protected DemonChildAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
+        DemonChildAwardLineInfo awardLineInfo = new DemonChildAwardLineInfo();
+        awardLineInfo.setId(baseLineCfg.getLineId());
+        awardLineInfo.setBaseTimes(rewardCfg.getBet());
+        awardLineInfo.setSameCount(sameCount);
+        awardLineInfo.setIconId(baseIconId);
+        return awardLineInfo;
     }
-
 
     @Override
     public void calTimes(DemonChildResultLib lib) throws Exception {

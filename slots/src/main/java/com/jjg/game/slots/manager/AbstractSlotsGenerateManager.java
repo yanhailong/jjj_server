@@ -160,7 +160,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             T lib = createResultLib();
             lib.setId(RandomUtils.getUUid());
             lib.setRollerMode(specialModeCfg.getRollerMode());
-
+            lib.addLibType(specialModeType);
             //获取rollerMode
             int rollerMode = specialAuxiliaryCfg.getRollerMode();
             if (rollerMode < 1) {
@@ -401,7 +401,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 }
             }
             List<Integer> lineList = cfg.getPosLocation();
-            int lastElementIcon, firstElementIcon;
+            int lastElementIcon;
             for (int direction : cfg.getDirection()) {
                 //标记是否连线
                 int sameCount = 0;

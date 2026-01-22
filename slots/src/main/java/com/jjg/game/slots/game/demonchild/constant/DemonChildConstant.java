@@ -25,39 +25,20 @@ public interface DemonChildConstant {
     }
 
     interface BaseElement {
-        //免费图标
-        int FREE_ICON = 17;
-        //宝箱图标
-        int COLLECT_GOLD_COINS = 18;
     }
 
     interface Status {
         int NORMAL = SlotsConst.Status.NORMAL;
         //免费
         int FREE = SlotsConst.Status.FREE;
-        //宝箱
-        int TREASURE_CHEST = 2;
     }
 
     interface SpecialMode {
         int NORMAL = 1;
         int FREE = 2;
-        //免费游戏
-        int MINI_GAME = 3;
-        //大奖
-        int JACK_POOL = 4;
     }
 
     interface SpecialPlay {
-        //免费游戏倍率配置id
-        int FREE_GAME_CONFIG_ID = 502100;
-
     }
 
-    interface Common {
-        int MINI_POOL_ID = 102500101;
-        int MINOR_POOL_ID = 102500102;
-        int MAJOR_POOL_ID = 102500103;
-        int GRAND_POOL_ID = 102500104;
-    }
 }
