@@ -5,14 +5,12 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
@@ -23,21 +21,16 @@ import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameData;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameDataDTO;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
-import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractMahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWinPlayerGameData, MahjiongWinResultLib> {
+public abstract class AbstractMahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWinPlayerGameData, MahjiongWinResultLib, MahjiongWinGameRunInfo> {
     @Autowired
     protected MahjiongWinResultLibDao libDao;
     @Autowired
     protected MahjiongWinGenerateManager generateManager;
-    @Autowired
-    protected SlotsPoolDao slotsPoolDao;
-    @Autowired
-    protected SlotsLogger logger;
     @Autowired
     protected MahjiongWinGameDataDao gameDataDao;
 
@@ -156,23 +149,8 @@ public abstract class AbstractMahjiongWinGameManager extends AbstractSlotsGameMa
         return gameRunInfo;
     }
 
-    /**
-     * 普通正常流程
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param betValue
-     * @return
-     */
-    protected MahjiongWinGameRunInfo normal(MahjiongWinGameRunInfo gameRunInfo, MahjiongWinPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<MahjiongWinResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, MahjiongWinConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        MahjiongWinResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected MahjiongWinGameRunInfo normal(MahjiongWinGameRunInfo gameRunInfo, MahjiongWinPlayerGameData playerGameData, long betValue, MahjiongWinResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(MahjiongWinConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(MahjiongWinConstant.Status.FREE);

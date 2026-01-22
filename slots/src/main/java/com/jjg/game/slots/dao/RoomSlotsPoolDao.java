@@ -69,15 +69,25 @@ public class RoomSlotsPoolDao extends AbstractPoolDao {
         Long after = addToBigPool(roomId, -value);
         if (after == null) {
             result.code = Code.FAIL;
+            log.warn("从房间奖池扣除失败 playerId = {}，roomId = {},value = {}", playerId, roomId, value);
             return result;
         }
+
+        //如果奖池为负数,将扣除的钱加回奖池
+        if (after < 0) {
+            addToBigPool(roomId, value);
+            result.code = Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT;
+            log.warn("房间奖池扣除后为负，所以将钱加回奖池 playerId = {}，roomId = {},value = {}", playerId, roomId, value);
+            return result;
+        }
+
         CommonResult<Player> playerResult = slotsPlayerService.addCurrent(playerId, value, transactionItemId, addType, String.valueOf(roomId), false);
         if (!playerResult.success()) {  //如果失败，要把钱重新加回池子
             addToBigPool(roomId, value);
             result.code = playerResult.code;
             return result;
         }
-//        log.debug("从标准池扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},value = {},afterPool = {},addType = {}", playerId, gameType, roomCfgId, value, after, addType);
+        log.info("从标准池扣除，并给玩家加钱成功 playerId = {},roomId = {},value = {},afterPool = {},addType = {}", playerId, roomId, value, after, addType);
         result.data = new Pair<>(playerResult.data, after);
         return result;
     }

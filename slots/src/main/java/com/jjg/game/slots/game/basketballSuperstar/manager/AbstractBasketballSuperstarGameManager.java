@@ -3,7 +3,6 @@ package com.jjg.game.slots.game.basketballSuperstar.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -12,7 +11,6 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.basketballSuperstar.dao.BasketballSuperstarGameDataDao;
@@ -28,15 +26,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlotsGameManager<BasketballSuperstarPlayerGameData, BasketballSuperstarResultLib> {
+public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlotsGameManager<BasketballSuperstarPlayerGameData, BasketballSuperstarResultLib, BasketballSuperstarGameRunInfo> {
     @Autowired
     private BasketballSuperstarResultLibDao libDao;
     @Autowired
     private BasketballSuperstarGenerateManager generateManager;
-    @Autowired
-    private SlotsPoolDao slotsPoolDao;
-    @Autowired
-    private SlotsLogger logger;
     @Autowired
     private BasketballSuperstarGameDataDao gameDataDao;
 
@@ -80,7 +74,7 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
         }
 
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame( playerGameData, stake, false);
+        return startGame(playerGameData, stake, false);
     }
 
     /**
@@ -90,7 +84,7 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
      * @param auto
      * @return
      */
-    public BasketballSuperstarGameRunInfo startGame( BasketballSuperstarPlayerGameData playerGameData, long betValue, boolean auto) {
+    public BasketballSuperstarGameRunInfo startGame(BasketballSuperstarPlayerGameData playerGameData, long betValue, boolean auto) {
         BasketballSuperstarGameRunInfo gameRunInfo = new BasketballSuperstarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
@@ -145,23 +139,8 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
         return gameRunInfo;
     }
 
-    /**
-     * 普通正常流程
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param betValue
-     * @return
-     */
-    public BasketballSuperstarGameRunInfo normal(BasketballSuperstarGameRunInfo gameRunInfo, BasketballSuperstarPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<BasketballSuperstarResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, BasketballSuperstarConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        BasketballSuperstarResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected BasketballSuperstarGameRunInfo normal(BasketballSuperstarGameRunInfo gameRunInfo, BasketballSuperstarPlayerGameData playerGameData, long betValue, BasketballSuperstarResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(BasketballSuperstarConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(BasketballSuperstarConstant.Status.FREE);
@@ -193,7 +172,7 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
 
         //检查是否中大奖
-        rewardFromSmallPool(gameRunInfo,playerGameData,resultLib.getJackpotIds());
+        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
@@ -288,7 +267,6 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
             log.error("", e);
         }
     }
-
 
 
     @Override

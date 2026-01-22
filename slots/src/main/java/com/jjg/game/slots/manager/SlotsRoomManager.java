@@ -109,7 +109,7 @@ public class SlotsRoomManager implements HallRoomBridge {
     @Override
     public void createFriendRoom(int roomCfgId, long roomId) {
         try {
-            SlotsFriendRoom room = slotsFriendRoomDao.getRoomByCfgId(roomCfgId, roomId);
+            SlotsFriendRoom room = slotsFriendRoomDao.getRoomByCfgId(roomCfgId, roomId, true);
             if (room == null) {
                 log.warn("创建好友房失败,未找到房间信息 roomCfgId = {},roomId = {}", roomCfgId, roomId);
                 return;
@@ -133,7 +133,7 @@ public class SlotsRoomManager implements HallRoomBridge {
 
             SlotsRoomController slotsRoomController = roomControllers.get(roomId);
             if (slotsRoomController == null) {
-                SlotsFriendRoom room = slotsFriendRoomDao.getRoomByCfgId(roomCfgId, roomId);
+                SlotsFriendRoom room = slotsFriendRoomDao.getRoomByCfgId(roomCfgId, roomId, false);
                 if (room != null) {
                     slotsRoomController = roomControllers.computeIfAbsent(roomId, k -> new SlotsRoomController(room));
                 } else {
@@ -196,18 +196,18 @@ public class SlotsRoomManager implements HallRoomBridge {
      *
      * @param slotsRoomController
      */
-    public void autoRenewal(SlotsRoomController slotsRoomController) {
+    public boolean autoRenewal(SlotsRoomController slotsRoomController) {
         long now = System.currentTimeMillis();
         //检查到期时间
         if (slotsRoomController.getRoom().getOverdueTime() >= now) {
-            return;
+            return false;
         }
 
         // 如果时间到期且没有开启自动续费，先暂停游戏
         long roomId = slotsRoomController.getRoom().getId();
         if (!slotsRoomController.getRoom().isAutoRenewal() || this.nodeConfig.waitClose()) {
             log.info("房间时长到期 roomId = {},roomCfgId = {}", roomId, slotsRoomController.getRoom().getRoomCfgId());
-            return;
+            return false;
         }
 
         if (slotsRoomController.getRoom().getRoomPlayers().isEmpty()) {
@@ -217,14 +217,14 @@ public class SlotsRoomManager implements HallRoomBridge {
             params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
             mailService.addCfgMail(slotsRoomController.getRoom().getCreator(), 2, null, params);
             log.info("房间时长到期,没有玩家暂停续费 roomId = {},roomCfgId = {}", roomId, slotsRoomController.getRoom().getRoomCfgId());
-            return;
+            return false;
         }
 
         // 自动续费，检查玩家金币是否足够
         RoomExpendCfg roomExpendCfg = getAutoRenewalCfg();
         if (roomExpendCfg == null) {
             log.warn("未检查到自动续费配置 roomId = {},roomCfgId = {}", roomId, slotsRoomController.getRoom().getRoomCfgId());
-            return;
+            return false;
         }
 
         List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
@@ -240,7 +240,7 @@ public class SlotsRoomManager implements HallRoomBridge {
             params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
             params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
             mailService.addCfgMail(slotsRoomController.getRoom().getCreator(), 3, null, params);
-            return;
+            return false;
         }
         long overdueTime = slotsRoomController.getRoom().getOverdueTime();
         long totalTake = 0;
@@ -270,6 +270,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         itemOperationResult.setDiamond(slotsRoomController.getRoom().getPredictCostGoldNum());
         slotsLogger.roomOperate(slotsRoomController.getRoom(), 2, roomExpendCfg.getDurationTime(), itemMap, itemOperationResult);
         log.error("房间自动续费成功, roomId = {},roomCfgId = {},overdueTime={} totalTake={}", roomId, slotsRoomController.getRoom().getRoomCfgId(), overdueTime, totalTake);
+        return true;
     }
 
     /**
@@ -322,7 +323,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         SlotsRoomController roomController = roomControllers.get(roomId);
         CommonResult<FriendRoom> result = new CommonResult<>(Code.SUCCESS);
         if (roomController == null) {
-            SlotsFriendRoom room = slotsFriendRoomDao.getRoomByCfgId(roomCfgId, roomId);
+            SlotsFriendRoom room = slotsFriendRoomDao.getRoomByCfgId(roomCfgId, roomId, false);
             if (room == null) {
                 log.warn("修改好友房失败,未找到房间信息 playerId = {},roomCfgId = {},roomId = {}", playerId, roomCfgId, roomId);
                 result.code = Code.NOT_FOUND;

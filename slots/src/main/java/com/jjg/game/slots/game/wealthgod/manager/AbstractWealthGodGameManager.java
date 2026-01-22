@@ -36,7 +36,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlayerGameData, WealthGodResultLib> {
+public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlayerGameData, WealthGodResultLib, WealthGodGameRunInfo> {
     @Autowired
     protected WealthGodGenerateManager generateManager;
     @Autowired
@@ -163,7 +163,7 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
             for (WealthGodAwardLineInfo lineInfo : awardLineInfoList) {
                 WealthGodResultLineInfo resultLineInfo = new WealthGodResultLineInfo();
                 resultLineInfo.id = lineInfo.getLineId();
-                BaseLineCfg baseLineCfg = getBaseLineCfg(lineInfo.getLineId(),false);
+                BaseLineCfg baseLineCfg = getBaseLineCfg(lineInfo.getLineId(), false);
                 int direction = baseLineCfg.getDirection().getFirst();
                 List<Integer> indexList = baseLineCfg.getPosLocation();
                 if (direction == SlotsConst.BaseLine.DIRECTION_LEFT) {

@@ -2,7 +2,6 @@ package com.jjg.game.slots.game.wealthbank.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
@@ -27,7 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
 
-public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameManager<WealthBankPlayerGameData, WealthBankResultLib> {
+public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameManager<WealthBankPlayerGameData, WealthBankResultLib, WealthBankGameRunInfo> {
     @Autowired
     protected WealthBankResultLibDao libDao;
     @Autowired
@@ -457,24 +456,8 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
         return gameRunInfo;
     }
 
-
-    /**
-     * 普通正常流程
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param betValue
-     * @return
-     */
-    protected WealthBankGameRunInfo normal(WealthBankGameRunInfo gameRunInfo, WealthBankPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<WealthBankResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, WealthBankConstant.SpecialMode.TYPE_NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        WealthBankResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected WealthBankGameRunInfo normal(WealthBankGameRunInfo gameRunInfo, WealthBankPlayerGameData playerGameData, long betValue, WealthBankResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(WealthBankConstant.SpecialMode.TYPE_TRIGGER_ALL_BOARD)) {  //是否会触发二选一
             int count = generateManager.allBoadrCount(resultLib.getIconArr());
@@ -519,7 +502,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
         log.debug("[Wealth Bank] 进入二选一之拉火车流程 playerId = {}", playerGameData.playerId());
 
         CommonResult<WealthBankResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
-        if(!libResult.success()){
+        if (!libResult.success()) {
             return null;
         }
         WealthBankResultLib trainLib = libResult.data;
@@ -561,7 +544,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
         log.debug("[Wealth Bank] 进入二选一之拉黄金火车流程 playerId = {}", playerGameData.playerId());
 
         CommonResult<WealthBankResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
-        if(!libResult.success()){
+        if (!libResult.success()) {
             return null;
         }
         WealthBankResultLib goldTrainLib = libResult.data;
@@ -643,7 +626,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
         log.debug("[Wealth Bank] 进入地图全部解锁，奖励黄金火车流程 playerId = {}", playerGameData.playerId());
 
         CommonResult<WealthBankResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
-        if(!libResult.success()){
+        if (!libResult.success()) {
             return null;
         }
         WealthBankResultLib goldTrainLib = libResult.data;

@@ -3,7 +3,6 @@ package com.jjg.game.slots.game.superstar.manager;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -18,13 +17,12 @@ import com.jjg.game.slots.game.superstar.data.*;
 import com.jjg.game.slots.game.superstar.pb.SuperStarResultLineInfo;
 import com.jjg.game.slots.game.superstar.pb.SuperStarSpinInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Arrays;
 import java.util.List;
 
-public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlayerGameData, SuperStarResultLib> {
+public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlayerGameData, SuperStarResultLib, SuperStarGameRunInfo> {
 
     @Autowired
     protected SuperStarResultLibDao superStarResultLibDao;
@@ -43,11 +41,6 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
     public void init() {
         log.info("SuperStarGameManager");
         super.init();
-//        Map<Integer, Integer> countMap = new HashMap<>();
-//        countMap.put(1, 5000);
-//        countMap.put(2, 5000);
-//        countMap.put(3, 5000);
-//        addGenerateLibEvent(countMap);
     }
 
     @Override
@@ -103,21 +96,12 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
                 return gameRunInfo;
             }
 
-            SuperStarResultLib resultLib = commonResult.data.getFirst();
-            gameRunInfo.setBetDivideInfo(commonResult.data.getSecond());
-
-            gameRunInfo.setStake(betValue);
-            //记录spin数据
-            SuperStarSpinInfo spinInfo = spinAnalysis(resultLib, playerGameData.getOneBetScore());
-            //记录奖池id
-            spinInfo.setJackpotId(resultLib.firstJackpotId());
-            gameRunInfo.setSpinInfo(spinInfo);
-            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+            gameRunInfo = normal(gameRunInfo, playerGameData, betValue);
 
             //从奖池扣除，并给玩家加钱
             rewardFromBigPool(gameRunInfo, playerGameData);
             //奖池中奖
-            rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
+            rewardFromSmallPool(gameRunInfo, playerGameData, gameRunInfo.getResultLib().getJackpotIds());
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
@@ -133,13 +117,25 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
-            gameRunInfo.setResultLib(resultLib);
 
             return gameRunInfo;
         } catch (Exception e) {
             log.error("", e);
             gameRunInfo.setCode(Code.EXCEPTION);
         }
+        return gameRunInfo;
+    }
+
+    @Override
+    protected SuperStarGameRunInfo normal(SuperStarGameRunInfo gameRunInfo, SuperStarPlayerGameData playerGameData, long betValue, SuperStarResultLib resultLib) {
+        gameRunInfo.setStake(betValue);
+        //记录spin数据
+        SuperStarSpinInfo spinInfo = spinAnalysis(resultLib, playerGameData.getOneBetScore());
+        //记录奖池id
+        spinInfo.setJackpotId(resultLib.firstJackpotId());
+        gameRunInfo.setSpinInfo(spinInfo);
+        gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+        gameRunInfo.setResultLib(resultLib);
         return gameRunInfo;
     }
 

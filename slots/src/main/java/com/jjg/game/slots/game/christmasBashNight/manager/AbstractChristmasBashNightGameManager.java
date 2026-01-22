@@ -3,19 +3,13 @@ package com.jjg.game.slots.game.christmasBashNight.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
 import com.jjg.game.slots.game.christmasBashNight.dao.ChristmasBashNightGameDataDao;
@@ -24,20 +18,16 @@ import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightGameRun
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightPlayerGameData;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightPlayerGameDataDTO;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightResultLib;
-import com.jjg.game.slots.game.thor.ThorConstant;
-import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractChristmasBashNightGameManager extends AbstractSlotsGameManager<ChristmasBashNightPlayerGameData, ChristmasBashNightResultLib> {
+public abstract class AbstractChristmasBashNightGameManager extends AbstractSlotsGameManager<ChristmasBashNightPlayerGameData, ChristmasBashNightResultLib, ChristmasBashNightGameRunInfo> {
     @Autowired
     protected ChristmasBashNightResultLibDao libDao;
     @Autowired
     protected ChristmasBashNightGenerateManager generateManager;
-    @Autowired
-    protected SlotsLogger logger;
     @Autowired
     protected ChristmasBashNightGameDataDao gameDataDao;
 
@@ -151,23 +141,8 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
         return gameRunInfo;
     }
 
-    /**
-     * 普通正常流程
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param betValue
-     * @return
-     */
-    protected ChristmasBashNightGameRunInfo normal(ChristmasBashNightGameRunInfo gameRunInfo, ChristmasBashNightPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<ChristmasBashNightResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, ChristmasBashNightConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        ChristmasBashNightResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected ChristmasBashNightGameRunInfo normal(ChristmasBashNightGameRunInfo gameRunInfo, ChristmasBashNightPlayerGameData playerGameData, long betValue, ChristmasBashNightResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(ChristmasBashNightConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(ChristmasBashNightConstant.Status.FREE);

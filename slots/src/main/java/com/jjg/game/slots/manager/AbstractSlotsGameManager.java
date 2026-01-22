@@ -44,6 +44,7 @@ import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.*;
 import com.jjg.game.slots.data.*;
+import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.service.SlotsPlayerService;
@@ -67,7 +68,7 @@ import java.util.stream.Collectors;
  * @author 11
  * @date 2025/7/1 16:42
  */
-public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L extends SlotsResultLib> implements TimerListener, ConfigExcelChangeListener {
+public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L extends SlotsResultLib, G extends GameRunInfo<T>> implements TimerListener, ConfigExcelChangeListener {
     protected Logger log;
 
     @Autowired
@@ -98,8 +99,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     //游戏类型
     protected int gameType;
-    //在specualResultLib
-    protected int defaultRewardSectionIndex = 0;
 
     //roomCfgId -> playerId ->gameData
     protected Map<Integer, Map<Long, T>> gameDataMap = new ConcurrentHashMap<>();
@@ -297,8 +296,39 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
     }
 
-    public <G extends GameRunInfo<T>> G enterGame(PlayerController playerController) {
+    public G enterGame(PlayerController playerController) {
         return null;
+    }
+
+
+    /**
+     * 普通正常流程
+     *
+     * @param gameRunInfo
+     * @param playerGameData
+     * @param betValue
+     * @return
+     */
+    protected G normal(G gameRunInfo, T playerGameData, long betValue) {
+        CommonResult<Pair<L, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, 1);
+        if (!libResult.success()) {
+            gameRunInfo.setCode(libResult.code);
+            return gameRunInfo;
+        }
+
+        L resultLib = libResult.data.getFirst();
+        if (resultLib == null) {
+            log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.playerId(), this.gameType, betValue);
+            gameRunInfo.setCode(Code.FAIL);
+            return gameRunInfo;
+        }
+        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
+        normal(gameRunInfo, playerGameData, betValue, resultLib);
+        return gameRunInfo;
+    }
+
+    protected G normal(G gameRunInfo, T playerGameData, long betValue, L resultLib) {
+        return gameRunInfo;
     }
 
     /**
@@ -537,8 +567,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             if (warehouseCfg == null) {
                 return new CommonResult<>(Code.SAMPLE_ERROR);
             }
-            CommonResult<Player> result = slotsPlayerService.betDeductCurrent(gameData.playerId(), betValue, warehouseCfg.getTransactionItemId(),
-                    true, AddType.SLOTS_BET, String.valueOf(gameData.getRoomId()), false);
+            CommonResult<Player> result = slotsPlayerService.betDeductCurrent(gameData.playerId(), betValue, warehouseCfg.getTransactionItemId(), true, AddType.SLOTS_BET, String.valueOf(gameData.getRoomId()), false);
 
             if (!result.success()) {
                 log.warn("把钱添加到房间池子失败,扣除玩家金额失败 playerId = {},betValue = {},roomId = {},code = {}", gameData.playerId(), betValue, gameData.getRoomId(), result.code);
@@ -555,7 +584,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 if (gameData.getRoomId() > 0) {
                     slotsRoomManager.updatePoolValue(gameData.getRoomId(), poolCoin);
                 }
-                log.info("给房间标准池加钱成功 playerId = {},gameType = {},roomId = {},roomCfgId = {},modelId = {},add = {},afterGold = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomId(), gameData.getRoomCfgId(), gameData.getLastModelId(), toBigPoolGold, poolCoin);
+                log.info("给房间标准池加钱成功 playerId = {},gameType = {},roomId = {},roomCfgId = {},modelId = {},add = {},poolAfterGold = {}",
+                        gameData.playerId(), gameData.getGameType(), gameData.getRoomId(), gameData.getRoomCfgId(), gameData.getLastModelId(), toBigPoolGold, poolCoin);
             }
 
             //扣除加入水池的钱之后，剩余的钱
@@ -934,32 +964,48 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param gameRunInfo
      * @param playerGameData
      */
-    protected void rewardFromBigPool(GameRunInfo gameRunInfo, T playerGameData) {
+    protected G rewardFromBigPool(G gameRunInfo, T playerGameData) {
         if (gameRunInfo.getBigPoolTimes() < 1) {
-            return;
+            return gameRunInfo;
         }
 
         long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
         if (addGold < 1) {
-            return;
+            return gameRunInfo;
         }
 
-        int roomCfgId = playerGameData.getRoomCfgId();
-        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
-        if (warehouseCfg == null) {
-            log.warn("给玩家添加金币失败warehouseCfg is null gameType = {},addValue = {}", this.gameType, addGold);
-            gameRunInfo.setCode(Code.SAMPLE_ERROR);
-            return;
+        if (playerGameData.getRoomType() == null) {
+            CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
+            if (!result.success()) {
+                log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
+                gameRunInfo.setCode(result.code);
+                return gameRunInfo;
+            }
+            gameRunInfo.setAllWinGold(addGold);
+        } else if (playerGameData.getRoomType() == RoomType.SLOTS_TEAM_UP_ROOM) {
+            int roomCfgId = playerGameData.getRoomCfgId();
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
+            if (warehouseCfg == null) {
+                log.warn("给玩家添加金币失败warehouseCfg is null gameType = {},addValue = {}", this.gameType, addGold);
+                gameRunInfo.setCode(Code.SAMPLE_ERROR);
+                return gameRunInfo;
+            }
+            CommonResult<Pair<Player, Long>> result = roomSlotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getRoomId(), addGold, warehouseCfg.getTransactionItemId(), AddType.SLOTS_BET_REWARD);
+            if (!result.success()) {
+                if (result.code == Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT) {
+                    return handleEmptyPrizePool(gameRunInfo, playerGameData);
+                }
+                log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
+                gameRunInfo.setCode(result.code);
+                return gameRunInfo;
+            }
+            slotsRoomManager.updatePoolValue(playerGameData.getRoomId(), result.data.getSecond());
+            gameRunInfo.setAllWinGold(addGold);
+        } else {
+            log.warn("无法识别玩家的roomType，加钱失败 playerId = {},roomType = {}", playerGameData.playerId(), playerGameData.getRoomType());
+            gameRunInfo.setCode(Code.FAIL);
         }
-        CommonResult<Pair<Player, Long>> result = roomSlotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getRoomId(), addGold, warehouseCfg.getTransactionItemId(),
-                AddType.SLOTS_BET_REWARD);
-        if (!result.success()) {
-            log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-            gameRunInfo.setCode(result.code);
-            return;
-        }
-        slotsRoomManager.updatePoolValue(playerGameData.getRoomId(), result.data.getSecond());
-        gameRunInfo.setAllWinGold(addGold);
+        return gameRunInfo;
     }
 
     /**
@@ -1104,18 +1150,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     private void offlineImplement(T playerGameData, OffLineEventData offLineEventData) {
         //分发到对应的线程
-        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerGameData.playerId()
-                , 0, new BaseHandler<String>() {
-                    @Override
-                    public void action() {
-                        if (playerGameData.isOnline() || offLineEventData.isAction()) {
-                            return;
-                        }
-                        onAutoExitAction(playerGameData, offLineEventData.getId());
-                        //标记该事件已执行
-                        offLineEventData.setAction(true);
-                    }
-                }.setHandlerParamWithSelf("slots offlineImplement"));
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerGameData.playerId(), 0, new BaseHandler<String>() {
+            @Override
+            public void action() {
+                if (playerGameData.isOnline() || offLineEventData.isAction()) {
+                    return;
+                }
+                onAutoExitAction(playerGameData, offLineEventData.getId());
+                //标记该事件已执行
+                offLineEventData.setAction(true);
+            }
+        }.setHandlerParamWithSelf("slots offlineImplement"));
     }
 
     /**
@@ -1126,20 +1171,19 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     protected void offlineDelete(long playerId, PlayerController playerController) {
         //分发到对应的线程
-        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerId
-                , 0, new BaseHandler<String>() {
-                    @Override
-                    public void action() {
-                        T playerGameData = getPlayerGameData(playerController);
-                        if (playerGameData.isOnline()) {
-                            return;
-                        }
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerId, 0, new BaseHandler<String>() {
+            @Override
+            public void action() {
+                T playerGameData = getPlayerGameData(playerController);
+                if (playerGameData.isOnline()) {
+                    return;
+                }
 //                        onAutoExitAction(playerGameData);
-                        offlineSaveGameDataDto(playerGameData);
-                        removePlayerGameData(playerGameData.playerId(), playerGameData.getRoomCfgId());
-                        log.debug("保存离线玩家数据 playerId = {}", playerController.playerId());
-                    }
-                }.setHandlerParamWithSelf("slots offlineDelete"));
+                offlineSaveGameDataDto(playerGameData);
+                removePlayerGameData(playerGameData.playerId(), playerGameData.getRoomCfgId());
+                log.debug("保存离线玩家数据 playerId = {}", playerController.playerId());
+            }
+        }.setHandlerParamWithSelf("slots offlineDelete"));
     }
 
     /**
@@ -1339,9 +1383,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         addChangeSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> {
             baseRoomConfig();
             calAllLineStake();
-        }).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig())
-                .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig())
-                .addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, () -> specialPlayConfig());
+        }).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig()).addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig()).addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, () -> specialPlayConfig());
     }
 
     /**
@@ -1662,17 +1704,44 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
 
     public CommonResult<Long> checkAndGetPredictCostGoldNum(SlotsRoomController slotsRoomController) {
-        long value = slotsRoomController.getRoom().getPredictCostGoldNum();
-        if (value > 0) {
-            return new CommonResult<>(Code.SUCCESS, value);
+        CommonResult<Long> result = new CommonResult<>(Code.SUCCESS);
+        BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(slotsRoomController.getRoom().getRoomCfgId());
+        if (baseRoomCfg == null) {
+            log.warn("检查房间保证金时，获取BaseRoomCfg为空 roomCfgId = {}", slotsRoomController.getRoom().getRoomCfgId());
+            result.code = Code.NOT_FOUND;
+            return result;
         }
 
-        slotsRoomManager.autoRenewal(slotsRoomController);
-        value = slotsRoomController.getRoom().getPredictCostGoldNum();
-        if (value > 0) {
-            return new CommonResult<>(Code.SUCCESS, value);
+        //从redis获取房间奖池是否足够
+        Number value = roomSlotsPoolDao.getBigPoolByRoomId(slotsRoomController.getRoom().getId());
+        if (value == null) {
+            log.warn("获取房间池子失败 roomId = {}", slotsRoomController.getRoom().getId());
+            result.code = Code.NOT_FOUND;
+            return result;
         }
-        return new CommonResult<>(Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT);
+
+        int cfgMinValue = baseRoomCfg.getMinBankerAmount().get(1);
+        long poolValue = value.longValue();
+        if (poolValue < cfgMinValue) {
+            //当房间中保证金不足时，开始自动续费
+            boolean renewal = slotsRoomManager.autoRenewal(slotsRoomController);
+            if (renewal) {
+                //自动续费后再次判断金额是否足够
+                value = roomSlotsPoolDao.getBigPoolByRoomId(slotsRoomController.getRoom().getId());
+                poolValue = value.longValue();
+                if (poolValue < cfgMinValue) {
+                    result.code = Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT;
+                    log.warn("房间保证金不足，无法开始游戏1 roomId = {},roomCfgId = {},poolValue = {},cfgValue = {}", slotsRoomController.getRoom().getId(), slotsRoomController.getRoom().getRoomCfgId(), poolValue, baseRoomCfg.getMinBankerAmount().get(1));
+                    return result;
+                }
+            } else {
+                result.code = Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT;
+                log.warn("房间保证金不足，无法开始游戏2 roomId = {},roomCfgId = {},poolValue = {},cfgValue = {}", slotsRoomController.getRoom().getId(), slotsRoomController.getRoom().getRoomCfgId(), poolValue, baseRoomCfg.getMinBankerAmount().get(1));
+                return result;
+            }
+        }
+        result.data = poolValue;
+        return result;
     }
 
     public RoomType getRoomType() {
@@ -1781,16 +1850,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         //如果前面没有获取到lib，则获取一个无奖励的结果
         if (resultLib == null) {
-            resultLib = (L) getResultLibDao().getLibBySectionIndex(libType, this.defaultRewardSectionIndex, this.libClass);
-            log.warn("前面获取结果库失败，所以找一个不中奖的结果返回 gameType = {},libType = {}", this.gameType, libType);
-
+            resultLib = (L) getResultLibDao().getNoWinLib(this.libClass);
             if (resultLib == null) {
-                log.warn("获取不中奖结果库失败 gameType = {},libType = {}", this.gameType, libType);
+                log.warn("前面没有获取到lib失败，获取不中奖的结果也失败 playerId = {}", playerGameData.playerId());
                 result.code = Code.FAIL;
                 return result;
             }
         }
-
         result.data = resultLib;
         return result;
     }
@@ -1879,5 +1945,26 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         //根据倍数区间从结果库里面随机获取一条
         return (L) getResultLibDao().getLibBySectionIndex(libType, resultLibSectionResult.data, this.libClass);
+    }
+
+    /**
+     * 处理奖池为空时的逻辑(暂时只有房间slots才会调用)
+     *
+     * @param gameRunInfo
+     * @param playerGameData
+     * @return
+     */
+    protected G handleEmptyPrizePool(G gameRunInfo, T playerGameData) {
+        //首先获取一个不中奖的结果
+        L lib = (L) getResultLibDao().getNoWinLib(this.libClass);
+        if (lib == null) {
+            log.warn("获取不中奖的结果失败 playerId = {}", playerGameData.playerId());
+            gameRunInfo.setCode(Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT);
+            return gameRunInfo;
+        }
+        gameRunInfo.setBigPoolTimes(0);
+        gameRunInfo.setSmallPoolGold(0);
+        gameRunInfo.setResultLib(null);
+        return normal(gameRunInfo, playerGameData, playerGameData.getAllBetScore(), lib);
     }
 }

@@ -2,7 +2,6 @@ package com.jjg.game.slots.game.goldsnakefortune.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -12,8 +11,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.GameRunInfo;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.goldsnakefortune.GoldSnakeFortuneConstant;
 import com.jjg.game.slots.game.goldsnakefortune.dao.GoldSnakeFortuneGameDataDao;
@@ -21,13 +18,6 @@ import com.jjg.game.slots.game.goldsnakefortune.dao.GoldSnakeFortuneResultLibDao
 import com.jjg.game.slots.game.goldsnakefortune.data.*;
 import com.jjg.game.slots.game.goldsnakefortune.pb.GoldSnakeFortuneCoinInfo;
 import com.jjg.game.slots.game.goldsnakefortune.pb.GoldSnakeFortuneWinIconInfo;
-import com.jjg.game.slots.game.moneyrabbit.MoneyRabbitConstant;
-import com.jjg.game.slots.game.moneyrabbit.data.MoneyRabbitGameRunInfo;
-import com.jjg.game.slots.game.moneyrabbit.data.MoneyRabbitPlayerGameData;
-import com.jjg.game.slots.game.moneyrabbit.data.MoneyRabbitResultLib;
-import com.jjg.game.slots.game.moneyrabbit.pb.MoneyRabbitCoinInfo;
-import com.jjg.game.slots.game.thor.data.ThorGameRunInfo;
-import com.jjg.game.slots.game.thor.data.ThorPlayerGameData;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -38,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsGameManager<GoldSnakeFortunePlayerGameData, GoldSnakeFortuneResultLib> {
+public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsGameManager<GoldSnakeFortunePlayerGameData, GoldSnakeFortuneResultLib, GoldSnakeFortuneGameRunInfo> {
     @Autowired
     protected GoldSnakeFortuneResultLibDao libDao;
     @Autowired
@@ -154,23 +144,8 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
         return gameRunInfo;
     }
 
-    /**
-     * 普通正常流程
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param betValue
-     * @return
-     */
-    protected GoldSnakeFortuneGameRunInfo normal(GoldSnakeFortuneGameRunInfo gameRunInfo, GoldSnakeFortunePlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<GoldSnakeFortuneResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, GoldSnakeFortuneConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        GoldSnakeFortuneResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected GoldSnakeFortuneGameRunInfo normal(GoldSnakeFortuneGameRunInfo gameRunInfo, GoldSnakeFortunePlayerGameData playerGameData, long betValue, GoldSnakeFortuneResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(GoldSnakeFortuneConstant.SpecialMode.FREE)) {  //是否会触发二选一
             playerGameData.setRemainFreeCount(new AtomicInteger(8));
