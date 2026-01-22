@@ -58,6 +58,10 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
     private final SubscriptionManager subscriptionManager;
     private final ClusterSystem clusterSystem;
     private final HallPlayerService playerService;
+
+    //global表中设置幸运夺宝相关的id
+    private final int ID_GLOBAL_LUCKY_ICON = 101;
+    private final int ID_GLOBAL_LUCKY_ITEM_ID = 102;
     /**
      * 等待通知更新的期号列表
      */
@@ -260,6 +264,9 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             response.setPageSize(pageSize);
             response.setTotalCount(totalCount);
             response.setTotalPage(totalPage);
+
+            response.setIcon(GameDataManager.getGlobalConfigCfg(ID_GLOBAL_LUCKY_ICON).getValue());
+            response.setItemId(Integer.parseInt(GameDataManager.getGlobalConfigCfg(ID_GLOBAL_LUCKY_ICON).getValue()));
 
             return response;
         } catch (Exception e) {
