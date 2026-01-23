@@ -147,5 +147,9 @@ public class SlotsConst {
         //在slots好友房获取准备金
         public static final int REQ_SLOTS_ROOM_POOL = BASE_MSG_PREFIX | 0x1;
         public static final int RES_SLOTS_ROOM_POOL = BASE_MSG_PREFIX | 0x2;
+
+        //获取游戏状态
+        public static final int REQ_SLOTS_STATUS = BASE_MSG_PREFIX | 0x3;
+        public static final int RES_SLOTS_STATUS = BASE_MSG_PREFIX | 0x4;
     }
 }

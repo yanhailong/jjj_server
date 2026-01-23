@@ -350,6 +350,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         }
         if (predictCostGoldNum > 0) {
             Long remain = roomSlotsPoolDao.addToBigPool(roomId, predictCostGoldNum);
+            friendRoom.setPool(friendRoom.getPool() + predictCostGoldNum);
             friendRoom.setPredictCostGoldNum(remain);
             updatePoolValue(roomId, remain);
         }

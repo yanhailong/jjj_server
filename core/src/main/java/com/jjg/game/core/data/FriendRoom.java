@@ -38,7 +38,7 @@ public class FriendRoom extends Room {
     protected long creatorIncome;
     // 房间是否处于游戏中
     protected boolean inGaming;
-    //标准池
+    //标准池(slots中该值存储的是玩家支付的保证金，一直累加，不会减少)
     protected long pool;
 
     /**

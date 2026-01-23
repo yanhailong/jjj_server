@@ -584,8 +584,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 if (gameData.getRoomId() > 0) {
                     slotsRoomManager.updatePoolValue(gameData.getRoomId(), poolCoin);
                 }
-                log.info("给房间标准池加钱成功 playerId = {},gameType = {},roomId = {},roomCfgId = {},modelId = {},add = {},poolAfterGold = {}",
-                        gameData.playerId(), gameData.getGameType(), gameData.getRoomId(), gameData.getRoomCfgId(), gameData.getLastModelId(), toBigPoolGold, poolCoin);
+                log.info("给房间标准池加钱成功 playerId = {},gameType = {},roomId = {},roomCfgId = {},modelId = {},add = {},poolAfterGold = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomId(), gameData.getRoomCfgId(), gameData.getLastModelId(), toBigPoolGold, poolCoin);
             }
 
             //扣除加入水池的钱之后，剩余的钱
@@ -707,9 +706,21 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     public CommonResult<SpecialResultLibCfg> getLibCfg(T gameData, long poolInit) {
         CommonResult<SpecialResultLibCfg> result = new CommonResult<>(Code.SUCCESS);
+
+        SlotsRoomController roomController = gameData.getSlotsRoomController();
+
         boolean flag = gameData.getHasPlaySlots().compareAndSet(false, true);
         //表示第一次玩该slots游戏
         if (flag) {
+            if (roomController != null && roomController.getRoom().getType() == RoomType.SLOTS_TEAM_UP_ROOM) {
+                //获取保证金(即水池)
+                CommonResult<Long> poolResult = checkAndGetPredictCostGoldNum(roomController);
+                if (!poolResult.success()) {
+                    result.code = poolResult.code;
+                    return result;
+                }
+            }
+
             SpecialResultLibCfg libCfg = getLibCfgByModelId(gameData.getGameType(), SlotsConst.Common.FIRST_GAME_GET_MODEL_ID);
             if (libCfg == null) {
                 log.warn("获取结果库配置失败 playerId = {},gameType = {},roomCfgId = {},modelId = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), SlotsConst.Common.FIRST_GAME_GET_MODEL_ID);
@@ -719,8 +730,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             historySlotsDao.addGameType(gameData.playerId(), gameData.getGameType());
             result.data = libCfg;
             log.debug("玩家第一次玩该slots游戏，选择默认模式，playerId = {},gameType = {},modelId = {}", gameData.playerId(), gameData.getGameType(), SlotsConst.Common.FIRST_GAME_GET_MODEL_ID);
+
         } else {
-            SlotsRoomController roomController = gameData.getSlotsRoomController();
             if (roomController == null) {
                 //获取水池
                 Number poolValue = slotsPoolDao.getBigPoolByRoomCfgId(gameData.getGameType(), gameData.getRoomCfgId());
@@ -741,25 +752,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 result.data = libCfg;
                 log.debug("根据水池偏差计算获取滚轴模式配置  playerId = {},poolValue = {},poolInit = {},diff = {},modelId = {}", gameData.playerId(), poolValue, poolInit, diff, libCfg.getModelId());
             } else if (roomController.getRoom().getType() == RoomType.SLOTS_TEAM_UP_ROOM) {  //slots 好友房
-                //获取水池
-                Number poolValue = roomSlotsPoolDao.getBigPoolByRoomId(gameData.getRoomId());
-                if (poolValue == null) {
-                    log.warn("获取房间水池失败 playerId = {},gameType = {},roomCfgId = {},roomId = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), gameData.getRoomId());
-                    result.code = Code.NOT_FOUND;
-                    return result;
-                }
-
-                //获取保证金
+                //获取保证金(即水池)
                 CommonResult<Long> poolResult = checkAndGetPredictCostGoldNum(roomController);
                 if (!poolResult.success()) {
                     result.code = poolResult.code;
                     return result;
                 }
 
-                poolInit = poolResult.data;
+                //slotsRoom.pool中存的是玩家累计的保证金
+                poolInit = roomController.getRoom().getPool();
 
                 //计算偏差范围
-                long diff = BigDecimal.valueOf(poolValue.longValue() - poolInit).divide(BigDecimal.valueOf(poolInit), 6, RoundingMode.HALF_UP).multiply(tenThousandBigDecimal).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
+                long diff = BigDecimal.valueOf(poolResult.data - poolInit).divide(BigDecimal.valueOf(poolInit), 6, RoundingMode.HALF_UP).multiply(tenThousandBigDecimal).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
                 SpecialResultLibCfg libCfg = getLibCfgByPoolDiff(diff);
                 if (libCfg == null) {
                     log.warn("好友房获取结果库配置失败 playerId = {},gameType = {},roomCfgId = {},roomId = {},diff = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), gameData.getRoomId(), diff);
@@ -767,10 +771,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     return result;
                 }
                 result.data = libCfg;
-                log.debug("根据水池偏差计算获取滚轴模式配置  playerId = {},roomId = {},poolValue = {},poolInit = {},diff = {},modelId = {}", gameData.playerId(), gameData.getRoomId(), poolValue, poolInit, diff, libCfg.getModelId());
+                log.debug("根据水池偏差计算获取滚轴模式配置  playerId = {},roomId = {},poolValue = {},poolInit = {},diff = {},modelId = {}", gameData.playerId(), gameData.getRoomId(), poolResult.data, poolInit, diff, libCfg.getModelId());
             } else {
                 result.code = Code.NOT_FOUND;
-                log.warn("未找到该结果库配置 playerId = {},gameType = {},roomCfgId = {},roomType = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), roomController.getRoom().getType());
+                log.warn("未找到该结果库配置2 playerId = {},gameType = {},roomCfgId = {},roomType = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), roomController.getRoom().getType());
             }
         }
         return result;
@@ -1966,5 +1970,27 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         gameRunInfo.setSmallPoolGold(0);
         gameRunInfo.setResultLib(null);
         return normal(gameRunInfo, playerGameData, playerGameData.getAllBetScore(), lib);
+    }
+
+    /**
+     * 获取游戏状态
+     *
+     * @return
+     */
+    public int gameStatus(PlayerController playerController) {
+
+
+        if (getRoomType() == null) {
+            return Code.SUCCESS;
+        }
+
+        if (getRoomType() == RoomType.SLOTS_TEAM_UP_ROOM) {
+            //获取保证金(即水池)
+            SlotsRoomController roomController = (SlotsRoomController) playerController.getScene();
+            return checkAndGetPredictCostGoldNum(roomController).code;
+        }
+
+        log.warn("获取游戏状态错误 roomType = {}", getRoomType());
+        return Code.FAIL;
     }
 }
