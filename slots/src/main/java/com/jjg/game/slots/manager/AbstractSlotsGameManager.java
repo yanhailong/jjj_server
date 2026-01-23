@@ -608,8 +608,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             long toSmallPoolGold = bet.multiply(toSmallPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
             if (toSmallPoolGold > 0) {
                 long poolCoin = slotsPoolDao.addToSmallPool(this.gameType, gameData.getRoomCfgId(), toSmallPoolGold);
-                gameData.addAllBet(poolCoin);
-                long contribtGold = gameData.addContribtPoolGold(poolCoin);
+                gameData.addAllBet(betValue);
+                long contribtGold = gameData.addContribtPoolGold(toSmallPoolGold);
                 log.info("给小池子加钱成功 gameType = {},roomCfgId = {},add = {},afterGold = {},contribtGold={}", gameData.getGameType(), gameData.getRoomCfgId(), toSmallPoolGold, poolCoin, contribtGold);
             }
 
