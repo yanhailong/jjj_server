@@ -1,14 +1,10 @@
 package com.jjg.game.slots.manager;
 
-import com.alibaba.fastjson.JSON;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.Striped;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.common.utils.CommonUtil;
-import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
@@ -134,6 +130,7 @@ public class SlotsRoomManager implements HallRoomBridge {
             room.setInGaming(true);
             roomControllers.computeIfAbsent(roomId, k -> new SlotsRoomController(room));
             roomSlotsPoolDao.initRoomPool(roomId, room.getPredictCostGoldNum());
+            updatePoolValue(roomId, room.getPredictCostGoldNum());
             log.info("slots初始化房间成功 roomCfgId = {},roomId = {}", roomCfgId, roomId);
         } catch (Exception e) {
             log.error("", e);
