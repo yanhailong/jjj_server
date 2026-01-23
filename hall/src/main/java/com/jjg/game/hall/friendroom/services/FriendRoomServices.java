@@ -1504,9 +1504,11 @@ public class FriendRoomServices {
      * @return
      */
     public ClusterClient getRoomNode(FriendRoom friendRoom) {
-        ClusterClient client = clusterSystem.getClusterByPath(friendRoom.getPath());
-        if (client != null) {
-            return client;
+        if (friendRoom.getPath() != null) {
+            ClusterClient client = clusterSystem.getClusterByPath(friendRoom.getPath());
+            if (client != null) {
+                return client;
+            }
         }
 
         //TODO 押注类和百人场是否要做同样的处理
