@@ -133,7 +133,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
      * @param gameManager
      */
     private void enterRoomSlotsGame(PFSession session, Player player, PlayerController playerController, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
-        SlotsRoomController slotsRoomController = slotsRoomManager.enterRoom(player.getGameType(), player.getRoomId(), player.getId());
+        SlotsRoomController slotsRoomController = slotsRoomManager.enterRoom(playerController);
         if (slotsRoomController == null) {
             log.warn("进入好友房slots时失败 playerId = {},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
             playerService.doSave(player.getId(), p -> {
