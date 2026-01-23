@@ -386,6 +386,8 @@ public class SlotsRoomManager implements HallRoomBridge {
                 friendRoom.setOverdueTime(friendRoom.getOverdueTime() + addTime);
             }
         }
+        //保存一次房间信息
+        slotsFriendRoomDao.save(friendRoom);
         log.info("修改好友房信息成功 playerId = {},roomCfgId = {},roomId = {},roomExpendCfgId = {},autoRenewal = {},predictCostGoldNum = {},roomAliasName = {}",
                 playerId, roomCfgId, roomId, addTime, autoRenewal, predictCostGoldNum, roomAliasName);
         result.data = friendRoom;
