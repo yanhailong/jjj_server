@@ -915,13 +915,26 @@ public class FriendRoomServices {
         if (friendRoom == null) {
             return Code.ROOM_DESTROYED;
         }
-        ClusterClient client = getRoomNode(friendRoom);
+        ClusterClient client;
+        if (StringUtils.isEmpty(friendRoom.getPath())) {
+            client = randomNode(playerController, friendRoom, playerController.playerId());
+        } else {
+            client = clusterSystem.getClusterByPath(friendRoom.getPath());
+            if (client == null) {
+                client = randomNode(playerController, friendRoom, playerController.playerId());
+            }
+        }
+        // 被操作的房间不能为空
         if (client == null) {
+            // 房间对应的节点找不到
+            res.code = Code.FAIL;
             return Code.ROOM_NOT_FOUND;
         }
         if (client.marsNode.getNodeConfig().waitClose()) {
             return Code.WAIT_CLOSE_NOT_MODIFICATION;
         }
+
+
         RoomExpendCfg roomExpendCfg = null;
         Map<Integer, Long> itemMap = null;
         CommonResult<ItemOperationResult> removeItem = null;
