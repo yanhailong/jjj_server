@@ -89,7 +89,7 @@ public class SlotsRoomManager implements HallRoomBridge {
             poolMap.put(playerController.roomId(), number == null ? 0 : number.longValue());
 
             slotsRoomController.addPlayer(playerController);
-            slotsFriendRoomDao.save(room);
+            slotsFriendRoomDao.save(slotsRoomController.getRoom());
         } catch (Exception e) {
             log.error("enterRoom error", e);
         } finally {
