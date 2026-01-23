@@ -129,8 +129,7 @@ public class GoogleCallbackController extends AbstractCallbackController {
             //作废的购买交易
             JsonNode voidedPurchaseNotificationNode = jsonNode.get("voidedPurchaseNotification");
             if (voidedPurchaseNotificationNode != null) {
-                log.debug("收到作废的购买交易通知 notification = {}", voidedPurchaseNotificationNode);
-                return ResponseEntity.ok("Recharge processed");
+                return handleVoidedPurchaseNotificationNode(jsonNode, voidedPurchaseNotificationNode);
             }
 
             //测试通知
@@ -159,6 +158,7 @@ public class GoogleCallbackController extends AbstractCallbackController {
         String purchaseToken = oneTimeProductNotificationNode.get("purchaseToken").asText();
         String sku = oneTimeProductNotificationNode.get("sku").asText();
         String packageName = jsonNode.get("packageName").asText();
+        String notificationType = jsonNode.get("notificationType").asText();
 
         JSONObject productInfoJson = getProductInfo(purchaseToken, packageName, sku);
         log.debug("商品信息 productInfoJson = {}", productInfoJson);
@@ -167,6 +167,13 @@ public class GoogleCallbackController extends AbstractCallbackController {
         }
 
         String orderId = productInfoJson.get("obfuscatedExternalProfileId").toString();
+
+        //检查notificationType
+        //1.已购买  2.取消或者退款
+        if (StringUtils.isEmpty(notificationType) || !notificationType.trim().equals("1")) {
+            return failOrder(orderId, notificationType + "");
+        }
+
         Order order = orderService.getOrder(orderId);
         if (order == null) {
             log.debug("未找到该订单 orderId = {}", orderId);
@@ -183,6 +190,18 @@ public class GoogleCallbackController extends AbstractCallbackController {
 
         String regionCode = productInfoJson.getString("regionCode");
         payCallback(order, null, regionCode, sku);
+        return ResponseEntity.ok("Recharge processed");
+    }
+
+
+    /**
+     * 失败通知
+     *
+     * @param jsonNode
+     * @param voidedPurchaseNotificationNode
+     */
+    private ResponseEntity<String> handleVoidedPurchaseNotificationNode(JsonNode jsonNode, JsonNode voidedPurchaseNotificationNode) {
+        log.debug("收到作废的购买交易通知 notification = {}", voidedPurchaseNotificationNode);
         return ResponseEntity.ok("Recharge processed");
     }
 

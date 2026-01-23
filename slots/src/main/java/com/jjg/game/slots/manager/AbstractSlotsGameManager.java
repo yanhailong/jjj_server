@@ -44,7 +44,6 @@ import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.*;
 import com.jjg.game.slots.data.*;
-import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.service.SlotsPlayerService;
