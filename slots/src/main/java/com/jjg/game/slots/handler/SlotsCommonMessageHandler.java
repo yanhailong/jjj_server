@@ -1,5 +1,6 @@
 package com.jjg.game.slots.handler;
 
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
@@ -41,7 +42,7 @@ public class SlotsCommonMessageHandler {
     }
 
     @Command(SlotsConst.SlotsCommon.REQ_SLOTS_STATUS)
-    public void reqSlotsRoomPool(PlayerController playerController, ReqSlotsStatus req) {
+    public void reqSlotsStatus(PlayerController playerController, ReqSlotsStatus req) {
         ResSlotsStatus res = new ResSlotsStatus(Code.SUCCESS);
         try {
             AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());

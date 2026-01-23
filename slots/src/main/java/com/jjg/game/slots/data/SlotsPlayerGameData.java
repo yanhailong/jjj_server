@@ -1,7 +1,5 @@
 package com.jjg.game.slots.data;
 
-import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
@@ -10,7 +8,6 @@ import org.springframework.beans.BeanUtils;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;

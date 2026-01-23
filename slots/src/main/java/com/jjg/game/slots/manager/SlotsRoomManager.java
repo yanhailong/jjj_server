@@ -88,6 +88,12 @@ public class SlotsRoomManager implements HallRoomBridge {
             }
             Number number = roomSlotsPoolDao.getBigPoolByRoomId(roomId);
             poolMap.put(roomId, number == null ? 0 : number.longValue());
+
+            RoomPlayer roomPlayer = new RoomPlayer();
+            roomPlayer.setPlayerId(playerId);
+            roomPlayer.setOnline(true);
+            room.addPlayer(roomPlayer);
+            slotsFriendRoomDao.save(room);
         } catch (Exception e) {
             log.error("enterRoom error", e);
         } finally {
@@ -98,6 +104,17 @@ public class SlotsRoomManager implements HallRoomBridge {
         }
         SlotsFriendRoom finalRoom = room;
         return roomControllers.computeIfAbsent(roomId, k -> new SlotsRoomController(finalRoom));
+    }
+
+    public void exitRoom(PlayerController playerController) {
+        if(playerController.getScene() == null){
+            return;
+        }
+
+        if(playerController.getScene() instanceof SlotsRoomController slotsRoomController){
+            slotsRoomController.getRoom().exit(playerController.playerId());
+            slotsFriendRoomDao.save(slotsRoomController.getRoom());
+        }
     }
 
     /**
@@ -305,6 +322,11 @@ public class SlotsRoomManager implements HallRoomBridge {
      * @param room
      */
     private void destoryRoom(SlotsFriendRoom room) {
+        //检查房间玩家是否全部离开
+        if(!room.empty()){
+            log.warn("房间状态标记已解散，但是玩家未离开，解散失败 roomId = {}",room.getId());
+            return;
+        }
         //删除room对象
         slotsFriendRoomDao.removeRoom(room.getGameType(), room.getId(), room.getRoomCfgId());
         //删除缓存中的slotsRoomController
@@ -495,5 +517,9 @@ public class SlotsRoomManager implements HallRoomBridge {
         }
         slotsRoomController.getRoom().setPredictCostGoldNum(newValue);
         this.poolMap.put(roomId, newValue);
+    }
+
+    public void addRoomPlayer(Player player,SlotsRoomController s){
+
     }
 }

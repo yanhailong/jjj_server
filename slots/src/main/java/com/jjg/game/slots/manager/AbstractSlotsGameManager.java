@@ -1418,6 +1418,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     en.getValue().setAction(true);
                 }
             }
+
+            //退出slots房间
+            slotsRoomManager.exitRoom(playerController);
             offlineSaveGameDataDto(playerGameData);
             removePlayerGameData(playerController.playerId(), playerGameData.getRoomCfgId());
         } else {

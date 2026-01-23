@@ -10,7 +10,7 @@ import com.jjg.game.slots.constant.SlotsConst;
  * @author 11
  * @date 2026/1/23
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SHOP_TYPE, cmd = SlotsConst.SlotsCommon.RES_SLOTS_STATUS, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SLOTS_COMMON, cmd = SlotsConst.SlotsCommon.RES_SLOTS_STATUS, resp = true)
 @ProtoDesc("获取slots游戏状态")
 public class ResSlotsStatus extends AbstractResponse {
     public ResSlotsStatus(int code) {
