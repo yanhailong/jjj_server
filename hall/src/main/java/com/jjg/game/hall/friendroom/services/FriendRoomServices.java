@@ -455,16 +455,13 @@ public class FriendRoomServices {
         Map<Long, Long> bigPoolByRoomIds = getSlotsRoomPool(friendRoomList);
         List<FriendRoomBaseData> dataArrayList = new ArrayList<>(friendRoomList.size());
         for (FriendRoom friendRoom : friendRoomList) {
-            if (friendRoom.getStatus() == 3) {
-                continue;
-            }
             FriendRoomBaseData friendRoomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
             if (friendRoom instanceof SlotsFriendRoom) {
                 friendRoomBaseData.predictCostGoldNum = bigPoolByRoomIds.getOrDefault(friendRoom.getId(), 0L);
             }
             dataArrayList.add(friendRoomBaseData);
             // 检查房间的自动续费
-            if (isSelf) {
+            if (friendRoom.getStatus() == 3 && isSelf) {
                 autoRenewalRoomInHall(friendRoom);
             }
         }
