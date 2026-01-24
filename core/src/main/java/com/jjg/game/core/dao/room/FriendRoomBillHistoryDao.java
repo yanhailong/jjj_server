@@ -196,7 +196,14 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
                 aggregation, "friendRoomBillHistoryBean", FriendRoomRewardItem.class
         );
 
-        return rawResults.getMappedResults();
+        List<FriendRoomRewardItem> queryList = rawResults.getMappedResults();
+        if(queryList.isEmpty()) {
+            return queryList;
+        }
+
+        List<FriendRoomRewardItem> tmpList = new ArrayList<>(queryList);
+        tmpList.removeIf(item -> item.getGameMajorType() == 1 && item.getCount() < 1);
+        return tmpList;
     }
 
     /**
@@ -231,11 +238,7 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
             // 执行批量操作
             BulkWriteResult result = bulkOps.execute();
             log.info("批量更新完成，玩家：{}，匹配记录数：{}，修改记录数：{}",playerId, result.getMatchedCount(), result.getModifiedCount());
-
-            if(playerAllReward.size() == result.getMatchedCount() && playerAllReward.size() == result.getModifiedCount()){
-                return true;
-            }
-            return false;
+            return true;
         } catch (Exception e) {
             log.error("批量更新玩家奖励状态失败，playerId: {}", playerId, e);
             return false;

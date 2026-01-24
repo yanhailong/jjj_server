@@ -1250,6 +1250,7 @@ public class FriendRoomServices {
         // 查询所有收益
         List<FriendRoomRewardItem> playerAllReward = billHistoryDao.getPlayerAllReward(playerId);
         if (playerAllReward.isEmpty()) {
+            log.warn("该玩家可收益为空 playerId = {}",playerId);
             return Code.SUCCESS;
         }
 
