@@ -65,28 +65,31 @@ public class SlotsRoomManager implements HallRoomBridge {
      * @return
      */
     public SlotsRoomController enterRoom(PlayerController playerController) {
-        SlotsRoomController slotsRoomController = roomControllers.get(playerController.roomId());
-        if (slotsRoomController != null) {
-            return slotsRoomController;
-        }
-        SlotsFriendRoom room = null;
         Lock lock = roomLocks.get(playerController.roomId());
         lock.lock();
+        SlotsRoomController slotsRoomController = roomControllers.get(playerController.roomId());
         try {
-            room = slotsFriendRoomDao.getRoom(playerController.getPlayer().getGameType(), playerController.roomId());
-            if (room == null) {
-                log.warn("进入好友房失败,未找到房间信息 playerId = {},gameType = {},roomId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.roomId());
-                return null;
-            }
-            if (!this.marsCurator.nodePath.equals(room.getPath())) {
-                return null;
-            }
+            if (slotsRoomController == null) {
+                SlotsFriendRoom room = slotsFriendRoomDao.getRoom(playerController.getPlayer().getGameType(), playerController.roomId());
+                if (room == null) {
+                    log.warn("进入好友房失败,未找到房间信息 playerId = {},gameType = {},roomId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.roomId());
+                    return null;
+                }
+                if (!this.marsCurator.nodePath.equals(room.getPath())) {
+                    return null;
+                }
 
-            final SlotsFriendRoom finalRoom = room;
-            slotsRoomController = roomControllers.computeIfAbsent(playerController.roomId(), k -> new SlotsRoomController(finalRoom));
+                final SlotsFriendRoom finalRoom = room;
+                slotsRoomController = roomControllers.computeIfAbsent(playerController.roomId(), k -> new SlotsRoomController(finalRoom));
 
-            Number number = roomSlotsPoolDao.getBigPoolByRoomId(playerController.roomId());
-            poolMap.put(playerController.roomId(), number == null ? 0 : number.longValue());
+                Number number = roomSlotsPoolDao.getBigPoolByRoomId(playerController.roomId());
+                poolMap.put(playerController.roomId(), number == null ? 0 : number.longValue());
+            }else {
+                boolean has = slotsRoomController.getRoom().hasPlayer(playerController.playerId());
+                if(has){
+                    return slotsRoomController;
+                }
+            }
 
             slotsRoomController.addPlayer(playerController);
             slotsFriendRoomDao.save(slotsRoomController.getRoom());
@@ -94,9 +97,6 @@ public class SlotsRoomManager implements HallRoomBridge {
             log.error("enterRoom error", e);
         } finally {
             lock.unlock();
-        }
-        if (room == null) {
-            return null;
         }
         return slotsRoomController;
     }
