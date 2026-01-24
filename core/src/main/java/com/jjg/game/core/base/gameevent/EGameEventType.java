@@ -1,9 +1,5 @@
 package com.jjg.game.core.base.gameevent;
 
-import com.jjg.game.sampledata.GameDataManager;
-
-import java.util.List;
-
 /**
  * 游戏事件类型
  *
@@ -16,6 +12,7 @@ public enum EGameEventType {
     //玩家绑定手机号
     BIND_PHONE("bindPhone"),    // 玩家绑定手机号
     PLAYER_VIP_LEVEL("playerVipLevel"),    // 玩家vip等级
+    ACTIVITY_JOIN("remainingAttempts"),    // 活动剩余参加次数
     //充值
     RECHARGE(""),
     // 产生有效流水
