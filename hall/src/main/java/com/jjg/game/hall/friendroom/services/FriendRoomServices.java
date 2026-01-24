@@ -461,7 +461,7 @@ public class FriendRoomServices {
             }
             dataArrayList.add(friendRoomBaseData);
             // 检查房间的自动续费
-            if (friendRoom.getStatus() == 3 && isSelf) {
+            if (friendRoom.getStatus() != 3 && isSelf) {
                 autoRenewalRoomInHall(friendRoom);
             }
         }
