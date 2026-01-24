@@ -119,8 +119,8 @@ public class MatchDataDao {
             local needFix = (maxPlayers ~= (roomNum + readyPlayers))
             local more = readyPlayers - waitingNum
             
-            if more > 0 and (maxPlayers > more or needFix) then
-                if diffCount > 2 then
+            if needFix or more > 0 then
+                if diffCount >= 2 then
                     -- 需要修正，计算新值
                     -- finalReadyPlayers = readyPlayers - more => readyPlayers - (readyPlayers - waitingNum) => waitingNum
                     local finalReadyPlayers = waitingNum
@@ -237,7 +237,7 @@ public class MatchDataDao {
      *
      * @param gameType     游戏类型
      * @param roomConfigId 房间配置id
-     * @param room       房间信息
+     * @param room         房间信息
      */
     public int checkPlayerExpiredWaitingNum(int diffCount, int gameType, int roomConfigId, Room room) {
         String matchRedisKey = getMatchRedisKey(gameType, roomConfigId);
@@ -256,8 +256,8 @@ public class MatchDataDao {
                         Collections.singletonList(matchRedisKey),
                         roomId, roomNum, waitingNum, diffCount);
         if (eval instanceof Long result) {
-            if(result.intValue() != diffCount){
-                log.error("房间数据不一致 diffCount = {} gameType = {} roomId = {}", diffCount, gameType, roomId);
+            if (result.intValue() != diffCount) {
+                log.error("房间数据不一致 oldDiffCount = {} newDiffCount = {} gameType = {} roomId = {}", diffCount, result.intValue(), gameType, roomId);
             }
             return result.intValue();
         }
