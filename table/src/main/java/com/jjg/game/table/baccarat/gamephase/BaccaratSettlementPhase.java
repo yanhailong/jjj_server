@@ -39,7 +39,7 @@ import java.util.*;
 public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDataVo> {
 
     private static final Logger log = LoggerFactory.getLogger(BaccaratSettlementPhase.class);
-    private static final List<Integer> WIN_STATE = List.of(1, 2, 3);
+    private static final List<Integer> WIN_STATE = List.of(1, 2);
 
     public BaccaratSettlementPhase(BaseTableGameController<BaccaratGameDataVo> gameController) {
         super(gameController);
@@ -283,11 +283,13 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         // 下注区域                        1:庄对     2:和    3: 闲对 4: 闲 5: 庄
         // winState          输赢状态      1:庄赢     2:闲赢  3：和
         // cardTypeWinState  牌型的输赢状态 0:默认状态，1:庄对  2：闲对，3：庄和闲都有对子
-        Map<Integer, WinPosWeightCfg> weightCfgMap =
+        Map<Integer, List<WinPosWeightCfg>> weightCfgMap =
                 GameDataManager.getWinPosWeightCfgList()
                         .stream()
                         .filter(cfg -> cfg.getGameID() == EGameType.BACCARAT.getGameTypeId())
-                        .collect(HashMap::new, (map, cfg) -> map.put(cfg.getWinPosID(), cfg), HashMap::putAll);
+                        .collect(HashMap::new, (map, cfg) ->
+                                        map.computeIfAbsent(cfg.getWinPosID(), k -> new ArrayList<>()).add(cfg),
+                                HashMap::putAll);
         SettlementData playerSettlementData = new SettlementData();
         for (Map.Entry<Integer, List<Integer>> entry : playerBetInfo.entrySet()) {
             long areaTotal = entry.getValue().stream().mapToInt(Integer::intValue).sum();
@@ -296,7 +298,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 case 1: {
                     if (settlementInfo.cardState.cardTypeWinState == 1 || settlementInfo.cardState.cardTypeWinState == 3) {
                         SettlementData settlementData =
-                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
+                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()).getFirst(), areaTotal);
                         playerSettlementData.increaseBySettlementData(settlementData);
                         if (changeParam != null) {
                             changeParam.removeArea(entry.getKey());
@@ -306,18 +308,19 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 }
                 case 2:
                     if (settlementInfo.cardState.winState == 3) {
-                        SettlementData settlementData =
-                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
-                        playerSettlementData.increaseBySettlementData(settlementData);
-                        if (changeParam != null) {
-                            changeParam.removeArea(entry.getKey());
+                        for (WinPosWeightCfg winPosWeightCfg : weightCfgMap.get(entry.getKey())) {
+                            SettlementData settlementData = calcGold(gamePlayer, winPosWeightCfg, areaTotal);
+                            playerSettlementData.increaseBySettlementData(settlementData);
+                            if (changeParam != null) {
+                                changeParam.removeArea(entry.getKey());
+                            }
                         }
                     }
                     break;
                 case 3:
                     if (settlementInfo.cardState.cardTypeWinState == 2 || settlementInfo.cardState.cardTypeWinState == 3) {
                         SettlementData settlementData =
-                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
+                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()).getFirst(), areaTotal);
                         playerSettlementData.increaseBySettlementData(settlementData);
                         if (changeParam != null) {
                             changeParam.removeArea(entry.getKey());
@@ -327,7 +330,15 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 case 4:
                     if (settlementInfo.cardState.winState == 2) {
                         SettlementData settlementData =
-                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
+                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()).getFirst(), areaTotal);
+                        playerSettlementData.increaseBySettlementData(settlementData);
+                        if (changeParam != null) {
+                            changeParam.removeArea(entry.getKey());
+                        }
+                    }
+                    //和返回押注
+                    if (settlementInfo.cardState.winState == 3) {
+                        SettlementData settlementData = new SettlementData(areaTotal, areaTotal, areaTotal, 0);
                         playerSettlementData.increaseBySettlementData(settlementData);
                         if (changeParam != null) {
                             changeParam.removeArea(entry.getKey());
@@ -337,7 +348,15 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 case 5:
                     if (settlementInfo.cardState.winState == 1) {
                         SettlementData settlementData =
-                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
+                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()).getFirst(), areaTotal);
+                        playerSettlementData.increaseBySettlementData(settlementData);
+                        if (changeParam != null) {
+                            changeParam.removeArea(entry.getKey());
+                        }
+                    }
+                    //和返回押注
+                    if (settlementInfo.cardState.winState == 3) {
+                        SettlementData settlementData = new SettlementData(areaTotal, areaTotal, areaTotal, 0);
                         playerSettlementData.increaseBySettlementData(settlementData);
                         if (changeParam != null) {
                             changeParam.removeArea(entry.getKey());
