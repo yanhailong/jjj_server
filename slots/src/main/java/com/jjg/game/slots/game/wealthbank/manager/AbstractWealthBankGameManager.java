@@ -37,7 +37,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
     protected WealthBankCollectDollarConfig wealthBankCollectDollarConfig;
 
     public AbstractWealthBankGameManager() {
-        super(WealthBankPlayerGameData.class, WealthBankResultLib.class);
+        super(WealthBankPlayerGameData.class, WealthBankResultLib.class, WealthBankGameRunInfo.class);
     }
 
     @Override
@@ -85,25 +85,6 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
     }
 
     /**
-     * 开始游戏
-     *
-     * @param playerController
-     * @param betValue
-     * @return
-     */
-    public WealthBankGameRunInfo playerStartGame(PlayerController playerController, long betValue) {
-        //获取玩家游戏数据
-        WealthBankPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("[Wealth Bank] 获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new WealthBankGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerGameData, betValue, false);
-    }
-
-    /**
      * 玩家二选一
      *
      * @param playerController
@@ -120,9 +101,6 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
                 gameRunInfo.setCode(Code.NOT_FOUND);
                 return gameRunInfo;
             }
-
-            //设置活跃时间
-            playerGameData.setLastActiveTime(TimeHelper.nowInt());
 
             int code = chooseFreeGameType(playerGameData, chooseStatus);
             if (code != Code.SUCCESS) {
@@ -151,9 +129,6 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
                 gameRunInfo.setCode(Code.PARAM_ERROR);
                 return gameRunInfo;
             }
-
-            //设置活跃时间
-            playerGameData.setLastActiveTime(TimeHelper.nowInt());
 
             //检查是否被选择
             boolean select = playerGameData.areaSelected(areaId);
@@ -280,8 +255,6 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
             log.debug("[Wealth Bank] 获取玩家游戏数据失败，投资游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new WealthBankGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-
         return invest(playerController, playerGameData, areaId);
     }
 

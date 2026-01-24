@@ -33,7 +33,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
     protected ThorGameDataDao gameDataDao;
 
     public AbstractThorGameManager() {
-        super(ThorPlayerGameData.class, ThorResultLib.class);
+        super(ThorPlayerGameData.class, ThorResultLib.class, ThorGameRunInfo.class);
     }
 
     @Override
@@ -48,25 +48,6 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
-    }
-
-    /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public ThorGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        ThorPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new ThorGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
     }
 
     /**
@@ -93,8 +74,6 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         } else {
             playerGameData.setStatus(ThorConstant.Status.ICE);
         }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
         return new ThorGameRunInfo(Code.SUCCESS, playerController.playerId());
     }
 

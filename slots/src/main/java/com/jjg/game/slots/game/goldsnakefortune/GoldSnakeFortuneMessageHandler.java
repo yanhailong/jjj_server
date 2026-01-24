@@ -97,9 +97,9 @@ public class GoldSnakeFortuneMessageHandler {
             log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             GoldSnakeFortuneGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
-                gameRunInfo = gameManager.getPoolValue(GoldSnakeFortuneGameRunInfo.class, playerController, req.stakeVlue);
+                gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
             } else if (playerController.getScene() instanceof SlotsRoomController) {
-                gameRunInfo = roomGameManager.getPoolValue(GoldSnakeFortuneGameRunInfo.class, playerController, req.stakeVlue);
+                gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeVlue);
             } else {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;

@@ -45,7 +45,7 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
     protected WealthGodGameDataDao gameDataDao;
 
     public AbstractWealthGodGameManager() {
-        super(WealthGodPlayerGameData.class, WealthGodResultLib.class);
+        super(WealthGodPlayerGameData.class, WealthGodResultLib.class, WealthGodGameRunInfo.class);
     }
 
     @Override
@@ -78,20 +78,6 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
     @Override
     protected Class<WealthGodPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
         return WealthGodPlayerGameDataDTO.class;
-    }
-
-    /**
-     * 开始游戏
-     */
-    public WealthGodGameRunInfo playerStartGame(PlayerController playerController, long betValue) {
-        //获取玩家游戏数据
-        WealthGodPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new WealthGodGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, betValue);
     }
 
     /**

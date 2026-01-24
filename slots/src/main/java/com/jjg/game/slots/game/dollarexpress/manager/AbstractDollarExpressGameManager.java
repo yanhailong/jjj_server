@@ -36,7 +36,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     protected DollarExpressCollectDollarConfig dollarExpressCollectDollarConfig;
 
     public AbstractDollarExpressGameManager() {
-        super(DollarExpressPlayerGameData.class, DollarExpressResultLib.class);
+        super(DollarExpressPlayerGameData.class, DollarExpressResultLib.class, DollarExpressGameRunInfo.class);
     }
 
     @Override
@@ -85,25 +85,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     }
 
     /**
-     * 开始游戏
-     *
-     * @param playerController
-     * @param betValue
-     * @return
-     */
-    public DollarExpressGameRunInfo playerStartGame(PlayerController playerController, long betValue) {
-        //获取玩家游戏数据
-        DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new DollarExpressGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerGameData, betValue, false);
-    }
-
-    /**
      * 玩家二选一
      *
      * @param playerController
@@ -120,9 +101,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 gameRunInfo.setCode(Code.NOT_FOUND);
                 return gameRunInfo;
             }
-
-            //设置活跃时间
-            playerGameData.setLastActiveTime(TimeHelper.nowInt());
 
             int code = chooseFreeGameType(playerGameData, chooseStatus);
             if (code != Code.SUCCESS) {
@@ -151,9 +129,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 gameRunInfo.setCode(Code.PARAM_ERROR);
                 return gameRunInfo;
             }
-
-            //设置活跃时间
-            playerGameData.setLastActiveTime(TimeHelper.nowInt());
 
             //检查是否被选择
             boolean select = playerGameData.areaSelected(areaId);
@@ -280,8 +255,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             log.debug("获取玩家游戏数据失败，投资游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new DollarExpressGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-
         return invest(playerController, playerGameData, areaId);
     }
 

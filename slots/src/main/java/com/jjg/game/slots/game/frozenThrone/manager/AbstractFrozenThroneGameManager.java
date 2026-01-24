@@ -33,7 +33,7 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
     private FrozenThroneGameDataDao gameDataDao;
 
     public AbstractFrozenThroneGameManager() {
-        super(FrozenThronePlayerGameData.class, FrozenThroneResultLib.class);
+        super(FrozenThronePlayerGameData.class, FrozenThroneResultLib.class, FrozenThroneGameRunInfo.class);
     }
 
     @Override
@@ -59,25 +59,6 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
         FrozenThroneGameRunInfo gameRunInfo = new FrozenThroneGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
-    }
-
-    /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public FrozenThroneGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        FrozenThronePlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new FrozenThroneGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerGameData, stake, false);
     }
 
     /**

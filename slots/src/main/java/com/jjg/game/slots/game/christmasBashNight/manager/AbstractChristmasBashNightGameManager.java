@@ -32,7 +32,7 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
     protected ChristmasBashNightGameDataDao gameDataDao;
 
     public AbstractChristmasBashNightGameManager() {
-        super(ChristmasBashNightPlayerGameData.class, ChristmasBashNightResultLib.class);
+        super(ChristmasBashNightPlayerGameData.class, ChristmasBashNightResultLib.class, ChristmasBashNightGameRunInfo.class);
     }
 
     @Override
@@ -53,25 +53,6 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
         ChristmasBashNightGameRunInfo gameRunInfo = new ChristmasBashNightGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
-    }
-
-    /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public ChristmasBashNightGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        ChristmasBashNightPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new ChristmasBashNightGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
     }
 
     /**

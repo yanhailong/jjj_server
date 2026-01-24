@@ -32,7 +32,7 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
     private SteamAgeGameDataDao gameDataDao;
 
     public AbstractSteamAgeGameManager() {
-        super(SteamAgePlayerGameData.class, SteamAgeResultLib.class);
+        super(SteamAgePlayerGameData.class, SteamAgeResultLib.class, SteamAgeGameRunInfo.class);
     }
 
     @Override
@@ -53,25 +53,6 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
         SteamAgeGameRunInfo gameRunInfo = new SteamAgeGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
-    }
-
-    /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public SteamAgeGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        SteamAgePlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new SteamAgeGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerGameData, stake, false);
     }
 
     /**

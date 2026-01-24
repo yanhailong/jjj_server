@@ -38,7 +38,7 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
     protected CleopatraGameDataDao gameDataDao;
 
     public AbstractCleopatraGameManager() {
-        super(CleopatraPlayerGameData.class, CleopatraResultLib.class);
+        super(CleopatraPlayerGameData.class, CleopatraResultLib.class, CleopatraGameRunInfo.class);
     }
 
     @Override
@@ -46,25 +46,6 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
         log.info("启动埃及艳后游戏管理器...");
         super.init();
         addUpdatePoolEvent();
-    }
-
-    /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public CleopatraGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        CleopatraPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new CleopatraGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
     }
 
     /**

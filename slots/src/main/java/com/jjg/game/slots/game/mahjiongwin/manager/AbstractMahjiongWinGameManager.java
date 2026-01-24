@@ -35,7 +35,7 @@ public abstract class AbstractMahjiongWinGameManager extends AbstractSlotsGameMa
     protected MahjiongWinGameDataDao gameDataDao;
 
     public AbstractMahjiongWinGameManager() {
-        super(MahjiongWinPlayerGameData.class, MahjiongWinResultLib.class);
+        super(MahjiongWinPlayerGameData.class, MahjiongWinResultLib.class, MahjiongWinGameRunInfo.class);
     }
 
     @Override
@@ -61,25 +61,6 @@ public abstract class AbstractMahjiongWinGameManager extends AbstractSlotsGameMa
         MahjiongWinGameRunInfo gameRunInfo = new MahjiongWinGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
-    }
-
-    /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public MahjiongWinGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        MahjiongWinPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new MahjiongWinGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
     }
 
     /**
