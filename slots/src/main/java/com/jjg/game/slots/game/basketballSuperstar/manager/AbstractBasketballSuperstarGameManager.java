@@ -65,7 +65,7 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
      * @param auto
      * @return
      */
-    public BasketballSuperstarGameRunInfo startGame(BasketballSuperstarPlayerGameData playerGameData, long betValue, boolean auto) {
+    public BasketballSuperstarGameRunInfo startGame(PlayerController playerController,BasketballSuperstarPlayerGameData playerGameData, long betValue, boolean auto) {
         BasketballSuperstarGameRunInfo gameRunInfo = new BasketballSuperstarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
@@ -270,6 +270,6 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
      */
     public BasketballSuperstarGameRunInfo autoStartGame(BasketballSuperstarPlayerGameData playerGameData, long betValue) {
         log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
-        return startGame(playerGameData, betValue, true);
+        return startGame(null,playerGameData, betValue, true);
     }
 }

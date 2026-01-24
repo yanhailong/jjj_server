@@ -315,7 +315,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 return createGameRunInfo(playerController.playerId(), code);
             }
         }
-        return startGame(playerGameData, betValue, false);
+        return startGame(playerController, playerGameData, betValue, false);
     }
 
     /**
@@ -324,7 +324,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param betValue
      * @return
      */
-    public G startGame(T playerGameData, long betValue, boolean auto) {
+    protected G startGame(PlayerController playerController, T playerGameData, long betValue, boolean auto) {
         return null;
     }
 

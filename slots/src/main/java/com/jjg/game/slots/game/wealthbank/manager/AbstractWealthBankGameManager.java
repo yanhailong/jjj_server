@@ -340,7 +340,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
     public WealthBankGameRunInfo autoStartGame(WealthBankPlayerGameData playerGameData, long betValue) {
         log.debug("[Wealth Bank] 系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
 
-        return startGame(playerGameData, betValue, true);
+        return startGame(null,playerGameData, betValue, true);
     }
 
     /**
@@ -350,7 +350,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
      * @return
      */
     public WealthBankGameRunInfo
-    startGame(WealthBankPlayerGameData playerGameData, long betValue, boolean auto) {
+    startGame(PlayerController playerController, WealthBankPlayerGameData playerGameData, long betValue, boolean auto) {
         WealthBankGameRunInfo gameRunInfo = new WealthBankGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);

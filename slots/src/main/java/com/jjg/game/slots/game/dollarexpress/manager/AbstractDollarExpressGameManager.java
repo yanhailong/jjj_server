@@ -340,7 +340,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     public DollarExpressGameRunInfo autoStartGame(DollarExpressPlayerGameData playerGameData, long betValue) {
         log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
 
-        return startGame(playerGameData, betValue, true);
+        return startGame(null,playerGameData, betValue, true);
     }
 
     /**
@@ -350,7 +350,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
      * @return
      */
     public DollarExpressGameRunInfo
-    startGame(DollarExpressPlayerGameData playerGameData, long betValue, boolean auto) {
+    startGame(PlayerController playerController,DollarExpressPlayerGameData playerGameData, long betValue, boolean auto) {
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);

@@ -68,7 +68,7 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
      * @param auto
      * @return
      */
-    public FrozenThroneGameRunInfo startGame(FrozenThronePlayerGameData playerGameData, long betValue, boolean auto) {
+    public FrozenThroneGameRunInfo startGame(PlayerController playerController, FrozenThronePlayerGameData playerGameData, long betValue, boolean auto) {
         FrozenThroneGameRunInfo gameRunInfo = new FrozenThroneGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
@@ -272,6 +272,6 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
      */
     public FrozenThroneGameRunInfo autoStartGame(FrozenThronePlayerGameData playerGameData, long betValue) {
         log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
-        return startGame(playerGameData, betValue, true);
+        return startGame(null,playerGameData, betValue, true);
     }
 }
