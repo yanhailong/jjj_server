@@ -84,9 +84,9 @@ public class SlotsRoomManager implements HallRoomBridge {
 
                 Number number = roomSlotsPoolDao.getBigPoolByRoomId(playerController.roomId());
                 poolMap.put(playerController.roomId(), number == null ? 0 : number.longValue());
-            }else {
+            } else {
                 boolean has = slotsRoomController.getRoom().hasPlayer(playerController.playerId());
-                if(has){
+                if (has) {
                     return slotsRoomController;
                 }
             }
@@ -126,7 +126,7 @@ public class SlotsRoomManager implements HallRoomBridge {
     @Override
     public void createFriendRoom(int roomCfgId, long roomId) {
         try {
-            SlotsFriendRoom room = slotsFriendRoomDao.getRoomByCfgId(roomCfgId, roomId, true);
+            SlotsFriendRoom room = getRoomByCfgId(roomCfgId, roomId, true);
             if (room == null) {
                 log.warn("创建好友房失败,未找到房间信息 roomCfgId = {},roomId = {}", roomCfgId, roomId);
                 return;
@@ -141,6 +141,15 @@ public class SlotsRoomManager implements HallRoomBridge {
         }
     }
 
+    public SlotsFriendRoom getRoomByCfgId(int roomCfgId, long roomId, boolean create) {
+        SlotsFriendRoom room = slotsFriendRoomDao.getRoomByCfgId(roomCfgId, roomId, create);
+        if (room != null) {
+            poolMap.computeIfAbsent(roomId, k -> room.getPredictCostGoldNum());
+        }
+        return room;
+    }
+
+
     @Override
     @RpcCallSetting(processorModKey = "#arg1")
     public void operateFriendRoom(long playerId, long roomId, int operateCode, int roomCfgId) {
@@ -151,7 +160,7 @@ public class SlotsRoomManager implements HallRoomBridge {
 
             SlotsRoomController slotsRoomController = roomControllers.get(roomId);
             if (slotsRoomController == null) {
-                SlotsFriendRoom room = slotsFriendRoomDao.getRoomByCfgId(roomCfgId, roomId, false);
+                SlotsFriendRoom room = getRoomByCfgId(roomCfgId, roomId, false);
                 if (room != null) {
                     slotsRoomController = roomControllers.computeIfAbsent(roomId, k -> new SlotsRoomController(room));
                 } else {
@@ -346,7 +355,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         SlotsRoomController roomController = roomControllers.get(roomId);
         CommonResult<FriendRoom> result = new CommonResult<>(Code.SUCCESS);
         if (roomController == null) {
-            SlotsFriendRoom room = slotsFriendRoomDao.getRoomByCfgId(roomCfgId, roomId, false);
+            SlotsFriendRoom room = getRoomByCfgId(roomCfgId, roomId, false);
             if (room == null) {
                 log.warn("修改好友房失败,未找到房间信息 playerId = {},roomCfgId = {},roomId = {}", playerId, roomCfgId, roomId);
                 result.code = Code.NOT_FOUND;
