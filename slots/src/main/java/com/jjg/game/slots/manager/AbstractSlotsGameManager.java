@@ -35,13 +35,13 @@ import com.jjg.game.core.task.param.TaskConditionParam10001;
 import com.jjg.game.core.task.param.TaskConditionParam10003;
 import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.*;
 import com.jjg.game.slots.data.*;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.service.SlotsPlayerService;
@@ -1027,9 +1027,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             CommonResult<Pair<Player, Long>> result = roomSlotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getRoomId(), addGold, warehouseCfg.getTransactionItemId(), AddType.SLOTS_BET_REWARD);
             if (!result.success()) {
                 if (result.code == Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT) {
+                    if (gameRunInfo.getStatus() > 0) {
+                        log.warn("房间准备金不足以赔付 roomId = {},gameType = {},addValue = {}", playerGameData.getRoomId(), this.gameType, addGold);
+                        gameRunInfo.setCode(Code.SUCCESS);
+                        gameRunInfo.setAllWinGold(addGold);
+                        TipUtils.sendToastTip(playerGameData.playerId(), Code.RESERVES_IS_NOT_ENOUGHT_FOR_REWARD);
+                        return gameRunInfo;
+                    }
                     return handleEmptyPrizePool(gameRunInfo, playerGameData);
                 }
-                log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
+                log.warn("给玩家添加金币失败 roomId = {},gameType = {},addValue = {}", playerGameData.getRoomId(), this.gameType, addGold);
                 gameRunInfo.setCode(result.code);
                 return gameRunInfo;
             }

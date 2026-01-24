@@ -118,6 +118,7 @@ public class RoomSlotsPoolDao extends AbstractPoolDao {
 
     /**
      * 删除房间池子，并返回删除的值
+     *
      * @param roomId
      * @return
      */

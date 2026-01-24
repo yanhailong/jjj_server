@@ -103,6 +103,8 @@ public interface Code {
     int AMOUNT_OF_RESERVES_IS_INCORRECT_CONFIG = 49140;
     //准备金不足(slots)
     int AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT = 49142;
+    //准备金不足,无法赔付
+    int RESERVES_IS_NOT_ENOUGHT_FOR_REWARD = 49144;
     // 請輸入正確的code
     int CODE_ERROR = 436;
     // 不能绑定自己
