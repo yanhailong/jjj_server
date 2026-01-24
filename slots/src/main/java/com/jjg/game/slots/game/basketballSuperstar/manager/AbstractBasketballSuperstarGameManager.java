@@ -35,7 +35,7 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
     private BasketballSuperstarGameDataDao gameDataDao;
 
     public AbstractBasketballSuperstarGameManager() {
-        super(BasketballSuperstarPlayerGameData.class, BasketballSuperstarResultLib.class);
+        super(BasketballSuperstarPlayerGameData.class, BasketballSuperstarResultLib.class, BasketballSuperstarGameRunInfo.class);
     }
 
     @Override
@@ -56,25 +56,6 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
         BasketballSuperstarGameRunInfo gameRunInfo = new BasketballSuperstarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
-    }
-
-    /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public BasketballSuperstarGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        BasketballSuperstarPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new BasketballSuperstarGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerGameData, stake, false);
     }
 
     /**

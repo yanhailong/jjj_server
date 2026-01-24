@@ -8,13 +8,37 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.slots.service.SlotsPlayerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
+
+import java.util.Collections;
 
 
 @Component
 public class RoomSlotsPoolDao extends AbstractPoolDao {
     @Autowired
     private SlotsPlayerService slotsPlayerService;
+
+    String script = """
+                local value = redis.call('HGET', KEYS[1], ARGV[1])
+                if value then
+                    -- 先删除字段
+                    redis.call('HDEL', KEYS[1], ARGV[1])
+            
+                    -- 尝试将值转换为数字
+                    local number_value = tonumber(value)
+                    if number_value then
+                        -- 如果是数字，返回数字
+                        return number_value
+                    else
+                        -- 如果不是数字，返回nil表示类型不符合要求
+                        return nil
+                    end
+                else
+                    -- 字段不存在，返回nil
+                    return nil
+                end
+            """;
 
     /**
      * 初始化房间水池
@@ -92,7 +116,24 @@ public class RoomSlotsPoolDao extends AbstractPoolDao {
         return result;
     }
 
-    public void removePoolByRoomId(long roomId) {
-        this.redisTemplate.opsForHash().delete(room_pool_prefix, roomId);
+    /**
+     * 删除房间池子，并返回删除的值
+     * @param roomId
+     * @return
+     */
+    public long removePoolByRoomId(long roomId) {
+        // 创建RedisScript对象
+        DefaultRedisScript<Number> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptText(script);
+        // 注意：由于Lua返回的可能是整数或浮点数，使用Number作为返回类型
+        redisScript.setResultType(Number.class);
+        // 执行脚本
+        Number deletedValue = redisTemplate.execute(redisScript, Collections.singletonList(room_pool_prefix), roomId);
+
+        // 使用结果
+        if (deletedValue != null) {
+            return deletedValue.longValue();
+        }
+        return 0;
     }
 }

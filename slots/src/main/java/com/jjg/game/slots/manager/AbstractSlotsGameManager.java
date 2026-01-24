@@ -27,10 +27,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.TaskConstant;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.RoomType;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.task.manager.TaskManager;
@@ -44,12 +41,12 @@ import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.*;
 import com.jjg.game.slots.data.*;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.service.SlotsPlayerService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Constructor;
@@ -109,6 +106,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     protected Class<T> playerGameDataClass;
     protected Class<L> libClass;
+    protected Class<G> gameRunInfoClass;
 
     //roomCfgId -> cfg
     protected Map<Integer, BaseRoomCfg> roomCfgMap;
@@ -133,11 +131,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     //在更新结果库后，要开启清除旧结果库的定时事件
     protected TimerEvent<String> clearAllLibEvent;
+    //房间Slot游戏超时提出的倒计时
+    protected long playerRoomIldeIimeMills = 0;
 
 
-    public AbstractSlotsGameManager(Class<T> playerGameDataClass, Class<L> libClass) {
+    public AbstractSlotsGameManager(Class<T> playerGameDataClass, Class<L> libClass, Class<G> gameRunInfoClass) {
         this.playerGameDataClass = playerGameDataClass;
         this.libClass = libClass;
+        this.gameRunInfoClass = gameRunInfoClass;
     }
 
     /**
@@ -150,7 +151,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         getGenerateManager().init(this.gameType);
         initConfig();
         //初始化离线处理定时器
-        WheelTimerUtil.scheduleAtFixedRate(this::checkOffLine, 1, 1, TimeUnit.SECONDS);
+        WheelTimerUtil.scheduleAtFixedRate(this::checkPlayerStatus, 1, 2, TimeUnit.SECONDS);
     }
 
     /**
@@ -296,6 +297,34 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     public G enterGame(PlayerController playerController) {
+        return null;
+    }
+
+    public G playerStartGame(PlayerController playerController, long betValue) throws Exception {
+        //获取玩家游戏数据
+        T playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+            return createGameRunInfo(playerController.playerId(), Code.NOT_FOUND);
+        }
+
+        if (getRoomType() != null) {
+            int code = slotsRoomManager.checkCanPlay(playerController.roomId(), playerController.playerId());
+            if (code != Code.SUCCESS) {
+                log.debug("该游戏无法继续 playerId = {},gameType = {},roomCfgId = {},code = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), code);
+                return createGameRunInfo(playerController.playerId(), code);
+            }
+        }
+        return startGame(playerGameData, betValue, false);
+    }
+
+    /**
+     * 开始游戏
+     *
+     * @param betValue
+     * @return
+     */
+    public G startGame(T playerGameData, long betValue, boolean auto) {
         return null;
     }
 
@@ -786,7 +815,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     public T getPlayerGameData(PlayerController playerController) {
-        return getPlayerGameData(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+        T playerGameData = getPlayerGameData(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+        if (playerGameData != null) {
+            playerGameData.setLastActiveTime(System.currentTimeMillis());
+        }
+        return playerGameData;
     }
 
     public T getPlayerGameData(long playerId, int roomCfgId) {
@@ -849,6 +882,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
         playerGameData.setOfflineTime(0);
         playerGameData.setOnline(true);
+        playerGameData.setLastActiveTime(System.currentTimeMillis());
         playerGameData.setPlayerController(playerController);
         playerGameData.setOfflineEventMap(initOffLineEvent());
         return putGameData(playerController, playerGameData);
@@ -928,16 +962,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 获取奖池信息
      *
-     * @param cla
      * @param playerController
      * @param stake
-     * @param <G>
      * @return
      */
-    public <G extends GameRunInfo> G getPoolValue(Class<G> cla, PlayerController playerController, long stake) {
+    public G getPoolValue(PlayerController playerController, long stake) {
         try {
-            Constructor<G> constructor = cla.getConstructor(int.class, long.class);
-            G gameRunInfo = constructor.newInstance(Code.SUCCESS, playerController.playerId());
+            G gameRunInfo = createGameRunInfo(playerController.playerId(), Code.SUCCESS);
 
             BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
             if (baseInitCfg == null || baseInitCfg.getPrizePoolIdList() == null || baseInitCfg.getPrizePoolIdList().size() != 4) {
@@ -1112,9 +1143,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
-     * 离线玩家检查
+     * 检查玩家状态(离线和活跃)
      */
-    private void checkOffLine() {
+    private void checkPlayerStatus() {
         long timeMillis = System.currentTimeMillis();
         HashMap<Integer, Map<Long, T>> tempGameDataMap = new HashMap<>(this.gameDataMap);
         for (Map<Long, T> playerGameDataMap : tempGameDataMap.values()) {
@@ -1122,11 +1153,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 T gameDataValue = gameData.getValue();
                 //是否需要回存
                 if (gameDataValue.isOnline()) {
+                    //检查slots房间中，在线玩家是否活跃
+                    checkActive(gameDataValue, timeMillis);
                     continue;
                 }
 
                 if (gameDataValue.getOfflineTime() + getOfflineDeleteMills() <= timeMillis) {  //离线多少秒执行数据删除
-                    offlineDelete(gameData.getKey(), gameDataValue.getPlayerController());
+                    offlineDelete(gameDataValue, gameDataValue.getPlayerController(), timeMillis);
                 } else if (gameDataValue.getOfflineEventMap() != null && !gameDataValue.getOfflineEventMap().isEmpty()) {  //离线多少秒执行特殊处理
                     for (Map.Entry<Integer, OffLineEventData> en : gameDataValue.getOfflineEventMap().entrySet()) {
                         //检查该事件是否已经执行
@@ -1143,6 +1176,24 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 }
             }
         }
+    }
+
+    private void checkActive(T playerGameData, long now) {
+        if (getRoomType() == null) {
+            return;
+        }
+
+        //分发到对应的线程
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerGameData.playerId(), 0, new BaseHandler<String>() {
+            @Override
+            public void action() {
+                long diff = now - playerGameData.getLastActiveTime();
+                if (diff > playerRoomIldeIimeMills) {
+                    //玩家长时间未操作
+                    slotsRoomManager.playerRoomIdle(playerGameData.getRoomId(), playerGameData.playerId());
+                }
+            }
+        }.setHandlerParamWithSelf("slots checkActive"));
     }
 
     /**
@@ -1169,19 +1220,19 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 离线删除
      *
-     * @param playerId         玩家id
+     * @param playerGameData   玩家数据
      * @param playerController 玩家数据
      */
-    protected void offlineDelete(long playerId, PlayerController playerController) {
+    protected void offlineDelete(T playerGameData, PlayerController playerController, long now) {
         //分发到对应的线程
-        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerId, 0, new BaseHandler<String>() {
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerGameData.playerId(), 0, new BaseHandler<String>() {
             @Override
             public void action() {
                 T playerGameData = getPlayerGameData(playerController);
                 if (playerGameData.isOnline()) {
                     return;
                 }
-//                        onAutoExitAction(playerGameData);
+                slotsRoomManager.exitRoom(playerController);
                 offlineSaveGameDataDto(playerGameData);
                 removePlayerGameData(playerGameData.playerId(), playerGameData.getRoomCfgId());
                 log.debug("保存离线玩家数据 playerId = {}", playerController.playerId());
@@ -1323,6 +1374,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         calGlobalBigWinShow(GameConstant.GlobalConfig.ID_MEGA, SlotsConst.BigWinShow.MEGA, tmpBigWinShowMap);
         calGlobalBigWinShow(GameConstant.GlobalConfig.ID_EPIC, SlotsConst.BigWinShow.EPIC, tmpBigWinShowMap);
         calGlobalBigWinShow(GameConstant.GlobalConfig.ID_LEGENDARY, SlotsConst.BigWinShow.LEGENDARY, tmpBigWinShowMap);
+        this.playerRoomIldeIimeMills = GameDataManager.getGlobalConfigCfg(SlotsConst.GlobalConfig.ID_ROOM_PLAYER_ILDE_TIME_MILLS).getIntValue();
         this.bigWinShowMap = tmpBigWinShowMap;
     }
 
@@ -1393,10 +1445,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * 处理玩家退出游戏事件
      *
      * @param playerController
-     * @param initiativeExit
+     * @param exitType
      * @return
      */
-    public T exit(PlayerController playerController, boolean initiativeExit) {
+    public T exit(PlayerController playerController, ExitType exitType) {
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
             return null;
@@ -1404,7 +1456,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         long now = System.currentTimeMillis();
         playerGameData.setOfflineTime(now);
         playerGameData.setOnline(false);
-        if (initiativeExit) {
+        if (exitType != ExitType.DROPPED) {
             //退出自动执行事件
             if (playerGameData.getOfflineEventMap() != null && !playerGameData.getOfflineEventMap().isEmpty()) {
                 for (Map.Entry<Integer, OffLineEventData> en : playerGameData.getOfflineEventMap().entrySet()) {
@@ -1992,5 +2044,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         log.warn("获取游戏状态错误 roomType = {}", getRoomType());
         return Code.FAIL;
+    }
+
+    protected G createGameRunInfo(long playerId, int code) throws Exception {
+        Constructor<G> constructor = this.gameRunInfoClass.getConstructor(int.class, long.class);
+        return constructor.newInstance(code, playerId);
     }
 }

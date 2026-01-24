@@ -30,7 +30,7 @@ public class SlotsPlayerGameData {
     //当前所处状态(美元快递) 0.正常  1.二选一  2.正在免费旋转
     protected int status;
     //最后一次活跃时间
-    protected int lastActiveTime;
+    protected long lastActiveTime;
     //是否在线
     protected boolean online;
     //最近一次的押注(单线押分)
@@ -107,11 +107,11 @@ public class SlotsPlayerGameData {
         this.status = status;
     }
 
-    public int getLastActiveTime() {
+    public long getLastActiveTime() {
         return lastActiveTime;
     }
 
-    public void setLastActiveTime(int lastActiveTime) {
+    public void setLastActiveTime(long lastActiveTime) {
         this.lastActiveTime = lastActiveTime;
     }
 

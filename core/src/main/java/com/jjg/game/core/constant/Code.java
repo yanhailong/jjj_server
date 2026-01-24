@@ -87,6 +87,10 @@ public interface Code {
     int TEXAS_NOT_ENOUGH = 433;
     // 使用未拥有的皮肤
     int NOT_UNLOCKED = 434;
+    //房间玩家长时间未操作，被踢出房间
+    int ROOM_PLAYER_IDLE = 16008;
+    //房间已经被房主解散，请去其他游戏试试吧
+    int SLOTS_ROOM_PLAYER_KICK_OUT = 49134;
     // 庄家不能押注
     int BANKER_CANT_BET = 49136;
     // 庄家不能押注

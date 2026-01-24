@@ -44,7 +44,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
 
     public AbstractPegasusUnbridleGameManager(PegasusUnbridleGameGenerateManager gameGenerateManager,
                                               PegasusUnbridleGameDataDao gameDataDao, PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao) {
-        super(PegasusUnbridlePlayerGameData.class, PegasusUnbridleResultLib.class);
+        super(PegasusUnbridlePlayerGameData.class, PegasusUnbridleResultLib.class, PegasusUnbridleGameRunInfo.class);
         this.gameGenerateManager = gameGenerateManager;
         this.gameDataDao = gameDataDao;
         this.PegasusUnbridleResultLibDao = PegasusUnbridleResultLibDao;
@@ -75,21 +75,6 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
         PegasusUnbridleGameRunInfo gameRunInfo = new PegasusUnbridleGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
-    }
-
-    /**
-     * 玩家开始游戏
-     *
-     */
-    public PegasusUnbridleGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        PegasusUnbridlePlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new PegasusUnbridleGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
     }
 
     @Override

@@ -40,7 +40,7 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
     private int fake_free_prop = 0;
 
     public AbstractGoldSnakeFortuneGameManager() {
-        super(GoldSnakeFortunePlayerGameData.class, GoldSnakeFortuneResultLib.class);
+        super(GoldSnakeFortunePlayerGameData.class, GoldSnakeFortuneResultLib.class, GoldSnakeFortuneGameRunInfo.class);
     }
 
     @Override
@@ -55,25 +55,6 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
         GoldSnakeFortuneGameRunInfo gameRunInfo = new GoldSnakeFortuneGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
-    }
-
-    /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public GoldSnakeFortuneGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        GoldSnakeFortunePlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new GoldSnakeFortuneGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
     }
 
     /**

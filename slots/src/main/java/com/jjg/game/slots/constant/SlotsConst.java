@@ -138,6 +138,8 @@ public class SlotsConst {
     public class GlobalConfig {
         //创建房间功能基础收益万分比
         public static final int ID_ROOM_INCOME_PROP = 12;
+        //创建房间-Slot游戏新增超时提出的倒计时
+        public static final int ID_ROOM_PLAYER_ILDE_TIME_MILLS = 112;
     }
 
 

@@ -1,8 +1,11 @@
 package com.jjg.game.slots.controller;
 
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.data.SlotsFriendRoom;
+import com.jjg.game.core.pb.NotifyExitRoom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +34,7 @@ public class SlotsRoomController {
      */
     public void pauseGame() {
         if (this.room.getStatus() == 1) {
+            this.room.setStatus(2);
             this.room.setPauseTime(System.currentTimeMillis());
         }
     }
@@ -68,11 +72,13 @@ public class SlotsRoomController {
     /**
      * 房间中移除玩家数据
      *
-     * @param playerController
+     * @param playerId
+     * @return
      */
-    public void exitRoom(PlayerController playerController) {
-        this.room.exit(playerController.playerId());
-        this.playerControllers.remove(playerController.playerId());
+    public boolean exitRoom(long playerId) {
+        RoomPlayer roomPlayer = this.room.exit(playerId);
+        PlayerController playerController = this.playerControllers.remove(playerId);
+        return roomPlayer != null || playerController != null;
     }
 
     /**
@@ -87,4 +93,27 @@ public class SlotsRoomController {
             });
         });
     }
+
+    public PlayerController getPlayerController(long playerId) {
+        return this.playerControllers.get(playerId);
+    }
+
+    /**
+     * 通知玩家在房间长时间未操作
+     * @param playerId
+     */
+    public void playerRoomIdle(long playerId) {
+        PlayerController playerController = this.playerControllers.get(playerId);
+        if (playerController == null) {
+            return;
+        }
+        NotifyExitRoom notify = new NotifyExitRoom();
+        if (this.room.getStatus() == 3) {
+            notify.langId = Code.SLOTS_ROOM_PLAYER_KICK_OUT;
+        } else {
+            notify.langId = Code.ROOM_PLAYER_IDLE;
+        }
+        playerController.send(notify);
+    }
+
 }

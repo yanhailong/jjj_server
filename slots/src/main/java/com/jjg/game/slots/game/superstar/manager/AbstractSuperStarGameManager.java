@@ -34,7 +34,7 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
     protected SuperStarGameDataDao gameDataDao;
 
     public AbstractSuperStarGameManager() {
-        super(SuperStarPlayerGameData.class, SuperStarResultLib.class);
+        super(SuperStarPlayerGameData.class, SuperStarResultLib.class, SuperStarGameRunInfo.class);
     }
 
     @Override
@@ -68,19 +68,6 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
         return CoreConst.GameType.SUPER_STAR;
     }
 
-    /**
-     * 开始游戏
-     */
-    public SuperStarGameRunInfo playerStartGame(PlayerController playerController, long betValue) {
-        //获取玩家游戏数据
-        SuperStarPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new SuperStarGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, betValue);
-    }
 
     /**
      * 开始游戏
