@@ -81,15 +81,11 @@ public class GMController extends AbstractController {
     @Autowired
     private PlayerSessionService playerSessionService;
     @Autowired
-    private ClusterSystem clusterSystem;
-    @Autowired
     private OnlinePlayerDao onlinePlayerDao;
     @Autowired
     private CarouselService carouselService;
     @Autowired
     private ShopProductDao shopProductDao;
-    @Autowired
-    private NodeManager nodeManager;
     @Autowired
     private BlackListService blackListService;
     @Autowired
@@ -108,16 +104,16 @@ public class GMController extends AbstractController {
     private NoticeDao noticeDao;
     @Autowired
     private SharePromoteDao sharePromoteDao;
-    @ClusterRpcReference()
-    private GmToRechargeBridge gmToRechargeBridge;
     @Autowired
     private OrderService orderService;
     @Autowired
     private CommonDao commonDao;
-    @ClusterRpcReference
-    private GmToHallBridge gmToHallBridge;
     @Autowired
     private SmsService smsService;
+    @ClusterRpcReference()
+    private GmToRechargeBridge gmToRechargeBridge;
+    @ClusterRpcReference
+    private GmToHallBridge gmToHallBridge;
     @ClusterRpcReference
     private GmToAllBridge gmToAllBridge;
 
@@ -1430,6 +1426,8 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
             commonDao.setValue(dto.type(), dto.url());
+            //通知节点
+            commonChangeNotify(ReloadType.COMMON_CONFIG);
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);
@@ -1535,19 +1533,8 @@ public class GMController extends AbstractController {
         log.info("收到保存sms配置的消息 dto = {}", dto);
         try {
             smsService.save(dto.list());
-            List<ClusterClient> nodes = clusterSystem.getNodes(Set.of(NodeType.HALL.toString(), NodeType.ACCOUNT.toString()));
-            if (nodes != null && !nodes.isEmpty()) {
-                nodes.forEach(node -> {
-                    GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(node).setTryMillisPerClient(1000));
-
-                    int code = gmToAllBridge.reload(ReloadType.SMS_CONFIG.getValue());
-                    if (code == Code.SUCCESS) {
-                        log.info("通知节点重新加载sms配置成功 nodePath = {}", node.marsNode.getNodePath());
-                    } else {
-                        log.info("通知节点重新加载sms配置失败 nodePath = {}", node.marsNode.getNodePath());
-                    }
-                });
-            }
+            //通知节点
+            commonChangeNotify(ReloadType.SMS_CONFIG);
             smsService.reloadConfig();
             return success("common.success");
         } catch (Exception e) {
@@ -1797,6 +1784,31 @@ public class GMController extends AbstractController {
                 vo.setWhiteIdList(Arrays.stream(node.getNodeConfig().getWhiteIdList()).toList());
             }
             nodeList.add(vo);
+        }
+    }
+
+    /**
+     * common配置变化，需要更新到节点
+     *
+     * @param reloadType
+     */
+    protected void commonChangeNotify(ReloadType reloadType) {
+        List<ClusterClient> nodes = clusterSystem.getNodes(Set.of(NodeType.HALL.toString(), NodeType.ACCOUNT.toString()));
+        if (nodes != null && !nodes.isEmpty()) {
+            nodes.forEach(node -> {
+                GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(node).setTryMillisPerClient(1000));
+
+                try {
+                    int code = gmToAllBridge.reload(reloadType.getValue());
+                    if (code == Code.SUCCESS) {
+                        log.info("通知节点重新加载common配置成功 reloadType = {}，nodePath = {}", reloadType, node.marsNode.getNodePath());
+                    } else {
+                        log.info("通知节点重新加载common配置失败 reloadType = {}，nodePath = {}", reloadType, node.marsNode.getNodePath());
+                    }
+                } catch (Exception e) {
+                    log.error("通知节点重新加载common配置异常 reloadType = {}，nodePath = {}", reloadType, node.marsNode.getNodePath(), e);
+                }
+            });
         }
     }
 }

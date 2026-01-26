@@ -1,6 +1,7 @@
 package com.jjg.game.core.handler;
 
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.dao.CommonDao;
 import com.jjg.game.core.data.ReloadType;
 import com.jjg.game.core.rpc.GmToAllBridge;
 import com.jjg.game.core.service.SmsService;
@@ -17,6 +18,8 @@ public abstract class CoreRPCController implements GmToAllBridge {
 
     @Autowired
     protected SmsService smsService;
+    @Autowired
+    protected CommonDao commonDao;
 
     @Override
     public int reload(int reloadType) {
@@ -25,11 +28,12 @@ public abstract class CoreRPCController implements GmToAllBridge {
             log.info("收到重新加载配置的消息 reloadType = {}", type);
             switch (type) {
                 case SMS_CONFIG -> smsService.reloadConfig();
+                case COMMON_CONFIG -> commonDao.loadAll();
             }
             return Code.SUCCESS;
         } catch (Exception e) {
             log.error("", e);
-            return Code.SUCCESS;
+            return Code.EXCEPTION;
         }
     }
 }

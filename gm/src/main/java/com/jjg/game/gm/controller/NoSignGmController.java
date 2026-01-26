@@ -34,8 +34,6 @@ public class NoSignGmController extends AbstractController {
     private PlayerSessionService playerSessionService;
     @Autowired
     private PlayerSessionTokenDao playerSessionTokenDao;
-    @Autowired
-    private NodeConfig nodeConfig;
 
     /**
      * 封禁
