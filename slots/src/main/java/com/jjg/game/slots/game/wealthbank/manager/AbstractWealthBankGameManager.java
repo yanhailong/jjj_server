@@ -349,6 +349,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
      * @param betValue
      * @return
      */
+    @Override
     public WealthBankGameRunInfo
     startGame(PlayerController playerController, WealthBankPlayerGameData playerGameData, long betValue, boolean auto) {
         WealthBankGameRunInfo gameRunInfo = new WealthBankGameRunInfo(Code.SUCCESS, playerGameData.playerId());

@@ -65,6 +65,7 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
      * @param stake
      * @return
      */
+    @Override
     protected GoldSnakeFortuneGameRunInfo startGame(PlayerController playerController, GoldSnakeFortunePlayerGameData playerGameData, long stake, boolean auto) {
         GoldSnakeFortuneGameRunInfo gameRunInfo = new GoldSnakeFortuneGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {

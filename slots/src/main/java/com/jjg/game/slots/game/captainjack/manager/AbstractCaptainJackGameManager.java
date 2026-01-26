@@ -60,6 +60,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
      * 玩家开始游戏
      *
      */
+    @Override
     public CaptainJackGameRunInfo playerStartGame(PlayerController playerController, long stake) {
         //获取玩家游戏数据
         CaptainJackPlayerGameData playerGameData = getPlayerGameData(playerController);
@@ -84,6 +85,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
      * 开始游戏
      *
      */
+    @Override
     public CaptainJackGameRunInfo startGame(PlayerController playerController, CaptainJackPlayerGameData playerGameData, long betValue, boolean auto) {
         CaptainJackGameRunInfo gameRunInfo = new CaptainJackGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {

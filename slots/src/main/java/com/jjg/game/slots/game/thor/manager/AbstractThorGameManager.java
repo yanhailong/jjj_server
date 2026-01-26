@@ -85,6 +85,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
      * @param stake
      * @return
      */
+    @Override
     protected ThorGameRunInfo startGame(PlayerController playerController, ThorPlayerGameData playerGameData, long stake, boolean auto) {
         ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {

@@ -62,6 +62,7 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
      * @param auto
      * @return
      */
+    @Override
     public SteamAgeGameRunInfo startGame(PlayerController playerController, SteamAgePlayerGameData playerGameData, long betValue, boolean auto) {
         SteamAgeGameRunInfo gameRunInfo = new SteamAgeGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {

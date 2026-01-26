@@ -63,6 +63,7 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
      * @param auto
      * @return
      */
+    @Override
     public ChristmasBashNightGameRunInfo startGame(PlayerController playerController, ChristmasBashNightPlayerGameData playerGameData, long betValue, boolean auto) {
         ChristmasBashNightGameRunInfo gameRunInfo = new ChristmasBashNightGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {

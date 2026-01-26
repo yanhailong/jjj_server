@@ -68,6 +68,7 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
      * @param auto
      * @return
      */
+    @Override
     public FrozenThroneGameRunInfo startGame(PlayerController playerController, FrozenThronePlayerGameData playerGameData, long betValue, boolean auto) {
         FrozenThroneGameRunInfo gameRunInfo = new FrozenThroneGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {

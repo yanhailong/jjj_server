@@ -65,6 +65,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
      * @param stake
      * @return
      */
+    @Override
     protected MoneyRabbitGameRunInfo startGame(PlayerController playerController, MoneyRabbitPlayerGameData playerGameData, long stake, boolean auto) {
         MoneyRabbitGameRunInfo gameRunInfo = new MoneyRabbitGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {

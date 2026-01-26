@@ -71,6 +71,7 @@ public abstract class AbstractMahjiongWinGameManager extends AbstractSlotsGameMa
      * @param auto
      * @return
      */
+    @Override
     public MahjiongWinGameRunInfo startGame(PlayerController playerController, MahjiongWinPlayerGameData playerGameData, long betValue, boolean auto) {
         MahjiongWinGameRunInfo gameRunInfo = new MahjiongWinGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {

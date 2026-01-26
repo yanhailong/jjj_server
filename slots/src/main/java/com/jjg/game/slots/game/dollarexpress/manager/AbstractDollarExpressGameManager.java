@@ -349,6 +349,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
      * @param betValue
      * @return
      */
+    @Override
     public DollarExpressGameRunInfo
     startGame(PlayerController playerController,DollarExpressPlayerGameData playerGameData, long betValue, boolean auto) {
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());

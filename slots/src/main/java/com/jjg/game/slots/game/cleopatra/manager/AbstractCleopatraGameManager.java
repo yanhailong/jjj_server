@@ -72,6 +72,7 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
      * @param auto
      * @return
      */
+    @Override
     public CleopatraGameRunInfo startGame(PlayerController playerController, CleopatraPlayerGameData playerGameData, long betValue, boolean auto) {
         CleopatraGameRunInfo gameRunInfo = new CleopatraGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
@@ -127,6 +128,7 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
      * @param betValue
      * @return
      */
+    @Override
     protected CleopatraGameRunInfo normal(CleopatraGameRunInfo gameRunInfo, CleopatraPlayerGameData playerGameData, long betValue) {
         //获取结果库
         CommonResult<Pair<CleopatraResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, CleopatraConstant.SpecialMode.NORMAL);

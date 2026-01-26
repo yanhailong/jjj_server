@@ -65,6 +65,7 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
      * @param auto
      * @return
      */
+    @Override
     public BasketballSuperstarGameRunInfo startGame(PlayerController playerController,BasketballSuperstarPlayerGameData playerGameData, long betValue, boolean auto) {
         BasketballSuperstarGameRunInfo gameRunInfo = new BasketballSuperstarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {

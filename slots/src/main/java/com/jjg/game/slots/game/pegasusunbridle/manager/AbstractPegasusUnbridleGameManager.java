@@ -114,6 +114,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
      * 开始游戏
      *
      */
+    @Override
     public PegasusUnbridleGameRunInfo startGame(PlayerController playerController, PegasusUnbridlePlayerGameData playerGameData, long betValue, boolean auto) {
         PegasusUnbridleGameRunInfo gameRunInfo = new PegasusUnbridleGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
