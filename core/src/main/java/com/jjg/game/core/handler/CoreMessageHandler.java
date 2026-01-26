@@ -3,6 +3,8 @@ package com.jjg.game.core.handler;
 import cn.hutool.core.util.EnumUtil;
 import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.MessageConst;
@@ -35,17 +37,23 @@ import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.DefaultTaskConditionParam;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import com.jjg.game.sampledata.container.BaseCfgContainer;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -83,6 +91,9 @@ public class CoreMessageHandler {
     private AccountDao accountDao;
 
     public Map<String, ChooseWareListener> chooseWareListenerMap;
+    //奖池本地缓存
+    private final Cache<String, Class<? extends BaseCfgBean>> configCache = Caffeine.newBuilder()
+            .build();
 
     public void init() {
         chooseWareListenerMap = CommonUtil.getContext().getBeansOfType(ChooseWareListener.class);
@@ -563,31 +574,62 @@ public class CoreMessageHandler {
      */
     @Command(MessageConst.CoreMessage.REQ_EXCEL_INFOS)
     public void reqExcelInfos(PlayerController playerController, ReqExcelInfos req) {
+        ResExcelInfos res = new ResExcelInfos(Code.SUCCESS);
         if (req.dataId < 0 && req.dataId != -1) {
+            res.code = Code.PARAM_ERROR;
+            playerController.send(res);
             return;
         }
         if (StringUtils.isEmpty(req.tableName)) {
+            res.code = Code.PARAM_ERROR;
+            playerController.send(res);
             return;
         }
-        ResExcelInfos res = new ResExcelInfos(Code.SUCCESS);
         res.dataId = req.dataId;
         try {
-            //TODO
-            switch (req.tableName) {
-                case "globalConfig" -> {
-                    if (req.dataId == -1) {
-                        List<GlobalConfigCfg> globalConfigCfgList = GameDataManager.getGlobalConfigCfgList();
-                        res.dataJsons = ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(globalConfigCfgList);
-                    } else {
-                        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(req.dataId);
-                        res.dataJsons = ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(globalConfigCfg);
-                    }
-                }
+            Class<? extends BaseCfgBean> baseCfgClass = configCache.getIfPresent(req.tableName);
+            if (baseCfgClass == null) {
+                baseCfgClass = getBaseCfgClass(req, baseCfgClass);
+            }
+            if (baseCfgClass == null) {
+                res.code = Code.PARAM_ERROR;
+                playerController.send(res);
+                return;
+            }
+            BaseCfgContainer<? extends BaseCfgBean> cfgContainer = GameDataManager.getInstance().getCfgContainer(baseCfgClass);
+            if (req.dataId == -1) {
+                List<? extends BaseCfgBean> cfgBeanList = cfgContainer.getCfgBeanList();
+                res.dataJsons = JSON.toJSONString(cfgBeanList);
+            } else {
+                Map<Integer, ? extends BaseCfgBean> cfgBeanMap = cfgContainer.getCfgBeanMap();
+                BaseCfgBean baseCfgBean = cfgBeanMap.get(req.dataId);
+                res.dataJsons = JSON.toJSONString(baseCfgBean);
             }
         } catch (Exception e) {
             log.error("客户端请求配置信息错误 tableName = {} dataId = {} ", req.tableName, req.dataId, e);
         }
         playerController.send(res);
+    }
+
+    private Class<? extends BaseCfgBean> getBaseCfgClass(ReqExcelInfos req, Class<? extends BaseCfgBean> baseCfgClass) {
+        Set<Class<? extends BaseCfgBean>> classes = GameDataManager.getInstance().getAllCfgBeanClasses();
+        for (Class<? extends BaseCfgBean> aClass : classes) {
+            VarHandle handle = null;
+            try {
+                handle = MethodHandles.lookup().findStaticVarHandle(aClass, "SHEET_NAME", String.class);
+            } catch (Exception e) {
+                log.error("未找到对应的配置表 tableName = {} dataId = {} ", req.tableName, req.dataId, e);
+            }
+            if (handle == null) {
+                continue;
+            }
+            Object object = handle.get();
+            if (req.tableName.equals(object)) {
+                baseCfgClass = aClass;
+                break;
+            }
+        }
+        return baseCfgClass;
     }
 
 }
