@@ -9,10 +9,13 @@ import com.jjg.game.account.dto.LoginSmsDto;
 import com.jjg.game.account.dto.ServerUrlDto;
 import com.jjg.game.account.service.AccountService;
 import com.jjg.game.account.utils.IpCountryUtil;
+import com.jjg.game.account.vo.LoginConfigVo;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.dao.CommonDao;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.service.ThirdAccountHttpService;
-import com.jjg.game.account.vo.LoginConfigVo;
+import com.jjg.game.account.vo.ThirdLoginConfigVo;
 import com.jjg.game.account.vo.ServerUrlVo;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.data.*;
@@ -29,7 +32,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -58,6 +60,8 @@ public class AccountController extends AbstractController {
     private LoginConfigService loginConfigService;
     @Autowired
     private CountDao countDao;
+    @Autowired
+    private CommonDao commonDao;
 
     /**
      * 获取开启的登录方式
@@ -65,7 +69,7 @@ public class AccountController extends AbstractController {
      * @return
      */
     @RequestMapping("loginConfig")
-    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
+    public WebResult<LoginConfigVo> loginConfig(@RequestBody LoginConfigDto dto) {
         Map<Integer, LoginConfigData> map;
         if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
             map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
@@ -73,18 +77,21 @@ public class AccountController extends AbstractController {
             map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
         }
 
-        if (map == null || map.isEmpty()) {
-            return success(Collections.emptyList());
+        LoginConfigVo vo = new LoginConfigVo();
+        //登录开关配置
+        if (map != null && !map.isEmpty()) {
+            List<ThirdLoginConfigVo> resultList = new ArrayList<>();
+            map.forEach((k, v) -> {
+                ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
+                thirdLoginConfigVo.setType(v.getLoginType());
+                thirdLoginConfigVo.setOpen(v.isLoginOpen());
+                resultList.add(thirdLoginConfigVo);
+            });
+            vo.setChannleConfigList(resultList);
         }
 
-        List<LoginConfigVo> resultList = new ArrayList<>();
-        map.forEach((k, v) -> {
-            LoginConfigVo vo = new LoginConfigVo();
-            vo.setType(v.getLoginType());
-            vo.setOpen(v.isLoginOpen());
-            resultList.add(vo);
-        });
-        return success(resultList);
+        vo.setCustomerUrl(commonDao.getStrValue(GameConstant.CommonDaoId.CUSTOMER_TABLE_ID));
+        return success(vo);
     }
 
     /**
