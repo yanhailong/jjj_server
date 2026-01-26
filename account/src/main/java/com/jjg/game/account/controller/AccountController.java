@@ -68,34 +68,8 @@ public class AccountController extends AbstractController {
      *
      * @return
      */
-//    @RequestMapping("loginConfig")
-//    public WebResult<LoginConfigVo> loginConfig(@RequestBody LoginConfigDto dto) {
-//        Map<Integer, LoginConfigData> map;
-//        if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
-//            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
-//        } else {
-//            map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
-//        }
-//
-//        LoginConfigVo vo = new LoginConfigVo();
-//        //登录开关配置
-//        if (map != null && !map.isEmpty()) {
-//            List<ThirdLoginConfigVo> resultList = new ArrayList<>();
-//            map.forEach((k, v) -> {
-//                ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
-//                thirdLoginConfigVo.setType(v.getLoginType());
-//                thirdLoginConfigVo.setOpen(v.isLoginOpen());
-//                resultList.add(thirdLoginConfigVo);
-//            });
-//            vo.setChannleConfigList(resultList);
-//        }
-//
-//        vo.setCustomerUrl(commonDao.getStrValue(GameConstant.CommonDaoId.CUSTOMER_TABLE_ID));
-//        return success(vo);
-//    }
-
     @RequestMapping("loginConfig")
-    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
+    public WebResult<LoginConfigVo> loginConfig(@RequestBody LoginConfigDto dto) {
         Map<Integer, LoginConfigData> map;
         if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
             map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
@@ -103,18 +77,67 @@ public class AccountController extends AbstractController {
             map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
         }
 
-        List<ThirdLoginConfigVo> resultList = new ArrayList<>();
+        LoginConfigVo vo = new LoginConfigVo();
         //登录开关配置
         if (map != null && !map.isEmpty()) {
+            List<ThirdLoginConfigVo> resultList = new ArrayList<>();
             map.forEach((k, v) -> {
                 ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
                 thirdLoginConfigVo.setType(v.getLoginType());
                 thirdLoginConfigVo.setOpen(v.isLoginOpen());
                 resultList.add(thirdLoginConfigVo);
             });
+            vo.setChannleConfigList(resultList);
         }
-        return success(resultList);
+
+        vo.setCustomerUrl(commonDao.getStrValue(GameConstant.CommonDaoId.CUSTOMER_TABLE_ID));
+        return success(vo);
     }
+
+//    @RequestMapping("loginConfig")
+//    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
+//        Map<Integer, LoginConfigData> map;
+//        if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
+//            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
+//        } else {
+//            map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
+//        }
+//
+//        List<ThirdLoginConfigVo> resultList = new ArrayList<>();
+//        //登录开关配置
+//        if (map != null && !map.isEmpty()) {
+//            map.forEach((k, v) -> {
+//                ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
+//                thirdLoginConfigVo.setType(v.getLoginType());
+//                thirdLoginConfigVo.setOpen(v.isLoginOpen());
+//                resultList.add(thirdLoginConfigVo);
+//            });
+//        }
+//        return success(resultList);
+//    }
+
+
+//    @RequestMapping("loginConfig")
+//    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
+//        Map<Integer, LoginConfigData> map;
+//        if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
+//            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
+//        } else {
+//            map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
+//        }
+//
+//        List<ThirdLoginConfigVo> resultList = new ArrayList<>();
+//        //登录开关配置
+//        if (map != null && !map.isEmpty()) {
+//            map.forEach((k, v) -> {
+//                ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
+//                thirdLoginConfigVo.setType(v.getLoginType());
+//                thirdLoginConfigVo.setOpen(v.isLoginOpen());
+//                resultList.add(thirdLoginConfigVo);
+//            });
+//        }
+//        return success(resultList);
+//    }
 
 
 
