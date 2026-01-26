@@ -176,6 +176,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             playerControllerMap.put(playerId, playerController);
             playerBuildingService.setLastNode(playerId, nodeManager.getNodePath());
         }
+        enterCheck(playerId, playerBuilding);
         CasinoInfo casinoInfo = playerBuilding.getCasinoInfo();
         long timeMillis = System.currentTimeMillis();
         if (Objects.nonNull(casinoInfo)) {
@@ -199,6 +200,36 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             }
         }
         return res;
+    }
+
+
+    /**
+     * 进入赌场检查
+     *
+     * @param playerId       玩家id
+     * @param playerBuilding 赌场数据
+     */
+    private void enterCheck(long playerId, PlayerBuilding playerBuilding) {
+        CasinoInfo casinoInfo = playerBuilding.getCasinoInfo();
+        Map<Long, CasinoMachineInfo> machineInfoData = casinoInfo.getMachineInfoData();
+        if (CollectionUtil.isEmpty(machineInfoData)) {
+            return;
+        }
+        long timeMillis = System.currentTimeMillis();
+        for (CasinoMachineInfo machineInfo : machineInfoData.values()) {
+            int configId = machineInfo.getRealConfigId(timeMillis);
+            BuildingFunctionCfg buildingFunctionCfg = GameDataManager.getBuildingFunctionCfg(configId);
+            if (buildingFunctionCfg == null) {
+                log.error("存在配置表不存在的赌场设施 playerId:{} configId:{}", playerId, configId);
+                continue;
+            }
+            //建筑升级结束,并且有产出，并且没设置收益开始时间时,设置开始时间
+            if (machineInfo.getBuildLvUpEndTime() < timeMillis && machineInfo.getProfitStartTime() == 0 &&
+                    CollectionUtil.isNotEmpty(buildingFunctionCfg.getOutput())) {
+                machineInfo.setProfitStartTime(machineInfo.getBuildLvUpEndTime());
+                log.info("进入赌场设置收益时间 playerId:{} machineInfoId:{}", playerId, machineInfo.getId());
+            }
+        }
     }
 
     /**
