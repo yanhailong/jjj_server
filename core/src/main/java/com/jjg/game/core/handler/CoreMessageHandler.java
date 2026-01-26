@@ -561,7 +561,7 @@ public class CoreMessageHandler {
      * @param playerController
      * @param req
      */
-    @Command(MessageConst.CoreMessage.REQ_CHOOSE_WARE)
+    @Command(MessageConst.CoreMessage.REQ_EXCEL_INFOS)
     public void reqExcelInfos(PlayerController playerController, ReqExcelInfos req) {
         if (req.dataId < 0 && req.dataId != -1) {
             return;
