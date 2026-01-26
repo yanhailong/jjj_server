@@ -2,6 +2,7 @@ package com.jjg.game.core.handler;
 
 import cn.hutool.core.util.EnumUtil;
 import com.alibaba.fastjson.JSON;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.MessageConst;
@@ -10,6 +11,7 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.HttpUtils;
+import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.*;
@@ -24,12 +26,16 @@ import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.manager.SubscriptionManager;
 import com.jjg.game.core.pb.*;
+import com.jjg.game.core.pb.excel.ReqExcelInfos;
+import com.jjg.game.core.pb.excel.ResExcelInfos;
 import com.jjg.game.core.pb.reddot.ReqRedDot;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.DefaultTaskConditionParam;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -192,7 +198,7 @@ public class CoreMessageHandler {
                 return;
             }
 
-            if("bindThird".equalsIgnoreCase(cmd)){
+            if ("bindThird".equalsIgnoreCase(cmd)) {
                 bindThirdAccount(res, playerController, arr);
                 return;
             }
@@ -376,8 +382,8 @@ public class CoreMessageHandler {
         ChannelUserInfo channelUserInfo = new ChannelUserInfo();
         channelUserInfo.setUserId(data);
         CommonResult<Account> result = accountDao.addThirdAccount(playerController.getPlayer(), loginType, channelUserInfo);
-        if(!result.success()){
-            log.warn("gm绑定第三方账户失败 playerId = {},orders = {},code = {}", playerController.playerId(), orders,result.code);
+        if (!result.success()) {
+            log.warn("gm绑定第三方账户失败 playerId = {},orders = {},code = {}", playerController.playerId(), orders, result.code);
             res.code = result.code;
             playerController.send(res);
             return;
@@ -547,6 +553,41 @@ public class CoreMessageHandler {
         this.chooseWareListenerMap.forEach((s, listener) -> {
             listener.onChooseWare(playerController, req);
         });
+    }
+
+    /**
+     * 请求配置信息
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(MessageConst.CoreMessage.REQ_CHOOSE_WARE)
+    public void reqExcelInfos(PlayerController playerController, ReqExcelInfos req) {
+        if (req.dataId < 0 && req.dataId != -1) {
+            return;
+        }
+        if (StringUtils.isEmpty(req.tableName)) {
+            return;
+        }
+        ResExcelInfos res = new ResExcelInfos(Code.SUCCESS);
+        res.dataId = req.dataId;
+        try {
+            //TODO
+            switch (req.tableName) {
+                case "globalConfig" -> {
+                    if (req.dataId == -1) {
+                        List<GlobalConfigCfg> globalConfigCfgList = GameDataManager.getGlobalConfigCfgList();
+                        res.dataJsons = ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(globalConfigCfgList);
+                    } else {
+                        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(req.dataId);
+                        res.dataJsons = ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(globalConfigCfg);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("客户端请求配置信息错误 tableName = {} dataId = {} ", req.tableName, req.dataId, e);
+        }
+        playerController.send(res);
     }
 
 }
