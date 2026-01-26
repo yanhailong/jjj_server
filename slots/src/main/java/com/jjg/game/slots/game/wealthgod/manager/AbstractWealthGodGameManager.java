@@ -83,9 +83,10 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
     /**
      * 开始游戏
      */
-    public WealthGodGameRunInfo startGame(PlayerController playerController, WealthGodPlayerGameData playerGameData, long betValue) {
+    public WealthGodGameRunInfo startGame(PlayerController playerController, WealthGodPlayerGameData playerGameData, long betValue, boolean auto) {
         WealthGodGameRunInfo gameRunInfo = new WealthGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
+            gameRunInfo.setAuto(auto);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
 
             CommonResult<Pair<WealthGodResultLib, BetDivideInfo>> commonResult = normalGetLib(playerGameData, betValue, WealthGodConstant.SpecialMode.TYPE_NORMAL);
