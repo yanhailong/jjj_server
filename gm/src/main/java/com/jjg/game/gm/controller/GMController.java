@@ -1139,16 +1139,41 @@ public class GMController extends AbstractController {
         log.info("收到更新登录配置的请求 dto = {}", dto);
 
         try {
-            LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(c -> c.getType() == dto.loginType()).findFirst().orElse(null);
-            if (loginConfigCfg == null) {
-                log.debug("修改登录配置失败,未找到对应的配置文件 dto = {}", dto);
+            if (dto.list() == null || dto.list().isEmpty()) {
+                log.warn("登录配置列表不能为空 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
-            loginConfigService.save(dto.loginType(), dto.open());
+            ChannelType channelType = ChannelType.valueOf(dto.channel());
+            if (channelType == null) {
+                log.warn("渠道参数错误，设置登录配置失败 dto = {}", dto);
+                return fail("common.paramerror");
+            }
 
-            PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyLoadLoginConfig());
+            for (ChannelLoginOpenDto d : dto.list()) {
+                LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(c -> c.getType() == d.loginType()).findFirst().orElse(null);
+                if (loginConfigCfg == null) {
+                    log.debug("修改登录配置失败,未找到对应的配置文件 dto = {},loginType = {}", dto, d.loginType());
+                    return fail("common.paramerror");
+                }
+            }
+
+            Map<Integer, LoginConfigData> map = new HashMap<>();
+            for (ChannelLoginOpenDto dl : dto.list()) {
+                LoginConfigData data = new LoginConfigData();
+                data.setLoginType(dl.loginType());
+                data.setLoginOpen(dl.loginOpen() == 1);
+                data.setRewardOpen(dl.rewardOpen() == 1);
+                map.put(data.getLoginType(), data);
+            }
+
+            loginConfigService.save(channelType.getValue(), map);
+
+            NotifyLoadLoginConfig notify = new NotifyLoadLoginConfig();
+            notify.channel = dto.channel();
+            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
             clusterSystem.notifyNode(pfMessage, Set.of(NodeType.ACCOUNT.toString(), NodeType.HALL.toString())::contains);
+            log.info("更新登录配置成功 dto = {}", dto);
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);

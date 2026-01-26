@@ -116,7 +116,7 @@ public class AccountService {
                 account.setPlayerId(playerId);
                 account.setRegisterMac(loginDto.getMac());
                 account.setLastLoginMac(loginDto.getMac());
-                account.setChannel(ChannelType.valueOf(loginDto.getChannel(), ChannelType.GOOGLE));
+                account.setChannel(ChannelType.valueOf(loginDto.getChannel()));
                 account.setStatus(AccountStatus.NORMAL.getCode());
 
                 account = accountDao.setChannelValue(loginType, channelUserInfo, account);
