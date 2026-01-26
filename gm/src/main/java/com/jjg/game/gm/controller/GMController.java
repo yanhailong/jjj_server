@@ -1359,7 +1359,7 @@ public class GMController extends AbstractController {
     public WebResult<String> backendRecharge(@RequestBody BackendRechargeDto dto) {
         log.info("收到后台充值 dto = {}", dto);
         try {
-            if (StringUtils.isBlank(dto.channelOrderId()) || dto.price() < 1 || dto.playerId() < 1 || dto.items() == null || dto.items().isEmpty()) {
+            if (StringUtils.isBlank(dto.channelOrderId()) || StringUtils.isEmpty(dto.price()) || dto.playerId() < 1 || dto.items() == null || dto.items().isEmpty()) {
                 log.warn("参数错误 dto = {}", dto);
                 return fail("common.paramerror");
             }
@@ -1410,7 +1410,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            BigDecimal price = BigDecimal.valueOf(dto.price());
+            BigDecimal price = new BigDecimal(dto.price());
             Order order = orderService.generateOrder("htcz", player.getId(), price, rechargeType, items);
             if (order == null) {
                 log.warn("后台充值时，生成订单失败 dto = {}", dto);
