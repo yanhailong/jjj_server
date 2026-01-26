@@ -1,5 +1,7 @@
 package com.jjg.game.gm.dto;
 
+import java.util.List;
+
 /**
  * @author 11
  * @date 2025/8/25 14:46
@@ -7,6 +9,7 @@ package com.jjg.game.gm.dto;
 public record GenerateLibDto(
         int gameType,
         int count,
-        String nodeName
+        String nodeName,
+        List<GenerateLibCfgDto> list
 ) {
 }

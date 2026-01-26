@@ -886,10 +886,29 @@ public class GMController extends AbstractController {
             }
 
             NotifyGenrateLib notify = new NotifyGenrateLib();
-            KVInfo kvInfo = new KVInfo();
-            kvInfo.key = param.gameType();
-            kvInfo.value = param.count();
-            notify.list = List.of(kvInfo);
+            //兼容批量传入生成需求
+            notify.list = new ArrayList<>();
+
+            if (param.gameType() > 0 && param.count() > 0) {
+                KVInfo kvInfo = new KVInfo();
+                kvInfo.key = param.gameType();
+                kvInfo.value = param.count();
+                notify.list.add(kvInfo);
+            }
+
+            if (param.list() != null && !param.list().isEmpty()) {
+                for (GenerateLibCfgDto d : param.list()) {
+                    KVInfo tmpInfo = new KVInfo();
+                    tmpInfo.key = d.gameType();
+                    tmpInfo.value = d.count();
+                    notify.list.add(tmpInfo);
+                }
+            }
+
+            if (notify.list.isEmpty()) {
+                log.warn("没有可生成的结果库 param = {}",param);
+                return fail("common.fail");
+            }
 
             PFMessage pfMessage = MessageUtil.getPFMessage(notify);
             ClusterMessage msg = new ClusterMessage(pfMessage);
