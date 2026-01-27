@@ -1034,7 +1034,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         log.warn("房间准备金不足以赔付 roomId = {},gameType = {},addValue = {}", playerGameData.getRoomId(), this.gameType, addGold);
                         gameRunInfo.setCode(Code.SUCCESS);
                         gameRunInfo.setAllWinGold(addGold);
-                        TipUtils.sendToastTip(playerGameData.playerId(), Code.RESERVES_IS_NOT_ENOUGHT_FOR_REWARD);
                         return gameRunInfo;
                     }
                     return handleEmptyPrizePool(gameRunInfo, playerGameData);
