@@ -586,10 +586,10 @@ public class SlotsRoomManager implements HallRoomBridge {
     /**
      * 检查房间状态是否能玩
      *
-     * @param roomId
-     * @param playerId
+     * @param playerController 玩家控制器
      */
-    public int checkCanPlay(long roomId, long playerId) {
+    public int checkCanPlay(AbstractSlotsGameManager<?, ?, ?> gameManager, PlayerController playerController) {
+        long roomId = playerController.roomId();
         if (roomId < 1) {
             return Code.SUCCESS;
         }
@@ -597,14 +597,30 @@ public class SlotsRoomManager implements HallRoomBridge {
         if (slotsRoomController == null) {
             return Code.SUCCESS;
         }
-
-        if (slotsRoomController.getRoom().getStatus() == 1) {
-            return Code.SUCCESS;
+        SlotsFriendRoom friendRoom = slotsRoomController.getRoom();
+        if (friendRoom.getOverdueTime() < System.currentTimeMillis()) {
+            NotifySlotsStatus slotsStatus = new NotifySlotsStatus();
+            slotsStatus.pauseType = 3;
+            playerController.send(slotsStatus);
+            return Code.SLOTS_ROOM_TIME_OUT;
         }
-        if (slotsRoomController.getRoom().getStatus() == 2) {
+        CommonResult<Long> result = gameManager.checkAndGetPredictCostGoldNum(slotsRoomController);
+        if (!result.success()) {
+            NotifySlotsStatus slotsStatus = new NotifySlotsStatus();
+            slotsStatus.pauseType = 2;
+            playerController.send(slotsStatus);
+            return Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT;
+        }
+        if (friendRoom.getStatus() == 2) {
+            NotifySlotsStatus slotsStatus = new NotifySlotsStatus();
+            slotsStatus.pauseType = 1;
+            playerController.send(slotsStatus);
             return Code.SLOTS_ROOM_PAUSE;
         }
-        if (slotsRoomController.getRoom().getStatus() == 3) {
+        if (friendRoom.getStatus() == 3) {
+            NotifySlotsStatus slotsStatus = new NotifySlotsStatus();
+            slotsStatus.pauseType = 4;
+            playerController.send(slotsStatus);
             return Code.SLOTS_ROOM_PLAYER_KICK_OUT;
         }
         return Code.SUCCESS;

@@ -3,7 +3,6 @@ package com.jjg.game.slots.game.wealthbank.manager;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -12,7 +11,9 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.data.*;
+import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
+import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.wealthbank.WealthBankConstant;
 import com.jjg.game.slots.game.wealthbank.dao.WealthBankGameDataDao;
@@ -254,6 +255,13 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
         if (playerGameData == null) {
             log.debug("[Wealth Bank] 获取玩家游戏数据失败，投资游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new WealthBankGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+        }
+        if (getRoomType() != null) {
+            int code = slotsRoomManager.checkCanPlay(this, playerController);
+            if (code != Code.SUCCESS) {
+                log.debug("该游戏无法继续 playerId = {},gameType = {},roomCfgId = {},code = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), code);
+                return new WealthBankGameRunInfo(code, playerController.playerId());
+            }
         }
         return invest(playerController, playerGameData, areaId);
     }

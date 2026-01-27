@@ -92,7 +92,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected RoomSlotsPoolDao roomSlotsPoolDao;
     @Autowired
     protected SlotsRoomManager slotsRoomManager;
-
+    @Autowired
+    private ClusterSystem clusterSystem;
 
     //游戏类型
     protected int gameType;
@@ -310,7 +311,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         if (getRoomType() != null) {
-            int code = slotsRoomManager.checkCanPlay(playerController.roomId(), playerController.playerId());
+            int code = slotsRoomManager.checkCanPlay(this, playerController);
             if (code != Code.SUCCESS) {
                 log.debug("该游戏无法继续 playerId = {},gameType = {},roomCfgId = {},code = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), code);
                 return createGameRunInfo(playerController.playerId(), code);
@@ -1028,6 +1029,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             CommonResult<Pair<Player, Long>> result = roomSlotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getRoomId(), addGold, warehouseCfg.getTransactionItemId(), AddType.SLOTS_BET_REWARD);
             if (!result.success()) {
                 if (result.code == Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT) {
+                    sendRoomAmountNotEnough(playerGameData.playerId());
                     if (gameRunInfo.getStatus() > 0) {
                         log.warn("房间准备金不足以赔付 roomId = {},gameType = {},addValue = {}", playerGameData.getRoomId(), this.gameType, addGold);
                         gameRunInfo.setCode(Code.SUCCESS);
@@ -1048,6 +1050,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             gameRunInfo.setCode(Code.FAIL);
         }
         return gameRunInfo;
+    }
+
+    public void sendRoomAmountNotEnough(long playerId) {
+        NotifySlotsStatus slotsStatus = new NotifySlotsStatus();
+        slotsStatus.pauseType = 2;
+        clusterSystem.sendToPlayer(slotsStatus, playerId);
     }
 
     /**
@@ -1880,6 +1888,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //获取结果库配置
             CommonResult<SpecialResultLibCfg> libCfgResult = getLibCfg(playerGameData, baseRoomCfg.getInitBasePool());
             if (!libCfgResult.success()) {
+                if (libCfgResult.code == Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT) {
+                    sendRoomAmountNotEnough(playerGameData.playerId());
+                }
                 result.code = libCfgResult.code;
                 return result;
             }

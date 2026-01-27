@@ -72,7 +72,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
             return new CaptainJackGameRunInfo(Code.ERROR_REQ, playerController.playerId());
         }
         if (getRoomType() != null) {
-            int code = slotsRoomManager.checkCanPlay(playerController.roomId(), playerController.playerId());
+            int code = slotsRoomManager.checkCanPlay(this, playerController);
             if (code != Code.SUCCESS) {
                 log.debug("该游戏无法继续 playerId = {},gameType = {},roomCfgId = {},code = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), code);
                 return new CaptainJackGameRunInfo(code, playerController.playerId());
@@ -287,6 +287,11 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         if (playerGameData == null || playerGameData.getStatus() != CaptainJackConstant.Status.TREASURE_CHEST) {
             log.debug("获取玩家游戏数据失败，开始挖宝失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new CaptainJackGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+        }
+        int code = slotsRoomManager.checkCanPlay(this, playerController);
+        if (code != Code.SUCCESS) {
+            log.debug("该playerId = {},gameType = {},roomCfgId = {},code = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), code);
+            return new CaptainJackGameRunInfo(code, playerController.playerId());
         }
         return startGame(playerController, playerGameData, playerGameData.getAllBetScore(), false);
     }
