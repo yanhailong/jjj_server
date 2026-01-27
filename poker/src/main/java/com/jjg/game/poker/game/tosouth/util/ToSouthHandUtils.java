@@ -1,0 +1,863 @@
+package com.jjg.game.poker.game.tosouth.util;
+
+import cn.hutool.core.collection.CollUtil;
+import com.jjg.game.core.data.Card;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+
+/**
+ * 南方前进牌型工具类
+ */
+public class ToSouthHandUtils {
+
+    /**
+     * 牌点数排序：2 > A > K > ... > 3
+     * 花色排序：红心 > 方块 > 梅花 > 黑桃
+     */
+    public static final Comparator<Card> CARD_COMPARATOR = (c1, c2) -> {
+        int rank1 = getLogicRank(c1.getRank());
+        int rank2 = getLogicRank(c2.getRank());
+        if (rank1 != rank2) {
+            return Integer.compare(rank2, rank1); // 降序
+        }
+        return Integer.compare(getLogicSuit(c1.getSuit()), getLogicSuit(c2.getSuit())); // 花色降序
+    };
+    private static final Logger log = LoggerFactory.getLogger(ToSouthHandUtils.class);
+
+    /**
+     * 将2和A的排序修改成逻辑排序
+     */
+    private static int getLogicRank(int rank) {
+        if (rank == 2) return 15;
+        if (rank == 1) return 14;
+        return rank;
+    }
+
+    /**
+     * 获取逻辑花色：红心(1) > 方块(3) > 梅花(2) > 黑桃(0)
+     * 原 suit: 0: ♠, 1: ♥, 2: ♣, 3: ♦
+     * 转换后: 1(♥) > 3(♦) > 2(♣) > 0(♠) => 3 > 2 > 1 > 0 (自定义顺序)
+     * 规则: ♥ > ♦ > ♣ > ♠
+     * 映射: 1 -> 3, 3 -> 2, 2 -> 1, 0 -> 0
+     * 尽量不动原代码逻辑
+     */
+    private static int getLogicSuit(int suit) {
+        return switch (suit) {
+            case 1 -> 3; // ♥
+            case 3 -> 2; // ♦
+            case 2 -> 1; // ♣
+            case 0 -> 0; // ♠
+            default -> -1;
+        };
+    }
+
+    /**
+     * 判断牌型
+     */
+    public static ToSouthCardType getCardType(List<Card> cards) {
+        if (cards == null || cards.isEmpty()) return ToSouthCardType.NONE;
+        int size = cards.size();
+        cards.sort(CARD_COMPARATOR);
+
+        if (size == 1) return ToSouthCardType.SINGLE;
+        if (size == 2 && isPair(cards)) return ToSouthCardType.PAIR;
+        if (size == 3 && isTriple(cards)) return ToSouthCardType.TRIPLE;
+        if (size == 4 && isBombQuad(cards)) return ToSouthCardType.BOMB_QUAD; // 四张是炸弹
+        if (size >= 3 && isStraight(cards)) return ToSouthCardType.STRAIGHT;
+        if (size >= 6 && size % 2 == 0 && isConsecutivePairs(cards)) return ToSouthCardType.CONSECUTIVE_PAIRS;
+
+        return ToSouthCardType.NONE;
+    }
+
+    private static boolean isPair(List<Card> cards) {
+        return cards.get(0).getRank() == cards.get(1).getRank();
+    }
+
+    private static boolean isTriple(List<Card> cards) {
+        return cards.get(0).getRank() == cards.get(1).getRank() && cards.get(1).getRank() == cards.get(2).getRank();
+    }
+
+    private static boolean isBombQuad(List<Card> cards) {
+        return cards.get(0).getRank() == cards.get(1).getRank() &&
+               cards.get(1).getRank() == cards.get(2).getRank() &&
+               cards.get(2).getRank() == cards.get(3).getRank();
+    }
+
+    private static boolean isStraight(List<Card> cards) {
+        // 2不能参与顺子
+        for (Card card : cards) {
+            if (card.getRank() == 2) return false;
+        }
+        for (int i = 0; i < cards.size() - 1; i++) {
+            int rank1 = getLogicRank(cards.get(i).getRank());
+            int rank2 = getLogicRank(cards.get(i + 1).getRank());
+            if (rank1 != rank2 + 1) return false;
+        }
+        return true;
+    }
+
+    private static boolean isConsecutivePairs(List<Card> cards) {
+        // 2不能参与连对
+        for (Card card : cards) {
+            if (card.getRank() == 2) return false;
+        }
+        for (int i = 0; i < cards.size(); i += 2) {
+            if (cards.get(i).getRank() != cards.get(i + 1).getRank()) return false;
+            if (i > 0) {
+                int rank1 = getLogicRank(cards.get(i - 2).getRank());
+                int rank2 = getLogicRank(cards.get(i).getRank());
+                if (rank1 != rank2 + 1) return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 比较两手牌大小
+     * @param prev 上一手牌
+     * @param current 当前手牌
+     * @return true if current > prev
+     */
+    public static boolean compare(List<Card> prev, List<Card> current) {
+        ToSouthCardType type1 = getCardType(prev);
+        ToSouthCardType type2 = getCardType(current);
+
+        if (type2 == ToSouthCardType.NONE) return false;
+        // 炸弹牌型，可以炸掉其他牌型（除通杀牌型）和同类型小的牌型
+        if (type2 == ToSouthCardType.BOMB_QUAD) {
+            if (type1 == ToSouthCardType.BOMB_QUAD) {
+                // 都是四张，比大小
+                return compareMaxCard(prev, current);
+            }
+            // 规则2: 炸弹不能通杀，只能炸2的牌型和三连对、四连对的牌型
+            // 2-1: 炸单张2
+            if (type1 == ToSouthCardType.SINGLE && prev.getFirst().getRank() == 2) return true;
+            // 2-2: 炸对子2
+            if (type1 == ToSouthCardType.PAIR && prev.getFirst().getRank() == 2) return true;
+            // 2-3: 炸三连对/四连对 其他牌型 (如顺子、单张/对子3-A、三张等) 不能炸
+            return type1 == ToSouthCardType.CONSECUTIVE_PAIRS;
+        }
+
+        // 连对: 只能大过 单2/对2/同类型
+        if (type2 == ToSouthCardType.CONSECUTIVE_PAIRS) {
+            // 3连对(6张) > 单张2
+            if (current.size() == 6 && type1 == ToSouthCardType.SINGLE && prev.getFirst().getRank() == 2) return true;
+            // 4连对(8张) > 单、对2
+            if (current.size() == 8 && (type1 == ToSouthCardType.PAIR || type1 == ToSouthCardType.SINGLE) && prev.getFirst().getRank() == 2) return true;
+
+            // 连对 vs 连对
+            if (type1 == ToSouthCardType.CONSECUTIVE_PAIRS && prev.size() == current.size()) {
+                return compareMaxCard(prev, current);
+            }
+            
+            // 连对不能大过其他牌型(如炸弹、三张、顺子等)
+            return false;
+        }
+        // 普通牌型必须类型相同且张数相同
+        if (type1 != type2 || prev.size() != current.size()) return false;
+        // 比较最大牌
+        return compareMaxCard(prev, current);
+    }
+
+    private static boolean isRedPig(Card card) {
+        return card != null && card.getRank() == 2 && card.getSuit() == 1;
+    }
+
+    private static boolean isBombType(ToSouthCardType type) {
+        return type == ToSouthCardType.BOMB_QUAD || type == ToSouthCardType.CONSECUTIVE_PAIRS;
+    }
+
+
+    private static boolean compareMaxCard(List<Card> prev, List<Card> current) {
+        // 均已降序排序，取第一张（最大张）比较
+        return CARD_COMPARATOR.compare(current.getFirst(), prev.getFirst()) < 0;
+    }
+
+    public static boolean hasBombOrTwo(List<Card> cards) {
+        if (cards == null || cards.isEmpty()) return false;
+        // 检查是否有2
+        for (Card c : cards) {
+            if (c.getRank() == 2) return true;
+        }
+        // 检查是否有炸弹 (四张)
+        cards.sort(CARD_COMPARATOR);
+        return countQuads(cards) > 0;
+    }
+
+    /**
+     * 检查通杀
+     */
+    public static boolean checkInstantWin(List<Card> cards) {
+        if (cards.size() != 13) return false;
+        cards.sort(CARD_COMPARATOR);
+        
+        // 4个2
+        if (countRank(cards, 2) == 4) return true;
+        // 一条龙 (3-A)
+        if (isDragon(cards)) return true;
+        // 6对
+        if (countPairs(cards) >= 6) return true;
+        // 2个四张 / 3个四张
+        if (countQuads(cards) >= 2) return true;
+        // 同色
+        if (isAllSameColor(cards)) return true;
+        
+        return false;
+    }
+
+    public static int countTwo(List<Card> cards) {
+        return countRank(cards, 2);
+    }
+
+    public static int countBomb(List<Card> cards) {
+        cards.sort(CARD_COMPARATOR);
+        return countQuads(cards);
+    }
+
+    private static int countRank(List<Card> cards, int rank) {
+        int count = 0;
+        for (Card c : cards) {
+            if (c.getRank() == rank) count++;
+        }
+        return count;
+    }
+
+    private static boolean isDragon(List<Card> cards) {
+        Set<Integer> ranks = new HashSet<>();
+        for (Card c : cards) {
+            // 2排除在一条龙之外
+            if (c.getRank() == 2) {
+                continue;
+            }
+            ranks.add(c.getRank());
+        }
+        return ranks.size() == 12;
+    }
+
+    private static int countPairs(List<Card> cards) {
+        int pairs = 0;
+        for (int i = 0; i < cards.size() - 1; i++) {
+            if (cards.get(i).getRank() == cards.get(i+1).getRank()) {
+                pairs++;
+                i++; // 跳过下一张
+            }
+        }
+        return pairs;
+    }
+
+    private static int countQuads(List<Card> cards) {
+        int quads = 0;
+        for (int i = 0; i < cards.size() - 3; i++) {
+            if (cards.get(i).getRank() == cards.get(i+3).getRank()) {
+                quads++;
+                i+=3;
+            }
+        }
+        return quads;
+    }
+
+    private static boolean isAllSameColor(List<Card> cards) {
+        // 同花色，黑桃/梅花混合 或 红桃/方块混合 (即同为黑色或红色)
+        boolean isRed = isRed(cards.getFirst());
+        for (Card c : cards) {
+            if (isRed(c) != isRed) return false;
+        }
+        return true;
+    }
+
+    private static boolean isRed(Card c) {
+        return c.getSuit() == 1 || c.getSuit() == 3; // 1:♥, 3:♦
+    }
+
+    public static int compareCard(Card c1, Card c2) {
+        return CARD_COMPARATOR.compare(c1, c2); 
+    }
+    
+    public static boolean compareSingle(Card prev, Card current) {
+        return CARD_COMPARATOR.compare(current, prev) < 0;
+    }
+
+    public static Map<Integer, List<Card>> convertCardListToRankMap(List<Card> cards) {
+        Map<Integer, List<Card>> rankMap = new HashMap<>();
+        for (Card c : cards) {
+            rankMap.computeIfAbsent(c.getRank(), k -> new ArrayList<>()).add(c);
+        }
+        return rankMap;
+    }
+
+    /**
+     * 找到从指定牌开始最佳组合，用于机器人和托管
+     *  // 优先级：炸弹 > 三张 > 连对 > 顺子 > 对子 > 单张
+     * @param rankMap 以 rank 为 key 的手牌
+     * @param firstCard 最小那张牌
+     * @return 组合
+     */
+    public static List<Card> findBestPlayWithFirstCard(Map<Integer, List<Card>> rankMap, Card firstCard) {
+        List<Card> firstRankCards = rankMap.get(firstCard.getRank());
+        if (CollUtil.isEmpty(firstRankCards)) return null;
+        if (firstRankCards.stream().noneMatch(card -> card.getValue() == firstCard.getValue())) {
+            return null;
+        }
+        int rank = firstCard.getRank();
+        // 1. 炸弹
+        if (rankMap.get(rank).size() == 4) {
+            return rankMap.get(rank);
+        }
+        // 2. 三张
+        if (rankMap.get(3).size() == 3) {
+            return rankMap.get(rank);
+        }
+        // 3. 连对或者顺子
+        if (rankMap.containsKey(rank)) {
+            List<Card> consecutiveCards = findConsecutiveCards(rankMap, firstCard);
+            if (consecutiveCards != null) {
+                return consecutiveCards;
+            }
+        }
+        // 5. 单张
+        return List.of(firstCard);
+    }
+
+    /**
+     * 查找所有可能的最佳出牌组合（首出）
+     * 策略：
+     * 1. 首先将手牌按照 炸弹 > 三张 > 连对 > 顺子 > 对子 > 单张 的优先级进行整合拆分。
+     * 2. 然后按照以下顺序查找所有可出牌型：
+     *    单张 > 对子 > 三条 > 顺子 > 连对 > 炸弹
+     *
+     * @param handCards 手牌列表
+     * @return 所有可出的牌型列表
+     */
+    public static List<List<Card>> findAllBestPlays(List<Card> handCards) {
+        if (CollUtil.isEmpty(handCards)) return Collections.emptyList();
+
+        List<List<Card>> result = new ArrayList<>();
+        
+        // 1. 整合牌型 (分解手牌)
+        Map<ToSouthCardType, List<List<Card>>> integratedCards = integrateHandCards(handCards);
+
+        // 2. 按优先级查找
+        // 优先级：单张 > 对子 > 三条 > 顺子 > 连对 > 炸弹
+        
+        // 2.1 单张
+        List<List<Card>> singles = integratedCards.get(ToSouthCardType.SINGLE);
+        if (CollUtil.isNotEmpty(singles)) result.addAll(singles);
+
+        // 2.2 对子
+        List<List<Card>> pairs = integratedCards.get(ToSouthCardType.PAIR);
+        if (CollUtil.isNotEmpty(pairs)) result.addAll(pairs);
+
+        // 2.3 三张
+        List<List<Card>> triples = integratedCards.get(ToSouthCardType.TRIPLE);
+        if (CollUtil.isNotEmpty(triples)) result.addAll(triples);
+
+        // 2.4 顺子
+        List<List<Card>> straights = integratedCards.get(ToSouthCardType.STRAIGHT);
+        if (CollUtil.isNotEmpty(straights)) result.addAll(straights);
+
+        // 2.5 连对
+        List<List<Card>> consecutivePairs = integratedCards.get(ToSouthCardType.CONSECUTIVE_PAIRS);
+        if (CollUtil.isNotEmpty(consecutivePairs)) result.addAll(consecutivePairs);
+
+        // 2.6 炸弹
+        List<List<Card>> bombs = integratedCards.get(ToSouthCardType.BOMB_QUAD);
+        if (CollUtil.isNotEmpty(bombs)) result.addAll(bombs);
+
+        // 兜底：如果没识别出任何牌型（理论上不会，至少有单张），直接出最小的一张
+        if (result.isEmpty()) {
+            handCards.sort(CARD_COMPARATOR);
+            result.add(List.of(handCards.getLast()));
+        }
+        
+        // 对结果去重并排序 (从小到大)
+        result.sort((list1, list2) -> {
+            // 先按牌型类型排序 (单张 < 对子 < 三张 < 顺子 < 连对 < 炸弹)
+             ToSouthCardType t1 = getCardType(list1);
+             ToSouthCardType t2 = getCardType(list2);
+             // 如果类型不同，按枚举顺序
+             if (t1 != t2) return Integer.compare(getCardTypePriority(t1), getCardTypePriority(t2));
+             
+             // 如果类型相同，按最大牌比较
+            Card max1 = list1.getFirst();
+            Card max2 = list2.getFirst();
+            return CARD_COMPARATOR.compare(max2, max1); // 升序 (小在前)
+        });
+
+        return result;
+    }
+
+    private static int getCardTypePriority(ToSouthCardType type) {
+        return switch (type) {
+            case SINGLE -> 1;
+            case PAIR -> 2;
+            case TRIPLE -> 3;
+            case STRAIGHT -> 4;
+            case CONSECUTIVE_PAIRS -> 5;
+            case BOMB_QUAD -> 6;
+            default -> 0;
+        };
+    }
+
+    /**
+     * 查找所有大于目标牌型的可出手牌组合
+     *
+     * @param handCards 手牌列表
+     * @param lastCards 上家出的牌
+     * @return 所有可压制的牌型列表
+     */
+    public static List<List<Card>> findAllFollowPlays(List<Card> handCards, List<Card> lastCards) {
+        if (CollUtil.isEmpty(handCards) || CollUtil.isEmpty(lastCards)) return Collections.emptyList();
+
+        List<List<Card>> result = new ArrayList<>();
+        
+        // 识别上家牌型
+        ToSouthCardType lastType = getCardType(lastCards);
+        if (lastType == ToSouthCardType.NONE) return Collections.emptyList();
+
+        // 1. 尝试找同类型压制
+        Map<ToSouthCardType, List<List<Card>>> integratedCards = integrateHandCards(handCards);
+        List<List<Card>> sameTypeCandidates = integratedCards.get(lastType);
+
+        if (CollUtil.isNotEmpty(sameTypeCandidates)) {
+            // sameTypeCandidates 是降序排列的 (大 -> 小)
+            // 遍历所有可能的牌型
+            for (List<Card> candidate : sameTypeCandidates) {
+                // 如果找到的 candidate 比 lastCards 长，需要截取
+                if (lastType == ToSouthCardType.STRAIGHT || lastType == ToSouthCardType.CONSECUTIVE_PAIRS) {
+                    if (candidate.size() > lastCards.size()) {
+                         // 尝试截取同等长度
+                         List<Card> sortedCandidate = new ArrayList<>(candidate);
+                         sortedCandidate.sort((c1, c2) -> Integer.compare(getLogicRank(c1.getRank()), getLogicRank(c2.getRank())));
+                         
+                         int step = (lastType == ToSouthCardType.STRAIGHT) ? 1 : 2;
+                         int targetSize = lastCards.size();
+                         
+                         // 滑动窗口查找所有能压过的子串
+                         for (int j = 0; j <= sortedCandidate.size() - targetSize; j += step) {
+                             List<Card> subList = sortedCandidate.subList(j, j + targetSize);
+                             if (compare(lastCards, subList)) {
+                                 result.add(subList);
+                             }
+                         }
+                         continue; 
+                    }
+                }
+                
+                if (compare(lastCards, candidate)) {
+                    result.add(candidate);
+                }
+            }
+        }
+        
+        // 2. 尝试用连对压制 2 (特殊规则)
+        List<List<Card>> consecutivePairs = integratedCards.get(ToSouthCardType.CONSECUTIVE_PAIRS);
+        if (CollUtil.isNotEmpty(consecutivePairs)) {
+             if (lastType == ToSouthCardType.SINGLE && lastCards.getFirst().getRank() == 2) {
+                 // 上家是单2，优先找4连对(8张)，没有则找3连对(6张)
+                 for (List<Card> cp : consecutivePairs) {
+                     // 排序，确保从小到大
+                     List<Card> sortedCp = new ArrayList<>(cp);
+                     sortedCp.sort((c1, c2) -> Integer.compare(getLogicRank(c1.getRank()), getLogicRank(c2.getRank())));
+
+                     if (sortedCp.size() >= 8) {
+                         // 优先出4连对 (截取前8张)
+                         result.add(sortedCp.subList(0, 8));
+                     } else if (sortedCp.size() >= 6) {
+                         // 其次出3连对 (截取前6张)
+                         result.add(sortedCp.subList(0, 6));
+                     }
+                 }
+             } else if (lastType == ToSouthCardType.PAIR && lastCards.getFirst().getRank() == 2) {
+                 // 上家是对2，找4连对(8张)
+                 for (List<Card> cp : consecutivePairs) {
+                     if (cp.size() >= 8) {
+                         List<Card> sortedCp = new ArrayList<>(cp);
+                         sortedCp.sort((c1, c2) -> Integer.compare(getLogicRank(c1.getRank()), getLogicRank(c2.getRank())));
+                         // 截取前8张
+                         result.add(sortedCp.subList(0, 8));
+                     }
+                 }
+             }
+        }
+        
+        // 3. 尝试用炸弹压制
+        List<List<Card>> bombs = integratedCards.get(ToSouthCardType.BOMB_QUAD);
+        if (CollUtil.isNotEmpty(bombs)) {
+             // 遍历所有炸弹，检查是否能压制
+             for (List<Card> bomb : bombs) {
+                 if (compare(lastCards, bomb)) {
+                     result.add(bomb);
+                 }
+             }
+        }
+        
+        // 对结果去重并排序 (从小到大)
+        result.sort((list1, list2) -> {
+            // 先按牌型类型排序 (普通 < 连对压2 < 炸弹)
+             ToSouthCardType t1 = getCardType(list1);
+             ToSouthCardType t2 = getCardType(list2);
+             // 如果类型不同，炸弹排最后
+             boolean isBomb1 = isBombType(t1);
+             boolean isBomb2 = isBombType(t2);
+             if (isBomb1 != isBomb2) return isBomb1 ? 1 : -1;
+             
+             // 如果类型相同，按最大牌比较
+            Card max1 = list1.getFirst();
+            Card max2 = list2.getFirst();
+            return CARD_COMPARATOR.compare(max2, max1); // 升序 (小在前)
+        });
+
+        return result;
+    }
+
+    /**
+     * 查找最佳首出牌型（最小）
+     * @param handCards 手牌
+     * @return 最佳牌型，若无则返回null
+     */
+    public static List<Card> findBestPlay(List<Card> handCards) {
+        List<List<Card>> allPlays = findAllBestPlays(handCards);
+        return CollUtil.isNotEmpty(allPlays) ? allPlays.getFirst() : null;
+    }
+
+    /**
+     * 查找大于目标牌型的最小手牌组合
+     *
+     * @param handCards 手牌列表
+     * @param lastCards 上家出的牌
+     * @return 可压制的最小牌型，如果没有则返回 null
+     */
+    public static List<Card> findBestFollowPlay(List<Card> handCards, List<Card> lastCards) {
+        List<List<Card>> allPlays = findAllFollowPlays(handCards, lastCards);
+        return CollUtil.isNotEmpty(allPlays) ? allPlays.getFirst() : null;
+    }
+
+    /**
+     * 从组合列表中获取最小的一组
+     */
+    private static List<Card> getSmallestCombination(List<List<Card>> combinations) {
+        combinations.sort((list1, list2) -> {
+            Card max1 = list1.getFirst();
+            Card max2 = list2.getFirst();
+            return CARD_COMPARATOR.compare(max2, max1); 
+        });
+        // 排序后是 [Min ... Max]
+        // 取第一个 (最小的)
+        return combinations.getFirst();
+    }
+
+    /**
+     * 整合手牌：将散乱的手牌按规则整理成具体的牌型集合
+     * 整理顺序：炸弹 > 三张 > 连对 > 顺子 > 对子 > 单张
+     */
+    private static Map<ToSouthCardType, List<List<Card>>> integrateHandCards(List<Card> handCards) {
+        Map<ToSouthCardType, List<List<Card>>> result = new HashMap<>();
+        // 复制并排序 (降序 2..3)
+        List<Card> cards = new ArrayList<>(handCards);
+        cards.sort(CARD_COMPARATOR);
+        
+        Map<Integer, List<Card>> rankMap = new TreeMap<>((r1, r2) -> Integer.compare(getLogicRank(r2), getLogicRank(r1))); // key 降序
+        for (Card c : cards) {
+            rankMap.computeIfAbsent(c.getRank(), k -> new ArrayList<>()).add(c);
+        }
+
+        // 1. 提取炸弹 (4张)
+        List<List<Card>> bombs = new ArrayList<>();
+        Iterator<Map.Entry<Integer, List<Card>>> it = rankMap.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Integer, List<Card>> entry = it.next();
+            if (entry.getValue().size() == 4) {
+                bombs.add(entry.getValue());
+                it.remove();
+            }
+        }
+        result.put(ToSouthCardType.BOMB_QUAD, bombs);
+
+        // 2. 提取三张
+        // 注意：不拆分3张去凑连对或顺子（遵循不拆 >2 的原则）
+        List<List<Card>> triples = new ArrayList<>();
+        it = rankMap.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Integer, List<Card>> entry = it.next();
+            if (entry.getValue().size() == 3) {
+                triples.add(entry.getValue());
+                it.remove();
+            }
+        }
+        result.put(ToSouthCardType.TRIPLE, triples);
+
+        // 3. 提取连对 (从剩余的对子中找)
+        List<List<Card>> consecutivePairs = new ArrayList<>();
+        // 获取所有 count == 2 的 rank
+        List<Integer> pairRanks = new ArrayList<>();
+        for (Map.Entry<Integer, List<Card>> entry : rankMap.entrySet()) {
+            if (entry.getValue().size() == 2) {
+                pairRanks.add(entry.getKey());
+            }
+        }
+        // pairRanks 是降序的 (e.g. A, K, Q...)
+        // 找连续序列 (逻辑值连续)
+        if (pairRanks.size() >= 3) {
+            // 简单的贪心查找
+            // 比如 6, 5, 4, 3 -> 6-3 连对
+            List<Integer> currentChain = new ArrayList<>();
+            for (int r : pairRanks) {
+                if (currentChain.isEmpty()) {
+                    currentChain.add(r);
+                } else {
+                    int lastR = currentChain.getLast();
+                    if (getLogicRank(lastR) == getLogicRank(r) + 1) {
+                        currentChain.add(r);
+                    } else {
+                        // 链断了
+                        if (currentChain.size() >= 3) {
+                            addConsecutivePairs(consecutivePairs, rankMap, currentChain);
+                        }
+                        currentChain.clear();
+                        currentChain.add(r);
+                    }
+                }
+            }
+            if (currentChain.size() >= 3) {
+                addConsecutivePairs(consecutivePairs, rankMap, currentChain);
+            }
+        }
+        result.put(ToSouthCardType.CONSECUTIVE_PAIRS, consecutivePairs);
+
+        // 策略：如果凑成顺子能消耗单牌，则凑。如果必须拆对子，则尽量不拆
+        // 简化策略：将所有剩余牌视为单张池，找最长顺子
+        List<List<Card>> straights = new ArrayList<>();
+        // 获取所有存在的 rank
+        List<Integer> singleRanks = new ArrayList<>(rankMap.keySet()); // 降序
+        // 2不参与顺子
+        singleRanks.removeIf(r -> r == 2);
+        
+        if (singleRanks.size() >= 3) { // 顺子至少3张
+             List<Integer> currentChain = new ArrayList<>();
+            for (int r : singleRanks) {
+                if (currentChain.isEmpty()) {
+                    currentChain.add(r);
+                } else {
+                    int lastR = currentChain.getLast();
+                    if (getLogicRank(lastR) == getLogicRank(r) + 1) {
+                        currentChain.add(r);
+                    } else {
+                        if (currentChain.size() >= 3) {
+                            addStraight(straights, rankMap, currentChain);
+                        }
+                        currentChain.clear();
+                        currentChain.add(r);
+                    }
+                }
+            }
+             if (currentChain.size() >= 3) {
+                 addStraight(straights, rankMap, currentChain);
+             }
+        }
+        result.put(ToSouthCardType.STRAIGHT, straights);
+
+        // 5. 剩余的归为对子或单张
+        List<List<Card>> pairs = new ArrayList<>();
+        List<List<Card>> singles = new ArrayList<>();
+        
+        for (Map.Entry<Integer, List<Card>> entry : rankMap.entrySet()) {
+            List<Card> cs = entry.getValue();
+            if (cs.isEmpty()) continue;
+            if (cs.size() == 2) {
+                pairs.add(cs);
+            } else {
+                singles.add(cs);
+            }
+        }
+        result.put(ToSouthCardType.PAIR, pairs);
+        result.put(ToSouthCardType.SINGLE, singles);
+
+        return result;
+    }
+
+    private static void addConsecutivePairs(List<List<Card>> target, Map<Integer, List<Card>> rankMap, List<Integer> ranks) {
+        List<Card> chain = new ArrayList<>();
+        for (Integer r : ranks) {
+            List<Card> cs = rankMap.get(r);
+            if (cs != null && !cs.isEmpty()) {
+                chain.addAll(cs);
+                cs.clear(); // 标记为已使用
+            }
+        }
+        target.add(chain);
+    }
+
+    private static void addStraight(List<List<Card>> target, Map<Integer, List<Card>> rankMap, List<Integer> ranks) {
+        List<Card> chain = new ArrayList<>();
+        for (Integer r : ranks) {
+            List<Card> cs = rankMap.get(r);
+            if (cs != null && !cs.isEmpty()) {
+                chain.add(cs.removeFirst()); // 取一张
+            }
+        }
+        target.add(chain);
+    }
+
+    /**
+     * 获取从指定牌开始的顺子（单牌、对子），要求顺子中不拆牌
+     * 比如34456789，指定从3开始，由于4是多个，则获取不到顺子
+     * @param rankMap 以rank为key的map
+     * @return 成顺的牌或 null
+     */
+    public static List<Card> findConsecutiveCards(Map<Integer, List<Card>> rankMap, Card firstCard) {
+        // 2不能参与顺子
+        if (firstCard.getRank() == 2) {
+            return null;
+        }
+
+        List<Card> firstRankCards = rankMap.get(firstCard.getRank());
+        if (CollUtil.isEmpty(firstRankCards)) return null;
+        if (firstRankCards.stream().noneMatch(card -> card.getValue() == firstCard.getValue())) {
+            return null;
+        }
+        // 只能组成单牌顺子和顺对
+        int firstRankCount = firstRankCards.size();
+        if (firstRankCount != 1 && firstRankCount != 2) {
+            return null;
+        }
+        List<Card> currentChain = new ArrayList<>(firstRankCards);
+
+        int currentRank = firstCard.getRank();
+        while (true) {
+            int nextRank;
+            if (currentRank == 13) nextRank = 1; // K -> A
+            else if (currentRank == 1) break; // A -> End
+            else nextRank = currentRank + 1;
+            
+            List<Card> nextCards = rankMap.get(nextRank);
+            if (nextCards == null || nextCards.size() != firstRankCount) {
+                break;
+            }
+            currentChain.addAll(nextCards);
+            currentRank = nextRank;
+        }
+        if ((firstRankCount == 1 && currentChain.size() >= 3) || (firstRankCount == 2 && currentChain.size() >=6)) {
+            return currentChain;
+        }
+        return null;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("=== 南方前进牌型工具类测试 ===");
+        
+        // 1. 基础随机手牌测试 (5组)
+        System.out.println("--- 基础手牌整合与最佳出牌测试 ---");
+        for (int i = 0; i < 5; i++) {
+            System.out.println("\n测试用例 " + (i + 1) + ":");
+            List<Card> hand = generateRandomHand(13);
+            System.out.println("手牌: " + handToString(hand));
+
+            Map<ToSouthCardType, List<List<Card>>> integrated = integrateHandCards(hand);
+            System.out.println("牌型结构:");
+            integrated.forEach((k, v) -> {
+                if (CollUtil.isNotEmpty(v)) {
+                    System.out.print(k + ": ");
+                    for (List<Card> c : v) {
+                        System.out.print(handToString(c) + " ");
+                    }
+                    System.out.println();
+                }
+            });
+
+            long start = System.currentTimeMillis();
+            List<Card> bestPlay = findBestPlay(new ArrayList<>(hand));
+            long end = System.currentTimeMillis();
+
+            System.out.println("最佳出牌: " + handToString(bestPlay));
+            System.out.println("耗时: " + (end - start) + "ms");
+        }
+
+        // 2. 随机压牌测试 (10组)
+        System.out.println("\n--- 随机压牌测试 (模拟跟牌) ---");
+        for (int i = 0; i < 10; i++) {
+            System.out.println("\n测试用例 " + (i + 1) + ":");
+            // 随机生成两手牌，一手作为手牌(13张)，一手作为上家出的牌(随机1-5张)
+            List<Card> myHand = generateRandomHand(13);
+            
+            // 随机生成上家牌型 (这里简单模拟，随机取几张牌)
+            // 为了更有意义，我们尝试生成一个合法的上家牌型
+            // 先生成一副完整手牌，然后从中提取一个最佳出牌作为上家牌
+            List<Card> opponentHand = generateRandomHand(13);
+            List<Card> lastPlay = findBestPlay(opponentHand);
+            
+            if (CollUtil.isEmpty(lastPlay)) {
+                System.out.println("上家无牌可出(异常)，跳过");
+                continue;
+            }
+
+            System.out.println("我方手牌: " + handToString(myHand));
+            System.out.println("上家出牌: " + handToString(lastPlay));
+            
+            long s = System.currentTimeMillis();
+            List<Card> follow = findBestFollowPlay(myHand, lastPlay);
+            long e = System.currentTimeMillis();
+            
+            if (follow != null) {
+                System.out.println("我方压制: " + handToString(follow));
+            } else {
+                System.out.println("我方要不起 (Pass)");
+            }
+            System.out.println("耗时: " + (e - s) + "ms");
+        }
+    }
+
+    private static List<Card> createHand(int... ranks) {
+        List<Card> list = new ArrayList<>();
+        // 简单模拟花色分配，避免重复
+        int[] suits = new int[15]; // rank -> next suit index
+        for (int r : ranks) {
+            list.add(new Card(suits[r]++ % 4, r));
+        }
+        return list;
+    }
+
+    private static List<Card> generateRandomHand(int count) {
+        List<Card> deck = new ArrayList<>();
+        for (int s = 0; s < 4; s++) {
+            for (int r = 1; r <= 13; r++) {
+                deck.add(new Card(s, r));
+            }
+        }
+        Collections.shuffle(deck);
+        return new ArrayList<>(deck.subList(0, count));
+    }
+
+    private static String handToString(List<Card> cards) {
+        if (cards == null) return "null";
+        List<Card> sorted = new ArrayList<>(cards);
+        sorted.sort(CARD_COMPARATOR);
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < sorted.size(); i++) {
+            if (i > 0) sb.append(" ");
+            sb.append(cardToString(sorted.get(i)));
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    private static String cardToString(Card c) {
+        String suitStr = switch (c.getSuit()) {
+            case 0 -> "♠";
+            case 1 -> "♥";
+            case 2 -> "♣";
+            case 3 -> "♦";
+            default -> "?";
+        };
+        String rankStr = switch (c.getRank()) {
+            case 1 -> "A";
+            case 11 -> "J";
+            case 12 -> "Q";
+            case 13 -> "K";
+            default -> String.valueOf(c.getRank());
+        };
+        return suitStr + rankStr;
+    }
+
+}

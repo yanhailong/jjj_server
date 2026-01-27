@@ -162,6 +162,8 @@ public interface MessageConst {
         int ACE_DJ = 0x41;
         //绿巨人
         int HULK = 0x42;
+
+        int TO_SOUTH = 0x44;
     }
 
     interface ToClientConst {
