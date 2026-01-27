@@ -8,6 +8,7 @@ import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
+import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ChessJackStrategyCfg;
 import com.jjg.game.sampledata.bean.ChessTexasStrategyCfg;
@@ -62,6 +63,8 @@ public class PokerDataHelper implements ConfigExcelChangeListener {
         allCardMapListMap = mapHashMap;
         TexasDataHelper.intiData();
         BlackJackDataHelper.initData();
+        // TODO
+        ToSouthDataHelper.initData();
     }
 
     /**

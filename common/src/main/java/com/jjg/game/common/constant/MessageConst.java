@@ -164,6 +164,8 @@ public interface MessageConst {
         int HULK = 0x42;
         //恶魔之子
         int DEMON_CHILD = 0x43;
+
+        int TO_SOUTH = 0x44;
     }
 
     interface ToClientConst {
