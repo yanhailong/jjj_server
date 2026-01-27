@@ -851,9 +851,7 @@ public class GMController extends AbstractController {
     public WebResult<String> syncCarousel(@RequestBody CarouselSyncDto param) {
         log.info("收到同步轮播数据请求carouselDtoList={}", param);
         try {
-            if (param.list() != null && !param.list().isEmpty()) {
-                carouselService.sync(param.list());
-            }
+            carouselService.sync(param.list());
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);
