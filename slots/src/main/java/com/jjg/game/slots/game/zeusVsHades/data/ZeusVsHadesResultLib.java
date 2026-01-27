@@ -20,15 +20,15 @@ public class ZeusVsHadesResultLib extends SlotsResultLib<ZeusVsHadesAwardLineInf
     private Map<Integer,Integer> vsTimes;
     //替换成wild的坐标 key=>0 表示列替换 1 表示哈里斯替换 value=>坐标set
     private Map<Integer,Set<Integer>> replaceWildIndexs;
-    //1宙斯赢 2哈迪斯赢
-    private int wildStatus;
+    //vs输赢 1宙斯赢 2哈迪斯赢
+    private Map<Integer,Integer> vsStatus;
 
-    public int getWildStatus() {
-        return wildStatus;
+    public Map<Integer, Integer> getVsStatus() {
+        return vsStatus;
     }
 
-    public void setWildStatus(int wildStatus) {
-        this.wildStatus = wildStatus;
+    public void setVsStatus(Map<Integer, Integer> vsStatus) {
+        this.vsStatus = vsStatus;
     }
 
     public Map<Integer, Integer> getVsTimes() {

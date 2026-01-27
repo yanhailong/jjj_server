@@ -41,8 +41,8 @@ public class ResZeusVsHadesStartGame extends AbstractResponse {
     public List<KVInfo> wildColumnTimes;
     @ProtoDesc("哈迪斯wild的位置")
     public Set<Integer> hadesWildSet;
-    @ProtoDesc("wild状态 1宙斯赢 2哈迪斯赢")
-    public int wildStatus;
+    @ProtoDesc("wild状态 1宙斯赢 2哈迪斯赢 （从1列开始 key是列 value是倍数）")
+    public List<KVInfo> wildColumnStatus;
 
     public ResZeusVsHadesStartGame(int code) {
         super(code);

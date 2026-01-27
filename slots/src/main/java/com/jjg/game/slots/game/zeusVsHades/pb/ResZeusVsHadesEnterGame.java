@@ -4,9 +4,11 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.slots.game.zeusVsHades.ZeusVsHadesConstant;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author lihaocao
@@ -27,6 +29,14 @@ public class ResZeusVsHadesEnterGame extends AbstractResponse {
     public int remainFreeCount;
     @ProtoDesc("奖池信息")
     public List<ZeusVsHadesPoolInfo> poolList;
+    @ProtoDesc("宙斯免费次数（小游戏）")
+    public int zeusFree;
+    @ProtoDesc("中奖变成大图标列 对应倍数（从1列开始 key是列 value是倍数）")
+    public List<KVInfo> wildColumnTimes;
+    @ProtoDesc("哈迪斯wild的位置")
+    public Set<Integer> hadesWildSet;
+    @ProtoDesc("wild状态 1宙斯赢 2哈迪斯赢 （从1列开始 key是列 value是倍数）")
+    public List<KVInfo> wildColumnStatus;
 
     public ResZeusVsHadesEnterGame(int code) {
         super(code);

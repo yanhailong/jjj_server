@@ -102,7 +102,11 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
         //小游戏
         List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = new ArrayList<>();
 
-        boolean isZeus = (RandomUtils.getRandomNumInt100() > 50) ? true : false;
+//        boolean isZeus = (RandomUtils.getRandomNumInt100() > 50) ? true : false;
+        List<Boolean> winStatus = new ArrayList<>();
+        winStatus.add(false);
+        winStatus.add(false);
+
         AtomicBoolean isAdd = new AtomicBoolean(true);
 
         for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
@@ -125,7 +129,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
             if (cfg.getFeatureTriggerId() != null && !cfg.getFeatureTriggerId().isEmpty()) {
                 cfg.getFeatureTriggerId().forEach(miniGameId -> {
                     if (!showAuxiliaryIdSet.contains(miniGameId)) { //如果没出现过的小游戏可以触发
-                        SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(isZeus, isAdd, specialModeType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
+                        SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(winStatus, isAdd, specialModeType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
                         if (specialAuxiliaryInfo != null) {
                             showAuxiliaryIdSet.add(miniGameId);
                             specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
@@ -156,7 +160,11 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
         //小游戏
         List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = new ArrayList<>();
 
-        boolean isZeus = (RandomUtils.getRandomNumInt100() > 50) ? true : false;
+//        boolean isZeus = (RandomUtils.getRandomNumInt100() > 50) ? true : false;
+        List<Boolean> winStatus = new ArrayList<>();
+        winStatus.add(false);
+        winStatus.add(false);
+
         AtomicBoolean isAdd = new AtomicBoolean(true);
 
         for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
@@ -180,7 +188,8 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                 cfg.getFeatureTriggerId().forEach(miniGameId -> {
                     if (!showAuxiliaryIdSet.contains(miniGameId)) { //如果没出现过的小游戏可以触发
                         lib.getLibTypeSet().forEach(libType -> {
-                            SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(isZeus, isAdd, libType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
+
+                            SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(winStatus, isAdd, libType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
                             if (specialAuxiliaryInfo != null) {
                                 showAuxiliaryIdSet.add(miniGameId);
                                 specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
@@ -199,7 +208,10 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
 
     @Override
     public SpecialAuxiliaryInfo triggerMiniGame(int specialModeType, int[] arr, int miniGameId, List<SpecialGirdInfo> specialGirdInfoList) {
-        return triggerMiniGame(false, new AtomicBoolean(true), specialModeType, arr, miniGameId, specialGirdInfoList);
+        List<Boolean> winStatus = new ArrayList<>();
+        winStatus.add(false);
+        winStatus.add(false);
+        return triggerMiniGame(winStatus, new AtomicBoolean(true), specialModeType, arr, miniGameId, specialGirdInfoList);
     }
 
     /**
@@ -208,7 +220,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
      * @param miniGameId
      * @return
      */
-    public SpecialAuxiliaryInfo triggerMiniGame(boolean isZeus, AtomicBoolean isAdd, int specialModeType, int[] arr, int miniGameId, List<SpecialGirdInfo> specialGirdInfoList) {
+    public SpecialAuxiliaryInfo triggerMiniGame(List<Boolean> winStatus, AtomicBoolean isAdd, int specialModeType, int[] arr, int miniGameId, List<SpecialGirdInfo> specialGirdInfoList) {
         log.debug("触发小游戏 miniGameId = {}", miniGameId);
         //根据小游戏id去找相关配置
         SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(miniGameId);
@@ -250,9 +262,15 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                 ZeusVsHadesNormalChooseInfo zeusVsHadesNormalChooseInfo = zeusVsHadesNormalChooseInfoMap.get(auxiliaryId);
                 specialAuxiliaryInfo.setColumn(zeusVsHadesNormalChooseInfo.getColumn());
                 specialAuxiliaryInfo.setTime(randomTimes(specialAuxiliaryCfg.getAwardTypeC()));
-                if (zeusVsHadesNormalChooseInfo != null && isAdd.getAndSet(false)) {
+                boolean isZeus = (RandomUtils.getRandomNumInt100() > 50) ? true : false;
+                if (zeusVsHadesNormalChooseInfo != null) {
+                    if (isZeus){
+                        specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
+                    }else {
+                        specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.HADES);
+                    }
                     //宙斯模式
-                    if (isZeus) {
+                    if (isZeus && !winStatus.get(0)) {
                         int zeusAuxiliaryId = zeusVsHadesNormalChooseInfo.getZeusAuxiliaryId();
                         //检查免费旋转
                         SpecialAuxiliaryCfg zeusSpecialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(zeusAuxiliaryId);
@@ -260,16 +278,19 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                         triggerFree(ZeusVsHadesConstant.SpecialMode.HADES, zeusSpecialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
                         //检查是否有额外奖励
                         triggerAuxiliaryExtra(arr, zeusSpecialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo, specialGirdInfoList);
+                        winStatus.set(0, true);
                     }
                     //哈里斯模式
-                    else {
+                    else if (!isZeus && !winStatus.get(1)) {
                         specialAuxiliaryInfo.setHadesExchangeWildSet(setHadesWildIcon(arr, zeusVsHadesNormalChooseInfo.getColumn()));
+                        winStatus.set(1, true);
                     }
                 }
             }
         } else if (specialModeType == ZeusVsHadesConstant.SpecialMode.ZEUS) {
             int auxiliaryId = specialAuxiliaryCfg.getId();
             if (auxiliaryId == ZeusVsHadesConstant.SpecialAuxiliary.FREE_ZEUS_1) {
+                specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
                 if (isAdd.getAndSet(false)) {
                     SpecialAuxiliaryPropConfig zeusSpecialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(auxiliaryId);
                     triggerFree(specialModeType, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
@@ -279,6 +300,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                 specialAuxiliaryInfo.setColumn(0);
                 specialAuxiliaryInfo.setTime(randomTimes(specialAuxiliaryCfg.getAwardTypeC()));
             } else if (auxiliaryId == ZeusVsHadesConstant.SpecialAuxiliary.FREE_ZEUS_2) {
+                specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
                 if (isAdd.getAndSet(false)) {
                     SpecialAuxiliaryPropConfig zeusSpecialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(auxiliaryId);
                     triggerFree(specialModeType, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
@@ -288,6 +310,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                 specialAuxiliaryInfo.setColumn(1);
                 specialAuxiliaryInfo.setTime(randomTimes(specialAuxiliaryCfg.getAwardTypeC()));
             } else if (auxiliaryId == ZeusVsHadesConstant.SpecialAuxiliary.FREE_ZEUS_3) {
+                specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
                 if (isAdd.getAndSet(false)) {
                     SpecialAuxiliaryPropConfig zeusSpecialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(auxiliaryId);
                     triggerFree(specialModeType, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
@@ -297,6 +320,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                 specialAuxiliaryInfo.setColumn(2);
                 specialAuxiliaryInfo.setTime(randomTimes(specialAuxiliaryCfg.getAwardTypeC()));
             } else if (auxiliaryId == ZeusVsHadesConstant.SpecialAuxiliary.FREE_ZEUS_4) {
+                specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
                 if (isAdd.getAndSet(false)) {
                     SpecialAuxiliaryPropConfig zeusSpecialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(auxiliaryId);
                     triggerFree(specialModeType, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
@@ -308,27 +332,30 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
             }
 
         } else if (specialModeType == ZeusVsHadesConstant.SpecialMode.HADES) {
-
             int auxiliaryId = specialAuxiliaryCfg.getId();
             if (auxiliaryId == ZeusVsHadesConstant.SpecialAuxiliary.FREE_HADES_1) {
+                specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.HADES);
                 if (isAdd.getAndSet(false)) {
                     specialAuxiliaryInfo.setHadesExchangeWildSet(setHadesWildIcon(arr, 0));
                 }
                 specialAuxiliaryInfo.setColumn(0);
                 specialAuxiliaryInfo.setTime(randomTimes(specialAuxiliaryCfg.getAwardTypeC()));
             } else if (auxiliaryId == ZeusVsHadesConstant.SpecialAuxiliary.FREE_HADES_2) {
+                specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.HADES);
                 if (isAdd.getAndSet(false)) {
                     specialAuxiliaryInfo.setHadesExchangeWildSet(setHadesWildIcon(arr, 1));
                 }
                 specialAuxiliaryInfo.setColumn(1);
                 specialAuxiliaryInfo.setTime(randomTimes(specialAuxiliaryCfg.getAwardTypeC()));
             } else if (auxiliaryId == ZeusVsHadesConstant.SpecialAuxiliary.FREE_HADES_3) {
+                specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.HADES);
                 if (isAdd.getAndSet(false)) {
                     specialAuxiliaryInfo.setHadesExchangeWildSet(setHadesWildIcon(arr, 2));
                 }
                 specialAuxiliaryInfo.setColumn(2);
                 specialAuxiliaryInfo.setTime(randomTimes(specialAuxiliaryCfg.getAwardTypeC()));
             } else if (auxiliaryId == ZeusVsHadesConstant.SpecialAuxiliary.FREE_HADES_4) {
+                specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.HADES);
                 if (isAdd.getAndSet(false)) {
                     specialAuxiliaryInfo.setHadesExchangeWildSet(setHadesWildIcon(arr, 3));
                 }
@@ -437,7 +464,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
             Set<Integer> libTypeSet = new HashSet<>();
             libTypeSet.add(specialModeType);
             lib.setLibTypeSet(libTypeSet);
-            lib.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
+//            lib.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
             //获取rollerMode
             int rollerMode = specialAuxiliaryCfg.getRollerMode();
             if (rollerMode < 1) {
@@ -492,7 +519,6 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
             Set<Integer> libTypeSet = new HashSet<>();
             libTypeSet.add(specialModeType);
             lib.setLibTypeSet(libTypeSet);
-            lib.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
             //获取rollerMode
             int rollerMode = specialAuxiliaryCfg.getRollerMode();
             if (rollerMode < 1) {
@@ -587,6 +613,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
         }
         Map<Integer, Set<Integer>> wildMap = new HashMap<>();
         Map<Integer, Integer> vsTimes = new HashMap<>();
+        Map<Integer, Integer> vsStatus = new HashMap<>();
         Set<Integer> hadesExchangeWildSet = new HashSet<>();
         for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
             if (specialAuxiliaryInfo.getCfgId() == ZeusVsHadesConstant.SpecialAuxiliary.FREE_ZEUS
@@ -608,6 +635,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                     || auxiliaryInfo.getCfgId() == ZeusVsHadesConstant.SpecialAuxiliary.FREE_HADES_4
             ) {
                 vsTimes.put(auxiliaryInfo.getColumn(), auxiliaryInfo.getTime());
+                vsStatus.put(auxiliaryInfo.getColumn(), auxiliaryInfo.getWildStatus());
                 if (auxiliaryInfo.getHadesExchangeWildSet() != null && !auxiliaryInfo.getHadesExchangeWildSet().isEmpty()) {
                     hadesExchangeWildSet = auxiliaryInfo.getHadesExchangeWildSet();
                 }
@@ -643,14 +671,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
 
         lib.setReplaceWildIndexs(wildMap);
 
-        if (wildMap.isEmpty()) {
-            lib.setWildStatus(ZeusVsHadesConstant.WildStatus.NONE);
-        }
-        if (wildMap.get(1) == null || wildMap.get(1).isEmpty()) {
-            lib.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
-        } else {
-            lib.setWildStatus(ZeusVsHadesConstant.WildStatus.HADES);
-        }
+        lib.setVsStatus(vsStatus);
     }
 
     public List<ZeusVsHadesAwardLineInfo> winLines(ZeusVsHadesResultLib lib, boolean freeModel) {

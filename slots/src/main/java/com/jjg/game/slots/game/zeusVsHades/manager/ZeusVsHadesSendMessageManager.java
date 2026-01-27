@@ -80,6 +80,35 @@ public class ZeusVsHadesSendMessageManager extends BaseSendMessageManager {
                     res.poolList.add(poolInfo);
                 }
             }
+            ZeusVsHadesResultLib lib = (ZeusVsHadesResultLib) gameRunInfo.getResultLib();
+
+            Map<Integer, Integer> vsTimes = lib.getVsTimes();
+            List<KVInfo> wildColumnTimes = new ArrayList<>();
+            vsTimes.forEach((key, value) -> {
+                KVInfo kvInfo = new KVInfo();
+                kvInfo.key = key + 1;
+                kvInfo.value = value;
+                wildColumnTimes.add(kvInfo);
+            });
+            res.wildColumnTimes = wildColumnTimes;
+
+            Map<Integer, Set<Integer>> replaceWildIndexs = lib.getReplaceWildIndexs();
+            Set<Integer> set = replaceWildIndexs.get(1);
+            if(set != null && !set.isEmpty()){
+                res.hadesWildSet = set;
+            }else {
+                res.hadesWildSet = new HashSet<>();
+            }
+
+            Map<Integer, Integer> vsStatus = lib.getVsStatus();
+            List<KVInfo> wildColumnStatus = new ArrayList<>();
+            vsStatus.forEach((key, value) -> {
+                KVInfo kvInfo = new KVInfo();
+                kvInfo.key = key + 1;
+                kvInfo.value = value;
+                wildColumnStatus.add(kvInfo);
+            });
+            res.wildColumnStatus = wildColumnStatus;
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -142,7 +171,15 @@ public class ZeusVsHadesSendMessageManager extends BaseSendMessageManager {
                 res.hadesWildSet = new HashSet<>();
             }
 
-            res.wildStatus = lib.getWildStatus();
+            Map<Integer, Integer> vsStatus = lib.getVsStatus();
+            List<KVInfo> wildColumnStatus = new ArrayList<>();
+            vsStatus.forEach((key, value) -> {
+                KVInfo kvInfo = new KVInfo();
+                kvInfo.key = key + 1;
+                kvInfo.value = value;
+                wildColumnStatus.add(kvInfo);
+            });
+            res.wildColumnStatus = wildColumnStatus;
 
             res.rewardIconInfo = addRewardIcons(lib.getIconArr(), lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
 
