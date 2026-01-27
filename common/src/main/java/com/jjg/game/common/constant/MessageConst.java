@@ -245,7 +245,7 @@ public interface MessageConst {
         int NOTIFY_MONEY_CHANGE = BASE_MSG_PREFIX | 0x1B;
         //通知玩家充值后的信息
         int NOTIFY_PAY_INFO = BASE_MSG_PREFIX | 0x1C;
-
+        //请求配置数据
         int REQ_EXCEL_INFOS = BASE_MSG_PREFIX | 0x1D;
         int RES_EXCEL_INFOS = BASE_MSG_PREFIX | 0x1F;
     }

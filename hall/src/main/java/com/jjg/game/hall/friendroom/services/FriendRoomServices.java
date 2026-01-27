@@ -57,7 +57,6 @@ import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -97,8 +96,6 @@ public class FriendRoomServices {
     private FriendRoomBillHistoryDao billHistoryDao;
     @Autowired
     private GameFunctionService gameFunctionService;
-    // 暂停时间
-    private final Map<Long, Long> roomPauseTimeRec = new ConcurrentHashMap<>();
     @Autowired
     private RobotUtil robotUtil;
     @Autowired
@@ -1250,7 +1247,7 @@ public class FriendRoomServices {
         // 查询所有收益
         List<FriendRoomRewardItem> playerAllReward = billHistoryDao.getPlayerAllReward(playerId);
         if (playerAllReward.isEmpty()) {
-            log.warn("该玩家可收益为空 playerId = {}",playerId);
+            log.warn("该玩家可收益为空 playerId = {}", playerId);
             return Code.SUCCESS;
         }
 
@@ -1282,19 +1279,17 @@ public class FriendRoomServices {
             playerController.send(res);
             return;
         }
-        if (req.operateCode != 3) {
-            // 操作时间 间隔判断
-            if (roomPauseTimeRec.containsKey(req.roomId) && roomPauseTimeRec.get(req.roomId) > System.currentTimeMillis()) {
-                log.debug("{}", roomPauseTimeRec.get(req.roomId));
-                playerController.send(res);
-                return;
-            }
-        }
         long playerId = playerController.playerId();
         FriendRoom friendRoom = friendRoomDao.getFriendRoomById(playerId, req.roomId);
         // 房间不存在
         if (friendRoom == null) {
             res.code = Code.ROOM_DESTROYED;
+            playerController.send(res);
+            return;
+        }
+        long timeMillis = System.currentTimeMillis();
+        if (req.operateCode != 3 && friendRoom.getOperationCoolingTime() > timeMillis) {
+            res.code = Code.ERROR_REQ;
             playerController.send(res);
             return;
         }
@@ -1314,6 +1309,8 @@ public class FriendRoomServices {
             playerController.send(res);
             return;
         }
+        long coolDownTime = getCoolDownTime();
+        boolean isNotSlotsRoom = !(friendRoom instanceof SlotsFriendRoom);
         switch (req.operateCode) {
             // 开始
             case 1:
@@ -1324,20 +1321,20 @@ public class FriendRoomServices {
                     playerController.send(res);
                     return;
                 }
-                // 暂停游戏需要先保存房间为解散中
-                friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
-                    @Override
-                    public void updateData(FriendRoom dataEntity) {
-                    }
+                if (isNotSlotsRoom) {
+                    friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
+                        @Override
+                        public void updateData(FriendRoom dataEntity) {
+                        }
 
-                    @Override
-                    public boolean updateDataWithRes(FriendRoom dataEntity) {
-                        dataEntity.setStatus(1);
-                        // 不能在此处设置暂停时间
-                        // dataEntity.setPauseTime(0);
-                        return true;
-                    }
-                });
+                        @Override
+                        public boolean updateDataWithRes(FriendRoom dataEntity) {
+                            dataEntity.setStatus(1);
+                            dataEntity.setOperationCoolingTime(coolDownTime);
+                            return true;
+                        }
+                    });
+                }
                 log.info("玩家：{} 请求开启房间：{}", playerId, req.roomId);
                 // 操作房间
                 operateFriendRoom(playerController, client, req, friendRoom);
@@ -1352,19 +1349,22 @@ public class FriendRoomServices {
                     playerController.send(res);
                     return;
                 }
-                // 暂停游戏
-                friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
-                    @Override
-                    public void updateData(FriendRoom dataEntity) {
-                    }
+                if (isNotSlotsRoom) {
+                    // 暂停游戏
+                    friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
+                        @Override
+                        public void updateData(FriendRoom dataEntity) {
+                        }
 
-                    @Override
-                    public boolean updateDataWithRes(FriendRoom dataEntity) {
-                        dataEntity.setStatus(2);
-                        dataEntity.setPauseTime(System.currentTimeMillis());
-                        return true;
-                    }
-                });
+                        @Override
+                        public boolean updateDataWithRes(FriendRoom dataEntity) {
+                            dataEntity.setStatus(2);
+                            dataEntity.setPauseTime(System.currentTimeMillis());
+                            dataEntity.setOperationCoolingTime(coolDownTime);
+                            return true;
+                        }
+                    });
+                }
                 log.info("玩家：{} 请求暂停房间：{}", playerId, req.roomId);
                 // 操作房间
                 operateFriendRoom(playerController, client, req, friendRoom);
@@ -1372,18 +1372,20 @@ public class FriendRoomServices {
             // 解散
             case 3:
                 // 解散房间，如果房间不在游戏中，直接删除
-                friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
-                    @Override
-                    public void updateData(FriendRoom dataEntity) {
-                    }
+                if (isNotSlotsRoom) {
+                    friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
+                        @Override
+                        public void updateData(FriendRoom dataEntity) {
+                        }
 
-                    @Override
-                    public boolean updateDataWithRes(FriendRoom dataEntity) {
-                        dataEntity.setStatus(3);
-                        dataEntity.setPauseTime(System.currentTimeMillis());
-                        return true;
-                    }
-                });
+                        @Override
+                        public boolean updateDataWithRes(FriendRoom dataEntity) {
+                            dataEntity.setStatus(3);
+                            dataEntity.setPauseTime(System.currentTimeMillis());
+                            return true;
+                        }
+                    });
+                }
                 log.info("玩家：{} 请求解散房间：{}", playerId, req.roomId);
                 // 操作房间
                 operateFriendRoom(playerController, client, req, friendRoom);
@@ -1439,20 +1441,7 @@ public class FriendRoomServices {
             // 操作完成后再获取
             FriendRoom friendRoom = friendRoomDao.getFriendRoomById(playerController.playerId(), req.roomId);
             res.roomStatus = friendRoom == null ? 3 : friendRoom.getStatus();
-            GlobalConfigCfg globalConfigCfg =
-                    GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
-            int intervalTime = globalConfigCfg.getIntValue() * TimeHelper.ONE_MINUTE_OF_MILLIS;
-            long curTime = System.currentTimeMillis();
-            if (req.operateCode != oldRoom.getStatus()) {
-                if (req.operateCode != 3) {
-                    // 更新下次可操作的时间
-                    roomPauseTimeRec.put(req.roomId, curTime + intervalTime);
-                    res.nextPauseBtnOverdueTime = roomPauseTimeRec.get(req.roomId);
-                } else {
-                    roomPauseTimeRec.remove(req.roomId);
-                    res.nextPauseBtnOverdueTime = 0;
-                }
-            }
+            res.nextPauseBtnOverdueTime = friendRoom == null ? 0 : friendRoom.getOperationCoolingTime();
             res.roomId = req.roomId;
             res.code = Code.SUCCESS;
             playerController.send(res);
@@ -1462,6 +1451,15 @@ public class FriendRoomServices {
         } finally {
             GameRpcContext.getContext().clearRpcBuilderData();
         }
+    }
+
+    public long getCoolDownTime() {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
+        long timeMillis = System.currentTimeMillis();
+        if (globalConfigCfg != null) {
+            return timeMillis + (long) globalConfigCfg.getIntValue() * TimeHelper.ONE_MINUTE_OF_MILLIS;
+        }
+        return timeMillis + TimeHelper.ONE_MINUTE_OF_MILLIS;
     }
 
     /**

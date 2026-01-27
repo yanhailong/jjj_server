@@ -9,7 +9,6 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.core.rpc.HallRoomBridge;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.sampledata.GameDataManager;
@@ -20,7 +19,7 @@ import com.jjg.game.slots.dao.FriendRoomSlotsBillHistoryDao;
 import com.jjg.game.slots.dao.RoomSlotsPoolDao;
 import com.jjg.game.slots.dao.SlotsFriendRoomDao;
 import com.jjg.game.slots.logger.SlotsLogger;
-import com.jjg.game.slots.pb.ResSlotsStatus;
+import com.jjg.game.slots.pb.NotifySlotsStatus;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +50,7 @@ public class SlotsRoomManager implements HallRoomBridge {
     private SlotsLogger slotsLogger;
     @Autowired
     private MarsCurator marsCurator;
+
     private final Striped<Lock> roomLocks = Striped.lock(1024);
     private final ConcurrentHashMap<Long, SlotsRoomController> roomControllers = new ConcurrentHashMap<>();
 
@@ -197,19 +197,16 @@ public class SlotsRoomManager implements HallRoomBridge {
                 case 2:
                     log.info("收到请求暂停房间：{} 的请求", roomId);
                     // 暂停房间
-//                    slotsRoomController.pauseGame();
                     pause(slotsRoomController);
                     break;
                 case 1:
                     log.info("收到请求继续房间：{} 的请求", roomId);
                     // 继续游戏
-//                    slotsRoomController.tryContinueGame();
                     tryContinueGame(slotsRoomController);
                     break;
                 case 3:
                     log.info("收到请求解散房间：{} 的请求", roomId);
                     dissbandRoom(slotsRoomController);
-//                    destoryRoom(slotsRoomController);
                     break;
             }
         } catch (Exception e) {
@@ -224,6 +221,8 @@ public class SlotsRoomManager implements HallRoomBridge {
      */
     private void pause(SlotsRoomController slotsRoomController) {
         slotsRoomController.pauseGame();
+        slotsFriendRoomDao.save(slotsRoomController.getRoom());
+        notifyRoomStatusChange(slotsRoomController);
     }
 
     /**
@@ -232,8 +231,12 @@ public class SlotsRoomManager implements HallRoomBridge {
      * @param slotsRoomController
      */
     private void tryContinueGame(SlotsRoomController slotsRoomController) {
+        slotsRoomController.continueGame();
         autoRenewal(slotsRoomController);
+        slotsFriendRoomDao.save(slotsRoomController.getRoom());
+        notifyRoomStatusChange(slotsRoomController);
     }
+
 
     /**
      * 自动续费
@@ -326,6 +329,8 @@ public class SlotsRoomManager implements HallRoomBridge {
     private void dissbandRoom(SlotsRoomController slotsRoomController) {
         // 解散房间
         slotsRoomController.destroyOnNextRoundStart();
+        slotsFriendRoomDao.save(slotsRoomController.getRoom());
+        notifyRoomStatusChange(slotsRoomController);
     }
 
     /**
@@ -404,14 +409,8 @@ public class SlotsRoomManager implements HallRoomBridge {
             friendRoom.setPool(friendRoom.getPool() + predictCostGoldNum);
             friendRoom.setPredictCostGoldNum(remain);
             updatePoolValue(roomId, remain);
-
             //通知房间中的玩家，该游戏状态可以继续玩
-            SlotsFactoryManager slotsFactoryManager = CommonUtil.getContext().getBean(SlotsFactoryManager.class);
-            AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(friendRoom.getGameType(), friendRoom.getRoomCfgId());
-            CommonResult<Long> commonResult = gameManager.checkAndGetPredictCostGoldNum(roomController);
-            if (commonResult.success()) {
-                roomController.notifyAllPlayers(new ResSlotsStatus(200));
-            }
+            notifyRoomStatusChange(roomController);
         }
 
         if (addTime > 0) {
@@ -432,6 +431,16 @@ public class SlotsRoomManager implements HallRoomBridge {
                 playerId, roomCfgId, roomId, addTime, autoRenewal, predictCostGoldNum, roomAliasName);
         result.data = friendRoom;
         return result;
+    }
+
+    private void notifyRoomStatusChange(SlotsRoomController roomController) {
+        SlotsFriendRoom friendRoom = roomController.getRoom();
+        SlotsFactoryManager slotsFactoryManager = CommonUtil.getContext().getBean(SlotsFactoryManager.class);
+        AbstractSlotsGameManager<?, ?, ?> gameManager = slotsFactoryManager.getGameManager(friendRoom.getGameType(), friendRoom.getRoomCfgId());
+        int roomedStatus = gameManager.roomStatus(roomController);
+        NotifySlotsStatus slotsStatus = new NotifySlotsStatus();
+        slotsStatus.pauseType = roomedStatus;
+        roomController.notifyAllPlayers(slotsStatus);
     }
 
     /**
@@ -593,7 +602,7 @@ public class SlotsRoomManager implements HallRoomBridge {
             return Code.SUCCESS;
         }
         if (slotsRoomController.getRoom().getStatus() == 2) {
-            return Code.FORBID;
+            return Code.SLOTS_ROOM_PAUSE;
         }
         if (slotsRoomController.getRoom().getStatus() == 3) {
             return Code.SLOTS_ROOM_PLAYER_KICK_OUT;

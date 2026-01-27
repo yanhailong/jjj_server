@@ -40,6 +40,16 @@ public class FriendRoom extends Room {
     protected boolean inGaming;
     //标准池(slots中该值存储的是玩家支付的保证金，一直累加，不会减少)
     protected long pool;
+    //操作时间冷却时间
+    protected long operationCoolingTime;
+
+    public long getOperationCoolingTime() {
+        return operationCoolingTime;
+    }
+
+    public void setOperationCoolingTime(long operationCoolingTime) {
+        this.operationCoolingTime = operationCoolingTime;
+    }
 
     /**
      * 场上是否有庄家

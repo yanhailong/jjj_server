@@ -173,7 +173,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             return Code.SUCCESS;
         }
 
-        AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+        AbstractSlotsGameManager<?, ?, ?> gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
         if (gameManager == null) {
             log.debug("退出游戏时，获取游戏管理器失败 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
             return Code.SUCCESS;
@@ -182,12 +182,16 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         if (playerGameData == null) {
             return Code.SUCCESS;
         }
-        boolean canExit = gameManager.canExit(playerGameData);
-        //特殊状态下，玩家无法主动退出
-        if (exitType == ExitType.INITIATIVE && !canExit) {
-            return Code.FAIL;
+        boolean canExit;
+        if (gameManager.getRoomType() != null) {
+            canExit = gameManager.friendRoomExit(playerGameData);
+        } else {
+            canExit = gameManager.canExit(playerGameData);
+            //特殊状态下，玩家无法主动退出
+            if (exitType == ExitType.INITIATIVE && !canExit) {
+                return Code.FAIL;
+            }
         }
-
         playerGameData = gameManager.exit(playerController, exitType);
         playerSessionService.offline(playerController.getPlayer(), !canExit);
         //计算玩游戏的时长

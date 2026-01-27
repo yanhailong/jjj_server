@@ -74,12 +74,7 @@ public class FriendRoomMessageBuilder {
         friendRoomBaseData.overdueTime = getRoomResetTime(friendRoom);
         friendRoomBaseData.predictCostGoldNum = friendRoom.getPredictCostGoldNum();
         friendRoomBaseData.autoRenewal = friendRoom.isAutoRenewal();
-        GlobalConfigCfg globalConfigCfg =
-                GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
-        int intervalTime = globalConfigCfg.getIntValue() * TimeHelper.ONE_MINUTE_OF_MILLIS;
-        long curTime = System.currentTimeMillis();
-        friendRoomBaseData.nextPauseBtnOverdueTime =
-                friendRoom.getPauseTime() + intervalTime > curTime ? friendRoom.getPauseTime() + intervalTime : 0;
+        friendRoomBaseData.nextPauseBtnOverdueTime = friendRoom.getOperationCoolingTime();
         Tuple2<Integer, Integer> roomMaxLimitCfg = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
         friendRoomBaseData.maxPlayerNum = roomMaxLimitCfg.getT1();
         friendRoomBaseData.limitGoldMin = warehouseCfg.getBetShow();

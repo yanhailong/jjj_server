@@ -44,6 +44,7 @@ import com.jjg.game.slots.dao.*;
 import com.jjg.game.slots.data.*;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
+import com.jjg.game.slots.pb.NotifySlotsStatus;
 import com.jjg.game.slots.service.SlotsPlayerService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -1767,6 +1768,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         return playerGameData.getStatus() == SlotsConst.Status.NORMAL;
     }
 
+    public boolean friendRoomExit(SlotsPlayerGameData playerGameData) {
+        if (playerGameData.getStatus() != SlotsConst.Status.NORMAL) {
+            log.info("好友房特殊模式主动退出 playerId:{} status:{}", playerGameData.playerId(), playerGameData.getStatus());
+        }
+        playerGameData.setStatus(SlotsConst.Status.NORMAL);
+        return true;
+    }
+
 
     public CommonResult<Long> checkAndGetPredictCostGoldNum(SlotsRoomController slotsRoomController) {
         CommonResult<Long> result = new CommonResult<>(Code.SUCCESS);
@@ -2038,19 +2047,38 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      *
      * @return
      */
-    public int gameStatus(PlayerController playerController) {
-        if (getRoomType() == null) {
-            return Code.SUCCESS;
+    public NotifySlotsStatus gameStatus(PlayerController playerController) {
+        NotifySlotsStatus res = new NotifySlotsStatus();
+        if (getRoomType() != RoomType.SLOTS_TEAM_UP_ROOM) {
+            log.warn("获取游戏状态错误 roomType = {}", getRoomType());
+            return res;
         }
+        //获取保证金(即水池)
+        SlotsRoomController roomController = (SlotsRoomController) playerController.getScene();
+        res.pauseType = roomStatus(roomController);
+        return res;
+    }
 
-        if (getRoomType() == RoomType.SLOTS_TEAM_UP_ROOM) {
-            //获取保证金(即水池)
-            SlotsRoomController roomController = (SlotsRoomController) playerController.getScene();
-            return checkAndGetPredictCostGoldNum(roomController).code;
+    public int roomStatus(SlotsRoomController slotsRoomController) {
+        if (slotsRoomController == null || slotsRoomController.getRoom() == null) {
+            return 0;
         }
-
-        log.warn("获取游戏状态错误 roomType = {}", getRoomType());
-        return Code.FAIL;
+        int status = 0;
+        SlotsFriendRoom friendRoom = slotsRoomController.getRoom();
+        if (friendRoom.getStatus() == 2) {
+            status = 1;
+        }
+        if (friendRoom.getOverdueTime() < System.currentTimeMillis()) {
+            status = 3;
+        }
+        CommonResult<Long> result = checkAndGetPredictCostGoldNum(slotsRoomController);
+        if (result.code == Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT) {
+            status = 2;
+        }
+        if (friendRoom.getStatus() == 3) {
+            status = 4;
+        }
+        return status;
     }
 
     protected G createGameRunInfo(long playerId, int code) throws Exception {
