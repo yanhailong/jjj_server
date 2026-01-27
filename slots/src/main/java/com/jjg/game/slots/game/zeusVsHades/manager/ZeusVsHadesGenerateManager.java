@@ -437,6 +437,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
             Set<Integer> libTypeSet = new HashSet<>();
             libTypeSet.add(specialModeType);
             lib.setLibTypeSet(libTypeSet);
+            lib.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
             //获取rollerMode
             int rollerMode = specialAuxiliaryCfg.getRollerMode();
             if (rollerMode < 1) {
@@ -491,6 +492,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
             Set<Integer> libTypeSet = new HashSet<>();
             libTypeSet.add(specialModeType);
             lib.setLibTypeSet(libTypeSet);
+            lib.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
             //获取rollerMode
             int rollerMode = specialAuxiliaryCfg.getRollerMode();
             if (rollerMode < 1) {
@@ -585,6 +587,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
         }
         Map<Integer, Set<Integer>> wildMap = new HashMap<>();
         Map<Integer, Integer> vsTimes = new HashMap<>();
+        Set<Integer> hadesExchangeWildSet = new HashSet<>();
         for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
             if (specialAuxiliaryInfo.getCfgId() == ZeusVsHadesConstant.SpecialAuxiliary.FREE_ZEUS
                     || specialAuxiliaryInfo.getCfgId() == ZeusVsHadesConstant.SpecialAuxiliary.FREE_HADES) {
@@ -605,23 +608,49 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                     || auxiliaryInfo.getCfgId() == ZeusVsHadesConstant.SpecialAuxiliary.FREE_HADES_4
             ) {
                 vsTimes.put(auxiliaryInfo.getColumn(), auxiliaryInfo.getTime());
-                Set<Integer> rowsSet = wildMap.get(0);
-                if (rowsSet == null) {
-                    rowsSet = new HashSet<>();
+                if (auxiliaryInfo.getHadesExchangeWildSet() != null && !auxiliaryInfo.getHadesExchangeWildSet().isEmpty()) {
+                    hadesExchangeWildSet = auxiliaryInfo.getHadesExchangeWildSet();
                 }
-                BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-                for (int i = 0; i < lib.getIconArr().length; i++) {
-                    if (i != 0 && i / baseInitCfg.getRows() == auxiliaryInfo.getColumn()) {
-                        rowsSet.add(i);
-                    }
-                }
-                wildMap.put(0, rowsSet);
-                wildMap.put(1, auxiliaryInfo.getHadesExchangeWildSet());
             }
         }
 
         lib.setVsTimes(vsTimes);
+
+        vsTimes.forEach((key, value) -> {
+            Set<Integer> rowsSet = wildMap.get(0);
+            if (rowsSet == null) {
+                rowsSet = new HashSet<>();
+            }
+            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+            for (int i = 0; i < lib.getIconArr().length; i++) {
+                if (i != 0 && i / baseInitCfg.getRows() == key) {
+                    if (i % baseInitCfg.getRows() == 0) {
+                        rowsSet.add(i + baseInitCfg.getRows());
+                    } else {
+                        rowsSet.add(i);
+                    }
+                }
+            }
+            wildMap.put(0, rowsSet);
+        });
+        Set<Integer> exchangeWildSet = wildMap.get(0);
+
+        while (!aDoesNotContainBStrict(hadesExchangeWildSet, exchangeWildSet)) {
+            hadesExchangeWildSet = setHadesWildIcon(lib.getIconArr(), vsTimes.keySet().iterator().next());
+        }
+
+        wildMap.put(1, hadesExchangeWildSet);
+
         lib.setReplaceWildIndexs(wildMap);
+
+        if (wildMap.isEmpty()) {
+            lib.setWildStatus(ZeusVsHadesConstant.WildStatus.NONE);
+        }
+        if (wildMap.get(1) == null || wildMap.get(1).isEmpty()) {
+            lib.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
+        } else {
+            lib.setWildStatus(ZeusVsHadesConstant.WildStatus.HADES);
+        }
     }
 
     public List<ZeusVsHadesAwardLineInfo> winLines(ZeusVsHadesResultLib lib, boolean freeModel) {
@@ -996,4 +1025,25 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
         return info;
     }
 
+    /**
+     * 判断集合a是否不包含集合b中的任何元素（更严格的版本）
+     * 要求a和b都不为空
+     *
+     * @param a 第一个集合
+     * @param b 第二个集合
+     * @return 如果a不包含b中的任何元素，返回true；否则返回false
+     */
+    public static boolean aDoesNotContainBStrict(Set<Integer> a, Set<Integer> b) {
+        if (a == null || b == null) {
+            return true;  // 遍历完所有元素都没有找到相同的
+        }
+
+        // 遍历b中的每个元素，检查是否在a中存在
+        for (Integer num : b) {
+            if (a.contains(num)) {
+                return false;  // 只要找到一个相同的元素，就返回false
+            }
+        }
+        return true;  // 遍历完所有元素都没有找到相同的
+    }
 }

@@ -12,7 +12,7 @@ import java.util.List;
  * @author lihaocao
  * @date 2025/12/2 17:48
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = ZeusVsHadesConstant.MsgBean.RES_CONFIG_INFO, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ZEUS_VS_HADES, cmd = ZeusVsHadesConstant.MsgBean.RES_CONFIG_INFO, resp = true)
 @ProtoDesc("返回配置信息")
 public class ResZeusVsHadesEnterGame extends AbstractResponse {
     @ProtoDesc("押注列表")
@@ -21,7 +21,7 @@ public class ResZeusVsHadesEnterGame extends AbstractResponse {
     public long defaultBet;
     @ProtoDesc("累计中奖金币")
     public long totalWinGold;
-    @ProtoDesc("当前状态 0.正常  1.免费")
+    @ProtoDesc("当前状态 0.正常   1.二选一  2.jackPool  3.宙斯   4.哈里斯")
     public int status;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;

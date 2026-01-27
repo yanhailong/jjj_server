@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.zeusVsHades.ZeusVsHadesConstant;
  * @author lihaocao
  * @date 2025/12/2 17:50
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = ZeusVsHadesConstant.MsgBean.REQ_POOL_INFO)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ZEUS_VS_HADES, cmd = ZeusVsHadesConstant.MsgBean.REQ_POOL_INFO)
 @ProtoDesc("请求奖池信息")
 public class ReqZeusVsHadesPoolInfo extends AbstractMessage {
     @ProtoDesc("下注金额")

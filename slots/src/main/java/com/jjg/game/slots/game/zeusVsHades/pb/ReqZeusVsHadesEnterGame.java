@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.zeusVsHades.ZeusVsHadesConstant;
  * @author lihaocao
  * @date 2025/12/2 17:43
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = ZeusVsHadesConstant.MsgBean.REQ_CONFIG_INFO)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ZEUS_VS_HADES, cmd = ZeusVsHadesConstant.MsgBean.REQ_CONFIG_INFO)
 @ProtoDesc("请求配置信息")
 public class ReqZeusVsHadesEnterGame extends AbstractMessage {
 }

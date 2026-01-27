@@ -4,6 +4,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
 import com.jjg.game.core.manager.BaseSendMessageManager;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
@@ -18,8 +19,7 @@ import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -115,11 +115,7 @@ public class ZeusVsHadesSendMessageManager extends BaseSendMessageManager {
                 res.totalWinGold = 0;
             }
             //下一次状态
-            if (res.remainFreeCount > 0) {
-                res.status = ZeusVsHadesConstant.Status.ZEUS;
-            } else {
-                res.status = ZeusVsHadesConstant.Status.NORMAL;
-            }
+            res.status = gameRunInfo.getData().getStatus();
             //大奖展示id
             res.bigWinShow = gameRunInfo.getBigShowId();
             //等级信息
@@ -127,6 +123,26 @@ public class ZeusVsHadesSendMessageManager extends BaseSendMessageManager {
             res.exp = playerController.getPlayer().getExp();
 
             ZeusVsHadesResultLib lib = (ZeusVsHadesResultLib) gameRunInfo.getResultLib();
+
+            Map<Integer, Integer> vsTimes = lib.getVsTimes();
+            List<KVInfo> wildColumnTimes = new ArrayList<>();
+            vsTimes.forEach((key, value) -> {
+                KVInfo kvInfo = new KVInfo();
+                kvInfo.key = key + 1;
+                kvInfo.value = value;
+                wildColumnTimes.add(kvInfo);
+            });
+            res.wildColumnTimes = wildColumnTimes;
+
+            Map<Integer, Set<Integer>> replaceWildIndexs = lib.getReplaceWildIndexs();
+            Set<Integer> set = replaceWildIndexs.get(1);
+            if(set != null && !set.isEmpty()){
+                res.hadesWildSet = set;
+            }else {
+                res.hadesWildSet = new HashSet<>();
+            }
+
+            res.wildStatus = lib.getWildStatus();
 
             res.rewardIconInfo = addRewardIcons(lib.getIconArr(), lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
 
