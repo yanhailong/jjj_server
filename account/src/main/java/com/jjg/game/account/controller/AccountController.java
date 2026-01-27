@@ -94,6 +94,53 @@ public class AccountController extends AbstractController {
         return success(vo);
     }
 
+//    @RequestMapping("loginConfig")
+//    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
+//        Map<Integer, LoginConfigData> map;
+//        if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
+//            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
+//        } else {
+//            map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
+//        }
+//
+//        List<ThirdLoginConfigVo> resultList = new ArrayList<>();
+//        //登录开关配置
+//        if (map != null && !map.isEmpty()) {
+//            map.forEach((k, v) -> {
+//                ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
+//                thirdLoginConfigVo.setType(v.getLoginType());
+//                thirdLoginConfigVo.setOpen(v.isLoginOpen());
+//                resultList.add(thirdLoginConfigVo);
+//            });
+//        }
+//        return success(resultList);
+//    }
+
+
+//    @RequestMapping("loginConfig")
+//    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
+//        Map<Integer, LoginConfigData> map;
+//        if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
+//            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
+//        } else {
+//            map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
+//        }
+//
+//        List<ThirdLoginConfigVo> resultList = new ArrayList<>();
+//        //登录开关配置
+//        if (map != null && !map.isEmpty()) {
+//            map.forEach((k, v) -> {
+//                ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
+//                thirdLoginConfigVo.setType(v.getLoginType());
+//                thirdLoginConfigVo.setOpen(v.isLoginOpen());
+//                resultList.add(thirdLoginConfigVo);
+//            });
+//        }
+//        return success(resultList);
+//    }
+
+
+
     /**
      * 游客登录
      *

@@ -157,8 +157,8 @@ public class GoogleCallbackController extends AbstractCallbackController {
         log.debug("收到一次性购买通知 notification = {}", oneTimeProductNotificationNode);
         String purchaseToken = oneTimeProductNotificationNode.get("purchaseToken").asText();
         String sku = oneTimeProductNotificationNode.get("sku").asText();
+        String notificationType = oneTimeProductNotificationNode.get("notificationType").asText();
         String packageName = jsonNode.get("packageName").asText();
-        String notificationType = jsonNode.get("notificationType").asText();
 
         JSONObject productInfoJson = getProductInfo(purchaseToken, packageName, sku);
         log.debug("商品信息 productInfoJson = {}", productInfoJson);
