@@ -37,7 +37,7 @@ import java.util.Set;
  * @author lm
  * @date 2025/12/8 17:24
  */
-public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlotsGameManager<TenFoldGoldenBullPlayerGameData, TenFoldGoldenBullResultLib> {
+public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlotsGameManager<TenFoldGoldenBullPlayerGameData, TenFoldGoldenBullResultLib, TenFoldGoldenBullGameRunInfo> {
     private final TenFoldGoldenBullGameGenerateManager gameGenerateManager;
     private final TenFoldGoldenBullGameDataDao gameDataDao;
     private final TenFoldGoldenBullResultLibDao TenFoldGoldenBullResultLibDao;
@@ -46,7 +46,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
 
     public AbstractTenFoldGoldenBullGameManager(TenFoldGoldenBullGameGenerateManager gameGenerateManager,
                                                 TenFoldGoldenBullGameDataDao gameDataDao, TenFoldGoldenBullResultLibDao TenFoldGoldenBullResultLibDao) {
-        super(TenFoldGoldenBullPlayerGameData.class, TenFoldGoldenBullResultLib.class);
+        super(TenFoldGoldenBullPlayerGameData.class, TenFoldGoldenBullResultLib.class, TenFoldGoldenBullGameRunInfo.class);
         this.gameGenerateManager = gameGenerateManager;
         this.gameDataDao = gameDataDao;
         this.TenFoldGoldenBullResultLibDao = TenFoldGoldenBullResultLibDao;
@@ -73,20 +73,6 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
         return gameRunInfo;
     }
 
-    /**
-     * 玩家开始游戏
-     *
-     */
-    public TenFoldGoldenBullGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        TenFoldGoldenBullPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new TenFoldGoldenBullGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
-    }
 
     @Override
     protected void onAutoExitAction(TenFoldGoldenBullPlayerGameData gameData, int eventId) {
@@ -125,6 +111,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
      * 开始游戏
      *
      */
+    @Override
     public TenFoldGoldenBullGameRunInfo startGame(PlayerController playerController, TenFoldGoldenBullPlayerGameData playerGameData, long betValue, boolean auto) {
         TenFoldGoldenBullGameRunInfo gameRunInfo = new TenFoldGoldenBullGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
@@ -231,14 +218,8 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
      * 普通正常流程
      *
      */
-    protected void normal(TenFoldGoldenBullGameRunInfo gameRunInfo, TenFoldGoldenBullPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<TenFoldGoldenBullResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, TenFoldGoldenBullConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return;
-        }
-        TenFoldGoldenBullResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
+    @Override
+    public TenFoldGoldenBullGameRunInfo normal(TenFoldGoldenBullGameRunInfo gameRunInfo, TenFoldGoldenBullPlayerGameData playerGameData, long betValue, TenFoldGoldenBullResultLib resultLib) {
         Set<Integer> typeSet = resultLib.getLibTypeSet();
         //检查是否触发假福牛
         if (gameGenerateManager.getModelRandom() != null) {
@@ -262,6 +243,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
             gameRunInfo.setResultLib(resultLib);
             gameRunInfo.setStake(betValue);
         }
+        return gameRunInfo;
     }
 
     /**
@@ -272,6 +254,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
      * @param
      * @return
      */
+    @Override
     public TenFoldGoldenBullGameRunInfo getPoolValue(PlayerController playerController, long stake) {
         TenFoldGoldenBullGameRunInfo gameRunInfo = new TenFoldGoldenBullGameRunInfo(Code.SUCCESS, playerController.playerId());
         try {

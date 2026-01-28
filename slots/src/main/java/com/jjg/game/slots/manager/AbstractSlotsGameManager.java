@@ -326,9 +326,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param betValue
      * @return
      */
-    protected G startGame(PlayerController playerController, T playerGameData, long betValue, boolean auto) {
-        return null;
-    }
+    protected abstract G startGame(PlayerController playerController, T playerGameData, long betValue, boolean auto);
 
 
     /**
@@ -357,9 +355,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         return gameRunInfo;
     }
 
-    protected G normal(G gameRunInfo, T playerGameData, long betValue, L resultLib) {
-        return gameRunInfo;
-    }
+    protected abstract G normal(G gameRunInfo, T playerGameData, long betValue, L resultLib);
 
     /**
      * 普通流程获取结果库

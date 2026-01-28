@@ -26,14 +26,14 @@ import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameManager<DemonChildPlayerGameData, DemonChildResultLib> {
+public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameManager<DemonChildPlayerGameData, DemonChildResultLib, DemonChildGameRunInfo> {
     protected final DemonChildGameGenerateManager gameGenerateManager;
     protected final DemonChildGameDataDao gameDataDao;
     protected final DemonChildResultLibDao demonChildResultLibDao;
 
     public AbstractDemonChildGameManager(DemonChildGameGenerateManager gameGenerateManager,
                                          DemonChildGameDataDao gameDataDao, DemonChildResultLibDao demonChildResultLibDao) {
-        super(DemonChildPlayerGameData.class, DemonChildResultLib.class);
+        super(DemonChildPlayerGameData.class, DemonChildResultLib.class, DemonChildGameRunInfo.class);
         this.gameGenerateManager = gameGenerateManager;
         this.gameDataDao = gameDataDao;
         this.demonChildResultLibDao = demonChildResultLibDao;
@@ -60,28 +60,12 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
         return gameRunInfo;
     }
 
-    /**
-     * 玩家开始游戏
-     *
-     */
-    public DemonChildGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        DemonChildPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new DemonChildGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        if (playerGameData.getStatus() == DemonChildConstant.Status.TREASURE_CHEST) {
-            return new DemonChildGameRunInfo(Code.ERROR_REQ, playerController.playerId());
-        }
-        return startGame(playerController, playerGameData, stake, false);
-    }
 
     /**
      * 开始游戏
      *
      */
+    @Override
     public DemonChildGameRunInfo startGame(PlayerController playerController, DemonChildPlayerGameData playerGameData, long betValue, boolean auto) {
         DemonChildGameRunInfo gameRunInfo = new DemonChildGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
@@ -141,15 +125,8 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
      * 普通正常流程
      *
      */
-    protected void normal(DemonChildGameRunInfo gameRunInfo, DemonChildPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<DemonChildResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, DemonChildConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return;
-        }
-        DemonChildResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected DemonChildGameRunInfo normal(DemonChildGameRunInfo gameRunInfo, DemonChildPlayerGameData playerGameData, long betValue, DemonChildResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(DemonChildConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(DemonChildConstant.Status.FREE);
@@ -172,6 +149,7 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
         gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setStatus(playerGameData.getStatus());
+        return gameRunInfo;
     }
 
     /**
@@ -224,6 +202,7 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
         }
         return list;
     }
+
     @Override
     public int getGameType() {
         return CoreConst.GameType.DEMON_CHILD;

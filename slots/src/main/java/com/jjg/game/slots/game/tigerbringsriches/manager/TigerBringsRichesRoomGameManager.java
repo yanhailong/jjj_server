@@ -3,8 +3,12 @@ package com.jjg.game.slots.game.tigerbringsriches.manager;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesGameDataDao;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesResultLibDao;
+import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesPlayerGameData;
+import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * @author lm
@@ -20,5 +24,10 @@ public class TigerBringsRichesRoomGameManager extends AbstractTigerBringsRichesG
     @Override
     public RoomType getRoomType() {
         return RoomType.SLOTS_TEAM_UP_ROOM;
+    }
+
+    @Override
+    protected List<Integer> checkLibPool(TigerBringsRichesResultLib resultLib, TigerBringsRichesPlayerGameData playerGameData) {
+        return List.of();
     }
 }

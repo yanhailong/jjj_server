@@ -2,9 +2,7 @@ package com.jjg.game.slots.game.cleopatra.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -14,9 +12,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.TestLibData;
-import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraGameDataDao;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraResultLibDao;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
@@ -129,36 +125,17 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
      * @return
      */
     @Override
-    protected CleopatraGameRunInfo normal(CleopatraGameRunInfo gameRunInfo, CleopatraPlayerGameData playerGameData, long betValue) {
-        //获取结果库
-        CommonResult<Pair<CleopatraResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, CleopatraConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-
-        CleopatraResultLib resultLib = libResult.data.getFirst();
-        if (resultLib == null) {
-            log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.playerId(), this.gameType, betValue);
-            gameRunInfo.setCode(Code.FAIL);
-            return gameRunInfo;
-        }
-
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    protected CleopatraGameRunInfo normal(CleopatraGameRunInfo gameRunInfo, CleopatraPlayerGameData playerGameData, long betValue, CleopatraResultLib resultLib) {
         PoolCfg poolCfg = null;
         //检查是否有奖池奖励
         if (resultLib.getJackpotIds() != null && !resultLib.getJackpotIds().isEmpty()) {
             //判断中奖概率
             int poolId = resultLib.firstJackpotId();
             poolCfg = GameDataManager.getPoolCfg(poolId);
-        } else {
-            poolCfg = null;
         }
-
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
 
-        if (resultLib.getJackpotIds() != null && !resultLib.getJackpotIds().isEmpty()) {
+        if (poolCfg != null) {
             for (int poolId : resultLib.getJackpotIds()) {
                 if (poolCfg.getId() == poolId && poolCfg.getTruePool() > 0) {
                     CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), poolCfg.getTruePool(), AddType.SLOTS_JACKPOT_REWARD);

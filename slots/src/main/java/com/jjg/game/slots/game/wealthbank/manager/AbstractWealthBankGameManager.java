@@ -348,7 +348,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
     public WealthBankGameRunInfo autoStartGame(WealthBankPlayerGameData playerGameData, long betValue) {
         log.debug("[Wealth Bank] 系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
 
-        return startGame(null,playerGameData, betValue, true);
+        return startGame(null, playerGameData, betValue, true);
     }
 
     /**
@@ -458,7 +458,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
         //检查与美元相关的逻辑
         gameRunInfo = checkDorllar(gameRunInfo, playerGameData, resultLib);
 //        //计算火车奖励
-        gameRunInfo = calTrainReward(playerGameData, resultLib, gameRunInfo);
+        calTrainReward(playerGameData, resultLib, gameRunInfo);
 
         //添加中奖线信息
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));

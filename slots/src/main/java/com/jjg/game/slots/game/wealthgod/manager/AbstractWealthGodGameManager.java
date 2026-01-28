@@ -80,6 +80,7 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
     /**
      * 开始游戏
      */
+    @Override
     public WealthGodGameRunInfo startGame(PlayerController playerController, WealthGodPlayerGameData playerGameData, long betValue, boolean auto) {
         WealthGodGameRunInfo gameRunInfo = new WealthGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
@@ -132,6 +133,12 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
             gameRunInfo.setCode(Code.EXCEPTION);
         }
         return gameRunInfo;
+    }
+
+
+    @Override
+    protected WealthGodGameRunInfo normal(WealthGodGameRunInfo gameRunInfo, WealthGodPlayerGameData playerGameData, long betValue, WealthGodResultLib resultLib) {
+        return new WealthGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
     }
 
     /**
@@ -245,6 +252,7 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
      *
      * @param playerController
      */
+    @Override
     public boolean addTestIconDataIcons(PlayerController playerController, String icons) {
         WealthGodPlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {

@@ -54,7 +54,7 @@ public class DemonChildMessageHandler {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
-            sendMessageManager.reqDemonChildEnterGame(playerController,gameRunInfo);
+            sendMessageManager.reqDemonChildEnterGame(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -70,9 +70,9 @@ public class DemonChildMessageHandler {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             DemonChildGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
-                gameRunInfo = gameManager.playerStartGame(playerController,req.stakeValue);
+                gameRunInfo = gameManager.playerStartGame(playerController, req.stakeValue);
             } else if (playerController.getScene() instanceof SlotsRoomController) {
-                gameRunInfo = roomGameManager.playerStartGame(playerController,req.stakeValue);
+                gameRunInfo = roomGameManager.playerStartGame(playerController, req.stakeValue);
             } else {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
@@ -82,6 +82,7 @@ public class DemonChildMessageHandler {
             log.error("", e);
         }
     }
+
     /**
      * 奖池
      *
@@ -93,9 +94,9 @@ public class DemonChildMessageHandler {
         try {
             DemonChildGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
-                gameRunInfo = gameManager.getPoolValue(DemonChildGameRunInfo.class,playerController,req.stakeValue);
+                gameRunInfo = gameManager.getPoolValue(playerController, req.stakeValue);
             } else if (playerController.getScene() instanceof SlotsRoomController) {
-                gameRunInfo = roomGameManager.getPoolValue(DemonChildGameRunInfo.class,playerController,req.stakeValue);
+                gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeValue);
             } else {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;

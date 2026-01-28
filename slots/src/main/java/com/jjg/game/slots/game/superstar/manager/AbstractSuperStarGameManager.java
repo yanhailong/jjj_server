@@ -73,6 +73,7 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
     /**
      * 开始游戏
      */
+    @Override
     public SuperStarGameRunInfo startGame(PlayerController playerController, SuperStarPlayerGameData playerGameData, long betValue, boolean auto) {
         SuperStarGameRunInfo gameRunInfo = new SuperStarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
