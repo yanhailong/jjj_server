@@ -53,7 +53,7 @@ public class TotalValidBetsCondition extends BaseRedisCondition<PlayerEffective>
 
     @Override
     public MatchResultData addProgress(ConditionContext ctx, PlayerEffective config) {
-        if (ctx.getEvent() instanceof BetEvent e && matchCheck(e, config)) {
+        if (ctx.event() instanceof BetEvent e && matchCheck(e, config)) {
             String customId = getCustomId(ctx);
             String featureId = getFeatureId(ctx);
             BigDecimal count = countDao.getCount(featureId, customId);

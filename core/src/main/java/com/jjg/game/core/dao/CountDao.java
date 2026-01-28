@@ -1,5 +1,8 @@
 package com.jjg.game.core.dao;
 
+import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.redis.PlayerKeyIndex;
 import com.jjg.game.core.utils.RedisUtils;
 import org.redisson.api.*;
 import org.redisson.client.codec.LongCodec;
@@ -56,14 +59,16 @@ public class CountDao {
             redis.call('EXPIRE', KEYS[1], ARGV[2])
             return 1
             """;
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final RedissonClient redissonClient;
     private final String TABLE_NAME = "count:%s:%s";
     private final String HASH_TABLE_NAME = "count:%s";
+    private final PlayerKeyIndex playerKeyIndex;
 
-    public CountDao(RedissonClient redissonClient) {
+    public CountDao(RedissonClient redissonClient, PlayerKeyIndex playerKeyIndex) {
         this.redissonClient = redissonClient;
+        this.playerKeyIndex = playerKeyIndex;
     }
 
     private String getKey(String featureId, String customId) {
@@ -84,6 +89,20 @@ public class CountDao {
     public void setCount(String featureId, String customId, BigDecimal count) {
         RAtomicLong atomicLong = redissonClient.getAtomicLong(getKey(featureId, customId));
         atomicLong.set(RedisUtils.toLong(count));
+    }
+
+    /**
+     * 设置计数（保留两位小数）
+     *
+     * @param featureId 功能ID
+     * @param customId  功能子ID
+     * @param count     计数
+     */
+    public void setCount(long playerId, String featureId, String customId, BigDecimal count) {
+        String key = getKey(featureId, customId);
+        RAtomicLong atomicLong = redissonClient.getAtomicLong(key);
+        atomicLong.set(RedisUtils.toLong(count));
+        playerKeyIndex.add(playerId, key);
     }
 
     /**
@@ -223,29 +242,64 @@ public class CountDao {
     }
 
     /**
+     * 原子自增（两位小数）
+     *
+     * @param featureId 功能ID
+     * @param customId  功能子ID
+     * @param delta     自增步数
+     * @return 自增后的值
+     */
+    public BigDecimal incrBy(long playerId, String featureId, String customId, BigDecimal delta) {
+        String key = getKey(featureId, customId);
+        long deltaLong = RedisUtils.toLong(delta);
+        long newVal = redissonClient.getAtomicLong(key).addAndGet(deltaLong);
+        playerKeyIndex.add(playerId, key);
+        return RedisUtils.fromLong(newVal);
+    }
+
+
+    /**
      * 原子批量自增（两位小数）
      *
      * @param customId
      * @param deltaMap
      * @return
      */
-    public Map<String, Long> incrBy(String customId, Map<String, Long> deltaMap) {
+    public Map<String, Long> incrBy(long playerId, String customId, Map<String, Long> deltaMap) {
+        Pair<Set<String>, Map<String, Long>> incrBy = incrBy(customId, deltaMap);
+        if (CollectionUtil.isEmpty(incrBy.getSecond())) {
+            return incrBy.getSecond();
+        }
+        if (CollectionUtil.isNotEmpty(incrBy.getFirst())) {
+            playerKeyIndex.addBatch(playerId, incrBy.getFirst());
+        }
+        return incrBy.getSecond();
+    }
+
+    /**
+     * 原子批量自增（两位小数）
+     *
+     * @param customId
+     * @param deltaMap
+     * @return key的set,保存结果
+     */
+    public Pair<Set<String>, Map<String, Long>> incrBy(String customId, Map<String, Long> deltaMap) {
         if (deltaMap == null || deltaMap.isEmpty()) {
-            return Collections.emptyMap();
+            return Pair.newPair(Set.of(), Map.of());
         }
         RBatch batch = redissonClient.createBatch();
 
         Map<String, RFuture<Long>> tmpMap = new HashMap<>();
+        Set<String> keySet = new HashSet<>(deltaMap.size());
         for (Map.Entry<String, Long> en : deltaMap.entrySet()) {
             String key = getKey(en.getKey(), customId);
-//            long deltaLong = RedisUtils.toLong(en.getValue());
             RFuture<Long> amountAsync = batch.getAtomicLong(key).addAndGetAsync(en.getValue());
+            keySet.add(key);
             tmpMap.put(en.getKey(), amountAsync);
         }
 
         //批量执行
         batch.execute();
-
         try {
             Map<String, Long> resMap = new HashMap<>(tmpMap.size());
             for (Map.Entry<String, RFuture<Long>> en : tmpMap.entrySet()) {
@@ -253,10 +307,10 @@ public class CountDao {
                 Long newAmount = amountAsync.get();
                 resMap.put(en.getKey(), newAmount);
             }
-            return resMap;
+            return Pair.newPair(keySet, resMap);
         } catch (Exception e) {
             log.debug("获取执行后结果异常");
-            return Collections.emptyMap();
+            return Pair.newPair(Set.of(), Map.of());
         }
     }
 
@@ -272,6 +326,17 @@ public class CountDao {
     }
 
     /**
+     * 自增1.00
+     *
+     * @param featureId 功能ID
+     * @param customId  功能子ID
+     * @return 自增后的值
+     */
+    public BigDecimal incr(long playerId, String featureId, String customId) {
+        return incrBy(playerId, featureId, customId, BigDecimal.ONE);
+    }
+
+    /**
      * 重置计数
      *
      * @param featureId 功能ID
@@ -279,6 +344,18 @@ public class CountDao {
      */
     public void reset(String featureId, String customId) {
         redissonClient.getAtomicLong(getKey(featureId, customId)).delete();
+    }
+
+    /**
+     * 重置计数
+     *
+     * @param featureId 功能ID
+     * @param customId  功能子ID
+     */
+    public void reset(long playerId, String featureId, String customId) {
+        String key = getKey(featureId, customId);
+        redissonClient.getAtomicLong(key).delete();
+        playerKeyIndex.remove(playerId, key);
     }
 
     /**
@@ -313,6 +390,15 @@ public class CountDao {
     public boolean setIfAbsent(String featureId, String customId, BigDecimal delta) {
         long deltaLong = RedisUtils.toLong(delta);
         return redissonClient.getAtomicLong(getKey(featureId, customId)).compareAndSet(0, deltaLong);
+    }
+
+
+    public boolean setIfAbsentHash(long playerId, String featureId, String customId) {
+        String hashKey = getHashKey(featureId);
+        RMap<String, Long> map = redissonClient.getMap(hashKey, LongCodec.INSTANCE);
+        boolean absent = map.fastPutIfAbsent(customId, 100L);
+        playerKeyIndex.addHash(playerId, hashKey, customId);
+        return absent;
     }
 
     public boolean setIfAbsentHash(String featureId, String customId) {
@@ -357,12 +443,12 @@ public class CountDao {
      * @param customId
      * @param value
      */
-    public Map<String, Object> incrRechargeInfo(String customId, BigDecimal value) {
+    public Map<String, Object> incrRechargeInfo(long playerId, String customId, BigDecimal value) {
         Map<String, Long> map = new HashMap<>();
 
         map.put(CountType.RECHARGE.getParam(), RedisUtils.toLong(value));
         map.put(CountType.RECHARGE_COUNT.getParam(), 1L);
-        Map<String, Long> tmpMap = incrBy(customId, map);
+        Map<String, Long> tmpMap = incrBy(playerId, customId, map);
         if (tmpMap == null || tmpMap.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -394,7 +480,8 @@ public class CountDao {
         //玩家计数
         PLAYER_COUNT("player:%s"),
         //系统参数
-        SYSTEM("system"),;
+        SYSTEM("system"),
+        ;
         private final String param;
 
         CountType(String param) {

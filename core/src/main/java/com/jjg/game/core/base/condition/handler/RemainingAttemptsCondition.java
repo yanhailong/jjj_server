@@ -53,7 +53,7 @@ public class RemainingAttemptsCondition extends BaseRedisCondition<RemainingAtte
 
     @Override
     public MatchResultData addProgress(ConditionContext ctx, RemainingAttempts config) {
-        if (ctx.getEvent() instanceof RemainingAttemptsEvent event && matchCheck(event, config)) {
+        if (ctx.event() instanceof RemainingAttemptsEvent event && matchCheck(event, config)) {
             String customId = getCustomId(ctx);
             String featureId = getFeatureId(ctx);
             BigDecimal count = countDao.getCount(featureId, customId);

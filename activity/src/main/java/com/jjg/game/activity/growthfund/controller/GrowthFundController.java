@@ -70,7 +70,7 @@ public class GrowthFundController extends BaseActivityController implements Game
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         long playerId = player.getId();
         long activityId = activityData.getId();
-        BigDecimal decimal = countDao.incr(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(activityId), String.valueOf(playerId));
+        BigDecimal decimal = countDao.incr(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(activityId), String.valueOf(playerId));
         if (decimal.intValue() > 1) {
             log.error("玩家已经购买过成长基金 playerId:{} activityId:{}", playerId, activityId);
             return new ResGrowthFundBuyResultInfo(Code.REPEAT_OP);

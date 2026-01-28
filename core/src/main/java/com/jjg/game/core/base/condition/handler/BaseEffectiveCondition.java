@@ -1,7 +1,6 @@
 package com.jjg.game.core.base.condition.handler;
 
 import com.jjg.game.core.base.condition.ConditionContext;
-import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.base.condition.MatchResult;
 import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.data.PlayerEffective;
@@ -32,7 +31,7 @@ public abstract class BaseEffectiveCondition extends BaseRedisCondition<PlayerEf
     }
 
     public MatchResultData baseMatch(ConditionContext ctx, PlayerEffective config) {
-        Object event = ctx.getEvent();
+        Object event = ctx.event();
         if (event instanceof BetEvent e && matchCheck(e, config)) {
             String featureId = getFeatureId(ctx);
             String customId = getCustomId(ctx);
@@ -40,7 +39,7 @@ public abstract class BaseEffectiveCondition extends BaseRedisCondition<PlayerEf
             BigDecimal totalCount = count.add(BigDecimal.valueOf(e.getBetAmount()));
             BigDecimal times = totalCount.divide(BigDecimal.valueOf(config.achievedProcess()), RoundingMode.DOWN);
             if (times.compareTo(BigDecimal.ONE) >= 0) {
-                countDao.incrBy(featureId, customId, totalCount.subtract(times.multiply(BigDecimal.valueOf(config.achievedProcess()))));
+                countDao.incrBy(ctx.player().getId(), featureId, customId, totalCount.subtract(times.multiply(BigDecimal.valueOf(config.achievedProcess()))));
                 return new MatchResultData(MatchResult.MATCH, times.intValue(), Code.SUCCESS, BigDecimal.valueOf(config.achievedProcess()), BigDecimal.valueOf(totalCount.longValue()));
             }
             return MatchResultData.notMatch(getErrorCode());

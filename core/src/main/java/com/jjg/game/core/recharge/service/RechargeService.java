@@ -108,7 +108,7 @@ public class RechargeService {
                 param.setAddValue(order.getPrice().multiply(BigDecimal.valueOf(100)).longValue());
                 return param;
             };
-            Map<String, Object> resMap = countDao.incrRechargeInfo(String.valueOf(player.getId()), order.getPrice());
+            Map<String, Object> resMap = countDao.incrRechargeInfo(player.getId(), String.valueOf(player.getId()), order.getPrice());
             //单笔充值任务
             taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
             //累计充值任务

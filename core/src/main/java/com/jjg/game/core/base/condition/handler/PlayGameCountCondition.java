@@ -1,11 +1,9 @@
 package com.jjg.game.core.base.condition.handler;
 
 import com.jjg.game.core.base.condition.ConditionContext;
-import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.data.PlayerBet;
 import com.jjg.game.core.base.condition.event.BetEvent;
-import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
@@ -55,7 +53,7 @@ public class PlayGameCountCondition extends BaseRedisCondition<PlayerBet> {
 
     @Override
     public MatchResultData addProgress(ConditionContext ctx, PlayerBet config) {
-        if (ctx.getEvent() instanceof BetEvent e && matchCheck(e, config)) {
+        if (ctx.event() instanceof BetEvent e && matchCheck(e, config)) {
             String featureId = getFeatureId(ctx);
             String customId = getCustomId(ctx);
             BigDecimal count = countDao.getCount(featureId, customId);
@@ -63,7 +61,7 @@ public class PlayGameCountCondition extends BaseRedisCondition<PlayerBet> {
                 return MatchResultData.match();
             }
             if (e.getBetAmount() >= config.achievedProcess()) {
-                BigDecimal add = countDao.incrBy(featureId, customId, BigDecimal.valueOf(1));
+                BigDecimal add = countDao.incrBy(ctx.player().getId(), featureId, customId, BigDecimal.valueOf(1));
                 if (add.intValue() >= config.times()) {
                     return MatchResultData.match();
                 }

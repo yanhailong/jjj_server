@@ -19,18 +19,18 @@ public abstract class BaseRedisCondition<C> implements ConditionHandler<C> {
 
     @Override
     public void delete(ConditionContext ctx, C config) {
-        countDao.reset(getFeatureId(ctx), getCustomId(ctx));
+        countDao.reset(ctx.player().getId(), getFeatureId(ctx), getCustomId(ctx));
     }
 
     public String getCustomId(ConditionContext ctx) {
-        return String.valueOf(ctx.getPlayer().getId());
+        return String.valueOf(ctx.player().getId());
     }
 
     public String getFeatureId(ConditionContext ctx) {
-        return type() + ctx.getPrefix();
+        return type() + ctx.prefix();
     }
 
-    public void addBaseProgress(long playerId, BigDecimal addValue){
+    public void addBaseProgress(long playerId, BigDecimal addValue) {
 
     }
 }

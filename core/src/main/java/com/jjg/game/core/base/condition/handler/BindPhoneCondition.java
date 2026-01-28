@@ -46,7 +46,7 @@ public class BindPhoneCondition implements ConditionHandler<Integer> {
 
     @Override
     public MatchResultData match(ConditionContext ctx, Integer config) {
-        Account account = accountDao.queryAccountByPlayerId(ctx.getPlayer().getId());
+        Account account = accountDao.queryAccountByPlayerId(ctx.player().getId());
         if (account == null) {
             return MatchResultData.notMatch(Code.SUCCESS);
         }

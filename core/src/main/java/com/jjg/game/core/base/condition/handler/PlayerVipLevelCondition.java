@@ -3,7 +3,6 @@ package com.jjg.game.core.base.condition.handler;
 import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.base.condition.MatchResultData;
-import com.jjg.game.core.constant.Code;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
 import org.springframework.stereotype.Component;
@@ -30,8 +29,8 @@ public class PlayerVipLevelCondition implements ConditionHandler<Integer> {
 
     @Override
     public MatchResultData match(ConditionContext ctx, Integer level) {
-        boolean b = ctx.getPlayer().getVipLevel() >= level;
-        return b ? MatchResultData.match() : MatchResultData.notMatch(getErrorCode(), level, ctx.getPlayer().getVipLevel());
+        boolean b = ctx.player().getVipLevel() >= level;
+        return b ? MatchResultData.match() : MatchResultData.notMatch(getErrorCode(), level, ctx.player().getVipLevel());
     }
 
     @Override

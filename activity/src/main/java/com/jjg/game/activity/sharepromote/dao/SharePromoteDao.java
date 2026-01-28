@@ -3,6 +3,8 @@ package com.jjg.game.activity.sharepromote.dao;
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.sharepromote.data.SharePromotePlayerData;
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.redis.PlayerKeyIndex;
+import com.jjg.game.common.redis.PlayerRedis;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.sampledata.GameDataManager;
@@ -51,7 +53,8 @@ public class SharePromoteDao {
     // Redis 模板
     private final RedisTemplate<String, String> redisTemplate;
     private final RedisTemplate<String, SharePromotePlayerData> playerDataRedisTemplate;
-
+    private final PlayerRedis playerRedis;
+    private final PlayerKeyIndex index;
     // Redis Key 模板
     private final String SHARE_PROMOTE_BIND_KEY = "activity:sharepromote:bind:%s";                  // source -> targets
     private final String SHARE_PROMOTE_ALREADY_BIND_KEY = "activity:sharepromote:alreadybind:%s";  // 被绑定玩家
@@ -65,9 +68,12 @@ public class SharePromoteDao {
     private final String SHARE_PROMOTE_ERROR_CODE_TIME = "activity:sharepromote:errorcodetime:%d";                    // 玩家邀请码输入错误下次能输入时间
     private final String SHARE_PROMOTE_URL_PREFIX = "activity:sharepromote:urlprefix";                    // 分享链接前缀
 
-    public SharePromoteDao(RedisTemplate<String, String> redisTemplate, RedisTemplate<String, SharePromotePlayerData> playerDataRedisTemplate) {
+    public SharePromoteDao(RedisTemplate<String, String> redisTemplate, RedisTemplate<String, SharePromotePlayerData> playerDataRedisTemplate,
+                           PlayerRedis playerRedis, PlayerKeyIndex index) {
         this.redisTemplate = redisTemplate;
         this.playerDataRedisTemplate = playerDataRedisTemplate;
+        this.playerRedis = playerRedis;
+        this.index = index;
     }
 
     /**
@@ -127,7 +133,7 @@ public class SharePromoteDao {
         if (addValue <= 0) return;
         // 历史总收入
         String historyKey = SHARE_PROMOTE_REWARDS_HISTORY_INCOME.formatted(playerId);
-        redisTemplate.opsForValue().increment(historyKey, addValue);
+        playerRedis.incr(playerId, historyKey, addValue);
         // 当日收入
         String dailyKey = String.format("activity:sharepromote:income:%s:%d",
                 LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE), playerId);
@@ -145,7 +151,7 @@ public class SharePromoteDao {
     public void addPlayerIncome(long sourcePlayerId, long beneficiaryPlayerId, long addValue) {
         // 可领取总收入
         String key = SHARE_PROMOTE_REWARDS_INCOME.formatted(beneficiaryPlayerId);
-        redisTemplate.opsForValue().increment(key, addValue);
+        playerRedis.incr(beneficiaryPlayerId, key, addValue);
 
         String incomeKey = SHARE_PROMOTE_REWARDS_INCOME_RANK.formatted(beneficiaryPlayerId);
         // 来源排行榜
@@ -378,6 +384,7 @@ public class SharePromoteDao {
     public void savePlayerInfoData(long playerId, SharePromotePlayerData data) {
         String key = SHARE_PROMOTE_PLAYER_INFO.formatted(playerId);
         playerDataRedisTemplate.opsForValue().set(key, data);
+        index.add(playerId, key);
     }
 
     /**

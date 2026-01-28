@@ -2,6 +2,7 @@ package com.jjg.game.activity.cashcow.dao;
 
 import com.jjg.game.activity.cashcow.data.CashCowRecordData;
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.redis.PlayerRedis;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import org.slf4j.Logger;
@@ -63,6 +64,8 @@ public class CashCowDao {
      * 长整型/字符串数据存储，key->String，value->String
      */
     private final RedisTemplate<String, String> longRedisTemplate;
+
+    private final PlayerRedis playerRedis;
     /**
      * Redis 分布式锁，保证并发安全
      */
@@ -78,9 +81,10 @@ public class CashCowDao {
     private final String PLAYER_FREE_LOCK_KEY = "activity:cashcow:freelock:%d:%d"; // 玩家免费奖励锁 key
 
 
-    public CashCowDao(RedisTemplate<String, CashCowRecordData> recordRedisTemplate, RedisTemplate<String, String> longRedisTemplate, RedisLock lock) {
+    public CashCowDao(RedisTemplate<String, CashCowRecordData> recordRedisTemplate, RedisTemplate<String, String> longRedisTemplate, PlayerRedis playerRedis, RedisLock lock) {
         this.recordRedisTemplate = recordRedisTemplate;
         this.longRedisTemplate = longRedisTemplate;
+        this.playerRedis = playerRedis;
         this.lock = lock;
     }
 
@@ -116,7 +120,7 @@ public class CashCowDao {
      * 存储当前时间戳（通过业务逻辑判断 inSameDay）。
      */
     public void addFreeRewardsCount(long playerId, long activityId) {
-        longRedisTemplate.opsForHash().put(PLAYER_FREE_KEY.formatted(activityId), String.valueOf(playerId), String.valueOf(TimeHelper.getCurrentDateZeroMilliTime()));
+        playerRedis.hset(playerId, PLAYER_FREE_KEY.formatted(activityId), String.valueOf(playerId), String.valueOf(TimeHelper.getCurrentDateZeroMilliTime()));
     }
 
 
@@ -143,7 +147,7 @@ public class CashCowDao {
      */
     public long addPlayerActivityProgress(long playerId, long activityId, long addValue) {
         String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, activityId);
-        return longRedisTemplate.opsForHash().increment(playerProgressKey, String.valueOf(playerId), addValue);
+        return playerRedis.hincr(playerId, playerProgressKey, String.valueOf(playerId), addValue);
     }
 
     /**
@@ -152,7 +156,7 @@ public class CashCowDao {
      */
     public void delPlayerActivityProgress(long playerId, long activityId) {
         String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, activityId);
-        longRedisTemplate.opsForHash().delete(playerProgressKey, String.valueOf(playerId));
+        playerRedis.hdelete(playerId, playerProgressKey, String.valueOf(playerId));
     }
 
 

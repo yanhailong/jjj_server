@@ -104,7 +104,7 @@ public class DailyRechargeController extends BaseActivityController implements G
     /**
      * 构建每日充值活动详情
      *
-     * @param player   玩家数据
+     * @param player       玩家数据
      * @param activityData 活动ID
      * @param baseCfgBean  活动配置
      * @param data         玩家特权卡数据
@@ -240,9 +240,10 @@ public class DailyRechargeController extends BaseActivityController implements G
 
     /**
      * 购买礼包后出发进度奖励
-     * @param playerId 玩家id
+     *
+     * @param playerId     玩家id
      * @param activityData 活动数据
-     * @param canGetCfg 能触发的活动配置
+     * @param canGetCfg    能触发的活动配置
      * @return 触发的详细信息
      */
     private List<Pair<PlayerActivityData, DailyRechargeCfg>> getCanTargetDetailInfo(long playerId, ActivityData activityData, List<DailyRechargeCfg> canGetCfg) {
@@ -285,7 +286,7 @@ public class DailyRechargeController extends BaseActivityController implements G
     @Override
     public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
         //清除数据
-        countDao.reset(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(DAILY_RECHARGE), String.valueOf(playerId));
+        countDao.reset(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(DAILY_RECHARGE), String.valueOf(playerId));
         dailyRechargeDao.delete(playerId, activityData.getId());
         Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
         if (CollectionUtil.isEmpty(playerActivityData)) {
