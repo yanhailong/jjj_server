@@ -363,6 +363,8 @@ public class SlotsRoomManager implements HallRoomBridge {
             List<Item> returnItems = List.of(new Item(warehouseCfg.getTransactionItemId(), poolRaminValue));
             Mail mail = mailService.addCfgMail(room.getCreator(), 35, returnItems, params);
             slotsLogger.roomDisband(room, mail.getId(), returnItems);
+        } else {
+            slotsLogger.roomDisband(room, 0, List.of());
         }
         log.info("房间已销毁 roomId = {},roomCreator = {},poolRaminValue = {}", room.getId(), room.getCreator(), poolRaminValue);
     }
