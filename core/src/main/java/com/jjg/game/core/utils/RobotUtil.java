@@ -56,7 +56,7 @@ public class RobotUtil {
         robotPlayer.setHeadFrameId(robotCfg.getFrame());
         robotPlayer.setNationalId(robotCfg.getFlag());
         robotPlayer.setHeadImgId(robotCfg.getPicture());
-        robotPlayer.setNickName("player" + robotPlayer.getId());
+        robotPlayer.setNickName(robotCfg.getNameId());
         return robotPlayer;
     }
 

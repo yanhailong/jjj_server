@@ -81,15 +81,11 @@ public class GMController extends AbstractController {
     @Autowired
     private PlayerSessionService playerSessionService;
     @Autowired
-    private ClusterSystem clusterSystem;
-    @Autowired
     private OnlinePlayerDao onlinePlayerDao;
     @Autowired
     private CarouselService carouselService;
     @Autowired
     private ShopProductDao shopProductDao;
-    @Autowired
-    private NodeManager nodeManager;
     @Autowired
     private BlackListService blackListService;
     @Autowired
@@ -108,16 +104,16 @@ public class GMController extends AbstractController {
     private NoticeDao noticeDao;
     @Autowired
     private SharePromoteDao sharePromoteDao;
-    @ClusterRpcReference()
-    private GmToRechargeBridge gmToRechargeBridge;
     @Autowired
     private OrderService orderService;
     @Autowired
     private CommonDao commonDao;
-    @ClusterRpcReference
-    private GmToHallBridge gmToHallBridge;
     @Autowired
     private SmsService smsService;
+    @ClusterRpcReference()
+    private GmToRechargeBridge gmToRechargeBridge;
+    @ClusterRpcReference
+    private GmToHallBridge gmToHallBridge;
     @ClusterRpcReference
     private GmToAllBridge gmToAllBridge;
 
@@ -855,9 +851,7 @@ public class GMController extends AbstractController {
     public WebResult<String> syncCarousel(@RequestBody CarouselSyncDto param) {
         log.info("收到同步轮播数据请求carouselDtoList={}", param);
         try {
-            if (param.list() != null && !param.list().isEmpty()) {
-                carouselService.sync(param.list());
-            }
+            carouselService.sync(param.list());
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);
@@ -890,10 +884,29 @@ public class GMController extends AbstractController {
             }
 
             NotifyGenrateLib notify = new NotifyGenrateLib();
-            KVInfo kvInfo = new KVInfo();
-            kvInfo.key = param.gameType();
-            kvInfo.value = param.count();
-            notify.list = List.of(kvInfo);
+            //兼容批量传入生成需求
+            notify.list = new ArrayList<>();
+
+            if (param.gameType() > 0 && param.count() > 0) {
+                KVInfo kvInfo = new KVInfo();
+                kvInfo.key = param.gameType();
+                kvInfo.value = param.count();
+                notify.list.add(kvInfo);
+            }
+
+            if (param.list() != null && !param.list().isEmpty()) {
+                for (GenerateLibCfgDto d : param.list()) {
+                    KVInfo tmpInfo = new KVInfo();
+                    tmpInfo.key = d.gameType();
+                    tmpInfo.value = d.count();
+                    notify.list.add(tmpInfo);
+                }
+            }
+
+            if (notify.list.isEmpty()) {
+                log.warn("没有可生成的结果库 param = {}",param);
+                return fail("common.fail");
+            }
 
             PFMessage pfMessage = MessageUtil.getPFMessage(notify);
             ClusterMessage msg = new ClusterMessage(pfMessage);
@@ -1139,16 +1152,41 @@ public class GMController extends AbstractController {
         log.info("收到更新登录配置的请求 dto = {}", dto);
 
         try {
-            LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(c -> c.getType() == dto.loginType()).findFirst().orElse(null);
-            if (loginConfigCfg == null) {
-                log.debug("修改登录配置失败,未找到对应的配置文件 dto = {}", dto);
+            if (dto.list() == null || dto.list().isEmpty()) {
+                log.warn("登录配置列表不能为空 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
-            loginConfigService.save(dto.loginType(), dto.open());
+            ChannelType channelType = ChannelType.valueOf(dto.channel());
+            if (channelType == null) {
+                log.warn("渠道参数错误，设置登录配置失败 dto = {}", dto);
+                return fail("common.paramerror");
+            }
 
-            PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyLoadLoginConfig());
+            for (ChannelLoginOpenDto d : dto.list()) {
+                LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(c -> c.getType() == d.loginType()).findFirst().orElse(null);
+                if (loginConfigCfg == null) {
+                    log.debug("修改登录配置失败,未找到对应的配置文件 dto = {},loginType = {}", dto, d.loginType());
+                    return fail("common.paramerror");
+                }
+            }
+
+            Map<Integer, LoginConfigData> map = new HashMap<>();
+            for (ChannelLoginOpenDto dl : dto.list()) {
+                LoginConfigData data = new LoginConfigData();
+                data.setLoginType(dl.loginType());
+                data.setLoginOpen(dl.loginOpen() == 1);
+                data.setRewardOpen(dl.rewardOpen() == 1);
+                map.put(data.getLoginType(), data);
+            }
+
+            loginConfigService.save(channelType.getValue(), map);
+
+            NotifyLoadLoginConfig notify = new NotifyLoadLoginConfig();
+            notify.channel = dto.channel();
+            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
             clusterSystem.notifyNode(pfMessage, Set.of(NodeType.ACCOUNT.toString(), NodeType.HALL.toString())::contains);
+            log.info("更新登录配置成功 dto = {}", dto);
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);
@@ -1319,7 +1357,7 @@ public class GMController extends AbstractController {
     public WebResult<String> backendRecharge(@RequestBody BackendRechargeDto dto) {
         log.info("收到后台充值 dto = {}", dto);
         try {
-            if (StringUtils.isBlank(dto.channelOrderId()) || dto.price() < 1 || dto.playerId() < 1 || dto.items() == null || dto.items().isEmpty()) {
+            if (StringUtils.isBlank(dto.channelOrderId()) || StringUtils.isEmpty(dto.price()) || dto.playerId() < 1 || dto.items() == null || dto.items().isEmpty()) {
                 log.warn("参数错误 dto = {}", dto);
                 return fail("common.paramerror");
             }
@@ -1370,7 +1408,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            BigDecimal price = BigDecimal.valueOf(dto.price());
+            BigDecimal price = new BigDecimal(dto.price());
             Order order = orderService.generateOrder("htcz", player.getId(), price, rechargeType, items);
             if (order == null) {
                 log.warn("后台充值时，生成订单失败 dto = {}", dto);
@@ -1405,6 +1443,8 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
             commonDao.setValue(dto.type(), dto.url());
+            //通知节点
+            commonChangeNotify(ReloadType.COMMON_CONFIG);
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);
@@ -1510,19 +1550,8 @@ public class GMController extends AbstractController {
         log.info("收到保存sms配置的消息 dto = {}", dto);
         try {
             smsService.save(dto.list());
-            List<ClusterClient> nodes = clusterSystem.getNodes(Set.of(NodeType.HALL.toString(), NodeType.ACCOUNT.toString()));
-            if (nodes != null && !nodes.isEmpty()) {
-                nodes.forEach(node -> {
-                    GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(node).setTryMillisPerClient(1000));
-
-                    int code = gmToAllBridge.reload(ReloadType.SMS_CONFIG.getValue());
-                    if (code == Code.SUCCESS) {
-                        log.info("通知节点重新加载sms配置成功 nodePath = {}", node.marsNode.getNodePath());
-                    } else {
-                        log.info("通知节点重新加载sms配置失败 nodePath = {}", node.marsNode.getNodePath());
-                    }
-                });
-            }
+            //通知节点
+            commonChangeNotify(ReloadType.SMS_CONFIG);
             smsService.reloadConfig();
             return success("common.success");
         } catch (Exception e) {
@@ -1772,6 +1801,31 @@ public class GMController extends AbstractController {
                 vo.setWhiteIdList(Arrays.stream(node.getNodeConfig().getWhiteIdList()).toList());
             }
             nodeList.add(vo);
+        }
+    }
+
+    /**
+     * common配置变化，需要更新到节点
+     *
+     * @param reloadType
+     */
+    protected void commonChangeNotify(ReloadType reloadType) {
+        List<ClusterClient> nodes = clusterSystem.getNodes(Set.of(NodeType.HALL.toString(), NodeType.ACCOUNT.toString()));
+        if (nodes != null && !nodes.isEmpty()) {
+            nodes.forEach(node -> {
+                GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(node).setTryMillisPerClient(1000));
+
+                try {
+                    int code = gmToAllBridge.reload(reloadType.getValue());
+                    if (code == Code.SUCCESS) {
+                        log.info("通知节点重新加载common配置成功 reloadType = {}，nodePath = {}", reloadType, node.marsNode.getNodePath());
+                    } else {
+                        log.info("通知节点重新加载common配置失败 reloadType = {}，nodePath = {}", reloadType, node.marsNode.getNodePath());
+                    }
+                } catch (Exception e) {
+                    log.error("通知节点重新加载common配置异常 reloadType = {}，nodePath = {}", reloadType, node.marsNode.getNodePath(), e);
+                }
+            });
         }
     }
 }

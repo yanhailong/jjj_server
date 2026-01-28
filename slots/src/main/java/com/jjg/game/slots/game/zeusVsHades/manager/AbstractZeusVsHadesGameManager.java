@@ -30,7 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<ZeusVsHadesPlayerGameData, ZeusVsHadesResultLib> {
+public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<ZeusVsHadesPlayerGameData, ZeusVsHadesResultLib, ZeusVsHadesGameRunInfo> {
     @Autowired
     private ZeusVsHadesResultLibDao libDao;
     @Autowired
@@ -43,7 +43,7 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
     private ZeusVsHadesGameDataDao gameDataDao;
 
     public AbstractZeusVsHadesGameManager() {
-        super(ZeusVsHadesPlayerGameData.class, ZeusVsHadesResultLib.class);
+        super(ZeusVsHadesPlayerGameData.class, ZeusVsHadesResultLib.class, ZeusVsHadesGameRunInfo.class);
         this.log = LoggerFactory.getLogger(getClass());
     }
 
@@ -73,37 +73,20 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
     }
 
     /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public ZeusVsHadesGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        ZeusVsHadesPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new ZeusVsHadesGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerGameData, stake, false);
-    }
-
-    /**
      * 开始游戏
      *
      * @param playerGameData
      * @param auto
      * @return
      */
-    public ZeusVsHadesGameRunInfo startGame(ZeusVsHadesPlayerGameData playerGameData, long betValue, boolean auto) {
+    @Override
+    public ZeusVsHadesGameRunInfo startGame(PlayerController playerController, ZeusVsHadesPlayerGameData playerGameData, long betValue, boolean auto) {
         ZeusVsHadesGameRunInfo gameRunInfo = new ZeusVsHadesGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
+            playerController.setPlayer(player);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(player.getRoomCfgId());
 
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
@@ -161,15 +144,8 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
      * @param betValue
      * @return
      */
-    public ZeusVsHadesGameRunInfo normal(ZeusVsHadesGameRunInfo gameRunInfo, ZeusVsHadesPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<ZeusVsHadesResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, ZeusVsHadesConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        ZeusVsHadesResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    public ZeusVsHadesGameRunInfo normal(ZeusVsHadesGameRunInfo gameRunInfo, ZeusVsHadesPlayerGameData playerGameData, long betValue, ZeusVsHadesResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.ZEUS)) {  //是否会触发免费
             playerGameData.setStatus(ZeusVsHadesConstant.Status.ZEUS);
@@ -357,6 +333,6 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
      */
     public ZeusVsHadesGameRunInfo autoStartGame(ZeusVsHadesPlayerGameData playerGameData, long betValue) {
         log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
-        return startGame(playerGameData, betValue, true);
+        return startGame(new PlayerController(null, null), playerGameData, betValue, true);
     }
 }

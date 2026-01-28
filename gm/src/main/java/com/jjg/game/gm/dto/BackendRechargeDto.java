@@ -5,7 +5,7 @@ import java.util.List;
 public record BackendRechargeDto(
         long playerId,
         String channelOrderId,
-        long price,
+        String price,
         List<ItemDto> items,
         int rechargeType
 ) {

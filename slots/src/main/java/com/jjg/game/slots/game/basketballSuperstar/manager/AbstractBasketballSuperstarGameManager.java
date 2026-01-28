@@ -3,7 +3,6 @@ package com.jjg.game.slots.game.basketballSuperstar.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -12,7 +11,6 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.basketballSuperstar.dao.BasketballSuperstarGameDataDao;
@@ -28,20 +26,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlotsGameManager<BasketballSuperstarPlayerGameData, BasketballSuperstarResultLib> {
+public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlotsGameManager<BasketballSuperstarPlayerGameData, BasketballSuperstarResultLib, BasketballSuperstarGameRunInfo> {
     @Autowired
     private BasketballSuperstarResultLibDao libDao;
     @Autowired
     private BasketballSuperstarGenerateManager generateManager;
     @Autowired
-    private SlotsPoolDao slotsPoolDao;
-    @Autowired
-    private SlotsLogger logger;
-    @Autowired
     private BasketballSuperstarGameDataDao gameDataDao;
 
     public AbstractBasketballSuperstarGameManager() {
-        super(BasketballSuperstarPlayerGameData.class, BasketballSuperstarResultLib.class);
+        super(BasketballSuperstarPlayerGameData.class, BasketballSuperstarResultLib.class, BasketballSuperstarGameRunInfo.class);
     }
 
     @Override
@@ -65,32 +59,14 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
     }
 
     /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public BasketballSuperstarGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        BasketballSuperstarPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new BasketballSuperstarGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame( playerGameData, stake, false);
-    }
-
-    /**
      * 开始游戏
      *
      * @param playerGameData
      * @param auto
      * @return
      */
-    public BasketballSuperstarGameRunInfo startGame( BasketballSuperstarPlayerGameData playerGameData, long betValue, boolean auto) {
+    @Override
+    public BasketballSuperstarGameRunInfo startGame(PlayerController playerController,BasketballSuperstarPlayerGameData playerGameData, long betValue, boolean auto) {
         BasketballSuperstarGameRunInfo gameRunInfo = new BasketballSuperstarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
@@ -145,23 +121,8 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
         return gameRunInfo;
     }
 
-    /**
-     * 普通正常流程
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param betValue
-     * @return
-     */
-    public BasketballSuperstarGameRunInfo normal(BasketballSuperstarGameRunInfo gameRunInfo, BasketballSuperstarPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<BasketballSuperstarResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, BasketballSuperstarConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        BasketballSuperstarResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected BasketballSuperstarGameRunInfo normal(BasketballSuperstarGameRunInfo gameRunInfo, BasketballSuperstarPlayerGameData playerGameData, long betValue, BasketballSuperstarResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(BasketballSuperstarConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(BasketballSuperstarConstant.Status.FREE);
@@ -193,7 +154,7 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
 
         //检查是否中大奖
-        rewardFromSmallPool(gameRunInfo,playerGameData,resultLib.getJackpotIds());
+        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
@@ -290,7 +251,6 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
     }
 
 
-
     @Override
     protected void onAutoExitAction(BasketballSuperstarPlayerGameData playerGameData, int eventId) {
         //检查当前是否处于特殊模式
@@ -311,6 +271,6 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
      */
     public BasketballSuperstarGameRunInfo autoStartGame(BasketballSuperstarPlayerGameData playerGameData, long betValue) {
         log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
-        return startGame(playerGameData, betValue, true);
+        return startGame(null,playerGameData, betValue, true);
     }
 }

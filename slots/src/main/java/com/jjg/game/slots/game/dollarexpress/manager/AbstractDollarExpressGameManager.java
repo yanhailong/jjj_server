@@ -2,9 +2,7 @@ package com.jjg.game.slots.game.dollarexpress.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -13,7 +11,9 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.data.*;
+import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
+import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressGameDataDao;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressResultLibDao;
@@ -22,12 +22,11 @@ import com.jjg.game.slots.game.dollarexpress.pb.DollarsInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResultLineInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.TrainInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
 
-public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGameManager<DollarExpressPlayerGameData, DollarExpressResultLib> {
+public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGameManager<DollarExpressPlayerGameData, DollarExpressResultLib, DollarExpressGameRunInfo> {
     @Autowired
     protected DollarExpressResultLibDao libDao;
     @Autowired
@@ -38,7 +37,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     protected DollarExpressCollectDollarConfig dollarExpressCollectDollarConfig;
 
     public AbstractDollarExpressGameManager() {
-        super(DollarExpressPlayerGameData.class, DollarExpressResultLib.class);
+        super(DollarExpressPlayerGameData.class, DollarExpressResultLib.class, DollarExpressGameRunInfo.class);
     }
 
     @Override
@@ -87,25 +86,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     }
 
     /**
-     * 开始游戏
-     *
-     * @param playerController
-     * @param betValue
-     * @return
-     */
-    public DollarExpressGameRunInfo playerStartGame(PlayerController playerController, long betValue) {
-        //获取玩家游戏数据
-        DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new DollarExpressGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerGameData, betValue, false);
-    }
-
-    /**
      * 玩家二选一
      *
      * @param playerController
@@ -122,9 +102,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 gameRunInfo.setCode(Code.NOT_FOUND);
                 return gameRunInfo;
             }
-
-            //设置活跃时间
-            playerGameData.setLastActiveTime(TimeHelper.nowInt());
 
             int code = chooseFreeGameType(playerGameData, chooseStatus);
             if (code != Code.SUCCESS) {
@@ -154,9 +131,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 return gameRunInfo;
             }
 
-            //设置活跃时间
-            playerGameData.setLastActiveTime(TimeHelper.nowInt());
-
             //检查是否被选择
             boolean select = playerGameData.areaSelected(areaId);
             if (select) {
@@ -171,7 +145,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 gameRunInfo.setCode(Code.NOT_FOUND);
                 return gameRunInfo;
             }
-
             //获取触发的小游戏id
             SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(this.dollarExpressCollectDollarConfig.getAuxiliaryId());
             List<Integer> timesList = generateManager.inversTimes(specialAuxiliaryCfg);
@@ -282,8 +255,13 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             log.debug("获取玩家游戏数据失败，投资游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new DollarExpressGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-
+        if (getRoomType() != null) {
+            int code = slotsRoomManager.checkCanPlay(this, playerController);
+            if (code != Code.SUCCESS) {
+                log.debug("该游戏无法继续 playerId = {},gameType = {},roomCfgId = {},code = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), code);
+                return new DollarExpressGameRunInfo(code, playerController.playerId());
+            }
+        }
         return invest(playerController, playerGameData, areaId);
     }
 
@@ -369,7 +347,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     public DollarExpressGameRunInfo autoStartGame(DollarExpressPlayerGameData playerGameData, long betValue) {
         log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
 
-        return startGame(playerGameData, betValue, true);
+        return startGame(null, playerGameData, betValue, true);
     }
 
     /**
@@ -378,8 +356,9 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
      * @param betValue
      * @return
      */
+    @Override
     public DollarExpressGameRunInfo
-    startGame(DollarExpressPlayerGameData playerGameData, long betValue, boolean auto) {
+    startGame(PlayerController playerController, DollarExpressPlayerGameData playerGameData, long betValue, boolean auto) {
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
@@ -460,24 +439,8 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
         return gameRunInfo;
     }
 
-
-    /**
-     * 普通正常流程
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param betValue
-     * @return
-     */
-    protected DollarExpressGameRunInfo normal(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<DollarExpressResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, DollarExpressConstant.SpecialMode.TYPE_NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        DollarExpressResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected DollarExpressGameRunInfo normal(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData, long betValue, DollarExpressResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_ALL_BOARD)) {  //是否会触发二选一
             int count = generateManager.allBoadrCount(resultLib.getIconArr());

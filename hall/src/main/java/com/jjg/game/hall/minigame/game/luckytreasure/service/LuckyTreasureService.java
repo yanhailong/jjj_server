@@ -281,7 +281,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             response.setTotalPage(totalPage);
 
             response.setIcon(GameDataManager.getGlobalConfigCfg(ID_GLOBAL_LUCKY_ICON).getValue());
-            response.setItemId(Integer.parseInt(GameDataManager.getGlobalConfigCfg(ID_GLOBAL_LUCKY_ITEM_ID).getValue()));
+            response.setItemId(GameDataManager.getGlobalConfigCfg(ID_GLOBAL_LUCKY_ITEM_ID).getIntValue());
 
             return response;
         } catch (Exception e) {

@@ -26,7 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<AceDjPlayerGameData, AceDjResultLib> {
+public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<AceDjPlayerGameData, AceDjResultLib, AceDjGameRunInfo> {
     @Autowired
     protected AceDjResultLibDao libDao;
     @Autowired
@@ -37,7 +37,7 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
     protected AceDjGameDataDao gameDataDao;
 
     public AbstractAceDjGameManager() {
-        super(AceDjPlayerGameData.class, AceDjResultLib.class);
+        super(AceDjPlayerGameData.class, AceDjResultLib.class, AceDjGameRunInfo.class);
     }
 
     @Override
@@ -61,25 +61,6 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
     }
 
     /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public AceDjGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        AceDjPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new AceDjGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
-    }
-
-    /**
      * 开始游戏
      *
      * @param playerController
@@ -87,6 +68,7 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
      * @param auto
      * @return
      */
+    @Override
     public AceDjGameRunInfo startGame(PlayerController playerController, AceDjPlayerGameData playerGameData, long betValue, boolean auto) {
         AceDjGameRunInfo gameRunInfo = new AceDjGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
@@ -154,15 +136,8 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
      * @param betValue
      * @return
      */
-    protected AceDjGameRunInfo normal(AceDjGameRunInfo gameRunInfo, AceDjPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<AceDjResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, AceDjConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        AceDjResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected AceDjGameRunInfo normal(AceDjGameRunInfo gameRunInfo, AceDjPlayerGameData playerGameData, long betValue, AceDjResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(AceDjConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(AceDjConstant.Status.FREE);

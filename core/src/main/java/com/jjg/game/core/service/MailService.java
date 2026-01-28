@@ -46,6 +46,8 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
 
     @Autowired
     private RedDotManager redDotManager;
+    @Autowired
+    private LoginConfigService loginConfigService;
 
     //每页数量
     private int mailPageSize = 50;
@@ -620,6 +622,12 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     public void playerRegister(Player player) {
         LoginType loginType = player.getLoginType();
         if (loginType == null) {
+            return;
+        }
+
+        //检查绑定奖励是否开启
+        boolean rewardOpen = loginConfigService.isRewardOpen(player.getChannel().getValue(), player.getLoginType().getValue());
+        if(!rewardOpen){
             return;
         }
 

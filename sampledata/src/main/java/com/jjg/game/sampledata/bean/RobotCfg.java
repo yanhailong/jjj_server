@@ -39,6 +39,8 @@ public class RobotCfg extends BaseCfgBean {
   protected int gender;
   /** 携带基础金币 */
   protected long money;
+  /** 机器人名称 */
+  protected String nameId;
   /** 头像 */
   protected int picture;
   /** 玩家等级 */
@@ -94,6 +96,11 @@ public class RobotCfg extends BaseCfgBean {
   /** 返回携带基础金币 */
   public long getMoney() {
     return money;
+  }
+
+  /** 返回机器人名称 */
+  public String getNameId() {
+    return nameId;
   }
 
   /** 返回头像 */

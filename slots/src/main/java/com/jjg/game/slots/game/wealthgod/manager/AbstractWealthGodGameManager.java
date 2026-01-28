@@ -33,7 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlayerGameData, WealthGodResultLib> {
+public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlayerGameData, WealthGodResultLib, WealthGodGameRunInfo> {
     @Autowired
     protected WealthGodGenerateManager generateManager;
     @Autowired
@@ -42,7 +42,7 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
     protected WealthGodGameDataDao gameDataDao;
 
     public AbstractWealthGodGameManager() {
-        super(WealthGodPlayerGameData.class, WealthGodResultLib.class);
+        super(WealthGodPlayerGameData.class, WealthGodResultLib.class, WealthGodGameRunInfo.class);
     }
 
     @Override
@@ -80,23 +80,11 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
     /**
      * 开始游戏
      */
-    public WealthGodGameRunInfo playerStartGame(PlayerController playerController, long betValue) {
-        //获取玩家游戏数据
-        WealthGodPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new WealthGodGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, betValue);
-    }
-
-    /**
-     * 开始游戏
-     */
-    public WealthGodGameRunInfo startGame(PlayerController playerController, WealthGodPlayerGameData playerGameData, long betValue) {
+    @Override
+    public WealthGodGameRunInfo startGame(PlayerController playerController, WealthGodPlayerGameData playerGameData, long betValue, boolean auto) {
         WealthGodGameRunInfo gameRunInfo = new WealthGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
+            gameRunInfo.setAuto(auto);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
 
             CommonResult<Pair<WealthGodResultLib, BetDivideInfo>> commonResult = normalGetLib(playerGameData, betValue, WealthGodConstant.SpecialMode.TYPE_NORMAL);
@@ -147,6 +135,12 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
         return gameRunInfo;
     }
 
+
+    @Override
+    protected WealthGodGameRunInfo normal(WealthGodGameRunInfo gameRunInfo, WealthGodPlayerGameData playerGameData, long betValue, WealthGodResultLib resultLib) {
+        return new WealthGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+    }
+
     /**
      * 重转数据解析
      */
@@ -160,7 +154,7 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
             for (WealthGodAwardLineInfo lineInfo : awardLineInfoList) {
                 WealthGodResultLineInfo resultLineInfo = new WealthGodResultLineInfo();
                 resultLineInfo.id = lineInfo.getLineId();
-                BaseLineCfg baseLineCfg = getBaseLineCfg(lineInfo.getLineId(),false);
+                BaseLineCfg baseLineCfg = getBaseLineCfg(lineInfo.getLineId(), false);
                 int direction = baseLineCfg.getDirection().getFirst();
                 List<Integer> indexList = baseLineCfg.getPosLocation();
                 if (direction == SlotsConst.BaseLine.DIRECTION_LEFT) {
@@ -258,6 +252,7 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
      *
      * @param playerController
      */
+    @Override
     public boolean addTestIconDataIcons(PlayerController playerController, String icons) {
         WealthGodPlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {

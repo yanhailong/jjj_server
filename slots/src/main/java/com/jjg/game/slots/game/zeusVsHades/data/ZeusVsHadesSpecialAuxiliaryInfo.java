@@ -17,6 +17,16 @@ public class ZeusVsHadesSpecialAuxiliaryInfo extends SpecialAuxiliaryInfo {
     private Integer column;
     //列wild倍数
     private Integer time;
+    //1宙斯赢 2哈迪斯赢
+    private Integer wildStatus;
+
+    public Integer getWildStatus() {
+        return wildStatus;
+    }
+
+    public void setWildStatus(Integer wildStatus) {
+        this.wildStatus = wildStatus;
+    }
 
     public Integer getTime() {
         return time;

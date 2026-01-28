@@ -5,7 +5,6 @@ import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.data.PlayerBet;
 import com.jjg.game.core.base.condition.event.BetEvent;
-import com.jjg.game.core.constant.Code;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
 import org.springframework.stereotype.Component;
@@ -57,7 +56,7 @@ public class PlayGameWinMoneyCondition implements ConditionHandler<PlayerBet> {
 
     @Override
     public MatchResultData match(ConditionContext ctx, PlayerBet config) {
-        if (ctx.getEvent() instanceof BetEvent e && matchCheck(e, config)) {
+        if (ctx.event() instanceof BetEvent e && matchCheck(e, config)) {
                 if (e.getBetAmount() >= config.achievedProcess() && e.getWinAmount() >= config.winCount()) {
                     return MatchResultData.match();
                 } else {

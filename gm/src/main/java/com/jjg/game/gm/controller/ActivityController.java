@@ -3,7 +3,6 @@ package com.jjg.game.gm.controller;
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterClient;
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.core.data.WebResult;
 import com.jjg.game.core.pb.ReqActivityInfos;
@@ -24,11 +23,6 @@ import static com.jjg.game.core.constant.BackendGMCmd.GET_ALL_ACTIVITY_DATA;
 @RestController
 @RequestMapping(value = "gm/activity")
 public class ActivityController extends AbstractController {
-    private final ClusterSystem clusterSystem;
-
-    public ActivityController(ClusterSystem clusterSystem) {
-        this.clusterSystem = clusterSystem;
-    }
 
     /**
      * 开启,关闭活动

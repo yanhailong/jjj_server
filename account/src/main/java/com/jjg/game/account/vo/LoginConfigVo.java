@@ -1,28 +1,30 @@
 package com.jjg.game.account.vo;
 
+import java.util.List;
+
 /**
  * @author 11
- * @date 2025/10/21 17:18
+ * @date 2026/1/26
  */
 public class LoginConfigVo {
-    //1.游客  2.google  3.apple  4.facebook  5.phone
-    private int type;
-    //是否开启
-    private boolean open;
+    //渠道相关配置
+    private List<ThirdLoginConfigVo> channleConfigList;
+    //客服地址
+    private String customerUrl;
 
-    public int getType() {
-        return type;
+    public List<ThirdLoginConfigVo> getChannleConfigList() {
+        return channleConfigList;
     }
 
-    public void setType(int type) {
-        this.type = type;
+    public void setChannleConfigList(List<ThirdLoginConfigVo> channleConfigList) {
+        this.channleConfigList = channleConfigList;
     }
 
-    public boolean isOpen() {
-        return open;
+    public String getCustomerUrl() {
+        return customerUrl;
     }
 
-    public void setOpen(boolean open) {
-        this.open = open;
+    public void setCustomerUrl(String customerUrl) {
+        this.customerUrl = customerUrl;
     }
 }

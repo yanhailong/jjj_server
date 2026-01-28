@@ -49,8 +49,8 @@ public class TodayDepositCondition extends BaseRedisCondition<PlayerRecharge> {
 
     @Override
     public MatchResultData match(ConditionContext ctx, PlayerRecharge config) {
-        String customId = String.valueOf(ctx.getPlayer().getId()) + TimeHelper.getCurrentDateZeroSecondTime();
-        BigDecimal count = countDao.getCount(getFeatureId(ctx) + ctx.getPrefix(), customId);
+        String customId = String.valueOf(ctx.player().getId()) + TimeHelper.getCurrentDateZeroSecondTime();
+        BigDecimal count = countDao.getCount(getFeatureId(ctx) + ctx.player(), customId);
         if (count.compareTo(config.amount()) >= 0) {
             return MatchResultData.match();
         }
@@ -59,8 +59,8 @@ public class TodayDepositCondition extends BaseRedisCondition<PlayerRecharge> {
 
     @Override
     public MatchResultData addProgress(ConditionContext ctx, PlayerRecharge config) {
-        if (ctx.getEvent() instanceof PlayerRechargeEvent event && matchCheck(event, config)) {
-            String customId = String.valueOf(ctx.getPlayer().getId()) + TimeHelper.getCurrentDateZeroSecondTime();
+        if (ctx.event() instanceof PlayerRechargeEvent event && matchCheck(event, config)) {
+            String customId = String.valueOf(ctx.player().getId()) + TimeHelper.getCurrentDateZeroSecondTime();
             String featureId = getFeatureId(ctx);
             BigDecimal count = countDao.getCount(featureId, customId);
             if (count.compareTo(config.amount()) >= 0) {

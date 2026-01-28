@@ -130,7 +130,7 @@ public class GameFunctionService implements GameEventListener {
             return false;
         }
         String check = functionCfg.getCondition();
-        boolean achievement = conditionManager.isAchievement(player, null, check);
+        boolean achievement = conditionManager.isAchievement(player, "", check);
         // 检查是否触发成功
         if (!achievement && notify) {
             TipUtils.sendToastTip(player.getId(), 16030);

@@ -44,7 +44,7 @@ public class UseItemCountCondition extends BaseRedisCondition<UserItem> {
 
     @Override
     public MatchResultData match(ConditionContext ctx, UserItem config) {
-        String customId = String.valueOf(ctx.getPlayer().getId()) + config.itemId();
+        String customId = String.valueOf(ctx.player().getId()) + config.itemId();
         BigDecimal count = countDao.getCount(getFeatureId(ctx), customId);
         if (count.longValue() >= config.count()) {
             return MatchResultData.match();
@@ -54,14 +54,14 @@ public class UseItemCountCondition extends BaseRedisCondition<UserItem> {
 
     @Override
     public MatchResultData addProgress(ConditionContext ctx, UserItem config) {
-        if (ctx.getEvent() instanceof UserItemEvent event && matchCheck(event, config)) {
-            String customId = String.valueOf(ctx.getPlayer().getId()) + event.getItemId();
+        if (ctx.event() instanceof UserItemEvent event && matchCheck(event, config)) {
+            String customId = String.valueOf(ctx.player().getId()) + event.getItemId();
             String featureId = getFeatureId(ctx);
             BigDecimal count = countDao.getCount(featureId, customId);
             if (count.longValue() >= config.count()) {
                 return MatchResultData.match();
             }
-            count = countDao.incrBy(featureId, customId, BigDecimal.valueOf(event.getCount()));
+            count = countDao.incrBy(ctx.player().getId(), featureId, customId, BigDecimal.valueOf(event.getCount()));
             if (count.longValue() >= config.count()) {
                 return MatchResultData.match();
             }
@@ -72,8 +72,8 @@ public class UseItemCountCondition extends BaseRedisCondition<UserItem> {
 
     @Override
     public void delete(ConditionContext ctx, UserItem config) {
-        String customId = String.valueOf(ctx.getPlayer().getId()) + config.itemId();
-        countDao.reset(getFeatureId(ctx), customId);
+        String customId = String.valueOf(ctx.player().getId()) + config.itemId();
+        countDao.reset(ctx.player().getId(), getFeatureId(ctx), customId);
     }
 
     @Override

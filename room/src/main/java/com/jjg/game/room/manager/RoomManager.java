@@ -197,21 +197,25 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
                 return;
             }
             switch (operateCode) {
-                case 2:
+                case 2: {
                     log.info("收到请求暂停房间：{} 的请求", roomId);
                     // 暂停房间
                     friendRoomController.pauseGame();
                     break;
-                case 1:
+                }
+                case 1: {
                     log.info("收到请求继续房间：{} 的请求", roomId);
                     // 继续游戏
                     friendRoomController.tryContinueGame();
+                    friendRoomController.getGameController().onContinueGameAction();
                     break;
-                case 3:
+                }
+                case 3: {
                     log.info("收到请求解散房间：{} 的请求", roomId);
                     // 解散房间
                     friendRoomController.destroyOnNextRoundStart();
                     break;
+                }
             }
         }
     }

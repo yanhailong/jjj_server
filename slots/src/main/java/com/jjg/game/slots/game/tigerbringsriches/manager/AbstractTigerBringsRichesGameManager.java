@@ -36,7 +36,7 @@ import java.util.Set;
  * @author lm
  * @date 2025/12/8 17:24
  */
-public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlotsGameManager<TigerBringsRichesPlayerGameData, TigerBringsRichesResultLib> {
+public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlotsGameManager<TigerBringsRichesPlayerGameData, TigerBringsRichesResultLib, TigerBringsRichesGameRunInfo> {
     private final TigerBringsRichesGameGenerateManager gameGenerateManager;
     private final TigerBringsRichesGameDataDao gameDataDao;
     private final TigerBringsRichesResultLibDao TigerBringsRichesResultLibDao;
@@ -45,7 +45,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
 
     public AbstractTigerBringsRichesGameManager(TigerBringsRichesGameGenerateManager gameGenerateManager,
                                                 TigerBringsRichesGameDataDao gameDataDao, TigerBringsRichesResultLibDao TigerBringsRichesResultLibDao) {
-        super(TigerBringsRichesPlayerGameData.class, TigerBringsRichesResultLib.class);
+        super(TigerBringsRichesPlayerGameData.class, TigerBringsRichesResultLib.class, TigerBringsRichesGameRunInfo.class);
         this.gameGenerateManager = gameGenerateManager;
         this.gameDataDao = gameDataDao;
         this.TigerBringsRichesResultLibDao = TigerBringsRichesResultLibDao;
@@ -72,20 +72,6 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
         return gameRunInfo;
     }
 
-    /**
-     * 玩家开始游戏
-     *
-     */
-    public TigerBringsRichesGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        TigerBringsRichesPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new TigerBringsRichesGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
-    }
 
     @Override
     protected void onAutoExitAction(TigerBringsRichesPlayerGameData gameData, int eventId) {
@@ -124,6 +110,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
      * 开始游戏
      *
      */
+    @Override
     public TigerBringsRichesGameRunInfo startGame(PlayerController playerController, TigerBringsRichesPlayerGameData playerGameData, long betValue, boolean auto) {
         TigerBringsRichesGameRunInfo gameRunInfo = new TigerBringsRichesGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
@@ -231,14 +218,8 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
      * 普通正常流程
      *
      */
-    protected void normal(TigerBringsRichesGameRunInfo gameRunInfo, TigerBringsRichesPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<TigerBringsRichesResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, TigerBringsRichesConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return;
-        }
-        TigerBringsRichesResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
+    @Override
+    protected TigerBringsRichesGameRunInfo normal(TigerBringsRichesGameRunInfo gameRunInfo, TigerBringsRichesPlayerGameData playerGameData, long betValue, TigerBringsRichesResultLib resultLib) {
         Set<Integer> typeSet = resultLib.getLibTypeSet();
         //检查是否触发假福马
         if (gameGenerateManager.getModelRandom() != null) {
@@ -262,6 +243,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
             gameRunInfo.setResultLib(resultLib);
             gameRunInfo.setStake(betValue);
         }
+        return gameRunInfo;
     }
 
     /**
@@ -272,6 +254,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
      * @param
      * @return
      */
+    @Override
     public TigerBringsRichesGameRunInfo getPoolValue(PlayerController playerController, long stake) {
         TigerBringsRichesGameRunInfo gameRunInfo = new TigerBringsRichesGameRunInfo(Code.SUCCESS, playerController.playerId());
         try {

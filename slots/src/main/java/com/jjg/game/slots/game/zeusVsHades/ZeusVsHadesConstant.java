@@ -45,6 +45,15 @@ public interface ZeusVsHadesConstant {
         int HADES = 3;
     }
 
+    interface WildStatus{
+        int NONE = 0;
+        //宙斯赢
+        int ZEUS = 1;
+        //哈里斯赢
+        int HADES = 2;
+    }
+
+
     interface BaseElement{
         int TYPE0_SMALL = 1;//蓝10 类型为0 最小的id
         int TYPE0_BIG = 20;//哈迪斯 类型为0 最大的id

@@ -4,6 +4,7 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.common.service.PlayerSnapshotService;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
@@ -58,6 +59,8 @@ public class HallPlayerService extends AbstractPlayerService implements ConfigEx
     private ClusterSystem clusterSystem;
     @Autowired
     private GameFunctionService gameFunctionService;
+    @Autowired
+    private PlayerSnapshotService playerSnapshotService;
 
     /**
      * 仅在登录时调用
@@ -193,6 +196,7 @@ public class HallPlayerService extends AbstractPlayerService implements ConfigEx
         vipService.moveToMongo(playerId);
         accountDao.moveToMongo(playerId);
         playerSessionTokenDao.delToken(playerId);
+        playerSnapshotService.dumpToMongo(playerId);
         return true;
     }
 

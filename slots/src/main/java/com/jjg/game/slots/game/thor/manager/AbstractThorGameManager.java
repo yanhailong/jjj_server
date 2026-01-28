@@ -3,7 +3,6 @@ package com.jjg.game.slots.game.thor.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -12,7 +11,6 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.game.thor.dao.ThorGameDataDao;
@@ -26,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<ThorPlayerGameData, ThorResultLib> {
+public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<ThorPlayerGameData, ThorResultLib, ThorGameRunInfo> {
     @Autowired
     protected ThorResultLibDao libDao;
     @Autowired
@@ -35,7 +33,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
     protected ThorGameDataDao gameDataDao;
 
     public AbstractThorGameManager() {
-        super(ThorPlayerGameData.class, ThorResultLib.class);
+        super(ThorPlayerGameData.class, ThorResultLib.class, ThorGameRunInfo.class);
     }
 
     @Override
@@ -50,25 +48,6 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
-    }
-
-    /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public ThorGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        ThorPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new ThorGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
     }
 
     /**
@@ -95,8 +74,6 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         } else {
             playerGameData.setStatus(ThorConstant.Status.ICE);
         }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
         return new ThorGameRunInfo(Code.SUCCESS, playerController.playerId());
     }
 
@@ -108,6 +85,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
      * @param stake
      * @return
      */
+    @Override
     protected ThorGameRunInfo startGame(PlayerController playerController, ThorPlayerGameData playerGameData, long stake, boolean auto) {
         ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
@@ -174,23 +152,8 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         return gameRunInfo;
     }
 
-    /**
-     * 普通正常流程
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param betValue
-     * @return
-     */
-    protected ThorGameRunInfo normal(ThorGameRunInfo gameRunInfo, ThorPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<ThorResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, ThorConstant.SpecialMode.TYPE_NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        ThorResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected ThorGameRunInfo normal(ThorGameRunInfo gameRunInfo, ThorPlayerGameData playerGameData, long betValue, ThorResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(ThorConstant.SpecialMode.FREE)) {  //是否会触发二选一
             playerGameData.setStatus(ThorConstant.Status.CHOOSE_ONE);
@@ -264,7 +227,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         if (freeLib == null) {
             //缓存中没有，就从数据库获取
             CommonResult<ThorResultLib> libResult = getLibFromDB(playerGameData, specialModeFreeLibType);
-            if(!libResult.success()) {
+            if (!libResult.success()) {
                 result.code = libResult.code;
                 return result;
             }

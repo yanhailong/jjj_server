@@ -2,10 +2,10 @@ package com.jjg.game.activity.dailyrecharge.dao;
 
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
-import org.redisson.client.RedisClient;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 
 /**
@@ -34,7 +34,7 @@ public class DailyRechargeDao {
         Integer addAndGet = map.addAndGet(giftId, 1);
         long addAfter = addAndGet == null ? 0 : addAndGet;
         if (addAfter == 1) {
-            map.expire(Duration.of(1, java.time.temporal.ChronoUnit.DAYS));
+            map.expire(Duration.of(1, ChronoUnit.DAYS));
         }
         return addAndGet == null ? 0 : addAndGet;
     }

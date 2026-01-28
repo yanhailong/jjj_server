@@ -4,7 +4,6 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -15,8 +14,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleGameDataDao;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridlePlayerGameDataDTO;
@@ -28,7 +25,6 @@ import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleResultLib;
 import com.jjg.game.slots.game.pegasusunbridle.pb.bean.PegasusUnbridleWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +35,7 @@ import java.util.Set;
  * @author lm
  * @date 2025/12/8 17:24
  */
-public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager<PegasusUnbridlePlayerGameData, PegasusUnbridleResultLib> {
+public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager<PegasusUnbridlePlayerGameData, PegasusUnbridleResultLib, PegasusUnbridleGameRunInfo> {
     private final PegasusUnbridleGameGenerateManager gameGenerateManager;
     private final PegasusUnbridleGameDataDao gameDataDao;
     private final PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao;
@@ -48,7 +44,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
 
     public AbstractPegasusUnbridleGameManager(PegasusUnbridleGameGenerateManager gameGenerateManager,
                                               PegasusUnbridleGameDataDao gameDataDao, PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao) {
-        super(PegasusUnbridlePlayerGameData.class, PegasusUnbridleResultLib.class);
+        super(PegasusUnbridlePlayerGameData.class, PegasusUnbridleResultLib.class, PegasusUnbridleGameRunInfo.class);
         this.gameGenerateManager = gameGenerateManager;
         this.gameDataDao = gameDataDao;
         this.PegasusUnbridleResultLibDao = PegasusUnbridleResultLibDao;
@@ -79,21 +75,6 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
         PegasusUnbridleGameRunInfo gameRunInfo = new PegasusUnbridleGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
-    }
-
-    /**
-     * 玩家开始游戏
-     *
-     */
-    public PegasusUnbridleGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        PegasusUnbridlePlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new PegasusUnbridleGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
     }
 
     @Override
@@ -133,6 +114,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
      * 开始游戏
      *
      */
+    @Override
     public PegasusUnbridleGameRunInfo startGame(PlayerController playerController, PegasusUnbridlePlayerGameData playerGameData, long betValue, boolean auto) {
         PegasusUnbridleGameRunInfo gameRunInfo = new PegasusUnbridleGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
@@ -209,7 +191,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
         gameRunInfo.setScrollType(resultLib.getRollerMode());
         gameRunInfo.setSpecialModeIcon(resultLib.getSpecialModeIcon());
         if (currentRandomIndex == randomResult.size() - 1) {
-            PoolCfg poolCfg = GameDataManager.getPoolCfg(fuMaResultLib.firstJackpotId());
+            PoolCfg poolCfg = GameDataManager.getPoolCfg(resultLib.firstJackpotId());
             if (poolCfg != null) {
                 //检查是否中大奖
                 CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(),
@@ -236,18 +218,8 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
     }
 
-    /**
-     * 普通正常流程
-     *
-     */
-    protected void normal(PegasusUnbridleGameRunInfo gameRunInfo, PegasusUnbridlePlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<PegasusUnbridleResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, PegasusUnbridleConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return;
-        }
-        PegasusUnbridleResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
+    @Override
+    protected PegasusUnbridleGameRunInfo normal(PegasusUnbridleGameRunInfo gameRunInfo, PegasusUnbridlePlayerGameData playerGameData, long betValue, PegasusUnbridleResultLib resultLib) {
         Set<Integer> typeSet = resultLib.getLibTypeSet();
         //检查是否触发假福马
         if (gameGenerateManager.getModelRandom() != null) {
@@ -271,6 +243,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
             gameRunInfo.setResultLib(resultLib);
             gameRunInfo.setStake(betValue);
         }
+        return gameRunInfo;
     }
 
     /**

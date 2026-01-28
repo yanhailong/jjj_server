@@ -1,6 +1,7 @@
 package com.jjg.game.hall.minigame.game.luckytreasure;
 
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.redis.RedisLock;
@@ -19,6 +20,7 @@ import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
 import com.jjg.game.core.data.LuckyTreasure;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.manager.AwardCodeManager;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.logger.MinigameLogger;
@@ -29,6 +31,7 @@ import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureServic
 import com.jjg.game.hall.minigame.game.luckytreasure.util.LuckyTreasureStatusUtil;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GameFunctionCfg;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.MailCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
@@ -67,8 +70,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     private final HallPlayerService hallPlayerService;
     private final MinigameLogger minigameLogger;
     private final MailService mailService;
-
-
+    private final GameFunctionService gameFunctionService;
     /**
      * 活动定时器映射：期号 -> 定时器事件
      */
@@ -92,7 +94,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                                 HallPlayerService hallPlayerService,
                                 MinigameLogger minigameLogger,
                                 AwardCodeManager awardCodeManager,
-                                MailService mailService) {
+                                MailService mailService,
+                                GameFunctionService gameFunctionService) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
         this.redisLock = redisLock;
@@ -105,6 +108,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         this.minigameLogger = minigameLogger;
         this.awardCodeManager = awardCodeManager;
         this.mailService = mailService;
+        this.gameFunctionService = gameFunctionService;
     }
 
     /**
@@ -854,7 +858,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * 检查当前游戏是否处于开启状态。
      */
     public boolean isOpen() {
-        return minigameManager.isOpenGame(LuckyTreasureConstant.Common.GAME_ID);
+        return minigameManager.isOpenGame(LuckyTreasureConstant.Common.GAME_ID) && gameFunctionService.checkGameFunctionOpen(EFunctionType.LUCK_TREASURE);
     }
 
 }

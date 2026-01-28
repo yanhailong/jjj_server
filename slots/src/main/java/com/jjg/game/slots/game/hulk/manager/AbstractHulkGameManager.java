@@ -17,7 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author 11
  * @date 2026/1/15
  */
-public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<HulkPlayerGameData, HulkResultLib> {
+public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<HulkPlayerGameData, HulkResultLib, HulkGameRunInfo> {
     @Autowired
     protected HulkResultLibDao libDao;
     @Autowired
@@ -27,7 +27,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
 
 
     public AbstractHulkGameManager() {
-        super(HulkPlayerGameData.class, HulkResultLib.class);
+        super(HulkPlayerGameData.class, HulkResultLib.class, HulkGameRunInfo.class);
     }
 
     @Override
@@ -49,24 +49,6 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
         return gameRunInfo;
     }
 
-    /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public HulkGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        HulkPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new HulkGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
-    }
 
     /**
      * 开始游戏
@@ -76,10 +58,16 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
      * @param stake
      * @return
      */
+    @Override
     protected HulkGameRunInfo startGame(PlayerController playerController, HulkPlayerGameData playerGameData, long stake, boolean auto) {
         HulkGameRunInfo gameRunInfo = new HulkGameRunInfo(Code.SUCCESS, playerGameData.playerId());
 
         return gameRunInfo;
+    }
+
+    @Override
+    protected HulkGameRunInfo normal(HulkGameRunInfo gameRunInfo, HulkPlayerGameData playerGameData, long betValue, HulkResultLib resultLib) {
+        return new HulkGameRunInfo(Code.SUCCESS, playerGameData.playerId());
     }
 
     @Override

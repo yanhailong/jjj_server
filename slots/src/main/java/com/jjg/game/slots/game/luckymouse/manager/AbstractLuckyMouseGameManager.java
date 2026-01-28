@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameManager<LuckyMousePlayerGameData, LuckyMouseResultLib> {
+public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameManager<LuckyMousePlayerGameData, LuckyMouseResultLib, LuckyMouseGameRunInfo> {
     @Autowired
     private LuckyMouseResultLibDao libDao;
     @Autowired
@@ -45,7 +45,7 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
     private int fake_fu_shu_prop = 0;
 
     public AbstractLuckyMouseGameManager() {
-        super(LuckyMousePlayerGameData.class, LuckyMouseResultLib.class);
+        super(LuckyMousePlayerGameData.class, LuckyMouseResultLib.class, LuckyMouseGameRunInfo.class);
     }
 
     @Override
@@ -68,16 +68,8 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
         return gameRunInfo;
     }
 
-    public LuckyMouseGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        LuckyMousePlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new LuckyMouseGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
-    }
 
+    @Override
     protected LuckyMouseGameRunInfo startGame(PlayerController playerController, LuckyMousePlayerGameData playerGameData, long stake, boolean auto) {
         LuckyMouseGameRunInfo gameRunInfo = new LuckyMouseGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
@@ -127,15 +119,8 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
         return gameRunInfo;
     }
 
-    private void normal(LuckyMouseGameRunInfo gameRunInfo, LuckyMousePlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<LuckyMouseResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, LuckyMouseConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return;
-        }
-        LuckyMouseResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    public LuckyMouseGameRunInfo normal(LuckyMouseGameRunInfo gameRunInfo, LuckyMousePlayerGameData playerGameData, long betValue, LuckyMouseResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(LuckyMouseConstant.SpecialMode.FREE)) {  //是否会触发二选一
             if (CollUtil.isNotEmpty(resultLib.getSpecialAuxiliaryInfoList())) {
@@ -178,6 +163,7 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setStake(betValue);
         gameRunInfo.setResultLib(resultLib);
+        return gameRunInfo;
     }
 
     /**
