@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.goldsnakefortune.manager;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
@@ -120,34 +121,56 @@ public class GoldSnakeFortuneGenerateManager extends AbstractSlotsGenerateManage
         }
     }
 
+    @Override
+    protected long calFree(GoldSnakeFortuneResultLib lib) throws Exception {
+        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            return 0;
+        }
+
+        long times = 0;
+        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+            if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
+                continue;
+            }
+
+            for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
+                GoldSnakeFortuneResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), this.resultLibClazz);
+                //中奖线
+                lib.addTimes(calLineTimes(tmpLib.getAwardLineInfoList()));
+                times += tmpLib.getTimes();
+            }
+        }
+        return times;
+    }
+
     private boolean checkElement(GoldSnakeFortuneResultLib lib) {
         int coinSize = 0;
         for (int i = 1; i < lib.getIconArr().length; i++) {
             int coin = lib.getIconArr()[i];
-            if(coin == GoldSnakeFortuneConstant.BaseElement.ID_COIN){
+            if (coin == GoldSnakeFortuneConstant.BaseElement.ID_COIN) {
                 coinSize++;
             }
         }
-        
-        if(coinSize < 1){
+
+        if (coinSize < 1) {
             return true;
         }
-        
-        if(lib.getSpecialGirdInfoList() == null || lib.getSpecialGirdInfoList().isEmpty()){
+
+        if (lib.getSpecialGirdInfoList() == null || lib.getSpecialGirdInfoList().isEmpty()) {
             log.warn("coinSize = {}", coinSize);
             return false;
         }
-        
-        for(SpecialGirdInfo specialGirdInfo : lib.getSpecialGirdInfoList()){
+
+        for (SpecialGirdInfo specialGirdInfo : lib.getSpecialGirdInfoList()) {
             SpecialGirdCfg specialGirdCfg = GameDataManager.getSpecialGirdCfg(specialGirdInfo.getCfgId());
-            if(specialGirdCfg == null){
+            if (specialGirdCfg == null) {
                 log.warn("获取配置为空 cfgId = {}", specialGirdInfo.getCfgId());
                 return false;
             }
-            if(specialGirdCfg.getElement() == null || specialGirdCfg.getElement().isEmpty()){
+            if (specialGirdCfg.getElement() == null || specialGirdCfg.getElement().isEmpty()) {
                 continue;
             }
-            if(specialGirdCfg.getElement().containsKey(GoldSnakeFortuneConstant.BaseElement.ID_COIN) || specialGirdCfg.getElement().size() == coinSize){
+            if (specialGirdCfg.getElement().containsKey(GoldSnakeFortuneConstant.BaseElement.ID_COIN) || specialGirdCfg.getElement().size() == coinSize) {
                 return true;
             }
         }
@@ -174,6 +197,7 @@ public class GoldSnakeFortuneGenerateManager extends AbstractSlotsGenerateManage
 
     /**
      * 特殊模式
+     *
      * @param lib
      * @return
      */
@@ -197,7 +221,7 @@ public class GoldSnakeFortuneGenerateManager extends AbstractSlotsGenerateManage
             }
 
             SpecialAuxiliaryCfg cfg = GameDataManager.getSpecialAuxiliaryCfg(specialAuxiliaryInfo.getCfgId());
-            if(cfg == null){
+            if (cfg == null) {
                 continue;
             }
 

@@ -24,10 +24,7 @@ import com.jjg.game.core.listener.ChooseWareListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.pb.ReqChooseWare;
 import com.jjg.game.core.pb.ResChooseWare;
-import com.jjg.game.core.service.CorePlayerService;
-import com.jjg.game.core.service.GameFunctionService;
-import com.jjg.game.core.service.MailService;
-import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.service.*;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.casino.manager.CasinoManager;
 import com.jjg.game.hall.casino.pb.req.*;
@@ -98,6 +95,8 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
     private CountDao countDao;
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private LoginConfigService loginConfigService;
 
     /**
      * 进入游戏
@@ -206,6 +205,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
                         res.bindThirdAccountList.add(en.getKey().getValue());
                     }
                 }
+                res.openThirdAccountList = loginConfigService.getOpenRewardList(player.getChannel().getValue());
             }
             playerController.setPlayer(player);
             log.info("获取玩家信息，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));

@@ -1711,7 +1711,7 @@ public class GMController extends AbstractController {
     }
 
     /**
-     * 验证短信
+     * 清除slots状态
      *
      * @return
      */
