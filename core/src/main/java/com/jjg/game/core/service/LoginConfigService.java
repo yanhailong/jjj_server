@@ -97,7 +97,7 @@ public class LoginConfigService {
             return false;
         }
 
-        return data.isLoginOpen() && data.isRewardOpen();
+        return data.isRewardOpen();
     }
 
     public Map<Integer, LoginConfigData> getDataMap(int channel) {
@@ -141,7 +141,7 @@ public class LoginConfigService {
         List<Integer> list = new ArrayList<>();
         for (Map.Entry<Integer, LoginConfigData> en : tmpMap.entrySet()) {
             LoginConfigData data = en.getValue();
-            if(data.isLoginOpen() && data.isRewardOpen()) {
+            if(data.isRewardOpen()) {
                 list.add(data.getLoginType());
             }
         }
