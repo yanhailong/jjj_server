@@ -96,7 +96,7 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setBeforeGold(player.getGold());
+            gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
             //从奖池扣除，并给玩家加钱
             rewardFromBigPool(gameRunInfo, playerGameData);
@@ -111,7 +111,7 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
             player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setAfterGold(player.getGold());
+            gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             return gameRunInfo;
