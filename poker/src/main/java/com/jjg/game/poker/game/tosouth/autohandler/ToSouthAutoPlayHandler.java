@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_3;
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUITS;
+
 /**
  * 南方前进统一自动操作处理器
  * (适用于机器人和真实玩家超时托管)
@@ -78,16 +81,23 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
         if (isLeader) {
             // 首出
             Map<Integer, List<Card>> rankMap = ToSouthHandUtils.convertCardListToRankMap(handCards);
-            // 只有在首局首出且手牌确实包含黑桃3时，才强制走黑桃3 逻辑
-            boolean hasSpade3 = handCards.stream().anyMatch(c -> c.getRank() == 3 && c.getSuit() == 0);
             
-            if (gameDataVo.isFirstRound() && hasSpade3) {
-                // 首局首出 (找含黑桃3的)
-                bestCards = handCards.stream()
-                        .filter(c -> c.getRank() == 3 && c.getSuit() == 0)
+            // 判断是否必须出黑桃3
+            if (gameDataVo.isFirstRound()) {
+                // 必须包含黑桃3
+                // 找到手牌中的黑桃3
+                Card spade3 = handCards.stream()
+                        .filter(c -> c.getRank() == RANK_3 && c.getSuit() == SPADE_SUITS)
                         .findFirst()
-                        .map(spade3 -> ToSouthHandUtils.findBestPlayWithFirstCard(rankMap, spade3))
                         .orElse(null);
+                        
+                if (spade3 != null) {
+                     bestCards = ToSouthHandUtils.findBestPlayWithFirstCard(rankMap, spade3);
+                } else {
+                    log.error("玩家 {} 是首出玩家且是首轮，但手牌中没有黑桃3", currentPlayerSeat.getPlayerId());
+                    // 容错：普通出牌  先打出去再说
+                    bestCards = ToSouthHandUtils.findBestPlay(handCards);
+                }
             } else {
                 bestCards = ToSouthHandUtils.findBestPlay(handCards);
             }
@@ -108,13 +118,13 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
         }
 
         if (CollUtil.isNotEmpty(bestCards)) {
-            reqTurnAction.cards = ToSouthDataHelper.getClientId(gameDataVo, bestCards.stream().map(Card::getValue).collect(Collectors.toList()));
+            reqTurnAction.cards = ToSouthDataHelper.getClientId(gameDataVo, bestCards.stream().map(c -> ((PokerCard)c).getPokerPoolId()).collect(Collectors.toList()));
             reqTurnAction.actionType = 0; // Play
         } else {
             reqTurnAction.actionType = 1; // Pass
         }
         
-        log.info("玩家/机器人 {} 自动操作: type={}, cards={}", getPlayerId(), reqTurnAction.actionType, reqTurnAction.cards);
+        log.info("玩家/机器人 {} 是否为首发人员 {} 自动操作: type={}, cards={}", getPlayerId(), isLeader, reqTurnAction.actionType, reqTurnAction.cards);
         assert controller != null;
         controller.turnAction(getPlayerId(), reqTurnAction);
     }

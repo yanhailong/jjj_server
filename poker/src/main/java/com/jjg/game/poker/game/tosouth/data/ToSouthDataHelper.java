@@ -50,6 +50,7 @@ public class ToSouthDataHelper extends PokerDataHelper {
     }
 
     public static int getPoolId(ToSouthGameDataVo gameDataVo) {
-        return getSouthernMoneyCfg(gameDataVo).getPoolId();
+        SouthernMoneyCfg cfg = getSouthernMoneyCfg(gameDataVo);
+        return cfg.getPoolId();
     }
 }

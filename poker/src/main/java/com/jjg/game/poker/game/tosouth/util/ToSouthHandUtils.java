@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.*;
+
 /**
  * 南方前进牌型工具类
  */
@@ -17,40 +19,26 @@ public class ToSouthHandUtils {
      * 花色排序：红心 > 方块 > 梅花 > 黑桃
      */
     public static final Comparator<Card> CARD_COMPARATOR = (c1, c2) -> {
-        int rank1 = getLogicRank(c1.getRank());
-        int rank2 = getLogicRank(c2.getRank());
+        int rank1 = c1.getRank();
+        int rank2 = c2.getRank();
         if (rank1 != rank2) {
             return Integer.compare(rank2, rank1); // 降序
         }
-        return Integer.compare(getLogicSuit(c1.getSuit()), getLogicSuit(c2.getSuit())); // 花色降序
+        return Integer.compare(c1.getSuit(), c2.getSuit()); // 花色降序
     };
     private static final Logger log = LoggerFactory.getLogger(ToSouthHandUtils.class);
 
-    /**
-     * 将2和A的排序修改成逻辑排序
-     */
-    private static int getLogicRank(int rank) {
-        if (rank == 2) return 15;
-        if (rank == 1) return 14;
-        return rank;
-    }
-
-    /**
-     * 获取逻辑花色：红心(1) > 方块(3) > 梅花(2) > 黑桃(0)
-     * 原 suit: 0: ♠, 1: ♥, 2: ♣, 3: ♦
-     * 转换后: 1(♥) > 3(♦) > 2(♣) > 0(♠) => 3 > 2 > 1 > 0 (自定义顺序)
-     * 规则: ♥ > ♦ > ♣ > ♠
-     * 映射: 1 -> 3, 3 -> 2, 2 -> 1, 0 -> 0
-     * 尽量不动原代码逻辑
-     */
-    private static int getLogicSuit(int suit) {
-        return switch (suit) {
-            case 1 -> 3; // ♥
-            case 3 -> 2; // ♦
-            case 2 -> 1; // ♣
-            case 0 -> 0; // ♠
-            default -> -1;
-        };
+    public static String cardListToString(List<Card> cards) {
+        if (cards == null) return "null";
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < cards.size(); i++) {
+            sb.append(cardToString(cards.get(i)));
+            if (i < cards.size() - 1) {
+                sb.append(", ");
+            }
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
     /**
@@ -88,11 +76,11 @@ public class ToSouthHandUtils {
     private static boolean isStraight(List<Card> cards) {
         // 2不能参与顺子
         for (Card card : cards) {
-            if (card.getRank() == 2) return false;
+            if (card.getRank() == RANK_2) return false;
         }
         for (int i = 0; i < cards.size() - 1; i++) {
-            int rank1 = getLogicRank(cards.get(i).getRank());
-            int rank2 = getLogicRank(cards.get(i + 1).getRank());
+            int rank1 = cards.get(i).getRank();
+            int rank2 = cards.get(i + 1).getRank();
             if (rank1 != rank2 + 1) return false;
         }
         return true;
@@ -101,13 +89,13 @@ public class ToSouthHandUtils {
     private static boolean isConsecutivePairs(List<Card> cards) {
         // 2不能参与连对
         for (Card card : cards) {
-            if (card.getRank() == 2) return false;
+            if (card.getRank() == RANK_2) return false;
         }
         for (int i = 0; i < cards.size(); i += 2) {
             if (cards.get(i).getRank() != cards.get(i + 1).getRank()) return false;
             if (i > 0) {
-                int rank1 = getLogicRank(cards.get(i - 2).getRank());
-                int rank2 = getLogicRank(cards.get(i).getRank());
+                int rank1 = cards.get(i - 2).getRank();
+                int rank2 = cards.get(i).getRank();
                 if (rank1 != rank2 + 1) return false;
             }
         }
@@ -133,9 +121,9 @@ public class ToSouthHandUtils {
             }
             // 规则2: 炸弹不能通杀，只能炸2的牌型和三连对、四连对的牌型
             // 2-1: 炸单张2
-            if (type1 == ToSouthCardType.SINGLE && prev.getFirst().getRank() == 2) return true;
+            if (type1 == ToSouthCardType.SINGLE && prev.getFirst().getRank() == RANK_2) return true;
             // 2-2: 炸对子2
-            if (type1 == ToSouthCardType.PAIR && prev.getFirst().getRank() == 2) return true;
+            if (type1 == ToSouthCardType.PAIR && prev.getFirst().getRank() == RANK_2) return true;
             // 2-3: 炸三连对/四连对 其他牌型 (如顺子、单张/对子3-A、三张等) 不能炸
             return type1 == ToSouthCardType.CONSECUTIVE_PAIRS;
         }
@@ -143,9 +131,9 @@ public class ToSouthHandUtils {
         // 连对: 只能大过 单2/对2/同类型
         if (type2 == ToSouthCardType.CONSECUTIVE_PAIRS) {
             // 3连对(6张) > 单张2
-            if (current.size() == 6 && type1 == ToSouthCardType.SINGLE && prev.getFirst().getRank() == 2) return true;
+            if (current.size() == 6 && type1 == ToSouthCardType.SINGLE && prev.getFirst().getRank() == RANK_2) return true;
             // 4连对(8张) > 单、对2
-            if (current.size() == 8 && (type1 == ToSouthCardType.PAIR || type1 == ToSouthCardType.SINGLE) && prev.getFirst().getRank() == 2) return true;
+            if (current.size() == 8 && (type1 == ToSouthCardType.PAIR || type1 == ToSouthCardType.SINGLE) && prev.getFirst().getRank() == RANK_2) return true;
 
             // 连对 vs 连对
             if (type1 == ToSouthCardType.CONSECUTIVE_PAIRS && prev.size() == current.size()) {
@@ -162,7 +150,7 @@ public class ToSouthHandUtils {
     }
 
     private static boolean isRedPig(Card card) {
-        return card != null && card.getRank() == 2 && card.getSuit() == 1;
+        return card != null && card.getRank() == RANK_2 && card.getSuit() == HEART_SUIT;
     }
 
     private static boolean isBombType(ToSouthCardType type) {
@@ -175,17 +163,6 @@ public class ToSouthHandUtils {
         return CARD_COMPARATOR.compare(current.getFirst(), prev.getFirst()) < 0;
     }
 
-    public static boolean hasBombOrTwo(List<Card> cards) {
-        if (cards == null || cards.isEmpty()) return false;
-        // 检查是否有2
-        for (Card c : cards) {
-            if (c.getRank() == 2) return true;
-        }
-        // 检查是否有炸弹 (四张)
-        cards.sort(CARD_COMPARATOR);
-        return countQuads(cards) > 0;
-    }
-
     /**
      * 检查通杀
      */
@@ -194,7 +171,7 @@ public class ToSouthHandUtils {
         cards.sort(CARD_COMPARATOR);
         
         // 4个2
-        if (countRank(cards, 2) == 4) return true;
+        if (countRank(cards, RANK_2) == 4) return true;
         // 一条龙 (3-A)
         if (isDragon(cards)) return true;
         // 6对
@@ -208,7 +185,7 @@ public class ToSouthHandUtils {
     }
 
     public static int countTwo(List<Card> cards) {
-        return countRank(cards, 2);
+        return countRank(cards, RANK_2);
     }
 
     public static int countBomb(List<Card> cards) {
@@ -228,7 +205,7 @@ public class ToSouthHandUtils {
         Set<Integer> ranks = new HashSet<>();
         for (Card c : cards) {
             // 2排除在一条龙之外
-            if (c.getRank() == 2) {
+            if (c.getRank() == RANK_2) {
                 continue;
             }
             ranks.add(c.getRank());
@@ -268,15 +245,7 @@ public class ToSouthHandUtils {
     }
 
     private static boolean isRed(Card c) {
-        return c.getSuit() == 1 || c.getSuit() == 3; // 1:♥, 3:♦
-    }
-
-    public static int compareCard(Card c1, Card c2) {
-        return CARD_COMPARATOR.compare(c1, c2); 
-    }
-    
-    public static boolean compareSingle(Card prev, Card current) {
-        return CARD_COMPARATOR.compare(current, prev) < 0;
+        return c.getSuit() == HEART_SUIT || c.getSuit() == DIAMOND_SUIT; // 1:♥, 2:♦
     }
 
     public static Map<Integer, List<Card>> convertCardListToRankMap(List<Card> cards) {
@@ -306,7 +275,7 @@ public class ToSouthHandUtils {
             return rankMap.get(rank);
         }
         // 2. 三张
-        if (rankMap.get(3).size() == 3) {
+        if (rankMap.get(rank).size() == 3) {
             return rankMap.get(rank);
         }
         // 3. 连对或者顺子
@@ -315,6 +284,10 @@ public class ToSouthHandUtils {
             if (consecutiveCards != null) {
                 return consecutiveCards;
             }
+        }
+        // 4. 对子
+        if (rankMap.get(rank).size() == 2) {
+            return rankMap.get(rank);
         }
         // 5. 单张
         return List.of(firstCard);
@@ -429,7 +402,7 @@ public class ToSouthHandUtils {
                     if (candidate.size() > lastCards.size()) {
                          // 尝试截取同等长度
                          List<Card> sortedCandidate = new ArrayList<>(candidate);
-                         sortedCandidate.sort((c1, c2) -> Integer.compare(getLogicRank(c1.getRank()), getLogicRank(c2.getRank())));
+                         sortedCandidate.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
                          
                          int step = (lastType == ToSouthCardType.STRAIGHT) ? 1 : 2;
                          int targetSize = lastCards.size();
@@ -454,12 +427,12 @@ public class ToSouthHandUtils {
         // 2. 尝试用连对压制 2 (特殊规则)
         List<List<Card>> consecutivePairs = integratedCards.get(ToSouthCardType.CONSECUTIVE_PAIRS);
         if (CollUtil.isNotEmpty(consecutivePairs)) {
-             if (lastType == ToSouthCardType.SINGLE && lastCards.getFirst().getRank() == 2) {
+             if (lastType == ToSouthCardType.SINGLE && lastCards.getFirst().getRank() == RANK_2) {
                  // 上家是单2，优先找4连对(8张)，没有则找3连对(6张)
                  for (List<Card> cp : consecutivePairs) {
                      // 排序，确保从小到大
                      List<Card> sortedCp = new ArrayList<>(cp);
-                     sortedCp.sort((c1, c2) -> Integer.compare(getLogicRank(c1.getRank()), getLogicRank(c2.getRank())));
+                     sortedCp.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
 
                      if (sortedCp.size() >= 8) {
                          // 优先出4连对 (截取前8张)
@@ -469,12 +442,12 @@ public class ToSouthHandUtils {
                          result.add(sortedCp.subList(0, 6));
                      }
                  }
-             } else if (lastType == ToSouthCardType.PAIR && lastCards.getFirst().getRank() == 2) {
+             } else if (lastType == ToSouthCardType.PAIR && lastCards.getFirst().getRank() == RANK_2) {
                  // 上家是对2，找4连对(8张)
                  for (List<Card> cp : consecutivePairs) {
                      if (cp.size() >= 8) {
                          List<Card> sortedCp = new ArrayList<>(cp);
-                         sortedCp.sort((c1, c2) -> Integer.compare(getLogicRank(c1.getRank()), getLogicRank(c2.getRank())));
+                         sortedCp.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
                          // 截取前8张
                          result.add(sortedCp.subList(0, 8));
                      }
@@ -558,7 +531,7 @@ public class ToSouthHandUtils {
         List<Card> cards = new ArrayList<>(handCards);
         cards.sort(CARD_COMPARATOR);
         
-        Map<Integer, List<Card>> rankMap = new TreeMap<>((r1, r2) -> Integer.compare(getLogicRank(r2), getLogicRank(r1))); // key 降序
+        Map<Integer, List<Card>> rankMap = new TreeMap<>((r1, r2) -> Integer.compare(r2, r1)); // key 降序
         for (Card c : cards) {
             rankMap.computeIfAbsent(c.getRank(), k -> new ArrayList<>()).add(c);
         }
@@ -608,7 +581,7 @@ public class ToSouthHandUtils {
                     currentChain.add(r);
                 } else {
                     int lastR = currentChain.getLast();
-                    if (getLogicRank(lastR) == getLogicRank(r) + 1) {
+                    if (lastR == r + 1) {
                         currentChain.add(r);
                     } else {
                         // 链断了
@@ -632,7 +605,7 @@ public class ToSouthHandUtils {
         // 获取所有存在的 rank
         List<Integer> singleRanks = new ArrayList<>(rankMap.keySet()); // 降序
         // 2不参与顺子
-        singleRanks.removeIf(r -> r == 2);
+        singleRanks.removeIf(r -> r == RANK_2);
         
         if (singleRanks.size() >= 3) { // 顺子至少3张
              List<Integer> currentChain = new ArrayList<>();
@@ -641,7 +614,7 @@ public class ToSouthHandUtils {
                     currentChain.add(r);
                 } else {
                     int lastR = currentChain.getLast();
-                    if (getLogicRank(lastR) == getLogicRank(r) + 1) {
+                    if (lastR == r + 1) {
                         currentChain.add(r);
                     } else {
                         if (currentChain.size() >= 3) {
@@ -708,7 +681,7 @@ public class ToSouthHandUtils {
      */
     public static List<Card> findConsecutiveCards(Map<Integer, List<Card>> rankMap, Card firstCard) {
         // 2不能参与顺子
-        if (firstCard.getRank() == 2) {
+        if (firstCard.getRank() == RANK_2) {
             return null;
         }
 
@@ -727,8 +700,7 @@ public class ToSouthHandUtils {
         int currentRank = firstCard.getRank();
         while (true) {
             int nextRank;
-            if (currentRank == 13) nextRank = 1; // K -> A
-            else if (currentRank == 1) break; // A -> End
+            if (currentRank == 14) break; // A -> End
             else nextRank = currentRank + 1;
             
             List<Card> nextCards = rankMap.get(nextRank);
@@ -738,7 +710,7 @@ public class ToSouthHandUtils {
             currentChain.addAll(nextCards);
             currentRank = nextRank;
         }
-        if ((firstRankCount == 1 && currentChain.size() >= 3) || (firstRankCount == 2 && currentChain.size() >=6)) {
+        if ((firstRankCount == 1 && currentChain.size() >= 3) || (firstRankCount == 2 && currentChain.size() >= 6)) {
             return currentChain;
         }
         return null;
@@ -808,20 +780,10 @@ public class ToSouthHandUtils {
         }
     }
 
-    private static List<Card> createHand(int... ranks) {
-        List<Card> list = new ArrayList<>();
-        // 简单模拟花色分配，避免重复
-        int[] suits = new int[15]; // rank -> next suit index
-        for (int r : ranks) {
-            list.add(new Card(suits[r]++ % 4, r));
-        }
-        return list;
-    }
-
     private static List<Card> generateRandomHand(int count) {
         List<Card> deck = new ArrayList<>();
-        for (int s = 0; s < 4; s++) {
-            for (int r = 1; r <= 13; r++) {
+        for (int s = 1; s <= 4; s++) {
+            for (int r = 3; r <= 15; r++) {
                 deck.add(new Card(s, r));
             }
         }
@@ -844,14 +806,15 @@ public class ToSouthHandUtils {
 
     private static String cardToString(Card c) {
         String suitStr = switch (c.getSuit()) {
-            case 0 -> "♠";
-            case 1 -> "♥";
-            case 2 -> "♣";
-            case 3 -> "♦";
+            case SPADE_SUITS -> "♠";
+            case HEART_SUIT -> "♥";
+            case ClUB_SUIT -> "♣";
+            case DIAMOND_SUIT -> "♦";
             default -> "?";
         };
         String rankStr = switch (c.getRank()) {
-            case 1 -> "A";
+            case 14 -> "A";
+            case 15 -> "2";
             case 11 -> "J";
             case 12 -> "Q";
             case 13 -> "K";

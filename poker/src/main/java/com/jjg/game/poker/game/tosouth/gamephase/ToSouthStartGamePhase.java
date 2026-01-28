@@ -5,13 +5,16 @@ import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
+import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseStartGamePhase;
 import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,25 +40,28 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
         if (gameController instanceof ToSouthGameController controller) {
             ToSouthGameDataVo gameDataVo = controller.getGameDataVo();
             
+            // 确保 playerSeatInfoList 已初始化
+            if (gameDataVo.getPlayerSeatInfoList().isEmpty()) {
+                controller.genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
+                log.info("初始化玩家列表完成，人数: {}", gameDataVo.getPlayerSeatInfoList().size());
+            }
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(controller.getRoom().getRoomCfgId());
+            gameDataVo.setRoomBet(warehouseCfg.getEnterLimit());
+            log.debug("南方前进开始游戏，房间底注为：{}", warehouseCfg.getEnterLimit());
             // 1. 洗牌发牌
             Map<Integer, PokerCard> cardListMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
             sendCards(cardListMap, gameDataVo);
 
             // 2. 确定首出玩家 (黑桃3)
-            PlayerSeatInfo playerSeatInfo = findSeatWithSpecifyCard(gameDataVo, new Card(0, 3).getValue());
+            PlayerSeatInfo playerSeatInfo = findSeatWithSpecifyCard(gameDataVo, cardListMap, 3, 4);
             if (playerSeatInfo == null) {
                 log.warn("南方前进牌组中没有黑桃3，请检查配置");
-                // 容错：默认第一个人
-                if (!gameDataVo.getPlayerSeatInfoList().isEmpty()) {
-                    playerSeatInfo = gameDataVo.getPlayerSeatInfoList().get(0);
-                }
+                return;
             }
-            
-            if (playerSeatInfo != null) {
-                gameDataVo.setIndex(playerSeatInfo.getSeatId());
-                gameDataVo.setFirstRound(true);
-                gameDataVo.setRoundLeaderSeatId(playerSeatInfo.getSeatId());
-            }
+
+            gameDataVo.setIndex(playerSeatInfo.getSeatId());
+            gameDataVo.setFirstRound(true);
+            gameDataVo.setRoundLeaderSeatId(playerSeatInfo.getSeatId());
 
             // 3. 检查通杀
             checkInstantWin(controller);
@@ -82,6 +88,11 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             }
             info.setCards(new ArrayList<>());
             info.getCards().add(playCard);
+            
+            if (log.isDebugEnabled()) {
+                 List<Card> hand = playCard.stream().map(cardListMap::get).sorted(ToSouthHandUtils.CARD_COMPARATOR).collect(Collectors.toList());
+                log.debug("发牌 - 玩家: {}, 座位: {}, 手牌: {}", info.getPlayerId(), info.getSeatId(), ToSouthHandUtils.cardListToString(hand));
+            }
         }
 
         // 发送发牌通知
@@ -92,10 +103,11 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
         }
     }
 
-    private PlayerSeatInfo findSeatWithSpecifyCard(ToSouthGameDataVo gameDataVo, int specifyCard) {
+    private PlayerSeatInfo findSeatWithSpecifyCard(ToSouthGameDataVo gameDataVo, Map<Integer, PokerCard> cardMap, int rank, int suit) {
         for (PlayerSeatInfo playerSeatInfo : gameDataVo.getPlayerSeatInfoList()) {
-            for (Integer currentCard : playerSeatInfo.getCurrentCards()) {
-                if (currentCard == specifyCard) {
+            for (Integer cardId : playerSeatInfo.getCurrentCards()) {
+                PokerCard pokerCard = cardMap.get(cardId);
+                if (pokerCard != null && pokerCard.getRank() == rank && pokerCard.getSuit() == suit) {
                     return playerSeatInfo;
                 }
             }
@@ -111,6 +123,11 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
         for (PlayerSeatInfo seatInfo : gameDataVo.getPlayerSeatInfoList()) {
             List<Integer> handCardIds = seatInfo.getCurrentCards();
             List<Card> handCards = handCardIds.stream().map(cardMap::get).collect(Collectors.toList());
+            if (log.isDebugEnabled()) {
+                List<Card> sorted = new ArrayList<>(handCards);
+                sorted.sort(ToSouthHandUtils.CARD_COMPARATOR);
+                log.debug("通杀检查 - 玩家: {}, 手牌: {}", seatInfo.getPlayerId(), ToSouthHandUtils.cardListToString(sorted));
+            }
             if (ToSouthHandUtils.checkInstantWin(handCards)) {
                 instantWinners.add(seatInfo);
                 log.info("玩家 {} 触发通杀！", seatInfo.getPlayerId());

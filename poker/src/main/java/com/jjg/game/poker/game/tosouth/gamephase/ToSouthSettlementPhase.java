@@ -136,6 +136,8 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             log.error("结算没有赢家，请检查出牌逻辑！");
             return;
         }
+        log.debug("开始结算 - 赢家数量: {}, 底注: {}", winners.size(), baseBet);
+
         // 1. 找出赢家 (手牌为0)
         List<PlayerSeatInfo> losers = new ArrayList<>();
 
@@ -144,6 +146,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 losers.add(seat);
             }
         }
+        log.debug("结算玩家分布 - 赢家: {}, 输家: {}", winners.stream().map(PlayerSeatInfo::getPlayerId).collect(Collectors.toList()), losers.stream().map(PlayerSeatInfo::getPlayerId).collect(Collectors.toList()));
 
         long totalWinScore = 0;
         Map<Integer, PokerCard> cardMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
@@ -152,6 +155,8 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
         for (PlayerSeatInfo loser : losers) {
             List<Card> handCards = loser.getCurrentCards().stream().map(cardMap::get).collect(Collectors.toList());
             int cardCount = handCards.size();
+            handCards.sort(ToSouthHandUtils.CARD_COMPARATOR);
+            log.debug("计算输家 {} 分数 - 剩余手牌: {}", loser.getPlayerId(), ToSouthHandUtils.cardListToString(handCards));
             long loseScore = 0;
 
             // 规则 2a: 剩13张翻倍
@@ -159,6 +164,8 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             int countTwo = ToSouthHandUtils.countTwo(handCards);
             int countBomb = ToSouthHandUtils.countBomb(handCards);
             int otherCards = cardCount - countTwo - (countBomb * 4);
+            log.debug("输家 {} 手牌构成 - 13张翻倍: {}, 2的数量: {}, 炸弹数量: {}, 其他牌数量: {}", 
+                    loser.getPlayerId(), doubleMulti, countTwo, countBomb, otherCards);
 
             int twoMulti = 0;
             int bombMulti = 0;
@@ -171,10 +178,15 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             }
             int totalMulti = doubleMulti * otherCards + countTwo * twoMulti + countBomb * bombMulti;
             loseScore = (long)totalMulti * baseBet;
+            log.debug("输家 {} 计算结果 - 2倍数: {}, 炸弹倍数: {}, 总倍数: {}, 输分: {}", 
+                    loser.getPlayerId(), twoMulti, bombMulti, totalMulti, loseScore);
+
             // 记录输分 (负数)
             settlementMap.put(loser.getPlayerId(), -loseScore * winners.size());
             totalWinScore += loseScore;
         }
+        log.debug("结算总输分: {}, 分配给赢家每人: {}", totalWinScore, totalWinScore);
+
         // 4. 赢家获得总分
         for (PlayerSeatInfo winner : winners) {
             settlementMap.put(winner.getPlayerId(), totalWinScore);

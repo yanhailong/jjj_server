@@ -17,4 +17,15 @@ public class ToSouthConstant {
         int NOTIFY_TURN_ACTION_INFO = BASE_MSG_PREFIX | 0x13;
         int NOTIFY_BOMB_SETTLEMENT = BASE_MSG_PREFIX | 0x14;
     }
+
+    /**
+     * 黑桃3的数字
+     */
+    public static final int RANK_3 = 3;
+    public static final int RANK_A = 14;
+    public static final int RANK_2 = 15;
+    public static final int HEART_SUIT = 1;
+    public static final int DIAMOND_SUIT = 2;
+    public static final int ClUB_SUIT = 3;
+    public static final int SPADE_SUITS = 4;
 }

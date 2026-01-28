@@ -37,6 +37,7 @@ import com.jjg.game.poker.game.tosouth.message.bean.ToSouthBombDetail;
 import java.util.*;
 
 import cn.hutool.core.collection.CollUtil;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
@@ -45,8 +46,10 @@ import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
 import java.util.stream.Collectors;
 
 import com.jjg.game.room.data.robot.GameRobotPlayer;
-import com.jjg.game.room.robot.RobotScheduleUtil;
 import com.jjg.game.poker.game.tosouth.autohandler.ToSouthAutoPlayHandler;
+
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_3;
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUITS;
 
 @GameController(gameType = EGameType.TO_SOUTH, roomType = RoomType.POKER_ROOM)
 public class ToSouthGameController extends BasePokerGameController<ToSouthGameDataVo> {
@@ -83,6 +86,11 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
     }
 
+    @Override
+    public boolean canJoinRobot() {
+        return getCurrentGamePhase() == EGamePhase.WAIT_READY;
+    }
+
     public void turnAction(long playerId, ReqTurnAction reqTurnAction) {
         PlayerSeatInfo info = gameDataVo.getCurrentPlayerSeatInfo();
         if (getCurrentGamePhase() != EGamePhase.PLAY_CART) {
@@ -95,6 +103,26 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         }
 
         int actionType = reqTurnAction.actionType; // 0: Play, 1: Pass
+        
+        if (log.isDebugEnabled()) {
+            String cardStr = "无";
+            if (actionType == 0 && CollUtil.isNotEmpty(reqTurnAction.cards)) {
+                Map<Integer, PokerCard> cardMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
+                List<Card> c = new ArrayList<>();
+                // 将 clientId 转为 Card 对象以便打印
+                for (Integer clientId : reqTurnAction.cards) {
+                    for (PokerCard pc : cardMap.values()) {
+                        if (pc.getClientId() == clientId) {
+                            c.add(pc);
+                            break;
+                        }
+                    }
+                }
+                c.sort(ToSouthHandUtils.CARD_COMPARATOR);
+                cardStr = ToSouthHandUtils.cardListToString(c);
+            }
+            log.debug("玩家操作 - ID: {}, 动作: {}, 牌: {}", playerId, actionType == 1 ? "过" : "出", cardStr);
+        }
         
         // 检查玩家是否在本轮已过牌
         if (actionType == 0 && gameDataVo.getCurRoundPassedPlayerSeats().contains(info.getSeatId())) {
@@ -113,6 +141,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             // 过牌成功
             gameDataVo.getCurRoundPassedPlayerSeats().add(info.getSeatId());
             gameDataVo.setPassCount(gameDataVo.getPassCount() + 1);
+            log.debug("玩家 {} 过牌，当前连续过牌数: {}", info.getPlayerId(), gameDataVo.getPassCount());
             checkNextTurn();
             return;
         }
@@ -123,17 +152,39 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             log.warn("玩家未出牌：{}", info.getPlayerId());
             return;
         }
-        if (!new HashSet<>(info.getCurrentCards()).containsAll(playCardIds)) {
-            log.warn("玩家:{} 出的牌:{} 不属于他的手牌: {}", info.getPlayerId(), playCardIds, info.getCurrentCards());
+        
+        Map<Integer, PokerCard> cardMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
+        
+        // 校验出的牌是否在玩家手牌中
+        // info.getCurrentCards() 存储的是 ID
+        // playCardIds 是 clientId，需要转换
+        List<Integer> handClientIds = ToSouthDataHelper.getClientId(gameDataVo, info.getCurrentCards());
+        if (!new HashSet<>(handClientIds).containsAll(playCardIds)) {
+            log.warn("玩家 {} 出的牌 {} 不属于其手牌 {}", info.getPlayerId(), playCardIds, handClientIds);
             return;
         }
 
-        Map<Integer, PokerCard> cardMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
-        List<Card> playCards = playCardsIdsToCards(playCardIds, cardMap);
+        // 将 clientId 转换为 pokerPoolId
+        List<Integer> realPlayCardIds = new ArrayList<>();
+        for (Integer clientId : playCardIds) {
+            for (PokerCard card : cardMap.values()) {
+                if (card.getClientId() == clientId) {
+                    realPlayCardIds.add(card.getPokerPoolId());
+                    break;
+                }
+            }
+        }
+        
+        if (realPlayCardIds.size() != playCardIds.size()) {
+             log.warn("玩家 {} 出的牌包含无效的 clientId: {}", info.getPlayerId(), playCardIds);
+             return;
+        }
+        
+        List<Card> playCards = playCardsIdsToCards(realPlayCardIds, cardMap);
 
         // 1. 第一轮黑桃3检测
         if (gameDataVo.isFirstRound() && gameDataVo.getLastPlayCards() == null) {
-            boolean hasSpade3 = playCards.stream().anyMatch(c -> c.getRank() == 3 && c.getSuit() == 0);
+            boolean hasSpade3 = playCards.stream().anyMatch(c -> c.getRank() == RANK_3 && c.getSuit() == SPADE_SUITS);
             if (!hasSpade3) {
                 log.warn("首局首出必须包含黑桃3");
                 return;
@@ -157,13 +208,17 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             }
         }
 
-        info.getCurrentCards().removeAll(playCardIds);
-        gameDataVo.setLastPlayCards(playCardIds);
+        info.getCurrentCards().removeAll(realPlayCardIds);
+        gameDataVo.setLastPlayCards(realPlayCardIds);
         gameDataVo.setLastPlaySeatId(info.getSeatId());
         gameDataVo.setPassCount(0); // 重置过牌计数
         
         // 记录出牌
-        gameDataVo.getCurrentRoundPlays().add(new ToSouthRoundRecord(info.getSeatId(), playCardIds, type));
+        gameDataVo.getCurrentRoundPlays().add(new ToSouthRoundRecord(info.getSeatId(), realPlayCardIds, type));
+        
+        // Log formatted cards
+        playCards.sort(ToSouthHandUtils.CARD_COMPARATOR);
+        log.debug("玩家 {} 出牌成功 - 类型: {}, 牌: {}, 剩余手牌: {}", info.getPlayerId(), type, ToSouthHandUtils.cardListToString(playCards), info.getCurrentCards().size());
 
         if (info.getCurrentCards().isEmpty()) {
             log.info("玩家 {} 胜利 (出完手牌)，游戏结束", info.getPlayerId());
@@ -292,6 +347,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         // 规则：只要有 (人数 - 1) 个人连续 Pass，则一轮结束
         int totalPlayers = gameDataVo.getPlayerSeatInfoList().size();
         int passLimit = totalPlayers - 1;
+        log.debug("检查下家 - 连续过牌: {}/{}, 当前索引: {}", gameDataVo.getPassCount(), passLimit, gameDataVo.getIndex());
 
         if (gameDataVo.getPassCount() >= passLimit) {
             // 新的一轮
@@ -300,6 +356,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             PlayerSeatInfo nextLeader = getPlayerBySeatId(winnerSeatId);
 
             if (nextLeader != null) {
+                log.debug("一轮结束，玩家 {} 获得球权，新一轮开始", nextLeader.getPlayerId());
                 gameDataVo.setRoundLeaderSeatId(nextLeader.getSeatId());
                 gameDataVo.setLastPlayCards(null);
                 gameDataVo.setFirstRound(false);
@@ -319,6 +376,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             // 继续当前轮，找下家
             PlayerSeatInfo nextPlayer = getNextExePlayer();
             if (nextPlayer != null) {
+                log.debug("当前轮继续，下家 {} 出牌", nextPlayer.getPlayerId());
                 gameDataVo.setIndex(nextPlayer.getSeatId());
                 broadcastNextTurn(nextPlayer.getPlayerId(), gameDataVo.getCurRoundPassedPlayerSeats());
                 addNextTimer(nextPlayer, 0);
@@ -408,19 +466,19 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             if (gameDataVo.isFirstRound()) {
                 // 首局首出 (找含黑桃3的)
                 List<Card> best = handCards.stream()
-                        .filter(c -> c.getRank() == 3 && c.getSuit() == 0)
+                        .filter(c -> c.getRank() == RANK_3 && c.getSuit() == SPADE_SUITS)
                         .findFirst()
                         .map(spade3 -> ToSouthHandUtils.findBestPlayWithFirstCard(rankMap, spade3))
                         .orElse(null);
                 if (CollUtil.isNotEmpty(best)) {
-                    List<Integer> ids = ToSouthDataHelper.getClientId(gameDataVo, best.stream().map(Card::getValue).collect(Collectors.toList()));
+                    List<Integer> ids = ToSouthDataHelper.getClientId(gameDataVo, best.stream().map(c -> ((PokerCard)c).getPokerPoolId()).collect(Collectors.toList()));
                     recommendCardsList.add(new ToSouthRecommendCards(ids));
                 }
             } else {
                 // 普通首出 (获取所有可能)
                 List<List<Card>> allBestPlays = ToSouthHandUtils.findAllBestPlays(handCards);
                 for (List<Card> play : allBestPlays) {
-                    List<Integer> ids = ToSouthDataHelper.getClientId(gameDataVo, play.stream().map(Card::getValue).collect(Collectors.toList()));
+                    List<Integer> ids = ToSouthDataHelper.getClientId(gameDataVo, play.stream().map(c -> ((PokerCard)c).getPokerPoolId()).collect(Collectors.toList()));
                     recommendCardsList.add(new ToSouthRecommendCards(ids));
                 }
             }
@@ -432,7 +490,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 List<List<Card>> allPlays = ToSouthHandUtils.findAllFollowPlays(handCards, lastCards);
                 
                 for (List<Card> play : allPlays) {
-                     List<Integer> ids = ToSouthDataHelper.getClientId(gameDataVo, play.stream().map(Card::getValue).collect(Collectors.toList()));
+                     List<Integer> ids = ToSouthDataHelper.getClientId(gameDataVo, play.stream().map(c -> ((PokerCard)c).getPokerPoolId()).collect(Collectors.toList()));
                      recommendCardsList.add(new ToSouthRecommendCards(ids));
                 }
             }
@@ -472,6 +530,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
     @Override
     public void respRoomInitInfoAction(PlayerController playerController) {
+        log.debug("响应房间信息 - 玩家: {}", playerController.playerId());
         RespToSouthRoomBaseInfo baseInfo = new RespToSouthRoomBaseInfo(Code.SUCCESS);
         baseInfo.phase = getCurrentGamePhase();
         baseInfo.playerInfos = new ArrayList<>();
@@ -556,11 +615,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
         // 如果是机器人，添加机器人处理器
         if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
-             int delay = RobotScheduleUtil.getChessExecutionDelay(robotPlayer.getActionId());
-             // 确保机器人思考时间合理
-             if (delay > operationTime) delay = operationTime - 1000;
-             if (delay < 1000) delay = 1000;
-
+             int delay = RandomUtils.nextInt(2000, 5000);
              ToSouthAutoPlayHandler handler = new ToSouthAutoPlayHandler(playerId, gameDataVo.getId(), this);
              addPlayerTimer(handler, delay);
         } else {

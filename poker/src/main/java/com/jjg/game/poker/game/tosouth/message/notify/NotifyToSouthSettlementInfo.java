@@ -16,4 +16,30 @@ public class NotifyToSouthSettlementInfo extends AbstractNotice {
     public List<ToSouthPlayerSettlementInfo> settlementInfos;
     @ProtoDesc("结算时间")
     public long endTime;
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private List<ToSouthPlayerSettlementInfo> settlementInfos;
+        private long endTime;
+
+        public Builder settlementInfos(List<ToSouthPlayerSettlementInfo> settlementInfos) {
+            this.settlementInfos = settlementInfos;
+            return this;
+        }
+
+        public Builder endTime(long endTime) {
+            this.endTime = endTime;
+            return this;
+        }
+
+        public NotifyToSouthSettlementInfo build() {
+            NotifyToSouthSettlementInfo info = new NotifyToSouthSettlementInfo();
+            info.settlementInfos = this.settlementInfos;
+            info.endTime = this.endTime;
+            return info;
+        }
+    }
 }

@@ -18,4 +18,51 @@ public class ToSouthPlayerSettlementInfo {
     public List<Integer> handCards;
     @ProtoDesc("是否赢家")
     public boolean isWinner;
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private long playerId;
+        private long winScore;
+        private long currentScore;
+        private List<Integer> handCards;
+        private boolean isWinner;
+
+        public Builder playerId(long playerId) {
+            this.playerId = playerId;
+            return this;
+        }
+
+        public Builder winScore(long winScore) {
+            this.winScore = winScore;
+            return this;
+        }
+
+        public Builder currentScore(long currentScore) {
+            this.currentScore = currentScore;
+            return this;
+        }
+
+        public Builder handCards(List<Integer> handCards) {
+            this.handCards = handCards;
+            return this;
+        }
+
+        public Builder isWinner(boolean isWinner) {
+            this.isWinner = isWinner;
+            return this;
+        }
+
+        public ToSouthPlayerSettlementInfo build() {
+            ToSouthPlayerSettlementInfo info = new ToSouthPlayerSettlementInfo();
+            info.playerId = this.playerId;
+            info.winScore = this.winScore;
+            info.currentScore = this.currentScore;
+            info.handCards = this.handCards;
+            info.isWinner = this.isWinner;
+            return info;
+        }
+    }
 }
