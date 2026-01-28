@@ -10,8 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author 11
@@ -122,5 +121,30 @@ public class LoginConfigService {
             return null;
         }
         return tmpMap.get(loginType);
+    }
+
+    /**
+     * 获取奖励
+     * @param channel
+     * @return
+     */
+    public List<Integer> getOpenRewardList(int channel) {
+        if (loginConfigMap == null || loginConfigMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Integer, LoginConfigData> tmpMap = loginConfigMap.get(channel);
+        if (tmpMap == null || tmpMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Integer> list = new ArrayList<>();
+        for (Map.Entry<Integer, LoginConfigData> en : tmpMap.entrySet()) {
+            LoginConfigData data = en.getValue();
+            if(data.isLoginOpen() && data.isRewardOpen()) {
+                list.add(data.getLoginType());
+            }
+        }
+        return list;
     }
 }
