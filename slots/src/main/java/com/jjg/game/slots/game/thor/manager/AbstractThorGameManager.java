@@ -3,7 +3,7 @@ package com.jjg.game.slots.game.thor.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -318,7 +318,14 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
 
     @Override
     protected void onAutoExitAction(ThorPlayerGameData gameData, int eventId) {
-        if (gameData.getStatus() == ThorConstant.Status.ICE || gameData.getStatus() == ThorConstant.Status.FIRE) {
+        if (gameData.getStatus() == ThorConstant.Status.CHOOSE_ONE) {
+            PlayerController playerController = gameData.getPlayerController();
+            freeChooseOne(playerController, RandomUtils.randomMinMax(0, 1));
+            if (gameData.getStatus() == ThorConstant.Status.ICE || gameData.getStatus() == ThorConstant.Status.FIRE) {
+                freeStateAction(gameData, (playerGameData) ->
+                        startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
+            }
+        } else if (gameData.getStatus() == ThorConstant.Status.ICE || gameData.getStatus() == ThorConstant.Status.FIRE) {
             freeStateAction(gameData, (playerGameData) ->
                     startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
         }

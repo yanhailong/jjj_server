@@ -78,12 +78,6 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
             gameRunInfo.setAuto(auto);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
 
-            CommonResult<Pair<SuperStarResultLib, BetDivideInfo>> commonResult = normalGetLib(playerGameData, betValue, SuperStarConstant.Common.SPECIAL_MODE_TYPE_NORMAL);
-            if (!commonResult.success()) {
-                gameRunInfo.setCode(commonResult.code);
-                return gameRunInfo;
-            }
-
             gameRunInfo = normal(gameRunInfo, playerGameData, betValue);
 
             //从奖池扣除，并给玩家加钱

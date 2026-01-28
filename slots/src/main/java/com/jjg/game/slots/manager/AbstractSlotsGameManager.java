@@ -2095,4 +2095,24 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         Constructor<G> constructor = this.gameRunInfoClass.getConstructor(int.class, long.class);
         return constructor.newInstance(code, playerId);
     }
+
+    /**
+     * 清除游戏状态
+     * @param playerId
+     * @param roomCfgId
+     */
+    public void cleanStatus(long playerId, int roomCfgId) {
+        T playerGameData = getPlayerGameData(playerId, roomCfgId);
+        if(playerGameData != null){
+            playerGameData.setStatus(0);
+            playerGameData.getRemainFreeCount().set(0);
+            playerGameData.getFreeIndex().set(0);
+            playerGameData.setFreeLib(null);
+            playerGameData.setTestLibDataList(null);
+        }else {
+            SlotsPlayerGameDataDTO dto = getGameDataDao().getGameDataByPlayerId(playerId, roomCfgId);
+            dto.setStatus(0);
+            dto.setFreeAllWin(0);
+        }
+    }
 }

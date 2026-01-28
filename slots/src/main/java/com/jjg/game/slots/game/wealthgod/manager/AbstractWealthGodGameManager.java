@@ -83,20 +83,14 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
     /**
      * 开始游戏
      */
+    @Override
     public WealthGodGameRunInfo startGame(PlayerController playerController, WealthGodPlayerGameData playerGameData, long betValue, boolean auto) {
         WealthGodGameRunInfo gameRunInfo = new WealthGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
 
-            CommonResult<Pair<WealthGodResultLib, BetDivideInfo>> commonResult = normalGetLib(playerGameData, betValue, WealthGodConstant.SpecialMode.TYPE_NORMAL);
-            if (!commonResult.success()) {
-                gameRunInfo.setCode(commonResult.code);
-                return gameRunInfo;
-            }
-
-            WealthGodResultLib resultLib = commonResult.data.getFirst();
-            gameRunInfo.setBetDivideInfo(commonResult.data.getSecond());
+            normal(gameRunInfo, playerGameData, betValue);
 
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
@@ -104,18 +98,10 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
 
             gameRunInfo.setBeforeGold(player.getGold());
 
-            gameRunInfo.setStake(betValue);
-            //所有的spin数据
-            List<WealthGodSpinInfo> infoList = new ArrayList<>();
-            respinAnalysis(resultLib, playerGameData.getOneBetScore(), infoList, betValue, gameRunInfo);
-            gameRunInfo.setSpinInfo(infoList);
-            //记录奖池id
-            gameRunInfo.setJackpotId(resultLib.firstJackpotId());
-
             //从奖池扣除，并给玩家加钱
             rewardFromBigPool(gameRunInfo, playerGameData);
             //奖池中奖
-            rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
+            rewardFromSmallPool(gameRunInfo, playerGameData, gameRunInfo.getResultLib().getJackpotIds());
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
@@ -127,13 +113,25 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
 
             gameRunInfo.setAfterGold(player.getGold());
 
-            gameRunInfo.setResultLib(resultLib);
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             return gameRunInfo;
         } catch (Exception e) {
             log.error("", e);
             gameRunInfo.setCode(Code.EXCEPTION);
         }
+        return gameRunInfo;
+    }
+
+    @Override
+    protected WealthGodGameRunInfo normal(WealthGodGameRunInfo gameRunInfo, WealthGodPlayerGameData playerGameData, long betValue, WealthGodResultLib resultLib) {
+        gameRunInfo.setStake(betValue);
+        //所有的spin数据
+        List<WealthGodSpinInfo> infoList = new ArrayList<>();
+        respinAnalysis(resultLib, playerGameData.getOneBetScore(), infoList, betValue, gameRunInfo);
+        gameRunInfo.setSpinInfo(infoList);
+        //记录奖池id
+        gameRunInfo.setJackpotId(resultLib.firstJackpotId());
+        gameRunInfo.setResultLib(resultLib);
         return gameRunInfo;
     }
 

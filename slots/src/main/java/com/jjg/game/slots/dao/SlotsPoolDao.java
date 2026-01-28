@@ -129,7 +129,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
             addToBigPool(gameType, roomCfgId, value);
             return result;
         }
-        log.info("从标准池扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},value = {},afterPool = {},addType = {}", playerId, gameType, roomCfgId, value, after, addType);
+        log.info("从标准池扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},value = {},afterPool = {},playerAfterGold = {},addType = {}", playerId, gameType, roomCfgId, value, after, result.data.getGold(), addType);
         return result;
     }
 
