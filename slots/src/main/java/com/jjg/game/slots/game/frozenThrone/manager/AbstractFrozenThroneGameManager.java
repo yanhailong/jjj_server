@@ -3,7 +3,6 @@ package com.jjg.game.slots.game.frozenThrone.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -11,8 +10,6 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
@@ -22,25 +19,21 @@ import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneGameRunInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThronePlayerGameData;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThronePlayerGameDataDTO;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneResultLib;
-import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameManager<FrozenThronePlayerGameData, FrozenThroneResultLib> {
+public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameManager<FrozenThronePlayerGameData, FrozenThroneResultLib, FrozenThroneGameRunInfo> {
     @Autowired
     private FrozenThroneResultLibDao libDao;
     @Autowired
     private FrozenThroneGenerateManager generateManager;
     @Autowired
-    private SlotsPoolDao slotsPoolDao;
-    @Autowired
-    private SlotsLogger logger;
-    @Autowired
     private FrozenThroneGameDataDao gameDataDao;
 
     public AbstractFrozenThroneGameManager() {
-        super(FrozenThronePlayerGameData.class, FrozenThroneResultLib.class);
+        super(FrozenThronePlayerGameData.class, FrozenThroneResultLib.class, FrozenThroneGameRunInfo.class);
     }
 
     @Override
@@ -69,32 +62,14 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
     }
 
     /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public FrozenThroneGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        FrozenThronePlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new FrozenThroneGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerGameData, stake, false);
-    }
-
-    /**
      * 开始游戏
      *
      * @param playerGameData
      * @param auto
      * @return
      */
-    public FrozenThroneGameRunInfo startGame(FrozenThronePlayerGameData playerGameData, long betValue, boolean auto) {
+    @Override
+    public FrozenThroneGameRunInfo startGame(PlayerController playerController, FrozenThronePlayerGameData playerGameData, long betValue, boolean auto) {
         FrozenThroneGameRunInfo gameRunInfo = new FrozenThroneGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
@@ -149,23 +124,8 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
         return gameRunInfo;
     }
 
-    /**
-     * 普通正常流程
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param betValue
-     * @return
-     */
-    public FrozenThroneGameRunInfo normal(FrozenThroneGameRunInfo gameRunInfo, FrozenThronePlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<FrozenThroneResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, FrozenThroneConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        FrozenThroneResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected FrozenThroneGameRunInfo normal(FrozenThroneGameRunInfo gameRunInfo, FrozenThronePlayerGameData playerGameData, long betValue, FrozenThroneResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(FrozenThroneConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(FrozenThroneConstant.Status.FREE);
@@ -313,6 +273,6 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
      */
     public FrozenThroneGameRunInfo autoStartGame(FrozenThronePlayerGameData playerGameData, long betValue) {
         log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
-        return startGame(playerGameData, betValue, true);
+        return startGame(null,playerGameData, betValue, true);
     }
 }

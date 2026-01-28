@@ -28,7 +28,7 @@ public class WebSocketChildChannelHandler extends ChannelInitializer<SocketChann
         // TODO Auto-generated method stub
         ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(timeOutSecond, 0, 0, TimeUnit.SECONDS));
         ch.pipeline().addLast("http-codec", new HttpServerCodec());
-        ch.pipeline().addLast("aggregator", new HttpObjectAggregator(65536));
+        ch.pipeline().addLast("aggregator", new HttpObjectAggregator(8192));
         ch.pipeline().addLast("http-chunked", new ChunkedWriteHandler());
         ch.pipeline().addLast("encoder", new WebSocketMessageEncoder());
         ch.pipeline().addLast("handler", new WebSocketServerHandler());

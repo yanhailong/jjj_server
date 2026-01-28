@@ -87,6 +87,14 @@ public interface Code {
     int TEXAS_NOT_ENOUGH = 433;
     // 使用未拥有的皮肤
     int NOT_UNLOCKED = 434;
+    //房间玩家长时间未操作，被踢出房间
+    int ROOM_PLAYER_IDLE = 16008;
+    //房间已经被房主解散，请去其他游戏试试吧
+    int SLOTS_ROOM_PLAYER_KICK_OUT = 49134;
+    //此牌局游戏时长不足，请联系包房房主续时
+    int SLOTS_ROOM_TIME_OUT = 49042;
+    //当前牌局已被房主临时关闭，请联系房主
+    int SLOTS_ROOM_PAUSE = 49069;
     // 庄家不能押注
     int BANKER_CANT_BET = 49136;
     // 庄家不能押注
@@ -99,6 +107,8 @@ public interface Code {
     int AMOUNT_OF_RESERVES_IS_INCORRECT_CONFIG = 49140;
     //准备金不足(slots)
     int AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT = 49142;
+    //准备金不足,无法赔付
+    int RESERVES_IS_NOT_ENOUGHT_FOR_REWARD = 49144;
     // 請輸入正確的code
     int CODE_ERROR = 436;
     // 不能绑定自己

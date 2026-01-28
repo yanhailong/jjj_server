@@ -30,6 +30,9 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> 
 
     Logger log = LoggerFactory.getLogger(getClass());
 
+    //限制websocket请求数据帧大小
+    private final int MAX_FRAME_SIZE = 65536;
+
     public static void sendHttpResponse(ChannelHandlerContext ctx, FullHttpRequest req, DefaultFullHttpResponse res) {
         // 返回应答给客户端
         if (res.status().code() != 200) {
@@ -159,6 +162,14 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> 
         if (frame instanceof BinaryWebSocketFrame) {
 //            BinaryWebSocketFrame binaryWebSocketFrame = (BinaryWebSocketFrame) frame;
             ByteBuf msg = frame.content();
+            // ✓ 帧大小检查
+            int frameSize = msg.readableBytes();
+            if (frameSize > MAX_FRAME_SIZE) {
+                log.warn("检测到超大帧, size={}, max={}, remote={}", frameSize, MAX_FRAME_SIZE, ctx.channel().remoteAddress());
+                frame.release();
+                ctx.close();
+                return;
+            }
             decode(ctx, msg);
         }
     }

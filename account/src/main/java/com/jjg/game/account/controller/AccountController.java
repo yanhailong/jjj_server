@@ -9,10 +9,13 @@ import com.jjg.game.account.dto.LoginSmsDto;
 import com.jjg.game.account.dto.ServerUrlDto;
 import com.jjg.game.account.service.AccountService;
 import com.jjg.game.account.utils.IpCountryUtil;
+import com.jjg.game.account.vo.LoginConfigVo;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.dao.CommonDao;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.service.ThirdAccountHttpService;
-import com.jjg.game.account.vo.LoginConfigVo;
+import com.jjg.game.account.vo.ThirdLoginConfigVo;
 import com.jjg.game.account.vo.ServerUrlVo;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.data.*;
@@ -23,7 +26,6 @@ import com.jjg.game.core.service.BlackListService;
 import com.jjg.game.core.service.LoginConfigService;
 import com.jjg.game.core.service.SmsService;
 import com.jjg.game.core.utils.CoreUtil;
-import com.jjg.game.sampledata.GameDataManager;
 import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +33,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -57,6 +60,8 @@ public class AccountController extends AbstractController {
     private LoginConfigService loginConfigService;
     @Autowired
     private CountDao countDao;
+    @Autowired
+    private CommonDao commonDao;
 
     /**
      * 获取开启的登录方式
@@ -64,32 +69,77 @@ public class AccountController extends AbstractController {
      * @return
      */
     @RequestMapping("loginConfig")
-    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
-        List<LoginConfigVo> resultList = new ArrayList<>(GameDataManager.getLoginConfigCfgList().size());
-        GameDataManager.getLoginConfigCfgList().forEach(config -> {
-            LoginConfigVo vo = new LoginConfigVo();
+    public WebResult<LoginConfigVo> loginConfig(@RequestBody LoginConfigDto dto) {
+        Map<Integer, LoginConfigData> map;
+        if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
+            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
+        } else {
+            map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
+        }
 
-            vo.setType(config.getType());
-            if (config.getType() == LoginType.GOOGLE.getValue()) {
-                if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
-                    vo.setOpen(loginConfigService.isOpen(config.getType()));
-                } else {
-                    vo.setOpen(false);
-                }
-            } else if (config.getType() == LoginType.APPLE.getValue()) {
-                if (dto.getDevice() == DeviceType.IOS.getValue()) {
-                    vo.setOpen(loginConfigService.isOpen(config.getType()));
-                } else {
-                    vo.setOpen(false);
-                }
-            } else {
-                vo.setOpen(loginConfigService.isOpen(config.getType()));
-            }
+        LoginConfigVo vo = new LoginConfigVo();
+        //登录开关配置
+        if (map != null && !map.isEmpty()) {
+            List<ThirdLoginConfigVo> resultList = new ArrayList<>();
+            map.forEach((k, v) -> {
+                ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
+                thirdLoginConfigVo.setType(v.getLoginType());
+                thirdLoginConfigVo.setOpen(v.isLoginOpen());
+                resultList.add(thirdLoginConfigVo);
+            });
+            vo.setChannleConfigList(resultList);
+        }
 
-            resultList.add(vo);
-        });
-        return success(resultList);
+        vo.setCustomerUrl(commonDao.getStrValue(GameConstant.CommonDaoId.CUSTOMER_TABLE_ID));
+        return success(vo);
     }
+
+//    @RequestMapping("loginConfig")
+//    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
+//        Map<Integer, LoginConfigData> map;
+//        if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
+//            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
+//        } else {
+//            map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
+//        }
+//
+//        List<ThirdLoginConfigVo> resultList = new ArrayList<>();
+//        //登录开关配置
+//        if (map != null && !map.isEmpty()) {
+//            map.forEach((k, v) -> {
+//                ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
+//                thirdLoginConfigVo.setType(v.getLoginType());
+//                thirdLoginConfigVo.setOpen(v.isLoginOpen());
+//                resultList.add(thirdLoginConfigVo);
+//            });
+//        }
+//        return success(resultList);
+//    }
+
+
+//    @RequestMapping("loginConfig")
+//    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
+//        Map<Integer, LoginConfigData> map;
+//        if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
+//            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
+//        } else {
+//            map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
+//        }
+//
+//        List<ThirdLoginConfigVo> resultList = new ArrayList<>();
+//        //登录开关配置
+//        if (map != null && !map.isEmpty()) {
+//            map.forEach((k, v) -> {
+//                ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
+//                thirdLoginConfigVo.setType(v.getLoginType());
+//                thirdLoginConfigVo.setOpen(v.isLoginOpen());
+//                resultList.add(thirdLoginConfigVo);
+//            });
+//        }
+//        return success(resultList);
+//    }
+
+
 
     /**
      * 游客登录
@@ -112,7 +162,13 @@ public class AccountController extends AbstractController {
                 return fail(Code.LOGIN_TYPE_EMPTY_OR_NOT_EXIST);
             }
 
-            if (!loginConfigService.isOpen(dto.getLoginType())) {
+            ChannelType channelType = ChannelType.valueOf(dto.getChannel());
+            if (channelType == null) {
+                channelType = ChannelType.GOOGLE;
+                dto.setChannel(channelType.getValue());
+            }
+
+            if (!loginConfigService.isLoginOpen(dto.getChannel(), dto.getLoginType())) {
                 log.debug("该登录类型被后台关闭，登录失败 dto = {}", JSONObject.toJSONString(dto));
                 return fail(Code.LOGIN_TYPE_NOT_ENABLED);
             }
@@ -197,8 +253,14 @@ public class AccountController extends AbstractController {
                 return fail(Code.TOKEN_EXPIRED_SERVER_URL_UNAVAILABLE);
             }
 
+            ChannelType channelType = ChannelType.valueOf(dto.getChannel());
+            if (channelType == null) {
+                channelType = ChannelType.GOOGLE;
+                dto.setChannel(channelType.getValue());
+            }
+
             //检查该登录类型是否被关闭
-            if (!loginConfigService.isOpen(playerSessionToken.getLoginType())) {
+            if (!loginConfigService.isLoginOpen(dto.getChannel(), playerSessionToken.getLoginType())) {
                 log.debug("该登录类型被后台关闭，获取服务器地址失败 dto = {}", JSONObject.toJSONString(dto));
                 return fail(Code.LOGIN_TYPE_NOT_ENABLED);
             }
@@ -473,11 +535,8 @@ public class AccountController extends AbstractController {
             deviceType = DeviceType.ANDROID;
         }
 
-        //默认google渠道
-        ChannelType channelType = ChannelType.valueOf(dto.getChannel(), ChannelType.GOOGLE);
-
         //保存token，方便weboskcet连接时进行校验
-        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), channelType.getValue(), ip, deviceType.getValue(),
+        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), dto.getChannel(), ip, deviceType.getValue(),
                 dto.getMac(), account.getChannel().getValue(), dto.getShareId(), dto.getSubChannel());
 
         LoginVo vo = new LoginVo();
@@ -514,9 +573,8 @@ public class AccountController extends AbstractController {
         }
 
         //对比渠道类型
-        ChannelType channelType = ChannelType.valueOf(dto.getChannel(), ChannelType.GOOGLE);
-        if (channelType.getValue() != playerSessionToken.getChannel()) {
-            playerSessionToken.setChannel(channelType.getValue());
+        if (dto.getChannel() != playerSessionToken.getChannel()) {
+            playerSessionToken.setChannel(dto.getChannel());
             change = true;
         }
 
@@ -527,6 +585,7 @@ public class AccountController extends AbstractController {
 
     /**
      * 检查ip
+     *
      * @param request
      * @return
      */

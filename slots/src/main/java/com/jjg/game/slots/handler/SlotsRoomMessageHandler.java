@@ -6,6 +6,7 @@ import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.ReqExitGame;
 import com.jjg.game.core.pb.ResExitGame;
@@ -33,7 +34,7 @@ public class SlotsRoomMessageHandler {
     public void reqExitGame(PlayerController playerController, ReqExitGame req) {
         try {
             log.debug("退出游戏 playerId = {}", playerController.playerId());
-            int code = slotsPlayerEventListener.exitGame(playerController.getSession(), true);
+            int code = slotsPlayerEventListener.exitGame(playerController.getSession(), ExitType.INITIATIVE);
             if (code != Code.SUCCESS) {
                 playerController.send(new ResExitGame(code));
                 return;

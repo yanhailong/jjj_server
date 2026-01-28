@@ -40,8 +40,6 @@ public class FriendRoomRedisDao {
     @Autowired
     private RedisTemplate<String, Integer> redisTemplate;
     @Autowired
-    private StringRedisTemplate stringRedisTemplate;
-    @Autowired
     private RedisTemplate<String, List<Long>> blackListRedisTemplate;
     @Autowired
     private RedisLock redisLock;

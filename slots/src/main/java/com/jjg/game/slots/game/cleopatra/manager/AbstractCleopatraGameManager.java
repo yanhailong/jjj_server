@@ -14,10 +14,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.TestLibData;
 import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraGameDataDao;
@@ -26,16 +23,13 @@ import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameDataDTO;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
-import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameDataDTO;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlayerGameData, CleopatraResultLib> {
+public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlayerGameData, CleopatraResultLib, CleopatraGameRunInfo> {
     @Autowired
     protected CleopatraResultLibDao libDao;
     @Autowired
@@ -44,7 +38,7 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
     protected CleopatraGameDataDao gameDataDao;
 
     public AbstractCleopatraGameManager() {
-        super(CleopatraPlayerGameData.class, CleopatraResultLib.class);
+        super(CleopatraPlayerGameData.class, CleopatraResultLib.class, CleopatraGameRunInfo.class);
     }
 
     @Override
@@ -52,29 +46,6 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
         log.info("启动埃及艳后游戏管理器...");
         super.init();
         addUpdatePoolEvent();
-
-//        Map<Integer, Integer> map = new HashMap<>();
-//        map.put(1, 50000);
-//        addGenerateLibEvent(map);
-    }
-
-    /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public CleopatraGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        CleopatraPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new CleopatraGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
     }
 
     /**
@@ -101,6 +72,7 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
      * @param auto
      * @return
      */
+    @Override
     public CleopatraGameRunInfo startGame(PlayerController playerController, CleopatraPlayerGameData playerGameData, long betValue, boolean auto) {
         CleopatraGameRunInfo gameRunInfo = new CleopatraGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
@@ -156,42 +128,34 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
      * @param betValue
      * @return
      */
+    @Override
     protected CleopatraGameRunInfo normal(CleopatraGameRunInfo gameRunInfo, CleopatraPlayerGameData playerGameData, long betValue) {
-        CleopatraResultLib resultLib = null;
-        PoolCfg poolCfg = null;
-        for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
-            //获取一个倍数区间
-//            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
-//            if (!result.success()) {
-//                continue;
-//            }
-            //获取结果库
-            CommonResult<Pair<CleopatraResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, CleopatraConstant.SpecialMode.NORMAL);
-            if (!libResult.success()) {
-                gameRunInfo.setCode(libResult.code);
-                return gameRunInfo;
-            }
-
-            CleopatraResultLib tmpLib = libResult.data.getFirst();
-            gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
-            //检查是否有奖池奖励
-            if (tmpLib.getJackpotIds() != null && !tmpLib.getJackpotIds().isEmpty()) {
-                //判断中奖概率
-                int poolId = tmpLib.firstJackpotId();
-                poolCfg = GameDataManager.getPoolCfg(poolId);
-            } else {
-                poolCfg = null;
-            }
-            resultLib = tmpLib;
-            break;
+        //获取结果库
+        CommonResult<Pair<CleopatraResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, CleopatraConstant.SpecialMode.NORMAL);
+        if (!libResult.success()) {
+            gameRunInfo.setCode(libResult.code);
+            return gameRunInfo;
         }
 
+        CleopatraResultLib resultLib = libResult.data.getFirst();
         if (resultLib == null) {
             log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.playerId(), this.gameType, betValue);
             gameRunInfo.setCode(Code.FAIL);
             return gameRunInfo;
         }
+
+        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
+
+        PoolCfg poolCfg = null;
+        //检查是否有奖池奖励
+        if (resultLib.getJackpotIds() != null && !resultLib.getJackpotIds().isEmpty()) {
+            //判断中奖概率
+            int poolId = resultLib.firstJackpotId();
+            poolCfg = GameDataManager.getPoolCfg(poolId);
+        } else {
+            poolCfg = null;
+        }
+
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
 
         if (resultLib.getJackpotIds() != null && !resultLib.getJackpotIds().isEmpty()) {

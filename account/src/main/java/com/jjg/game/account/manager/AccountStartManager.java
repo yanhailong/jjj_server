@@ -1,8 +1,8 @@
 package com.jjg.game.account.manager;
 
-import com.jjg.game.account.config.AccountConfig;
 import com.jjg.game.account.dao.PlayerIdDao;
 import com.jjg.game.common.service.MarsCoreStartService;
+import com.jjg.game.core.dao.CommonDao;
 import com.jjg.game.core.service.BlackListService;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.core.service.LoginConfigService;
@@ -40,6 +40,8 @@ public class AccountStartManager implements SmartLifecycle, ApplicationContextAw
     private BlackListService blackListService;
     @Autowired
     private SmsService smsService;
+    @Autowired
+    private CommonDao commonDao;
 
     private ApplicationContext context;
 
@@ -55,6 +57,7 @@ public class AccountStartManager implements SmartLifecycle, ApplicationContextAw
         this.playerIdDao.init();
         createPidFile();
         this.smsService.init();
+        this.commonDao.init();
         this.running = true;
     }
 
@@ -78,14 +81,14 @@ public class AccountStartManager implements SmartLifecycle, ApplicationContextAw
         this.context = context;
     }
 
-    private void createPidFile(){
-        try{
+    private void createPidFile() {
+        try {
             File pidFile = new File("PID");
             log.info("输出 PID 文件，file=" + pidFile.getAbsolutePath());
             new ApplicationPid().write(pidFile);
             pidFile.deleteOnExit();
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 }

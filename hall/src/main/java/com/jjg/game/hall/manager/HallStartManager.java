@@ -3,6 +3,7 @@ package com.jjg.game.hall.manager;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.config.ConfigManager;
+import com.jjg.game.core.dao.CommonDao;
 import com.jjg.game.core.handler.CoreMessageHandler;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
@@ -64,6 +65,8 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private CoreMessageHandler coreMessageHandler;
     @Autowired
     private SmsService smsService;
+    @Autowired
+    private CommonDao commonDao;
 
     private ApplicationContext context;
 
@@ -84,6 +87,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         noticeService.init();
         coreMessageHandler.init();
         smsService.init();
+        commonDao.init();
 
         running = true;
     }

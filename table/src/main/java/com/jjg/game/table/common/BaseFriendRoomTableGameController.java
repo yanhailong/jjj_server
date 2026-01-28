@@ -151,7 +151,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                 FriendRoomSampleUtils.getRoomMinBankerAmount(gameDataVo.getRoomCfg().getId());
         // 只有押注才有提示
         if (gameControlType().getDefualtRoomType() == RoomType.BET_ROOM) {
-            if (!friendRoom.hasBanker() || friendRoom.getPredictCostGoldNum() < minBankerAmount) {
+            if (friendRoom.getPredictCostGoldNum() < minBankerAmount && !friendRoom.hasBanker()) {
                 notifyPauseGameOnNewRound.pauseType = 2;
             }
         }

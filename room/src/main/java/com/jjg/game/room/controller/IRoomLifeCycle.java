@@ -86,4 +86,16 @@ public interface IRoomLifeCycle {
      */
     default void beforeDestroyRoom() {
     }
+
+    /**
+     * 销毁房间操作
+     */
+    default void onDestroyRoomAction() {
+    }
+
+    /**
+     * 继续游戏操作
+     */
+    default void onContinueGameAction() {
+    }
 }

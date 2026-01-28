@@ -2,7 +2,6 @@ package com.jjg.game.slots.game.moneyrabbit.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -12,19 +11,13 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialGirdInfo;
-import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortuneGameRunInfo;
-import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortunePlayerGameData;
-import com.jjg.game.slots.game.goldsnakefortune.pb.GoldSnakeFortuneCoinInfo;
 import com.jjg.game.slots.game.moneyrabbit.MoneyRabbitConstant;
 import com.jjg.game.slots.game.moneyrabbit.dao.MoneyRabbitGameDataDao;
 import com.jjg.game.slots.game.moneyrabbit.dao.MoneyRabbitResultLibDao;
 import com.jjg.game.slots.game.moneyrabbit.data.*;
 import com.jjg.game.slots.game.moneyrabbit.pb.MoneyRabbitCoinInfo;
 import com.jjg.game.slots.game.moneyrabbit.pb.MoneyRabbitWinIconInfo;
-import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -35,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameManager<MoneyRabbitPlayerGameData, MoneyRabbitResultLib> {
+public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameManager<MoneyRabbitPlayerGameData, MoneyRabbitResultLib, MoneyRabbitGameRunInfo> {
     @Autowired
     protected MoneyRabbitResultLibDao libDao;
     @Autowired
@@ -47,7 +40,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
     private int fake_free_prop = 0;
 
     public AbstractMoneyRabbitGameManager() {
-        super(MoneyRabbitPlayerGameData.class, MoneyRabbitResultLib.class);
+        super(MoneyRabbitPlayerGameData.class, MoneyRabbitResultLib.class, MoneyRabbitGameRunInfo.class);
     }
 
     @Override
@@ -65,25 +58,6 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
     }
 
     /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public MoneyRabbitGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        MoneyRabbitPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new MoneyRabbitGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, stake, false);
-    }
-
-    /**
      * 开始游戏
      *
      * @param playerController
@@ -91,6 +65,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
      * @param stake
      * @return
      */
+    @Override
     protected MoneyRabbitGameRunInfo startGame(PlayerController playerController, MoneyRabbitPlayerGameData playerGameData, long stake, boolean auto) {
         MoneyRabbitGameRunInfo gameRunInfo = new MoneyRabbitGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
@@ -151,23 +126,8 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
         return gameRunInfo;
     }
 
-    /**
-     * 普通正常流程
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param betValue
-     * @return
-     */
-    protected MoneyRabbitGameRunInfo normal(MoneyRabbitGameRunInfo gameRunInfo, MoneyRabbitPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<MoneyRabbitResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, MoneyRabbitConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        MoneyRabbitResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected MoneyRabbitGameRunInfo normal(MoneyRabbitGameRunInfo gameRunInfo, MoneyRabbitPlayerGameData playerGameData, long betValue, MoneyRabbitResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(MoneyRabbitConstant.SpecialMode.FREE)) {  //是否会触发二选一
             playerGameData.setRemainFreeCount(new AtomicInteger(8));
@@ -228,9 +188,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             playerGameData.setStatus(MoneyRabbitConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
-
             playerGameData.setFreeAllWin(0);
-
             log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
         }
 

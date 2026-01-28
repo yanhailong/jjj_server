@@ -369,7 +369,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         }
         try {
             long remain = removePoint(playerId, pointsAward);
-            if (remain <= 0) {
+            if (remain < 0) {
                 log.error("积分扣减失败，余额不足 playerId = [{}],pointsAward = [{}]", playerId, pointsAward);
                 return false;
             }
@@ -396,7 +396,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                 playerId,
                 pointsAward
         );
-        return result == null ? 0 : result;
+        return result == null ? -1 : result;
     }
 
     /**

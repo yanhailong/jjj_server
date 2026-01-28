@@ -1,9 +1,11 @@
 package com.jjg.game.core.dao;
 
+import com.jjg.game.core.data.LoginConfigData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,16 +14,24 @@ import java.util.Map;
  */
 @Repository
 public class LoginConfigDao {
-    private final String TABLE_NAME = "gm:loginConfig";
+    private final String TABLE_NAME = "gm:loginConfig:";
 
     @Autowired
     private RedisTemplate redisTemplate;
 
-    public void save(int loginType,boolean open){
-        redisTemplate.opsForHash().put(TABLE_NAME, loginType, open);
+    private String tableName(int channel) {
+        return TABLE_NAME + channel;
     }
 
-    public Map getAll(){
-        return redisTemplate.opsForHash().entries(TABLE_NAME);
+    public void save(int channel, Map<Integer, LoginConfigData> map) {
+        String key = tableName(channel);
+        redisTemplate.delete(key);
+        redisTemplate.opsForHash().putAll(tableName(channel), map);
     }
+
+
+    public Map getAll(int channel) {
+        return redisTemplate.opsForHash().entries(tableName(channel));
+    }
+
 }

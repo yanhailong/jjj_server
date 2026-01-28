@@ -200,7 +200,7 @@ public class CoreToServerMessageHandler {
     public void notifyLoadLoginConfig(NotifyLoadLoginConfig notify) {
         log.debug("收到需要重新加载登录配置的消息 notify = {}", JSON.toJSONString(notify));
         try {
-            loginConfigService.load();
+            loginConfigService.load(notify.channel);
         } catch (Exception e) {
             log.error("", e);
         }

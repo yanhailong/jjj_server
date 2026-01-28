@@ -264,7 +264,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
                 return;
             }
             String lockKey = playerLevelDao.getLockKey(playerId);
-            Map<Integer, PlayerLevelPackData> playerLevelPackDataMap = null;
+            Map<Integer, PlayerLevelPackData> playerLevelPackDataMap;
             PlayerLevelPackData playerLevelPackData = null;
             CommonResult<ItemOperationResult> added = null;
             boolean lock = false;
