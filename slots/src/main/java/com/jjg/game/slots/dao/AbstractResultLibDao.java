@@ -177,6 +177,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> {
 
     /**
      * 根据倍数区间获取结果库对象
+     *
      * @param libType
      * @param sectionIndex
      * @param clazz
@@ -191,14 +192,24 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> {
                         connection.sRandMember(tableName.getBytes())
         );
 
-        return deserializeResultLib(compressedData,clazz);
+        return deserializeResultLib(compressedData, clazz);
+    }
+
+    /**
+     * 获取一个不中奖的结果
+     *
+     * @param clazz
+     * @return
+     */
+    public T getNoWinLib(Class<T> clazz) {
+        return getLibBySectionIndex(1, 0, clazz);
     }
 
     /**
      * 反序列化结果库数据
      */
     public T deserializeResultLib(byte[] compressedData, Class<T> clazz) {
-        if(compressedData == null) {
+        if (compressedData == null) {
             return null;
         }
 

@@ -1,7 +1,6 @@
 package com.jjg.game.gm.controller;
 
 import com.alibaba.fastjson.JSONAware;
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
@@ -30,11 +29,8 @@ public class ConfigController extends AbstractController {
 
     private final ConfigManager configManager;
 
-    private final ClusterSystem clusterSystem;
-
-    public ConfigController(ConfigManager configManager, ClusterSystem clusterSystem) {
+    public ConfigController(ConfigManager configManager) {
         this.configManager = configManager;
-        this.clusterSystem = clusterSystem;
     }
 
     /**

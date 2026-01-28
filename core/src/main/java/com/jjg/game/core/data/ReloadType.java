@@ -6,6 +6,7 @@ package com.jjg.game.core.data;
  */
 public enum ReloadType {
     SMS_CONFIG(1),
+    COMMON_CONFIG(2),
     ;
 
     private int value;

@@ -46,15 +46,26 @@ public enum VipGift {
         long dateZeroMilliTime = TimeHelper.getDateZeroMilliTime(timeMillis);
         long lastClaim = vip.getGiftGetTime().getOrDefault(type, 0L);
         return switch (this) {
-            case WEEKS -> !TimeHelper.inSameWeek(lastClaim, dateZeroMilliTime);
+            case WEEKS -> {
+                ViplevelCfg viplevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
+                if (viplevelCfg == null) {
+                    yield false;
+                }
+                boolean timeGet = !TimeHelper.inSameWeek(lastClaim, dateZeroMilliTime);
+                yield timeGet && CollectionUtil.isNotEmpty(reward.apply(viplevelCfg));
+            }
             case BIRTHDAY -> {
+                ViplevelCfg viplevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
+                if (viplevelCfg == null) {
+                    yield false;
+                }
                 LocalDate birthDate = LocalDate.ofInstant(Instant.ofEpochSecond(player.getCreateTime()), ZoneId.systemDefault());
                 LocalDate today = LocalDate.now();
                 boolean isBirthday = birthDate.getMonthValue() == today.getMonthValue()
                         && birthDate.getDayOfMonth() == today.getDayOfMonth()
                         && today.getYear() > birthDate.getYear();
                 boolean notClaimedThisYear = lastClaim == 0 || TimeHelper.getLocalDateTime(lastClaim).getYear() != today.getYear();
-                yield isBirthday && notClaimedThisYear;
+                yield isBirthday && notClaimedThisYear && CollectionUtil.isNotEmpty(reward.apply(viplevelCfg));
             }
             case PROMOTION -> {
                 if (CollectionUtil.isEmpty(vip.getLvGiftGetTime())) {
@@ -62,17 +73,29 @@ public enum VipGift {
                 }
                 for (int i = 0; i <= player.getVipLevel(); i++) {
                     if (!vip.getLvGiftGetTime().containsKey(i)) {
-                        yield true;
+                        ViplevelCfg viplevelCfg = VipCfgCache.getVipLevelCfg(i);
+                        if (viplevelCfg == null) {
+                            yield false;
+                        }
+                        yield CollectionUtil.isNotEmpty(reward.apply(viplevelCfg));
                     }
                 }
                 yield false;
             }
-            case CUSTOMIZED -> !TimeHelper.inSameDay(lastClaim, dateZeroMilliTime) && canClaimCustomized();
+            case CUSTOMIZED -> {
+                ViplevelCfg viplevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
+                if (viplevelCfg == null) {
+                    yield false;
+                }
+                yield !TimeHelper.inSameDay(lastClaim, dateZeroMilliTime) && canClaimCustomized()
+                        && CollectionUtil.isNotEmpty(reward.apply(viplevelCfg));
+            }
         };
     }
 
     /**
      * 是否能领取自定义礼包
+     *
      * @return 是否能领取
      */
     private boolean canClaimCustomized() {
@@ -105,6 +128,7 @@ public enum VipGift {
 
     /**
      * 是否能领取自定义礼包
+     *
      * @return 是否能领取
      */
     private long nextClaimCustomizedTime() {

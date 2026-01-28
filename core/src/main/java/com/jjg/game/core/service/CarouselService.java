@@ -5,7 +5,6 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
-import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.data.Carousel;
 import com.jjg.game.core.pb.gm.CarouselUpdateInfo;
 import com.jjg.game.core.pb.gm.NotifyCarouselUpdate;
@@ -33,23 +32,13 @@ public class CarouselService {
 
     private final String tableName = "carousel";
 
-    /**
-     * 数据同步完成的标记key
-     */
-    private final String syncCompleteKey = "carousel:sync:complete";
-
     private final RedisTemplate<String, Carousel> redisTemplate;
 
-    /**
-     * redis分布式锁
-     */
-    private final RedisLock redisLock;
 
     private final ClusterSystem clusterSystem;
 
-    public CarouselService(RedisTemplate<String, Carousel> redisTemplate, RedisLock redisLock, ClusterSystem clusterSystem) {
+    public CarouselService(RedisTemplate<String, Carousel> redisTemplate, ClusterSystem clusterSystem) {
         this.redisTemplate = redisTemplate;
-        this.redisLock = redisLock;
         this.clusterSystem = clusterSystem;
     }
 
@@ -107,12 +96,15 @@ public class CarouselService {
     }
 
     /**
-     * 清空所有轮播数据
+     * 覆盖所有轮播数据
      */
-    public void clearAllCarousel() {
+    public void coverrAllCarousel(Map<Long, Carousel> map) {
         try {
             redisTemplate.delete(tableName);
-            log.debug("清空所有轮播数据成功");
+            if (map != null && !map.isEmpty()) {
+                redisTemplate.opsForHash().putAll(tableName, map);
+            }
+            log.debug("覆盖所有轮播数据成功 map = {}", map == null ? null : JSON.toJSONString(map));
         } catch (Exception e) {
             log.error("清空所有轮播数据失败", e);
         }
@@ -138,72 +130,71 @@ public class CarouselService {
 
     /**
      * 同步轮播数据
-     *
-     * @param carouselList 新的轮播列表
+     * newCarouselList 为空：表示全部删除
      */
-    public void sync(List<Carousel> carouselList) {
-        if (carouselList == null || carouselList.isEmpty()) {
-            return;
-        }
-        boolean tryLock = redisLock.tryLock(syncCompleteKey);
-        if (tryLock) {
-            try {
-                List<Carousel> sourceList = getCarouselList();
-                //新数据id集合
-                Map<Long, Carousel> carouselMap = carouselList.stream()
-                        .collect(Collectors.toMap(Carousel::getId, Function.identity(), (v1, v2) -> v2));
-                log.info("开始同步轮播数据! nowSize={}, sourceSize={}", carouselList.size(), sourceList.size());
-                List<CarouselUpdateInfo> syncList = new ArrayList<>();
-                Carousel now;
-                //清除旧数据
-                clearAllCarousel();
-                int delete = 0;
-                int update = 0;
-                for (Carousel source : sourceList) {
-                    now = carouselMap.get(source.getId());
-                    CarouselUpdateInfo carouselUpdateInfo = new CarouselUpdateInfo();
-                    //检测数据变化
-                    if (carouselMap.containsKey(source.getId())) {
-                        //更新
-                        if (!getMd5(now).equals(getMd5(source))) {
-                            carouselUpdateInfo.setType(CarouselUpdateInfo.CarouselUpdateType.UPDATE);
-                            carouselUpdateInfo.setCarousel(now);
-                            syncList.add(carouselUpdateInfo);
-                            //更新缓存数据
-                            updateCarousel(now);
-                            update++;
-                        }
-                    } else {
-                        //已经删除的数据
-                        carouselUpdateInfo.setType(CarouselUpdateInfo.CarouselUpdateType.DELETE);
-                        carouselUpdateInfo.setCarousel(new Carousel(source.getId()));
-                        syncList.add(carouselUpdateInfo);
-                        //更新缓存数据
-                        deleteCarouselById(source.getId());
-                        delete++;
-                    }
+    public void sync(List<Carousel> newCarouselList) {
+        try {
+            // redis 中旧的配置
+            List<Carousel> oldSourceList = getCarouselList();
+
+            // 新配置为空，表示全删
+            if (newCarouselList == null || newCarouselList.isEmpty()) {
+                if (oldSourceList == null || oldSourceList.isEmpty()) {
+                    log.warn("轮播数据同步：新旧数据均为空，无需处理");
+                    return;
                 }
-                //检测是否有新增的数据
-                Set<Long> sourceIdList = sourceList.stream()
-                        .map(Carousel::getId)
-                        .collect(Collectors.toSet());
-                //新增的轮播数据
-                List<CarouselUpdateInfo> addList = carouselList.stream()
-                        .filter(p -> !sourceIdList.contains(p.getId()))
-                        .peek(this::updateCarousel)
-                        .map(carousel -> new CarouselUpdateInfo(CarouselUpdateInfo.CarouselUpdateType.UPDATE, carousel))
-                        .toList();
-                syncList.addAll(addList);
-                //通知所有大厅节点更新数据
+
+                List<CarouselUpdateInfo> syncList = new ArrayList<>();
+                for (Carousel oldItem : oldSourceList) {
+                    syncList.add(new CarouselUpdateInfo(CarouselUpdateInfo.CarouselUpdateType.DELETE, new Carousel(oldItem.getId())));
+                }
+
+                // 覆盖到redis
+                coverrAllCarousel(null);
+                // 通知大厅节点
                 notifyHallCarouselUpdate(syncList);
-                log.info("轮播数据同步完毕!新增[{}]条，更新[{}]条，删除[{}]条!", addList.size(), update, delete);
-            } catch (Exception e) {
-                log.error("同步轮播数据错误!", e);
-            } finally {
-                if(tryLock){
-                    redisLock.tryUnlock(syncCompleteKey);
+                log.info("轮播数据同步完毕！全部删除，共 [{}] 条", syncList.size());
+                return;
+            }
+
+            // 新配置不为空
+            Map<Long, Carousel> oldSourceMap = oldSourceList.stream().collect(Collectors.toMap(Carousel::getId, Function.identity(), (a, b) -> a));
+
+            Map<Long, Carousel> newMap = newCarouselList.stream().collect(Collectors.toMap(Carousel::getId, Function.identity(), (a, b) -> b));
+
+            List<CarouselUpdateInfo> syncList = new ArrayList<>();
+            int add = 0, update = 0, delete = 0;
+
+            // 1. 新增 & 更新
+            for (Carousel newItem : newCarouselList) {
+                Carousel oldItem = oldSourceMap.get(newItem.getId());
+                if (oldItem == null) {
+                    // 新增
+                    syncList.add(new CarouselUpdateInfo(CarouselUpdateInfo.CarouselUpdateType.UPDATE, newItem));
+                    add++;
+                } else if (!getMd5(newItem).equals(getMd5(oldItem))) {
+                    // 更新
+                    syncList.add(new CarouselUpdateInfo(CarouselUpdateInfo.CarouselUpdateType.UPDATE, newItem));
+                    update++;
                 }
             }
+
+            // 2. 删除
+            for (Carousel oldItem : oldSourceList) {
+                if (!newMap.containsKey(oldItem.getId())) {
+                    syncList.add(new CarouselUpdateInfo(CarouselUpdateInfo.CarouselUpdateType.DELETE, new Carousel(oldItem.getId())));
+                    delete++;
+                }
+            }
+
+            // 3. 更新缓存 & 通知
+            if (!syncList.isEmpty()) {
+                coverrAllCarousel(newMap);
+                notifyHallCarouselUpdate(syncList);
+            }
+            log.info("轮播数据同步完毕！新增[{}]条，更新[{}]条，删除[{}]条！", add, update, delete);
+        } catch (Exception e) {
+            log.error("同步轮播数据错误！", e);
         }
     }
 

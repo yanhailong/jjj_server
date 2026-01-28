@@ -88,6 +88,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private Map<Integer, List<WarePoolInfo>> poolMap;
     @Autowired
     private MailService mailService;
+    @Autowired
+    private LoginConfigService loginConfigService;
 
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
@@ -727,6 +729,13 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return result;
             }
 
+            //检查绑定奖励是否开启
+            boolean rewardOpen = loginConfigService.isRewardOpen(player.getChannel().getValue(), type);
+            if (!rewardOpen) {
+                log.warn("该登录方式的奖励未开启，故跳过奖励 playerId = {},channel = {},loginType = {}", player.getId(), player.getChannel().getValue(), type);
+                return result;
+            }
+
             LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(cfg -> cfg.getType() == type).findFirst().orElse(null);
             if (loginConfigCfg == null || loginConfigCfg.getAwardItem() == null || loginConfigCfg.getAwardItem().isEmpty()) {
                 log.debug("未找到绑定的奖励 type = {}", type);
@@ -1024,10 +1033,16 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
         hallLogger.bind(player, LoginType.PHONE.getValue(), result.data);
         if (reward) {
+            //检查绑定奖励是否开启
+            boolean rewardOpen = loginConfigService.isRewardOpen(player.getChannel().getValue(), LoginType.PHONE.getValue());
+            if (!rewardOpen) {
+                log.warn("该登录方式的奖励未开启，故跳过奖励 playerId = {},channel = {},loginType = {}", player.getId(), player.getChannel().getValue(), player.getLoginType().getValue());
+                return result;
+            }
+
             LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(cfg -> cfg.getType() == LoginType.PHONE.getValue()).findFirst().orElse(null);
             if (loginConfigCfg == null || loginConfigCfg.getAwardItem() == null || loginConfigCfg.getAwardItem().isEmpty()) {
                 log.debug("未找到绑定手机号的奖励 playerId = {}, type = {}", player.getId(), LoginType.PHONE.getValue());
-                result.code = Code.NOT_FOUND;
                 return result;
             }
 

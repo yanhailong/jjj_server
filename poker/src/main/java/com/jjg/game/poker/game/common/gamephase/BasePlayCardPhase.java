@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.common.gamephase;
 
+import com.jjg.game.core.data.Card;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
@@ -78,5 +79,21 @@ public abstract class BasePlayCardPhase<T extends BasePokerGameDataVo> extends B
             info.getCards().add(playCard);
         }
         return sendNum;
+    }
+
+    /**
+     * 找到某张指定牌的拥有者
+     * @param specifyCard
+     * @return
+     */
+    public PlayerSeatInfo findSeatWithSpecifyCard(int specifyCard) {
+        for (PlayerSeatInfo playerSeatInfo : gameDataVo.getPlayerSeatInfoList()) {
+            for (Integer currentCard : playerSeatInfo.getCurrentCards()) {
+                if (currentCard == specifyCard) {
+                    return playerSeatInfo;
+                }
+            }
+        }
+        return null;
     }
 }

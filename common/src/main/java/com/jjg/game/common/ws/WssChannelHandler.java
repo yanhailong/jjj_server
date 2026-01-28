@@ -43,10 +43,10 @@ public class WssChannelHandler extends ChannelInitializer<SocketChannel> {
 //        ch.pipeline().addLast(new SslHandler(engine));
         ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(this.timeout, 0, 0, TimeUnit.SECONDS));
         ch.pipeline().addLast("http-codec", new HttpServerCodec());
-        ch.pipeline().addLast("aggregator", new HttpObjectAggregator(65536));
+        ch.pipeline().addLast("aggregator", new HttpObjectAggregator(8192));
         ch.pipeline().addLast("http-chunked", new ChunkedWriteHandler());
         // 自动握手和协议自动解析组装
-        ch.pipeline().addLast("websocket-handler", new WebSocketServerProtocolHandler("/", null, true));
+        ch.pipeline().addLast("websocket-handler", new WebSocketServerProtocolHandler("/", null, false));
         ch.pipeline().addLast("handler", new WebSocketServerHandler());
     }
 

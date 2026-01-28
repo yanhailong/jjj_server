@@ -139,6 +139,8 @@ public class SlotsConst {
     public class GlobalConfig {
         //创建房间功能基础收益万分比
         public static final int ID_ROOM_INCOME_PROP = 12;
+        //创建房间-Slot游戏新增超时提出的倒计时
+        public static final int ID_ROOM_PLAYER_ILDE_TIME_MILLS = 112;
     }
 
 
@@ -148,5 +150,9 @@ public class SlotsConst {
         //在slots好友房获取准备金
         public static final int REQ_SLOTS_ROOM_POOL = BASE_MSG_PREFIX | 0x1;
         public static final int RES_SLOTS_ROOM_POOL = BASE_MSG_PREFIX | 0x2;
+
+        //获取游戏状态
+        public static final int REQ_SLOTS_STATUS = BASE_MSG_PREFIX | 0x3;
+        public static final int RES_SLOTS_STATUS = BASE_MSG_PREFIX | 0x4;
     }
 }

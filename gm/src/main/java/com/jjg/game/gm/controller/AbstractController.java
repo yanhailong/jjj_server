@@ -1,9 +1,13 @@
 package com.jjg.game.gm.controller;
 
+import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.config.NodeConfig;
+import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.WebResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.UUID;
 
@@ -13,6 +17,13 @@ import java.util.UUID;
  */
 public abstract class AbstractController {
     protected Logger log = LoggerFactory.getLogger(getClass());
+
+    @Autowired
+    protected ClusterSystem clusterSystem;
+    @Autowired
+    protected NodeManager nodeManager;
+    @Autowired
+    protected NodeConfig nodeConfig;
 
     protected <T> WebResult<T> success(T data) {
         return new WebResult<T>(Code.SUCCESS, data);

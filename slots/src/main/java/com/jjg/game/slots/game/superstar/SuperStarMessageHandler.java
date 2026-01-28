@@ -88,9 +88,9 @@ public class SuperStarMessageHandler {
             log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             SuperStarGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
-                gameRunInfo = gameManager.getPoolValue(SuperStarGameRunInfo.class, playerController, req.stakeValue);
+                gameRunInfo = gameManager.getPoolValue(playerController, req.stakeValue);
             } else if (playerController.getScene() instanceof SlotsRoomController) {
-                gameRunInfo = roomGameManager.getPoolValue(SuperStarGameRunInfo.class, playerController, req.stakeValue);
+                gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeValue);
             } else {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;

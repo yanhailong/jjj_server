@@ -78,9 +78,6 @@ public class RoomMessageHandler implements ChooseWareListener {
                 gamePlayer = gameController.getGamePlayer(playerId);
             }
             int code = playerEventListener.exitGame(playerController);
-            if (code == Code.SUCCESS && gamePlayer != null) {
-                coreLogger.exitGame(gamePlayer, TimeHelper.nowInt() - gamePlayer.getEnterGameTime(), gamePlayer.getDeviceType());
-            }
             playerController.send(new ResExitGame(code));
         } catch (Exception e) {
             log.error("玩家退出房间异常 msg: {}", e.getMessage(), e);

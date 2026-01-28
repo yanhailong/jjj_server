@@ -19,6 +19,7 @@ import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.poker.game.texas.autohandler.TexasRobotHandler;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
+import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
@@ -368,6 +369,9 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                     int chessExecutionDelay = RobotScheduleUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
                     BlackJackRobotHandler handler = new BlackJackRobotHandler(gameRobotPlayer, BlackJackRobotHandler.BET, controller, 10000);
                     RobotScheduleUtil.schedule(getRoomController(), handler, chessExecutionDelay);
+                }
+                case ToSouthGameController controller -> {
+                    respRoomInitInfo(playerController);
                 }
                 default -> {
                 }

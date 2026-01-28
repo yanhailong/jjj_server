@@ -12,4 +12,5 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SERVER_CONST_TYPE, cmd = MessageConst.ToServer.NOTIFY_LOAD_LOGIN_CONFIG, resp = true,toPbFile = false)
 @ProtoDesc("通知加载登录配置")
 public class NotifyLoadLoginConfig extends AbstractNotice {
+    public int channel;
 }
