@@ -3,18 +3,13 @@ package com.jjg.game.slots.game.captainjack.manager;
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackGameDataDao;
@@ -27,14 +22,14 @@ import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 
 import java.util.List;
 
-public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameManager<CaptainJackPlayerGameData, CaptainJackResultLib> {
+public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameManager<CaptainJackPlayerGameData, CaptainJackResultLib, CaptainJackGameRunInfo> {
     protected final CaptainJackGameGenerateManager gameGenerateManager;
     protected final CaptainJackGameDataDao gameDataDao;
     protected final CaptainJackResultLibDao captainJackResultLibDao;
 
     public AbstractCaptainJackGameManager(CaptainJackGameGenerateManager gameGenerateManager,
                                           CaptainJackGameDataDao gameDataDao, CaptainJackResultLibDao captainJackResultLibDao) {
-        super(CaptainJackPlayerGameData.class, CaptainJackResultLib.class);
+        super(CaptainJackPlayerGameData.class, CaptainJackResultLib.class, CaptainJackGameRunInfo.class);
         this.gameGenerateManager = gameGenerateManager;
         this.gameDataDao = gameDataDao;
         this.captainJackResultLibDao = captainJackResultLibDao;
@@ -65,6 +60,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
      * 玩家开始游戏
      *
      */
+    @Override
     public CaptainJackGameRunInfo playerStartGame(PlayerController playerController, long stake) {
         //获取玩家游戏数据
         CaptainJackPlayerGameData playerGameData = getPlayerGameData(playerController);
@@ -72,9 +68,15 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
             log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new CaptainJackGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
         if (playerGameData.getStatus() == CaptainJackConstant.Status.TREASURE_CHEST) {
             return new CaptainJackGameRunInfo(Code.ERROR_REQ, playerController.playerId());
+        }
+        if (getRoomType() != null) {
+            int code = slotsRoomManager.checkCanPlay(this, playerController);
+            if (code != Code.SUCCESS) {
+                log.debug("该游戏无法继续 playerId = {},gameType = {},roomCfgId = {},code = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), code);
+                return new CaptainJackGameRunInfo(code, playerController.playerId());
+            }
         }
         return startGame(playerController, playerGameData, stake, false);
     }
@@ -83,6 +85,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
      * 开始游戏
      *
      */
+    @Override
     public CaptainJackGameRunInfo startGame(PlayerController playerController, CaptainJackPlayerGameData playerGameData, long betValue, boolean auto) {
         CaptainJackGameRunInfo gameRunInfo = new CaptainJackGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
@@ -170,19 +173,8 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         gameRunInfo.setAllWinGold(playerGameData.getOneBetScore() * gameRunInfo.getDigTimesMultiplier());
     }
 
-    /**
-     * 普通正常流程
-     *
-     */
-    protected void normal(CaptainJackGameRunInfo gameRunInfo, CaptainJackPlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<CaptainJackResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, CaptainJackConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return;
-        }
-        CaptainJackResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected CaptainJackGameRunInfo normal(CaptainJackGameRunInfo gameRunInfo, CaptainJackPlayerGameData playerGameData, long betValue, CaptainJackResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(CaptainJackConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(CaptainJackConstant.Status.FREE);
@@ -209,6 +201,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         gameRunInfo.setStake(betValue);
         gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
         gameRunInfo.setStatus(playerGameData.getStatus());
+        return gameRunInfo;
     }
 
     /**
@@ -294,6 +287,11 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         if (playerGameData == null || playerGameData.getStatus() != CaptainJackConstant.Status.TREASURE_CHEST) {
             log.debug("获取玩家游戏数据失败，开始挖宝失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new CaptainJackGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+        }
+        int code = slotsRoomManager.checkCanPlay(this, playerController);
+        if (code != Code.SUCCESS) {
+            log.debug("该playerId = {},gameType = {},roomCfgId = {},code = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), code);
+            return new CaptainJackGameRunInfo(code, playerController.playerId());
         }
         return startGame(playerController, playerGameData, playerGameData.getAllBetScore(), false);
     }

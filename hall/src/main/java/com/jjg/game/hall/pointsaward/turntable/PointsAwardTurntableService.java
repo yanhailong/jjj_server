@@ -227,7 +227,7 @@ public class PointsAwardTurntableService implements IRedDotService {
         int consume = globalConfigCfg.getIntValue();
         //判断积分条件
         long points = pointsAwardService.getPoints(playerId);
-        if (points <= consume) {
+        if (points < consume) {
             result.code = Code.POINT_AWARD_POINT_NOT_ENOUGH;
             return result;
         }

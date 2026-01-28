@@ -123,6 +123,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 玩家获得数据dao
      */
     private final PlayerActivityDao playerActivityDao;
+
+
     /**
      * 掉落管理器
      */

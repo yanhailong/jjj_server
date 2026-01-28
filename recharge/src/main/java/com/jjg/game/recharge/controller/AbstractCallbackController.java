@@ -21,6 +21,7 @@ import io.micrometer.common.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 
 /**
  * @author 11
@@ -131,13 +132,18 @@ public abstract class AbstractCallbackController {
      * @param orderId
      * @param desc
      */
-    protected void failOrder(String orderId, String desc) {
+    protected ResponseEntity<String> failOrder(String orderId, String desc) {
         Order order = orderService.orderFail(orderId);
         if (order == null) {
-            return;
+            log.warn("处理失败订单时，未找到该订单 orderId = {},desc = {}", orderId, desc);
+            return ResponseEntity.ok("get order fail1,orderId=" + orderId);
         }
+        return failOrder(order, desc);
+    }
 
+    protected ResponseEntity<String> failOrder(Order order, String desc) {
         Player player = playerService.get(order.getPlayerId());
-        coreLogger.order(player, order, null, desc);
+        coreLogger.order(player, order, "", desc);
+        return ResponseEntity.ok("handle fail order, id = " + order.getId());
     }
 }

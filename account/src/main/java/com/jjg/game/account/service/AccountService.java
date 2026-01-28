@@ -99,10 +99,10 @@ public class AccountService {
             Account account = accountDao.queryThirdAccount(loginType, channelUserInfo.getUserId());
             if (account == null) {
                 //只能是游客登录才能创建账号，其他方式登录返回错误提示
-//                if (loginType != LoginType.GUEST) {
-//                    result.code = Code.THIRD_NOT_BIND_FORBID_LOGIN;
-//                    return result;
-//                }
+                if (loginType != LoginType.GUEST) {
+                    result.code = Code.THIRD_NOT_BIND_FORBID_LOGIN;
+                    return result;
+                }
 
                 //注册新账号
                 long playerId = playerIdDao.getNewId();
@@ -116,7 +116,7 @@ public class AccountService {
                 account.setPlayerId(playerId);
                 account.setRegisterMac(loginDto.getMac());
                 account.setLastLoginMac(loginDto.getMac());
-                account.setChannel(ChannelType.valueOf(loginDto.getChannel(), ChannelType.GOOGLE));
+                account.setChannel(ChannelType.valueOf(loginDto.getChannel()));
                 account.setStatus(AccountStatus.NORMAL.getCode());
 
                 account = accountDao.setChannelValue(loginType, channelUserInfo, account);

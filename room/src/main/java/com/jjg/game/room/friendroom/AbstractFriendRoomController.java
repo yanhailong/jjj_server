@@ -176,11 +176,11 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         if (gameController.getGameState() == EGameState.PAUSED) {
             return;
         }
-        super.pauseGame();
         R newlyRoom = roomDao.getRoom(room.getGameType(), room.getId());
         if (newlyRoom != null) {
             this.room = newlyRoom;
         }
+        super.pauseGame();
     }
 
     @Override
@@ -205,6 +205,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             log.info("房间处于未开启状态，直接解散");
             gameDestroy(true, true);
         }
+        gameController.onDestroyRoomAction();
     }
 
     @Override

@@ -3,7 +3,6 @@ package com.jjg.game.slots.game.steamAge.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -11,9 +10,6 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.OffLineEventData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 import com.jjg.game.slots.game.steamAge.dao.SteamAgeGameDataDao;
@@ -23,12 +19,11 @@ import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameData;
 import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameDataDTO;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamAgePlayerGameData, SteamAgeResultLib> {
+public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManager<SteamAgePlayerGameData, SteamAgeResultLib, SteamAgeGameRunInfo> {
     @Autowired
     private SteamAgeResultLibDao libDao;
     @Autowired
@@ -37,18 +32,13 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
     private SteamAgeGameDataDao gameDataDao;
 
     public AbstractSteamAgeGameManager() {
-        super(SteamAgePlayerGameData.class, SteamAgeResultLib.class);
+        super(SteamAgePlayerGameData.class, SteamAgeResultLib.class, SteamAgeGameRunInfo.class);
     }
 
     @Override
     public void init() {
         log.info("启动蒸汽时代游戏管理器...");
         super.init();
-
-//        Map<Integer, Integer> map = new HashMap<>();
-//        map.put(1, 50000);
-//        map.put(2, 50000);
-//        addGenerateLibEvent(map);
     }
 
     @Override
@@ -66,32 +56,14 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
     }
 
     /**
-     * 玩家开始游戏
-     *
-     * @param playerController
-     * @param stake
-     * @return
-     */
-    public SteamAgeGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        SteamAgePlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new SteamAgeGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerGameData, stake, false);
-    }
-
-    /**
      * 开始游戏
      *
      * @param playerGameData
      * @param auto
      * @return
      */
-    public SteamAgeGameRunInfo startGame(SteamAgePlayerGameData playerGameData, long betValue, boolean auto) {
+    @Override
+    public SteamAgeGameRunInfo startGame(PlayerController playerController, SteamAgePlayerGameData playerGameData, long betValue, boolean auto) {
         SteamAgeGameRunInfo gameRunInfo = new SteamAgeGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
@@ -145,23 +117,8 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
         return gameRunInfo;
     }
 
-    /**
-     * 普通正常流程
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param betValue
-     * @return
-     */
-    public SteamAgeGameRunInfo normal(SteamAgeGameRunInfo gameRunInfo, SteamAgePlayerGameData playerGameData, long betValue) {
-        CommonResult<Pair<SteamAgeResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, SteamAgeConstant.SpecialMode.NORMAL);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        SteamAgeResultLib resultLib = libResult.data.getFirst();
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-
+    @Override
+    protected SteamAgeGameRunInfo normal(SteamAgeGameRunInfo gameRunInfo, SteamAgePlayerGameData playerGameData, long betValue, SteamAgeResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(SteamAgeConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(SteamAgeConstant.Status.FREE);
@@ -309,6 +266,6 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
      */
     public SteamAgeGameRunInfo autoStartGame(SteamAgePlayerGameData playerGameData, long betValue) {
         log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
-        return startGame(playerGameData, betValue, true);
+        return startGame(null,playerGameData, betValue, true);
     }
 }

@@ -8,10 +8,7 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.PlayerSessionInfo;
-import com.jjg.game.core.data.PlayerSessionToken;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.recharge.service.RechargeService;
 import com.jjg.game.core.service.CorePlayerService;
@@ -53,7 +50,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
 
     @Override
     public void sessionClose(PFSession session) {
-        exitGame(session, false);
+        exitGame(session, ExitType.DROPPED);
     }
 
     @Override
@@ -136,7 +133,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
      * @param gameManager
      */
     private void enterRoomSlotsGame(PFSession session, Player player, PlayerController playerController, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
-        SlotsRoomController slotsRoomController = slotsRoomManager.enterRoom(player.getGameType(), player.getRoomId(), player.getId());
+        SlotsRoomController slotsRoomController = slotsRoomManager.enterRoom(playerController);
         if (slotsRoomController == null) {
             log.warn("进入好友房slots时失败 playerId = {},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
             playerService.doSave(player.getId(), p -> {
@@ -165,10 +162,10 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     /**
      * 退出游戏
      *
-     * @param session        PFSession
-     * @param initiativeExit 是否主动退出
+     * @param session  PFSession
+     * @param exitType 退出类型
      */
-    public int exitGame(PFSession session, boolean initiativeExit) {
+    public int exitGame(PFSession session, ExitType exitType) {
         PlayerController playerController = (PlayerController) session.getReference();
         if (playerController == null) {
             log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(),
@@ -176,7 +173,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             return Code.SUCCESS;
         }
 
-        AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+        AbstractSlotsGameManager<?, ?, ?> gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
         if (gameManager == null) {
             log.debug("退出游戏时，获取游戏管理器失败 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
             return Code.SUCCESS;
@@ -185,11 +182,17 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         if (playerGameData == null) {
             return Code.SUCCESS;
         }
-        boolean canExit = gameManager.canExit(playerGameData);
-        if (initiativeExit && !canExit) {
-            return Code.FAIL;
+        boolean canExit;
+        if (gameManager.getRoomType() != null) {
+            canExit = gameManager.friendRoomExit(playerGameData);
+        } else {
+            canExit = gameManager.canExit(playerGameData);
+            //特殊状态下，玩家无法主动退出
+            if (exitType == ExitType.INITIATIVE && !canExit) {
+                return Code.FAIL;
+            }
         }
-        playerGameData = gameManager.exit(playerController, initiativeExit || canExit);
+        playerGameData = gameManager.exit(playerController, exitType);
         playerSessionService.offline(playerController.getPlayer(), !canExit);
         //计算玩游戏的时长
         int onlineTimeLen = 0;
