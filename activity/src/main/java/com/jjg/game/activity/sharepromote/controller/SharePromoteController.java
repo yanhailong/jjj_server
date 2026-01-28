@@ -60,13 +60,11 @@ public class SharePromoteController extends BaseActivityController {
     private final Logger log = LoggerFactory.getLogger(SharePromoteController.class);
     private final SharePromoteDao sharePromoteDao;
     private final MailService mailService;
-    private final CountDao countDao;
     private final ConditionManager conditionManager;
 
-    public SharePromoteController(SharePromoteDao sharePromoteDao, MailService mailService, CountDao countDao, ConditionManager conditionManager) {
+    public SharePromoteController(SharePromoteDao sharePromoteDao, MailService mailService, ConditionManager conditionManager) {
         this.sharePromoteDao = sharePromoteDao;
         this.mailService = mailService;
-        this.countDao = countDao;
         this.conditionManager = conditionManager;
     }
 

@@ -94,8 +94,6 @@ public class CashCowController extends BaseActivityController implements TimerLi
     private volatile TimerEvent<String> timerEvent = null;
     // 局部锁，用于双重检查锁等场景（注意：使用后必须正确 unlock）
     private final ReentrantLock reentrantLock = new ReentrantLock();
-    //期数用
-    private final CountDao countDao;
     //玩家dao
     private final CorePlayerService corePlayerService;
     //邮件服务
@@ -106,10 +104,10 @@ public class CashCowController extends BaseActivityController implements TimerLi
             .maximumSize(50)
             .build();
 
-    public CashCowController(CashCowDao cashCowDao, TimerCenter timerCenter, CountDao countDao, CorePlayerService corePlayerService, MailService mailService, RobotUtil robotUtil) {
+    public CashCowController(CashCowDao cashCowDao, TimerCenter timerCenter, CorePlayerService corePlayerService,
+                             MailService mailService, RobotUtil robotUtil) {
         this.cashCowDao = cashCowDao;
         this.timerCenter = timerCenter;
-        this.countDao = countDao;
         this.corePlayerService = corePlayerService;
         this.mailService = mailService;
         // 使用并发 Map 以保证在并发环境下对 timerMap 的安全访问
