@@ -101,7 +101,7 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
             } else {
                 bestCards = ToSouthHandUtils.findBestPlay(handCards);
             }
-        } else {
+        } else if (!gameDataVo.getCurRoundPassedPlayerSeats().contains(currentPlayerSeat.getSeatId())) {
             // 跟牌
             // 检查是否为机器人
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(currentPlayerSeat.getPlayerId());
@@ -124,7 +124,7 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
             reqTurnAction.actionType = 1; // Pass
         }
         
-        log.info("玩家/机器人 {} 是否为首发人员 {} 自动操作: type={}, cards={}", getPlayerId(), isLeader, reqTurnAction.actionType, reqTurnAction.cards);
+        log.info("玩家/机器人 {} 首轮 {}  首出 {} 自动操作: type={}, cards={}", getPlayerId(), gameDataVo.isFirstRound(), isLeader, reqTurnAction.actionType, reqTurnAction.cards);
         assert controller != null;
         controller.turnAction(getPlayerId(), reqTurnAction);
     }

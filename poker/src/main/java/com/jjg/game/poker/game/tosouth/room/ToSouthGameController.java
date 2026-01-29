@@ -1,7 +1,10 @@
 package com.jjg.game.poker.game.tosouth.room;
 
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.EGameType;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomType;
@@ -212,11 +215,10 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         gameDataVo.setLastPlayCards(realPlayCardIds);
         gameDataVo.setLastPlaySeatId(info.getSeatId());
         gameDataVo.setPassCount(0); // 重置过牌计数
-        
+
         // 记录出牌
         gameDataVo.getCurrentRoundPlays().add(new ToSouthRoundRecord(info.getSeatId(), realPlayCardIds, type));
         
-        // Log formatted cards
         playCards.sort(ToSouthHandUtils.CARD_COMPARATOR);
         log.debug("玩家 {} 出牌成功 - 类型: {}, 牌: {}, 剩余手牌: {}", info.getPlayerId(), type, ToSouthHandUtils.cardListToString(playCards), info.getCurrentCards().size());
 
@@ -253,6 +255,8 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             return;
         }
 
+        log.debug("开始处理炸弹结算 - 赢家座位: {}, 最后出牌类型: {}", winnerSeatId, lastPlay.cardType);
+
         // 炸弹链
         List<ToSouthRoundRecord> bombChain = new ArrayList<>();
         int victimIndex = -1;
@@ -271,10 +275,15 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             }
         }
         
+        log.debug("炸弹链分析 - 链长度: {}, 受害者索引: {}", bombChain.size(), victimIndex);
+
         if (bombChain.isEmpty()) return;
 
         // 炸弹牌可以由首个出牌的玩家打出去，打出去没有单独得分
         if (victimIndex == -1 && bombChain.size() == 1) {
+            log.debug("首出炸弹且无人压制，不触发额外结算");
+            // 这里不能return，因为即便是首出炸弹，也可能触发新的一轮
+            // 但是当前函数只负责结算，所以return没问题，逻辑推进由 checkNextTurn 负责
             return;
         }
 
@@ -298,6 +307,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         if (firstVictim != null) {
             long victimId = Objects.requireNonNull(getPlayerBySeatId(firstVictim.seatId)).getPlayerId();
             if (victimId != winnerId) {
+                log.debug("炸弹结算 (压制) - 赢家: {}, 输家: {}, 金额: {}", winnerId, victimId, baseBet * 2);
                 addBombScore(details, victimId, winnerId, baseBet * 2, 1);
             }
         }
@@ -307,6 +317,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             ToSouthRoundRecord secondLast = bombChain.get(bombChain.size() - 2);
             long secondLastId = Objects.requireNonNull(getPlayerBySeatId(secondLast.seatId)).getPlayerId();
             if (secondLastId != winnerId) {
+                log.debug("炸弹结算 (连炸) - 赢家: {}, 输家: {}, 金额: {}", winnerId, secondLastId, baseBet);
                 addBombScore(details, secondLastId, winnerId, baseBet, 2);
             }
         }
@@ -321,9 +332,21 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     }
 
     private void addBombScore(List<ToSouthBombDetail> details, long loserId, long winnerId, long score, int type) {
-        gameDataVo.getBombSettlementMap().merge(loserId, -score, Long::sum);
-        gameDataVo.getBombSettlementMap().merge(winnerId, score, Long::sum);
-        
+        // 直接扣除输家积分
+        deductItem(loserId, score, AddType.GAME_SETTLEMENT, "南方前进炸弹扣分", false);
+
+        // 计算赢家税后积分并添加
+        long afterTaxWin = score;
+        Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
+        if (roomCfg.getEffectiveRatio() > 0) {
+            afterTaxWin = BigDecimal.valueOf(score)
+                    .multiply(BigDecimal.valueOf(10000 - roomCfg.getEffectiveRatio()))
+                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+            long tax = score - afterTaxWin;
+            gameDataTracker.addGameLogData("tax", tax);
+        }
+        addItem(winnerId, afterTaxWin, AddType.GAME_SETTLEMENT);
+
         details.add(new ToSouthBombDetail(winnerId, loserId, score, type));
     }
     
@@ -615,7 +638,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
         // 如果是机器人，添加机器人处理器
         if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
-             int delay = RandomUtils.nextInt(2000, 5000);
+             int delay = RandomUtils.nextInt(200, 500);
              ToSouthAutoPlayHandler handler = new ToSouthAutoPlayHandler(playerId, gameDataVo.getId(), this);
              addPlayerTimer(handler, delay);
         } else {

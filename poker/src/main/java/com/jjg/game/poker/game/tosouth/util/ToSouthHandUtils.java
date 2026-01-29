@@ -19,6 +19,9 @@ public class ToSouthHandUtils {
      * 花色排序：红心 > 方块 > 梅花 > 黑桃
      */
     public static final Comparator<Card> CARD_COMPARATOR = (c1, c2) -> {
+        if (c1 == null && c2 == null) return 0;
+        if (c1 == null) return 1;
+        if (c2 == null) return -1;
         int rank1 = c1.getRank();
         int rank2 = c2.getRank();
         if (rank1 != rank2) {
@@ -290,7 +293,16 @@ public class ToSouthHandUtils {
             return rankMap.get(rank);
         }
         // 5. 单张
-        return List.of(firstCard);
+        if (rankMap.get(rank).size() == 1) {
+            return rankMap.get(rank);
+        }
+        
+        // 兜底：如果 rankMap.get(rank) 还是 > 0 (比如顺子没凑成，且数量>2)，直接返回第一张
+        if (!rankMap.get(rank).isEmpty()) {
+            return List.of(firstCard);
+        }
+
+        return null;
     }
 
     /**
@@ -299,7 +311,6 @@ public class ToSouthHandUtils {
      * 1. 首先将手牌按照 炸弹 > 三张 > 连对 > 顺子 > 对子 > 单张 的优先级进行整合拆分。
      * 2. 然后按照以下顺序查找所有可出牌型：
      *    单张 > 对子 > 三条 > 顺子 > 连对 > 炸弹
-     *
      * @param handCards 手牌列表
      * @return 所有可出的牌型列表
      */
@@ -312,23 +323,23 @@ public class ToSouthHandUtils {
         Map<ToSouthCardType, List<List<Card>>> integratedCards = integrateHandCards(handCards);
 
         // 2. 按优先级查找
-        // 优先级：单张 > 对子 > 三条 > 顺子 > 连对 > 炸弹
-        
-        // 2.1 单张
-        List<List<Card>> singles = integratedCards.get(ToSouthCardType.SINGLE);
-        if (CollUtil.isNotEmpty(singles)) result.addAll(singles);
+        // 优先级：顺子 > 三条 > 对子 > 单张 > 连对 > 炸弹
 
-        // 2.2 对子
-        List<List<Card>> pairs = integratedCards.get(ToSouthCardType.PAIR);
-        if (CollUtil.isNotEmpty(pairs)) result.addAll(pairs);
+        // 2.4 顺子
+        List<List<Card>> straights = integratedCards.get(ToSouthCardType.STRAIGHT);
+        if (CollUtil.isNotEmpty(straights)) result.addAll(straights);
 
         // 2.3 三张
         List<List<Card>> triples = integratedCards.get(ToSouthCardType.TRIPLE);
         if (CollUtil.isNotEmpty(triples)) result.addAll(triples);
 
-        // 2.4 顺子
-        List<List<Card>> straights = integratedCards.get(ToSouthCardType.STRAIGHT);
-        if (CollUtil.isNotEmpty(straights)) result.addAll(straights);
+        // 2.2 对子
+        List<List<Card>> pairs = integratedCards.get(ToSouthCardType.PAIR);
+        if (CollUtil.isNotEmpty(pairs)) result.addAll(pairs);
+
+        // 2.1 单张
+        List<List<Card>> singles = integratedCards.get(ToSouthCardType.SINGLE);
+        if (CollUtil.isNotEmpty(singles)) result.addAll(singles);
 
         // 2.5 连对
         List<List<Card>> consecutivePairs = integratedCards.get(ToSouthCardType.CONSECUTIVE_PAIRS);
@@ -341,6 +352,7 @@ public class ToSouthHandUtils {
         // 兜底：如果没识别出任何牌型（理论上不会，至少有单张），直接出最小的一张
         if (result.isEmpty()) {
             handCards.sort(CARD_COMPARATOR);
+
             result.add(List.of(handCards.getLast()));
         }
         
@@ -363,10 +375,10 @@ public class ToSouthHandUtils {
 
     private static int getCardTypePriority(ToSouthCardType type) {
         return switch (type) {
-            case SINGLE -> 1;
-            case PAIR -> 2;
-            case TRIPLE -> 3;
-            case STRAIGHT -> 4;
+            case SINGLE -> 4;
+            case PAIR -> 3;
+            case TRIPLE -> 2;
+            case STRAIGHT -> 1;
             case CONSECUTIVE_PAIRS -> 5;
             case BOMB_QUAD -> 6;
             default -> 0;
@@ -570,6 +582,8 @@ public class ToSouthHandUtils {
                 pairRanks.add(entry.getKey());
             }
         }
+        // 2不参与连对
+        pairRanks.removeIf(r -> r == RANK_2);
         // pairRanks 是降序的 (e.g. A, K, Q...)
         // 找连续序列 (逻辑值连续)
         if (pairRanks.size() >= 3) {
@@ -603,7 +617,14 @@ public class ToSouthHandUtils {
         // 简化策略：将所有剩余牌视为单张池，找最长顺子
         List<List<Card>> straights = new ArrayList<>();
         // 获取所有存在的 rank
-        List<Integer> singleRanks = new ArrayList<>(rankMap.keySet()); // 降序
+        List<Integer> singleRanks = new ArrayList<>();
+        for (Map.Entry<Integer, List<Card>> entry : rankMap.entrySet()) {
+            if (!entry.getValue().isEmpty()) {
+                singleRanks.add(entry.getKey());
+            }
+        }
+        // 降序
+        singleRanks.sort((r1, r2) -> Integer.compare(r2, r1));
         // 2不参与顺子
         singleRanks.removeIf(r -> r == RANK_2);
         
@@ -638,10 +659,21 @@ public class ToSouthHandUtils {
         for (Map.Entry<Integer, List<Card>> entry : rankMap.entrySet()) {
             List<Card> cs = entry.getValue();
             if (cs.isEmpty()) continue;
+            // 顺子可能会消耗掉牌，这里需要重新检查数量
             if (cs.size() == 2) {
                 pairs.add(cs);
-            } else {
+            } else if (cs.size() == 1) {
                 singles.add(cs);
+            } else {
+                while (cs.size() >= 2) {
+                     List<Card> pair = new ArrayList<>();
+                     pair.add(cs.removeFirst());
+                     pair.add(cs.removeFirst());
+                     pairs.add(pair);
+                }
+                if (!cs.isEmpty()) {
+                    singles.add(cs);
+                }
             }
         }
         result.put(ToSouthCardType.PAIR, pairs);
@@ -657,6 +689,7 @@ public class ToSouthHandUtils {
             if (cs != null && !cs.isEmpty()) {
                 chain.addAll(cs);
                 cs.clear(); // 标记为已使用
+
             }
         }
         target.add(chain);
@@ -746,48 +779,62 @@ public class ToSouthHandUtils {
             System.out.println("耗时: " + (end - start) + "ms");
         }
 
-        // 2. 随机压牌测试 (10组)
-        System.out.println("\n--- 随机压牌测试 (模拟跟牌) ---");
-        for (int i = 0; i < 10; i++) {
-            System.out.println("\n测试用例 " + (i + 1) + ":");
-            // 随机生成两手牌，一手作为手牌(13张)，一手作为上家出的牌(随机1-5张)
-            List<Card> myHand = generateRandomHand(13);
-            
-            // 随机生成上家牌型 (这里简单模拟，随机取几张牌)
-            // 为了更有意义，我们尝试生成一个合法的上家牌型
-            // 先生成一副完整手牌，然后从中提取一个最佳出牌作为上家牌
-            List<Card> opponentHand = generateRandomHand(13);
-            List<Card> lastPlay = findBestPlay(opponentHand);
-            
-            if (CollUtil.isEmpty(lastPlay)) {
-                System.out.println("上家无牌可出(异常)，跳过");
-                continue;
-            }
-
-            System.out.println("我方手牌: " + handToString(myHand));
-            System.out.println("上家出牌: " + handToString(lastPlay));
-            
-            long s = System.currentTimeMillis();
-            List<Card> follow = findBestFollowPlay(myHand, lastPlay);
-            long e = System.currentTimeMillis();
-            
-            if (follow != null) {
-                System.out.println("我方压制: " + handToString(follow));
-            } else {
-                System.out.println("我方要不起 (Pass)");
-            }
-            System.out.println("耗时: " + (e - s) + "ms");
-        }
+//        // 2. 随机压牌测试 (10组)
+//        System.out.println("\n--- 随机压牌测试 (模拟跟牌) ---");
+//        for (int i = 0; i < 10; i++) {
+//            System.out.println("\n测试用例 " + (i + 1) + ":");
+//            // 随机生成两手牌，一手作为手牌(13张)，一手作为上家出的牌(随机1-5张)
+//            List<Card> myHand = generateRandomHand(13);
+//
+//            // 随机生成上家牌型 (这里简单模拟，随机取几张牌)
+//            // 为了更有意义，我们尝试生成一个合法的上家牌型
+//            // 先生成一副完整手牌，然后从中提取一个最佳出牌作为上家牌
+//            List<Card> opponentHand = generateRandomHand(13);
+//            List<Card> lastPlay = findBestPlay(opponentHand);
+//
+//            if (CollUtil.isEmpty(lastPlay)) {
+//                System.out.println("上家无牌可出(异常)，跳过");
+//                continue;
+//            }
+//
+//            System.out.println("我方手牌: " + handToString(myHand));
+//            System.out.println("上家出牌: " + handToString(lastPlay));
+//
+//            long s = System.currentTimeMillis();
+//            List<Card> follow = findBestFollowPlay(myHand, lastPlay);
+//            long e = System.currentTimeMillis();
+//
+//            if (follow != null) {
+//                System.out.println("我方压制: " + handToString(follow));
+//            } else {
+//                System.out.println("我方要不起 (Pass)");
+//            }
+//            System.out.println("耗时: " + (e - s) + "ms");
+//        }
     }
 
     private static List<Card> generateRandomHand(int count) {
         List<Card> deck = new ArrayList<>();
-        for (int s = 1; s <= 4; s++) {
-            for (int r = 3; r <= 15; r++) {
-                deck.add(new Card(s, r));
-            }
-        }
-        Collections.shuffle(deck);
+//        for (int s = 1; s <= 4; s++) {
+//            for (int r = 3; r <= 15; r++) {
+//                deck.add(new Card(s, r));
+//            }
+//        }
+        deck.add(new Card(2,15));
+        deck.add(new Card(4,15));
+        deck.add(new Card(2,14));
+        deck.add(new Card(4,13));
+        deck.add(new Card(2,11));
+        deck.add(new Card(1,9));
+        deck.add(new Card(3,9));
+        deck.add(new Card(2,8));
+        deck.add(new Card(4,8));
+        deck.add(new Card(2,7));
+        deck.add(new Card(4,7));
+        deck.add(new Card(2,6));
+        deck.add(new Card(3,3));
+
+//        Collections.shuffle(deck);
         return new ArrayList<>(deck.subList(0, count));
     }
 

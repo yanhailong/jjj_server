@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.tosouth.room.data;
 
+import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -101,5 +102,16 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
     @Override
     public int getPoolId() {
         return ToSouthDataHelper.getPoolId(this);
+    }
+
+    @Override
+    public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
+        super.resetData(controller);
+        this.lastPlayCards = null;
+        this.isFirstRound = true;
+        this.passCount = 0;
+        this.curRoundPassedPlayerSeats = new HashSet<>();
+        this.currentRoundPlays.clear();
+        this.bombSettlementMap.clear();
     }
 }

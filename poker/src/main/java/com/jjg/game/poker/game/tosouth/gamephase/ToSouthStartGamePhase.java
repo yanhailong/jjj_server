@@ -60,7 +60,6 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             }
 
             gameDataVo.setIndex(playerSeatInfo.getSeatId());
-            gameDataVo.setFirstRound(true);
             gameDataVo.setRoundLeaderSeatId(playerSeatInfo.getSeatId());
 
             // 3. 检查通杀
@@ -146,10 +145,5 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                 controller.addPokerPhaseTimer(new ToSouthPlayCardPhase(controller));
             }
         }
-    }
-
-    @Override
-    public int getPhaseRunTime() {
-        return 5000; // 5秒洗牌发牌动画时间
     }
 }

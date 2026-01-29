@@ -54,15 +54,6 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
 
             calSettlement(gameDataVo,settlementMap, baseBet, moneyCfg);
 
-            // 合并炸弹结算积分
-            Map<Long, Long> bombMap = gameDataVo.getBombSettlementMap();
-            if (CollUtil.isNotEmpty(bombMap)) {
-                for (Map.Entry<Long, Long> entry : bombMap.entrySet()) {
-                    settlementMap.merge(entry.getKey(), entry.getValue(), Long::sum);
-                }
-                log.info("合并炸弹结算积分: {}", bombMap);
-            }
-
             // 应用结算结果
             long totalTax = 0;
             List<ToSouthPlayerSettlementInfo> playerSettlementInfos = new ArrayList<>();
