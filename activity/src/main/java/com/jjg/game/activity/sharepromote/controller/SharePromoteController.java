@@ -307,7 +307,7 @@ public class SharePromoteController extends BaseActivityController {
      * @param req          请求
      * @return 响应
      */
-    public AbstractResponse reqSharePromoteBindPlayer(Player player, ActivityData activityData, ReqSharePromoteBindPlayer req) {
+    public AbstractResponse reqSharePromoteBindPlayer(Player player, ActivityData activityData, ReqSharePromoteBindPlayer req, int bindType) {
         ResSharePromoteBindPlayer res = new ResSharePromoteBindPlayer(Code.SUCCESS);
         long playerId = player.getId();
         //多次输入错误邀请码判断
@@ -349,8 +349,11 @@ public class SharePromoteController extends BaseActivityController {
             }
             if (save) {
                 //发送日志
-                activityLogger.sendSharePromoteAddRewards(player, activityData, superiorId, 2,
-                        0, 1, 0, 0, 0, 1);
+                Player superiorPlayer = corePlayerService.get(superiorId);
+                if (superiorPlayer != null) {
+                    activityLogger.sendSharePromoteAddRewards(superiorPlayer, activityData, playerId, 2,
+                            0, 1, 0, 0, 0, bindType);
+                }
             }
         }
         return res;
@@ -384,7 +387,7 @@ public class SharePromoteController extends BaseActivityController {
             }
             ReqSharePromoteBindPlayer req = new ReqSharePromoteBindPlayer();
             req.invitationCode = playerInfoData.getCode();
-            ResSharePromoteBindPlayer bindRes = (ResSharePromoteBindPlayer) reqSharePromoteBindPlayer(player, activityData, req);
+            ResSharePromoteBindPlayer bindRes = (ResSharePromoteBindPlayer) reqSharePromoteBindPlayer(player, activityData, req, 2);
             if (bindRes == null || bindRes.code != Code.SUCCESS) {
                 log.warn("绑定上级失败 playerId = {},superPlayerId = {},code = {}", player.getId(), shareId, bindRes == null ? "null" : bindRes.code);
                 return;
