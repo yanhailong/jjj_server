@@ -7,10 +7,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.*;
-import com.jjg.game.slots.game.steamAge.data.SteamAgeAwardLineInfo;
-import com.jjg.game.slots.game.steamAge.data.SteamAgeExpandRollerInfo;
-import com.jjg.game.slots.game.thor.ThorConstant;
-import com.jjg.game.slots.game.thor.data.ThorResultLib;
+
 import com.jjg.game.slots.game.zeusVsHades.ZeusVsHadesConstant;
 import com.jjg.game.slots.game.zeusVsHades.data.*;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
@@ -33,6 +30,20 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
     private ZeusVsHadesFreeChooseInfo zeusVsHadesFreeChooseInfo;
 
     private Map<Integer, ZeusVsHadesNormalChooseInfo> zeusVsHadesNormalChooseInfoMap;
+    @Override
+    public ZeusVsHadesResultLib generateOne(int libType) throws Exception {
+        try {
+            ZeusVsHadesResultLib lib = super.generateOne(libType);
+            if(libType == ZeusVsHadesConstant.SpecialMode.ZEUS || libType == ZeusVsHadesConstant.SpecialMode.HADES){
+                Set<Integer> libTypeSet = lib.getLibTypeSet();
+                libTypeSet.remove(ZeusVsHadesConstant.SpecialMode.CHOOSE);
+                lib.addLibType(libType);
+            }
+            return lib;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     @Override
     protected ZeusVsHadesAwardLineInfo getAwardLineInfo() {
@@ -260,10 +271,10 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
             } else {
                 int auxiliaryId = specialAuxiliaryCfg.getId();
                 ZeusVsHadesNormalChooseInfo zeusVsHadesNormalChooseInfo = zeusVsHadesNormalChooseInfoMap.get(auxiliaryId);
-                specialAuxiliaryInfo.setColumn(zeusVsHadesNormalChooseInfo.getColumn());
-                specialAuxiliaryInfo.setTime(randomTimes(specialAuxiliaryCfg.getAwardTypeC()));
-                boolean isZeus = (RandomUtils.getRandomNumInt100() > 50) ? true : false;
                 if (zeusVsHadesNormalChooseInfo != null) {
+                    specialAuxiliaryInfo.setColumn(zeusVsHadesNormalChooseInfo.getColumn());
+                    specialAuxiliaryInfo.setTime(randomTimes(specialAuxiliaryCfg.getAwardTypeC()));
+                    boolean isZeus = (RandomUtils.getRandomNumInt100() > 50) ? true : false;
                     if (isZeus){
                         specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
                     }else {
@@ -837,10 +848,10 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
 //        }
 
         //检查jackpool模式
-        if (lib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.JACKPOOL) && !checkJackpool(lib)) {
-            log.warn("检查jackpool模式失败");
-            return false;
-        }
+//        if (lib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.JACKPOOL) && !checkJackpool(lib)) {
+//            log.warn("检查jackpool模式失败");
+//            return false;
+//        }
 
         //检查宙斯模式 vs 哈迪斯模式
         if ((lib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.ZEUS) || lib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.HADES)) && !checkFreeModel(lib)) {
