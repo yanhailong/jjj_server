@@ -223,7 +223,7 @@ public class GMController extends AbstractController {
             marquee.setNums(0);
             marquee.setShowTime(dto.showTime());
             marquee.setStartTime(dto.start_time());
-            marquee.setEndTime(dto.start_time());
+            marquee.setEndTime(dto.end_time());
             marquee.setPriority(dto.priority());
             marquee.setType(dto.type() < 1 ? GameConstant.Marquee.SYSTEM_MSG : dto.type());
             marqueeDao.addMarquee(marquee);
