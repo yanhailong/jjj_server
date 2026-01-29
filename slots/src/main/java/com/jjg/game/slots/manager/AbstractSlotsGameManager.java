@@ -880,7 +880,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.getHasPlaySlots().set(true);
             playerGameData.setCreateTime(TimeHelper.nowInt());
 
-            log.debug("从db中获取的 playerId = {}, playerGameData = {}", playerController.playerId(), JSON.toJSONString(playerGameData));
+            log.debug("从db中获取的 playerId = {}", playerController.playerId());
         }
         playerGameData.setOfflineTime(0);
         playerGameData.setOnline(true);
@@ -1244,6 +1244,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             @Override
             public void action() {
                 T playerGameData = getPlayerGameData(playerController);
+                if(playerGameData == null){
+                    return;
+                }
                 if (playerGameData.isOnline()) {
                     return;
                 }
@@ -1925,7 +1928,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     continue;
                 }
 //                sectionIndex = resultLibSectionResult.data;
-                log.info("成功获取结果库  playerId = {},lib = {}", playerGameData.playerId(), JSON.toJSONString(resultLib));
+                log.info("成功获取结果库  playerId = {}", playerGameData.playerId());
                 result.code = Code.SUCCESS;
                 playerGameData.setLastModelId(libCfgResult.data.getModelId());
                 break;

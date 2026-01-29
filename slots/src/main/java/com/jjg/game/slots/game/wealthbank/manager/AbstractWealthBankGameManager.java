@@ -451,7 +451,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
             log.debug("[Wealth Bank] 触发二选一  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
         }
 
-        log.debug("[Wealth Bank] id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+        log.debug("[Wealth Bank] id = {}", resultLib.getId());
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
 
@@ -510,7 +510,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
         gameRunInfo.setBigPoolTimes(trainLib.getTimes());
         gameRunInfo.setResultLib(trainLib);
 
-        log.debug("[Wealth Bank] libId = {},train = {}", trainLib.getId(), JSON.toJSONString(trainLib));
+        log.debug("[Wealth Bank] libId = {}", trainLib.getId());
         return gameRunInfo;
 
     }
@@ -743,7 +743,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
 
                         WealthBankTrainInfo goldWealthBankTrainInfo = goldTrainPbInfo(awardInfo.getRandCount(), gameRunInfo.getDollarsGoldTimes() * gameData.getOneBetScore());
                         gameRunInfo.addTrainInfo(goldWealthBankTrainInfo);
-                        log.debug("[Wealth Bank] 触发黄金列车 playerId = {},times = {},oneBetScore = {},train = {}", gameData.playerId(), times, gameData.getOneBetScore(), JSON.toJSONString(goldWealthBankTrainInfo));
+                        log.debug("[Wealth Bank] 触发黄金列车 playerId = {},times = {},oneBetScore = {}", gameData.playerId(), times, gameData.getOneBetScore());
                     }
                     break;
                 }
@@ -804,7 +804,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
         if (trainType < 1) {
             return Collections.emptyList();
         }
-        log.debug("[Wealth Bank] 打印火车奖励 specialAuxiliaryInfo = {}", JSON.toJSONString(specialAuxiliaryInfo));
+//        log.debug("[Wealth Bank] 打印火车奖励 specialAuxiliaryInfo = {}", JSON.toJSONString(specialAuxiliaryInfo));
 
         List<WealthBankTrainInfo> wealthBankTrainInfoList = new ArrayList<>();
 

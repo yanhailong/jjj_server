@@ -148,7 +148,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             }
         }
 
-        log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+        log.debug("id = {}", resultLib.getId());
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
 

@@ -234,7 +234,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
             playerGameData.setStatus(PegasusUnbridleConstant.Status.REAL_FU_MA);
             playerGameData.setFuMa(resultLib);
             gameRunInfo.setScrollType(resultLib.getRollerMode());
-            log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+            log.debug("id = {}", resultLib.getId());
             fuMa(gameRunInfo, playerGameData, betValue);
         } else {
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
