@@ -12,6 +12,7 @@ import com.jjg.game.common.listener.SessionLoginListener;
 import com.jjg.game.common.listener.SessionLogoutListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
+import com.jjg.game.common.service.PlayerSnapshotService;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.player.IPlayerRegister;
@@ -96,6 +97,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private RechargeService rechargeService;
     @Autowired
     private CommonDao commonDao;
+    @Autowired
+    private PlayerSnapshotService playerSnapshotService;
 
     public void init() {
     }
@@ -201,7 +204,21 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             Player player = playerResult.data;
 
             session.verifyPass(player.getId(), player.getIp(), null);
-
+            Account account = accountDao.queryAccountByPlayerId(player.getId());
+            boolean needPersistCleanStatus = account.getCleanStatus() == 1;
+            if (needPersistCleanStatus) {
+                playerSnapshotService.restore(player.getId());
+            }
+            boolean dayOfFirstLogin = !TimeHelper.inSameDay(account.getLastLoginTime(), timeMillis) &&
+                    !TimeHelper.inSameDay(account.getLastOfflineTime(), timeMillis);
+            //更新最近登录时间
+            Account updatedAccount = accountDao.checkAndSave(player.getId(), a -> {
+                a.setLastLoginTime(timeMillis);
+                a.setCleanStatus(0);
+            });
+            if (needPersistCleanStatus && updatedAccount != null) {
+                accountDao.save(updatedAccount);
+            }
             res.playerId = player.getId();
             res.nickName = player.getNickName();
             res.gender = player.getGender();
@@ -244,11 +261,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //更新session
             PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
 
-            Account account = accountDao.queryAccountByPlayerId(player.getId());
-            boolean dayOfFirstLogin = !TimeHelper.inSameDay(account.getLastLoginTime(), timeMillis) &&
-                    !TimeHelper.inSameDay(account.getLastOfflineTime(), timeMillis);
-            //更新最近登录时间
-            accountDao.checkAndSave(player.getId(), a -> a.setLastLoginTime(timeMillis));
+
             //检查重连
             if (reconnect(session, player, playerSessionInfo)) {
                 res.gameWareInfo = new GameWareInfo();

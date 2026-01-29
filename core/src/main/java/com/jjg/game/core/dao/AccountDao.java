@@ -245,7 +245,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
         redisLock.executeWithLock(lockKey, GameConstant.Redis.TIME, TimeUnit.MILLISECONDS, () -> {
             Account tmpAccount = checkAndSave(player.getId(), a -> {
                 String thirdAccountData = a.removeThirdAccount(loginType);
-                if(StringUtils.isNotBlank(thirdAccountData)){
+                if (StringUtils.isNotBlank(thirdAccountData)) {
                     redisTemplate.opsForHash().delete(thirdTableName(loginType), thirdAccountData);
                     playerKeyIndex.removeHash(player.getId(), thirdTableName(loginType), thirdAccountData);
                 }
@@ -354,6 +354,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
         if (account == null) {
             return;
         }
+        account.setCleanStatus(1);
         save(account);
         redisTemplate.opsForHash().delete(DATA_TABLE_NAME, playerId);
     }

@@ -194,8 +194,8 @@ public class HallPlayerService extends AbstractPlayerService implements ConfigEx
         noticeService.removeReadData(playerId);
         taskService.moveToMongo(playerId);
         vipService.moveToMongo(playerId);
-        accountDao.moveToMongo(playerId);
         playerSessionTokenDao.delToken(playerId);
+        accountDao.moveToMongo(playerId);
         playerSnapshotService.dumpToMongo(playerId);
         return true;
     }
