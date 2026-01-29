@@ -162,7 +162,7 @@ public abstract class AbstractMahjiongWinGameManager extends AbstractSlotsGameMa
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
 
-        log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+        log.debug("id = {}", resultLib.getId());
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);

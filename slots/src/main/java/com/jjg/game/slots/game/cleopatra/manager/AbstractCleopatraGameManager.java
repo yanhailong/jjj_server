@@ -156,7 +156,7 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
             poolCfg = null;
         }
 
-        log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+        log.debug("id = {}", resultLib.getId());
 
         if (resultLib.getJackpotIds() != null && !resultLib.getJackpotIds().isEmpty()) {
             for (int poolId : resultLib.getJackpotIds()) {

@@ -150,7 +150,7 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
 
-        log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+        log.debug("id = {}", resultLib.getId());
 
         //检查是否中大奖
         rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
