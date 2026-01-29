@@ -80,6 +80,9 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
 
             gameRunInfo = normal(gameRunInfo, playerGameData, betValue);
 
+            if (!gameRunInfo.success()) {
+                return gameRunInfo;
+            }
             //从奖池扣除，并给玩家加钱
             rewardFromBigPool(gameRunInfo, playerGameData);
             //奖池中奖

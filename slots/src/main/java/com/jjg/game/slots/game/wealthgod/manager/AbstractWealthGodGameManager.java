@@ -92,6 +92,9 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
 
             normal(gameRunInfo, playerGameData, betValue);
 
+            if (!gameRunInfo.success()) {
+                return gameRunInfo;
+            }
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
