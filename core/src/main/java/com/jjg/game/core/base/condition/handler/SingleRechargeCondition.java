@@ -63,7 +63,7 @@ public class SingleRechargeCondition extends BaseRedisCondition<PlayerRecharge> 
                 return MatchResultData.match();
             }
             if (event.getAmount().compareTo(config.amount()) >= 0) {
-                BigDecimal add = countDao.incrBy(featureId, customId, BigDecimal.ONE);
+                BigDecimal add = countDao.incrBy(ctx.player().getId(), featureId, customId, BigDecimal.ONE);
                 if (add.intValue() >= config.times()) {
                     return MatchResultData.match();
                 }
@@ -82,4 +82,3 @@ public class SingleRechargeCondition extends BaseRedisCondition<PlayerRecharge> 
         return 0;
     }
 }
-

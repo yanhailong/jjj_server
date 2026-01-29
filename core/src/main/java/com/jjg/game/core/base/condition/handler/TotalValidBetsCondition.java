@@ -60,7 +60,7 @@ public class TotalValidBetsCondition extends BaseRedisCondition<PlayerEffective>
             if (count.longValue() >= config.achievedProcess()) {
                 return MatchResultData.match();
             }
-            BigDecimal add = countDao.incrBy(featureId, customId, BigDecimal.valueOf(e.getBetAmount()));
+            BigDecimal add = countDao.incrBy(ctx.player().getId(), featureId, customId, BigDecimal.valueOf(e.getBetAmount()));
             if (add.longValue() >= config.achievedProcess()) {
                 return MatchResultData.match();
             }

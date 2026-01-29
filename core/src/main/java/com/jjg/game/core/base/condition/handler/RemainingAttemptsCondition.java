@@ -60,7 +60,7 @@ public class RemainingAttemptsCondition extends BaseRedisCondition<RemainingAtte
             if (config.maxTimes() - count.intValue() >= config.remainTimes()) {
                 return MatchResultData.match();
             }
-            BigDecimal add = countDao.incrBy(featureId, customId, BigDecimal.valueOf(event.addTimes()));
+            BigDecimal add = countDao.incrBy(ctx.player().getId(), featureId, customId, BigDecimal.valueOf(event.addTimes()));
             if (config.maxTimes() - add.intValue() >= config.remainTimes()) {
                 return MatchResultData.match();
             }
@@ -71,7 +71,7 @@ public class RemainingAttemptsCondition extends BaseRedisCondition<RemainingAtte
 
     @Override
     public void addBaseProgress(long playerId, BigDecimal addValue) {
-        countDao.incrBy(type(), String.valueOf(playerId), addValue);
+        countDao.incrBy(playerId, type(), String.valueOf(playerId), addValue);
     }
 
     @Override
@@ -79,4 +79,3 @@ public class RemainingAttemptsCondition extends BaseRedisCondition<RemainingAtte
         return 0;
     }
 }
-

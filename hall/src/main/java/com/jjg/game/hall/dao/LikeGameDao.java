@@ -2,6 +2,7 @@ package com.jjg.game.hall.dao;
 
 import com.jjg.game.core.data.Player;
 import com.jjg.game.hall.data.LikeGame;
+import com.jjg.game.common.redis.PlayerKeyIndex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -22,6 +23,8 @@ public class LikeGameDao {
 
     @Autowired
     protected RedisTemplate<String, Player> redisTemplate;
+    @Autowired
+    private PlayerKeyIndex playerKeyIndex;
 
     /**
      * 添加收藏的游戏
@@ -95,5 +98,6 @@ public class LikeGameDao {
 
     public void save(LikeGame likeGame){
         redisTemplate.opsForHash().put(likeGameTableName, likeGame.getPlayerId(), likeGame);
+        playerKeyIndex.addHash(likeGame.getPlayerId(), likeGameTableName, String.valueOf(likeGame.getPlayerId()));
     }
 }

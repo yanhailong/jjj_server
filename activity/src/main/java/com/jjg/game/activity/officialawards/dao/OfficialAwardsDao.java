@@ -4,6 +4,7 @@ import com.jjg.game.activity.common.dao.RecordDao;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.officialawards.data.OfficialAwardsRecord;
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.redis.PlayerRedis;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.utils.RedisUtils;
 import org.slf4j.Logger;
@@ -29,15 +30,17 @@ public class OfficialAwardsDao {
     private final String PLAYER_PROGRESS_KEY = PREFIX + ":player:%d";
     private final String TOTAL_POOL_KEY = PREFIX + ":pool:%s";
     private final RedisTemplate<String, String> redisTemplate;
+    private final PlayerRedis playerRedis;
     private final RecordDao recordDao;
     private final RedisLock redisLock;
     private final RedisUtils redisUtils;
 
-    public OfficialAwardsDao(RedisTemplate<String, String> redisTemplate, RecordDao recordDao, RedisLock redisLock, RedisUtils redisUtils) {
+    public OfficialAwardsDao(RedisTemplate<String, String> redisTemplate, RecordDao recordDao, RedisLock redisLock, RedisUtils redisUtils, PlayerRedis playerRedis) {
         this.redisTemplate = redisTemplate;
         this.recordDao = recordDao;
         this.redisLock = redisLock;
         this.redisUtils = redisUtils;
+        this.playerRedis = playerRedis;
     }
 
     // -------------------- 单个玩家记录 --------------------
@@ -99,10 +102,10 @@ public class OfficialAwardsDao {
      */
     public int reducePlayerProgress(long playerId, int reduceValue) {
         String key = String.format(PLAYER_PROGRESS_KEY, playerId);
-        return reduceProgress(key, reduceValue);
+        return reduceProgress(playerId, key, reduceValue);
     }
 
-    public int reduceProgress(String redisKey, int reduceValue) {
+    public int reduceProgress(long playerId, String redisKey, int reduceValue) {
         String lockKey = "lock:" + redisKey;
         boolean lock = false;
         try {
@@ -117,7 +120,7 @@ public class OfficialAwardsDao {
             if (remain < 0) {
                 return -1;
             }
-            redisTemplate.opsForValue().set(redisKey, String.valueOf(remain));
+            playerRedis.set(playerId, redisKey, String.valueOf(remain));
             return remain;
         } catch (Exception e) {
             log.error("reduce player progress", e);
@@ -137,7 +140,7 @@ public class OfficialAwardsDao {
      */
     public void deletePlayerProgress(long playerId) {
         String key = String.format(PLAYER_PROGRESS_KEY, playerId);
-        redisTemplate.delete(key);
+        playerRedis.delete(playerId, key);
     }
 
     /**
@@ -145,7 +148,7 @@ public class OfficialAwardsDao {
      */
     public int incrementPlayerProgress(long playerId, long delta) {
         String key = String.format(PLAYER_PROGRESS_KEY, playerId);
-        Long increment = redisTemplate.opsForValue().increment(key, delta);
+        Long increment = playerRedis.incr(playerId, key, delta);
         return increment == null ? 0 : increment.intValue();
     }
 

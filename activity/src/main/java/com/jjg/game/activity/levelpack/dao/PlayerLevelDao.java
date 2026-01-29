@@ -1,10 +1,12 @@
 package com.jjg.game.activity.levelpack.dao;
 
 import com.jjg.game.activity.levelpack.data.PlayerLevelPackData;
+import com.jjg.game.common.redis.PlayerKeyIndex;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -15,11 +17,13 @@ import java.util.Map;
 public class PlayerLevelDao {
 
     private final RedisTemplate<String, Object> redisTemplate;
+    private final PlayerKeyIndex playerKeyIndex;
     private static final String TABLE_NAME = "playerlevelpack:%d";       // 玩家等级礼包表
     private static final String TABLE_LOCK = "playerlevelpack:lock:%d";  // 玩家等级礼包锁
 
-    public PlayerLevelDao(RedisTemplate<String, Object> redisTemplate) {
+    public PlayerLevelDao(RedisTemplate<String, Object> redisTemplate, PlayerKeyIndex playerKeyIndex) {
         this.redisTemplate = redisTemplate;
+        this.playerKeyIndex = playerKeyIndex;
     }
 
     /**
@@ -59,6 +63,7 @@ public class PlayerLevelDao {
     public void savePackData(long playerId, int packId, PlayerLevelPackData data) {
         HashOperations<String, Integer, PlayerLevelPackData> hash = getOpsForHash();
         hash.put(getKey(playerId), packId, data);
+        playerKeyIndex.addHash(playerId, getKey(playerId), String.valueOf(packId));
     }
 
     /**
@@ -70,6 +75,7 @@ public class PlayerLevelDao {
         }
         HashOperations<String, Integer, PlayerLevelPackData> hash = getOpsForHash();
         hash.putAll(getKey(playerId), dataMap);
+        playerKeyIndex.addHashBatch(playerId, getKey(playerId), toStringKeys(dataMap.keySet()));
     }
 
     /**
@@ -78,6 +84,7 @@ public class PlayerLevelDao {
     public void removePackData(long playerId, int packId) {
         HashOperations<String, Integer, PlayerLevelPackData> hash = getOpsForHash();
         hash.delete(getKey(playerId), packId);
+        playerKeyIndex.removeHash(playerId, getKey(playerId), String.valueOf(packId));
     }
 
     /**
@@ -96,7 +103,15 @@ public class PlayerLevelDao {
      * 删除整个玩家礼包表
      */
     public void clearPlayerData(long playerId) {
-        redisTemplate.delete(getKey(playerId));
+        String key = getKey(playerId);
+        java.util.Set<Integer> fields = getOpsForHash().keys(key);
+        if (!fields.isEmpty()) {
+            playerKeyIndex.removeHashBatch(playerId, key, toStringKeys(fields));
+        }
+        redisTemplate.delete(key);
     }
 
+    private Collection<String> toStringKeys(Collection<Integer> keys) {
+        return keys.stream().map(String::valueOf).toList();
+    }
 }

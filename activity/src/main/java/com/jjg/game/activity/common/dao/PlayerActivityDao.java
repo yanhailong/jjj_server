@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
+import com.jjg.game.common.redis.PlayerRedis;
 import com.jjg.game.common.utils.ObjectMapperUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,10 +50,12 @@ public class PlayerActivityDao {
     private final String LOCK_KEY = "activity:player:lock:%s:%s";
 
     private final RedisTemplate<String, String> redisTemplate;
+    private final PlayerRedis playerRedis;
     private final ObjectMapper mapper;
 
-    public PlayerActivityDao(RedisTemplate<String, String> redisTemplate) {
+    public PlayerActivityDao(RedisTemplate<String, String> redisTemplate, PlayerRedis playerRedis) {
         this.redisTemplate = redisTemplate;
+        this.playerRedis = playerRedis;
         this.mapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
     }
 
@@ -151,7 +154,8 @@ public class PlayerActivityDao {
             long playerId, ActivityType activityType, long activityId, Map<Integer, T> data) {
         try {
             String json = mapper.writeValueAsString(data);
-            redisTemplate.opsForHash().put(
+            playerRedis.hset(
+                    playerId,
                     getKey(playerId, activityType.getType()),
                     String.valueOf(activityId),
                     json
@@ -179,7 +183,7 @@ public class PlayerActivityDao {
             for (Map.Entry<Integer, T> entry : dataMap.entrySet()) {
                 hashMap.put(String.valueOf(entry.getKey()), mapper.writeValueAsString(entry.getValue()));
             }
-            redisTemplate.opsForHash().putAll(getKey(playerId, activityType.getType()), hashMap);
+            playerRedis.hsetAll(playerId, getKey(playerId, activityType.getType()), hashMap);
         } catch (Exception e) {
             log.error("批量保存活动数据异常 playerId:{} activityType:{} dataMapSize:{}",
                     playerId, activityType, dataMap.size(), e);
@@ -193,10 +197,7 @@ public class PlayerActivityDao {
      */
     public void deletePlayerActivityData(long playerId, ActivityType activityType, long activityId) {
         try {
-            redisTemplate.opsForHash().delete(
-                    getKey(playerId, activityType.getType()),
-                    String.valueOf(activityId)
-            );
+            playerRedis.hdelete(playerId, getKey(playerId, activityType.getType()), String.valueOf(activityId));
         } catch (Exception e) {
             log.error("删除活动数据异常 playerId:{} activityType:{} activityId:{}",
                     playerId, activityType, activityId, e);
@@ -208,7 +209,7 @@ public class PlayerActivityDao {
      */
     public void clearPlayerActivityData(long playerId, ActivityType activityType) {
         try {
-            redisTemplate.delete(getKey(playerId, activityType.getType()));
+            playerRedis.hdeleteAll(playerId, getKey(playerId, activityType.getType()));
         } catch (Exception e) {
             log.error("清空活动数据异常 playerId:{} activityType:{}",
                     playerId, activityType, e);

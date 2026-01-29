@@ -4,6 +4,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author lm
@@ -28,6 +30,14 @@ public class PlayerRedis {
     public void set(long playerId, String key, String value) {
         redisTemplate.opsForValue().set(key, value);
         index.add(playerId, key);
+    }
+
+    public Boolean setIfAbsent(long playerId, String key, String value) {
+        Boolean set = redisTemplate.opsForValue().setIfAbsent(key, value);
+        if (Boolean.TRUE.equals(set)) {
+            index.add(playerId, key);
+        }
+        return set;
     }
 
     public Long incr(long playerId, String key, long delta) {
@@ -56,6 +66,14 @@ public class PlayerRedis {
     public void hdelete(long playerId, String key, String field) {
         redisTemplate.opsForHash().delete(key, field);
         index.removeHash(playerId, key, field);
+    }
+
+    public void hdeleteAll(long playerId, String key) {
+        Set<Object> fields = redisTemplate.opsForHash().keys(key);
+        if (!fields.isEmpty()) {
+            index.removeHashBatch(playerId, key, fields.stream().map(String::valueOf).toList());
+        }
+        redisTemplate.delete(key);
     }
 
 }

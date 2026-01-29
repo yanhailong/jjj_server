@@ -122,10 +122,10 @@ public class SharePromoteController extends BaseActivityController {
         long beneficiaryPlayerId = Long.parseLong(bindInfoArr[0]);
         if (effectiveBet) {
             //添加有效流水进度
-            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(SHARE_PROMOTE_EFFECTIVE_BET), String.valueOf(playerId), BigDecimal.valueOf(progress));
+            countDao.incrBy(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(SHARE_PROMOTE_EFFECTIVE_BET), String.valueOf(playerId), BigDecimal.valueOf(progress));
         } else {
             //添加充值进度
-            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(SHARE_PROMOTE), String.valueOf(playerId), RedisUtils.fromLong(progress));
+            countDao.incrBy(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(SHARE_PROMOTE), String.valueOf(playerId), RedisUtils.fromLong(progress));
         }
         //获取被绑定玩家的推广分享数据
         SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(beneficiaryPlayerId);
