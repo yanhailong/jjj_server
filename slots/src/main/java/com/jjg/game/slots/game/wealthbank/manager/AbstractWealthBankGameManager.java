@@ -348,7 +348,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
     public WealthBankGameRunInfo autoStartGame(WealthBankPlayerGameData playerGameData, long betValue) {
         log.debug("[Wealth Bank] 系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
 
-        return startGame(null,playerGameData, betValue, true);
+        return startGame(null, playerGameData, betValue, true);
     }
 
     /**
@@ -889,7 +889,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
 
         for (WealthBankTrainInfo wealthBankTrainInfo : gameRunInfo.getTrainList()) {
             int poolId = getPoolIdByTrain(wealthBankTrainInfo.type);
-            if (poolId < 1) {
+            if (lib.getJackpotIds() == null || lib.getJackpotIds().isEmpty() || poolId < 1 || lib.getJackpotIds().contains(poolId)) {
                 log.debug("[Wealth Bank] 获取的池子id小于1 trainCoinId = {},poolId = {}", wealthBankTrainInfo.type, poolId);
                 continue;
             }
