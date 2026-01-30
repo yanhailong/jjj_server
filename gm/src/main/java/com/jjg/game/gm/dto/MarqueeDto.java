@@ -11,8 +11,8 @@ public record MarqueeDto(
         int showTime,
         int interval_time,
         int priority,
-        String start_time,
-        String end_time,
+        int start_time,
+        int end_time,
         int type
 ) {
 }

@@ -205,7 +205,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if (StringUtils.isEmpty(dto.content()) || dto.showTime() < 0 || dto.interval_time() < 0 || dto.priority() < 0 || StringUtils.isEmpty(dto.start_time()) || StringUtils.isEmpty(dto.end_time())) {
+            if (StringUtils.isEmpty(dto.content()) || dto.showTime() < 0 || dto.interval_time() < 0 || dto.priority() < 0 || dto.start_time() < 1 || dto.end_time() < 1) {
                 log.debug("从后台收到的跑马灯参数错误");
                 return fail("common.paramerror");
             }
@@ -222,8 +222,8 @@ public class GMController extends AbstractController {
             marquee.setInterval(dto.interval_time());
             marquee.setNums(0);
             marquee.setShowTime(dto.showTime());
-            marquee.setStartTime(TimeHelper.getSecondTime(dto.start_time()));
-            marquee.setEndTime(TimeHelper.getSecondTime(dto.end_time()));
+            marquee.setStartTime(dto.start_time());
+            marquee.setEndTime(dto.end_time());
             marquee.setPriority(dto.priority());
             marquee.setType(dto.type() < 1 ? GameConstant.Marquee.SYSTEM_MSG : dto.type());
             marqueeDao.addMarquee(marquee);

@@ -162,4 +162,8 @@ public class SmsService {
     public CommonResult<VerCode> verifySmsVerCode(VerCode reqVerCode) {
         return verCodeDao.verifySmsVerCode(reqVerCode);
     }
+
+    public void setThirdServiceInfo(ThirdServiceInfo thirdServiceInfo) {
+        this.thirdServiceInfo = thirdServiceInfo;
+    }
 }
