@@ -1,5 +1,6 @@
 package com.jjg.game.activity.wealthroulette.dao;
 
+import com.jjg.game.common.redis.PlayerKeyIndex;
 import com.jjg.game.common.utils.TimeHelper;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
@@ -15,6 +16,7 @@ import java.util.Collections;
 
 /**
  * 财富转盘用于记录玩家购买记录
+ *
  * @author lm
  * @date 2025/12/1 13:47
  */
@@ -22,6 +24,7 @@ import java.util.Collections;
 public class WealthRouletteDao {
     private final String tableName = "wealthroulette:%s";
     private final RedissonClient redissonClient;
+    private final PlayerKeyIndex playerKeyIndex;
 
     private static final String LUA = """
             -- 1. 获取键的当前值 (使用 HGET)
@@ -51,14 +54,16 @@ public class WealthRouletteDao {
             return new_val
             """;
 
-    public WealthRouletteDao(RedissonClient redissonClient) {
+    public WealthRouletteDao(RedissonClient redissonClient, PlayerKeyIndex playerKeyIndex) {
         this.redissonClient = redissonClient;
+        this.playerKeyIndex = playerKeyIndex;
     }
 
     /**
      * 增加每日购买次数
+     *
      * @param playerId 玩家id
-     * @param goodId 商品id
+     * @param goodId   商品id
      * @return 成功自增后的新值 (Long)，如果达到上限或键不存在，返回 null。
      */
     public Long incrementIfLessThan(long playerId, int goodId, int addValue, long maxLimit) {
@@ -69,15 +74,20 @@ public class WealthRouletteDao {
         // ARGV[3]: maxLimit (上限值)
         // 转换为 Long，用于 Redis 的 HINCRBY
         // 执行 Lua 脚本
-        return redissonClient.getScript(LongCodec.INSTANCE)
+        Long result = redissonClient.getScript(LongCodec.INSTANCE)
                 .eval(RScript.Mode.READ_WRITE, LUA,
                         RScript.ReturnType.INTEGER,
                         Collections.singletonList(tableName.formatted(playerId)),
                         goodId, addValue, maxLimit);
+        if (result != null) {
+            playerKeyIndex.addHash(playerId, tableName.formatted(playerId), String.valueOf(goodId));
+        }
+        return result;
     }
 
     /**
      * 获取今天玩家的购买次数
+     *
      * @param playerId 玩家id
      */
     public RMap<Integer, Integer> getPlayerBuyTimes(long playerId) {
@@ -85,8 +95,18 @@ public class WealthRouletteDao {
     }
 
 
+    public void deletePlayerBuyTimes(long playerId) {
+        RMap<Integer, Integer> playerBuyTimes = getPlayerBuyTimes(playerId);
+        if (!playerBuyTimes.isEmpty()) {
+            playerKeyIndex.removeHashBatch(playerId, tableName.formatted(playerId),
+                    playerBuyTimes.keySet().stream().map(String::valueOf).toList());
+        }
+        playerBuyTimes.delete();
+    }
+
     /**
      * 是否能触发首次登陆
+     *
      * @param playerId 玩家id
      * @return true能触发
      */

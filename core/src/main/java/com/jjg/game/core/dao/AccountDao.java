@@ -8,6 +8,7 @@ import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.*;
+import com.jjg.game.common.redis.PlayerKeyIndex;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,8 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
     private RedisLock redisLock;
     @Autowired
     private RedisTemplate redisTemplate;
+    @Autowired
+    private PlayerKeyIndex playerKeyIndex;
     @Autowired
     private GameEventManager gameEventManager;
     private final String DATA_TABLE_NAME = "account:data";
@@ -242,8 +245,9 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
         redisLock.executeWithLock(lockKey, GameConstant.Redis.TIME, TimeUnit.MILLISECONDS, () -> {
             Account tmpAccount = checkAndSave(player.getId(), a -> {
                 String thirdAccountData = a.removeThirdAccount(loginType);
-                if(StringUtils.isNotBlank(thirdAccountData)){
+                if (StringUtils.isNotBlank(thirdAccountData)) {
                     redisTemplate.opsForHash().delete(thirdTableName(loginType), thirdAccountData);
+                    playerKeyIndex.removeHash(player.getId(), thirdTableName(loginType), thirdAccountData);
                 }
             });
 
@@ -339,7 +343,9 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
         if (saveData) {
             redisTemplate.opsForHash().put(DATA_TABLE_NAME, account.getPlayerId(), account);
         }
-        redisTemplate.opsForHash().put(thirdTableName(loginType), data, account.getPlayerId());
+        String key = thirdTableName(loginType);
+        redisTemplate.opsForHash().put(key, data, account.getPlayerId());
+        playerKeyIndex.addHash(account.getPlayerId(), key, data);
         return account;
     }
 
@@ -348,6 +354,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
         if (account == null) {
             return;
         }
+        account.setCleanStatus(1);
         save(account);
         redisTemplate.opsForHash().delete(DATA_TABLE_NAME, playerId);
     }

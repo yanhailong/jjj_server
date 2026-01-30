@@ -377,7 +377,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             result = wealthRouletteDao.incrementIfLessThan(playerId, req.goodId, req.buyNum, cfg.getFrequency());
             if (result == null) {
                 res.code = Code.WEALTH_ROULETTE_BUY_LIMIT;
-                countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), getChildId(playerId, LocalDate.now()),
+                countDao.incrBy(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), getChildId(playerId, LocalDate.now()),
                         BigDecimal.valueOf(needPoint));
                 return res;
             }
@@ -479,13 +479,13 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             return;
         }
         //清除数据
-        wealthRouletteDao.getPlayerBuyTimes(playerId).delete();
+        wealthRouletteDao.deletePlayerBuyTimes(playerId);
         //计算当天积分
         BigDecimal count = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
                 getChildId(playerId, LocalDate.now().minusDays(1)));
         BigDecimal add = getConversionValue(playerId, count.longValue(), true);
         if (add.compareTo(BigDecimal.ZERO) >= 0) {
-            countDao.setCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId), add);
+            countDao.setCount(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId), add);
             log.info("财富转盘 今日积分 playerOd:{} addPoint:{}", playerId, add.longValue());
         }
     }

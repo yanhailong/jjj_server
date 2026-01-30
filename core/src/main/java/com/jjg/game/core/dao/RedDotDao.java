@@ -2,6 +2,7 @@ package com.jjg.game.core.dao;
 
 import cn.hutool.core.util.EnumUtil;
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.redis.PlayerKeyIndex;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -25,9 +26,11 @@ import java.util.Map;
 public class RedDotDao {
 
     private final RedissonClient redissonClient;
+    private final PlayerKeyIndex playerKeyIndex;
 
-    public RedDotDao(RedissonClient redissonClient) {
+    public RedDotDao(RedissonClient redissonClient, PlayerKeyIndex playerKeyIndex) {
         this.redissonClient = redissonClient;
+        this.playerKeyIndex = playerKeyIndex;
     }
 
     private String getPlayerKey(long playerId) {
@@ -42,7 +45,9 @@ public class RedDotDao {
     /** 设置红点值 */
     public void setValue(long playerId, int module, int subModule, int value) {
         RMap<Long, Integer> map = redissonClient.getMap(getPlayerKey(playerId));
-        map.put(combineKey(module, subModule), value);
+        long key = combineKey(module, subModule);
+        map.put(key, value);
+        playerKeyIndex.addHash(playerId, getPlayerKey(playerId), String.valueOf(key));
     }
 
     /** 获取红点值 */
@@ -60,15 +65,20 @@ public class RedDotDao {
         Integer value = map.getOrDefault(key, 0);
         if (value + delta <= 0) {
             map.put(key, 0);
+            playerKeyIndex.addHash(playerId, getPlayerKey(playerId), String.valueOf(key));
             return 0;
         }
-        return map.addAndGet(key, delta);
+        int result = map.addAndGet(key, delta);
+        playerKeyIndex.addHash(playerId, getPlayerKey(playerId), String.valueOf(key));
+        return result;
     }
 
     /** 删除一个子模块红点 */
     public void delete(long playerId, int module, int subModule) {
         RMap<Long, Integer> map = redissonClient.getMap(getPlayerKey(playerId));
-        map.remove(combineKey(module, subModule));
+        long key = combineKey(module, subModule);
+        map.remove(key);
+        playerKeyIndex.removeHash(playerId, getPlayerKey(playerId), String.valueOf(key));
     }
 
     /** 获取玩家所有红点 */
@@ -89,7 +99,12 @@ public class RedDotDao {
 
     /** 清空该玩家所有红点 */
     public void clear(long playerId) {
-        redissonClient.getMap(getPlayerKey(playerId)).clear();
+        RMap<Long, Integer> map = redissonClient.getMap(getPlayerKey(playerId));
+        if (!map.isEmpty()) {
+            playerKeyIndex.removeHashBatch(playerId, getPlayerKey(playerId),
+                    map.keySet().stream().map(String::valueOf).toList());
+        }
+        map.clear();
     }
 
     /** 可选：调试用，反向解码模块名 */

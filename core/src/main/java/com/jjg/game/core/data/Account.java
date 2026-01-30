@@ -30,6 +30,8 @@ public class Account {
     private long lastLoginTime;
     //最近一次离线时间
     private long lastOfflineTime;
+    //redis中被清除状态0未清除 1已经清除
+    private int cleanStatus;
     //当前状态  1.正常  2.被封  3.被删除
     private int status;
     //渠道
@@ -37,6 +39,13 @@ public class Account {
     //第三方账号
     private Map<LoginType, String> thirdAccounts;
 
+    public int getCleanStatus() {
+        return cleanStatus;
+    }
+
+    public void setCleanStatus(int cleanStatus) {
+        this.cleanStatus = cleanStatus;
+    }
 
     public long getPlayerId() {
         return playerId;

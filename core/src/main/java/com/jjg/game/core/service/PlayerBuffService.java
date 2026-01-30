@@ -1,6 +1,7 @@
 package com.jjg.game.core.service;
 
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.redis.PlayerKeyIndex;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -32,6 +33,8 @@ public class PlayerBuffService {
     protected RedisTemplate<String, Player> redisTemplate;
     @Autowired
     protected RedisLock redisLock;
+    @Autowired
+    protected PlayerKeyIndex playerKeyIndex;
 
     protected BigDecimal tenThousandBigDecimal = BigDecimal.valueOf(10000);
 
@@ -75,6 +78,7 @@ public class PlayerBuffService {
             playerBuffDetails.add(detail);
 
             redisTemplate.opsForHash().put(tableName, playerId, playerBuff);
+            playerKeyIndex.addHash(playerId, tableName, String.valueOf(playerId));
             result.code = Code.SUCCESS;
             result.data = playerBuff;
             return result;
