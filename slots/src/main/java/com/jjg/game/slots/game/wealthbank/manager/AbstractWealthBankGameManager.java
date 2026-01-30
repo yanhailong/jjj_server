@@ -901,7 +901,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
             //车厢节数+1，是因为要加上最后一个奖池车厢
             //总的延迟时间
             int allDelayTime = ((wealthBankTrainInfo.goldList.size() + 1) * poolCfg.getDelayTime()) / 1000;
-            long addGold = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), allDelayTime);
+            long addGold = calPoolValue(playerGameData.getAllBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), allDelayTime);
 
             log.debug("[Wealth Bank] 概率计算可以中小奖池 playerId = {},addGold = {}", playerGameData.playerId(), addGold);
 
