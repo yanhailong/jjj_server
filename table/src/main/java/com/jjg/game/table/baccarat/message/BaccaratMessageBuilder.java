@@ -219,11 +219,4 @@ public class BaccaratMessageBuilder {
         return tableInfo;
     }
 
-    /**
-     * 添加玩家下注区域的数据
-     */
-    public static List<BetTableInfo> buildPlayerBetInfo(
-            BaccaratTableInfo baccaratTableInfo, BaccaratGameDataVo gameDataVo, long playerId) {
-        return TableMessageBuilder.buildPlayerBetInfo(baccaratTableInfo.tableAreaInfos, gameDataVo, playerId);
-    }
 }
