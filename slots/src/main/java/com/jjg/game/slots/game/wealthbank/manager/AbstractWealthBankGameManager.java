@@ -889,7 +889,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
 
         for (WealthBankTrainInfo wealthBankTrainInfo : gameRunInfo.getTrainList()) {
             int poolId = getPoolIdByTrain(wealthBankTrainInfo.type);
-            if (lib.getJackpotIds() == null || lib.getJackpotIds().isEmpty() || poolId < 1 || lib.getJackpotIds().contains(poolId)) {
+            if (lib.getJackpotIds() == null || lib.getJackpotIds().isEmpty() || poolId < 1 || !lib.getJackpotIds().contains(poolId)) {
                 log.debug("[Wealth Bank] 获取的池子id小于1 trainCoinId = {},poolId = {}", wealthBankTrainInfo.type, poolId);
                 continue;
             }
