@@ -121,7 +121,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
         diceSettlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
-            addPlayerAreaDataLog(playerId);
+            addPlayerAreaDataLog(entry.getValue());
             // 给玩家发送数据
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
         }

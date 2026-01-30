@@ -127,10 +127,10 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
     /**
      * 添加玩家区域下注日志
      *
-     * @param playerId 玩家id
+     * @param gamePlayer 玩家数据
      */
-    public void addPlayerAreaDataLog(long playerId) {
-        Map<Integer, List<Integer>> playerBetInfoMap = gameDataVo.getPlayerBetInfo().get(playerId);
+    public void addPlayerAreaDataLog(GamePlayer gamePlayer) {
+        Map<Integer, List<Integer>> playerBetInfoMap = gameDataVo.getPlayerBetInfo().get(gamePlayer.getId());
         if (playerBetInfoMap == null) {
             return;
         }
@@ -145,7 +145,7 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
             betTableInfo.playerBetTotal = areaTotal;
             betTableInfos.add(betTableInfo);
         }
-        gameDataTracker.addPlayerLogData(playerId, DataTrackNameConstant.AREA_DATA, JSON.toJSONString(betTableInfos));
+        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_DATA, JSON.toJSONString(betTableInfos));
     }
 
     /**
