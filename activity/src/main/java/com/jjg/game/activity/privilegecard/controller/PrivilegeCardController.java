@@ -119,16 +119,7 @@ public class PrivilegeCardController extends BaseActivityController implements G
             long timeMillis = TimeHelper.getTimestamp(nowMidnight);
             PlayerPrivilegeCard privilegeCard = null;
             CommonResult<ItemOperationResult> addedItems = null;
-            String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-
-            // 加锁，防止并发修改
-            boolean lock = false;
             try {
-                lock = redisLock.tryLockWithDefaultTime(lockKey);
-                if (!lock) {
-                    log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} times:{}", lockKey, playerId, activityData.getId(), detailId, times);
-                    return res;
-                }
                 Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
                 // 获取玩家特权卡数据，若不存在则创建
                 privilegeCard = playerActivityData.computeIfAbsent(detailId, key -> new PlayerPrivilegeCard(activityData.getId(), activityData.getRound()));
@@ -162,12 +153,7 @@ public class PrivilegeCardController extends BaseActivityController implements G
 
             } catch (Exception e) {
                 log.error("玩家加入特权卡活动异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
-            } finally {
-                if (lock) {
-                    redisLock.tryUnlock(lockKey);
-                }
             }
-
             // 发送日志
             activityLogger.sendPrivilegeCardJoinLog(player, activityData, cfg, addedItems == null ? null : addedItems.data, cfg.getGetItem());
 
@@ -195,7 +181,6 @@ public class PrivilegeCardController extends BaseActivityController implements G
     public AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId) {
         ResPrivilegeCardClaimRewards res = new ResPrivilegeCardClaimRewards(Code.SUCCESS);
         long playerId = player.getId();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         Map<Integer, PrivilegeCardCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         PrivilegeCardCfg cfg = baseCfgBeanMap.get(detailId);
         if (cfg == null || CollectionUtil.isEmpty(cfg.getDayRebate())) {
@@ -204,15 +189,7 @@ public class PrivilegeCardController extends BaseActivityController implements G
         }
         PlayerPrivilegeCard data = null;
         CommonResult<ItemOperationResult> addedItems = null;
-        // 加锁，保证领取操作原子性
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                res.code = Code.FAIL;
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} ", lockKey, playerId, activityData.getId(), detailId);
-                return res;
-            }
             Map<Integer, PlayerPrivilegeCard> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
             if (CollectionUtil.isEmpty(dataMap)) {
                 res.code = Code.PARAM_ERROR;
@@ -245,12 +222,7 @@ public class PrivilegeCardController extends BaseActivityController implements G
 
         } catch (Exception e) {
             log.error("领取每日奖励异常 playerId:{} activityId:{} detailid:{}", playerId, activityData.getId(), detailId, e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
-
         // 构建响应数据
         if (data != null && addedItems != null && addedItems.success()) {
             //计算天数

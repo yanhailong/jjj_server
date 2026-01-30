@@ -88,14 +88,7 @@ public class DailyLoginController extends BaseActivityController {
         long playerId = player.getId();
         long continuousLoginDay = dailyLoginDao.getContinuousLoginDay(activityId, playerId);
         boolean change = false;
-        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} progress:{}", lockKey, playerId, activityId, progress);
-                return false;
-            }
             Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             for (DailyRewardsCfg cfg : baseCfgBeanMap.values()) {
                 //连续奖励
@@ -124,10 +117,6 @@ public class DailyLoginController extends BaseActivityController {
             }
         } catch (Exception e) {
             log.error("每日签到增加进度异常 playerId:{} activityId:{}", player, activityId, e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
         return change;
     }
@@ -157,16 +146,7 @@ public class DailyLoginController extends BaseActivityController {
         PlayerActivityData data = null;
         List<Pair<DailyRewardsCfg, PlayerActivityData>> changData = new ArrayList<>();
         CommonResult<ItemOperationResult> addedItems = null;
-        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-        // 加锁，保证领取操作原子性
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                res.code = Code.FAIL;
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{}", lockKey, playerId, activityId, detailId);
-                return res;
-            }
             Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             if (CollectionUtil.isEmpty(dataMap)) {
                 res.code = Code.PARAM_ERROR;
@@ -206,10 +186,6 @@ public class DailyLoginController extends BaseActivityController {
             playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, dataMap);
         } catch (Exception e) {
             log.error("活动领取异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
         if (data != null) {
             if (cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE) {

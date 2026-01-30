@@ -454,15 +454,7 @@ public abstract class BaseActivityController {
         long activityId = activityData.getId();
         PlayerActivityData data;
         CommonResult<ItemOperationResult> addedItems;
-        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-        // 加锁，保证领取操作原子性
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{}", lockKey, playerId, activityId, detailId);
-                return null;
-            }
             Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             if (CollectionUtil.isEmpty(dataMap)) {
                 TipUtils.sendTip(playerId, TipUtils.TipType.TOAST, Code.PARAM_ERROR);
@@ -487,10 +479,6 @@ public abstract class BaseActivityController {
             return new ClaimRewardsResult(data, addedItems.data);
         } catch (Exception e) {
             log.error("活动领取异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
         return null;
     }

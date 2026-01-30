@@ -186,7 +186,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 session.setWorkId(player.getRoomId());
                 PlayerSessionInfo finalInfo = info;
                 //刚进来的时候没有workId，会导致线程问题
-                roomManager.getProcessorExecutors().tryPublish(player.getRoomId(), 0, new BaseHandler<String>() {
+                roomManager.getProcessorExecutors().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
                     @Override
                     public void action() {
                         PlayerController playerController = new PlayerController(session, player);

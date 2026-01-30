@@ -250,14 +250,7 @@ public class DailyRechargeController extends BaseActivityController implements G
         }
         long activityId = activityData.getId();
         List<Pair<PlayerActivityData, DailyRechargeCfg>> changeDetail = new ArrayList<>();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                log.error("获取锁失败 lockKey:{}  DailyRecharge playerId:{} activityId:{} ", lockKey, playerId, activityId);
-                return List.of();
-            }
             Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             for (DailyRechargeCfg rechargeCfg : canGetCfg) {
                 PlayerActivityData data = playerActivityData.computeIfAbsent(rechargeCfg.getId(), key -> new PlayerActivityData(activityId, activityData.getRound()));
@@ -272,10 +265,6 @@ public class DailyRechargeController extends BaseActivityController implements G
             }
         } catch (Exception e) {
             log.error("每日充值增加进度异常 playerId:{} activityId:{}", playerId, activityId, e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
         return changeDetail;
     }

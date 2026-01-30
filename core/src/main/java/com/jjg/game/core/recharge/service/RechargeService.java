@@ -1,8 +1,11 @@
 package com.jjg.game.core.recharge.service;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.core.base.condition.handler.TodayDepositCondition;
@@ -87,18 +90,31 @@ public class RechargeService {
     }
 
     public void notifyRecharge(NotifyRechargeServer notify, boolean needCheck) {
+        PFSession session = clusterSystem.getSession(notify.playerId);
+        if (needCheck && session == null) {
+            log.error("处理充值时玩家PFSession为null playerId={}", notify.playerId);
+            offlineRechargeDao.addRecharge(notify.playerId, JSON.toJSONString(notify));
+            return;
+        }
+        if (session != null) {
+            PlayerExecutorGroupDisruptor.getDefaultExecutor()
+                    .tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
+                        @Override
+                        public void action() {
+                            dealRecharge(notify);
+                        }
+                    });
+            return;
+        }
+        log.info("充值时玩家session 为null playerId:{}", notify.playerId);
+        dealRecharge(notify);
+    }
+
+    private void dealRecharge(NotifyRechargeServer notify) {
         try {
-            if (needCheck) {
-                PFSession session = clusterSystem.getSession(notify.playerId);
-                if (session == null) {
-                    log.error("处理充值时玩家PFSession为null playerId={}", notify.playerId);
-                    offlineRechargeDao.addRecharge(notify.playerId, ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(notify));
-                    return;
-                }
-            }
+
             Player player = playerService.get(notify.playerId);
             Order order = orderService.getOrder(notify.orderId);
-
             todayDepositCondition.addBaseProgress(player.getId(), order.getPrice());
             //充值事件
             gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order, notify.money, notify.regionCode, notify.channelProductId));

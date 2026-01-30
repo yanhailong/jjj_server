@@ -410,14 +410,7 @@ public class SharePromoteController extends BaseActivityController {
         }
         boolean changed = false;
         long playerId = player.getId();
-        String lockKey = playerActivityDao.getLockKey(playerId, data.getId());
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} bindNum:{} bindBefore:{}", lockKey, playerId, activityData.getId(), bindNum, bindBefore);
-                return;
-            }
             Map<Integer, PlayerActivityData> playerActivityDataMap = playerActivityDao.getPlayerActivityData(playerId, data.getType(), data.getId());
             for (SharePromoteCfg cfg : beanMap.values()) {
                 if (cfg.getType() != ActivityConstant.SharePromote.RANK_REWARDS && cfg.getCondition() <= bindNum) {
@@ -440,10 +433,6 @@ public class SharePromoteController extends BaseActivityController {
             }
         } catch (Exception e) {
             log.error("推广分享绑定玩家成功 检查玩家进度异常 playerId:{}", playerId, e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
     }
 

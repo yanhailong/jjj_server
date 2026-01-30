@@ -82,14 +82,7 @@ public class GrowthFundController extends BaseActivityController implements Game
         Set<GrowthFundCfg> updateDetailId = new HashSet<>();
         Map<Integer, PlayerActivityData> playerActivityData = null;
         CommonResult<ItemOperationResult> addItems = null;
-        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} times:{}", lockKey, playerId, activityId, detailId, times);
-                return null;
-            }
             playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             //触发需要购买的奖励
             for (GrowthFundCfg cfg : baseCfgBeanMap.values()) {
@@ -122,10 +115,6 @@ public class GrowthFundController extends BaseActivityController implements Game
                     addItemsSuccess ? rewards : null, addItemsSuccess ? addItems.data : null);
         } catch (Exception e) {
             log.error("成长基金购买增加进度异常 playerId:{} activityId:{}", playerId, activityId, e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
         if (!updateDetailId.isEmpty()) {
             ResGrowthFundBuyResultInfo info = new ResGrowthFundBuyResultInfo(Code.SUCCESS);
@@ -185,14 +174,7 @@ public class GrowthFundController extends BaseActivityController implements Game
                 return false;
             }
             long count = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(activityId), String.valueOf(player.getId())).longValue();
-            String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-            boolean lock = false;
             try {
-                lock = redisLock.tryLockWithDefaultTime(lockKey);
-                if (!lock) {
-                    log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} progress:{} ", lockKey, playerId, activityId, progress);
-                    return false;
-                }
                 playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
                 for (GrowthFundCfg cfg : baseCfgBeanMap.values()) {
                     //等级不够的跳过
@@ -214,10 +196,6 @@ public class GrowthFundController extends BaseActivityController implements Game
                 }
             } catch (Exception e) {
                 log.error("成长基金增加进度异常 playerId:{} activityId:{}", player, activityId, e);
-            } finally {
-                if (lock) {
-                    redisLock.tryUnlock(lockKey);
-                }
             }
         }
         return change;
@@ -247,16 +225,7 @@ public class GrowthFundController extends BaseActivityController implements Game
         Map<Integer, PlayerActivityData> dataMap = new HashMap<>();
         //记录日志
         List<Integer> levels = new ArrayList<>();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-        // 加锁，保证领取操作原子性
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                res.code = Code.UNKNOWN_ERROR;
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{}  detailId:{}", lockKey, playerId, activityId, detailId);
-                return res;
-            }
             dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
             if (CollectionUtil.isEmpty(dataMap)) {
                 res.code = Code.PARAM_ERROR;
@@ -291,10 +260,6 @@ public class GrowthFundController extends BaseActivityController implements Game
             }
         } catch (Exception e) {
             log.error("领取成长基金奖励异常 playerId:{} activityId:{} detailid:{}", playerId, activityData.getId(), detailId, e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
         // 构建响应数据
         res.activityId = activityId;

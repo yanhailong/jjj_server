@@ -599,8 +599,13 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         String cmd = gmOrders[0];
         if ("rechargeGold".equalsIgnoreCase(cmd)) {
             long count = Long.parseLong(gmOrders[1]);
-            addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), RedisUtils.toLong(BigDecimal.valueOf(count))
-                    , null);
+            PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerController.getSession().getWorkId(), 0, new BaseHandler<String>() {
+                @Override
+                public void action() {
+                    addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), RedisUtils.toLong(BigDecimal.valueOf(count))
+                            , null);
+                }
+            });
             return new CommonResult<>(Code.SUCCESS);
         }
 
