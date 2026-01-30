@@ -25,6 +25,7 @@ import com.jjg.game.table.birdsanimals.message.NotifyAnimalsSettlement;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
+import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 
@@ -119,12 +120,8 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
         settlement.settlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
-            settlement.settlementInfo.betTableInfos = TableMessageBuilder.buildPlayerBetInfo(settlement.settlementInfo.betTableInfos, gameDataVo, playerId);
-            // 给玩家发送结算数据
+            addPlayerAreaDataLog(playerId);
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
-            if (gameDataVo.getPlayerBetInfo().containsKey(playerId)) {
-                gameDataTracker.addPlayerLogData(entry.getValue(), DataTrackNameConstant.AREA_DATA, JSON.toJSONString(settlement.settlementInfo.betTableInfos));
-            }
         }
         log.debug("飞禽走兽房间：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));
         // 保存记录

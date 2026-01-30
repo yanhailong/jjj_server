@@ -1,7 +1,6 @@
 package com.jjg.game.table.luxurycarclub.gamephase;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
@@ -19,7 +18,6 @@ import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
-import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 import com.jjg.game.table.luxurycarclub.data.LuxuryCarClubGameDataVo;
@@ -118,12 +116,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
         settlement.settlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
-            settlement.settlementInfo.betTableInfos =
-                    TableMessageBuilder.buildPlayerBetInfo(settlement.settlementInfo.betTableInfos, gameDataVo, playerId);
-            Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
-            if (playerBetInfo != null) {
-                gameDataTracker.addPlayerLogData(entry.getValue(), DataTrackNameConstant.AREA_DATA, JSON.toJSONString(settlement.settlementInfo.betTableInfos));
-            }
+            addPlayerAreaDataLog(playerId);
             // 给玩家发送结算数据
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
         }

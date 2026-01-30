@@ -1,6 +1,7 @@
 package com.jjg.game.table.common.gamephase;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
@@ -18,15 +19,18 @@ import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
+import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.dao.BetTableFriendRoomDao;
 import com.jjg.game.table.common.dao.TableRoomDao;
 import com.jjg.game.table.common.data.TableGameDataVo;
+import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -118,6 +122,30 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
         }
         // 倍率计算 + 压分返还 + 赢的总值
         return new SettlementData(multiAdd.longValue(), totalWin, betValue, totalGet.longValue() - multiAdd.longValue());
+    }
+
+    /**
+     * 添加玩家区域下注日志
+     *
+     * @param playerId 玩家id
+     */
+    public void addPlayerAreaDataLog(long playerId) {
+        Map<Integer, List<Integer>> playerBetInfoMap = gameDataVo.getPlayerBetInfo().get(playerId);
+        if (playerBetInfoMap == null) {
+            return;
+        }
+        List<BetTableInfo> betTableInfos = new ArrayList<>(playerBetInfoMap.size());
+        for (Map.Entry<Integer, List<Integer>> entry : playerBetInfoMap.entrySet()) {
+            long areaTotal = 0;
+            for (Integer betValue : entry.getValue()) {
+                areaTotal += betValue;
+            }
+            BetTableInfo betTableInfo = new BetTableInfo();
+            betTableInfo.betIdx = entry.getKey();
+            betTableInfo.playerBetTotal = areaTotal;
+            betTableInfos.add(betTableInfo);
+        }
+        gameDataTracker.addPlayerLogData(playerId, DataTrackNameConstant.AREA_DATA, JSON.toJSONString(betTableInfos));
     }
 
     /**
