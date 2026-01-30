@@ -405,7 +405,8 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
 
             //从奖池扣除，并给玩家加钱
             rewardFromBigPool(gameRunInfo, playerGameData);
-
+            // 补丁：rewardFromBigPool中setAllWinGold没有加smallPoolGold 导致两次显示总金额不同
+            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
             triggerWinTask(playerGameData.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
 
@@ -914,7 +915,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
             //缓存中奖金额,以便计算玩家贡献金额
             playerGameData.addSmallPoolReward(addGold);
             gameRunInfo.addSmallPoolGold(addGold);
-
+            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             wealthBankTrainInfo.goldList.add(addGold);
             wealthBankTrainInfo.poolId = poolId;
             log.debug("[Wealth Bank] 该火车中奖，并且加钱成功 playerId = {},addGold = {}", playerGameData.playerId(), addGold);
