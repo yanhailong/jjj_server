@@ -1018,6 +1018,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 return gameRunInfo;
             }
             gameRunInfo.setAllWinGold(addGold);
+            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
         } else if (playerGameData.getRoomType() == RoomType.SLOTS_TEAM_UP_ROOM) {
             int roomCfgId = playerGameData.getRoomCfgId();
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
@@ -1034,6 +1035,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         log.warn("房间准备金不足以赔付 roomId = {},gameType = {},addValue = {}", playerGameData.getRoomId(), this.gameType, addGold);
                         gameRunInfo.setCode(Code.SUCCESS);
                         gameRunInfo.setAllWinGold(addGold);
+                        gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
                         return gameRunInfo;
                     }
                     return handleEmptyPrizePool(gameRunInfo, playerGameData);
@@ -1044,6 +1046,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
             slotsRoomManager.updatePoolValue(playerGameData.getRoomId(), result.data.getSecond());
             gameRunInfo.setAllWinGold(addGold);
+            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
         } else {
             log.warn("无法识别玩家的roomType，加钱失败 playerId = {},roomType = {}", playerGameData.playerId(), playerGameData.getRoomType());
             gameRunInfo.setCode(Code.FAIL);
@@ -1244,7 +1247,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             @Override
             public void action() {
                 T playerGameData = getPlayerGameData(playerController);
-                if(playerGameData == null){
+                if (playerGameData == null) {
                     return;
                 }
                 if (playerGameData.isOnline()) {
@@ -2101,18 +2104,19 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 清除游戏状态
+     *
      * @param playerId
      * @param roomCfgId
      */
     public void cleanStatus(long playerId, int roomCfgId) {
         T playerGameData = getPlayerGameData(playerId, roomCfgId);
-        if(playerGameData != null){
+        if (playerGameData != null) {
             playerGameData.setStatus(0);
             playerGameData.getRemainFreeCount().set(0);
             playerGameData.getFreeIndex().set(0);
             playerGameData.setFreeLib(null);
             playerGameData.setTestLibDataList(null);
-        }else {
+        } else {
             SlotsPlayerGameDataDTO dto = getGameDataDao().getGameDataByPlayerId(playerId, roomCfgId);
             dto.setStatus(0);
             dto.setFreeAllWin(0);
