@@ -12,7 +12,7 @@ import com.jjg.game.common.listener.SessionLoginListener;
 import com.jjg.game.common.listener.SessionLogoutListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
-import com.jjg.game.common.service.PlayerSnapshotService;
+import com.jjg.game.core.service.PlayerSnapshotService;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.player.IPlayerRegister;

@@ -18,6 +18,7 @@ public class PlayerKeyIndex {
     private static final String LIST_PREFIX = "L:";
     private static final String SET_PREFIX = "S:";
     private static final String ZSET_PREFIX = "Z:";
+    private static final String HASH_PREFIX = "H:";
     private final RedisTemplate<String, String> redis;
 
     public PlayerKeyIndex(RedisTemplate<String, String> redis) {
@@ -49,12 +50,12 @@ public class PlayerKeyIndex {
     }
 
     public void addHash(long playerId, String key, String field) {
-        redis.opsForSet().add(PLAYER_KEY_PREFIX + playerId, key + "#" + field);
+        redis.opsForSet().add(PLAYER_KEY_PREFIX + playerId, HASH_PREFIX + key + "#" + field);
     }
 
     // 批量（给在线写入 / 迁移用）
     public void addHashBatch(long playerId, String key, Collection<String> fields) {
-        List<String> values = fields.stream().map(k -> key + "#" + k).toList();
+        List<String> values = fields.stream().map(k -> HASH_PREFIX + key + "#" + k).toList();
         addBatch(playerId, values);
     }
 
@@ -62,7 +63,7 @@ public class PlayerKeyIndex {
         if (fields == null || fields.isEmpty()) {
             return;
         }
-        List<String> values = fields.stream().map(k -> key + "#" + k).toList();
+        List<String> values = fields.stream().map(k -> HASH_PREFIX + key + "#" + k).toList();
         removeBatch(playerId, values);
     }
 
@@ -87,7 +88,7 @@ public class PlayerKeyIndex {
     }
 
     public void removeHash(long playerId, String key, String field) {
-        redis.opsForSet().remove(PLAYER_KEY_PREFIX + playerId, key + "#" + field);
+        redis.opsForSet().remove(PLAYER_KEY_PREFIX + playerId, HASH_PREFIX + key + "#" + field);
     }
 
     public void removeListKey(long playerId, String key) {
