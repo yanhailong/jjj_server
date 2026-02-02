@@ -310,7 +310,12 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
     @Override
     public void logout(long playerId, String sessionId) {
-        playerSessionService.remove(playerId);
+        PlayerSessionInfo playerSessionInfo = playerSessionService.remove(playerId);
+        if (playerSessionInfo == null) {
+            hallLogger.logout(playerId, 0);
+        } else {
+            hallLogger.logout(playerId, playerSessionInfo.getCreateTime());
+        }
         log.info("玩家登出 playerId={}", playerId);
     }
 

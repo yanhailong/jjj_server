@@ -2,6 +2,7 @@ package com.jjg.game.hall.logger;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
 import org.springframework.stereotype.Component;
@@ -37,6 +38,28 @@ public class HallLogger extends BaseLogger {
         }
     }
 
+    /**
+     * 登出
+     *
+     * @param playerId
+     * @return
+     */
+    public void logout(long playerId, int sessionCreateTime) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("playerId", playerId);
+
+            if (sessionCreateTime < 1) {
+                json.put("online", 0);
+            } else {
+                json.put("online", TimeHelper.nowInt() - sessionCreateTime);
+            }
+            sendLog("logout", null, json);
+        } catch (Exception e) {
+            log.error("记录logout登录日志异常", e);
+        }
+    }
+
     public void bind(Player player, int type, String data) {
         try {
             JSONObject json = new JSONObject();
@@ -48,11 +71,11 @@ public class HallLogger extends BaseLogger {
         }
     }
 
-    public void pool(Map<Integer,Long> pool){
+    public void pool(Map<Integer, Long> pool) {
         try {
             JSONObject json = new JSONObject();
             JSONArray array = new JSONArray();
-            for(Map.Entry<Integer,Long> en : pool.entrySet()){
+            for (Map.Entry<Integer, Long> en : pool.entrySet()) {
                 JSONObject tmpJson = new JSONObject();
                 tmpJson.put("roomCfgId", en.getKey());
                 tmpJson.put("value", en.getValue());
