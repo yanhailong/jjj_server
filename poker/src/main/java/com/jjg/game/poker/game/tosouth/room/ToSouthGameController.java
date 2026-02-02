@@ -422,7 +422,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     }
 
 
-    private void broadcastNextTurn(long waitPlayerId, Set<Integer> curRoundPassedPlayerSeats, boolean canPass) {
+    public void broadcastNextTurn(long waitPlayerId, Set<Integer> curRoundPassedPlayerSeats, boolean canPass) {
         ToSouthActionInfo actionInfo = new ToSouthActionInfo();
         actionInfo.waitPlayerId = waitPlayerId;
         actionInfo.curRoundPassedPlayerSeats = curRoundPassedPlayerSeats;
@@ -553,7 +553,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
     @Override
     public void respRoomInitInfoAction(PlayerController playerController) {
-        log.debug("响应房间信息 - 玩家: {}", playerController.playerId());
+        log.debug("响应南方前进房间信息 - 玩家: {}", playerController.playerId());
         RespToSouthRoomBaseInfo baseInfo = new RespToSouthRoomBaseInfo(Code.SUCCESS);
         baseInfo.phase = getCurrentGamePhase();
         baseInfo.playerInfos = new ArrayList<>();
@@ -567,13 +567,25 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             playerInfo.pokerPlayerInfo = PokerBuilder.getPokerPlayerInfo(seatInfo, this);
             PlayerSeatInfo seatPlayerInfo = playerSeatInfoMap.get(seatInfo.getPlayerId());
             if (Objects.nonNull(seatPlayerInfo) && !seatPlayerInfo.isDelState()) {
-                // 仅发送手牌数量，不再发送具体手牌
+                // 仅发送手牌数量
                 playerInfo.handCardCount = seatPlayerInfo.getCurrentCards().size();
                 playerInfo.pokerPlayerInfo.operationType = seatPlayerInfo.getOperationType();
             }
             baseInfo.playerInfos.add(playerInfo);
         }
         
+        // 填充高亮手牌 (针对每个玩家自己)
+        List<Integer> highlightCards = gameDataVo.getPlayerHighlightCards().get(playerController.playerId());
+        if (CollUtil.isNotEmpty(highlightCards)) {
+            // 找到对应的 playerInfo
+            for (ToSouthPlayerInfo info : baseInfo.playerInfos) {
+                if (info.pokerPlayerInfo.playerId == playerController.playerId()) {
+                    info.highlightCards = highlightCards;
+                    break;
+                }
+            }
+        }
+
         if (baseInfo.phase == EGamePhase.PLAY_CART) {
             ToSouthActionInfo actionInfo = new ToSouthActionInfo();
             

@@ -29,7 +29,7 @@ public class ToSouthPlayCardPhase extends BasePlayCardPhase<ToSouthGameDataVo> {
             PlayerSeatInfo firstPlayer = gameDataVo.getCurrentPlayerSeatInfo();
             if (firstPlayer != null) {
                 // 广播回合开始
-                controller.broadcastNextTurn(firstPlayer.getPlayerId(), gameDataVo.getCurRoundPassedPlayerSeats());
+                controller.broadcastNextTurn(firstPlayer.getPlayerId(), gameDataVo.getCurRoundPassedPlayerSeats(), false);
                 // 添加操作定时器
                 controller.addNextTimer(firstPlayer, 0);
             } else {

@@ -2,6 +2,7 @@ package com.jjg.game.poker.game.tosouth.util;
 
 import cn.hutool.core.collection.CollUtil;
 import com.jjg.game.core.data.Card;
+import com.jjg.game.poker.game.common.data.PokerCard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -534,10 +535,72 @@ public class ToSouthHandUtils {
     }
 
     /**
+     * 对手牌进行排序，并返回需要高亮的牌ID（2、炸弹、连对）
+     * 排序规则：炸弹 > 连对 > 顺子 > 三条 > 对子 > 单张
+     * @param cards 手牌列表 (会被修改为排序后的顺序)
+     * @return 高亮牌 ID 列表
+     */
+    public static List<Integer> sortAndGetHighlightCards(List<Card> cards) {
+        List<Integer> highlightIds = new ArrayList<>();
+        if (cards == null || cards.isEmpty()) return highlightIds;
+
+        Map<ToSouthCardType, List<List<Card>>> integrated = integrateHandCards(cards);
+
+        List<List<Card>> bombs = integrated.get(ToSouthCardType.BOMB_QUAD);
+        if (CollUtil.isNotEmpty(bombs)) {
+            for (List<Card> bomb : bombs) {
+                for (Card c : bomb) {
+                    if (c instanceof PokerCard pc) highlightIds.add(pc.getClientId());
+                }
+            }
+        }
+        List<List<Card>> cps = integrated.get(ToSouthCardType.CONSECUTIVE_PAIRS);
+        if (CollUtil.isNotEmpty(cps)) {
+            for (List<Card> cp : cps) {
+                for (Card c : cp) {
+                    if (c instanceof PokerCard pc) highlightIds.add(pc.getClientId());
+                }
+            }
+        }
+        for (Card c : cards) {
+            if (c.getRank() == RANK_2) {
+                if (c instanceof PokerCard pc) {
+                    if (!highlightIds.contains(pc.getClientId())) {
+                        highlightIds.add(pc.getClientId());
+                    }
+                }
+            }
+        }
+
+        List<Card> sorted = new ArrayList<>();
+
+        addGroups(sorted, integrated.get(ToSouthCardType.BOMB_QUAD));
+        addGroups(sorted, integrated.get(ToSouthCardType.CONSECUTIVE_PAIRS));
+        addGroups(sorted, integrated.get(ToSouthCardType.STRAIGHT));
+        addGroups(sorted, integrated.get(ToSouthCardType.TRIPLE));
+        addGroups(sorted, integrated.get(ToSouthCardType.PAIR));
+        addGroups(sorted, integrated.get(ToSouthCardType.SINGLE));
+
+        cards.clear();
+        cards.addAll(sorted);
+
+        return highlightIds;
+    }
+
+    private static void addGroups(List<Card> target, List<List<Card>> groups) {
+        if (groups == null || groups.isEmpty()) return;
+        groups.sort((g1, g2) -> CARD_COMPARATOR.compare(g1.getFirst(), g2.getFirst())); // CARD_COMPARATOR is desc
+        for (List<Card> group : groups) {
+            group.sort(CARD_COMPARATOR);
+            target.addAll(group);
+        }
+    }
+
+    /**
      * 整合手牌：将散乱的手牌按规则整理成具体的牌型集合
      * 整理顺序：炸弹 > 三张 > 连对 > 顺子 > 对子 > 单张
      */
-    private static Map<ToSouthCardType, List<List<Card>>> integrateHandCards(List<Card> handCards) {
+    public static Map<ToSouthCardType, List<List<Card>>> integrateHandCards(List<Card> handCards) {
         Map<ToSouthCardType, List<List<Card>>> result = new HashMap<>();
         // 复制并排序 (降序 2..3)
         List<Card> cards = new ArrayList<>(handCards);
