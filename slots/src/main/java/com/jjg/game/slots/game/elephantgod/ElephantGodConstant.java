@@ -31,12 +31,6 @@ public interface ElephantGodConstant {
 
     interface BaseElement{
         int ID_WILD = 11;
-        int ID_SCATTER = 12;
-        int ID_ADDFREEE = 13;
-        int ID_MINI = 14;
-        int ID_MINOR = 15;
-        int ID_MAJOR = 16;
-        int ID_GRAND = 17;
     }
 
     interface SpecialMode{

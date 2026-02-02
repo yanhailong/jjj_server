@@ -1,6 +1,6 @@
 package com.jjg.game.slots.game.elephantgod.data;
 
-import com.jjg.game.slots.data.AwardLineInfo;
+import com.jjg.game.slots.data.FullAwardLineInfo;
 
-public class ElephantGodAwardLineInfo extends AwardLineInfo {
+public class ElephantGodAwardLineInfo extends FullAwardLineInfo {
 }

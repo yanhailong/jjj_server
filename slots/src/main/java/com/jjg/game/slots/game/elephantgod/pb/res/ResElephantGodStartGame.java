@@ -1,11 +1,12 @@
-package com.jjg.game.slots.game.elephantgod.pb;
+package com.jjg.game.slots.game.elephantgod.pb.res;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.slots.game.captainjack.pb.bean.CaptainJackWinIconInfo;
 import com.jjg.game.slots.game.elephantgod.ElephantGodConstant;
-import com.jjg.game.slots.game.luckymouse.LuckyMouseConstant;
+import com.jjg.game.slots.game.elephantgod.pb.bean.ElephantGodWinIconInfo;
 
 import java.util.List;
 
@@ -14,6 +15,8 @@ import java.util.List;
 public class ResElephantGodStartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")
     public List<Integer> iconList;
+    @ProtoDesc("当前状态 0.正常  1.免费 2.探宝")
+    public int status;
     @ProtoDesc("累计中奖金币")
     public long allWinGold;
     @ProtoDesc("玩家当前金币")
@@ -24,7 +27,10 @@ public class ResElephantGodStartGame extends AbstractResponse {
     public int level;
     @ProtoDesc("经验")
     public long exp;
-
+    @ProtoDesc("剩余免费次数")
+    public int remainFreeCount;
+    @ProtoDesc("中奖图标信息")
+    public ElephantGodWinIconInfo rewardIconInfo;
     public ResElephantGodStartGame(int code) {
         super(code);
     }

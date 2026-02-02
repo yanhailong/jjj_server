@@ -1,11 +1,11 @@
-package com.jjg.game.slots.game.elephantgod.pb;
+package com.jjg.game.slots.game.elephantgod.pb.res;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.slots.game.elephantgod.ElephantGodConstant;
-import com.jjg.game.slots.game.luckymouse.LuckyMouseConstant;
+import com.jjg.game.slots.game.elephantgod.pb.bean.ElephantGodPoolInfo;
 
 import java.util.List;
 
@@ -18,9 +18,18 @@ public class ResElephantGodEnterGame extends AbstractResponse {
     public long defaultBet;
     @ProtoDesc("当前奖池的值")
     public long poolValue;
-    @ProtoDesc("状态  0.普通   1.真免费   2.假免费")
+    @ProtoDesc("状态  0.普通   1.免费  ")
     public int status;
-
+    @ProtoDesc("剩余免费次数")
+    public int remainFreeCount;
+    @ProtoDesc("当前倍数")
+    public int currentMultiplier;
+    @ProtoDesc("当前wild图标数量")
+    public int wildCount;
+    @ProtoDesc("免费模式累计金额")
+    public long freeTotalWinGold;
+    @ProtoDesc("奖池信息")
+    public List<ElephantGodPoolInfo> poolList;
     public ResElephantGodEnterGame(int code) {
         super(code);
     }
