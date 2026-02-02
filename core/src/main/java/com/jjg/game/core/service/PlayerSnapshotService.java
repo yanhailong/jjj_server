@@ -1,9 +1,8 @@
-package com.jjg.game.common.service;
+package com.jjg.game.core.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jjg.game.common.data.PlayerSnapshot;
-import com.jjg.game.common.redis.PlayerKeyIndex;
+import com.jjg.game.core.data.PlayerSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;

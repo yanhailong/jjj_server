@@ -4,7 +4,7 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.protostuff.PFSession;
-import com.jjg.game.common.service.PlayerSnapshotService;
+import com.jjg.game.core.service.PlayerSnapshotService;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
