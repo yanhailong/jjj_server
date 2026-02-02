@@ -1074,7 +1074,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         for (int poolId : jackpotIds) {
-            long poolValue = getPoolValueByPoolId(poolId, playerGameData.getOneBetScore());
+            //下注金额总金额，不是单线金额
+            long poolValue = getPoolValueByPoolId(poolId, playerGameData.getAllBetScore());
             if (poolValue < 1) {
                 continue;
             }

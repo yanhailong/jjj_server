@@ -896,7 +896,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             //车厢节数+1，是因为要加上最后一个奖池车厢
             //总的延迟时间
             int allDelayTime = ((trainInfo.goldList.size() + 1) * poolCfg.getDelayTime()) / 1000;
-            long addGold = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), allDelayTime);
+            long addGold = calPoolValue(playerGameData.getAllBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), allDelayTime);
 
             //给玩家加钱
             CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_TRAIN, poolId + "");
