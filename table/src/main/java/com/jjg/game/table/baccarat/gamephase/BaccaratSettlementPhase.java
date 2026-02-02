@@ -117,7 +117,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             } else if (playerBetInfoMap != null) {
                 // 玩家有下注但是没有赢奖
                 entry.getValue().getTableGameData().addBetRecord(0);
-                addPlayerAreaDataLog(entry.getKey());
+                addPlayerAreaDataLog(entry.getValue());
             }
             // 向每个玩家发送通知消息
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(baccaratTableInfo).setPlayerIds(Collections.singleton(entry.getKey())));

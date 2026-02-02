@@ -120,7 +120,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
         settlement.settlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
-            addPlayerAreaDataLog(playerId);
+            addPlayerAreaDataLog(entry.getValue());
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
         }
         log.debug("飞禽走兽房间：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));

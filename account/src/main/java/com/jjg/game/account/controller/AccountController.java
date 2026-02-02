@@ -611,6 +611,7 @@ public class AccountController extends AbstractController {
                 result.code = Code.IP_BLOCKED_SERVER_URL_UNAVAILABLE;
                 return result;
             }
+            result.data =  clientIp;
         } catch (Exception e) {
             log.error("", e);
         }
