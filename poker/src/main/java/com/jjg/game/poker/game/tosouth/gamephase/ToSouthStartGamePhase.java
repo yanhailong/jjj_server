@@ -67,7 +67,7 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
         }
     }
 
-    private void sendCards(Map<Integer, PokerCard> cardListMap, BasePokerGameDataVo gameDataVo) {
+    private void sendCards(Map<Integer, PokerCard> cardListMap, ToSouthGameDataVo gameDataVo) {
         List<Integer> list = new ArrayList<>(cardListMap.keySet());
         Collections.shuffle(list);
         gameDataVo.setCards(list);
@@ -85,12 +85,32 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                     playCard.add(cards.removeFirst());
                 }
             }
+
+            List<Card> handCards = new ArrayList<>();
+            for (Integer id : playCard) {
+                handCards.add(cardListMap.get(id));
+            }
+            // 按照 炸弹 > 连对 > 顺子 > 三条 > 对子 > 单张 的规则排列手牌，并计算高亮牌(2,炸弹，连对)
+            List<Integer> highlightIds = ToSouthHandUtils.sortAndGetHighlightCards(handCards);
+            
+            if (!highlightIds.isEmpty()) {
+                gameDataVo.getPlayerHighlightCards().put(info.getPlayerId(), highlightIds);
+            }
+
+            playCard.clear();
+            for (Card c : handCards) {
+                if (c instanceof PokerCard pc) {
+                    playCard.add(pc.getPokerPoolId());
+                }
+            }
+
             info.setCards(new ArrayList<>());
             info.getCards().add(playCard);
             
             if (log.isDebugEnabled()) {
-                 List<Card> hand = playCard.stream().map(cardListMap::get).sorted(ToSouthHandUtils.CARD_COMPARATOR).collect(Collectors.toList());
-                log.debug("发牌 - 玩家: {}, 座位: {}, 手牌: {}", info.getPlayerId(), info.getSeatId(), ToSouthHandUtils.cardListToString(hand));
+                 // 此时 playCard 已经排序
+                 List<Card> hand = playCard.stream().map(cardListMap::get).collect(Collectors.toList());
+                log.debug("发牌 - 玩家: {}, 座位: {}, 手牌: {}, 高亮: {}", info.getPlayerId(), info.getSeatId(), ToSouthHandUtils.cardListToString(hand), highlightIds);
             }
         }
 

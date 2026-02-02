@@ -13,4 +13,6 @@ public class ToSouthPlayerInfo {
     public PokerPlayerInfo pokerPlayerInfo;
     @ProtoDesc("剩余手牌数量")
     public int handCardCount;
+    @ProtoDesc("高亮手牌列表 (仅对自己可见，包含2、炸弹、连对)")
+    public List<Integer> highlightCards;
 }

@@ -26,6 +26,8 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
     // 炸弹结算积分变动 (playerId -> score change)
     private final Map<Long, Long> bombSettlementMap = new HashMap<>();
 
+    private Map<Long, List<Integer>> playerHighlightCards = new HashMap<>(); // playerId -> highlightCardIds
+
     /**
      * 必须初始化的参数是房间配置RoomCfg，如果后续子类添加数据需要在自己的构造函数中添加
      *
@@ -99,6 +101,14 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
         return bombSettlementMap;
     }
 
+    public Map<Long, List<Integer>> getPlayerHighlightCards() {
+        return playerHighlightCards;
+    }
+
+    public void setPlayerHighlightCards(Map<Long, List<Integer>> playerHighlightCards) {
+        this.playerHighlightCards = playerHighlightCards;
+    }
+
     @Override
     public int getPoolId() {
         return ToSouthDataHelper.getPoolId(this);
@@ -113,5 +123,6 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
         this.curRoundPassedPlayerSeats = new HashSet<>();
         this.currentRoundPlays.clear();
         this.bombSettlementMap.clear();
+        this.playerHighlightCards.clear();
     }
 }
