@@ -32,7 +32,6 @@ public class PlayerSnapshotService {
                     local v = redis.call("LRANGE", listKey, 0, -1)
                     if v and #v > 0 then
                         result[k] = v
-                        redis.call("DEL", listKey)
                     end
                 elseif prefix == "S:" then
                     local setKeyWithMember = string.sub(k, 3)
@@ -43,13 +42,11 @@ public class PlayerSnapshotService {
                         local exists = redis.call("SISMEMBER", setKey, member)
                         if exists == 1 then
                             result[k] = "1"
-                            redis.call("SREM", setKey, member)
                         end
                     else
                         local v = redis.call("SMEMBERS", setKeyWithMember)
                         if v and #v > 0 then
                             result[k] = v
-                            redis.call("DEL", setKeyWithMember)
                         end
                     end
                 elseif prefix == "Z:" then
@@ -61,35 +58,83 @@ public class PlayerSnapshotService {
                         local score = redis.call("ZSCORE", zsetKey, member)
                         if score then
                             result[k] = score
-                            redis.call("ZREM", zsetKey, member)
                         end
                     else
                         local v = redis.call("ZRANGE", zsetKeyWithMember, 0, -1, "WITHSCORES")
                         if v and #v > 0 then
                             result[k] = v
-                            redis.call("DEL", zsetKeyWithMember)
                         end
                     end
-                else
-                    local p = string.find(k, "#")
+                elseif prefix == "H:" then
+                    local hashKeyWithField = string.sub(k, 3)
+                    local p = string.find(hashKeyWithField, "#")
                     if p then
-                        local hashKey = string.sub(k, 1, p - 1)
-                        local field = string.sub(k, p + 1)
+                        local hashKey = string.sub(hashKeyWithField, 1, p - 1)
+                        local field = string.sub(hashKeyWithField, p + 1)
                         local v = redis.call("HGET", hashKey, field)
                         if v then
                             result[k] = v
-                            redis.call("HDEL", hashKey, field)
                         end
                     else
-                        local v = redis.call("GET", k)
-                        if v then
+                        local v = redis.call("HGETALL", hashKeyWithField)
+                        if v and #v > 0 then
                             result[k] = v
-                            redis.call("DEL", k)
                         end
+                    end
+                else
+                    local v = redis.call("GET", k)
+                    if v then
+                        result[k] = v
                     end
                 end
             end
             return cjson.encode(result)
+            """;
+
+    private final static String LUA_DELETE_SCRIPT = """
+            local indexKey = KEYS[1]
+            for i = 2, #KEYS do
+                local k = KEYS[i]
+                local prefix = string.sub(k, 1, 2)
+                if prefix == "L:" then
+                    local listKey = string.sub(k, 3)
+                    redis.call("DEL", listKey)
+                elseif prefix == "S:" then
+                    local setKeyWithMember = string.sub(k, 3)
+                    local p = string.find(setKeyWithMember, "#")
+                    if p then
+                        local setKey = string.sub(setKeyWithMember, 1, p - 1)
+                        local member = string.sub(setKeyWithMember, p + 1)
+                        redis.call("SREM", setKey, member)
+                    else
+                        redis.call("DEL", setKeyWithMember)
+                    end
+                elseif prefix == "Z:" then
+                    local zsetKeyWithMember = string.sub(k, 3)
+                    local p = string.find(zsetKeyWithMember, "#")
+                    if p then
+                        local zsetKey = string.sub(zsetKeyWithMember, 1, p - 1)
+                        local member = string.sub(zsetKeyWithMember, p + 1)
+                        redis.call("ZREM", zsetKey, member)
+                    else
+                        redis.call("DEL", zsetKeyWithMember)
+                    end
+                elseif prefix == "H:" then
+                    local hashKeyWithField = string.sub(k, 3)
+                    local p = string.find(hashKeyWithField, "#")
+                    if p then
+                        local hashKey = string.sub(hashKeyWithField, 1, p - 1)
+                        local field = string.sub(hashKeyWithField, p + 1)
+                        redis.call("HDEL", hashKey, field)
+                    else
+                        redis.call("DEL", hashKeyWithField)
+                    end
+                else
+                    redis.call("DEL", k)
+                end
+            end
+            redis.call("DEL", indexKey)
+            return 1
             """;
 
     private final static String LUA_RESTORE_SCRIPT = """
@@ -148,17 +193,30 @@ public class PlayerSnapshotService {
                             redis.call("SADD", indexKey, k)
                         end
                     end
-                else
-                    local p = string.find(k, "#")
+                elseif prefix == "H:" then
+                    local hashKeyWithField = string.sub(k, 3)
+                    local p = string.find(hashKeyWithField, "#")
                     if p then
-                        local hashKey = string.sub(k, 1, p - 1)
-                        local field = string.sub(k, p + 1)
+                        local hashKey = string.sub(hashKeyWithField, 1, p - 1)
+                        local field = string.sub(hashKeyWithField, p + 1)
                         redis.call("HSET", hashKey, field, v)
                         redis.call("SADD", indexKey, k)
                     else
-                        redis.call("SET", k, v)
-                        redis.call("SADD", indexKey, k)
+                        local arr = cjson.decode(v)
+                        if arr then
+                            redis.call("DEL", hashKeyWithField)
+                            local n = #arr
+                            local j = 1
+                            while j < n do
+                                redis.call("HSET", hashKeyWithField, arr[j], arr[j + 1])
+                                j = j + 2
+                            end
+                            redis.call("SADD", indexKey, k)
+                        end
                     end
+                else
+                    redis.call("SET", k, v)
+                    redis.call("SADD", indexKey, k)
                 end
             end
             
@@ -171,19 +229,15 @@ public class PlayerSnapshotService {
         this.mongo = mongo;
     }
 
-    public Map<String, String> dumpByLua(long playerId) {
+    private Map<String, String> dumpByLua(long playerId, Set<String> keys) {
         try {
-            String indexKey = "player_keys:" + playerId;
-            Set<String> keys = redis.opsForSet().members(indexKey);
             if (keys == null || keys.isEmpty()) {
                 return Map.of();
             }
-
             DefaultRedisScript<String> script = new DefaultRedisScript<>();
             script.setResultType(String.class);
             script.setScriptText(LUA_SCRIPT);
             String json = redis.execute(script, new ArrayList<>(keys));
-            redis.delete(indexKey); // 清影子索引
             return new ObjectMapper().readValue(json, new TypeReference<>() {
             });
         } catch (Exception e) {
@@ -193,8 +247,12 @@ public class PlayerSnapshotService {
     }
 
     public void dumpToMongo(long playerId) {
-        Map<String, String> data = dumpByLua(playerId);
-        if (data.isEmpty()) return;
+        String indexKey = "player_keys:" + playerId;
+        Set<String> indexedKeys = redis.opsForSet().members(indexKey);
+        Map<String, String> data = dumpByLua(playerId, indexedKeys);
+        if (data.isEmpty()) {
+            return;
+        }
 
         PlayerSnapshot snap = new PlayerSnapshot();
         snap.setUid(playerId);
@@ -202,6 +260,7 @@ public class PlayerSnapshotService {
         snap.setUpdateTime(new Date());
 
         mongo.save(snap);
+        deleteByLua(indexedKeys, indexKey);
     }
 
     public void restore(long playerId) {
@@ -228,6 +287,19 @@ public class PlayerSnapshotService {
         script.setResultType(Long.class);
 
         redis.execute(script, keys, args.toArray());
+    }
+
+    private void deleteByLua(Set<String> keysToDelete, String indexKey) {
+        if (keysToDelete == null || keysToDelete.isEmpty()) return;
+
+        List<String> keys = new ArrayList<>(keysToDelete.size() + 1);
+        keys.add(indexKey);
+        keys.addAll(keysToDelete);
+
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptText(LUA_DELETE_SCRIPT);
+        script.setResultType(Long.class);
+        redis.execute(script, keys);
     }
 
 }
