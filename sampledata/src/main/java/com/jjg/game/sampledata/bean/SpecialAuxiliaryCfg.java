@@ -27,6 +27,8 @@ public class SpecialAuxiliaryCfg extends BaseCfgBean {
   protected List<List<Integer>> awardTypeC;
   /** 赋予值类型 */
   protected List<Integer> awardTypeC_value;
+  /** 奖励类型D:倍数，中奖权重 */
+  protected Map<Integer,Integer> awardTypeD;
   /** 游戏ID */
   protected int gameType;
   /** 额外奖励：次数&权重-次数&权重 */
@@ -60,6 +62,11 @@ public class SpecialAuxiliaryCfg extends BaseCfgBean {
   /** 返回赋予值类型 */
   public List<Integer> getAwardTypeC_value() {
     return awardTypeC_value;
+  }
+
+  /** 返回奖励类型D:倍数，中奖权重 */
+  public Map<Integer,Integer> getAwardTypeD() {
+    return awardTypeD;
   }
 
   /** 返回游戏ID */

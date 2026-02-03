@@ -23,14 +23,10 @@ public interface ElephantGodConstant {
         int NORMAL = SlotsConst.Status.NORMAL;
         //免费模式
         int FREE = SlotsConst.Status.FREE;
-        //触发真免费
-        int REAL_FREE = 2;
-        //触发假免费
-        int FAKE_FREE = 3;
     }
 
     interface BaseElement{
-        int ID_WILD = 11;
+        int ID_WILD = 9;
     }
 
     interface SpecialMode{
@@ -40,9 +36,5 @@ public interface ElephantGodConstant {
     }
 
     interface SpecialPlay{
-        //免费游戏出现在2、3、4、5轴时变成百搭，并一直粘连，直至退出此模式
-        int TYPE_STICKY_WILD= 1;
-        //增加免费次数
-        int TYPE_ADD_FREE_COUNT = 5;
     }
 }

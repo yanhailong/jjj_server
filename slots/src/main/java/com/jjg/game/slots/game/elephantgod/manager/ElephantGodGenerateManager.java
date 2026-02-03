@@ -10,13 +10,10 @@ import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.data.SpecialGirdInfo;
-import com.jjg.game.slots.game.captainjack.data.CaptainJackAwardLineInfo;
-import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
 import com.jjg.game.slots.game.elephantgod.ElephantGodConstant;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodAwardLineInfo;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
-import org.apache.poi.ss.formula.functions.T;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -67,6 +64,11 @@ public class ElephantGodGenerateManager extends AbstractSlotsGenerateManager<Ele
     }
 
     @Override
+    protected ElephantGodAwardLineInfo getAwardLineInfo() {
+        return new ElephantGodAwardLineInfo();
+    }
+
+    @Override
     public void calTimes(ElephantGodResultLib lib) throws Exception {
         //修正免费模式中奖线信息
         if (CollectionUtil.isNotEmpty(lib.getSpecialAuxiliaryInfoList())) {
@@ -80,8 +82,8 @@ public class ElephantGodGenerateManager extends AbstractSlotsGenerateManager<Ele
                         ElephantGodResultLib freeResultLib = freeGame.toJavaObject(ElephantGodResultLib.class);
                         //检查wild数量
                         wildCount += checkWildCount(freeResultLib.getIconArr());
-                        if (wildCount >= needWildCount) {
-                            basicMultiplier += addMultiplier;
+                        if (wildCount >= needWildCount && basicMultiplier < maxMultiplier) {
+                            basicMultiplier = Math.min(basicMultiplier + addMultiplier, maxMultiplier);
                             wildCount = 0;
                         }
                         if (CollectionUtil.isNotEmpty(freeResultLib.getAwardLineInfoList())) {
@@ -91,6 +93,7 @@ public class ElephantGodGenerateManager extends AbstractSlotsGenerateManager<Ele
                         }
                         freeResultLib.setBasicMultiplier(basicMultiplier);
                         freeResultLib.setWildCount(wildCount);
+                        freeResultLib.setTimes(calLineTimes(freeResultLib.getAwardLineInfoList()));
                         auxiliaryInfo.getFreeGames().set(i, (JSONObject) JSON.toJSON(freeResultLib));
                     }
 
@@ -219,15 +222,20 @@ public class ElephantGodGenerateManager extends AbstractSlotsGenerateManager<Ele
             }
 
             ElephantGodResultLib resultLib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
-            if (CollectionUtil.isNotEmpty(resultLib.getSpecialAuxiliaryInfoList())) {
-                specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(resultLib));
-                for (SpecialAuxiliaryInfo auxiliaryInfo : resultLib.getSpecialAuxiliaryInfoList()) {
+            List<SpecialAuxiliaryInfo> auxiliaryInfos = resultLib.getSpecialAuxiliaryInfoList();
+            JSONObject json = (JSONObject) JSON.toJSON(resultLib);
+            specialAuxiliaryInfo.addFreeGame(json);
+            int index = specialAuxiliaryInfo.getFreeGames().size() - 1;
+            if (CollectionUtil.isNotEmpty(auxiliaryInfos)) {
+                for (SpecialAuxiliaryInfo auxiliaryInfo : auxiliaryInfos) {
                     if (CollectionUtil.isNotEmpty(auxiliaryInfo.getFreeGames())) {
                         for (JSONObject freeGame : auxiliaryInfo.getFreeGames()) {
                             specialAuxiliaryInfo.addFreeGame(freeGame);
                         }
+                        resultLib.setSpecialAuxiliaryInfoList(null);
                     }
                 }
+                specialAuxiliaryInfo.getFreeGames().set(index, (JSONObject) JSON.toJSON(resultLib));
             }
         }
         return specialAuxiliaryInfo;

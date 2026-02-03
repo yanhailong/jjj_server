@@ -21,7 +21,7 @@ public class GameFunctionCfg extends BaseCfgBean {
 
   /** 游戏中左侧列表按钮 */
   protected int butList;
-  /** 可看见的解锁条件 */
+  /** 解锁条件 */
   protected String condition;
   /** 显示区域类型 */
   protected int displayArea;
@@ -43,7 +43,7 @@ public class GameFunctionCfg extends BaseCfgBean {
     return butList;
   }
 
-  /** 返回可看见的解锁条件 */
+  /** 返回解锁条件 */
   public String getCondition() {
     return condition;
   }
