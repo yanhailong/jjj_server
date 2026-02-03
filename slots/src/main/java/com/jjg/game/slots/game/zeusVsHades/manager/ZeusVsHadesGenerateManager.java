@@ -2,12 +2,16 @@ package com.jjg.game.slots.game.zeusVsHades.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.*;
 
+import com.jjg.game.slots.game.acedj.AceDjConstant;
 import com.jjg.game.slots.game.zeusVsHades.ZeusVsHadesConstant;
 import com.jjg.game.slots.game.zeusVsHades.data.*;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
@@ -35,7 +39,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
     public ZeusVsHadesResultLib generateOne(int libType) throws Exception {
         try {
             ZeusVsHadesResultLib lib = super.generateOne(libType);
-            if(libType == ZeusVsHadesConstant.SpecialMode.ZEUS || libType == ZeusVsHadesConstant.SpecialMode.HADES){
+            if (libType == ZeusVsHadesConstant.SpecialMode.ZEUS || libType == ZeusVsHadesConstant.SpecialMode.HADES) {
                 Set<Integer> libTypeSet = lib.getLibTypeSet();
                 libTypeSet.remove(ZeusVsHadesConstant.SpecialMode.CHOOSE);
                 lib.addLibType(libType);
@@ -267,7 +271,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                     //检查免费旋转
                     SpecialAuxiliaryCfg zeusSpecialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(zeusAuxiliaryId);
                     SpecialAuxiliaryPropConfig zeusSpecialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(zeusAuxiliaryId);
-                    triggerFree(ZeusVsHadesConstant.SpecialMode.HADES, zeusSpecialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
+                    triggerFree(ZeusVsHadesConstant.SpecialMode.NORMAL, zeusSpecialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
                     //检查是否有额外奖励
                     triggerAuxiliaryExtra(arr, zeusSpecialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo, specialGirdInfoList);
                     winStatus.set(0, true);
@@ -294,7 +298,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                 specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
                 if (isAdd.getAndSet(false)) {
                     SpecialAuxiliaryPropConfig zeusSpecialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(auxiliaryId);
-                    triggerFree(specialModeType, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
+                    triggerFree(ZeusVsHadesConstant.SpecialMode.ZEUS, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
                     //检查是否有额外奖励
                     triggerAuxiliaryExtra(arr, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo, specialGirdInfoList);
                 }
@@ -304,7 +308,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                 specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
                 if (isAdd.getAndSet(false)) {
                     SpecialAuxiliaryPropConfig zeusSpecialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(auxiliaryId);
-                    triggerFree(specialModeType, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
+                    triggerFree(ZeusVsHadesConstant.SpecialMode.ZEUS, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
                     //检查是否有额外奖励
                     triggerAuxiliaryExtra(arr, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo, specialGirdInfoList);
                 }
@@ -314,7 +318,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                 specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
                 if (isAdd.getAndSet(false)) {
                     SpecialAuxiliaryPropConfig zeusSpecialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(auxiliaryId);
-                    triggerFree(specialModeType, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
+                    triggerFree(ZeusVsHadesConstant.SpecialMode.ZEUS, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
                     //检查是否有额外奖励
                     triggerAuxiliaryExtra(arr, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo, specialGirdInfoList);
                 }
@@ -324,7 +328,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                 specialAuxiliaryInfo.setWildStatus(ZeusVsHadesConstant.WildStatus.ZEUS);
                 if (isAdd.getAndSet(false)) {
                     SpecialAuxiliaryPropConfig zeusSpecialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(auxiliaryId);
-                    triggerFree(specialModeType, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
+                    triggerFree(ZeusVsHadesConstant.SpecialMode.ZEUS, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo);
                     //检查是否有额外奖励
                     triggerAuxiliaryExtra(arr, specialAuxiliaryCfg, zeusSpecialAuxiliaryPropConfig, specialAuxiliaryInfo, specialGirdInfoList);
                 }
@@ -446,7 +450,6 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
             } else {
                 lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
             }
-
             int addCount = 0;
             log.debug("免费转新加 {}", addCount);
             lib.setAddFreeCount(addCount);
@@ -686,6 +689,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
         lib.setVsStatus(vsStatus);
     }
 
+
     public List<ZeusVsHadesAwardLineInfo> winLines(ZeusVsHadesResultLib lib, boolean freeModel) {
         int[] arr = lib.getIconArr();
         int[] newArr = new int[arr.length];
@@ -721,6 +725,30 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
             //中奖线
             lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
         }
+    }
+
+    /**
+     * 是否为免费触发局
+     *
+     * @param lib
+     * @return
+     */
+    protected boolean triggerFreeLib(ZeusVsHadesResultLib lib, int freeModel) {
+        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            return false;
+        }
+
+        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+            if (specialAuxiliaryInfo.getFreeGames() != null && !specialAuxiliaryInfo.getFreeGames().isEmpty()) {
+//                if (freeModel > 0) {
+////                    Set<Integer> libTypeSet = new HashSet<>();
+////                    libTypeSet.add(freeModel);
+////                    lib.setLibTypeSet(libTypeSet);
+//                }
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -835,37 +863,38 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
         if (lib.getLibTypeSet() == null || lib.getLibTypeSet().isEmpty()) {
             return true;
         }
-//        //检查二选一
-//        if (lib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.NORMAL)
-//                && lib.getLibTypeSet().size()==1) {
-//            log.warn("检查选择触发局失败");
-//            return false;
-//        }
 
-        //检查二选一
+//        //检查二选一
 //        if (lib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.CHOOSE) && !checkTriggerFree(lib)) {
 //            log.warn("检查选择触发局失败");
 //            return false;
 //        }
 
-        //检查jackpool模式
-        if (lib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.JACKPOOL) && !checkJackpool(lib)) {
-            log.warn("检查jackpool模式失败");
-            return false;
-        }
-
-        //检查宙斯模式 vs 哈迪斯模式
-        if ((lib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.ZEUS) || lib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.HADES)) && !checkFreeModel(lib)) {
-            log.warn("检查模式失败");
-            return false;
-        }
+//        //检查jackpool模式
+//        if (lib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.JACKPOOL) && !checkJackpool(lib)) {
+//            log.warn("检查jackpool模式失败");
+//            return false;
+//        }
+//
+//        //检查宙斯模式 vs 哈迪斯模式
+//        if ((lib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.ZEUS) || lib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.HADES)) && !checkFreeModel(lib)) {
+//            log.warn("检查模式失败");
+//            return false;
+//        }
         return true;
     }
 
-    private boolean checkFreeModel(ZeusVsHadesResultLib lib) {
-
-        return true;
+    public boolean checkFreeModel(ZeusVsHadesResultLib lib) {
+        int count = 0;
+        for (int i = 0; i < lib.getIconArr().length; i++) {
+            int icon = lib.getIconArr()[i];
+            if (icon == ZeusVsHadesConstant.BaseElement.ID_SCATTER) {
+                count++;
+            }
+        }
+        return count >= 3;
     }
+
 
     /**
      * 生成一个免费结果
@@ -878,11 +907,14 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
         try {
             //获取模式配置
             SpecialModeCfg specialModeCfg = this.specialModeCfgMap.get(specialModeType);
+//            if (specialModeType == ZeusVsHadesConstant.SpecialMode.ZEUSWILDFREE) {
+//                specialModeCfg = this.specialModeCfgMap.get(2);
+//            }
+
             if (specialModeCfg == null) {
                 log.warn("生成免费游戏图标时，specialModeCfg 配置为空 gameType = {},specialModeType = {}", this.gameType, specialModeType);
                 return null;
             }
-
             //创建结果库对象
             ZeusVsHadesResultLib lib = createResultLib();
             lib.setId(RandomUtils.getUUid());
