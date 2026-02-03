@@ -37,11 +37,16 @@ public abstract class BaseEffectiveCondition extends BaseRedisCondition<PlayerEf
             String featureId = getFeatureId(ctx);
             String customId = getCustomId(ctx);
             BigDecimal count = countDao.getCount(featureId, customId);
-            BigDecimal totalCount = count.add(BigDecimal.valueOf(e.getBetAmount()));
-            BigDecimal times = totalCount.divide(BigDecimal.valueOf(config.achievedProcess()), RoundingMode.DOWN);
+            BigDecimal betValue = BigDecimal.valueOf(e.getBetAmount());
+            BigDecimal totalCount = count.add(betValue);
+            BigDecimal times = totalCount.divide(BigDecimal.valueOf(config.achievedProcess()), 0, RoundingMode.DOWN);
+            //减次数需要的值+增加的值
             if (times.compareTo(BigDecimal.ONE) >= 0) {
-                countDao.incrBy(featureId, customId, totalCount.subtract(times.multiply(BigDecimal.valueOf(config.achievedProcess()))));
+                BigDecimal delta = times.multiply(BigDecimal.valueOf(config.achievedProcess())).subtract(betValue).multiply(BigDecimal.valueOf(-1));
+                countDao.incrBy(featureId, customId, delta);
                 return new MatchResultData(MatchResult.MATCH, times.intValue(), Code.SUCCESS, BigDecimal.valueOf(config.achievedProcess()), BigDecimal.valueOf(totalCount.longValue()));
+            } else {
+                countDao.incrBy(featureId, customId, betValue);
             }
             return MatchResultData.notMatch(getErrorCode());
         }
