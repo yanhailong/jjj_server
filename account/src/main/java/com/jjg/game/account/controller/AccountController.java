@@ -69,8 +69,9 @@ public class AccountController extends AbstractController {
      * @return
      */
     @RequestMapping("adtest")
-    public void adtest(@RequestBody Map map) {
-
+    public void adtest(@RequestBody(required = false) Map<String, Object> body,
+                       @RequestParam(required = false) Map<String, String> params) {
+        log.info("adtest params = {}, body = {}", JSONObject.toJSONString(params), JSONObject.toJSONString(body));
     }
 
     /**
