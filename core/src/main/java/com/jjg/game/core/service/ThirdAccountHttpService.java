@@ -1,7 +1,10 @@
 package com.jjg.game.core.service;
 
+import cn.hutool.http.Header;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
 import com.auth0.jwk.JwkProviderBuilder;
@@ -41,17 +44,26 @@ public class ThirdAccountHttpService {
 
     private final JwkProvider appleJwkProvider;
 
+    private final AdjustConfig adjustConfig;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final long MAX_TOKEN_AGE = 3600L; // 最大token年龄1小时
 
-    public ThirdAccountHttpService(ThirdServiceInfo thirdServiceInfo) {
-        this.thirdServiceInfo = thirdServiceInfo;
+    private final String ADJUST_URL = "https://api.adjust.com/device_service/api/v1/inspect_device";
 
-        appleJwkProvider = new JwkProviderBuilder(thirdServiceInfo.getAppleJwksUrl())
-                .cached(10, 12, TimeUnit.HOURS) // 缓存10个公钥，12小时
-                .rateLimited(true)
-                .build();
+    public ThirdAccountHttpService(ThirdServiceInfo thirdServiceInfo, AdjustConfig adjustConfig) {
+        this.thirdServiceInfo = thirdServiceInfo;
+        this.adjustConfig = adjustConfig;
+
+        if (this.thirdServiceInfo != null && StringUtils.isNotEmpty(thirdServiceInfo.getAppleJwksUrl())) {
+            appleJwkProvider = new JwkProviderBuilder(thirdServiceInfo.getAppleJwksUrl())
+                    .cached(10, 12, TimeUnit.HOURS) // 缓存10个公钥，12小时
+                    .rateLimited(true)
+                    .build();
+        } else {
+            this.appleJwkProvider = null;
+        }
     }
 
     /**
@@ -326,5 +338,45 @@ public class ThirdAccountHttpService {
             result.code = Code.EXCEPTION;
         }
         return result;
+    }
+
+    /**
+     * 检查是否要切换服务器
+     *
+     * @param adid
+     * @return
+     */
+    public boolean checkSwitchServer(String adid) {
+        if (this.adjustConfig == null || !this.adjustConfig.isOpen() || StringUtils.isBlank(adid)) {
+            return false;
+        }
+
+        if (StringUtils.isBlank(this.adjustConfig.getApiToken()) || StringUtils.isBlank(this.adjustConfig.getAppToken())) {
+            log.warn("adjust配饰为空");
+            return false;
+        }
+
+        try {
+            HttpRequest httpRequest = HttpRequest.get(ADJUST_URL);
+
+            httpRequest.header(Header.AUTHORIZATION, "Bearer " + this.adjustConfig.getApiToken());
+
+            httpRequest.form("app_token", this.adjustConfig.getAppToken());
+            httpRequest.form("advertising_id", adid);
+
+
+            HttpResponse resp = httpRequest.execute();
+            String body = resp.body();
+
+            JSONObject json = JSONUtil.parseObj(body);
+            if ("Organic".equals(json.getStr("TrackerName"))) {
+                return true;
+            }
+
+            return false;
+        } catch (Exception e) {
+            log.error("", e);
+            return false;
+        }
     }
 }

@@ -64,17 +64,6 @@ public class AccountController extends AbstractController {
     private CommonDao commonDao;
 
     /**
-     * 测试
-     *
-     * @return
-     */
-    @RequestMapping("adtest")
-    public void adtest(@RequestBody(required = false) Map<String, Object> body,
-                       @RequestParam(required = false) Map<String, String> params) {
-        log.info("adtest params = {}, body = {}", JSONObject.toJSONString(params), JSONObject.toJSONString(body));
-    }
-
-    /**
      * 获取开启的登录方式
      *
      * @return
@@ -104,52 +93,6 @@ public class AccountController extends AbstractController {
         vo.setCustomerUrl(commonDao.getStrValue(GameConstant.CommonDaoId.CUSTOMER_TABLE_ID));
         return success(vo);
     }
-
-//    @RequestMapping("loginConfig")
-//    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
-//        Map<Integer, LoginConfigData> map;
-//        if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
-//            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
-//        } else {
-//            map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
-//        }
-//
-//        List<ThirdLoginConfigVo> resultList = new ArrayList<>();
-//        //登录开关配置
-//        if (map != null && !map.isEmpty()) {
-//            map.forEach((k, v) -> {
-//                ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
-//                thirdLoginConfigVo.setType(v.getLoginType());
-//                thirdLoginConfigVo.setOpen(v.isLoginOpen());
-//                resultList.add(thirdLoginConfigVo);
-//            });
-//        }
-//        return success(resultList);
-//    }
-
-
-//    @RequestMapping("loginConfig")
-//    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
-//        Map<Integer, LoginConfigData> map;
-//        if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
-//            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
-//        } else {
-//            map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
-//        }
-//
-//        List<ThirdLoginConfigVo> resultList = new ArrayList<>();
-//        //登录开关配置
-//        if (map != null && !map.isEmpty()) {
-//            map.forEach((k, v) -> {
-//                ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
-//                thirdLoginConfigVo.setType(v.getLoginType());
-//                thirdLoginConfigVo.setOpen(v.isLoginOpen());
-//                resultList.add(thirdLoginConfigVo);
-//            });
-//        }
-//        return success(resultList);
-//    }
-
 
     /**
      * 游客登录

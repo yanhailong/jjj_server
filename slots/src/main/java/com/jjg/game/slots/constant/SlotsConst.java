@@ -30,6 +30,7 @@ public class SlotsConst {
         specialModeJackpotModeIds.put(CoreConst.GameType.STEAM_AGE, Set.of(3));
         specialModeJackpotModeIds.put(CoreConst.GameType.GOLD_SNAKE_FORTUNE, Set.of(3));
         specialModeJackpotModeIds.put(CoreConst.GameType.PEGASUS_UNBRIDLE, Set.of(3));
+        specialModeJackpotModeIds.put(CoreConst.GameType.CAPTAIN_JACK, Set.of(4));
         specialModeJackpotModeIds.put(CoreConst.GameType.MONEY_RABBIT, Set.of(3));
         specialModeJackpotModeIds.put(CoreConst.GameType.DEMON_CHILD, Set.of(3));
 
@@ -43,6 +44,7 @@ public class SlotsConst {
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.FROZEN_THRONE, Set.of(2));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.STEAM_AGE, Set.of(2));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.GOLD_SNAKE_FORTUNE, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.CAPTAIN_JACK, Set.of(2));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.MONEY_RABBIT, Set.of(2));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.DEMON_CHILD, Set.of(2));
     }
