@@ -876,7 +876,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.getHasPlaySlots().set(true);
             playerGameData.setCreateTime(TimeHelper.nowInt());
 
-            log.debug("从db中获取的 playerId = {}, playerGameData = {}", playerController.playerId(), JSON.toJSONString(playerGameData));
+            log.debug("从db中获取的 playerId = {}", playerController.playerId());
         }
         playerGameData.setOfflineTime(0);
         playerGameData.setOnline(true);
@@ -1070,7 +1070,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         for (int poolId : jackpotIds) {
-            long poolValue = getPoolValueByPoolId(poolId, playerGameData.getOneBetScore());
+            //下注金额总金额，不是单线金额
+            long poolValue = getPoolValueByPoolId(poolId, playerGameData.getAllBetScore());
             if (poolValue < 1) {
                 continue;
             }
@@ -1240,6 +1241,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             @Override
             public void action() {
                 T playerGameData = getPlayerGameData(playerController);
+                if (playerGameData == null) {
+                    return;
+                }
                 if (playerGameData.isOnline()) {
                     return;
                 }
@@ -1912,7 +1916,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     continue;
                 }
 //                sectionIndex = resultLibSectionResult.data;
-                log.info("成功获取结果库  playerId = {},lib = {}", playerGameData.playerId(), JSON.toJSONString(resultLib));
+                log.info("成功获取结果库  playerId = {}", playerGameData.playerId());
                 result.code = Code.SUCCESS;
                 playerGameData.setLastModelId(libCfgResult.data.getModelId());
                 break;
@@ -2081,5 +2085,26 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected G createGameRunInfo(long playerId, int code) throws Exception {
         Constructor<G> constructor = this.gameRunInfoClass.getConstructor(int.class, long.class);
         return constructor.newInstance(code, playerId);
+    }
+
+    /**
+     * 清除游戏状态
+     *
+     * @param playerId
+     * @param roomCfgId
+     */
+    public void cleanStatus(long playerId, int roomCfgId) {
+        T playerGameData = getPlayerGameData(playerId, roomCfgId);
+        if (playerGameData != null) {
+            playerGameData.setStatus(0);
+            playerGameData.getRemainFreeCount().set(0);
+            playerGameData.getFreeIndex().set(0);
+            playerGameData.setFreeLib(null);
+            playerGameData.setTestLibDataList(null);
+        } else {
+            SlotsPlayerGameDataDTO dto = getGameDataDao().getGameDataByPlayerId(playerId, roomCfgId);
+            dto.setStatus(0);
+            dto.setFreeAllWin(0);
+        }
     }
 }

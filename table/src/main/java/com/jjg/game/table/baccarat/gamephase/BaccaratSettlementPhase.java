@@ -1,7 +1,6 @@
 package com.jjg.game.table.baccarat.gamephase;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.EGameType;
@@ -22,6 +21,7 @@ import com.jjg.game.table.baccarat.message.resp.BaccaratSettlementInfo;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratSettlementInfo;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
+import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 import org.slf4j.Logger;
@@ -107,26 +107,20 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         // 将结算信息写入到场上，方便中途加入的玩家读取
         gameDataVo.setBaccaratSettlementInfo(baccaratTableInfo);
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
-            // 获取每个玩家的信息
-            baccaratTableInfo.baccaratTableInfo.tableAreaInfos = BaccaratMessageBuilder.buildPlayerBetInfo(baccaratTableInfo.baccaratTableInfo,
-                    gameDataVo, entry.getKey());
             //log.debug("玩家：{} 结算数据: {}", entry.getKey(), JSON.toJSONString(baccaratTableInfo));
             PlayerChangedGold changedGold = changedGolds.get(entry.getKey());
+            Map<Integer, List<Integer>> playerBetInfoMap = gameDataVo.getPlayerBetInfo().get(entry.getKey());
             // 玩家有赢钱且大于0
             if (changedGold != null && changedGold.playerWinGold > 0) {
                 // 给玩家添加历史记录
                 entry.getValue().getTableGameData().addBetRecord(changedGold.playerWinGold);
-            } else if (gameDataVo.getPlayerBetInfo().containsKey(entry.getKey())) {
+            } else if (playerBetInfoMap != null) {
                 // 玩家有下注但是没有赢奖
                 entry.getValue().getTableGameData().addBetRecord(0);
+                addPlayerAreaDataLog(entry.getValue());
             }
             // 向每个玩家发送通知消息
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(baccaratTableInfo).setPlayerIds(Collections.singleton(entry.getKey())));
-            if (gameDataVo.getPlayerBetInfo().containsKey(entry.getKey())) {
-                gameDataTracker.addPlayerLogData(
-                        entry.getValue(), DataTrackNameConstant.AREA_DATA,
-                        JSON.toJSONString(baccaratTableInfo.baccaratTableInfo.tableAreaInfos));
-            }
         }
         // 通知所有观察者
         BaccaratMessageBuilder.notifyObserversOnPhaseChange((BaseTableGameController<BaccaratGameDataVo>) gameController);

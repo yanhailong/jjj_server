@@ -64,6 +64,17 @@ public class AccountController extends AbstractController {
     private CommonDao commonDao;
 
     /**
+     * 测试
+     *
+     * @return
+     */
+    @RequestMapping("adtest")
+    public void adtest(@RequestBody(required = false) Map<String, Object> body,
+                       @RequestParam(required = false) Map<String, String> params) {
+        log.info("adtest params = {}, body = {}", JSONObject.toJSONString(params), JSONObject.toJSONString(body));
+    }
+
+    /**
      * 获取开启的登录方式
      *
      * @return
@@ -138,7 +149,6 @@ public class AccountController extends AbstractController {
 //        }
 //        return success(resultList);
 //    }
-
 
 
     /**
@@ -395,7 +405,7 @@ public class AccountController extends AbstractController {
 //            String email = payload.getEmail();
 //            String name = (String) payload.get("name");
 
-        CommonResult<GoogleUserInfo> userInfoResult = thirdAccountHttpService.verifyGoogleToken(dto.getData());
+        CommonResult<GoogleUserInfo> userInfoResult = thirdAccountHttpService.verifyGoogleToken(dto.getWesteId(), dto.getData());
         if (!userInfoResult.success()) {
             return fail(userInfoResult.code);
         }
@@ -537,7 +547,7 @@ public class AccountController extends AbstractController {
 
         //保存token，方便weboskcet连接时进行校验
         playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), dto.getChannel(), ip, deviceType.getValue(),
-                dto.getMac(), account.getChannel().getValue(), dto.getShareId(), dto.getSubChannel());
+                dto.getMac(), account.getChannel().getValue(), dto.getShareId(), dto.getSubChannel(), dto.getWesteId());
 
         LoginVo vo = new LoginVo();
         vo.setToken(token);
@@ -611,6 +621,7 @@ public class AccountController extends AbstractController {
                 result.code = Code.IP_BLOCKED_SERVER_URL_UNAVAILABLE;
                 return result;
             }
+            result.data = clientIp;
         } catch (Exception e) {
             log.error("", e);
         }

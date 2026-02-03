@@ -111,7 +111,7 @@ public class RoomSlotsPoolDao extends AbstractPoolDao {
             result.code = playerResult.code;
             return result;
         }
-        log.info("从标准池扣除，并给玩家加钱成功 playerId = {},roomId = {},value = {},afterPool = {},addType = {}", playerId, roomId, value, after, addType);
+        log.info("从标准池扣除，并给玩家加钱成功 playerId = {},roomId = {},value = {},afterPool = {},playerAfterDiamond = {},addType = {}", playerId, roomId, value, after, playerResult.data.getDiamond(), addType);
         result.data = new Pair<>(playerResult.data, after);
         return result;
     }

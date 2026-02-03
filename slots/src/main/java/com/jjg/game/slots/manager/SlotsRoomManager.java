@@ -151,6 +151,7 @@ public class SlotsRoomManager implements HallRoomBridge {
             room.setInGaming(true);
             roomControllers.computeIfAbsent(roomId, k -> new SlotsRoomController(room));
             roomSlotsPoolDao.initRoomPool(roomId, room.getPredictCostGoldNum());
+            slotsFriendRoomDao.save(room);
             updatePoolValue(roomId, room.getPredictCostGoldNum());
             log.info("slots初始化房间成功 roomCfgId = {},roomId = {}", roomCfgId, roomId);
         } catch (Exception e) {
@@ -233,13 +234,12 @@ public class SlotsRoomManager implements HallRoomBridge {
     private void tryContinueGame(SlotsRoomController slotsRoomController) {
         slotsRoomController.continueGame();
         autoRenewal(slotsRoomController);
-        slotsFriendRoomDao.save(slotsRoomController.getRoom());
         notifyRoomStatusChange(slotsRoomController);
     }
 
 
     /**
-     * 自动续费
+     * 自动续费 续费成功会自动保存一次
      *
      * @param slotsRoomController
      */
@@ -317,6 +317,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         itemOperationResult.setDiamond(slotsRoomController.getRoom().getPredictCostGoldNum());
         slotsLogger.roomOperate(slotsRoomController.getRoom(), 2, roomExpendCfg.getDurationTime(), itemMap, itemOperationResult);
         log.error("房间自动续费成功, roomId = {},roomCfgId = {},overdueTime={} totalTake={}", roomId, slotsRoomController.getRoom().getRoomCfgId(), overdueTime, totalTake);
+        slotsFriendRoomDao.save(slotsRoomController.getRoom());
         return true;
     }
 
@@ -362,6 +363,8 @@ public class SlotsRoomManager implements HallRoomBridge {
             List<Item> returnItems = List.of(new Item(warehouseCfg.getTransactionItemId(), poolRaminValue));
             Mail mail = mailService.addCfgMail(room.getCreator(), 35, returnItems, params);
             slotsLogger.roomDisband(room, mail.getId(), returnItems);
+        } else {
+            slotsLogger.roomDisband(room, 0, List.of());
         }
         log.info("房间已销毁 roomId = {},roomCreator = {},poolRaminValue = {}", room.getId(), room.getCreator(), poolRaminValue);
     }

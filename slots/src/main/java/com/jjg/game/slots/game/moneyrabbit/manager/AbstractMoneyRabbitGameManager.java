@@ -142,14 +142,15 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             } else {
                 gameRunInfo.setStatus(playerGameData.getStatus());
             }
+
+            if (gameRunInfo.getBigPoolTimes() < 1) {
+                gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+            }
         }
 
-        log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+        log.debug("id = {}", resultLib.getId());
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
-        if (gameRunInfo.getBigPoolTimes() < 1) {
-            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
-        }
 
         //设置金钱信息
         checkCoinInfo(gameRunInfo, playerGameData, resultLib);

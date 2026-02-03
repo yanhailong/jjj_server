@@ -545,7 +545,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     /**
      * 自动领取邮件附件并删除邮件
      */
-    private void processAutoClaimMails(List<Mail> mails) {
+    public void processAutoClaimMails(List<Mail> mails) {
         // 按玩家ID分组，便于批量处理
         Map<Long, List<Mail>> playerMailsMap = mails.stream().collect(Collectors.groupingBy(Mail::getPlayerId));
 
@@ -555,24 +555,16 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             List<Mail> playerMails = entry.getValue();
 
             try {
-                // 批量领取附件
-                Map<Integer, Long> itemsToAdd = new HashMap<>();
-
-
                 for (Mail mail : playerMails) {
                     if (mail.getItems() != null && !mail.getItems().isEmpty()) {
-                        // 收集附件
-                        for (Item item : mail.getItems()) {
-                            itemsToAdd.merge(item.getId(), item.getItemCount(), Long::sum);
+                        String desc = String.valueOf(mail.getId());
+                        if (mail.getAddType() == AddType.BACKEND_OPERATOR) {  //如果是后台发送的邮件，要修改desc的格式
+                            desc = desc + "&" + mail.getTitle().getContent();
                         }
+                        playerPackService.addItems(playerId, mail.getItems(), AddType.GET_MAIL_ITEMS, desc);
                         mailIdsToDelete.add(mail.getId());
+                        log.debug("玩家{}自动领取{}封邮件的附件，获得道具: {}", playerId, mailIdsToDelete.size(), mail.getItems());
                     }
-                }
-
-                if (!itemsToAdd.isEmpty()) {
-                    // 添加道具到玩家背包
-                    playerPackService.addItems(playerId, itemsToAdd, AddType.GET_MAIL_ITEMS);
-                    log.debug("玩家{}自动领取{}封邮件的附件，获得道具: {}", playerId, mailIdsToDelete.size(), itemsToAdd);
                 }
             } catch (Exception e) {
                 log.error("处理玩家{}自动领取邮件附件时发生错误", playerId, e);
@@ -582,7 +574,6 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         if (!mailIdsToDelete.isEmpty()) {
             // 批量删除邮件
             long deletedCount = mailDao.batchRemoveMails(mailIdsToDelete);
-
             log.info("批量删除过期自动领取邮件 {} 封", deletedCount);
         }
     }
@@ -627,7 +618,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
 
         //检查绑定奖励是否开启
         boolean rewardOpen = loginConfigService.isRewardOpen(player.getChannel().getValue(), player.getLoginType().getValue());
-        if(!rewardOpen){
+        if (!rewardOpen) {
             return;
         }
 

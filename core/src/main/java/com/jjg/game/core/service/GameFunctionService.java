@@ -69,22 +69,19 @@ public class GameFunctionService implements GameEventListener {
 
     @Override
     public <T extends GameEvent> void handleEvent(T gameEvent) {
-        List<GameFunctionCfg> gameFunctionCfgs = gameTypeOfFuncCache.get(gameEvent.getGameEventType());
         Player player = null;
         if (gameEvent instanceof PlayerEvent playerEvent) {
             player = playerEvent.getPlayer();
         }
-        List<Integer> functionIdList = new ArrayList<>();
-        for (GameFunctionCfg gameFunctionCfg : gameFunctionCfgs) {
-            if (checkGameFunctionOpen(player, gameFunctionCfg, false)) {
-                functionIdList.add(gameFunctionCfg.getId());
-            }
+        if (player == null) {
+            return;
         }
-        if (player != null) {
-            // 推送功能发生了变化
-            NotifyOpenFunction notifyOpenFunction = new NotifyOpenFunction();
-            notifyOpenFunction.functionIdList = functionIdList;
-            PFSession session = playerSessionService.getSession(player.getId());
+        List<Integer> openedFuncIdList = getOpenedFuncIdList(player);
+        // 推送功能发生了变化
+        NotifyOpenFunction notifyOpenFunction = new NotifyOpenFunction();
+        notifyOpenFunction.functionIdList = openedFuncIdList;
+        PFSession session = playerSessionService.getSession(player.getId());
+        if (session != null) {
             session.send(notifyOpenFunction);
         }
     }
@@ -173,8 +170,10 @@ public class GameFunctionService implements GameEventListener {
                 }
                 tmpGameTypeOfFuncCache.computeIfAbsent(gameEventType, k -> new ArrayList<>()).add(gameFunctionCfg);
             }
-            case AndNode andNode -> andNode.getChildren().forEach(child -> analysisCondition(gameFunctionCfg, child, tmpGameTypeOfFuncCache));
-            case OrNode orNode -> orNode.getChildren().forEach(child -> analysisCondition(gameFunctionCfg, child, tmpGameTypeOfFuncCache));
+            case AndNode andNode ->
+                    andNode.getChildren().forEach(child -> analysisCondition(gameFunctionCfg, child, tmpGameTypeOfFuncCache));
+            case OrNode orNode ->
+                    orNode.getChildren().forEach(child -> analysisCondition(gameFunctionCfg, child, tmpGameTypeOfFuncCache));
             case NotNode notNode -> analysisCondition(gameFunctionCfg, notNode.getChild(), tmpGameTypeOfFuncCache);
             default -> {
             }

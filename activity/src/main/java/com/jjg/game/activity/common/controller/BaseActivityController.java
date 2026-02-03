@@ -17,6 +17,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Order;
@@ -53,8 +54,13 @@ import java.util.Map;
  * @date 2025/9/3 16:14
  */
 public abstract class BaseActivityController {
-
     private final Logger log = LoggerFactory.getLogger(BaseActivityController.class);
+
+    /**
+     * 活动初始化进度
+     */
+    private static final String INIT_PROGRESS_KEY = "initProgress:%s";
+
     /**
      * 玩家活动数据访问对象
      */
@@ -104,6 +110,11 @@ public abstract class BaseActivityController {
     @Autowired
     protected RedDotManager redDotManager;
 
+    /**
+     * 计数dao
+     */
+    @Autowired
+    protected CountDao countDao;
 
     /**
      * 增加玩家的活动进度
@@ -268,11 +279,46 @@ public abstract class BaseActivityController {
     /**
      * 请求数据时检查玩家的活动数据是否需要重置
      *
-     * @param playerId     玩家ID
+     * @param player       玩家数据
      * @param activityData 活动数据
      */
-    public Map<Integer, PlayerActivityData> checkPlayerDataAndResetOnRequest(long playerId, ActivityData activityData) {
+    public Map<Integer, PlayerActivityData> checkPlayerDataAndResetOnRequest(Player player, ActivityData activityData) {
         return null;
+    }
+
+
+    /**
+     * 初始化数据
+     *
+     * @param player       玩家数据
+     * @param activityData 活动数据
+     * @return 活动数据
+     */
+    public boolean initProgress(Player player, ActivityData activityData) {
+        return false;
+    }
+
+    /**
+     * 是否能初始化进度
+     *
+     * @param playerId     玩家id
+     * @param activityData 活动数据
+     * @return true能初始化进度 false不能初始化进度
+     */
+    public boolean canInitProgress(long playerId, ActivityData activityData) {
+        String customId = INIT_PROGRESS_KEY.formatted(activityData.getId());
+        return countDao.setIfAbsent(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), customId);
+    }
+
+    /**
+     * 清除初始化进度标识
+     *
+     * @param playerId     玩家id
+     * @param activityData 活动数据
+     */
+    public void clearInitProgress(long playerId, ActivityData activityData) {
+        String customId = INIT_PROGRESS_KEY.formatted(activityData.getId());
+        countDao.reset(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), customId);
     }
 
     /**
@@ -302,6 +348,7 @@ public abstract class BaseActivityController {
             }
         }
     }
+
 
     /**
      * 获取指定类型的玩家活动信息
@@ -334,7 +381,7 @@ public abstract class BaseActivityController {
                 continue;
             }
             //请求时处理数据重置
-            Map<Integer, PlayerActivityData> playerActivityDataMap = checkPlayerDataAndResetOnRequest(playerId, activityData);
+            Map<Integer, PlayerActivityData> playerActivityDataMap = checkPlayerDataAndResetOnRequest(player, activityData);
             if (playerActivityDataMap == null) {
                 // 获取玩家该活动的数据（子项维度）
                 playerActivityDataMap = playerActivityData.getOrDefault(activityData.getId(), Map.of());

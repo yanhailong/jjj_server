@@ -452,7 +452,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             log.debug("触发二选一  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
         }
 
-        log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+        log.debug("id = {}", resultLib.getId());
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
 
@@ -511,7 +511,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
         gameRunInfo.setBigPoolTimes(trainLib.getTimes());
         gameRunInfo.setResultLib(trainLib);
 
-        log.debug("libId = {},train = {}", trainLib.getId(), JSON.toJSONString(trainLib));
+        log.debug("libId = {}", trainLib.getId());
         return gameRunInfo;
 
     }
@@ -739,7 +739,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
 
                         TrainInfo goldTrainInfo = goldTrainPbInfo(awardInfo.getRandCount(), gameRunInfo.getDollarsGoldTimes() * gameData.getOneBetScore());
                         gameRunInfo.addTrainInfo(goldTrainInfo);
-                        log.debug("触发黄金列车 playerId = {},times = {},oneBetScore = {},train = {}", gameData.playerId(), times, gameData.getOneBetScore(), JSON.toJSONString(goldTrainInfo));
+                        log.debug("触发黄金列车 playerId = {},times = {},oneBetScore = {}", gameData.playerId(), times, gameData.getOneBetScore());
                     }
                     break;
                 }
@@ -800,7 +800,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
         if (trainType < 1) {
             return Collections.emptyList();
         }
-        log.debug("打印火车奖励 specialAuxiliaryInfo = {}", JSON.toJSONString(specialAuxiliaryInfo));
+//        log.debug("打印火车奖励 specialAuxiliaryInfo = {}", JSON.toJSONString(specialAuxiliaryInfo));
 
         List<TrainInfo> trainInfoList = new ArrayList<>();
 
@@ -896,7 +896,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             //车厢节数+1，是因为要加上最后一个奖池车厢
             //总的延迟时间
             int allDelayTime = ((trainInfo.goldList.size() + 1) * poolCfg.getDelayTime()) / 1000;
-            long addGold = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), allDelayTime);
+            long addGold = calPoolValue(playerGameData.getAllBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), allDelayTime);
 
             //给玩家加钱
             CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_TRAIN, poolId + "");

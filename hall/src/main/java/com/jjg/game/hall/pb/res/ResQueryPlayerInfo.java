@@ -53,6 +53,8 @@ public class ResQueryPlayerInfo extends AbstractResponse {
     public long exp;
     @ProtoDesc("已经绑定的第三方账号,类型参考loginType")
     public List<Integer> bindThirdAccountList;
+    @ProtoDesc("已经开启的第三方奖励")
+    public List<Integer> openThirdAccountList;
 
 
     public ResQueryPlayerInfo(int code) {

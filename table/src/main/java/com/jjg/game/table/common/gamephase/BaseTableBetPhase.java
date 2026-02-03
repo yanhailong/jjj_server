@@ -144,7 +144,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
     protected void robotActionOnPhaseStart(GameRobotPlayer gameRobotPlayer) {
         // 机器人押注默认行为
         // 需要将上一局的押注数据进行清除
-        clearBetData(gameRobotPlayer);
+        clearBetData();
         // 机器人逻辑首先进行NextTime等待再进行DelayTime再进行NextTime等待
         addFirstRobotAction(gameRobotPlayer);
     }
@@ -152,7 +152,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
     /**
      * 清除押注数据
      */
-    protected void clearBetData(GameRobotPlayer gameRobotPlayer) {
+    protected void clearBetData() {
         // 每轮开始清除所有之前的押注数据
         gameDataVo.getPlayerBetInfo().clear();
     }

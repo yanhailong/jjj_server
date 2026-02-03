@@ -233,7 +233,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.backgroundId = player.getBackgroundId();
             res.cardBackgroundId = player.getCardBackgroundId();
             //添加游戏列表
-            res.gameList = hallService.getSortGameList();
+            res.gameList = hallService.getSortGameList(playerSessionToken.getWesteId());
             //添加跑马灯
             res.marqueeInfo = addMarquee();
 
@@ -323,7 +323,12 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
     @Override
     public void logout(long playerId, String sessionId) {
-        playerSessionService.remove(playerId);
+        PlayerSessionInfo playerSessionInfo = playerSessionService.remove(playerId);
+        if (playerSessionInfo == null) {
+            hallLogger.logout(playerId, 0);
+        } else {
+            hallLogger.logout(playerId, playerSessionInfo.getCreateTime());
+        }
         log.info("玩家登出 playerId={}", playerId);
     }
 
