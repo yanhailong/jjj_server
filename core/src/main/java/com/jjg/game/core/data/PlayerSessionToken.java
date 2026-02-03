@@ -18,6 +18,8 @@ public class PlayerSessionToken {
     private int registerChannel;
     private String sharId;
     private String subChannel;
+    //马甲id
+    private int westeId;
 
     public long getPlayerId() {
         return playerId;
@@ -105,5 +107,13 @@ public class PlayerSessionToken {
 
     public void setSubChannel(String subChannel) {
         this.subChannel = subChannel;
+    }
+
+    public int getWesteId() {
+        return westeId;
+    }
+
+    public void setWesteId(int westeId) {
+        this.westeId = westeId;
     }
 }

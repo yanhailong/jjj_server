@@ -13,21 +13,21 @@ import java.util.List;
 @Component
 public class ThirdServiceInfo {
     //google 配置信息
-    @Value("${thirdservice.google.verify_url:}")
+    @Value("${thirdservice.google.verify_url:https://oauth2.googleapis.com/tokeninfo?id_token=}")
     private String googleVerifyUrl;
     @Value("${thirdservice.google.client_id:}")
     private String googleClientId;
     @Value("${thirdservice.google.public_key:}")
     private String googlePublicKey;
-    @Value("${thirdservice.google.jwks_url:}")
+    @Value("${thirdservice.google.jwks_url:https://www.googleapis.com/oauth2/v3/certs}")
     private String googleJwksUrl;
     @Value("${thirdservice.google.aud:}")
     private String googleAud;
 
     //facebook配置信息
-    @Value("${thirdservice.facebook.user_info_url:}")
+    @Value("${thirdservice.facebook.user_info_url:https://graph.facebook.com/me?fields=id,name,email&access_token=}")
     private String facebookUserInfoUrl;
-    @Value("${thirdservice.facebook.debug_token_url:}")
+    @Value("${thirdservice.facebook.debug_token_url:https://graph.facebook.com/debug_token}")
     private String facebookDebugTokenUrl;
     @Value("${thirdservice.facebook.app_id:}")
     private String facebookAppId;
@@ -39,7 +39,7 @@ public class ThirdServiceInfo {
     private Long appleAppId;
     @Value("${thirdservice.apple.bundle_id:}")
     private String appleBundleId;
-    @Value("${thirdservice.apple.jwks_url:}")
+    @Value("${thirdservice.apple.jwks_url:https://appleid.apple.com/auth/keys}")
     private String appleJwksUrl;
     @Value("${thirdservice.apple.sandbox:true}")
     private boolean sandbox;

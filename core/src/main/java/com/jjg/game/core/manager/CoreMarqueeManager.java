@@ -52,7 +52,12 @@ public class CoreMarqueeManager implements TimerListener {
     //映射表
     private Map<Integer, Marquee> marqueeMap;
     //当前正在运行的跑马灯
-    private int nowRunMarqueeId;
+    private volatile int nowRunMarqueeId;
+    //修改跑马灯添加的锁
+    private final Object lock = new Object();
+
+    //每个队列中保存的跑马灯最大个数
+    private final int MAX_MARQUEE_COUNT = 50;
 
     private TimerEvent<String> checkEvent;
 
@@ -65,6 +70,31 @@ public class CoreMarqueeManager implements TimerListener {
     private void addCheckEvent() {
         this.checkEvent = new TimerEvent<>(this, "checkEvent", 3).withTimeUnit(TimeUnit.SECONDS);
         this.timerCenter.add(this.checkEvent);
+    }
+
+    /**
+     * 裁剪跑马灯队列
+     * @param list
+     * @param maxCount
+     * @return
+     */
+    private LinkedList<Marquee> keepTopNFromTail(LinkedList<Marquee> list, int maxCount) {
+        if (list == null || list.size() <= maxCount) {
+            return list;
+        }
+
+        int splitIndex = list.size() - maxCount;
+        List<Marquee> removeList = new ArrayList<>(list.subList(0, splitIndex));
+        List<Integer> removeIds = new ArrayList<>(removeList.size());
+        for (Marquee marquee : removeList) {
+            if (this.marqueeMap != null) {
+                this.marqueeMap.remove(marquee.getId());
+            }
+            clean(marquee.getId());
+            removeIds.add(marquee.getId());
+        }
+        removeFromRedisBatch(removeIds);
+        return new LinkedList<>(list.subList(splitIndex, list.size()));
     }
 
     /**
@@ -91,8 +121,8 @@ public class CoreMarqueeManager implements TimerListener {
         }
 
         this.sortedMarquees = sortMarquee(tmpList);
-        this.playerWinSortedMarquees = sortMarqueeByCreateTime(tmpPlayerWinList);
-        this.activitySortedMarquees = sortMarqueeByCreateTime(tmpActivityList);
+        this.playerWinSortedMarquees = keepTopNFromTail(sortMarqueeByCreateTime(tmpPlayerWinList), MAX_MARQUEE_COUNT);
+        this.activitySortedMarquees = keepTopNFromTail(sortMarqueeByCreateTime(tmpActivityList), MAX_MARQUEE_COUNT);
         this.marqueeMap = tmpMarqueeMap;
 
         log.debug("初始加载跑马灯后打印 map.size = {}", this.marqueeMap.size());
@@ -107,10 +137,8 @@ public class CoreMarqueeManager implements TimerListener {
         if (this.marqueeMap == null) {
             this.marqueeMap = new HashMap<>();
         }
-        if (this.marqueeMap.containsKey(marquee.getId())) {
-            this.marqueeMap.put(marquee.getId(), marquee);
-            return;
-        }
+
+        this.marqueeMap.remove(marquee.getId());
 
         switch (marquee.getType()) {
             case GameConstant.Marquee.PLAYER_WIN -> {
@@ -121,7 +149,7 @@ public class CoreMarqueeManager implements TimerListener {
                     marqueeList = new ArrayList<>();
                 }
                 marqueeList.add(marquee);
-                this.playerWinSortedMarquees = sortMarqueeByCreateTime(marqueeList);
+                this.playerWinSortedMarquees = keepTopNFromTail(sortMarqueeByCreateTime(marqueeList), MAX_MARQUEE_COUNT);
             }
             case GameConstant.Marquee.ACTIVITY -> {
                 List<Marquee> marqueeList;
@@ -131,7 +159,7 @@ public class CoreMarqueeManager implements TimerListener {
                     marqueeList = new ArrayList<>();
                 }
                 marqueeList.add(marquee);
-                this.playerWinSortedMarquees = sortMarqueeByCreateTime(marqueeList);
+                this.activitySortedMarquees = keepTopNFromTail(sortMarqueeByCreateTime(marqueeList), MAX_MARQUEE_COUNT);
             }
             default -> {
                 List<Marquee> marqueeList;
@@ -156,16 +184,16 @@ public class CoreMarqueeManager implements TimerListener {
      * @param id
      */
     public void removeMarquee(int id) {
+        //保证该id的跑马灯一定会被删除
         Marquee remove = this.marqueeMap.remove(id);
+        removeFromRedis(id);
+        addNotifyStopEvent(id);
+        clean(id);
+
         if (remove == null) {
             return;
         }
-        removeFromRedis(id);
-        addNotifyStopEvent(id);
 
-        if (this.nowRunMarqueeId == id) {
-            this.nowRunMarqueeId = 0;
-        }
         switch (remove.getType()) {
             case GameConstant.Marquee.PLAYER_WIN -> {
                 if (this.playerWinSortedMarquees == null || this.playerWinSortedMarquees.isEmpty()) {
@@ -173,7 +201,7 @@ public class CoreMarqueeManager implements TimerListener {
                 }
                 List<Marquee> marqueeList = new ArrayList<>(this.playerWinSortedMarquees);
                 marqueeList.removeIf(marquee -> marquee.getId() == id);
-                this.playerWinSortedMarquees = sortMarqueeByCreateTime(marqueeList);
+                this.playerWinSortedMarquees = keepTopNFromTail(sortMarqueeByCreateTime(marqueeList), MAX_MARQUEE_COUNT);
             }
             case GameConstant.Marquee.ACTIVITY -> {
                 if (this.activitySortedMarquees == null || this.activitySortedMarquees.isEmpty()) {
@@ -181,7 +209,7 @@ public class CoreMarqueeManager implements TimerListener {
                 }
                 List<Marquee> marqueeList = new ArrayList<>(this.activitySortedMarquees);
                 marqueeList.removeIf(marquee -> marquee.getId() == id);
-                this.activitySortedMarquees = sortMarqueeByCreateTime(marqueeList);
+                this.activitySortedMarquees = keepTopNFromTail(sortMarqueeByCreateTime(marqueeList), MAX_MARQUEE_COUNT);
             }
             default -> {
                 if (this.sortedMarquees == null || this.sortedMarquees.isEmpty()) {
@@ -261,9 +289,7 @@ public class CoreMarqueeManager implements TimerListener {
                     it.remove();
                     this.marqueeMap.remove(marquee.getId());
                     removeFromRedis(marquee.getId());
-                    if (this.nowRunMarqueeId == marquee.getId()) {
-                        this.nowRunMarqueeId = 0;
-                    }
+                    clean(marquee.getId());
                     log.debug("移除过期跑马灯 id = {}", marquee.getId());
                     continue;
                 }
@@ -272,8 +298,7 @@ public class CoreMarqueeManager implements TimerListener {
                     continue;
                 }
 
-                if (this.nowRunMarqueeId != marquee.getId()) {
-                    this.nowRunMarqueeId = marquee.getId();
+                if (update(marquee.getId())) {
                     addNotifySendEvent(marquee.getId());
                 }
                 findMarquee = true;
@@ -288,8 +313,10 @@ public class CoreMarqueeManager implements TimerListener {
             while (it.hasPrevious()) {
                 Marquee marquee = it.previous();
                 if (marquee.getStartTime() < 1) {  //表示这条中奖的跑马灯还没有推送
-                    this.nowRunMarqueeId = marquee.getId();
-                    addNotifySendEvent(marquee.getId());
+                    if (update(marquee.getId())) {
+                        addNotifySendEvent(marquee.getId());
+                    }
+                    findMarquee = true;
                     break;
                 } else {
                     if (now > marquee.getEndTime()) {
@@ -297,9 +324,7 @@ public class CoreMarqueeManager implements TimerListener {
                         it.remove();
                         this.marqueeMap.remove(marquee.getId());
                         removeFromRedis(marquee.getId());
-                        if (this.nowRunMarqueeId == marquee.getId()) {
-                            this.nowRunMarqueeId = 0;
-                        }
+                        clean(marquee.getId());
                         log.debug("移除过期中奖跑马灯 id = {}", marquee.getId());
                         continue;
                     }
@@ -307,6 +332,7 @@ public class CoreMarqueeManager implements TimerListener {
                     if (now < marquee.getStartTime()) {
                         continue;
                     }
+                    findMarquee = true;
                     break;
                 }
             }
@@ -328,8 +354,9 @@ public class CoreMarqueeManager implements TimerListener {
             while (it.hasPrevious()) {
                 Marquee marquee = it.previous();
                 if (marquee.getStartTime() < 1) {  //表示这条中奖的跑马灯还没有推送
-                    this.nowRunMarqueeId = marquee.getId();
-                    addNotifySendEvent(marquee.getId());
+                    if (update(marquee.getId())) {
+                        addNotifySendEvent(marquee.getId());
+                    }
                     break;
                 } else {
                     if (now > marquee.getEndTime()) {
@@ -337,9 +364,7 @@ public class CoreMarqueeManager implements TimerListener {
                         it.remove();
                         this.marqueeMap.remove(marquee.getId());
                         removeFromRedis(marquee.getId());
-                        if (this.nowRunMarqueeId == marquee.getId()) {
-                            this.nowRunMarqueeId = 0;
-                        }
+                        clean(marquee.getId());
                         log.debug("移除过期中奖跑马灯 id = {}", marquee.getId());
                         continue;
                     }
@@ -388,12 +413,10 @@ public class CoreMarqueeManager implements TimerListener {
      *
      * @param id
      */
-    private void addNotifyStopEvent(long id) {
+    private void addNotifyStopEvent(int id) {
         TimerEvent<String> nodeEvent = new TimerEvent<>(this, 1, "notifyStopEvent_" + id).withTimeUnit(TimeUnit.SECONDS);
         this.timerCenter.add(nodeEvent);
-        if (this.nowRunMarqueeId == id) {
-            this.nowRunMarqueeId = 0;
-        }
+        clean(id);
         log.debug("添加通知客户端停止跑马灯事件 id = {}", id);
     }
 
@@ -583,5 +606,37 @@ public class CoreMarqueeManager implements TimerListener {
         marqueeInfo.content = marquee.getContent().toPbInfo();
         marqueeInfo.content.type = getClientShowGarqueeType(marquee.getType());
         return marqueeInfo;
+    }
+
+    /**
+     * 批量删除跑马灯
+     * @param ids
+     */
+    private void removeFromRedisBatch(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        if (marsCurator.isMaster()) {
+            marqueeDao.removeMarquees(ids);
+            log.debug("批量删除跑马灯 = {}", ids);
+        }
+    }
+
+    private void clean(int id) {
+        synchronized (lock) {
+            if (nowRunMarqueeId == id) {
+                nowRunMarqueeId = 0;
+            }
+        }
+    }
+
+    private boolean update(int id) {
+        synchronized (lock) {
+            if (nowRunMarqueeId != id) {
+                nowRunMarqueeId = id;
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -979,7 +979,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
     public void reqBindThirdAccount(PlayerController playerController, ReqBindThirdAccount req) {
         ResBindThirdAccount res = new ResBindThirdAccount(Code.SUCCESS);
         try {
-            CommonResult<List<Item>> result = hallService.bindThirdAccount(playerController.getPlayer(), req.type, req.token);
+            CommonResult<List<Item>> result = hallService.bindThirdAccount(playerController.getPlayer(), req.type, req.westeId, req.token);
             if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);

@@ -51,6 +51,13 @@ public class MarqueeDao {
         redisTemplate.opsForHash().delete(marqueeTableName,id);
     }
 
+    public void removeMarquees(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        redisTemplate.opsForHash().delete(marqueeTableName, ids.toArray());
+    }
+
     public boolean exist(int id) {
         return redisTemplate.opsForHash().hasKey(marqueeTableName,id);
     }

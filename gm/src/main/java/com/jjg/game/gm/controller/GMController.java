@@ -232,6 +232,7 @@ public class GMController extends AbstractController {
             NotifyAllNodesMarqueeServer notify = new NotifyAllNodesMarqueeServer();
             notify.marqueeInfo = marqueeManager.transMarqueeInfo(marquee);
             notify.type = marquee.getType();
+            notify.priority = marquee.getPriority();
             marqueeManager.notifyHallAndGameNodeStartMarquee(notify);
             //返回修改结果
             return success("common.success");
@@ -251,11 +252,6 @@ public class GMController extends AbstractController {
             if (dto.id() < 1) {
                 log.debug("停止跑马灯时，从后台收到的跑马灯id不能小于1 id = {}", dto.id());
                 return fail("common.paramerror");
-            }
-
-            boolean exist = marqueeDao.exist(dto.id());
-            if (!exist) {
-                return fail("marquee.notfound");
             }
 
             //构建请求消息
@@ -1789,7 +1785,7 @@ public class GMController extends AbstractController {
                 return fail("common.fail");
             }
 
-            playerService.doSave(dto.playerId(),p -> {
+            playerService.doSave(dto.playerId(), p -> {
                 p.setGameType(0);
                 p.setRoomCfgId(0);
                 p.setRoomId(0);

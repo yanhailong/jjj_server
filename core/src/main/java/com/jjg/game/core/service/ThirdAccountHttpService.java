@@ -15,6 +15,8 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ThirdServiceInfo;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.UndergarmentCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,16 +57,30 @@ public class ThirdAccountHttpService {
     /**
      * 验证google token
      *
+     * @param westeId 马甲id
      * @param token
      * @return
      */
-    public CommonResult<GoogleUserInfo> verifyGoogleToken(String token) {
+    public CommonResult<GoogleUserInfo> verifyGoogleToken(int westeId, String token) {
         CommonResult<GoogleUserInfo> result = new CommonResult<>(Code.SUCCESS);
 
         try {
-            if (StringUtils.isBlank(thirdServiceInfo.getGoogleClientId())) {
+            String clientId;
+            if (westeId > 0) {
+                UndergarmentCfg undergarmentCfg = GameDataManager.getUndergarmentCfg(westeId);
+                if (undergarmentCfg == null) {
+                    result.code = Code.SAMPLE_ERROR;
+                    log.warn("获取马甲配置为空 westeId = {}", westeId);
+                    return result;
+                }
+                clientId = undergarmentCfg.getGoogleClientID();
+            } else {
+                clientId = thirdServiceInfo.getGoogleClientId();
+            }
+
+            if (StringUtils.isBlank(clientId)) {
                 result.code = Code.FAIL;
-                log.warn("google 配置中的 clientId 为空");
+                log.warn("google 配置中的 clientId 为空,westeId = {}", westeId);
                 return result;
             }
 
@@ -94,9 +110,9 @@ public class ThirdAccountHttpService {
 
             // 2. 校验aud（受众）
             String aud = jsonNode.get("aud").asText();
-            if (!thirdServiceInfo.getGoogleClientId().equals(aud)) {
+            if (!clientId.equals(aud)) {
                 result.code = Code.FAIL;
-                log.warn("无效的受众 token = {},aud = {},cfgClientId = {}", token, aud, thirdServiceInfo.getGoogleClientId());
+                log.warn("无效的受众 token = {},aud = {},cfgClientId = {}", token, aud, clientId);
                 return result;
             }
 
