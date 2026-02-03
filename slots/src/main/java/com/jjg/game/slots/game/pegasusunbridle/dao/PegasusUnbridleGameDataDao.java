@@ -14,4 +14,7 @@ public class PegasusUnbridleGameDataDao extends AbstractGameDataDao<PegasusUnbri
     public PegasusUnbridleGameDataDao(@Autowired MongoTemplate mongoTemplate) {
         super(PegasusUnbridlePlayerGameDataDTO.class, mongoTemplate);
     }
+
+
+
 }

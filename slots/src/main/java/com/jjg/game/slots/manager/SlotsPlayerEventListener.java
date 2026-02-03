@@ -182,18 +182,13 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         if (playerGameData == null) {
             return Code.SUCCESS;
         }
-        boolean canExit;
-        if (gameManager.getRoomType() != null) {
-            canExit = gameManager.friendRoomExit(playerGameData);
-        } else {
-            canExit = gameManager.canExit(playerGameData);
-            //特殊状态下，玩家无法主动退出
-            if (exitType == ExitType.INITIATIVE && !canExit) {
-                return Code.FAIL;
-            }
+        boolean canExit = gameManager.canExit(playerGameData);
+        //特殊状态下，玩家无法主动退出
+        if (exitType == ExitType.INITIATIVE && !canExit) {
+            return Code.FAIL;
         }
         playerGameData = gameManager.exit(playerController, exitType);
-        playerSessionService.offline(playerController.getPlayer(), !canExit);
+        playerSessionService.offline(playerController.getPlayer(), exitType == ExitType.DROPPED);
         //计算玩游戏的时长
         int onlineTimeLen = 0;
         if (playerGameData != null) {

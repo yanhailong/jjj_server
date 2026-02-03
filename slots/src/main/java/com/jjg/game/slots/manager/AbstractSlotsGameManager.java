@@ -1480,7 +1480,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     en.getValue().setAction(true);
                 }
             }
-
             //退出slots房间
             slotsRoomManager.exitRoom(playerController);
             offlineSaveGameDataDto(playerGameData);
@@ -1768,14 +1767,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     public boolean canExit(SlotsPlayerGameData playerGameData) {
-        return playerGameData.getStatus() == SlotsConst.Status.NORMAL;
-    }
-
-    public boolean friendRoomExit(SlotsPlayerGameData playerGameData) {
-        if (playerGameData.getStatus() != SlotsConst.Status.NORMAL) {
-            log.info("好友房特殊模式主动退出 playerId:{} status:{}", playerGameData.playerId(), playerGameData.getStatus());
-        }
-        playerGameData.setStatus(SlotsConst.Status.NORMAL);
         return true;
     }
 

@@ -71,20 +71,12 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new PegasusUnbridleGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        if (playerGameData.getStatus() == PegasusUnbridleConstant.Status.REAL_FU_MA && playerGameData.getFuMa() == null) {
+            playerGameData.setStatus(PegasusUnbridleConstant.Status.NORMAL);
+        }
         PegasusUnbridleGameRunInfo gameRunInfo = new PegasusUnbridleGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
-    }
-
-    @Override
-    protected void onAutoExitAction(PegasusUnbridlePlayerGameData gameData, int eventId) {
-        if (gameData.getStatus() == PegasusUnbridleConstant.Status.REAL_FU_MA) {
-            PegasusUnbridleResultLib resultLib = gameData.getFuMa();
-            for (int i = gameData.getCurrentRandomIndex(); i < resultLib.getSpecialResult().size(); i++) {
-                log.info("福马模式自动旋转 playerId = {},currentRandomIndex = {}", gameData.playerId(), gameData.getCurrentRandomIndex());
-                startGame(new PlayerController(null, null), gameData, gameData.getOneBetScore(), true);
-            }
-        }
     }
 
     /**
