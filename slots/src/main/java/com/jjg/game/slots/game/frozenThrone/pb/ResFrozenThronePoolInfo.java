@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
  * @author lihaocao
  * @date 2025/12/2 17:48
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = FrozenThroneConstant.MsgBean.RES_POOL_INFO, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.FROZEN_THRONE, cmd = FrozenThroneConstant.MsgBean.RES_POOL_INFO, resp = true)
 @ProtoDesc("返回奖池信息")
 public class ResFrozenThronePoolInfo extends AbstractResponse {
     public long mini;

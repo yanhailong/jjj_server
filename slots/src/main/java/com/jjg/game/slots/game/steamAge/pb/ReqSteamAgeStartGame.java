@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
  * @author lihaocao
  * @date 2025/12/2 17:50
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = SteamAgeConstant.MsgBean.REQ_START_GAME)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.STEAM_AGE, cmd = SteamAgeConstant.MsgBean.REQ_START_GAME)
 @ProtoDesc("请求开始游戏")
 public class ReqSteamAgeStartGame extends AbstractMessage {
     @ProtoDesc("下注金额")

@@ -13,7 +13,7 @@ import java.util.List;
  * @author lihaocao
  * @date 2025/12/2 17:50
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = SteamAgeConstant.MsgBean.RES_START_GAME,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.STEAM_AGE, cmd = SteamAgeConstant.MsgBean.RES_START_GAME,resp = true)
 @ProtoDesc("开始游戏结果返回")
 public class ResSteamAgeStartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")

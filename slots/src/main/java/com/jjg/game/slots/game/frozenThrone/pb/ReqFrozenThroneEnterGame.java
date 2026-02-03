@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
  * @author lihaocao
  * @date 2025/12/2 17:43
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = FrozenThroneConstant.MsgBean.REQ_CONFIG_INFO)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.FROZEN_THRONE, cmd = FrozenThroneConstant.MsgBean.REQ_CONFIG_INFO)
 @ProtoDesc("请求配置信息")
 public class ReqFrozenThroneEnterGame extends AbstractMessage {
 }

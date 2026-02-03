@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
  * @author lihaocao
  * @date 2025/12/2 17:50
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = BasketballSuperstarConstant.MsgBean.REQ_START_GAME)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.BASKETBALL_SUPERSTAR, cmd = BasketballSuperstarConstant.MsgBean.REQ_START_GAME)
 @ProtoDesc("请求开始游戏")
 public class ReqBasketballSuperstarStartGame extends AbstractMessage {
     @ProtoDesc("下注金额")

@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
  * @author lihaocao
  * @date 2025/12/2 17:48
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = SteamAgeConstant.MsgBean.RES_POOL_INFO, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.STEAM_AGE, cmd = SteamAgeConstant.MsgBean.RES_POOL_INFO, resp = true)
 @ProtoDesc("返回奖池信息")
 public class ResSteamAgePoolInfo extends AbstractResponse {
     public long mini;

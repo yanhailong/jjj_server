@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
  * @author lihaocao
  * @date 2025/12/2 17:48
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = BasketballSuperstarConstant.MsgBean.RES_POOL_INFO, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.BASKETBALL_SUPERSTAR, cmd = BasketballSuperstarConstant.MsgBean.RES_POOL_INFO, resp = true)
 @ProtoDesc("返回奖池信息")
 public class ResBasketballSuperstarPoolInfo extends AbstractResponse {
     public long mini;

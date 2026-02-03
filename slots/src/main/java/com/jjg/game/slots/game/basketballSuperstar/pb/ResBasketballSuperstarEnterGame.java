@@ -13,7 +13,7 @@ import java.util.Set;
  * @author lihaocao
  * @date 2025/12/2 17:48
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = BasketballSuperstarConstant.MsgBean.RES_CONFIG_INFO, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.BASKETBALL_SUPERSTAR, cmd = BasketballSuperstarConstant.MsgBean.RES_CONFIG_INFO, resp = true)
 @ProtoDesc("返回配置信息")
 public class ResBasketballSuperstarEnterGame extends AbstractResponse {
     @ProtoDesc("押注列表")

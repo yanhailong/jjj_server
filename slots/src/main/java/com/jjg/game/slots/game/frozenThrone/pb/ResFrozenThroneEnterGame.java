@@ -12,7 +12,7 @@ import java.util.List;
  * @author lihaocao
  * @date 2025/12/2 17:48
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = FrozenThroneConstant.MsgBean.RES_CONFIG_INFO, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.FROZEN_THRONE, cmd = FrozenThroneConstant.MsgBean.RES_CONFIG_INFO, resp = true)
 @ProtoDesc("返回配置信息")
 public class ResFrozenThroneEnterGame extends AbstractResponse {
     @ProtoDesc("押注列表")

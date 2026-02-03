@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
  * @author lihaocao
  * @date 2025/12/2 17:50
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE, cmd = FrozenThroneConstant.MsgBean.REQ_START_GAME)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.FROZEN_THRONE, cmd = FrozenThroneConstant.MsgBean.REQ_START_GAME)
 @ProtoDesc("请求开始游戏")
 public class ReqFrozenThroneStartGame extends AbstractMessage {
     @ProtoDesc("下注金额")
