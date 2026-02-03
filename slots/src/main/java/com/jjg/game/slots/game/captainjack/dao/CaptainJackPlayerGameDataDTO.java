@@ -1,7 +1,12 @@
 package com.jjg.game.slots.game.captainjack.dao;
 
+import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
+import com.jjg.game.slots.game.captainjack.data.CaptainJackPlayerGameData;
+import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author 11
@@ -9,5 +14,67 @@ import org.springframework.data.mongodb.core.mapping.Document;
  */
 @Document
 public class CaptainJackPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
+    //寻宝次数
+    private int alreadyDigCount;
+    //当前依赖的寻宝libId
+    private CaptainJackResultLib resultLib;
+    //缓存免费的结果库
+    protected CaptainJackResultLib freeLib;
+    //剩余的免费次数
+    protected int remainFreeCount;
+    //当前的免费游戏数组中的下标值
+    protected int freeIndex;
 
+    public int getAlreadyDigCount() {
+        return alreadyDigCount;
+    }
+
+    public void setAlreadyDigCount(int alreadyDigCount) {
+        this.alreadyDigCount = alreadyDigCount;
+    }
+
+    public CaptainJackResultLib getResultLib() {
+        return resultLib;
+    }
+
+    public void setResultLib(CaptainJackResultLib resultLib) {
+        this.resultLib = resultLib;
+    }
+
+    public CaptainJackResultLib getFreeLib() {
+        return freeLib;
+    }
+
+    public void setFreeLib(CaptainJackResultLib freeLib) {
+        this.freeLib = freeLib;
+    }
+
+    public int getRemainFreeCount() {
+        return remainFreeCount;
+    }
+
+    public void setRemainFreeCount(int remainFreeCount) {
+        this.remainFreeCount = remainFreeCount;
+    }
+
+    public int getFreeIndex() {
+        return freeIndex;
+    }
+
+    public void setFreeIndex(int freeIndex) {
+        this.freeIndex = freeIndex;
+    }
+
+    @Override
+    public <T extends SlotsPlayerGameData> T converToGameData(Class<T> cla) throws Exception {
+        T t = super.converToGameData(cla);
+        if (t instanceof CaptainJackPlayerGameData playerGameData) {
+            playerGameData.setAlreadyDigCount(new AtomicInteger(this.alreadyDigCount));
+            playerGameData.setFreeIndex(new AtomicInteger(this.freeIndex));
+            playerGameData.setRemainFreeCount(new AtomicInteger(this.remainFreeCount));
+            playerGameData.setFreeLib(this.freeLib);
+            playerGameData.setResultLib(this.resultLib);
+        }
+        return t;
+    }
 }
