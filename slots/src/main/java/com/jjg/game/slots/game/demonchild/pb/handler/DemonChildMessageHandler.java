@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/8/1 17:37
  */
 @Component
-@MessageType(MessageConst.MessageTypeDef.CAPTAIN_JACK)
+@MessageType(MessageConst.MessageTypeDef.DEMON_CHILD)
 public class DemonChildMessageHandler {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
