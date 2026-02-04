@@ -133,6 +133,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
         if (resultLib.getLibTypeSet().contains(MoneyRabbitConstant.SpecialMode.FREE)) {  //是否会触发二选一
             playerGameData.setRemainFreeCount(new AtomicInteger(8));
             playerGameData.setStatus(MoneyRabbitConstant.Status.FREE);
+            playerGameData.setFreeLib(resultLib);
             gameRunInfo.setStatus(MoneyRabbitConstant.Status.REAL_FREE);
             log.debug("触发真免费  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
         } else {
