@@ -429,9 +429,9 @@ public class BasketballSuperstarGenerateManager extends AbstractSlotsGenerateMan
 
     @Override
     public void calTimes(BasketballSuperstarResultLib lib) throws Exception {
-        if (!checkElement(lib)) {
-            throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
-        }
+//        if (!checkElement(lib)) {
+//            throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
+//        }
 
         if (triggerFreeLib(lib, BasketballSuperstarConstant.SpecialMode.FREE)) {
             //免费

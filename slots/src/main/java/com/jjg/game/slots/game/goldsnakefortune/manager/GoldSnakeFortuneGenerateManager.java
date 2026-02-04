@@ -105,10 +105,10 @@ public class GoldSnakeFortuneGenerateManager extends AbstractSlotsGenerateManage
 
     @Override
     public void calTimes(GoldSnakeFortuneResultLib lib) throws Exception {
-        if (!checkElement(lib)) {
-            log.warn("lib = {}", JSONObject.toJSONString(lib));
-            throw new IllegalArgumentException("检查结果有错误");
-        }
+//        if (!checkElement(lib)) {
+//            log.warn("lib = {}", JSONObject.toJSONString(lib));
+//            throw new IllegalArgumentException("检查结果有错误");
+//        }
 
         if (triggerFreeLib(lib)) {
             //免费
