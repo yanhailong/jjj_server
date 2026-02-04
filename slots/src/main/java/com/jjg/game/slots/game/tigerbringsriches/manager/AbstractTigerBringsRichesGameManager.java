@@ -67,6 +67,11 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new TigerBringsRichesGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        if (playerGameData.getStatus() == TigerBringsRichesConstant.Status.REAL_TIGER_BRINGS_RICHES
+                && playerGameData.getSpecialLib() == null) {
+            playerGameData.setStatus(TigerBringsRichesConstant.Status.NORMAL);
+            log.info("虎虎生财玩家状态重置为正常状态 playerId = {}", playerController.playerId());
+        }
         TigerBringsRichesGameRunInfo gameRunInfo = new TigerBringsRichesGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
@@ -75,13 +80,13 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
 
     @Override
     protected void onAutoExitAction(TigerBringsRichesPlayerGameData gameData, int eventId) {
-        if (gameData.getStatus() == TigerBringsRichesConstant.Status.REAL_TIGER_BRINGS_RICHES) {
-            TigerBringsRichesResultLib resultLib = gameData.getSpecialLib();
-            for (int i = gameData.getCurrentRandomIndex(); i < resultLib.getSpecialResult().size(); i++) {
-                log.info("虎虎生财自动旋转 playerId = {},currentRandomIndex = {}", gameData.playerId(), gameData.getCurrentRandomIndex());
-                startGame(new PlayerController(null, null), gameData, gameData.getOneBetScore(), true);
-            }
-        }
+//        if (gameData.getStatus() == TigerBringsRichesConstant.Status.REAL_TIGER_BRINGS_RICHES) {
+//            TigerBringsRichesResultLib resultLib = gameData.getSpecialLib();
+//            for (int i = gameData.getCurrentRandomIndex(); i < resultLib.getSpecialResult().size(); i++) {
+//                log.info("虎虎生财自动旋转 playerId = {},currentRandomIndex = {}", gameData.playerId(), gameData.getCurrentRandomIndex());
+//                startGame(new PlayerController(null, null), gameData, gameData.getOneBetScore(), true);
+//            }
+//        }
     }
 
     /**

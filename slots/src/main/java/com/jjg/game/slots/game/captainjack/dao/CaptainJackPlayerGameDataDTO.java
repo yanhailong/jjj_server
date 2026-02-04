@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author 11
  * @date 2025/8/5 14:11
  */
-@Document
 public class CaptainJackPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
     //寻宝次数
     private int alreadyDigCount;

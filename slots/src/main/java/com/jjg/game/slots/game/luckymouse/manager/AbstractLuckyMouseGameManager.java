@@ -62,6 +62,7 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new LuckyMouseGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        resetFreeStateIfInvalid(playerGameData, LuckyMouseConstant.Status.REAL_FU_SHU, LuckyMouseConstant.Status.NORMAL, "幸运小鼠");
 
         LuckyMouseGameRunInfo gameRunInfo = new LuckyMouseGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);

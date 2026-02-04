@@ -35,7 +35,6 @@ import com.jjg.game.core.task.param.TaskConditionParam10001;
 import com.jjg.game.core.task.param.TaskConditionParam10003;
 import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.core.utils.ItemUtils;
-import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -56,6 +55,7 @@ import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -1288,6 +1288,23 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 }
             }
         }
+    }
+
+    protected void resetFreeState(T gameData) {
+        gameData.setFreeLib(null);
+        gameData.setFreeIndex(new AtomicInteger(0));
+        gameData.setRemainFreeCount(new AtomicInteger(0));
+    }
+
+    protected boolean resetFreeStateIfInvalid(T gameData, int freeStatus, int normalStatus, String gameName) {
+        if (gameData.getStatus() == freeStatus
+                && (gameData.getFreeLib() == null || gameData.getRemainFreeCount().get() <= 0)) {
+            gameData.setStatus(normalStatus);
+            resetFreeState(gameData);
+            log.info("{}玩家状态异常，重置为正常状态,状态为{}, playerId = {}", gameName, gameData.getStatus(), gameData.playerId());
+            return true;
+        }
+        return false;
     }
 
     protected abstract <D extends AbstractResultLibDao> D getResultLibDao();

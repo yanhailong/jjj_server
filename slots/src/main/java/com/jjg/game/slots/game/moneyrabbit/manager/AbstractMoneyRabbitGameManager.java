@@ -51,6 +51,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new MoneyRabbitGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        resetFreeStateIfInvalid(playerGameData, MoneyRabbitConstant.Status.FREE, MoneyRabbitConstant.Status.NORMAL, "招财兔");
 
         MoneyRabbitGameRunInfo gameRunInfo = new MoneyRabbitGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
@@ -278,10 +279,10 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
 
     @Override
     protected void onAutoExitAction(MoneyRabbitPlayerGameData gameData, int eventId) {
-        if (gameData.getStatus() == MoneyRabbitConstant.Status.FREE) {
-            freeStateAction(gameData, (playerGameData) ->
-                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
-        }
+//        if (gameData.getStatus() == MoneyRabbitConstant.Status.FREE) {
+//            freeStateAction(gameData, (playerGameData) ->
+//                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
+//        }
     }
 
     @Override

@@ -49,6 +49,7 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new SteamAgeGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        resetFreeStateIfInvalid(playerGameData, SteamAgeConstant.Status.FREE, SteamAgeConstant.Status.NORMAL, "蒸汽时代");
 
         SteamAgeGameRunInfo gameRunInfo = new SteamAgeGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
@@ -248,14 +249,14 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
 
     @Override
     protected void onAutoExitAction(SteamAgePlayerGameData playerGameData, int eventId) {
-        //检查当前是否处于特殊模式
-        if (playerGameData.getStatus() == SteamAgeConstant.Status.FREE) {
-            int forCount = playerGameData.getRemainFreeCount().get();
-            while (forCount > 0) {
-                autoStartGame(playerGameData, playerGameData.getAllBetScore());
-                forCount = playerGameData.getRemainFreeCount().get();
-            }
-        }
+//        //检查当前是否处于特殊模式
+//        if (playerGameData.getStatus() == SteamAgeConstant.Status.FREE) {
+//            int forCount = playerGameData.getRemainFreeCount().get();
+//            while (forCount > 0) {
+//                autoStartGame(playerGameData, playerGameData.getAllBetScore());
+//                forCount = playerGameData.getRemainFreeCount().get();
+//            }
+//        }
     }
 
     /**

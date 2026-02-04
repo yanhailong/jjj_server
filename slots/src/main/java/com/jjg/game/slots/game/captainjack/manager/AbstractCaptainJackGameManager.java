@@ -17,7 +17,6 @@ import com.jjg.game.slots.game.captainjack.data.CaptainJackPlayerGameData;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 
-import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameManager<CaptainJackPlayerGameData, CaptainJackResultLib, CaptainJackGameRunInfo> {
     protected final CaptainJackGameGenerateManager gameGenerateManager;
@@ -48,17 +47,15 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new CaptainJackGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
-        if ((playerGameData.getStatus() == CaptainJackConstant.Status.TREASURE_CHEST && playerGameData.getResultLib() == null)
-                || (playerGameData.getStatus() == CaptainJackConstant.Status.FREE
-                && (playerGameData.getFreeLib() == null || playerGameData.getRemainFreeCount().get() <= 0))) {
+        if (playerGameData.getStatus() == CaptainJackConstant.Status.TREASURE_CHEST
+                && playerGameData.getResultLib() == null) {
             playerGameData.setStatus(CaptainJackConstant.Status.NORMAL);
             playerGameData.setResultLib(null);
-            playerGameData.setFreeLib(null);
             playerGameData.setAlreadyDigCount(null);
-            playerGameData.setFreeIndex(new AtomicInteger(0));
-            playerGameData.setRemainFreeCount(new AtomicInteger(0));
+            resetFreeState(playerGameData);
             log.info("杰克船长玩家状态异常，重置为正常状态,状态为{}, playerId = {}", playerGameData.getStatus(), playerController.playerId());
         }
+        resetFreeStateIfInvalid(playerGameData, CaptainJackConstant.Status.FREE, CaptainJackConstant.Status.NORMAL, "杰克船长");
         CaptainJackGameRunInfo gameRunInfo = new CaptainJackGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;

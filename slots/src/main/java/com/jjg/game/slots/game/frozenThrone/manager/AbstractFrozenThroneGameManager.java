@@ -55,6 +55,7 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new FrozenThroneGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        resetFreeStateIfInvalid(playerGameData, FrozenThroneConstant.Status.FREE, FrozenThroneConstant.Status.NORMAL, "寒冰王座");
 
         FrozenThroneGameRunInfo gameRunInfo = new FrozenThroneGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
@@ -255,14 +256,14 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
 
     @Override
     protected void onAutoExitAction(FrozenThronePlayerGameData playerGameData, int eventId) {
-        //检查当前是否处于特殊模式
-        if (playerGameData.getStatus() == BasketballSuperstarConstant.Status.FREE) {
-            int forCount = playerGameData.getRemainFreeCount().get();
-            while (forCount > 0) {
-                autoStartGame(playerGameData, playerGameData.getAllBetScore());
-                forCount = playerGameData.getRemainFreeCount().get();
-            }
-        }
+//        //检查当前是否处于特殊模式
+//        if (playerGameData.getStatus() == FrozenThroneConstant.Status.FREE) {
+//            int forCount = playerGameData.getRemainFreeCount().get();
+//            while (forCount > 0) {
+//                autoStartGame(playerGameData, playerGameData.getAllBetScore());
+//                forCount = playerGameData.getRemainFreeCount().get();
+//            }
+//        }
     }
 
     /**

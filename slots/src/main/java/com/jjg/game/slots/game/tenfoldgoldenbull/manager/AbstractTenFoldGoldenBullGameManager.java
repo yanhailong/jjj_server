@@ -68,6 +68,11 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new TenFoldGoldenBullGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        if (playerGameData.getStatus() == TenFoldGoldenBullConstant.Status.REAL_LUCKY_BULL
+                && playerGameData.getLuckyBull() == null) {
+            playerGameData.setStatus(TenFoldGoldenBullConstant.Status.NORMAL);
+            log.info("十倍金牛玩家状态重置为正常状态 playerId = {}", playerController.playerId());
+        }
         TenFoldGoldenBullGameRunInfo gameRunInfo = new TenFoldGoldenBullGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
@@ -76,13 +81,13 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
 
     @Override
     protected void onAutoExitAction(TenFoldGoldenBullPlayerGameData gameData, int eventId) {
-        if (gameData.getStatus() == TenFoldGoldenBullConstant.Status.REAL_LUCKY_BULL) {
-            TenFoldGoldenBullResultLib resultLib = gameData.getLuckyBull();
-            for (int i = gameData.getCurrentRandomIndex(); i < resultLib.getRandomResult().size(); i++) {
-                log.info("福牛模式自动旋转 playerId = {},currentRandomIndex = {}", gameData.playerId(), gameData.getCurrentRandomIndex());
-                startGame(new PlayerController(null, null), gameData, gameData.getOneBetScore(), true);
-            }
-        }
+//        if (gameData.getStatus() == TenFoldGoldenBullConstant.Status.REAL_LUCKY_BULL) {
+//            TenFoldGoldenBullResultLib resultLib = gameData.getLuckyBull();
+//            for (int i = gameData.getCurrentRandomIndex(); i < resultLib.getRandomResult().size(); i++) {
+//                log.info("福牛模式自动旋转 playerId = {},currentRandomIndex = {}", gameData.playerId(), gameData.getCurrentRandomIndex());
+//                startGame(new PlayerController(null, null), gameData, gameData.getOneBetScore(), true);
+//            }
+//        }
     }
 
     /**

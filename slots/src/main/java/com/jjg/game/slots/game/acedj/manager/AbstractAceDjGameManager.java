@@ -54,14 +54,7 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new AceDjGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
-        if (playerGameData.getStatus() == AceDjConstant.Status.FREE
-                && (playerGameData.getFreeLib() == null || playerGameData.getRemainFreeCount().get() <= 0)) {
-            playerGameData.setStatus(AceDjConstant.Status.NORMAL);
-            playerGameData.setFreeLib(null);
-            playerGameData.setFreeIndex(new AtomicInteger(0));
-            playerGameData.setRemainFreeCount(new AtomicInteger(0));
-            log.info("王牌Dj玩家状态异常，重置为正常状态,状态为{}, playerId = {}", playerGameData.getStatus(), playerController.playerId());
-        }
+        resetFreeStateIfInvalid(playerGameData, AceDjConstant.Status.FREE, AceDjConstant.Status.NORMAL, "王牌Dj");
 
         AceDjGameRunInfo gameRunInfo = new AceDjGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);

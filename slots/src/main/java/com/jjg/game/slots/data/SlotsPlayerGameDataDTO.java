@@ -1,13 +1,10 @@
 package com.jjg.game.slots.data;
 
-import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.utils.ObjectMapperUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.lang.reflect.Constructor;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author 11

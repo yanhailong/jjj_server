@@ -51,6 +51,8 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new GoldSnakeFortuneGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        resetFreeStateIfInvalid(playerGameData, GoldSnakeFortuneConstant.Status.FREE, GoldSnakeFortuneConstant.Status.NORMAL, "金蛇献福");
+        resetFreeStateIfInvalid(playerGameData, GoldSnakeFortuneConstant.Status.REAL_FREE, GoldSnakeFortuneConstant.Status.NORMAL, "金蛇献福");
 
         GoldSnakeFortuneGameRunInfo gameRunInfo = new GoldSnakeFortuneGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
@@ -277,10 +279,10 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
 
     @Override
     protected void onAutoExitAction(GoldSnakeFortunePlayerGameData gameData, int eventId) {
-        if (gameData.getStatus() == GoldSnakeFortuneConstant.Status.FREE) {
-            freeStateAction(gameData, (playerGameData) ->
-                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
-        }
+//        if (gameData.getStatus() == GoldSnakeFortuneConstant.Status.FREE) {
+//            freeStateAction(gameData, (playerGameData) ->
+//                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
+//        }
     }
 
     @Override

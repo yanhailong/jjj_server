@@ -48,14 +48,7 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new BasketballSuperstarGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
-        if (playerGameData.getStatus() == BasketballSuperstarConstant.Status.FREE
-                && (playerGameData.getFreeLib() == null || playerGameData.getRemainFreeCount().get() <= 0)) {
-            playerGameData.setStatus(BasketballSuperstarConstant.Status.NORMAL);
-            playerGameData.setFreeLib(null);
-            playerGameData.setFreeIndex(new AtomicInteger(0));
-            playerGameData.setRemainFreeCount(new AtomicInteger(0));
-            log.info("篮球巨星玩家状态异常，重置为正常状态,状态为{}, playerId = {}", playerGameData.getStatus(), playerController.playerId());
-        }
+        resetFreeStateIfInvalid(playerGameData, BasketballSuperstarConstant.Status.FREE, BasketballSuperstarConstant.Status.NORMAL, "篮球巨星");
 
         BasketballSuperstarGameRunInfo gameRunInfo = new BasketballSuperstarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);

@@ -42,6 +42,7 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new ElephantGodGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        resetFreeStateIfInvalid(playerGameData, ElephantGodConstant.Status.FREE, ElephantGodConstant.Status.NORMAL, "象财神");
         ElephantGodGameRunInfo gameRunInfo = new ElephantGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
@@ -60,9 +61,9 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
 
             //获取当前处于哪种状态
             int status = playerGameData.getStatus();
-            if (status == CaptainJackConstant.Status.NORMAL) {
+            if (status == ElephantGodConstant.Status.NORMAL) {
                 normal(gameRunInfo, playerGameData, betValue);
-            } else if (status == CaptainJackConstant.Status.FREE) {
+            } else if (status == ElephantGodConstant.Status.FREE) {
                 free(gameRunInfo, playerGameData);
             } else {
                 gameRunInfo.setCode(Code.FAIL);
@@ -122,7 +123,7 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
         //累计免费模式的中奖金额
         gameRunInfo.addBigPoolTimes(freeGame.getTimes());
         if (afterCount == 0) {
-            playerGameData.setStatus(CaptainJackConstant.Status.NORMAL);
+            playerGameData.setStatus(ElephantGodConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());

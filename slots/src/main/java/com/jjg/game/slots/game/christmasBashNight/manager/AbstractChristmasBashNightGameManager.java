@@ -1,9 +1,7 @@
 package com.jjg.game.slots.game.christmasBashNight.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -49,7 +47,7 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new ChristmasBashNightGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
-
+        resetFreeStateIfInvalid(playerGameData, ChristmasBashNightConstant.Status.FREE, ChristmasBashNightConstant.Status.NORMAL, "圣诞狂欢夜");
         ChristmasBashNightGameRunInfo gameRunInfo = new ChristmasBashNightGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
@@ -248,9 +246,9 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
 
     @Override
     protected void onAutoExitAction(ChristmasBashNightPlayerGameData gameData, int eventId) {
-        if (gameData.getStatus() == ChristmasBashNightConstant.Status.FREE) {
-            freeStateAction(gameData, (playerGameData) ->
-                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
-        }
+//        if (gameData.getStatus() == ChristmasBashNightConstant.Status.FREE) {
+//            freeStateAction(gameData, (playerGameData) ->
+//                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
+//        }
     }
 }

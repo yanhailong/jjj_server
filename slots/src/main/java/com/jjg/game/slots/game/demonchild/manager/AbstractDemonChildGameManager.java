@@ -55,6 +55,7 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new DemonChildGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        resetFreeStateIfInvalid(playerGameData, DemonChildConstant.Status.FREE, DemonChildConstant.Status.NORMAL, "恶魔之子");
         DemonChildGameRunInfo gameRunInfo = new DemonChildGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
@@ -240,22 +241,22 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
 
     @Override
     protected void onAutoExitAction(DemonChildPlayerGameData gameData, int eventId) {
-        //发放免费模式和探宝奖励
-        if (gameData.getStatus() == DemonChildConstant.Status.FREE) {
-            Object freeLib = gameData.getFreeLib();
-            if (freeLib instanceof DemonChildResultLib lib) {
-                List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = lib.getSpecialAuxiliaryInfoList();
-                int totalSize = 0;
-                for (SpecialAuxiliaryInfo auxiliaryInfo : specialAuxiliaryInfoList) {
-                    if (auxiliaryInfo.getFreeGames() != null) {
-                        totalSize = auxiliaryInfo.getFreeGames().size();
-                    }
-                }
-                int index = gameData.getFreeIndex().get();
-                for (int i = index; i < totalSize; i++) {
-                    startGame(new PlayerController(null, null), gameData, gameData.getAllBetScore(), true);
-                }
-            }
-        }
+//        //发放免费模式和探宝奖励
+//        if (gameData.getStatus() == DemonChildConstant.Status.FREE) {
+//            Object freeLib = gameData.getFreeLib();
+//            if (freeLib instanceof DemonChildResultLib lib) {
+//                List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = lib.getSpecialAuxiliaryInfoList();
+//                int totalSize = 0;
+//                for (SpecialAuxiliaryInfo auxiliaryInfo : specialAuxiliaryInfoList) {
+//                    if (auxiliaryInfo.getFreeGames() != null) {
+//                        totalSize = auxiliaryInfo.getFreeGames().size();
+//                    }
+//                }
+//                int index = gameData.getFreeIndex().get();
+//                for (int i = index; i < totalSize; i++) {
+//                    startGame(new PlayerController(null, null), gameData, gameData.getAllBetScore(), true);
+//                }
+//            }
+//        }
     }
 }

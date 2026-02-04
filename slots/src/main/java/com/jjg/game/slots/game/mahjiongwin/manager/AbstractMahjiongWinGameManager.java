@@ -58,6 +58,7 @@ public abstract class AbstractMahjiongWinGameManager extends AbstractSlotsGameMa
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new MahjiongWinGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        resetFreeStateIfInvalid(playerGameData, MahjiongWinConstant.Status.FREE, MahjiongWinConstant.Status.NORMAL, "麻将赢");
 
         MahjiongWinGameRunInfo gameRunInfo = new MahjiongWinGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
@@ -219,10 +220,10 @@ public abstract class AbstractMahjiongWinGameManager extends AbstractSlotsGameMa
 
     @Override
     protected void onAutoExitAction(MahjiongWinPlayerGameData gameData, int eventId) {
-        if (gameData.getStatus() == ChristmasBashNightConstant.Status.FREE) {
-            freeStateAction(gameData, (playerGameData) ->
-                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
-        }
+//        if (gameData.getStatus() == MahjiongWinConstant.Status.FREE) {
+//            freeStateAction(gameData, (playerGameData) ->
+//                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
+//        }
     }
 
     @Override
