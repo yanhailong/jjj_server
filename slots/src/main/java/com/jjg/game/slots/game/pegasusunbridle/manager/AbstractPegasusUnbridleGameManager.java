@@ -73,6 +73,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
         }
         if (playerGameData.getStatus() == PegasusUnbridleConstant.Status.REAL_FU_MA && playerGameData.getFuMa() == null) {
             playerGameData.setStatus(PegasusUnbridleConstant.Status.NORMAL);
+            log.info("神马飞扬玩家状态重置为正常状态 playerId = {}", playerController.playerId());
         }
         PegasusUnbridleGameRunInfo gameRunInfo = new PegasusUnbridleGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
