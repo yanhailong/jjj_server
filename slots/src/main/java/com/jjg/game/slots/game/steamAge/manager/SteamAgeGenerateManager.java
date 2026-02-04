@@ -424,9 +424,9 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
 
     @Override
     public void calTimes(SteamAgeResultLib lib) throws Exception {
-//        if (!checkElement(lib)) {
-//            throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
-//        }
+        if (!checkElement(lib)) {
+            throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
+        }
 
         if(triggerFreeLib(lib,SteamAgeConstant.SpecialMode.FREE)){
             //免费

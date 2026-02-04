@@ -276,10 +276,10 @@ public class WealthBankGenerateManager extends AbstractSlotsGenerateManager<Weal
      * @param lib
      */
     public void calTimes(WealthBankResultLib lib) throws Exception {
-//        if (!checkElement(lib)) {
-//            log.warn("[Wealth Bank] lib = {}", JSONObject.toJSONString(lib));
-//            throw new IllegalArgumentException("检查结果有错误");
-//        }
+        if (!checkElement(lib)) {
+            log.warn("[Wealth Bank] lib = {}", JSONObject.toJSONString(lib));
+            throw new IllegalArgumentException("检查结果有错误");
+        }
 
         if(triggerFreeLib(lib)){
             //免费
