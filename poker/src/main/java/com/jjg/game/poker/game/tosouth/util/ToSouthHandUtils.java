@@ -1,14 +1,17 @@
 package com.jjg.game.poker.game.tosouth.util;
 
 import cn.hutool.core.collection.CollUtil;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.poker.game.common.data.PokerCard;
+import com.jjg.game.poker.game.tosouth.constant.ToSouthConstant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.*;
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.InstantWinType.*;
 
 /**
  * 南方前进牌型工具类
@@ -168,24 +171,129 @@ public class ToSouthHandUtils {
     }
 
     /**
-     * 检查通杀
+     * 获取通杀牌的 ID 列表
      */
-    public static boolean checkInstantWin(List<Card> cards) {
-        if (cards.size() != 13) return false;
+    public static Pair<Integer, List<Integer>> getInstantWinCards(List<Card> cards) {
+        List<Integer> cardClientIds = new ArrayList<>();
+        if (cards == null || cards.size() != 13) return null;
         cards.sort(CARD_COMPARATOR);
-        
+
         // 4个2
-        if (countRank(cards, RANK_2) == 4) return true;
+        if (countRank(cards, RANK_2) == 4) {
+            for (Card c : cards) {
+                if (c.getRank() == RANK_2 && c instanceof PokerCard pc) {
+                    cardClientIds.add(pc.getClientId());
+                }
+            }
+            return new Pair<>(FOUR_TWO, cardClientIds);
+        }
         // 一条龙 (3-A)
-        if (isDragon(cards)) return true;
-        // 6对
-        if (countPairs(cards) >= 6) return true;
-        // 2个四张 / 3个四张
-        if (countQuads(cards) >= 2) return true;
+        if (isDragon(cards)) {
+            // 所有非2的牌都是通杀牌
+            for (Card c : cards) {
+                if (c.getRank() != RANK_2 && c instanceof PokerCard pc) {
+                    cardClientIds.add(pc.getClientId());
+                }
+            }
+            return new Pair<>(DRAGON, cardClientIds);
+        }
         // 同色
-        if (isAllSameColor(cards)) return true;
-        
-        return false;
+        if (isAllSameColor(cards)) {
+            // 全都是通杀牌
+            for (Card c : cards) {
+                if (c instanceof PokerCard pc) cardClientIds.add(pc.getClientId());
+            }
+            return new Pair<>(SAME_COLOR, cardClientIds);
+        }
+        // 6对
+        if (countPairs(cards) >= 6) {
+            // 找出所有对子
+            List<Integer> pairRanks = new ArrayList<>();
+            for (int i = 0; i < cards.size() - 1; i++) {
+                if (cards.get(i).getRank() == cards.get(i+1).getRank()) {
+                    pairRanks.add(cards.get(i).getRank());
+                    i++;
+                }
+            }
+            // 复用 countPairs 逻辑
+            int pairsFound = 0;
+            for (int i = 0; i < cards.size() - 1; i++) {
+                if (cards.get(i).getRank() == cards.get(i+1).getRank()) {
+                    if (cards.get(i) instanceof PokerCard pc1) cardClientIds.add(pc1.getClientId());
+                    if (cards.get(i+1) instanceof PokerCard pc2) cardClientIds.add(pc2.getClientId());
+                    pairsFound++;
+                    i++; 
+                    if (pairsFound == 6) break;
+                }
+            }
+            return new Pair<>(SIX_PAIRS, cardClientIds);
+        }
+        // 5连对、6连对
+        Map<Integer, List<Card>> rankMap = convertCardListToRankMap(cards);
+        List<Integer> pairs = new ArrayList<>();
+        for (Map.Entry<Integer, List<Card>> entry : rankMap.entrySet()) {
+            if (entry.getValue().size() >= 2) {
+                pairs.add(entry.getKey());
+            }
+        }
+        pairs.removeIf(r -> r == RANK_2);
+        pairs.sort(Comparator.reverseOrder());
+        List<Integer> consec = findConsecutiveSubList(pairs, 3);
+        if (consec != null && consec.size() >= 5) {
+            for (Integer r : consec) {
+                List<Card> cs = rankMap.get(r);
+                for (int k=0; k<2; k++) {
+                    if (cs.get(k) instanceof PokerCard pc) cardClientIds.add(pc.getClientId());
+                }
+            }
+            return new Pair<>(consec.size() > 5 ? SIX_CONSEC_PAIRS : FIVE_CONSEC_PAIRS, cardClientIds);
+        }
+
+        // 3 连三张、4 连三张
+        List<Integer> triples = new ArrayList<>();
+        for (Map.Entry<Integer, List<Card>> entry : rankMap.entrySet()) {
+            if (entry.getValue().size() >= 3) {
+                triples.add(entry.getKey());
+            }
+        }
+        triples.removeIf(r -> r == RANK_2);
+        triples.sort(Comparator.reverseOrder());
+        List<Integer> consec2 = findConsecutiveSubList(triples, 3);
+        if (consec2 != null) {
+            for (Integer r : consec2) {
+                List<Card> cs = rankMap.get(r);
+                for (int k=0; k<3; k++) {
+                    if (cs.get(k) instanceof PokerCard pc) cardClientIds.add(pc.getClientId());
+                }
+            }
+            return new Pair<>(consec2.size() > 3 ? FOUR_CONSEC_TRIPLES : THREE_CONSEC_TRIPLES, cardClientIds);
+        }
+
+        // 2个四张、3个四张、1个四张+3连对
+        int quadsCount = countQuads(cards);
+        if (quadsCount > 0) {
+            for (int i = 0; i < cards.size() - 3; i++) {
+                if (cards.get(i).getRank() == cards.get(i+3).getRank()) {
+                    for (int j = 0; j < 4; j++) {
+                        if (cards.get(i+j) instanceof PokerCard pc) cardClientIds.add(pc.getClientId());
+                    }
+                    i+=3;
+                }
+            }
+            if (quadsCount > 1) {
+                return new Pair<>(quadsCount > 2 ? THREE_QUADS : TWO_QUADS, cardClientIds);
+            } else if (consec != null && consec.size() >= 3) {
+                // 一个四张 + 3连对
+                for (Integer r : consec) {
+                    List<Card> cs = rankMap.get(r);
+                    for (int k=0; k<2; k++) {
+                        if (cs.get(k) instanceof PokerCard pc) cardClientIds.add(pc.getClientId());
+                    }
+                }
+                return new Pair<>(COMB_BOMB, cardClientIds);
+            }
+        }
+        return null;
     }
 
     public static int countTwo(List<Card> cards) {
@@ -676,8 +784,7 @@ public class ToSouthHandUtils {
         }
         result.put(ToSouthCardType.CONSECUTIVE_PAIRS, consecutivePairs);
 
-        // 策略：如果凑成顺子能消耗单牌，则凑。如果必须拆对子，则尽量不拆
-        // 简化策略：将所有剩余牌视为单张池，找最长顺子
+        // 策略：将所有剩余牌视为单张池，找最长顺子
         List<List<Card>> straights = new ArrayList<>();
         // 获取所有存在的 rank
         List<Integer> singleRanks = new ArrayList<>();
@@ -746,24 +853,60 @@ public class ToSouthHandUtils {
     }
 
     private static void addConsecutivePairs(List<List<Card>> target, Map<Integer, List<Card>> rankMap, List<Integer> ranks) {
+        if (ranks.isEmpty()) return;
         List<Card> chain = new ArrayList<>();
+        
+        // 规则：连对最大的对子取最强的花色，其他的对子取最弱的花色
+        // ranks 是降序排列 (e.g. 5, 4, 3)
+        // 所以 ranks.get(0) 是最大对子
+        int maxRank = ranks.get(0);
+
         for (Integer r : ranks) {
             List<Card> cs = rankMap.get(r);
             if (cs != null && !cs.isEmpty()) {
-                chain.addAll(cs);
-                cs.clear(); // 标记为已使用
-
+                cs.sort(CARD_COMPARATOR); 
+                
+                List<Card> selected = new ArrayList<>();
+                if (r == maxRank) {
+                    // 最大对子取最强花色 (取最后两张)
+                    if (cs.size() >= 2) {
+                        selected.add(cs.removeLast());
+                        selected.add(cs.removeLast());
+                    }
+                } else {
+                    // 其他对子取最弱花色 (取前两张)
+                    if (cs.size() >= 2) {
+                        selected.add(cs.removeFirst());
+                        selected.add(cs.removeFirst());
+                    }
+                }
+                chain.addAll(selected);
             }
         }
         target.add(chain);
     }
 
     private static void addStraight(List<List<Card>> target, Map<Integer, List<Card>> rankMap, List<Integer> ranks) {
+        if (ranks.isEmpty()) return;
         List<Card> chain = new ArrayList<>();
+        
+        // 规则：顺子最大的那张牌若有多张，取花色最强的那张；顺子其他牌都取花色最弱的
+        // ranks 是降序排列 (e.g. 7, 6, 5, 4, 3)
+        // ranks.get(0) 是最大牌
+        int maxRank = ranks.get(0);
+
         for (Integer r : ranks) {
             List<Card> cs = rankMap.get(r);
             if (cs != null && !cs.isEmpty()) {
-                chain.add(cs.removeFirst()); // 取一张
+                cs.sort(CARD_COMPARATOR);
+                
+                if (r == maxRank) {
+                    // 最大牌取最强花色 (取最后一张)
+                    chain.add(cs.removeLast());
+                } else {
+                    // 其他牌取最弱花色 (取第一张)
+                    chain.add(cs.removeFirst());
+                }
             }
         }
         target.add(chain);
@@ -809,6 +952,26 @@ public class ToSouthHandUtils {
         if ((firstRankCount == 1 && currentChain.size() >= 3) || (firstRankCount == 2 && currentChain.size() >= 6)) {
             return currentChain;
         }
+        return null;
+    }
+
+    private static List<Integer> findConsecutiveSubList(List<Integer> sortedRanks, int minLen) {
+        if (sortedRanks.size() < minLen) return null;
+        List<Integer> currentChain = new ArrayList<>();
+        for (Integer r : sortedRanks) {
+            if (currentChain.isEmpty()) {
+                currentChain.add(r);
+            } else {
+                if (currentChain.getLast() == r + 1) {
+                    currentChain.add(r);
+                } else {
+                    if (currentChain.size() >= minLen) return currentChain;
+                    currentChain.clear();
+                    currentChain.add(r);
+                }
+            }
+        }
+        if (currentChain.size() >= minLen) return currentChain;
         return null;
     }
 

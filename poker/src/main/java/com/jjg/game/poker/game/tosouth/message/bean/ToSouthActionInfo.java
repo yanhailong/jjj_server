@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.tosouth.message.bean;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -19,6 +20,8 @@ public class ToSouthActionInfo {
     public boolean canPlay = true;
     @ProtoDesc("本轮中已pass的玩家座位，不能再出牌")
     public Set<Integer> curRoundPassedPlayerSeats;
+    @ProtoDesc("本轮中玩家手牌数量，从座位0开始")
+    public List<Integer> handCardCountList = new ArrayList<>();
     @ProtoDesc("推荐出牌组合列表 (仅针对当前操作玩家，其他玩家为null)")
     public List<ToSouthRecommendCards> recommendCardsList;
     
@@ -32,4 +35,6 @@ public class ToSouthActionInfo {
     public boolean isFirstRound;
     @ProtoDesc("当前玩家的手牌")
     public List<Integer> selfHandCards;
+    @ProtoDesc("高亮手牌列表 (仅在发完牌打牌前显示，对自己可见，包含2、炸弹、连对)")
+    public List<Integer> highlightCards;
 }
