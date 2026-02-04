@@ -55,8 +55,8 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
 
     @Override
     public void init() {
-//        log.info("启动十倍金牛游戏管理器...");
-//        super.init();
+        log.info("启动十倍金牛游戏管理器...");
+        super.init();
 //        addUpdatePoolEvent();
     }
 
