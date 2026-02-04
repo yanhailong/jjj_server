@@ -52,7 +52,6 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
             return new GoldSnakeFortuneGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
         resetFreeStateIfInvalid(playerGameData, GoldSnakeFortuneConstant.Status.FREE, GoldSnakeFortuneConstant.Status.NORMAL, "金蛇献福");
-        resetFreeStateIfInvalid(playerGameData, GoldSnakeFortuneConstant.Status.REAL_FREE, GoldSnakeFortuneConstant.Status.NORMAL, "金蛇献福");
 
         GoldSnakeFortuneGameRunInfo gameRunInfo = new GoldSnakeFortuneGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
