@@ -23,6 +23,8 @@ public class GameNodeVo {
     private List<String> whiteIpList;
     //用户ID白名单
     private List<String> whiteIdList;
+    //节点当前session数量
+    private int sessionNum;
 
     public String getType() {
         return type;
@@ -78,5 +80,13 @@ public class GameNodeVo {
 
     public void setWhiteIdList(List<String> whiteIdList) {
         this.whiteIdList = whiteIdList;
+    }
+
+    public int getSessionNum() {
+        return sessionNum;
+    }
+
+    public void setSessionNum(int sessionNum) {
+        this.sessionNum = sessionNum;
     }
 }

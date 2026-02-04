@@ -128,7 +128,7 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
         if (icon == CaptainJackConstant.BaseElement.FREE_ICON) {
             SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerFree(lib, CaptainJackConstant.SpecialMode.FREE, miniGameId);
             if (specialAuxiliaryInfo != null) {
-                if (specialAuxiliaryInfo.getFreeGames() != null) {
+                if (specialAuxiliaryInfo.getFreeGames() != null && CollectionUtil.isEmpty(lib.getLibTypeSet())) {
                     if (lib.getSpecialAuxiliaryInfoList() == null) {
                         specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
                         return;
@@ -254,7 +254,7 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
             }
             CaptainJackResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
             List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = lib.getSpecialAuxiliaryInfoList();
-            if (CollectionUtil.isNotEmpty(specialAuxiliaryInfoList)) {
+            if (lib.getLibTypeSet() == null && CollectionUtil.isNotEmpty(specialAuxiliaryInfoList)) {
                 lib.setSpecialAuxiliaryInfoList(null);
                 specialAuxiliaryInfoList = List.copyOf(specialAuxiliaryInfoList);
                 specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));

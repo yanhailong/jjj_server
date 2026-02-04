@@ -9,4 +9,6 @@ import com.jjg.game.common.rpc.IGameRpc;
  */
 public interface GmToAllBridge extends IGameRpc {
     int reload(int reloadType);
+
+    int sessionNum();
 }
