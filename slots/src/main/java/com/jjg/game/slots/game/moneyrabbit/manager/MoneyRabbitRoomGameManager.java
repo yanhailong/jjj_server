@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.moneyrabbit.manager;
 
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.moneyrabbit.data.MoneyRabbitPlayerGameData;
+import com.jjg.game.slots.game.moneyrabbit.data.MoneyRabbitPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.moneyrabbit.data.MoneyRabbitResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -24,5 +25,10 @@ public class MoneyRabbitRoomGameManager extends AbstractMoneyRabbitGameManager {
     @Override
     protected List<Integer> checkLibPool(MoneyRabbitResultLib resultLib, MoneyRabbitPlayerGameData playerGameData) {
         return Collections.emptyList();
+    }
+
+    @Override
+    protected Class<MoneyRabbitPlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
+        return MoneyRabbitPlayerGameDataRoomDTO.class;
     }
 }

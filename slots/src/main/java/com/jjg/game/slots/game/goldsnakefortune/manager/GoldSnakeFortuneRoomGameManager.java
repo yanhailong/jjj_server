@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.goldsnakefortune.manager;
 
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortunePlayerGameData;
+import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortunePlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortuneResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -24,5 +25,10 @@ public class GoldSnakeFortuneRoomGameManager extends AbstractGoldSnakeFortuneGam
     @Override
     protected List<Integer> checkLibPool(GoldSnakeFortuneResultLib resultLib, GoldSnakeFortunePlayerGameData playerGameData) {
         return Collections.emptyList();
+    }
+
+    @Override
+    protected Class<GoldSnakeFortunePlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
+        return GoldSnakeFortunePlayerGameDataRoomDTO.class;
     }
 }

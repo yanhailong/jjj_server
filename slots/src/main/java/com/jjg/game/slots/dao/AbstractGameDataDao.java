@@ -2,9 +2,9 @@ package com.jjg.game.slots.dao;
 
 import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
+import com.jjg.game.slots.data.SlotsPlayerGameDataRoomDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -30,21 +30,44 @@ public abstract class AbstractGameDataDao<T extends SlotsPlayerGameDataDTO> exte
         return mongoTemplate.findOne(query, clazz);
     }
 
+    public <D extends SlotsPlayerGameDataRoomDTO> D getRoomGameDataByPlayerId(Class<D> roomClazz, long playerId, int roomCfgId, long roomId) {
+        String id = playerId + ":" + roomCfgId + ":" + roomId;
+        Query query = new Query(Criteria.where("_id").is(id));
+        return mongoTemplate.findOne(query, roomClazz, getRoomCollectionName(roomClazz));
+    }
+
     public T saveGameData(T playerGameData) {
         Query query = Query.query(Criteria.where("playerId").is(playerGameData.getPlayerId()).and("roomCfgId").is(playerGameData.getRoomCfgId()));
+        Update update = buildUpdate(playerGameData);
+        update.set("_class", playerGameData.getClass().getName());
 
+        // 设置upsert为true，如果不存在就插入
+        return mongoTemplate.findAndModify(query, update, new FindAndModifyOptions().returnNew(true).upsert(true), clazz);
+    }
+
+    public <D extends SlotsPlayerGameDataRoomDTO> D saveRoomGameData(D playerGameData) {
+        if (playerGameData.getId() == null || playerGameData.getId().isEmpty()) {
+            playerGameData.buildRoomKey();
+        }
+        Query query = Query.query(Criteria.where("_id").is(playerGameData.getId()));
+        Update update = buildUpdate(playerGameData);
+        update.set("_class", playerGameData.getClass().getName());
+        return mongoTemplate.findAndModify(query, update, new FindAndModifyOptions().returnNew(true).upsert(true), (Class<D>) playerGameData.getClass(), getRoomCollectionName(playerGameData.getClass()));
+    }
+
+    protected String getRoomCollectionName(Class<?> roomClazz) {
+        return roomClazz.getSimpleName();
+    }
+
+    protected Update buildUpdate(Object playerGameData) {
         Update update = new Update();
         // 设置所有需要更新的字段
-        ReflectionUtils.doWithFields(clazz, field -> {
+        ReflectionUtils.doWithFields(playerGameData.getClass(), field -> {
             field.setAccessible(true);
             if (!Modifier.isStatic(field.getModifiers()) && !field.getName().equals("id")) {
                 update.set(field.getName(), field.get(playerGameData));
             }
         });
-
-        update.set("_class", playerGameData.getClass().getName());
-
-        // 设置upsert为true，如果不存在就插入
-        return mongoTemplate.findAndModify(query, update, new FindAndModifyOptions().returnNew(true).upsert(true), clazz);
+        return update;
     }
 }

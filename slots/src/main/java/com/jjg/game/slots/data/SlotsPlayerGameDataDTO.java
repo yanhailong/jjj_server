@@ -1,20 +1,15 @@
 package com.jjg.game.slots.data;
 
-import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.utils.ObjectMapperUtil;
 import org.springframework.beans.BeanUtils;
-import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.lang.reflect.Constructor;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author 11
  * @date 2025/8/5 14:11
  */
 @Document
-@CompoundIndex(name = "playerId_roomcfgid_unique_idx", def = "{'playerId': 1, 'roomCfgId': 1}", unique = true)
 public class SlotsPlayerGameDataDTO {
     protected long playerId;
     //游戏类型
