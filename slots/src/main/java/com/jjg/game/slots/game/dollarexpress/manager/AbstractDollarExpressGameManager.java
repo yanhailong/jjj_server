@@ -11,6 +11,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialGirdInfo;
@@ -44,6 +45,12 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     public void init() {
         log.info("启动美元快递游戏管理器...");
         super.init();
+    }
+
+
+    @Override
+    public boolean canExit(SlotsPlayerGameData playerGameData) {
+        return getRoomType() != null || playerGameData.getStatus() == SlotsConst.Status.NORMAL;
     }
 
     @Override

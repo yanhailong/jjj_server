@@ -3,7 +3,6 @@ package com.jjg.game.slots.game.thor.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -44,7 +43,8 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new ThorGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
-
+        resetFreeStateIfInvalid(playerGameData, ThorConstant.Status.ICE, ThorConstant.Status.NORMAL, "雷神");
+        resetFreeStateIfInvalid(playerGameData, ThorConstant.Status.FIRE, ThorConstant.Status.NORMAL, "雷神");
         ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
@@ -318,17 +318,17 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
 
     @Override
     protected void onAutoExitAction(ThorPlayerGameData gameData, int eventId) {
-        if (gameData.getStatus() == ThorConstant.Status.CHOOSE_ONE) {
-            PlayerController playerController = gameData.getPlayerController();
-            freeChooseOne(playerController, RandomUtils.randomMinMax(0, 1));
-            if (gameData.getStatus() == ThorConstant.Status.ICE || gameData.getStatus() == ThorConstant.Status.FIRE) {
-                freeStateAction(gameData, (playerGameData) ->
-                        startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
-            }
-        } else if (gameData.getStatus() == ThorConstant.Status.ICE || gameData.getStatus() == ThorConstant.Status.FIRE) {
-            freeStateAction(gameData, (playerGameData) ->
-                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
-        }
+//        if (gameData.getStatus() == ThorConstant.Status.CHOOSE_ONE) {
+//            PlayerController playerController = gameData.getPlayerController();
+//            freeChooseOne(playerController, RandomUtils.randomMinMax(0, 1));
+//            if (gameData.getStatus() == ThorConstant.Status.ICE || gameData.getStatus() == ThorConstant.Status.FIRE) {
+//                freeStateAction(gameData, (playerGameData) ->
+//                        startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
+//            }
+//        } else if (gameData.getStatus() == ThorConstant.Status.ICE || gameData.getStatus() == ThorConstant.Status.FIRE) {
+//            freeStateAction(gameData, (playerGameData) ->
+//                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
+//        }
     }
 
     @Override
