@@ -160,7 +160,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             T lib = createResultLib();
             lib.setId(RandomUtils.getUUid());
             lib.setRollerMode(specialModeCfg.getRollerMode());
-            lib.addLibType(specialModeType);
+
             //获取rollerMode
             int rollerMode = specialAuxiliaryCfg.getRollerMode();
             if (rollerMode < 1) {
