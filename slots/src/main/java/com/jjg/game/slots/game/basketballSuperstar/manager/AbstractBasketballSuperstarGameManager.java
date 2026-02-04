@@ -1,16 +1,13 @@
 package com.jjg.game.slots.game.basketballSuperstar.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.basketballSuperstar.dao.BasketballSuperstarGameDataDao;
@@ -19,7 +16,6 @@ import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarGameR
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarPlayerGameData;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarPlayerGameDataDTO;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarResultLib;
-import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -51,6 +47,14 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
         if (playerGameData == null) {
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new BasketballSuperstarGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+        }
+        if (playerGameData.getStatus() == BasketballSuperstarConstant.Status.FREE
+                && (playerGameData.getFreeLib() == null || playerGameData.getRemainFreeCount().get() <= 0)) {
+            playerGameData.setStatus(BasketballSuperstarConstant.Status.NORMAL);
+            playerGameData.setFreeLib(null);
+            playerGameData.setFreeIndex(new AtomicInteger(0));
+            playerGameData.setRemainFreeCount(new AtomicInteger(0));
+            log.info("篮球巨星玩家状态异常，重置为正常状态,状态为{}, playerId = {}", playerGameData.getStatus(), playerController.playerId());
         }
 
         BasketballSuperstarGameRunInfo gameRunInfo = new BasketballSuperstarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
@@ -253,14 +257,14 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
 
     @Override
     protected void onAutoExitAction(BasketballSuperstarPlayerGameData playerGameData, int eventId) {
-        //检查当前是否处于特殊模式
-        if (playerGameData.getStatus() == BasketballSuperstarConstant.Status.FREE) {
-            int forCount = playerGameData.getRemainFreeCount().get();
-            while (forCount > 0) {
-                autoStartGame(playerGameData, playerGameData.getAllBetScore());
-                forCount = playerGameData.getRemainFreeCount().get();
-            }
-        }
+//        //检查当前是否处于特殊模式
+//        if (playerGameData.getStatus() == BasketballSuperstarConstant.Status.FREE) {
+//            int forCount = playerGameData.getRemainFreeCount().get();
+//            while (forCount > 0) {
+//                autoStartGame(playerGameData, playerGameData.getAllBetScore());
+//                forCount = playerGameData.getRemainFreeCount().get();
+//            }
+//        }
     }
 
     /**
