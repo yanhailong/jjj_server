@@ -448,11 +448,6 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if (!dto.playerName().equals(player.getNickName())) {
-                log.debug("修改货币时，用户名校验错误 playerId = {},paramNick = {},dbNick = {}", dto.playerId(), dto.playerName(), player.getNickName());
-                return fail("common.paramerror");
-            }
-
             long beforeGold = player.getGold();
             long beforeDiamond = player.getDiamond();
             long beforeSafeGold = player.getSafeBoxGold();
