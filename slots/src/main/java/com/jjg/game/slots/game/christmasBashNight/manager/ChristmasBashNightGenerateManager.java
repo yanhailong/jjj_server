@@ -412,9 +412,9 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
 
     @Override
     public void calTimes(ChristmasBashNightResultLib lib) throws Exception {
-//        if (!checkElement(lib)) {
-//            throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
-//        }
+        if (!checkElement(lib)) {
+            throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
+        }
 
         if (triggerFreeLib(lib, ChristmasBashNightConstant.SpecialMode.FREE)) {
             //免费

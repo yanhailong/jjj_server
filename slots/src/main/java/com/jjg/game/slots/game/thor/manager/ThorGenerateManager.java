@@ -332,9 +332,9 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
 
     @Override
     public void calTimes(ThorResultLib lib) throws Exception {
-//        if (!checkElement(lib)) {
-//            throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
-//        }
+        if (!checkElement(lib)) {
+            throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
+        }
 
         if (triggerFreeLib(lib)) {
             //免费

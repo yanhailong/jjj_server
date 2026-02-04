@@ -245,9 +245,9 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
 
     @Override
     public void calTimes(FrozenThroneResultLib lib) throws Exception {
-//        if (!checkElement(lib)) {
-//            throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
-//        }
+        if (!checkElement(lib)) {
+            throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
+        }
 
         if(triggerFreeLib(lib,FrozenThroneConstant.SpecialMode.FREE)){
             //免费

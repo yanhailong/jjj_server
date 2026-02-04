@@ -271,10 +271,10 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @param lib
      */
     public void calTimes(DollarExpressResultLib lib) throws Exception {
-//        if (!checkElement(lib)) {
-//            log.warn("lib = {}", JSONObject.toJSONString(lib));
-//            throw new IllegalArgumentException("检查结果有错误");
-//        }
+        if (!checkElement(lib)) {
+            log.warn("lib = {}", JSONObject.toJSONString(lib));
+            throw new IllegalArgumentException("检查结果有错误");
+        }
 
         if(triggerFreeLib(lib)){
             //免费
