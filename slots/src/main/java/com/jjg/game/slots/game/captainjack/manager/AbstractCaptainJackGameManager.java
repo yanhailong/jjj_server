@@ -1,16 +1,13 @@
 package com.jjg.game.slots.game.captainjack.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackGameDataDao;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackPlayerGameDataDTO;
@@ -19,8 +16,6 @@ import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackPlayerGameData;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-
-import java.util.List;
 
 public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameManager<CaptainJackPlayerGameData, CaptainJackResultLib, CaptainJackGameRunInfo> {
     protected final CaptainJackGameGenerateManager gameGenerateManager;
@@ -54,6 +49,11 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         if (playerGameData.getStatus() == CaptainJackConstant.Status.TREASURE_CHEST && playerGameData.getResultLib() == null ||
                 playerGameData.getStatus() == CaptainJackConstant.Status.FREE && playerGameData.getFreeLib() == null) {
             playerGameData.setStatus(CaptainJackConstant.Status.NORMAL);
+            playerGameData.setResultLib(null);
+            playerGameData.setFreeLib(null);
+            playerGameData.setAlreadyDigCount(null);
+            playerGameData.getFreeIndex().set(0);
+            playerGameData.getRemainFreeCount().set(0);
             log.info("杰克船长玩家状态异常，重置为正常状态,状态为{}, playerId = {}", playerGameData.getStatus(), playerController.playerId());
         }
         CaptainJackGameRunInfo gameRunInfo = new CaptainJackGameRunInfo(Code.SUCCESS, playerGameData.playerId());
