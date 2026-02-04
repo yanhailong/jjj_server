@@ -8,6 +8,7 @@ import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
+import com.jjg.game.poker.game.tosouth.data.ToSouthSettlementContext;
 import com.jjg.game.poker.game.tosouth.message.bean.ToSouthPlayerSettlementInfo;
 import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthSettlementInfo;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
@@ -32,15 +33,18 @@ import java.util.stream.Collectors;
  */
 public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataVo> {
     private static final Logger log = LoggerFactory.getLogger(ToSouthSettlementPhase.class);
+    private final ToSouthSettlementContext context;
     private final List<PlayerSeatInfo> winners;
 
-    public ToSouthSettlementPhase(AbstractPhaseGameController<Room_ChessCfg, ToSouthGameDataVo> gameController, List<PlayerSeatInfo> winners) {
+    public ToSouthSettlementPhase(AbstractPhaseGameController<Room_ChessCfg, ToSouthGameDataVo> gameController, ToSouthSettlementContext context) {
         super(gameController);
-        this.winners = winners;
+        this.context = context;
+        this.winners = context.getWinners();
     }
 
     @Override
     public void phaseDoAction() {
+        super.phaseDoAction();
         if (gameController instanceof ToSouthGameController controller) {
             ToSouthGameDataVo gameDataVo = controller.getGameDataVo();
             SouthernMoneyCfg moneyCfg = ToSouthDataHelper.getSouthernMoneyCfg(gameDataVo);
@@ -105,6 +109,17 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 if (seatInfo != null) {
                     info.handCards = PokerDataHelper.getClientId(gameDataVo, seatInfo.getCurrentCards());
                     info.isWinner = winners.contains(seatInfo);
+                    // 检查是否通杀
+                    if (context.isInstantWin()) {
+                        for (ToSouthSettlementContext.SettlementItem item : context.getSettlementItems()) {
+                            if (item.seatInfo.getPlayerId() == playerId) {
+                                info.isInstantWin = true;
+                                info.instantWinCards = item.instantWinCards;
+                                info.instantWinType = item.instantWinType;
+                                break;
+                            }
+                        }
+                    }
                 }
                 playerSettlementInfos.add(info);
             }

@@ -18,6 +18,15 @@ public class ToSouthPlayerSettlementInfo {
     public List<Integer> handCards;
     @ProtoDesc("是否赢家")
     public boolean isWinner;
+    @ProtoDesc("是否通杀")
+    public boolean isInstantWin;
+    @ProtoDesc("通杀手牌 (仅在通杀时有效)")
+    public List<Integer> instantWinCards;
+    @ProtoDesc("通杀类型 (0:无, 1:4个2, 2:一条龙, 3:同色, 4:6个对, 5:5连对  6:6连对 7:3连三张  8: 4连三张 9:2个四张 10:3个四张 11:1个四张+3连对)")
+    public int instantWinType;
+
+    public ToSouthPlayerSettlementInfo() {
+    }
 
     public static Builder builder() {
         return new Builder();
@@ -29,6 +38,9 @@ public class ToSouthPlayerSettlementInfo {
         private long currentScore;
         private List<Integer> handCards;
         private boolean isWinner;
+        private boolean isInstantWin;
+        private List<Integer> instantWinCards;
+        private int instantWinType;
 
         public Builder playerId(long playerId) {
             this.playerId = playerId;
@@ -55,6 +67,21 @@ public class ToSouthPlayerSettlementInfo {
             return this;
         }
 
+        public Builder isInstantWin(boolean isInstantWin) {
+            this.isInstantWin = isInstantWin;
+            return this;
+        }
+
+        public Builder instantWinCards(List<Integer> instantWinCards) {
+            this.instantWinCards = instantWinCards;
+            return this;
+        }
+
+        public Builder instantWinType(int instantWinType) {
+            this.instantWinType = instantWinType;
+            return this;
+        }
+
         public ToSouthPlayerSettlementInfo build() {
             ToSouthPlayerSettlementInfo info = new ToSouthPlayerSettlementInfo();
             info.playerId = this.playerId;
@@ -62,6 +89,9 @@ public class ToSouthPlayerSettlementInfo {
             info.currentScore = this.currentScore;
             info.handCards = this.handCards;
             info.isWinner = this.isWinner;
+            info.isInstantWin = this.isInstantWin;
+            info.instantWinCards = this.instantWinCards;
+            info.instantWinType = this.instantWinType;
             return info;
         }
     }
