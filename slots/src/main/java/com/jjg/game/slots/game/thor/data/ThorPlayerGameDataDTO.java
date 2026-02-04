@@ -1,6 +1,6 @@
 package com.jjg.game.slots.game.thor.data;
 
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
+import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
@@ -8,5 +8,5 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * @date 2025/12/1 18:01
  */
 @Document
-public class ThorPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
+public class ThorPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
 }

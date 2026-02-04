@@ -1,18 +1,19 @@
-package com.jjg.game.slots.game.dollarexpress.data;
+package com.jjg.game.slots.game.wealthbank.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
+import com.jjg.game.slots.data.SlotsPlayerGameDataRoomDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * @author 11
- * @date 2025/8/5 14:10
+ * WealthBank房间模式玩家数据
+ * @author lm
+ * @date 2026/2/4
  */
-@Document
-public class DollarExpressPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
+@Document(collection = "WealthBankPlayerGameDataRoomDTO")
+public class WealthBankPlayerGameDataRoomDTO extends SlotsPlayerGameDataRoomDTO {
     //累计的美钞数量
     private int totalDollars;
     //记录出现可收集美元的局数
@@ -77,7 +78,7 @@ public class DollarExpressPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDT
     @Override
     public <T extends SlotsPlayerGameData> T converToGameData(Class<T> cla) throws Exception {
         T data = super.converToGameData(cla);
-        DollarExpressPlayerGameData dollarGameData = (DollarExpressPlayerGameData) data;
+        WealthBankPlayerGameData dollarGameData = (WealthBankPlayerGameData) data;
         dollarGameData.setInvers(new AtomicBoolean(this.invers));
         dollarGameData.setAllUnLock(new AtomicBoolean(this.allUnLock));
         return data;

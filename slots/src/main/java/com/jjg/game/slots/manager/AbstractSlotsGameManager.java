@@ -35,7 +35,6 @@ import com.jjg.game.core.task.param.TaskConditionParam10001;
 import com.jjg.game.core.task.param.TaskConditionParam10003;
 import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.core.utils.ItemUtils;
-import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -858,7 +857,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return playerGameData;
         }
 
-        DT playerGameDataDTO = (DT) getGameDataDao().getGameDataByPlayerId(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+        DT playerGameDataDTO;
+        if (isRoomGame() && SlotsPlayerGameDataRoomDTO.class.isAssignableFrom(getSlotsPlayerGameDataDTOCla())) {
+            long roomId = playerController.roomId();
+            playerGameDataDTO = (DT) getGameDataDao().getRoomGameDataByPlayerId(getSlotsPlayerGameDataDTOCla(), playerController.playerId(), playerController.getPlayer().getRoomCfgId(), roomId);
+        } else {
+            playerGameDataDTO = (DT) getGameDataDao().getGameDataByPlayerId(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+        }
         if (playerGameDataDTO == null) {
             Constructor<T> constructor = this.playerGameDataClass.getConstructor();
             playerGameData = constructor.newInstance();
@@ -1300,7 +1305,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     protected abstract <D extends AbstractSlotsGenerateManager> D getGenerateManager();
 
-    protected abstract <D extends SlotsPlayerGameDataDTO> Class<D> getSlotsPlayerGameDataDTOCla();
+    protected abstract Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla();
 
     /**
      * 更新奖池
@@ -1334,7 +1339,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected void offlineSaveGameDataDto(T gameData) {
         try {
             SlotsPlayerGameDataDTO dto = gameData.converToDto(getSlotsPlayerGameDataDTOCla());
-            getGameDataDao().saveGameData(dto);
+            if (isRoomGame() && dto instanceof SlotsPlayerGameDataRoomDTO) {
+                SlotsPlayerGameDataRoomDTO roomDto = (SlotsPlayerGameDataRoomDTO) dto;
+                roomDto.setRoomId(gameData.getRoomId());
+                roomDto.buildRoomKey();
+                getGameDataDao().saveRoomGameData(roomDto);
+            } else {
+                getGameDataDao().saveGameData(dto);
+            }
         } catch (Exception e) {
             log.error("", e);
         }
@@ -1831,6 +1843,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     public RoomType getRoomType() {
         return null;
+    }
+
+    protected boolean isRoomGame() {
+        return getRoomType() != null;
     }
 
     public long getMoneyByItemId(WarehouseCfg warehouseCfg, Player player) {
