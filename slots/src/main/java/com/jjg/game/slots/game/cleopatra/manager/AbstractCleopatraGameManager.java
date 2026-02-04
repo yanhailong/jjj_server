@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.cleopatra.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
@@ -133,7 +132,7 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
             int poolId = resultLib.firstJackpotId();
             poolCfg = GameDataManager.getPoolCfg(poolId);
         }
-        log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+        log.debug("id = {}", resultLib.getId());
 
         if (poolCfg != null) {
             for (int poolId : resultLib.getJackpotIds()) {

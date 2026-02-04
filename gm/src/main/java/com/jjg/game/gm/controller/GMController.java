@@ -4,12 +4,12 @@ import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.activity.sharepromote.dao.SharePromoteDao;
 import com.jjg.game.common.cluster.ClusterClient;
+import com.jjg.game.common.cluster.ClusterHelper;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsNode;
-import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.pb.NotifyKickout;
@@ -20,6 +20,7 @@ import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.*;
 import com.jjg.game.core.dao.*;
@@ -32,10 +33,7 @@ import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.gm.*;
-import com.jjg.game.core.rpc.GmToAllBridge;
-import com.jjg.game.core.rpc.GmToHallBridge;
-import com.jjg.game.core.rpc.GmToRechargeBridge;
-import com.jjg.game.core.rpc.HallPointsAwardBridge;
+import com.jjg.game.core.rpc.*;
 import com.jjg.game.core.service.*;
 import com.jjg.game.core.utils.CoreUtil;
 import com.jjg.game.gm.dao.SlotsLibDao;
@@ -110,12 +108,17 @@ public class GMController extends AbstractController {
     private CommonDao commonDao;
     @Autowired
     private SmsService smsService;
+    @Autowired
+    private PlayerLastGameInfoDao playerLastGameInfoDao;
+
     @ClusterRpcReference()
     private GmToRechargeBridge gmToRechargeBridge;
     @ClusterRpcReference
     private GmToHallBridge gmToHallBridge;
     @ClusterRpcReference
     private GmToAllBridge gmToAllBridge;
+    @ClusterRpcReference
+    private GmToSlotsBridge gmToSlotsBridge;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -202,7 +205,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if (StringUtils.isEmpty(dto.content()) || dto.showTime() < 0 || dto.interval_time() < 0 || dto.priority() < 0 || StringUtils.isEmpty(dto.start_time()) || StringUtils.isEmpty(dto.end_time())) {
+            if (StringUtils.isEmpty(dto.content()) || dto.showTime() < 0 || dto.interval_time() < 0 || dto.priority() < 0 || dto.start_time() < 1 || dto.end_time() < 1) {
                 log.debug("从后台收到的跑马灯参数错误");
                 return fail("common.paramerror");
             }
@@ -219,8 +222,8 @@ public class GMController extends AbstractController {
             marquee.setInterval(dto.interval_time());
             marquee.setNums(0);
             marquee.setShowTime(dto.showTime());
-            marquee.setStartTime(TimeHelper.getSecondTime(dto.start_time()));
-            marquee.setEndTime(TimeHelper.getSecondTime(dto.end_time()));
+            marquee.setStartTime(dto.start_time());
+            marquee.setEndTime(dto.end_time());
             marquee.setPriority(dto.priority());
             marquee.setType(dto.type() < 1 ? GameConstant.Marquee.SYSTEM_MSG : dto.type());
             marqueeDao.addMarquee(marquee);
@@ -229,6 +232,7 @@ public class GMController extends AbstractController {
             NotifyAllNodesMarqueeServer notify = new NotifyAllNodesMarqueeServer();
             notify.marqueeInfo = marqueeManager.transMarqueeInfo(marquee);
             notify.type = marquee.getType();
+            notify.priority = marquee.getPriority();
             marqueeManager.notifyHallAndGameNodeStartMarquee(notify);
             //返回修改结果
             return success("common.success");
@@ -248,11 +252,6 @@ public class GMController extends AbstractController {
             if (dto.id() < 1) {
                 log.debug("停止跑马灯时，从后台收到的跑马灯id不能小于1 id = {}", dto.id());
                 return fail("common.paramerror");
-            }
-
-            boolean exist = marqueeDao.exist(dto.id());
-            if (!exist) {
-                return fail("marquee.notfound");
             }
 
             //构建请求消息
@@ -904,7 +903,7 @@ public class GMController extends AbstractController {
             }
 
             if (notify.list.isEmpty()) {
-                log.warn("没有可生成的结果库 param = {}",param);
+                log.warn("没有可生成的结果库 param = {}", param);
                 return fail("common.fail");
             }
 
@@ -1700,6 +1699,99 @@ public class GMController extends AbstractController {
                 return fail("common.fail");
             }
             log.info("短信验证成功 dto = {}", dto);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 清除slots状态
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.CLEAN_SLOTS_STATUS)
+    public WebResult<VerCode> cleanSlotsStatus(@RequestBody CleanSlotsStatusDto dto) {
+        log.info("收到清除slots游戏状态的请求 dto = {}", dto);
+        try {
+            if (dto.playerId() < 1) {
+                log.warn("参数错误，清除slots游戏状态失败 dto = {}", dto);
+                return fail("common.fail");
+            }
+
+            int gameType = dto.gameType();
+            int roomCfgId = dto.roomCfgId();
+
+            Optional<PlayerLastGameInfo> op = playerLastGameInfoDao.findById(dto.playerId());
+            if (op.isPresent()) {
+                //检查是不是slots游戏
+                PlayerLastGameInfo playerLastGameInfo = op.get();
+
+                if (CommonUtil.getMajorTypeByGameType(playerLastGameInfo.getGameType()) == CoreConst.GameMajorType.SLOTS) {
+                    if (gameType < 1 || roomCfgId < 1) {
+                        gameType = playerLastGameInfo.getGameType();
+                        roomCfgId = playerLastGameInfo.getRoomCfgId();
+                    }
+
+                    playerLastGameInfo.setGameType(0);
+                    playerLastGameInfo.setRoomCfgId(0);
+                    playerLastGameInfo.setHalfwayOffline(false);
+                    playerLastGameInfoDao.save(playerLastGameInfo);
+                    log.warn("清除 playerLastGameInfo");
+                }
+
+                if (gameType < 1 || roomCfgId < 1) {
+                    log.warn("未获取到玩家的游戏id ,dto = {}", dto);
+                    return fail("common.fail");
+                }
+            }
+
+            //获取slots节点
+            ClusterClient clusterClient = null;
+            if (op.isPresent()) {
+                PlayerLastGameInfo playerLastGameInfo = op.get();
+                if (StringUtils.isNotEmpty(playerLastGameInfo.getNodePath())) {
+                    clusterClient = clusterSystem.getClusterByPath(playerLastGameInfo.getNodePath());
+                }
+            }
+
+            //首先检查玩家是否在线
+            PlayerSessionInfo info = playerSessionService.getInfo(dto.playerId());
+            if (info != null) {
+                boolean need = ClusterHelper.isNeedNode(clusterClient, NodeType.GAME, CoreConst.GameMajorType.SLOTS);
+                if (!need && StringUtils.isNotEmpty(info.getNodeName())) {
+                    clusterClient = clusterSystem.getClusterByPath(info.getNodeName());
+                }
+            }
+
+            //如果上面没有获取到需要的游戏节点，就随机获取一个
+            boolean need = ClusterHelper.isNeedNode(clusterClient, NodeType.GAME, CoreConst.GameMajorType.SLOTS);
+            if (!need) {
+                clusterClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
+            }
+
+            need = ClusterHelper.isNeedNode(clusterClient, NodeType.GAME, CoreConst.GameMajorType.SLOTS);
+            if (!need) {
+                log.warn("未找到对应的slots游戏节点，清除slots游戏状态失败 playerId = {},gameType = {},roomCfgId = {}", dto.playerId(), gameType, roomCfgId);
+                return fail("common.fail");
+            }
+
+            GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(clusterClient).setTryMillisPerClient(1000));
+
+            int cleanCode = gmToSlotsBridge.cleanStatus(dto.playerId(), gameType, roomCfgId);
+            if (cleanCode != Code.SUCCESS) {
+                log.warn("清除游戏状态失败 playerId = {},gameType = {},roomCfgId = {}", dto.playerId(), gameType, roomCfgId);
+                return fail("common.fail");
+            }
+
+            playerService.doSave(dto.playerId(), p -> {
+                p.setGameType(0);
+                p.setRoomCfgId(0);
+                p.setRoomId(0);
+            });
+
+            log.warn("清除游戏状态成功 playerId = {},gameType = {},roomCfgId = {}", dto.playerId(), gameType, roomCfgId);
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);

@@ -193,10 +193,7 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
             }
             //复制一个player不修改event中的值
             Player copyPlayer = new Player();
-            copyPlayer.setId(player.getId());
-            copyPlayer.setVipExp(player.getVipExp());
-            copyPlayer.setVipLevel(player.getVipLevel());
-
+            player.copy(copyPlayer);
             Order order = event.getOrder();
             BigDecimal rechargeAmount = order.getPrice();
             boolean change = rechargeCheckVipLevel(copyPlayer, rechargeAmount);

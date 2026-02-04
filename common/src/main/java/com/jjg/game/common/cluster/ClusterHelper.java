@@ -1,5 +1,6 @@
 package com.jjg.game.common.cluster;
 
+import com.jjg.game.common.curator.NodeType;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
@@ -39,11 +40,53 @@ public class ClusterHelper {
             return false;
         }
 
-        for(String str : flag1) {
-            for(String str2 : flags2) {
-                if(str.equals(str2)) {
+        for (String str : flag1) {
+            for (String str2 : flags2) {
+                if (str.equals(str2)) {
                     return true;
                 }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 判断是否为需求的节点
+     * @param clusterClient
+     * @param nodeType
+     * @return
+     */
+    public static boolean isNeedNode(ClusterClient clusterClient, NodeType nodeType) {
+        return isNeedNode(clusterClient, nodeType, 0);
+    }
+
+    /**
+     * 判断是否为需求的节点
+     * @param clusterClient
+     * @param nodeType
+     * @param majorType
+     * @return
+     */
+    public static boolean isNeedNode(ClusterClient clusterClient, NodeType nodeType, int majorType) {
+        if (clusterClient == null) {
+            return false;
+        }
+
+        if (!nodeType.toString().equals(clusterClient.getType())) {
+            return false;
+        }
+
+        if (majorType < 1) {
+            return true;
+        }
+
+        if (clusterClient.nodeConfig.gameMajorTypes == null || clusterClient.nodeConfig.gameMajorTypes.length < 1) {
+            return false;
+        }
+
+        for (int mt : clusterClient.nodeConfig.gameMajorTypes) {
+            if (mt == majorType) {
+                return true;
             }
         }
         return false;

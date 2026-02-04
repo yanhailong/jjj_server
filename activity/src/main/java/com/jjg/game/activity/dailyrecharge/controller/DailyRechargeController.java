@@ -35,7 +35,6 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.DailyRechargeCfg;
-import org.redisson.api.RMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -55,13 +54,11 @@ public class DailyRechargeController extends BaseActivityController implements G
 
     public final int MAIL_CFG_ID = 42;
     private final Logger log = LoggerFactory.getLogger(DailyRechargeController.class);
-    private final CountDao countDao;
     private final DailyRechargeDao dailyRechargeDao;
     private final String DAILY_RECHARGE = "dailyrecharge";
     private final MailService mailService;
 
-    public DailyRechargeController(CountDao countDao, DailyRechargeDao dailyRechargeDao, MailService mailService) {
-        this.countDao = countDao;
+    public DailyRechargeController(DailyRechargeDao dailyRechargeDao, MailService mailService) {
         this.dailyRechargeDao = dailyRechargeDao;
         this.mailService = mailService;
     }

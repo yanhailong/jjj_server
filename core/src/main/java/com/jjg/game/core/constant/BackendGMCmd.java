@@ -88,6 +88,9 @@ public interface BackendGMCmd {
     //验证短信
     String VERIFY_PLAYER_SMS = "verifyPlayerSms";
 
+    //清除slots状态
+    String CLEAN_SLOTS_STATUS = "cleanSlotsStatus";
+
     /**
      * 配置相关q
      */

@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
+import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
@@ -51,11 +52,6 @@ import java.util.stream.Collectors;
 public class GrowthFundController extends BaseActivityController implements GameEventListener, OrderGenerate {
 
     private final Logger log = LoggerFactory.getLogger(GrowthFundController.class);
-    private final CountDao countDao;
-
-    public GrowthFundController(CountDao countDao) {
-        this.countDao = countDao;
-    }
 
     /**
      * 玩家加入成长基金活动
@@ -441,6 +437,47 @@ public class GrowthFundController extends BaseActivityController implements Game
         return true;
     }
 
+    @Override
+    public boolean initProgress(Player player, ActivityData activityData) {
+        if (canInitProgress(player.getId(), activityData)) {
+            //初始化进度
+            addPlayerProgress(player, activityData, player.getLevel(), ActivityTargetType.LEVEL.getTargetKey(), player.getLevel());
+            log.info("玩家初始化进度 playerId:{} activityId:{}", player.getId(), activityData.getId());
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
+        if (activityData.getOpenType() == ActivityConstant.Common.LIMIT_TYPE) {
+            return;
+        }
+        // 获取玩家该活动的历史数据
+        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        if (CollectionUtil.isNotEmpty(playerActivityData)) {
+            boolean needRest = false;
+            for (PlayerActivityData data : playerActivityData.values()) {
+                // 如果期数数不一致，则需要重置
+                if (data.getRound() != activityData.getRound()) {
+                    needRest = true;
+                    break;
+                }
+            }
+            if (needRest) {
+                playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
+                clearInitProgress(playerId, activityData);
+            }
+        }
+    }
+
+    @Override
+    public Map<Integer, PlayerActivityData> checkPlayerDataAndResetOnRequest(Player player, ActivityData activityData) {
+        if (initProgress(player, activityData)) {
+            return playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
+        }
+        return null;
+    }
 
     @Override
     public <T extends GameEvent> void handleEvent(T gameEvent) {

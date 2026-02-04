@@ -405,7 +405,8 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
 
             //从奖池扣除，并给玩家加钱
             rewardFromBigPool(gameRunInfo, playerGameData);
-
+            // 补丁：rewardFromBigPool中setAllWinGold没有加smallPoolGold 导致两次显示总金额不同
+            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
             triggerWinTask(playerGameData.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
 
@@ -451,7 +452,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
             log.debug("[Wealth Bank] 触发二选一  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
         }
 
-        log.debug("[Wealth Bank] id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+        log.debug("[Wealth Bank] id = {}", resultLib.getId());
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
 
@@ -510,7 +511,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
         gameRunInfo.setBigPoolTimes(trainLib.getTimes());
         gameRunInfo.setResultLib(trainLib);
 
-        log.debug("[Wealth Bank] libId = {},train = {}", trainLib.getId(), JSON.toJSONString(trainLib));
+        log.debug("[Wealth Bank] libId = {}", trainLib.getId());
         return gameRunInfo;
 
     }
@@ -743,7 +744,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
 
                         WealthBankTrainInfo goldWealthBankTrainInfo = goldTrainPbInfo(awardInfo.getRandCount(), gameRunInfo.getDollarsGoldTimes() * gameData.getOneBetScore());
                         gameRunInfo.addTrainInfo(goldWealthBankTrainInfo);
-                        log.debug("[Wealth Bank] 触发黄金列车 playerId = {},times = {},oneBetScore = {},train = {}", gameData.playerId(), times, gameData.getOneBetScore(), JSON.toJSONString(goldWealthBankTrainInfo));
+                        log.debug("[Wealth Bank] 触发黄金列车 playerId = {},times = {},oneBetScore = {}", gameData.playerId(), times, gameData.getOneBetScore());
                     }
                     break;
                 }
@@ -804,7 +805,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
         if (trainType < 1) {
             return Collections.emptyList();
         }
-        log.debug("[Wealth Bank] 打印火车奖励 specialAuxiliaryInfo = {}", JSON.toJSONString(specialAuxiliaryInfo));
+//        log.debug("[Wealth Bank] 打印火车奖励 specialAuxiliaryInfo = {}", JSON.toJSONString(specialAuxiliaryInfo));
 
         List<WealthBankTrainInfo> wealthBankTrainInfoList = new ArrayList<>();
 
@@ -888,7 +889,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
 
         for (WealthBankTrainInfo wealthBankTrainInfo : gameRunInfo.getTrainList()) {
             int poolId = getPoolIdByTrain(wealthBankTrainInfo.type);
-            if (poolId < 1) {
+            if (lib.getJackpotIds() == null || lib.getJackpotIds().isEmpty() || poolId < 1 || !lib.getJackpotIds().contains(poolId)) {
                 log.debug("[Wealth Bank] 获取的池子id小于1 trainCoinId = {},poolId = {}", wealthBankTrainInfo.type, poolId);
                 continue;
             }
@@ -900,7 +901,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
             //车厢节数+1，是因为要加上最后一个奖池车厢
             //总的延迟时间
             int allDelayTime = ((wealthBankTrainInfo.goldList.size() + 1) * poolCfg.getDelayTime()) / 1000;
-            long addGold = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), allDelayTime);
+            long addGold = calPoolValue(playerGameData.getAllBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), allDelayTime);
 
             log.debug("[Wealth Bank] 概率计算可以中小奖池 playerId = {},addGold = {}", playerGameData.playerId(), addGold);
 
@@ -914,7 +915,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
             //缓存中奖金额,以便计算玩家贡献金额
             playerGameData.addSmallPoolReward(addGold);
             gameRunInfo.addSmallPoolGold(addGold);
-
+            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             wealthBankTrainInfo.goldList.add(addGold);
             wealthBankTrainInfo.poolId = poolId;
             log.debug("[Wealth Bank] 该火车中奖，并且加钱成功 playerId = {},addGold = {}", playerGameData.playerId(), addGold);

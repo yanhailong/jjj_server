@@ -40,6 +40,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -84,6 +85,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private Map<Integer, GameStatus> gameStatusesMap;
     //排序后的gameList
     private List<GameListConfig> sortGameList;
+    //马甲包排序后的gameList
+    private Map<Integer, List<GameListConfig>> westeSortGameMap;
     //游戏倍场界面的奖池
     private Map<Integer, List<WarePoolInfo>> poolMap;
     @Autowired
@@ -143,6 +146,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             this.gameStatusesMap = gameStatuses.stream().collect(Collectors.toMap(GameStatus::gameId, gs -> gs));
         }
         this.sortGameList = sortGameList();
+
+        //马甲包游戏列表排序
+        sortWesteGameList();
     }
 
     /**
@@ -670,7 +676,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      * @param type
      * @param token
      */
-    public CommonResult<List<Item>> bindThirdAccount(Player player, int type, String token) {
+    public CommonResult<List<Item>> bindThirdAccount(Player player, int type, int westeId, String token) {
         CommonResult<List<Item>> result = new CommonResult<>(Code.SUCCESS);
         try {
             LoginType loginType = LoginType.valueOf(type);
@@ -690,7 +696,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             int mailId = 0;
             String userId = "";
             if (loginType == LoginType.GOOGLE) {
-                CommonResult<GoogleUserInfo> verifyResult = thirdAccountHttpService.verifyGoogleToken(token);
+                CommonResult<GoogleUserInfo> verifyResult = thirdAccountHttpService.verifyGoogleToken(westeId, token);
                 if (!verifyResult.success()) {
                     result.code = verifyResult.code;
                     return result;
@@ -848,6 +854,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     public void initSampleCallbackCollector() {
         addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData).addChangeSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
         addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig).addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig);
+        addChangeSampleFileObserveWithCallBack(UndergarmentCfg.EXCEL_NAME, this::sortWesteGameList);
     }
 
     /**
@@ -949,8 +956,61 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         return Collections.emptyList();
     }
 
-    public List<GameListConfig> getSortGameList() {
-        return sortGameList;
+    /**
+     * 马甲包游戏列表排序
+     */
+    private void sortWesteGameList() {
+        //修改马甲包的游戏列表
+        if (this.sortGameList == null || this.sortGameList.isEmpty()) {
+            this.westeSortGameMap = Collections.emptyMap();
+        } else {
+            Map<Integer, List<GameListConfig>> tmpWesteSortGameMap = new HashMap<>();
+            Map<Integer, GameListConfig> tmpMap = this.sortGameList.stream().collect(Collectors.toMap(c -> c.sid, Function.identity()));
+
+            //将原先的排序缓存下来
+            Map<Integer, Integer> sortIndexMap = new HashMap<>();
+            for (int i = 0; i < this.sortGameList.size(); i++) {
+                sortIndexMap.put(this.sortGameList.get(i).sid, i);
+            }
+
+            for (Map.Entry<Integer, UndergarmentCfg> en : GameDataManager.getUndergarmentCfgMap().entrySet()) {
+                List<Integer> openGameList = en.getValue().getGamelist();
+                if (openGameList == null || openGameList.isEmpty()) {
+                    continue;
+                }
+                List<GameListConfig> tmpList = new ArrayList<>();
+                for (int openGameType : openGameList) {
+                    GameListConfig c = tmpMap.get(openGameType);
+                    //为空表示后台未开启这个游戏
+                    if (c == null) {
+                        continue;
+                    }
+                    tmpList.add(c);
+                }
+
+                if (!tmpList.isEmpty()) {
+                    tmpList.sort(Comparator.comparingInt(c -> sortIndexMap.getOrDefault(c.sid, Integer.MAX_VALUE)));
+                    tmpWesteSortGameMap.put(en.getKey(), tmpList);
+                }
+            }
+            this.westeSortGameMap = tmpWesteSortGameMap;
+        }
+    }
+
+    public List<GameListConfig> getSortGameList(int westeId) {
+        if (westeId < 1) {
+            return sortGameList;
+        }
+
+        List<GameListConfig> tmpList = null;
+        if (this.westeSortGameMap != null && !this.westeSortGameMap.isEmpty()) {
+            tmpList = this.westeSortGameMap.get(westeId);
+        }
+
+        if (tmpList == null || tmpList.isEmpty()) {
+            return sortGameList;
+        }
+        return tmpList;
     }
 
     @Override

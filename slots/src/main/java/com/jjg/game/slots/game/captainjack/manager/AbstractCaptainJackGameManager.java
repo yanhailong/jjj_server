@@ -1,16 +1,13 @@
 package com.jjg.game.slots.game.captainjack.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackGameDataDao;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackPlayerGameDataDTO;
@@ -19,8 +16,6 @@ import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackPlayerGameData;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-
-import java.util.List;
 
 public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameManager<CaptainJackPlayerGameData, CaptainJackResultLib, CaptainJackGameRunInfo> {
     protected final CaptainJackGameGenerateManager gameGenerateManager;
@@ -50,6 +45,16 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         if (playerGameData == null) {
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new CaptainJackGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+        }
+        if (playerGameData.getStatus() == CaptainJackConstant.Status.TREASURE_CHEST && playerGameData.getResultLib() == null ||
+                playerGameData.getStatus() == CaptainJackConstant.Status.FREE && playerGameData.getFreeLib() == null) {
+            playerGameData.setStatus(CaptainJackConstant.Status.NORMAL);
+            playerGameData.setResultLib(null);
+            playerGameData.setFreeLib(null);
+            playerGameData.setAlreadyDigCount(null);
+            playerGameData.getFreeIndex().set(0);
+            playerGameData.getRemainFreeCount().set(0);
+            log.info("杰克船长玩家状态异常，重置为正常状态,状态为{}, playerId = {}", playerGameData.getStatus(), playerController.playerId());
         }
         CaptainJackGameRunInfo gameRunInfo = new CaptainJackGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
@@ -195,7 +200,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         //检查是否中大奖
         rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
 
-        log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+        log.debug("id = {}", resultLib.getId());
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
         gameRunInfo.setStake(betValue);
@@ -298,25 +303,25 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
 
     @Override
     protected void onAutoExitAction(CaptainJackPlayerGameData gameData, int eventId) {
-        //发放免费模式和探宝奖励
-        if (gameData.getStatus() == CaptainJackConstant.Status.FREE) {
-            Object freeLib = gameData.getFreeLib();
-            if (freeLib instanceof CaptainJackResultLib lib) {
-                List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = lib.getSpecialAuxiliaryInfoList();
-                int totalSize = 0;
-                for (SpecialAuxiliaryInfo auxiliaryInfo : specialAuxiliaryInfoList) {
-                    if (auxiliaryInfo.getFreeGames() != null) {
-                        totalSize = auxiliaryInfo.getFreeGames().size();
-                    }
-                }
-                int index = gameData.getFreeIndex().get();
-                for (int i = index; i < totalSize; i++) {
-                    startGame(new PlayerController(null, null), gameData, gameData.getAllBetScore(), true);
-                    autoRunTreasureChest(gameData);
-                }
-            }
-        }
-        autoRunTreasureChest(gameData);
+//        //发放免费模式和探宝奖励
+//        if (gameData.getStatus() == CaptainJackConstant.Status.FREE) {
+//            Object freeLib = gameData.getFreeLib();
+//            if (freeLib instanceof CaptainJackResultLib lib) {
+//                List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = lib.getSpecialAuxiliaryInfoList();
+//                int totalSize = 0;
+//                for (SpecialAuxiliaryInfo auxiliaryInfo : specialAuxiliaryInfoList) {
+//                    if (auxiliaryInfo.getFreeGames() != null) {
+//                        totalSize = auxiliaryInfo.getFreeGames().size();
+//                    }
+//                }
+//                int index = gameData.getFreeIndex().get();
+//                for (int i = index; i < totalSize; i++) {
+//                    startGame(new PlayerController(null, null), gameData, gameData.getAllBetScore(), true);
+//                    autoRunTreasureChest(gameData);
+//                }
+//            }
+//        }
+//        autoRunTreasureChest(gameData);
     }
 
     /**

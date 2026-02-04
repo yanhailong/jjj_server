@@ -156,7 +156,8 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         //押注信息
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         Map<Long, Map<Integer, Long>> allBetInfo = gameDataVo.getAllBetInfo();
-
+        //计算总税收
+        Map<Long, Long> totalTax = new HashMap<>(0);
         Set<Long> aceBuyPlayerIds = gameDataVo.getAceBuyPlayerIds();
         long poolWinValue = 0;
         long poolLoseValue = 0;
@@ -166,10 +167,10 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                 Long betValue = baseBetInfo.getOrDefault(playerId, 0L);
                 if (tianHu) {
                     //购买ACE发奖
-                    playerGet.put(playerId, BlackJackDataHelper.getGetWinValue(betValue, insurance));
+                    playerGet.put(playerId, getGetRadioAfterValue(playerId, totalTax, betValue, BlackJackDataHelper.getGetWinValue(betValue, insurance)));
                     poolLoseValue -= betValue;
                 } else {
-                    poolWinValue += poolWinValue;
+                    poolWinValue += betValue;
                 }
             }
 
@@ -185,8 +186,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         settlementPlayerInfo.playerId = gameDataVo.getCurrentPlayerSeatInfo().getPlayerId();
         settlementPlayerInfo.type = gameDataVo.getCurrentPlayerSeatInfo().getOperationType();
         settlementPlayerInfo.endTime = gameDataVo.getPhaseEndTime() + (showDealer ? (long) sendCards.size() * PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) : 0);
-        //计算总税收
-        long totalTax = 0;
+
         Map<Long, List<List<Integer>>> playerCards = new HashMap<>();
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
             if (info.isDelState()) {
@@ -220,7 +220,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                         settlementInfo.cardGroupState.add(2);
                         continue;
                     }
-                    playerGet.merge(playerId, BlackJackDataHelper.getGetWinValue(betValue, blackjackCfg.getBlackjack()), Long::sum);
+                    playerGet.merge(playerId, getGetRadioAfterValue(playerId, totalTax, betValue, BlackJackDataHelper.getGetWinValue(betValue, blackjackCfg.getBlackjack())), Long::sum);
                     settlementInfo.cardGroupState.add(1);
                     continue;
                 }
@@ -230,7 +230,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                 }
                 //连续6张直接发奖
                 if (card.size() == BlackJackConstant.Common.MAX_GET_CARD) {
-                    playerGet.merge(playerId, BlackJackDataHelper.getGetWinValue(betValue, blackjackCfg.getFiveLittleDragons()), Long::sum);
+                    playerGet.merge(playerId, getGetRadioAfterValue(playerId, totalTax, betValue, BlackJackDataHelper.getGetWinValue(betValue, blackjackCfg.getFiveLittleDragons())), Long::sum);
                     settlementInfo.cardGroupState.add(1);
                     continue;
                 }
@@ -242,7 +242,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                 //判断庄家和玩家点数
                 if (boom || dealerTotalPoint < point) {
                     int param = point == BlackJackConstant.Common.PERFECT_POINT ? blackjackCfg.getTwentyOne() : blackjackCfg.getOther();
-                    playerGet.merge(playerId, BlackJackDataHelper.getGetWinValue(betValue, param), Long::sum);
+                    playerGet.merge(playerId, getGetRadioAfterValue(playerId, totalTax, betValue, BlackJackDataHelper.getGetWinValue(betValue, param)), Long::sum);
                     settlementInfo.cardGroupState.add(1);
                     continue;
                 }
@@ -258,26 +258,18 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             blackJackSettlementInfo.playerId = playerId;
             Long totalGet = playerGet.getOrDefault(playerId, 0L);
             long totalBet = controller.getPlayerTotalBet(playerId);
-            long get = totalGet - totalBet;
+            long get = totalGet - totalBet + totalTax.getOrDefault(playerId, 0L);
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
             if (gamePlayer == null) {
                 log.error("21点结算时 gamePlayer=null playerId:{}", playerId);
                 continue;
             }
-            if (get > 0) {
+            if (get >= 0) {
                 if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(1);
                 } else {
                     poolLoseValue += get;
                 }
-                long radioBefore = get;
-                //扣除抽水
-                get = BigDecimal.valueOf(get)
-                        .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getWinRatio()))
-                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
-                totalTax += radioBefore - get;
-                totalGet = totalBet + get;
-
             } else {
                 if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(2);
@@ -303,6 +295,23 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         gameDataVo.setSettlementInfo(settlementPlayerInfo);
         dealRoomPool(poolWinValue, poolLoseValue);
         return settlementPlayerInfo;
+    }
+
+    /**
+     * 获取抽水后的金额
+     *
+     * @param totalTax
+     * @param betValue
+     * @param get      获得金额
+     * @return 抽水后金额
+     */
+    private long getGetRadioAfterValue(long playerId, Map<Long, Long> totalTax, long betValue, long get) {
+        long beforeCalculation = get - betValue;
+        long realGetValue = BigDecimal.valueOf(beforeCalculation)
+                .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getWinRatio()))
+                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+        totalTax.merge(playerId, beforeCalculation - realGetValue, Long::sum);
+        return realGetValue + betValue;
     }
 
 

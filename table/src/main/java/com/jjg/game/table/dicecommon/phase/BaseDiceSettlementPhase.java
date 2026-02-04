@@ -18,6 +18,7 @@ import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
+import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.dicecommon.DiceDataHolder;
 import com.jjg.game.table.dicecommon.message.BaseDiceSettlementInfo;
@@ -120,16 +121,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
         diceSettlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
-            diceSettlementInfo.betTableInfos =
-                    TableMessageBuilder.buildPlayerBetInfo(diceSettlementInfo.betTableInfos, gameDataVo, playerId);
-            Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
-            // 玩家未下注
-            if (playerBetInfo != null && !playerBetInfo.isEmpty()) {
-                gameDataTracker.addPlayerLogData(
-                        entry.getValue(),
-                        DataTrackNameConstant.AREA_DATA,
-                        JSON.toJSONString(diceSettlementInfo.betTableInfos));
-            }
+            addPlayerAreaDataLog(entry.getValue());
             // 给玩家发送数据
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
         }

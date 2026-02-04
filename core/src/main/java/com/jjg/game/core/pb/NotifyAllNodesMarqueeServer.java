@@ -16,4 +16,6 @@ public class NotifyAllNodesMarqueeServer extends AbstractNotice {
     public MarqueeInfo marqueeInfo;
     @ProtoDesc("跑马灯类型")
     public int type;
+    @ProtoDesc("优先级")
+    public int priority;
 }

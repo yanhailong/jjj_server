@@ -125,7 +125,7 @@ public class AccountService {
                 result.setRegister(true);
 
                 accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, loginDto.getChannel(), ip, loginDto.getDevice(),
-                        loginDto.getMac(), loginDto.getPhoneType(), loginDto.getSubChannel());
+                        loginDto.getMac(), loginDto.getPhoneType(), loginDto.getSubChannel(), loginDto.getShareId(), loginDto.getPhoneName());
             }
 
             if (!Objects.equals(loginDto.getMac(), account.getLastLoginMac())) {

@@ -158,7 +158,7 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
 //            gameRunInfo.setStatus(FrozenThroneConstant.Status.NORMAL);
         }
 
-        log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+        log.debug("id = {}", resultLib.getId());
 
         //检查是否中大奖
         rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());

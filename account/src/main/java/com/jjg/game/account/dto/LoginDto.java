@@ -21,6 +21,12 @@ public class LoginDto {
     private String shareId;
     //子渠道
     private String subChannel;
+    //马甲id
+    private int westeId;
+    //手机名称
+    private String phoneName;
+    //adid
+    private String adid;
 
     public int getLoginType() {
         return loginType;
@@ -84,5 +90,29 @@ public class LoginDto {
 
     public void setSubChannel(String subChannel) {
         this.subChannel = subChannel;
+    }
+
+    public int getWesteId() {
+        return westeId;
+    }
+
+    public void setWesteId(int westeId) {
+        this.westeId = westeId;
+    }
+
+    public String getPhoneName() {
+        return phoneName;
+    }
+
+    public void setPhoneName(String phoneName) {
+        this.phoneName = phoneName;
+    }
+
+    public String getAdid() {
+        return adid;
+    }
+
+    public void setAdid(String adid) {
+        this.adid = adid;
     }
 }

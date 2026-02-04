@@ -16,4 +16,6 @@ public class ReqBindThirdAccount extends AbstractMessage {
     @ProtoDesc("参考loginType  3.google   4.facebook")
     public int type;
     public String token;
+    @ProtoDesc("马甲id")
+    public int westeId;
 }

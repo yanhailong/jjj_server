@@ -54,6 +54,14 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new AceDjGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        if (playerGameData.getStatus() == AceDjConstant.Status.FREE &&
+                (playerGameData.getFreeLib() == null || playerGameData.getRemainFreeCount().get() <= 0)) {
+            playerGameData.setStatus(AceDjConstant.Status.NORMAL);
+            playerGameData.setFreeLib(null);
+            playerGameData.setFreeIndex(new AtomicInteger(0));
+            playerGameData.setRemainFreeCount(new AtomicInteger(0));
+            log.info("王牌Dj玩家状态异常，重置为正常状态,状态为{}, playerId = {}", playerGameData.getStatus(), playerController.playerId());
+        }
 
         AceDjGameRunInfo gameRunInfo = new AceDjGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
@@ -261,9 +269,9 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
 
     @Override
     protected void onAutoExitAction(AceDjPlayerGameData gameData, int eventId) {
-        if (gameData.getStatus() == AceDjConstant.Status.FREE) {
-            freeStateAction(gameData, (playerGameData) ->
-                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
-        }
+//        if (gameData.getStatus() == AceDjConstant.Status.FREE) {
+//            freeStateAction(gameData, (playerGameData) ->
+//                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
+//        }
     }
 }

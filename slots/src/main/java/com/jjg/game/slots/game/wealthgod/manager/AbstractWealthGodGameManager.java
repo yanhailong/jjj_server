@@ -2,9 +2,7 @@ package com.jjg.game.slots.game.wealthgod.manager;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -16,8 +14,9 @@ import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.data.*;
-import com.jjg.game.slots.game.wealthgod.WealthGodConstant;
+import com.jjg.game.slots.data.SlotsResultLib;
+import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import com.jjg.game.slots.data.TestLibData;
 import com.jjg.game.slots.game.wealthgod.dao.WealthGodGameDataDao;
 import com.jjg.game.slots.game.wealthgod.dao.WealthGodResultLibDao;
 import com.jjg.game.slots.game.wealthgod.data.*;
@@ -87,33 +86,21 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
             gameRunInfo.setAuto(auto);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
 
-            CommonResult<Pair<WealthGodResultLib, BetDivideInfo>> commonResult = normalGetLib(playerGameData, betValue, WealthGodConstant.SpecialMode.TYPE_NORMAL);
-            if (!commonResult.success()) {
-                gameRunInfo.setCode(commonResult.code);
+            normal(gameRunInfo, playerGameData, betValue);
+
+            if (!gameRunInfo.success()) {
                 return gameRunInfo;
             }
-
-            WealthGodResultLib resultLib = commonResult.data.getFirst();
-            gameRunInfo.setBetDivideInfo(commonResult.data.getSecond());
-
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setBeforeGold(player.getGold());
-
-            gameRunInfo.setStake(betValue);
-            //所有的spin数据
-            List<WealthGodSpinInfo> infoList = new ArrayList<>();
-            respinAnalysis(resultLib, playerGameData.getOneBetScore(), infoList, betValue, gameRunInfo);
-            gameRunInfo.setSpinInfo(infoList);
-            //记录奖池id
-            gameRunInfo.setJackpotId(resultLib.firstJackpotId());
+            gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
             //从奖池扣除，并给玩家加钱
             rewardFromBigPool(gameRunInfo, playerGameData);
             //奖池中奖
-            rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
+            rewardFromSmallPool(gameRunInfo, playerGameData, gameRunInfo.getResultLib().getJackpotIds());
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
@@ -123,9 +110,8 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
             player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
 
-            gameRunInfo.setAfterGold(player.getGold());
+            gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
-            gameRunInfo.setResultLib(resultLib);
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             return gameRunInfo;
         } catch (Exception e) {
@@ -135,10 +121,17 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
         return gameRunInfo;
     }
 
-
     @Override
     protected WealthGodGameRunInfo normal(WealthGodGameRunInfo gameRunInfo, WealthGodPlayerGameData playerGameData, long betValue, WealthGodResultLib resultLib) {
-        return new WealthGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        gameRunInfo.setStake(betValue);
+        //所有的spin数据
+        List<WealthGodSpinInfo> infoList = new ArrayList<>();
+        respinAnalysis(resultLib, playerGameData.getOneBetScore(), infoList, betValue, gameRunInfo);
+        gameRunInfo.setSpinInfo(infoList);
+        //记录奖池id
+        gameRunInfo.setJackpotId(resultLib.firstJackpotId());
+        gameRunInfo.setResultLib(resultLib);
+        return gameRunInfo;
     }
 
     /**

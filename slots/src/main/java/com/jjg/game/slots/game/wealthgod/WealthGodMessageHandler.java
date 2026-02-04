@@ -87,7 +87,7 @@ public class WealthGodMessageHandler {
     @Command(WealthGodConstant.MsgBean.REQ_POOL_VALUE)
     public void reqPoolValue(PlayerController playerController, ReqWealthGodPoolValue req) {
         try {
-            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+//            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             long poolValue;
             if(playerController.getScene() == null){
                 poolValue = gameManager.getPoolValue(playerController);

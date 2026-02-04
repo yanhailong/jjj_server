@@ -191,6 +191,7 @@ public class GameDataManager {
     containerMap.put(StatusCfg.class, new StatusCfgContainer());
     containerMap.put(TaskCfg.class, new TaskCfgContainer());
     containerMap.put(TexasCfg.class, new TexasCfgContainer());
+    containerMap.put(UndergarmentCfg.class, new UndergarmentCfgContainer());
     containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
     containerMap.put(WealthRouletteRewardCfg.class, new WealthRouletteRewardCfgContainer());
@@ -1470,6 +1471,18 @@ public class GameDataManager {
 
   public static List<TexasCfg> getTexasCfgList() {
     return getInstance().getCfgContainer(TexasCfg.class).getCfgBeanList();
+  }
+
+  public static UndergarmentCfg getUndergarmentCfg(int key) {
+    return getInstance().getCfgContainer(UndergarmentCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, UndergarmentCfg> getUndergarmentCfgMap() {
+    return getInstance().getCfgContainer(UndergarmentCfg.class).getCfgBeanMap();
+  }
+
+  public static List<UndergarmentCfg> getUndergarmentCfgList() {
+    return getInstance().getCfgContainer(UndergarmentCfg.class).getCfgBeanList();
   }
 
   public static ViplevelCfg getViplevelCfg(int key) {

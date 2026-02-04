@@ -37,7 +37,7 @@ public interface ZeusVsHadesConstant {
 
     interface Status{
         int NORMAL = 0;
-        //免费触发局
+        //免费选择触发局
         int CHOOSE_ONE = 1;
         //宙斯触发局
         int ZEUS = 2;
@@ -79,6 +79,8 @@ public interface ZeusVsHadesConstant {
         int ZEUS = 4;
         //哈迪斯触发局
         int HADES = 5;
+//        //宙斯Wild free
+//        int ZEUSWILDFREE = 6;
     }
 
     interface SpecialPlay{

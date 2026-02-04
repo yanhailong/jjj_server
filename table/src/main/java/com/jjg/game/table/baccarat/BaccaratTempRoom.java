@@ -1,5 +1,6 @@
 package com.jjg.game.table.baccarat;
 
+import cn.hutool.core.collection.ConcurrentHashSet;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -19,8 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class BaccaratTempRoom implements IPlayerRoomEventListener {
     // 观察百家乐路单的玩家集合
-    private final Map<Integer, Map<Long, PlayerController>> baccaratObserverPlayers =
-        new ConcurrentHashMap<>();
+    private final Map<Integer, Set<Long>> baccaratObserverPlayers =
+            new ConcurrentHashMap<>();
 
     @Override
     public int[] getGameTypes() {
@@ -30,8 +32,8 @@ public class BaccaratTempRoom implements IPlayerRoomEventListener {
     @Override
     public void enter(PFSession session, PlayerController playerController, PlayerSessionInfo playerSessionInfo) {
         baccaratObserverPlayers
-            .computeIfAbsent(playerSessionInfo.getRoomCfgId(), k -> new ConcurrentHashMap<>())
-            .put(playerController.playerId(), playerController);
+                .computeIfAbsent(playerSessionInfo.getRoomCfgId(), k -> new ConcurrentHashSet<>())
+                .add(playerController.playerId());
     }
 
     @Override
@@ -42,8 +44,7 @@ public class BaccaratTempRoom implements IPlayerRoomEventListener {
         }
     }
 
-    public Map<Long, PlayerController> getBaccaratObserverPlayers(int roomCfgId) {
-        return baccaratObserverPlayers
-            .getOrDefault(roomCfgId, new ConcurrentHashMap<>());
+    public Set<Long> getBaccaratObserverPlayers(int roomCfgId) {
+        return baccaratObserverPlayers.getOrDefault(roomCfgId, Set.of());
     }
 }

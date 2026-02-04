@@ -387,8 +387,8 @@ public class PiggyBankController extends BaseActivityController implements GameE
     }
 
     @Override
-    public Map<Integer, PlayerActivityData> checkPlayerDataAndResetOnRequest(long playerId, ActivityData activityData) {
-        return resetData(playerId, activityData);
+    public Map<Integer, PlayerActivityData> checkPlayerDataAndResetOnRequest(Player player, ActivityData activityData) {
+        return resetData(player.getId(), activityData);
     }
 
     /**
