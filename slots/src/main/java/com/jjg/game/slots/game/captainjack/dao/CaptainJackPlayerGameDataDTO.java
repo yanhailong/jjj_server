@@ -69,9 +69,12 @@ public class CaptainJackPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
     public <T extends SlotsPlayerGameData> T converToGameData(Class<T> cla) throws Exception {
         T t = super.converToGameData(cla);
         if (t instanceof CaptainJackPlayerGameData playerGameData) {
-            playerGameData.setAlreadyDigCount(new AtomicInteger(this.alreadyDigCount));
-            playerGameData.setFreeIndex(new AtomicInteger(this.freeIndex));
-            playerGameData.setRemainFreeCount(new AtomicInteger(this.remainFreeCount));
+            int safeAlreadyDigCount = Math.max(0, this.alreadyDigCount);
+            int safeFreeIndex = Math.max(0, this.freeIndex);
+            int safeRemainFreeCount = Math.max(0, this.remainFreeCount);
+            playerGameData.setAlreadyDigCount(new AtomicInteger(safeAlreadyDigCount));
+            playerGameData.setFreeIndex(new AtomicInteger(safeFreeIndex));
+            playerGameData.setRemainFreeCount(new AtomicInteger(safeRemainFreeCount));
             playerGameData.setFreeLib(this.freeLib);
             playerGameData.setResultLib(this.resultLib);
         }

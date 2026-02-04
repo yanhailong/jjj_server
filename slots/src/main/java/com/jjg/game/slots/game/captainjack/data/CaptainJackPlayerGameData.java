@@ -47,9 +47,8 @@ public class CaptainJackPlayerGameData extends SlotsPlayerGameData {
             gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
             gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
             gameDataDTO.setResultLib(this.resultLib);
-            if (this.freeLib instanceof CaptainJackResultLib lib) {
-                gameDataDTO.setFreeLib(lib);
-            }
+            CaptainJackResultLib freeLib = this.freeLib instanceof CaptainJackResultLib lib ? lib : null;
+            gameDataDTO.setFreeLib(freeLib);
         }
         return dto;
     }
