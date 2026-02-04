@@ -515,8 +515,7 @@ public class AbstractPlayerService {
 
         //记录日志
         if (p != null) {
-            //TODO 后期要排除机器人的情况
-            coreLogger.vip(p, beforeLevel[0], vipLevel, addType, desc);
+            coreLogger.sendVipLog(p, 99, null, null, 0);
             result.code = Code.SUCCESS;
             result.data = p;
             return result;
