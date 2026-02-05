@@ -17,6 +17,12 @@ public class ThorPlayerGameData extends SlotsPlayerGameData {
             ThorResultLib freeLib = this.freeLib instanceof ThorResultLib lib ? lib : null;
             gameDataDTO.setFreeLib(freeLib);
         }
+        if (dto instanceof ThorPlayerGameDataRoomDTO gameDataDTO) {
+            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
+            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
+            ThorResultLib freeLib = this.freeLib instanceof ThorResultLib lib ? lib : null;
+            gameDataDTO.setFreeLib(freeLib);
+        }
         return dto;
     }
 }

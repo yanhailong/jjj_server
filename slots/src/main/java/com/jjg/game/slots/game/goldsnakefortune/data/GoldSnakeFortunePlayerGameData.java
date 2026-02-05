@@ -13,6 +13,12 @@ public class GoldSnakeFortunePlayerGameData extends SlotsPlayerGameData {
             GoldSnakeFortuneResultLib freeLib = this.freeLib instanceof GoldSnakeFortuneResultLib lib ? lib : null;
             gameDataDTO.setFreeLib(freeLib);
         }
+        if (dto instanceof GoldSnakeFortunePlayerGameDataRoomDTO gameDataDTO) {
+            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
+            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
+            GoldSnakeFortuneResultLib freeLib = this.freeLib instanceof GoldSnakeFortuneResultLib lib ? lib : null;
+            gameDataDTO.setFreeLib(freeLib);
+        }
         return dto;
     }
 

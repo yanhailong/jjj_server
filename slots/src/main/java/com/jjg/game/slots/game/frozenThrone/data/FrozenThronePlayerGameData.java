@@ -17,6 +17,12 @@ public class FrozenThronePlayerGameData extends SlotsPlayerGameData {
             FrozenThroneResultLib freeLib = this.freeLib instanceof FrozenThroneResultLib lib ? lib : null;
             gameDataDTO.setFreeLib(freeLib);
         }
+        if (dto instanceof FrozenThronePlayerGameDataRoomDTO gameDataDTO) {
+            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
+            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
+            FrozenThroneResultLib freeLib = this.freeLib instanceof FrozenThroneResultLib lib ? lib : null;
+            gameDataDTO.setFreeLib(freeLib);
+        }
         return dto;
     }
 }

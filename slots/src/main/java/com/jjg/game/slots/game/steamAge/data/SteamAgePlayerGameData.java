@@ -17,6 +17,12 @@ public class SteamAgePlayerGameData extends SlotsPlayerGameData {
             SteamAgeResultLib freeLib = this.freeLib instanceof SteamAgeResultLib lib ? lib : null;
             gameDataDTO.setFreeLib(freeLib);
         }
+        if (dto instanceof SteamAgePlayerGameDataRoomDTO gameDataDTO) {
+            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
+            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
+            SteamAgeResultLib freeLib = this.freeLib instanceof SteamAgeResultLib lib ? lib : null;
+            gameDataDTO.setFreeLib(freeLib);
+        }
         return dto;
     }
 }

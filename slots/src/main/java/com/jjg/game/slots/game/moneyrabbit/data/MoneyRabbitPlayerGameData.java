@@ -13,6 +13,12 @@ public class MoneyRabbitPlayerGameData extends SlotsPlayerGameData {
             MoneyRabbitResultLib freeLib = this.freeLib instanceof MoneyRabbitResultLib lib ? lib : null;
             gameDataDTO.setFreeLib(freeLib);
         }
+        if (dto instanceof MoneyRabbitPlayerGameDataRoomDTO gameDataDTO) {
+            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
+            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
+            MoneyRabbitResultLib freeLib = this.freeLib instanceof MoneyRabbitResultLib lib ? lib : null;
+            gameDataDTO.setFreeLib(freeLib);
+        }
         return dto;
     }
 
