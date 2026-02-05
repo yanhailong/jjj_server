@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.elephantgod.manager;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -8,10 +7,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
-import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
-import com.jjg.game.slots.game.captainjack.data.CaptainJackPlayerGameData;
-import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.elephantgod.ElephantGodConstant;
 import com.jjg.game.slots.game.elephantgod.dao.ElephantGodGameDataDao;
 import com.jjg.game.slots.game.elephantgod.dao.ElephantGodResultLibDao;
@@ -20,7 +16,6 @@ import com.jjg.game.slots.game.elephantgod.data.ElephantGodPlayerGameData;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodPlayerGameDataDTO;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameManager<ElephantGodPlayerGameData, ElephantGodResultLib, ElephantGodGameRunInfo> {
     private final ElephantGodResultLibDao libDao;
@@ -165,7 +160,7 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
     }
 
     @Override
-    protected Class<ElephantGodPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
         return ElephantGodPlayerGameDataDTO.class;
     }
 

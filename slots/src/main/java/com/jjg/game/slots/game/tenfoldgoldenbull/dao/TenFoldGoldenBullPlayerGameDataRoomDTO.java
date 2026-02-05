@@ -1,7 +1,7 @@
 package com.jjg.game.slots.game.tenfoldgoldenbull.dao;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
+import com.jjg.game.slots.data.SlotsPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.tenfoldgoldenbull.data.TenFoldGoldenBullPlayerGameData;
 import com.jjg.game.slots.game.tenfoldgoldenbull.data.TenFoldGoldenBullResultLib;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -11,7 +11,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * @date 2025/8/5 14:11
  */
 @Document
-public class TenFoldGoldenBullPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
+public class TenFoldGoldenBullPlayerGameDataRoomDTO extends SlotsPlayerGameDataRoomDTO {
     private int currentRandomIndex;
     private TenFoldGoldenBullResultLib luckyBull;
 

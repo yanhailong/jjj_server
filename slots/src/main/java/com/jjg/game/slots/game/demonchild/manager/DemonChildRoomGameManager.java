@@ -1,7 +1,9 @@
 package com.jjg.game.slots.game.demonchild.manager;
 
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.demonchild.dao.DemonChildGameDataDao;
+import com.jjg.game.slots.game.demonchild.dao.DemonChildPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.demonchild.dao.DemonChildResultLibDao;
 import com.jjg.game.slots.game.demonchild.data.DemonChildPlayerGameData;
 import com.jjg.game.slots.game.demonchild.data.DemonChildResultLib;
@@ -27,5 +29,10 @@ public class DemonChildRoomGameManager extends AbstractDemonChildGameManager {
     @Override
     protected List<Integer> checkLibPool(DemonChildResultLib resultLib, DemonChildPlayerGameData playerGameData) {
         return Collections.emptyList();
+    }
+
+    @Override
+    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return DemonChildPlayerGameDataRoomDTO.class;
     }
 }

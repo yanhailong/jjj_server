@@ -1,7 +1,9 @@
 package com.jjg.game.slots.game.tigerbringsriches.manager;
 
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesGameDataDao;
+import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesResultLibDao;
 import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesPlayerGameData;
 import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesResultLib;
@@ -29,5 +31,10 @@ public class TigerBringsRichesRoomGameManager extends AbstractTigerBringsRichesG
     @Override
     protected List<Integer> checkLibPool(TigerBringsRichesResultLib resultLib, TigerBringsRichesPlayerGameData playerGameData) {
         return List.of();
+    }
+
+    @Override
+    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+        return TigerBringsRichesPlayerGameDataRoomDTO.class;
     }
 }

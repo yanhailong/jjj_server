@@ -1,7 +1,7 @@
 package com.jjg.game.slots.game.demonchild.dao;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
+import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
 import com.jjg.game.slots.game.demonchild.data.DemonChildPlayerGameData;
 import com.jjg.game.slots.game.demonchild.data.DemonChildResultLib;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -12,8 +12,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author 11
  * @date 2025/8/5 14:11
  */
- @Document
-public class DemonChildPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
+@Document
+public class DemonChildPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
     //缓存免费的结果库
     private DemonChildResultLib freeLib;
     //剩余的免费次数

@@ -3,8 +3,6 @@ package com.jjg.game.slots.game.luckymouse.manager;
 import cn.hutool.core.collection.CollUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -15,14 +13,12 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.luckymouse.LuckyMouseConstant;
 import com.jjg.game.slots.game.luckymouse.dao.LuckyMouseGameDataDao;
 import com.jjg.game.slots.game.luckymouse.dao.LuckyMouseResultLibDao;
 import com.jjg.game.slots.game.luckymouse.data.*;
 import com.jjg.game.slots.game.luckymouse.pb.LuckyMouseWinIconInfo;
-import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -270,7 +266,7 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
     }
 
     @Override
-    protected Class<LuckyMousePlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
         return LuckyMousePlayerGameDataDTO.class;
     }
 

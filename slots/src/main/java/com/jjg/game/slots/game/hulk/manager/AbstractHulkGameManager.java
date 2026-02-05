@@ -1,9 +1,9 @@
 package com.jjg.game.slots.game.hulk.manager;
 
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.hulk.dao.HulkGameDataDao;
 import com.jjg.game.slots.game.hulk.dao.HulkResultLibDao;
 import com.jjg.game.slots.game.hulk.data.HulkGameRunInfo;
@@ -86,7 +86,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
     }
 
     @Override
-    protected Class<HulkPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
         return HulkPlayerGameDataDTO.class;
     }
 

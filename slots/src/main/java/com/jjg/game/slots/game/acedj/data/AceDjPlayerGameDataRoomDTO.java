@@ -1,25 +1,29 @@
-package com.jjg.game.slots.game.luckymouse.data;
+package com.jjg.game.slots.game.acedj.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
+import com.jjg.game.slots.data.SlotsPlayerGameDataRoomDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * @author lihaocao
+ * @date 2025/8/5 16:14
+ */
 @Document
-public class LuckyMousePlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
+public class AceDjPlayerGameDataRoomDTO extends SlotsPlayerGameDataRoomDTO {
     //缓存免费的结果库
-    private LuckyMouseResultLib freeLib;
+    private AceDjResultLib freeLib;
     //剩余的免费次数
     private int remainFreeCount;
     //当前的免费游戏数组中的下标值
     private int freeIndex;
 
-    public LuckyMouseResultLib getFreeLib() {
+    public AceDjResultLib getFreeLib() {
         return freeLib;
     }
 
-    public void setFreeLib(LuckyMouseResultLib freeLib) {
+    public void setFreeLib(AceDjResultLib freeLib) {
         this.freeLib = freeLib;
     }
 
@@ -42,7 +46,7 @@ public class LuckyMousePlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
     @Override
     public <T extends SlotsPlayerGameData> T converToGameData(Class<T> cla) throws Exception {
         T t = super.converToGameData(cla);
-        if (t instanceof LuckyMousePlayerGameData playerGameData) {
+        if (t instanceof AceDjPlayerGameData playerGameData) {
             int safeFreeIndex = Math.max(0, this.freeIndex);
             int safeRemainFreeCount = Math.max(0, this.remainFreeCount);
             playerGameData.setFreeIndex(new AtomicInteger(safeFreeIndex));
