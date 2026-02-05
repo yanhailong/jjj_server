@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.acedj.data;
 
 import com.jjg.game.slots.data.SlotsResultLib;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
 
@@ -9,7 +8,6 @@ import java.util.List;
  * @author lihaocao
  * @date 2025/12/2 17:30
  */
-@Document
 public class AceDjResultLib extends SlotsResultLib<AceDjAwardLineInfo> {
     //本次触发的jackpotId
     private int jackpotId;

@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.zeusVsHades.data;
 
 import com.jjg.game.slots.data.SlotsResultLib;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Map;
 import java.util.Set;
@@ -10,7 +9,6 @@ import java.util.Set;
  * @author lihaocao
  * @date 2025/12/2 17:30
  */
-@Document
 public class ZeusVsHadesResultLib extends SlotsResultLib<ZeusVsHadesAwardLineInfo> {
     //本次触发的jackpotId
     private int jackpotId;

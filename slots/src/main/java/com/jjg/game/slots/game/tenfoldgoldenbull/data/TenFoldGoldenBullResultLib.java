@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.tenfoldgoldenbull.data;
 
 import com.jjg.game.slots.data.SlotsResultLib;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +9,6 @@ import java.util.List;
  * @author lm
  * @date 2025/12/2 17:30
  */
-@Document
 public class TenFoldGoldenBullResultLib extends SlotsResultLib<TenFoldGoldenBullAwardLineInfo> {
     private int jackpotId;
     private List<TenFoldGoldenBullResultLib> randomResult;

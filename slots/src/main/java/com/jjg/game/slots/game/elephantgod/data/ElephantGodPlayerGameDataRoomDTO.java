@@ -5,7 +5,8 @@ import com.jjg.game.slots.data.SlotsPlayerGameDataRoomDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.concurrent.atomic.AtomicInteger;
-@Document(collection = "ElephantGodPlayerGameDataRoomDTO")
+
+@Document
 public class ElephantGodPlayerGameDataRoomDTO extends SlotsPlayerGameDataRoomDTO {
     //缓存免费的结果库
     private ElephantGodResultLib freeLib;

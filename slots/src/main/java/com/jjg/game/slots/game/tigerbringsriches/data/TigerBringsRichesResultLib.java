@@ -1,8 +1,6 @@
 package com.jjg.game.slots.game.tigerbringsriches.data;
 
 import com.jjg.game.slots.data.SlotsResultLib;
-import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleResultLib;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +9,6 @@ import java.util.List;
  * @author lm
  * @date 2025/12/2 17:30
  */
-@Document
 public class TigerBringsRichesResultLib extends SlotsResultLib<TigerBringsRichesAwardLineInfo> {
 
     private List<TigerBringsRichesResultLib> specialResult;

@@ -8,6 +8,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * @date 2026/1/15
  * 注意：新增字段请同步到该 Room DTO，避免房间模式丢字段。
 */
-@Document(collection = "HulkPlayerGameDataRoomDTO")
+@Document
 public class HulkPlayerGameDataRoomDTO extends SlotsPlayerGameDataRoomDTO {
 }
