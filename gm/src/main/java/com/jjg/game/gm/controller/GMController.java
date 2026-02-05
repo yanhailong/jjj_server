@@ -437,19 +437,9 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if (StringUtils.isEmpty(dto.playerName())) {
-                log.debug("修改货币时，用户名不能为空");
-                return fail("common.paramerror");
-            }
-
             Player player = playerService.get(dto.playerId());
             if (player == null) {
                 log.debug("修改货币时，未找到该用户 playerId = {}", dto.playerId());
-                return fail("common.paramerror");
-            }
-
-            if (!dto.playerName().equals(player.getNickName())) {
-                log.debug("修改货币时，用户名校验错误 playerId = {},paramNick = {},dbNick = {}", dto.playerId(), dto.playerName(), player.getNickName());
                 return fail("common.paramerror");
             }
 
@@ -561,8 +551,7 @@ public class GMController extends AbstractController {
             }
 
             boolean notifyNode = false;
-            CommonResult<Player> result;
-            result = playerService.setVip(dto.playerId(), dto.vipLevel(), AddType.GM_OPERATOR, null);
+            CommonResult<Player> result = playerService.setVip(dto.playerId(), dto.vipLevel(), AddType.GM_OPERATOR, null);
             if (!result.success()) {
                 log.debug("设置vip等级错误 ,playerId = {},code = {}", dto.playerId(), result.code);
                 return fail("common.fail");
