@@ -55,6 +55,11 @@ public abstract class AbstractGameDataDao<T extends SlotsPlayerGameDataDTO> exte
         return mongoTemplate.findAndModify(query, update, new FindAndModifyOptions().returnNew(true).upsert(true), (Class<D>) playerGameData.getClass(), getRoomCollectionName(playerGameData.getClass()));
     }
 
+    public void deletePlayerGameDataRoomOnDisband(Class<?> roomClazz, long roomId) {
+        Query query = Query.query(Criteria.where("roomId").is(roomId));
+        mongoTemplate.remove(query, roomClazz, getRoomCollectionName(roomClazz));
+    }
+
     protected String getRoomCollectionName(Class<?> roomClazz) {
         return roomClazz.getSimpleName();
     }

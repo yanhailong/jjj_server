@@ -1339,8 +1339,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected void offlineSaveGameDataDto(T gameData) {
         try {
             SlotsPlayerGameDataDTO dto = gameData.converToDto(getSlotsPlayerGameDataDTOCla());
-            if (isRoomGame() && dto instanceof SlotsPlayerGameDataRoomDTO) {
-                SlotsPlayerGameDataRoomDTO roomDto = (SlotsPlayerGameDataRoomDTO) dto;
+            if (isRoomGame() && dto instanceof SlotsPlayerGameDataRoomDTO roomDto) {
                 roomDto.setRoomId(gameData.getRoomId());
                 roomDto.buildRoomKey();
                 getGameDataDao().saveRoomGameData(roomDto);
