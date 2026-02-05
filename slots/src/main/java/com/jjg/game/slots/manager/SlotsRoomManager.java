@@ -292,7 +292,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         }
         long overdueTime = slotsRoomController.getRoom().getOverdueTime();
         long totalTake = 0;
-        while (itemNum < slotsRoomController.getRoom().getPredictCostGoldNum()) {
+        while (itemNum <= slotsRoomController.getRoom().getPredictCostGoldNum()) {
             slotsRoomController.getRoom().setPredictCostGoldNum(slotsRoomController.getRoom().getPredictCostGoldNum() - itemNum);
             totalTake += itemNum;
             overdueTime += durationTime;

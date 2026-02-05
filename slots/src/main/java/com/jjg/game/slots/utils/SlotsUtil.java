@@ -100,7 +100,7 @@ public class SlotsUtil {
         BigDecimal propValue = BigDecimal.valueOf(prop);
         BigDecimal divide = propValue.divide(TEN_THOUSAND_BIGDECIMAL, 4, BigDecimal.ROUND_HALF_UP);
         BigDecimal multiply = BigDecimal.valueOf(all).multiply(divide);
-        return multiply.intValue();
+        return multiply.longValue();
     }
 
     /**
