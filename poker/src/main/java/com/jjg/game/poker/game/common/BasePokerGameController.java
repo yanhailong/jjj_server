@@ -91,6 +91,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         Set<Long> newSet = message.getPlayerIds().stream()
                 .filter(playerId -> !playerNotInit(playerId))
                 .collect(Collectors.toSet());
+        message.setPlayerIds(newSet);
         if (!newSet.isEmpty()) {
             roomController.broadcastToPlayers(message);
         }

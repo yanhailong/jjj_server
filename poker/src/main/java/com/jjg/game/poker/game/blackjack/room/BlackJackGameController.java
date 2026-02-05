@@ -141,6 +141,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         if (seatInfo.getCurrentCards().size() > roomCfg.getHandPoker()) {
             notifyBlackJackDoubleBetInfo.code = Code.PARAM_ERROR;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifyBlackJackDoubleBetInfo));
             return;
         }
         //所有下注信息
@@ -350,6 +351,9 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
     @Override
     public void onRunGamePlayerLeaveRoom(SeatInfo remove) {
         PlayerSeatInfo currentPlayerSeatInfo = gameDataVo.getCurrentPlayerSeatInfo();
+        if (currentPlayerSeatInfo == null) {
+            return;
+        }
         if (currentPlayerSeatInfo.getPlayerId() == remove.getPlayerId()) {
             //如果他是执行人 直接下一轮或结算
             PlayerSeatInfo nextExePlayer = getNextExePlayer();
@@ -374,13 +378,19 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         NotifyBlackJackBuyACE msg = new NotifyBlackJackBuyACE();
         //设置第一个开始的玩家 并添加定时
         List<PlayerSeatInfo> playerSeatInfoList = gameDataVo.getPlayerSeatInfoList();
+        boolean findIndex = false;
         for (int i = 0; i < playerSeatInfoList.size(); i++) {
             PlayerSeatInfo seatInfo = playerSeatInfoList.get(i);
             if (seatInfo.isDelState()) {
                 continue;
             }
             gameDataVo.setIndex(i);
+            findIndex = true;
             break;
+        }
+        if (!findIndex) {
+            log.warn("notifyAceResult playerSeatInfoList is empty");
+            return;
         }
         PlayerSeatInfo first = playerSeatInfoList.get(gameDataVo.getIndex());
         addNextTimer(first, 0);
@@ -494,6 +504,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         if (getTransactionItemNum(playerId) < betValue) {
             notifyCutCard.code = Code.NOT_ENOUGH;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifyCutCard));
+            return;
         }
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         //只能分一次牌并且只能在发牌时分牌
@@ -665,7 +676,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
     public int getCard(BlackJackGameDataVo gameDataVo) {
         List<Integer> cards = gameDataVo.getCards();
         if (cards.isEmpty()) {
-            if (Objects.nonNull(gameDataVo.getTempCard())) {
+            if (CollectionUtil.isNotEmpty(gameDataVo.getTempCard())) {
                 gameDataVo.setCards(new ArrayList<>(gameDataVo.getTempCard()));
                 cards = gameDataVo.getCards();
             } else {
@@ -769,7 +780,10 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             if (gameDataVo.getAceBuyEndTime() == 0 || gameDataVo.getAceBuyEndTime() < System.currentTimeMillis()) {
                 if (Objects.nonNull(gameDataVo.getPlayerTimerEvent())) {
                     baseInfo.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
-                    baseInfo.operationId = gameDataVo.getCurrentPlayerSeatInfo().getPlayerId();
+                    PlayerSeatInfo playerSeatInfo = gameDataVo.getCurrentPlayerSeatInfo();
+                    if (playerSeatInfo != null) {
+                        baseInfo.operationId = playerSeatInfo.getPlayerId();
+                    }
                 }
             }
             long aceTotalBet = 0;
@@ -804,7 +818,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
      * 请求续押
      *
      * @param playerId 玩家id
-     * @param req 请求
+     * @param req      请求
      */
     public void reqBlackJackContinuedDeposit(long playerId, ReqBlackJackContinuedDeposit req) {
         NotifyBlackJackContinuedDeposit jackBetResult = new NotifyBlackJackContinuedDeposit();
@@ -861,9 +875,10 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
 
     /**
      * 下注金额检查
-     * @param playerId 玩家id
+     *
+     * @param playerId    玩家id
      * @param baseBetInfo 下注信息
-     * @param totalBet 总下注
+     * @param totalBet    总下注
      * @return 错误码
      */
     private int betValueCheck(long playerId, Map<Long, Long> baseBetInfo, long totalBet) {
@@ -881,6 +896,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
 
     /**
      * 下注前检查
+     *
      * @param playerId 玩家id
      */
     private Pair<GamePlayer, List<Integer>> betActionAfterCheck(long playerId) {

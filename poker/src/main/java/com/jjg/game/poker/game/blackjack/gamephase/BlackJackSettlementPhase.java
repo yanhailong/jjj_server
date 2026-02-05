@@ -71,18 +71,20 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
      * 处理正常特殊结算
      */
     public void dealNormalSpecialSettlement(BlackJackGameController controller) {
-        PlayerSeatInfo seatInfo = gameDataVo.getCurrentPlayerSeatInfo();
         NotifyBlackJackSpecialSettlement notifyBlackJackSpecialSettlement = new NotifyBlackJackSpecialSettlement();
-        notifyBlackJackSpecialSettlement.type = seatInfo.getOperationType();
-        notifyBlackJackSpecialSettlement.playerId = seatInfo.getPlayerId();
-        notifyBlackJackSpecialSettlement.sendCardId = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCurrentCards().getLast());
-        notifyBlackJackSpecialSettlement.putCardTotal = BlackJackDataHelper.getShowTotalPoint(seatInfo.getCurrentCards());
-        if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.DOUBLE_BET) {
-            notifyBlackJackSpecialSettlement.betValue = gameDataVo.getBaseBetInfo().getOrDefault(seatInfo.getPlayerId(), 0L);
+        PlayerSeatInfo seatInfo = gameDataVo.getCurrentPlayerSeatInfo();
+        if (seatInfo != null) {
+            notifyBlackJackSpecialSettlement.type = seatInfo.getOperationType();
+            notifyBlackJackSpecialSettlement.playerId = seatInfo.getPlayerId();
+            notifyBlackJackSpecialSettlement.sendCardId = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCurrentCards().getLast());
+            notifyBlackJackSpecialSettlement.putCardTotal = BlackJackDataHelper.getShowTotalPoint(seatInfo.getCurrentCards());
+            if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.DOUBLE_BET) {
+                notifyBlackJackSpecialSettlement.betValue = gameDataVo.getBaseBetInfo().getOrDefault(seatInfo.getPlayerId(), 0L);
+            }
+            notifyBlackJackSpecialSettlement.betValueList = gameDataVo.getPlayerBetValueList().getOrDefault(seatInfo.getPlayerId(), new ArrayList<>());
+            notifyBlackJackSpecialSettlement.cardIdList = BlackJackBuilder.getCardInfos(seatInfo, controller);
+            notifyBlackJackSpecialSettlement.currentCardIds = seatInfo.getCards().size() > 1 ? seatInfo.getCardIndex() + 1 : seatInfo.getCardIndex();
         }
-        notifyBlackJackSpecialSettlement.betValueList = gameDataVo.getPlayerBetValueList().getOrDefault(seatInfo.getPlayerId(), new ArrayList<>());
-        notifyBlackJackSpecialSettlement.cardIdList = BlackJackBuilder.getCardInfos(seatInfo, controller);
-        notifyBlackJackSpecialSettlement.currentCardIds = seatInfo.getCards().size() > 1 ? seatInfo.getCardIndex() + 1 : seatInfo.getCardIndex();
         notifyBlackJackSpecialSettlement.settlementInfo = normalSettlement(controller);
         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyBlackJackSpecialSettlement));
     }
@@ -91,36 +93,38 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
      * 处理特殊结算
      */
     public void dealSpecialSettlement(BlackJackGameController controller) {
-        PlayerSeatInfo seatInfo = gameDataVo.getCurrentPlayerSeatInfo();
         NotifyBlackJackSpecialSettlement notifyBlackJackSpecialSettlement = new NotifyBlackJackSpecialSettlement();
-        notifyBlackJackSpecialSettlement.type = seatInfo.getOperationType();
-        if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.NONE) {
-            notifyBlackJackSpecialSettlement.cardIdList = BlackJackBuilder.getBlackJackCardInfoList(gameDataVo);
-            notifyBlackJackSpecialSettlement.cardId = BlackJackDataHelper.getClientCardId(gameDataVo, gameDataVo.getDealerCards().getFirst());
+        PlayerSeatInfo seatInfo = gameDataVo.getCurrentPlayerSeatInfo();
+        if (seatInfo != null) {
+            notifyBlackJackSpecialSettlement.type = seatInfo.getOperationType();
+            if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.NONE) {
+                notifyBlackJackSpecialSettlement.cardIdList = BlackJackBuilder.getBlackJackCardInfoList(gameDataVo);
+                notifyBlackJackSpecialSettlement.cardId = BlackJackDataHelper.getClientCardId(gameDataVo, gameDataVo.getDealerCards().getFirst());
+                notifyBlackJackSpecialSettlement.settlementInfo = normalSettlement(controller);
+                broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyBlackJackSpecialSettlement));
+                return;
+            }
+            notifyBlackJackSpecialSettlement.playerId = seatInfo.getPlayerId();
+            if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.GET_CARD) {
+                //第一组的最后一张牌
+                notifyBlackJackSpecialSettlement.sendCardId = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCards().getFirst().getLast());
+                notifyBlackJackSpecialSettlement.autoCard = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCurrentCards().getLast());
+                notifyBlackJackSpecialSettlement.putCardTotal = BlackJackDataHelper.getShowTotalPoint(seatInfo.getCards().getFirst());
+            }
+            if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.STOP) {
+                notifyBlackJackSpecialSettlement.autoCard = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCurrentCards().getLast());
+            }
+            if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.DOUBLE_BET) {
+                notifyBlackJackSpecialSettlement.sendCardId = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCards().getFirst().getLast());
+                notifyBlackJackSpecialSettlement.autoCard = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCurrentCards().getLast());
+                notifyBlackJackSpecialSettlement.putCardTotal = BlackJackDataHelper.getShowTotalPoint(seatInfo.getCards().getFirst());
+                notifyBlackJackSpecialSettlement.betValue = gameDataVo.getBaseBetInfo().getOrDefault(seatInfo.getPlayerId(), 0L);
+            }
+            notifyBlackJackSpecialSettlement.betValueList = gameDataVo.getPlayerBetValueList().getOrDefault(seatInfo.getPlayerId(), new ArrayList<>());
+            notifyBlackJackSpecialSettlement.cardIdList = BlackJackBuilder.getCardInfos(seatInfo, controller);
+            notifyBlackJackSpecialSettlement.currentCardIds = seatInfo.getCardIndex();
             notifyBlackJackSpecialSettlement.settlementInfo = normalSettlement(controller);
-            broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyBlackJackSpecialSettlement));
-            return;
         }
-        notifyBlackJackSpecialSettlement.playerId = seatInfo.getPlayerId();
-        if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.GET_CARD) {
-            //第一组的最后一张牌
-            notifyBlackJackSpecialSettlement.sendCardId = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCards().getFirst().getLast());
-            notifyBlackJackSpecialSettlement.autoCard = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCurrentCards().getLast());
-            notifyBlackJackSpecialSettlement.putCardTotal = BlackJackDataHelper.getShowTotalPoint(seatInfo.getCards().getFirst());
-        }
-        if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.STOP) {
-            notifyBlackJackSpecialSettlement.autoCard = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCurrentCards().getLast());
-        }
-        if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.DOUBLE_BET) {
-            notifyBlackJackSpecialSettlement.sendCardId = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCards().getFirst().getLast());
-            notifyBlackJackSpecialSettlement.autoCard = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCurrentCards().getLast());
-            notifyBlackJackSpecialSettlement.putCardTotal = BlackJackDataHelper.getShowTotalPoint(seatInfo.getCards().getFirst());
-            notifyBlackJackSpecialSettlement.betValue = gameDataVo.getBaseBetInfo().getOrDefault(seatInfo.getPlayerId(), 0L);
-        }
-        notifyBlackJackSpecialSettlement.betValueList = gameDataVo.getPlayerBetValueList().getOrDefault(seatInfo.getPlayerId(), new ArrayList<>());
-        notifyBlackJackSpecialSettlement.cardIdList = BlackJackBuilder.getCardInfos(seatInfo, controller);
-        notifyBlackJackSpecialSettlement.currentCardIds = seatInfo.getCardIndex();
-        notifyBlackJackSpecialSettlement.settlementInfo = normalSettlement(controller);
         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyBlackJackSpecialSettlement));
     }
 
@@ -183,8 +187,11 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         int dealerTotalPoint = BlackJackDataHelper.getTotalPoint(sendCards);
         settlementPlayerInfo.totalPoint = dealerTotalPoint;
         settlementPlayerInfo.showDealer = showDealer;
-        settlementPlayerInfo.playerId = gameDataVo.getCurrentPlayerSeatInfo().getPlayerId();
-        settlementPlayerInfo.type = gameDataVo.getCurrentPlayerSeatInfo().getOperationType();
+        PlayerSeatInfo playerSeatInfo = gameDataVo.getCurrentPlayerSeatInfo();
+        if (playerSeatInfo != null) {
+            settlementPlayerInfo.playerId = playerSeatInfo.getPlayerId();
+            settlementPlayerInfo.type = playerSeatInfo.getOperationType();
+        }
         settlementPlayerInfo.endTime = gameDataVo.getPhaseEndTime() + (showDealer ? (long) sendCards.size() * PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) : 0);
 
         Map<Long, List<List<Integer>>> playerCards = new HashMap<>();

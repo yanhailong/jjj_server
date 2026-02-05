@@ -127,7 +127,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                             long currentBet = gameDataVo.getBaseBetInfo().getOrDefault(robotPlayer.getId(), 0L);
                             //总下注
                             long sum = gameDataVo.getBaseBetInfo().values().stream().mapToLong(Long::longValue).sum();
-                            long proportion = sum / ((long) gameDataVo.getBaseBetInfo().size() * texasCfg.getCoinsNum());
+                            long proportion = sum * 10000 / ((long) gameDataVo.getBaseBetInfo().size() * texasCfg.getCoinsNum());
                             // 	要求平均下注量百分比 取值 ÷ 10000，取值在chessTexasStrategy表中对应行为字段中类型为4的值
                             //大于等于【要求平均下注量百分比】，执行【跟注】行为，反之执行【加注】，
                             if (proportion >= strategyDataMap.getOrDefault(TARGET_CHIP, 0) || CollectionUtil.isEmpty(chessRobotCfg.getAddBetMultiple())) {
