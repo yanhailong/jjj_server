@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.basketballSuperstar.data;
 
+import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 
@@ -9,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author lihaocao
  * @date 2025/8/5 16:14
  */
-public class BasketballSuperstarPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
+public class BasketballSuperstarPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
     //缓存免费的结果库
     private BasketballSuperstarResultLib freeLib;
     //剩余的免费次数

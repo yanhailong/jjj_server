@@ -8,6 +8,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.basketballSuperstar.dao.BasketballSuperstarGameDataDao;
@@ -233,7 +234,7 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
     }
 
     @Override
-    protected Class<BasketballSuperstarPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
         return BasketballSuperstarPlayerGameDataDTO.class;
     }
 

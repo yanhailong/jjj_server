@@ -206,8 +206,22 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
                 return result;
             }
 
-            Account tmpAccount = checkAndSave(player.getId(), a -> {
-                setChannelValue(loginType, channelUserInfo, a);
+            Account tmpAccount = checkAndSaveRes(player.getId(), new DataSaveCallback<>() {
+                @Override
+                public void updateData(Account dataEntity) {
+                }
+
+                @Override
+                public boolean updateDataWithRes(Account dataEntity) {
+                    //检查该玩家之前是否已经绑定
+                    String thirdAccount = dataEntity.getThirdAccount(loginType);
+                    if (StringUtils.isEmpty(thirdAccount)) {
+                        setChannelValue(loginType, channelUserInfo, dataEntity);
+                        return true;
+                    }
+                    log.warn("该玩家已经绑定了第三方账号，无法再次绑定 playerId = {},oldBindValue = {}", player.getId(), thirdAccount);
+                    return false;
+                }
             });
 
             if (tmpAccount == null) {

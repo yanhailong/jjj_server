@@ -10,6 +10,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.game.thor.dao.ThorGameDataDao;
@@ -347,7 +348,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
     }
 
     @Override
-    protected Class<ThorPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
         return ThorPlayerGameDataDTO.class;
     }
 

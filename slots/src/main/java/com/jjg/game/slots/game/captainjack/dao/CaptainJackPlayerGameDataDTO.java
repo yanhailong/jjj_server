@@ -4,6 +4,7 @@ import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackPlayerGameData;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
+import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -12,7 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author 11
  * @date 2025/8/5 14:11
  */
-public class CaptainJackPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
+@Document
+public class CaptainJackPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
     //寻宝次数
     private int alreadyDigCount;
     //当前依赖的寻宝libId

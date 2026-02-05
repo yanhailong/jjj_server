@@ -14,6 +14,7 @@ import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SlotsResultLib;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.TestLibData;
@@ -72,7 +73,7 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
     }
 
     @Override
-    protected Class<WealthGodPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
         return WealthGodPlayerGameDataDTO.class;
     }
 

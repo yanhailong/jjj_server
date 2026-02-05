@@ -2,7 +2,6 @@ package com.jjg.game.slots.game.pegasusunbridle.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -13,6 +12,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleGameDataDao;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridlePlayerGameDataDTO;
@@ -278,7 +278,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
     }
 
     @Override
-    protected Class<PegasusUnbridlePlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
         return PegasusUnbridlePlayerGameDataDTO.class;
     }
 

@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.superstar.manager;
 
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.superstar.data.SuperStarPlayerGameData;
+import com.jjg.game.slots.game.superstar.data.SuperStarPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.superstar.data.SuperStarResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -27,5 +28,10 @@ public class SuperStarRoomGameManager extends AbstractSuperStarGameManager {
     @Override
     protected List<Integer> checkLibPool(SuperStarResultLib resultLib, SuperStarPlayerGameData playerGameData) {
         return Collections.emptyList();
+    }
+
+    @Override
+    protected Class<SuperStarPlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
+        return SuperStarPlayerGameDataRoomDTO.class;
     }
 }

@@ -1,10 +1,7 @@
 package com.jjg.game.slots.game.superstar.manager;
 
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
@@ -12,6 +9,7 @@ import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.superstar.SuperStarConstant;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.superstar.dao.SuperStarGameDataDao;
 import com.jjg.game.slots.game.superstar.dao.SuperStarResultLibDao;
 import com.jjg.game.slots.game.superstar.data.*;
@@ -60,7 +58,7 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
     }
 
     @Override
-    protected Class<SuperStarPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
         return SuperStarPlayerGameDataDTO.class;
     }
 

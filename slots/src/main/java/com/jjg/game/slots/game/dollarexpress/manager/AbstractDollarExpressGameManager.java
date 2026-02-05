@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.dollarexpress.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
@@ -11,6 +10,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
@@ -860,7 +860,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     }
 
     @Override
-    protected Class<DollarExpressPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
+    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
         return DollarExpressPlayerGameDataDTO.class;
     }
 
