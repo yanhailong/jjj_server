@@ -8,6 +8,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * @author lm
  * @date 2026/2/4
  */
-@Document(collection = "WealthGodPlayerGameDataRoomDTO")
+@Document
 public class WealthGodPlayerGameDataRoomDTO extends SlotsPlayerGameDataRoomDTO {
 }

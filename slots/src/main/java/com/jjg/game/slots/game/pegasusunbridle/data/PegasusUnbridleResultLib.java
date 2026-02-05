@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.pegasusunbridle.data;
 
 import com.jjg.game.slots.data.SlotsResultLib;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +9,6 @@ import java.util.List;
  * @author lm
  * @date 2025/12/2 17:30
  */
-@Document
 public class PegasusUnbridleResultLib extends SlotsResultLib<PegasusUnbridleAwardLineInfo> {
     private List<PegasusUnbridleResultLib> specialResult;
     //特殊模式icon
