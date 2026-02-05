@@ -278,6 +278,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     getResultLibDao().batchSaveToRedis(redisTableName, libList, getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionMap());
                 }
                 getResultLibDao().afterSave(redisTableName);
+                getResultLibDao().addGenerateTime(this.gameType);
                 log.info("生成结果库结束，gameType = {},实际循环次数 = {},成功保存到数据库 {} 条,redisName = {}", this.gameType, currentForCount, saveCount, redisTableName);
 
                 this.clearAllLibEvent = new TimerEvent<>(this, 1, "clearLibEvent").withTimeUnit(TimeUnit.MINUTES);
