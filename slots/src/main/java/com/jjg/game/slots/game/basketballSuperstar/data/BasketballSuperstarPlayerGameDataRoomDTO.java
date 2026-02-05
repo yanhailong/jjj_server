@@ -2,7 +2,7 @@ package com.jjg.game.slots.game.basketballSuperstar.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataRoomDTO;
-import org.springframework.stereotype.Component;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2025/8/5 16:14
  * 注意：新增字段请同步到该 Room DTO，避免房间模式丢字段。
 */
-@Component
+@Document
 public class BasketballSuperstarPlayerGameDataRoomDTO extends SlotsPlayerGameDataRoomDTO {
     //缓存免费的结果库
     private BasketballSuperstarResultLib freeLib;
