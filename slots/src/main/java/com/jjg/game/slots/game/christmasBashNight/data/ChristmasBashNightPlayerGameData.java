@@ -17,6 +17,12 @@ public class ChristmasBashNightPlayerGameData extends SlotsPlayerGameData {
             ChristmasBashNightResultLib freeLib = this.freeLib instanceof ChristmasBashNightResultLib lib ? lib : null;
             gameDataDTO.setFreeLib(freeLib);
         }
+        if (dto instanceof ChristmasBashNightPlayerGameDataRoomDTO gameDataDTO) {
+            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
+            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
+            ChristmasBashNightResultLib freeLib = this.freeLib instanceof ChristmasBashNightResultLib lib ? lib : null;
+            gameDataDTO.setFreeLib(freeLib);
+        }
         return dto;
     }
 }

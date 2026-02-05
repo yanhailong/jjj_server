@@ -13,6 +13,12 @@ public class ElephantGodPlayerGameData extends SlotsPlayerGameData {
             ElephantGodResultLib freeLib = this.freeLib instanceof ElephantGodResultLib lib ? lib : null;
             gameDataDTO.setFreeLib(freeLib);
         }
+        if (dto instanceof ElephantGodPlayerGameDataRoomDTO gameDataDTO) {
+            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
+            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
+            ElephantGodResultLib freeLib = this.freeLib instanceof ElephantGodResultLib lib ? lib : null;
+            gameDataDTO.setFreeLib(freeLib);
+        }
         return dto;
     }
 

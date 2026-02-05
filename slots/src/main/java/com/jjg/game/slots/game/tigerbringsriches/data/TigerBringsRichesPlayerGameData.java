@@ -3,6 +3,7 @@ package com.jjg.game.slots.game.tigerbringsriches.data;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesPlayerGameDataDTO;
+import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesPlayerGameDataRoomDTO;
 
 /**
  * @author lm
@@ -32,6 +33,10 @@ public class TigerBringsRichesPlayerGameData extends SlotsPlayerGameData {
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
         T dto = super.converToDto(cla);
         if (dto instanceof TigerBringsRichesPlayerGameDataDTO gameDataDTO) {
+            gameDataDTO.setCurrentRandomIndex(this.currentRandomIndex);
+            gameDataDTO.setSpecialLib(this.specialLib);
+        }
+        if (dto instanceof TigerBringsRichesPlayerGameDataRoomDTO gameDataDTO) {
             gameDataDTO.setCurrentRandomIndex(this.currentRandomIndex);
             gameDataDTO.setSpecialLib(this.specialLib);
         }

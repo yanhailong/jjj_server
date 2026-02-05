@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.cleopatra.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import org.springframework.beans.BeanUtils;
 
 /**
  * @author 11
@@ -9,10 +8,4 @@ import org.springframework.beans.BeanUtils;
  */
 public class CleopatraPlayerGameData extends SlotsPlayerGameData {
 
-    public CleopatraPlayerGameDataDTO converToDto(){
-        CleopatraPlayerGameDataDTO dto = new CleopatraPlayerGameDataDTO();
-        BeanUtils.copyProperties(this,dto);
-        dto.setPlayerId(this.playerId());
-        return dto;
-    }
 }

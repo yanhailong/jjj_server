@@ -13,6 +13,12 @@ public class LuckyMousePlayerGameData extends SlotsPlayerGameData {
             LuckyMouseResultLib freeLib = this.freeLib instanceof LuckyMouseResultLib lib ? lib : null;
             gameDataDTO.setFreeLib(freeLib);
         }
+        if (dto instanceof LuckyMousePlayerGameDataRoomDTO gameDataDTO) {
+            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
+            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
+            LuckyMouseResultLib freeLib = this.freeLib instanceof LuckyMouseResultLib lib ? lib : null;
+            gameDataDTO.setFreeLib(freeLib);
+        }
         return dto;
     }
 }

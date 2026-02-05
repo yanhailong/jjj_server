@@ -17,6 +17,12 @@ public class AceDjPlayerGameData extends SlotsPlayerGameData {
             AceDjResultLib freeLib = this.freeLib instanceof AceDjResultLib lib ? lib : null;
             gameDataDTO.setFreeLib(freeLib);
         }
+        if (dto instanceof AceDjPlayerGameDataRoomDTO gameDataDTO) {
+            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
+            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
+            AceDjResultLib freeLib = this.freeLib instanceof AceDjResultLib lib ? lib : null;
+            gameDataDTO.setFreeLib(freeLib);
+        }
         return dto;
     }
 }

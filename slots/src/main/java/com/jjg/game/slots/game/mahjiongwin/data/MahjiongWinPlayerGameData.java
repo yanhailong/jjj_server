@@ -17,6 +17,12 @@ public class MahjiongWinPlayerGameData extends SlotsPlayerGameData {
             MahjiongWinResultLib freeLib = this.freeLib instanceof MahjiongWinResultLib lib ? lib : null;
             gameDataDTO.setFreeLib(freeLib);
         }
+        if (dto instanceof MahjiongWinPlayerGameDataRoomDTO gameDataDTO) {
+            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
+            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
+            MahjiongWinResultLib freeLib = this.freeLib instanceof MahjiongWinResultLib lib ? lib : null;
+            gameDataDTO.setFreeLib(freeLib);
+        }
         return dto;
     }
 }

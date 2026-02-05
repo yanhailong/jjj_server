@@ -2,12 +2,8 @@ package com.jjg.game.slots.game.pegasusunbridle.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridlePlayerGameDataDTO;
-import org.springframework.beans.BeanUtils;
-
-import java.lang.reflect.Constructor;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridlePlayerGameDataRoomDTO;
 
 /**
  * @author lm
@@ -37,6 +33,10 @@ public class PegasusUnbridlePlayerGameData extends SlotsPlayerGameData {
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
         T t = super.converToDto(cla);
         if (t instanceof PegasusUnbridlePlayerGameDataDTO data) {
+            data.setCurrentRandomIndex(this.currentRandomIndex);
+            data.setFuMa(this.fuMa);
+        }
+        if (t instanceof PegasusUnbridlePlayerGameDataRoomDTO data) {
             data.setCurrentRandomIndex(this.currentRandomIndex);
             data.setFuMa(this.fuMa);
         }

@@ -3,6 +3,7 @@ package com.jjg.game.slots.game.demonchild.data;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.demonchild.dao.DemonChildPlayerGameDataDTO;
+import com.jjg.game.slots.game.demonchild.dao.DemonChildPlayerGameDataRoomDTO;
 
 /**
  * @author lm
@@ -13,6 +14,12 @@ public class DemonChildPlayerGameData extends SlotsPlayerGameData {
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
         T dto = super.converToDto(cla);
         if (dto instanceof DemonChildPlayerGameDataDTO gameDataDTO) {
+            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
+            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
+            DemonChildResultLib freeLib = this.freeLib instanceof DemonChildResultLib lib ? lib : null;
+            gameDataDTO.setFreeLib(freeLib);
+        }
+        if (dto instanceof DemonChildPlayerGameDataRoomDTO gameDataDTO) {
             gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
             gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
             DemonChildResultLib freeLib = this.freeLib instanceof DemonChildResultLib lib ? lib : null;
