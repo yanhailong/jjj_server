@@ -123,8 +123,8 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             notifyBlackJackSpecialSettlement.betValueList = gameDataVo.getPlayerBetValueList().getOrDefault(seatInfo.getPlayerId(), new ArrayList<>());
             notifyBlackJackSpecialSettlement.cardIdList = BlackJackBuilder.getCardInfos(seatInfo, controller);
             notifyBlackJackSpecialSettlement.currentCardIds = seatInfo.getCardIndex();
-            notifyBlackJackSpecialSettlement.settlementInfo = normalSettlement(controller);
         }
+        notifyBlackJackSpecialSettlement.settlementInfo = normalSettlement(controller);
         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyBlackJackSpecialSettlement));
     }
 

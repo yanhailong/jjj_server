@@ -390,6 +390,8 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         }
         if (!findIndex) {
             log.warn("notifyAceResult playerSeatInfoList is empty");
+            gameDataVo.resetData(this);
+            goBackWaitReadyPhase();
             return;
         }
         PlayerSeatInfo first = playerSeatInfoList.get(gameDataVo.getIndex());
