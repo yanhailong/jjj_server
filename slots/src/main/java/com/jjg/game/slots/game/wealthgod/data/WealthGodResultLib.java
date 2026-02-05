@@ -2,7 +2,6 @@ package com.jjg.game.slots.game.wealthgod.data;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.slots.data.SlotsResultLib;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -11,7 +10,6 @@ import java.util.Map;
 /**
  * 财神结果
  */
-@Document
 public class WealthGodResultLib extends SlotsResultLib<WealthGodAwardLineInfo> {
     /**
      * 用于存储图标变更的映射关系。

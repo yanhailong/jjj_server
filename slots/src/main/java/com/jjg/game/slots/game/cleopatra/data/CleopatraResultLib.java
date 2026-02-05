@@ -1,15 +1,16 @@
 package com.jjg.game.slots.game.cleopatra.data;
 
 import com.jjg.game.slots.data.SlotsResultLib;
-import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author 11
  * @date 2025/8/1 17:30
  */
-@Document
 public class CleopatraResultLib extends SlotsResultLib<CleopatraAddColumnInfo> {
     //中奖图标id ->坐标id集合
     private Map<Integer,Set<Integer>> winIcons;

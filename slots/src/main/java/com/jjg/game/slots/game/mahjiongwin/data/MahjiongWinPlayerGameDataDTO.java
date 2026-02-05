@@ -3,6 +3,7 @@ package com.jjg.game.slots.game.mahjiongwin.data;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -10,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author 11
  * @date 2025/8/5 16:14
  */
+@Document
 public class MahjiongWinPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
     //缓存免费的结果库
     private MahjiongWinResultLib freeLib;

@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.basketballSuperstar.data;
 
 import com.jjg.game.slots.data.SlotsResultLib;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Set;
 
@@ -9,7 +8,6 @@ import java.util.Set;
  * @author lihaocao
  * @date 2025/12/2 17:30
  */
-@Document
 public class BasketballSuperstarResultLib extends SlotsResultLib<BasketballSuperstarAwardLineInfo> {
     //增加的免费次数
     private int addFreeCount;

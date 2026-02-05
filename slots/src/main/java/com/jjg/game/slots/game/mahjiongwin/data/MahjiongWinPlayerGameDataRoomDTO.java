@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2026/2/4
  * 注意：新增字段请同步到该 Room DTO，避免房间模式丢字段。
 */
-@Document(collection = "MahjiongWinPlayerGameDataRoomDTO")
+@Document
 public class MahjiongWinPlayerGameDataRoomDTO extends SlotsPlayerGameDataRoomDTO {
     //缓存免费的结果库
     private MahjiongWinResultLib freeLib;

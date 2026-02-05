@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @date 2026/2/4
  * 注意：新增字段请同步到该 Room DTO，避免房间模式丢字段。
 */
-@Document(collection = "DollarExpressPlayerGameDataRoomDTO")
+@Document
 public class DollarExpressPlayerGameDataRoomDTO extends SlotsPlayerGameDataRoomDTO {
     //累计的美钞数量
     private int totalDollars;
