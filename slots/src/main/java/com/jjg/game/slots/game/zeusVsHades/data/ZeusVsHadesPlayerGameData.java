@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.zeusVsHades.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 
 /**
  * @author lihaocao
@@ -8,15 +9,29 @@ import com.jjg.game.slots.data.SlotsPlayerGameData;
  */
 public class ZeusVsHadesPlayerGameData extends SlotsPlayerGameData {
 
-    private boolean  count;
+    //是否剩余免费次数
+    private boolean isCount;
 
 
-    public boolean isCount() {
-        return count;
+    public boolean getIsCount() {
+        return isCount;
     }
 
-    public void setCount(boolean count) {
-        this.count = count;
+    public void setIsCount(boolean isCount) {
+       this.isCount = isCount;
+    }
+
+    @Override
+    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
+        T dto = super.converToDto(cla);
+        if (dto instanceof ZeusVsHadesPlayerGameDataDTO gameDataDTO) {
+            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
+            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
+            ZeusVsHadesResultLib freeLib = this.freeLib instanceof ZeusVsHadesResultLib lib ? lib : null;
+            gameDataDTO.setFreeLib(freeLib);
+            gameDataDTO.setIsCount(isCount);
+        }
+        return dto;
     }
 }
 
