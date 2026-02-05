@@ -66,7 +66,6 @@ public class ZeusVsHadesSendMessageManager extends BaseSendMessageManager {
             res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
 
-
             //奖池信息
             if (prizePoolIdList != null && !prizePoolIdList.isEmpty()) {
                 res.poolList = new ArrayList<>();
@@ -118,6 +117,22 @@ public class ZeusVsHadesSendMessageManager extends BaseSendMessageManager {
             res.hadesWildSet = hadesWildSet;
             res.wildColumnStatus = wildColumnStatus;
 
+            ZeusVsHadesPlayerGameData data = gameRunInfo.getData();
+            ZeusVsHadesResultLib freeLib = (ZeusVsHadesResultLib) data.getFreeLib();
+            if (freeLib != null) {
+                int index = gameRunInfo.getData().getFreeIndex().get();
+                boolean isCount = gameRunInfo.getData().getIsCount();
+                log.info("==========================>index:{},status:{},iscount:{}", index, res.status, gameRunInfo.getData().getIsCount());
+
+                if (res.status == ZeusVsHadesConstant.Status.NORMAL && isCount) {
+                    res.zeusFree = 1;
+                } else if (res.status == ZeusVsHadesConstant.Status.ZEUS) {
+                    Pair<ZeusVsHadesResultLib, Boolean> pair = gameManager.selectByLib(freeLib, index);
+                    if (!pair.getSecond()) {
+                        res.zeusFree = 1;
+                    }
+                }
+            }
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());

@@ -198,12 +198,12 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
 
         //扣除免费次数
         int afterCount;
-        if (playerGameData.isCount()) {
+        if (playerGameData.getIsCount()) {
             afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
         } else {
             afterCount = playerGameData.getRemainFreeCount().get();
         }
-        log.debug("添加次数 ,afterCount = {}", afterCount);
+        log.debug("还剩下次数,afterCount = {}", afterCount);
         ZeusVsHadesResultLib freeGame = libResult.data;
 //        if (freeGame.getAddFreeCount() > 0) {
 //            afterCount = playerGameData.getRemainFreeCount().addAndGet(freeGame.getAddFreeCount());
@@ -213,8 +213,19 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
         //累计免费模式的中奖金额
         playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
 
-        if (afterCount < 1) {
+        if (specialModeFreeLibType == ZeusVsHadesConstant.SpecialMode.NORMAL) {
+            gameRunInfo.setStatus(ZeusVsHadesConstant.Status.NORMAL);
+        } else if (specialModeFreeLibType == ZeusVsHadesConstant.SpecialMode.ZEUS) {
+            gameRunInfo.setStatus(ZeusVsHadesConstant.Status.ZEUS);
+        } else if (specialModeFreeLibType == ZeusVsHadesConstant.SpecialMode.HADES) {
+            gameRunInfo.setStatus(ZeusVsHadesConstant.Status.HADES);
+        }
+        ZeusVsHadesResultLib freeLib = (ZeusVsHadesResultLib) playerGameData.getFreeLib();
+        List<Pair<ZeusVsHadesResultLib, Boolean>> list = new LinkedList<>();
+        list = libList(list, freeLib, true);
+        if (list.size() == playerGameData.getFreeIndex().get()) {
             playerGameData.setStatus(ZeusVsHadesConstant.Status.NORMAL);
+            gameRunInfo.setStatus(ZeusVsHadesConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
 
@@ -227,7 +238,6 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
         gameRunInfo.addBigPoolTimes(freeGame.getTimes());
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);
-        gameRunInfo.setStatus(ZeusVsHadesConstant.Status.ZEUS);
 
         return gameRunInfo;
     }
@@ -314,17 +324,7 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
         }
     }
 
-    /**
-     * @param SpecialAuxiliaryInfo
-     * @param index
-     * @return
-     */
-    public static Pair<ZeusVsHadesResultLib, Boolean> selectByLib(ZeusVsHadesResultLib fatherLib, int index) {
-        // 使用队列进行广度优先遍历
-        LinkedList<Pair<ZeusVsHadesResultLib, Boolean>> queue = new LinkedList<>();
-        List<Pair<ZeusVsHadesResultLib, Boolean>> zeusVsHadesResultLibs = libList(queue, fatherLib, true);
-        return zeusVsHadesResultLibs.get(index);
-    }
+
 
     /**
      * 自动玩游戏
@@ -337,64 +337,6 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
         return startGame(new PlayerController(null, null), playerGameData, betValue, true);
     }
 
-    /**
-     * @param SpecialAuxiliaryInfo
-     * @param index
-     * @return
-     */
-    public static List<Pair<ZeusVsHadesResultLib, Boolean>> libList(LinkedList<Pair<ZeusVsHadesResultLib, Boolean>> queue, ZeusVsHadesResultLib fatherLib, boolean isCount) {
-        if (fatherLib.getSpecialAuxiliaryInfoList() != null && !fatherLib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            SpecialAuxiliaryInfo first = fatherLib.getSpecialAuxiliaryInfoList().getFirst();
-            if (first.getFreeGames() != null && !first.getFreeGames().isEmpty()) {
-                for (JSONObject jsonObject : first.getFreeGames()) {
-                    ZeusVsHadesResultLib lib = JSON.parseObject(jsonObject.toJSONString(), ZeusVsHadesResultLib.class);
-                    Pair<ZeusVsHadesResultLib, Boolean> zeusVsHadesResultLibBooleanPair = newPair(lib, isCount);
-                    queue.offer(zeusVsHadesResultLibBooleanPair);
-                    libList(queue, lib, false);
-                }
-            }
-        }
-        return queue;
-    }
-
-
-    /**
-     * 普通正常流程
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @param betValue
-     * @return
-     */
-    protected ZeusVsHadesGameRunInfo normal(ZeusVsHadesGameRunInfo gameRunInfo, ZeusVsHadesPlayerGameData playerGameData, long betValue) {
-        //普通转 如果有免费转，先抽免费转
-        ZeusVsHadesResultLib freeLib = (ZeusVsHadesResultLib) playerGameData.getFreeLib();
-        if (freeLib != null) {
-            gameRunInfo = free(gameRunInfo, playerGameData, ZeusVsHadesConstant.SpecialMode.NORMAL);
-            return gameRunInfo;
-        }
-
-        CommonResult<Pair<ZeusVsHadesResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, 1);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
-            return gameRunInfo;
-        }
-        ZeusVsHadesResultLib resultLib = libResult.data.getFirst();
-        if (resultLib == null) {
-            log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.playerId(), this.gameType, betValue);
-            gameRunInfo.setCode(Code.FAIL);
-            return gameRunInfo;
-        }
-        if (resultLib.getSpecialAuxiliaryInfoList() != null && !resultLib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            SpecialAuxiliaryInfo first = resultLib.getSpecialAuxiliaryInfoList().getFirst();
-            if (first.getFreeGames() != null && !first.getFreeGames().isEmpty()) {
-                playerGameData.setFreeLib(resultLib);
-            }
-        }
-        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
-        normal(gameRunInfo, playerGameData, betValue, resultLib);
-        return gameRunInfo;
-    }
 
     @Override
     protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
@@ -476,8 +418,75 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
 
         //缓存获取到的freeLib
         playerGameData.setFreeLib(freeLib);
-        playerGameData.setCount(libPair.getSecond());
+        playerGameData.setIsCount(libPair.getSecond());
         result.data = freeGame;
         return result;
+    }
+
+    /**
+     * 普通正常流程
+     *
+     * @param gameRunInfo
+     * @param playerGameData
+     * @param betValue
+     * @return
+     */
+    protected ZeusVsHadesGameRunInfo normal(ZeusVsHadesGameRunInfo gameRunInfo, ZeusVsHadesPlayerGameData playerGameData, long betValue) {
+        //普通转 如果有免费转，先抽免费转
+        ZeusVsHadesResultLib freeLib = (ZeusVsHadesResultLib) playerGameData.getFreeLib();
+        if (freeLib != null) {
+            gameRunInfo = free(gameRunInfo, playerGameData, ZeusVsHadesConstant.SpecialMode.NORMAL);
+            return gameRunInfo;
+        }
+
+        CommonResult<Pair<ZeusVsHadesResultLib, BetDivideInfo>> libResult = normalGetLib(playerGameData, betValue, 1);
+        if (!libResult.success()) {
+            gameRunInfo.setCode(libResult.code);
+            return gameRunInfo;
+        }
+        ZeusVsHadesResultLib resultLib = libResult.data.getFirst();
+        if (resultLib == null) {
+            log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.playerId(), this.gameType, betValue);
+            gameRunInfo.setCode(Code.FAIL);
+            return gameRunInfo;
+        }
+        if (resultLib.getSpecialAuxiliaryInfoList() != null && !resultLib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            SpecialAuxiliaryInfo first = resultLib.getSpecialAuxiliaryInfoList().getFirst();
+            if (first.getFreeGames() != null && !first.getFreeGames().isEmpty()) {
+                playerGameData.setFreeLib(resultLib);
+            }
+        }
+        gameRunInfo.setBetDivideInfo(libResult.data.getSecond());
+        normal(gameRunInfo, playerGameData, betValue, resultLib);
+        return gameRunInfo;
+    }
+
+    /**
+     * @param index
+     * @return
+     */
+    public static Pair<ZeusVsHadesResultLib, Boolean> selectByLib(ZeusVsHadesResultLib fatherLib, int index) {
+        // 使用队列进行广度优先遍历
+        LinkedList<Pair<ZeusVsHadesResultLib, Boolean>> queue = new LinkedList<>();
+        List<Pair<ZeusVsHadesResultLib, Boolean>> zeusVsHadesResultLibs = libList(queue, fatherLib, true);
+        return zeusVsHadesResultLibs.get(index);
+    }
+
+    /**
+     * @return
+     */
+    public static List<Pair<ZeusVsHadesResultLib, Boolean>> libList(List<Pair<ZeusVsHadesResultLib, Boolean>> list, ZeusVsHadesResultLib fatherLib, boolean isCount) {
+        if (fatherLib.getSpecialAuxiliaryInfoList() != null && !fatherLib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            SpecialAuxiliaryInfo first = fatherLib.getSpecialAuxiliaryInfoList().getFirst();
+            if (first.getFreeGames() != null && !first.getFreeGames().isEmpty()) {
+                for (JSONObject jsonObject : first.getFreeGames()) {
+                    ZeusVsHadesResultLib lib = JSON.parseObject(jsonObject.toJSONString(), ZeusVsHadesResultLib.class);
+                    Pair<ZeusVsHadesResultLib, Boolean> zeusVsHadesResultLibBooleanPair = newPair(lib, isCount);
+                    list.add(zeusVsHadesResultLibBooleanPair);
+                    libList(list, lib, false);
+                }
+            }
+        }
+        return list;
     }
 }
