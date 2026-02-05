@@ -2116,8 +2116,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setTestLibDataList(null);
         } else {
             SlotsPlayerGameDataDTO dto = getGameDataDao().getGameDataByPlayerId(playerId, roomCfgId);
-            dto.setStatus(0);
-            dto.setFreeAllWin(0);
+            if (dto != null) {
+                dto.setStatus(0);
+                dto.setFreeAllWin(0);
+            }
         }
     }
 }

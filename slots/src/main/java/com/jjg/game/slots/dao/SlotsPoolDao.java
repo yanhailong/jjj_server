@@ -145,7 +145,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
             return result;
         }
 
-        result = slotsPlayerService.addGold(playerId, poolValue, addType, desc);
+        result = slotsPlayerService.addGold(playerId, value, addType, desc);
         if (!result.success()) {  //如果失败，要把钱重新加回池子
             addToSmallPool(gameType, roomCfgId, value);
             return result;
