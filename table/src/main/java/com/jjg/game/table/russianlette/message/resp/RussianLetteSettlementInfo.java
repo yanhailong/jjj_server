@@ -1,4 +1,4 @@
-package com.jjg.game.table.russianlette.message;
+package com.jjg.game.table.russianlette.message.resp;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;

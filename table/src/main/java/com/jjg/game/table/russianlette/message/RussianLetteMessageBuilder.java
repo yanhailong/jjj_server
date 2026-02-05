@@ -3,6 +3,10 @@ package com.jjg.game.table.russianlette.message;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
 import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
+import com.jjg.game.table.russianlette.message.resp.NotifyRussianLetteSettlement;
+import com.jjg.game.table.russianlette.message.resp.NotifyRussianLetteTableInfo;
+import com.jjg.game.table.russianlette.message.resp.RussianLetteHistoryBean;
+import com.jjg.game.table.russianlette.message.resp.RussianLetteSettlementInfo;
 
 /**
  * 俄罗斯转盘

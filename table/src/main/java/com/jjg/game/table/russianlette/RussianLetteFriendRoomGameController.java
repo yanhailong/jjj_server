@@ -13,8 +13,8 @@ import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
 import com.jjg.game.table.russianlette.gamephase.RussianLetteBetPhase;
 import com.jjg.game.table.russianlette.gamephase.RussianLetteSettlementPhase;
 import com.jjg.game.table.russianlette.gamephase.RussianLetteTableWaitReadyPhase;
-import com.jjg.game.table.russianlette.message.NotifyRussianLetteTableInfo;
 import com.jjg.game.table.russianlette.message.RussianLetteMessageBuilder;
+import com.jjg.game.table.russianlette.message.resp.NotifyRussianLetteTableInfo;
 
 import java.util.LinkedHashSet;
 

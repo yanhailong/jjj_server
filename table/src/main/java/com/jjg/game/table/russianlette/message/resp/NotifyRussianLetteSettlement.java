@@ -1,10 +1,11 @@
-package com.jjg.game.table.russianlette.message;
+package com.jjg.game.table.russianlette.message.resp;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.table.russianlette.constant.RussianLetteConstant;
+import com.jjg.game.table.russianlette.message.RussianLetteMessageConstant;
+
 
 /**
  * 通知俄罗斯转盘结算
@@ -13,7 +14,7 @@ import com.jjg.game.table.russianlette.constant.RussianLetteConstant;
  */
 @ProtobufMessage(
     messageType = MessageConst.MessageTypeDef.RUSSIAN_ROULETTE_TYPE,
-    cmd = RussianLetteConstant.RespMsgBean.RESP_ANIMALS_SETTLEMENT,
+    cmd = RussianLetteMessageConstant.RespMsgBean.RESP_RUSSIAN_LETTE_SETTLEMENT,
     resp = true
 )
 @ProtoDesc("通知俄罗斯转盘结算信息")

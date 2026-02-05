@@ -4,8 +4,8 @@ package com.jjg.game.table.russianlette.data;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
-import com.jjg.game.table.russianlette.message.RussianLetteHistoryBean;
-import com.jjg.game.table.russianlette.message.RussianLetteSettlementInfo;
+import com.jjg.game.table.russianlette.message.resp.RussianLetteHistoryBean;
+import com.jjg.game.table.russianlette.message.resp.RussianLetteSettlementInfo;
 
 import java.util.ArrayList;
 import java.util.List;

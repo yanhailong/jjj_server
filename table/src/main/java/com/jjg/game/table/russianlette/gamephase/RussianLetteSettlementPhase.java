@@ -15,9 +15,10 @@ import com.jjg.game.table.dicecommon.DiceUtils;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
 import com.jjg.game.table.dicecommon.phase.BaseDiceSettlementPhase;
 import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
-import com.jjg.game.table.russianlette.message.NotifyRussianLetteSettlement;
-import com.jjg.game.table.russianlette.message.RussianLetteHistoryBean;
+
 import com.jjg.game.table.russianlette.message.RussianLetteMessageBuilder;
+import com.jjg.game.table.russianlette.message.resp.NotifyRussianLetteSettlement;
+import com.jjg.game.table.russianlette.message.resp.RussianLetteHistoryBean;
 
 import java.util.ArrayList;
 import java.util.List;
