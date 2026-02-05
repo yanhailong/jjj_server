@@ -843,6 +843,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param playerController
      * @return
      */
+    @SuppressWarnings("unchecked")
     public <DT extends SlotsPlayerGameDataDTO> T createPlayerGameData(PlayerController playerController) throws Exception {
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData != null) {

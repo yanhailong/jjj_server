@@ -10,7 +10,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 篮球巨星房间模式玩家数据
  * @author lm
  * @date 2025/8/5 16:14
- */
+ * 注意：新增字段请同步到该 Room DTO，避免房间模式丢字段。
+*/
 @Document(collection = "BasketballSuperstarPlayerGameDataRoomDTO")
 public class BasketballSuperstarPlayerGameDataRoomDTO extends SlotsPlayerGameDataRoomDTO {
     //缓存免费的结果库

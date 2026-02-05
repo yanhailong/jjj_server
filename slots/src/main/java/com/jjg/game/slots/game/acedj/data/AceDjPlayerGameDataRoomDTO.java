@@ -9,8 +9,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * @author lihaocao
  * @date 2025/8/5 16:14
- */
-@Document
+ * 注意：新增字段请同步到该 Room DTO，避免房间模式丢字段。
+*/
+@Document(collection = "AceDjPlayerGameDataRoomDTO")
 public class AceDjPlayerGameDataRoomDTO extends SlotsPlayerGameDataRoomDTO {
     //缓存免费的结果库
     private AceDjResultLib freeLib;
