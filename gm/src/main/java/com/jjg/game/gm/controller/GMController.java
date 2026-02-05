@@ -437,11 +437,6 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if (StringUtils.isEmpty(dto.playerName())) {
-                log.debug("修改货币时，用户名不能为空");
-                return fail("common.paramerror");
-            }
-
             Player player = playerService.get(dto.playerId());
             if (player == null) {
                 log.debug("修改货币时，未找到该用户 playerId = {}", dto.playerId());
