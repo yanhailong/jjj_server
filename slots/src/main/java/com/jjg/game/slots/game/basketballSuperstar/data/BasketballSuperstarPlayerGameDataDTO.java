@@ -1,12 +1,12 @@
 package com.jjg.game.slots.game.basketballSuperstar.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
-import org.springframework.stereotype.Component;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * @author lihaocao
  * @date 2025/8/5 16:14
  */
-@Component
+@Document
 public class BasketballSuperstarPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
 }
