@@ -53,8 +53,8 @@ public class DiceTreasureSettlementPhase extends BaseDiceSettlementPhase<DiceTre
         if (randomNumDice == null) {
             randomNumDice = DiceUtils.randomDice(3, 1, 6);
         }
-        if (CollectionUtil.isNotEmpty(gameDataVo.getGmResult())) {
-            randomNumDice = gameDataVo.getGmResult();
+        if (CollectionUtil.isNotEmpty(gameDataVo.getGmResult()) && gameDataVo.getGmResult().size() == 3) {
+            randomNumDice = new ArrayList<>(gameDataVo.getGmResult());
         }
         // 通过骰子点数获取对应的配置
         List<WinPosWeightCfg> winPosWeightCfgs =
