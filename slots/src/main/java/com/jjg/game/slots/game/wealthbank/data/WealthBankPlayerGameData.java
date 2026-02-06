@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 玩家游戏数据
+ *
  * @author 11
  * @date 2025/6/10 18:07
  */
@@ -34,12 +35,12 @@ public class WealthBankPlayerGameData extends SlotsPlayerGameData {
         this.totalDollars = totalDollars;
     }
 
-    public void addDollasCount(int count){
+    public void addDollasCount(int count) {
         this.totalDollars += count;
     }
 
-    public void addDollarsTotalStake(long stake){
-        this.addDollarsCount ++;
+    public void addDollarsTotalStake(long stake) {
+        this.addDollarsCount++;
         this.addDollarsTotalStake += stake;
     }
 
@@ -61,24 +62,25 @@ public class WealthBankPlayerGameData extends SlotsPlayerGameData {
 
     /**
      * 添加已选的地区
+     *
      * @param areaId
      */
     public boolean addSelectedArea(int areaId) {
-        if(this.selectedAreaSet == null){
+        if (this.selectedAreaSet == null) {
             this.selectedAreaSet = new HashSet<>();
         }
         return this.selectedAreaSet.add(areaId);
     }
 
     public boolean areaSelected(int areaId) {
-        if(this.selectedAreaSet == null){
+        if (this.selectedAreaSet == null) {
             return false;
         }
         return this.selectedAreaSet.contains(areaId);
     }
 
-    public boolean areaAllUnlock(){
-        if(this.selectedAreaSet == null || this.selectedAreaSet.isEmpty()){
+    public boolean areaAllUnlock() {
+        if (this.selectedAreaSet == null || this.selectedAreaSet.isEmpty()) {
             return false;
         }
         return this.selectedAreaSet.size() >= 8;
@@ -103,7 +105,7 @@ public class WealthBankPlayerGameData extends SlotsPlayerGameData {
     /**
      * 清除投资小游戏相关
      */
-    public void clearInvers(){
+    public void clearInvers() {
         this.addDollarsCount = 0;
         this.addDollarsTotalStake = 0;
     }
@@ -119,9 +121,14 @@ public class WealthBankPlayerGameData extends SlotsPlayerGameData {
     @Override
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
         T dto = super.converToDto(cla);
-        WealthBankPlayerGameDataDTO dollarDto = (WealthBankPlayerGameDataDTO) dto;
-        dollarDto.setInvers(this.invers.get());
-        dollarDto.setAllUnLock(this.allUnLock.get());
+        if (dto instanceof WealthBankPlayerGameDataDTO dollarDto) {
+            dollarDto.setInvers(this.invers.get());
+            dollarDto.setAllUnLock(this.allUnLock.get());
+        }
+        if (dto instanceof WealthBankPlayerGameDataRoomDTO dollarDto) {
+            dollarDto.setInvers(this.invers.get());
+            dollarDto.setAllUnLock(this.allUnLock.get());
+        }
         return dto;
     }
 }

@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.basketballSuperstar.manager;
 
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarPlayerGameData;
+import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.basketballSuperstar.data.BasketballSuperstarResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,11 @@ public class BasketballSuperstarRoomGameManager extends AbstractBasketballSupers
     @Override
     public RoomType getRoomType() {
         return RoomType.SLOTS_TEAM_UP_ROOM;
+    }
+
+    @Override
+    protected Class<BasketballSuperstarPlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
+        return BasketballSuperstarPlayerGameDataRoomDTO.class;
     }
 
     @Override

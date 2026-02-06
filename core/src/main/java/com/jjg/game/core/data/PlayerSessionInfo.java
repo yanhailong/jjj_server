@@ -21,6 +21,8 @@ public class PlayerSessionInfo {
     private long lastActiveTime;
     //是否是断线重连
     private boolean isReconnect;
+    //创建时间
+    private int createTime;
 
     public long getPlayerId() {
         return playerId;
@@ -84,5 +86,13 @@ public class PlayerSessionInfo {
 
     public void setReconnect(boolean reconnect) {
         isReconnect = reconnect;
+    }
+
+    public int getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(int createTime) {
+        this.createTime = createTime;
     }
 }

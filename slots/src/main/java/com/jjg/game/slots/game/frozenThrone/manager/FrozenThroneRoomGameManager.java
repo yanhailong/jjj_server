@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.frozenThrone.manager;
 
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThronePlayerGameData;
+import com.jjg.game.slots.game.frozenThrone.data.FrozenThronePlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -31,5 +32,10 @@ public class FrozenThroneRoomGameManager extends AbstractFrozenThroneGameManager
     @Override
     protected List<Integer> checkLibPool(FrozenThroneResultLib resultLib, FrozenThronePlayerGameData playerGameData) {
         return Collections.emptyList();
+    }
+
+    @Override
+    protected Class<FrozenThronePlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
+        return FrozenThronePlayerGameDataRoomDTO.class;
     }
 }

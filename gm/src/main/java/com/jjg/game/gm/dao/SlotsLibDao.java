@@ -307,4 +307,12 @@ public class SlotsLibDao extends AbstractResultLibDao<SlotsResultLib> {
         }
         return sb.toString();
     }
+
+    /**
+     * 获取生成结果库的时间
+     * @return
+     */
+    public Map<Integer, Long> getGenerateTime() {
+        return this.redisTemplate.opsForHash().entries(this.lastGenLibTime);
+    }
 }

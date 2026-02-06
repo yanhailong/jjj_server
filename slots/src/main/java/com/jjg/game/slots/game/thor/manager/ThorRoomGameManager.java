@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.thor.manager;
 
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.thor.data.ThorPlayerGameData;
+import com.jjg.game.slots.game.thor.data.ThorPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.thor.data.ThorResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -24,5 +25,10 @@ public class ThorRoomGameManager extends AbstractThorGameManager{
     @Override
     protected List<Integer> checkLibPool(ThorResultLib resultLib, ThorPlayerGameData playerGameData) {
         return Collections.emptyList();
+    }
+
+    @Override
+    protected Class<ThorPlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
+        return ThorPlayerGameDataRoomDTO.class;
     }
 }

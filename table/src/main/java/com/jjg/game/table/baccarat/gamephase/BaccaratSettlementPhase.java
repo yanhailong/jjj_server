@@ -3,6 +3,7 @@ package com.jjg.game.table.baccarat.gamephase;
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
@@ -21,7 +22,6 @@ import com.jjg.game.table.baccarat.message.resp.BaccaratSettlementInfo;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratSettlementInfo;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
-import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 import org.slf4j.Logger;
@@ -222,9 +222,13 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 playerGoldChange.playerWinGold = settlementData.getTotalWin();
                 playerGoldChange.playerBetGold = playerTotalBetGold;
                 // 给玩家添加金币
-                gameController.addItem(
+                int addCode = gameController.addItem(
                         gamePlayer.getId(), settlementData.getTotalWin(),
                         AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+                if (addCode != Code.SUCCESS) {
+                    log.error("百家乐结算给玩家加金币失败 playerId:{} totalWin:{} code:{}",
+                            gamePlayer.getId(), settlementData.getTotalWin(), addCode);
+                }
                 playerGoldChange.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
                 playerChangedGolds.put(playerEntry.getKey(), playerGoldChange);
             }
@@ -262,7 +266,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 case 3 -> playerThirdPointId != 8;
                 case 4 -> playerThirdPointId > 1 && playerThirdPointId < 8;
                 case 5 -> playerThirdPointId > 3 && playerThirdPointId < 8;
-                case 6 -> playerThirdPointId != 6 && playerThirdPointId != 7;
+                case 6 -> playerThirdPointId == 6 || playerThirdPointId == 7;
                 default -> false;
             };
         }

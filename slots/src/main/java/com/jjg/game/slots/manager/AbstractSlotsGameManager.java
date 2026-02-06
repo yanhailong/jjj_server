@@ -35,7 +35,6 @@ import com.jjg.game.core.task.param.TaskConditionParam10001;
 import com.jjg.game.core.task.param.TaskConditionParam10003;
 import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.core.utils.ItemUtils;
-import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -279,6 +278,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     getResultLibDao().batchSaveToRedis(redisTableName, libList, getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionMap());
                 }
                 getResultLibDao().afterSave(redisTableName);
+                getResultLibDao().addGenerateTime(this.gameType);
                 log.info("生成结果库结束，gameType = {},实际循环次数 = {},成功保存到数据库 {} 条,redisName = {}", this.gameType, currentForCount, saveCount, redisTableName);
 
                 this.clearAllLibEvent = new TimerEvent<>(this, 1, "clearLibEvent").withTimeUnit(TimeUnit.MINUTES);
@@ -858,7 +858,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return playerGameData;
         }
 
-        DT playerGameDataDTO = (DT) getGameDataDao().getGameDataByPlayerId(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+        DT playerGameDataDTO;
+        if (isRoomGame() && SlotsPlayerGameDataRoomDTO.class.isAssignableFrom(getSlotsPlayerGameDataDTOCla())) {
+            long roomId = playerController.roomId();
+            playerGameDataDTO = (DT) getGameDataDao().getRoomGameDataByPlayerId(getSlotsPlayerGameDataDTOCla(), playerController.playerId(), playerController.getPlayer().getRoomCfgId(), roomId);
+        } else {
+            playerGameDataDTO = (DT) getGameDataDao().getGameDataByPlayerId(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+        }
         if (playerGameDataDTO == null) {
             Constructor<T> constructor = this.playerGameDataClass.getConstructor();
             playerGameData = constructor.newInstance();
@@ -891,7 +897,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     protected T putGameData(PlayerController playerController, T gameData) {
-        return this.gameDataMap.computeIfAbsent(playerController.getPlayer().getRoomCfgId(), k -> new HashMap<>()).put(playerController.playerId(), gameData);
+        return this.gameDataMap.computeIfAbsent(playerController.getPlayer().getRoomCfgId(), k -> new ConcurrentHashMap<>()).put(playerController.playerId(), gameData);
     }
 
     /**
@@ -1300,7 +1306,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     protected abstract <D extends AbstractSlotsGenerateManager> D getGenerateManager();
 
-    protected abstract <D extends SlotsPlayerGameDataDTO> Class<D> getSlotsPlayerGameDataDTOCla();
+    protected abstract Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla();
 
     /**
      * 更新奖池
@@ -1334,7 +1340,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected void offlineSaveGameDataDto(T gameData) {
         try {
             SlotsPlayerGameDataDTO dto = gameData.converToDto(getSlotsPlayerGameDataDTOCla());
-            getGameDataDao().saveGameData(dto);
+            if (isRoomGame() && dto instanceof SlotsPlayerGameDataRoomDTO roomDto) {
+                roomDto.setRoomId(gameData.getRoomId());
+                roomDto.buildRoomKey();
+                getGameDataDao().saveRoomGameData(roomDto);
+            } else {
+                getGameDataDao().saveGameData(dto);
+            }
         } catch (Exception e) {
             log.error("", e);
         }
@@ -1833,6 +1845,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         return null;
     }
 
+    protected boolean isRoomGame() {
+        return getRoomType() != null;
+    }
+
     public long getMoneyByItemId(WarehouseCfg warehouseCfg, Player player) {
         if (warehouseCfg.getTransactionItemId() == ItemUtils.getDiamondItemId()) {
             return player.getDiamond();
@@ -2116,8 +2132,74 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setTestLibDataList(null);
         } else {
             SlotsPlayerGameDataDTO dto = getGameDataDao().getGameDataByPlayerId(playerId, roomCfgId);
-            dto.setStatus(0);
-            dto.setFreeAllWin(0);
+            if (dto != null) {
+                dto.setStatus(0);
+                dto.setFreeAllWin(0);
+            }
         }
+    }
+
+    /**
+     * gm修改奖池
+     *
+     * @param playerController
+     * @param type             0.标准池  1.小奖池
+     * @param value
+     */
+    public boolean gmChangePool(PlayerController playerController, int type, long value) {
+        if (getRoomType() != null) {
+            log.warn("gm修改奖池失败，暂不支持房间修改 playerId = {},type = {},value = {}", playerController.playerId(), type, value);
+            return false;
+        }
+
+        if (value < 0) {
+            log.warn("gm修改奖池失败 playerId = {},type = {},value = {}", playerController.playerId(), type, value);
+            return false;
+        }
+        T playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.warn("gm修改奖池失败 playerId = {}", playerController.playerId());
+            return false;
+        }
+
+        if (type == 0) {
+            slotsPoolDao.setBigPool(playerGameData.getGameType(), playerGameData.getRoomCfgId(), value);
+            log.debug("玩家gm修改标准池 playerId = {},roomCfgId = {},value = {}", playerController.playerId(), playerGameData.getRoomCfgId(), value);
+        } else if (type == 1) {
+            slotsPoolDao.setSmallPool(playerGameData.getGameType(), playerGameData.getRoomCfgId(), value);
+            log.debug("玩家gm修改小奖池 playerId = {},roomCfgId = {},value = {}", playerController.playerId(), playerGameData.getRoomCfgId(), value);
+        } else if (type == 2) {
+            slotsPoolDao.setFakeSmallPool(playerGameData.getGameType(), playerGameData.getRoomCfgId(), value);
+            log.debug("玩家gm修改假奖池 playerId = {},roomCfgId = {},value = {}", playerController.playerId(), playerGameData.getRoomCfgId(), value);
+        } else {
+            log.warn("gm修改奖池失败,不支持的类型 playerId = {},type = {}", playerController.playerId(), type);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * gm修改玩家贡献金额
+     *
+     * @param playerController
+     * @param value
+     */
+    public boolean gmChangeContribtGold(PlayerController playerController, long value) {
+        if (getRoomType() != null) {
+            log.warn("gm修改贡献值失败，暂不支持房间修改 playerId = {},value = {}", playerController.playerId(), value);
+            return false;
+        }
+        if (value < 0) {
+            log.warn("gm修改贡献值失败 playerId = {},value = {}", playerController.playerId(), value);
+            return false;
+        }
+        T playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.warn("gm修改贡献值失败 playerId = {}", playerController.playerId());
+            return false;
+        }
+        playerGameData.setContribtPoolGold(value);
+        log.debug("玩家修改贡献金额 playerId = {},value = {}", playerController.playerId(), value);
+        return true;
     }
 }

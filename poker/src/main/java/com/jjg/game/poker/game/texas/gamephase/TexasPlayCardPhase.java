@@ -106,6 +106,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
                 Long playerId = info.getPlayerId();
                 builder.playerStatus(info.isJoinGame());
                 if (!info.isJoinGame()) {
+                    builder.cards(List.of());
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, builder.build()));
                 } else {
                     builder.cards(TexasDataHelper.getClientId(gameDataVo, collect.get(playerId).getCurrentCards()));

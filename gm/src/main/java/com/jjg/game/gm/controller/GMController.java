@@ -232,6 +232,7 @@ public class GMController extends AbstractController {
             NotifyAllNodesMarqueeServer notify = new NotifyAllNodesMarqueeServer();
             notify.marqueeInfo = marqueeManager.transMarqueeInfo(marquee);
             notify.type = marquee.getType();
+            notify.priority = marquee.getPriority();
             marqueeManager.notifyHallAndGameNodeStartMarquee(notify);
             //返回修改结果
             return success("common.success");
@@ -251,11 +252,6 @@ public class GMController extends AbstractController {
             if (dto.id() < 1) {
                 log.debug("停止跑马灯时，从后台收到的跑马灯id不能小于1 id = {}", dto.id());
                 return fail("common.paramerror");
-            }
-
-            boolean exist = marqueeDao.exist(dto.id());
-            if (!exist) {
-                return fail("marquee.notfound");
             }
 
             //构建请求消息
@@ -441,19 +437,9 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if (StringUtils.isEmpty(dto.playerName())) {
-                log.debug("修改货币时，用户名不能为空");
-                return fail("common.paramerror");
-            }
-
             Player player = playerService.get(dto.playerId());
             if (player == null) {
                 log.debug("修改货币时，未找到该用户 playerId = {}", dto.playerId());
-                return fail("common.paramerror");
-            }
-
-            if (!dto.playerName().equals(player.getNickName())) {
-                log.debug("修改货币时，用户名校验错误 playerId = {},paramNick = {},dbNick = {}", dto.playerId(), dto.playerName(), player.getNickName());
                 return fail("common.paramerror");
             }
 
@@ -565,8 +551,7 @@ public class GMController extends AbstractController {
             }
 
             boolean notifyNode = false;
-            CommonResult<Player> result;
-            result = playerService.setVip(dto.playerId(), dto.vipLevel(), AddType.GM_OPERATOR, null);
+            CommonResult<Player> result = playerService.setVip(dto.playerId(), dto.vipLevel(), AddType.GM_OPERATOR, null);
             if (!result.success()) {
                 log.debug("设置vip等级错误 ,playerId = {},code = {}", dto.playerId(), result.code);
                 return fail("common.fail");
@@ -1066,11 +1051,12 @@ public class GMController extends AbstractController {
     public WebResult<List<GameNodeVo>> queryGameServerList() {
         log.info("收到获取服务器列表信息 ");
         List<GameNodeVo> nodeConfigList = new ArrayList<>();
-//        addNodeConfig(nodeConfigList, NodeType.GATE);
+        addNodeConfig(nodeConfigList, NodeType.GATE);
         addNodeConfig(nodeConfigList, NodeType.ACCOUNT);
         addNodeConfig(nodeConfigList, NodeType.HALL);
         addNodeConfig(nodeConfigList, NodeType.GAME);
         addNodeConfig(nodeConfigList, NodeType.RECHARGE);
+        addNodeConfig(nodeConfigList, NodeType.GM);
         return success("common.success", nodeConfigList);
     }
 
@@ -1091,6 +1077,11 @@ public class GMController extends AbstractController {
             ClusterClient clusterClient = clusterSystem.getNodesByName(dto.name());
             if (clusterClient == null) {
                 log.debug("修改服务器信息错误,未找到该节点 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            if (!NodeType.HALL.toString().equals(clusterClient.getType()) && !NodeType.GAME.toString().equals(clusterClient.getType())) {
+                log.debug("只允许修改hall和game节点 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
@@ -1504,6 +1495,10 @@ public class GMController extends AbstractController {
                 clusterClient = clusterSystem.randClientByType(NodeType.HALL);
             } else {
                 clusterClient = clusterSystem.getClusterByPath(info.getCurrentNode());
+                //只能是大厅节点才能进行绑定操作
+                if (clusterClient != null && !NodeType.HALL.toString().equals(clusterClient.getType())) {
+                    clusterClient = clusterSystem.randClientByType(NodeType.HALL);
+                }
             }
 
             if (clusterClient == null) {
@@ -1789,7 +1784,7 @@ public class GMController extends AbstractController {
                 return fail("common.fail");
             }
 
-            playerService.doSave(dto.playerId(),p -> {
+            playerService.doSave(dto.playerId(), p -> {
                 p.setGameType(0);
                 p.setRoomCfgId(0);
                 p.setRoomId(0);
@@ -1801,6 +1796,16 @@ public class GMController extends AbstractController {
             log.error("", e);
             return fail("common.exception");
         }
+    }
+
+    /**
+     * 获取最后一次生成结果库的时间
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.GET_GENERATE_LIB_LAST_TIME)
+    public WebResult<Map<Integer, Long>> getGenerateLibLastTime() {
+        return success("common.success",slotsLibDao.getGenerateTime());
     }
 
 
@@ -1877,24 +1882,34 @@ public class GMController extends AbstractController {
     }
 
     private void addNodeConfig(List<GameNodeVo> nodeList, NodeType nodeType) {
-        MarsNode marsNode = nodeManager.getMarNode(nodeType);
-        if (marsNode == null) {
+        List<ClusterClient> clusterClientList = clusterSystem.getNodesByType(nodeType);
+        if (clusterClientList == null || clusterClientList.isEmpty()) {
             return;
         }
-        List<MarsNode> marsNodes = marsNode.getAllChildren();
-        for (MarsNode node : marsNodes) {
-            GameNodeVo vo = new GameNodeVo();
-            vo.setType(node.getNodeConfig().getType());
-            vo.setName(node.getNodeConfig().getName());
-            vo.setTcpAddress(node.getNodeConfig().getTcpAddress());
-            vo.setHttpAddress(node.getNodeConfig().getHttpAddress());
-            vo.setWeight(node.getNodeConfig().getWeight());
 
-            if (node.getNodeConfig().getWhiteIpList() != null && node.getNodeConfig().getWhiteIpList().length > 0) {
-                vo.setWhiteIpList(Arrays.stream(node.getNodeConfig().getWhiteIpList()).toList());
+        for (ClusterClient clusterClient : clusterClientList) {
+            GameNodeVo vo = new GameNodeVo();
+            vo.setType(clusterClient.nodeConfig.getType());
+            vo.setName(clusterClient.nodeConfig.getName());
+            vo.setTcpAddress(clusterClient.nodeConfig.getTcpAddress());
+            vo.setHttpAddress(clusterClient.nodeConfig.getHttpAddress());
+            vo.setWeight(clusterClient.nodeConfig.getWeight());
+
+            if (clusterClient.nodeConfig.getWhiteIpList() != null && clusterClient.nodeConfig.getWhiteIpList().length > 0) {
+                vo.setWhiteIpList(Arrays.stream(clusterClient.nodeConfig.getWhiteIpList()).toList());
             }
-            if (node.getNodeConfig().getWhiteIdList() != null && node.getNodeConfig().getWhiteIdList().length > 0) {
-                vo.setWhiteIdList(Arrays.stream(node.getNodeConfig().getWhiteIdList()).toList());
+            if (clusterClient.nodeConfig.getWhiteIdList() != null && clusterClient.nodeConfig.getWhiteIdList().length > 0) {
+                vo.setWhiteIdList(Arrays.stream(clusterClient.nodeConfig.getWhiteIdList()).toList());
+            }
+
+            //只有大厅和游戏节点才能获取session数量
+            try {
+                if (nodeType == NodeType.GAME || nodeType == NodeType.HALL) {
+                    GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(clusterClient).setTryMillisPerClient(1000));
+                    vo.setSessionNum(gmToAllBridge.sessionNum());
+                }
+            } catch (Exception e) {
+                log.error("nodeName = {}", clusterClient.nodeConfig.getName(), e);
             }
             nodeList.add(vo);
         }

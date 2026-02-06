@@ -74,6 +74,7 @@ public class CoreToServerMessageHandler {
             marquee.setShowTime(notify.marqueeInfo.showTime);
             marquee.setInterval(notify.marqueeInfo.interval);
             marquee.setType(notify.type);
+            marquee.setPriority(notify.priority);
             marquee.setStartTime(notify.marqueeInfo.startTime);
             marquee.setEndTime(notify.marqueeInfo.endTime);
 

@@ -147,9 +147,9 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     @Override
     public GamePlayer onPlayerJoinRoom(PlayerController playerController, AtomicBoolean isReconnect) {
         GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, isReconnect);
-        gamePlayer.setTableGameData(new TablePlayerGameData());
-        // 场上玩家重新排序
-        resortPlayerOnTable();
+        if (gamePlayer.getTableGameData() == null) {
+            gamePlayer.setTableGameData(new TablePlayerGameData());
+        }
         // 通知场上玩家加入
         NotifyTableRoomPlayerInfoChange playerInfoChange =
                 TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(this, playerController, TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
@@ -232,8 +232,6 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     @Override
     public <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
         CommonResult<R> leaveRes = super.onPlayerLeaveRoom(playerController);
-        // 场上玩家重新排序
-        resortPlayerOnTable();
         // 通知场上玩家离开
         NotifyTableRoomPlayerInfoChange playerInfoChange =
                 TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(this, playerController, TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
@@ -244,21 +242,6 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
                 .toAllPlayer()
                 .exceptPlayer(playerController.playerId()));
         return leaveRes;
-    }
-
-    /**
-     * 对场上玩家进行重新排序
-     */
-    private void resortPlayerOnTable() {
-        List<GamePlayer> topGamePlayers = new ArrayList<>(gameDataVo.getGamePlayerMap().values());
-        topGamePlayers = topGamePlayers.stream()
-                .sorted((o1, o2) -> Long.compare(getTransactionItemNum(o2.getId()), getTransactionItemNum(o1.getId())))
-                .limit(TableConstant.ON_TABLE_PLAYER_NUM)
-                .toList();
-        for (int i = 1; i <= topGamePlayers.size(); i++) {
-            GamePlayer player = topGamePlayers.get(i - 1);
-            player.getTableGameData().setSitNum(i);
-        }
     }
 
     public long calculationEffectiveWaterFlow(Map<Integer, List<Integer>> playerBetInfo) {

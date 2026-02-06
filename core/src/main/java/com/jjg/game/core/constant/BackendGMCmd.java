@@ -91,6 +91,9 @@ public interface BackendGMCmd {
     //清除slots状态
     String CLEAN_SLOTS_STATUS = "cleanSlotsStatus";
 
+    //获取最后一次生成结果库的时间
+    String GET_GENERATE_LIB_LAST_TIME = "getGenerateLibLastTime";
+
     /**
      * 配置相关q
      */

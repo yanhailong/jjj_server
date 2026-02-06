@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.steamAge.manager;
 
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameData;
+import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -31,5 +32,10 @@ public class SteamAgeRoomGameManager extends AbstractSteamAgeGameManager {
     @Override
     protected List<Integer> checkLibPool(SteamAgeResultLib resultLib, SteamAgePlayerGameData playerGameData) {
         return Collections.emptyList();
+    }
+
+    @Override
+    protected Class<SteamAgePlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
+        return SteamAgePlayerGameDataRoomDTO.class;
     }
 }

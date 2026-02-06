@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
@@ -96,8 +97,14 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
             // 添加日志埋点数据
             BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
-            // 给玩家添加金币
-            gameController.addItem(gamePlayer.getId(), playerSettlementData.getTotalWin(), AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+            long totalWin = playerSettlementData.getTotalWin();
+            if (totalWin > 0) {
+                int addCode = gameController.addItem(gamePlayer.getId(), totalWin, AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+                if (addCode != Code.SUCCESS) {
+                    log.error("豪车俱乐部结算给玩家加金币失败 playerId:{} totalWin:{} code:{}",
+                            gamePlayer.getId(), totalWin, addCode);
+                }
+            }
             playerChangedGold.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
             playerChangedGolds.add(playerChangedGold);
             if (changeParam != null && !(gamePlayer instanceof GameRobotPlayer)) {

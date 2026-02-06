@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.captainjack.manager;
 
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackGameDataDao;
+import com.jjg.game.slots.game.captainjack.dao.CaptainJackPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackResultLibDao;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackPlayerGameData;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
@@ -27,5 +28,10 @@ public class CaptainJackRoomGameManager extends AbstractCaptainJackGameManager{
     @Override
     protected List<Integer> checkLibPool(CaptainJackResultLib resultLib, CaptainJackPlayerGameData playerGameData) {
         return Collections.emptyList();
+    }
+
+    @Override
+    protected Class<CaptainJackPlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
+        return CaptainJackPlayerGameDataRoomDTO.class;
     }
 }

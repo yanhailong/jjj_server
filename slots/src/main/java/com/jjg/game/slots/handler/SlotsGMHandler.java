@@ -33,10 +33,24 @@ public class SlotsGMHandler implements GmListener {
             } else if ("setIcons".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到setIcons 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId()).addTestIconDataIcons(playerController, gmOrders[1]);
-            } else if("setLib".equalsIgnoreCase(gmOrders[0])){
+            } else if ("setLib".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到setLib 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId()).addTestLibs(playerController, gmOrders[1]);
-            }else {
+            } else if ("pool".equalsIgnoreCase(gmOrders[0])) {
+                log.debug("收到pool 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                boolean change = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId()).gmChangePool(playerController, Integer.parseInt(gmOrders[1]), Long.parseLong(gmOrders[2]));
+                if (!change) {
+                    res.code = Code.FAIL;
+                    return res;
+                }
+            } else if ("contribt".equalsIgnoreCase(gmOrders[0])) {  //玩家贡献金额
+                log.debug("收到contribt 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                boolean change = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId()).gmChangeContribtGold(playerController, Long.parseLong(gmOrders[1]));
+                if (!change) {
+                    res.code = Code.FAIL;
+                    return res;
+                }
+            } else {
                 res.code = Code.NOT_FOUND;
             }
         } catch (Exception e) {

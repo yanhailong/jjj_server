@@ -15,6 +15,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.RoomExpendCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.controller.SlotsRoomController;
+import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.dao.FriendRoomSlotsBillHistoryDao;
 import com.jjg.game.slots.dao.RoomSlotsPoolDao;
 import com.jjg.game.slots.dao.SlotsFriendRoomDao;
@@ -291,7 +292,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         }
         long overdueTime = slotsRoomController.getRoom().getOverdueTime();
         long totalTake = 0;
-        while (itemNum < slotsRoomController.getRoom().getPredictCostGoldNum()) {
+        while (itemNum <= slotsRoomController.getRoom().getPredictCostGoldNum()) {
             slotsRoomController.getRoom().setPredictCostGoldNum(slotsRoomController.getRoom().getPredictCostGoldNum() - itemNum);
             totalTake += itemNum;
             overdueTime += durationTime;
@@ -312,7 +313,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         slotsRoomController.getRoom().setOverdueTime(overdueTime);
         slotsRoomController.getRoom().setPredictCostGoldNum(slotsRoomController.getRoom().getPredictCostGoldNum());
 
-        Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), (long) itemNum);
+        Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), totalTake);
         ItemOperationResult itemOperationResult = new ItemOperationResult();
         itemOperationResult.setDiamond(slotsRoomController.getRoom().getPredictCostGoldNum());
         slotsLogger.roomOperate(slotsRoomController.getRoom(), 2, roomExpendCfg.getDurationTime(), itemMap, itemOperationResult);
@@ -340,7 +341,7 @@ public class SlotsRoomManager implements HallRoomBridge {
      *
      * @param room
      */
-    private void destoryRoom(SlotsFriendRoom room) {
+    private void destroyRoom(SlotsFriendRoom room) {
         //检查房间玩家是否全部离开
         if (!room.empty()) {
             log.warn("房间状态标记已解散，但是玩家未离开，解散失败 roomId = {}", room.getId());
@@ -350,6 +351,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         slotsFriendRoomDao.removeRoom(room.getGameType(), room.getId(), room.getRoomCfgId());
         //删除缓存中的slotsRoomController
         this.roomControllers.remove(room.getId());
+        this.poolMap.remove(room.getId());
         //删除奖池
         long poolRaminValue = roomSlotsPoolDao.removePoolByRoomId(room.getId());
 
@@ -367,6 +369,15 @@ public class SlotsRoomManager implements HallRoomBridge {
             slotsLogger.roomDisband(room, 0, List.of());
         }
         log.info("房间已销毁 roomId = {},roomCreator = {},poolRaminValue = {}", room.getId(), room.getCreator(), poolRaminValue);
+        //删除保存的玩家信息
+        SlotsFactoryManager slotsFactoryManager = CommonUtil.getContext().getBean(SlotsFactoryManager.class);
+        AbstractSlotsGameManager<?, ?, ?> gameManager = slotsFactoryManager.getGameManager(room.getGameType(), room.getRoomCfgId());
+        if (gameManager == null) {
+            return;
+        }
+        Class<?> dto = gameManager.getSlotsPlayerGameDataDTOCla();
+        AbstractGameDataDao<?> gameDataDao = gameManager.getGameDataDao();
+        gameDataDao.deletePlayerGameDataRoomOnDisband(dto, room.getId());
     }
 
     @Override
@@ -539,7 +550,7 @@ public class SlotsRoomManager implements HallRoomBridge {
                 friendRoomBillHistoryDao.saveSlotsBillHistory(historyBean);
 
                 if (friendRoom.getStatus() == 3) {
-                    destoryRoom(friendRoom);
+                    destroyRoom(friendRoom);
                 } else {
                     slotsFriendRoomDao.save(friendRoom);
                 }

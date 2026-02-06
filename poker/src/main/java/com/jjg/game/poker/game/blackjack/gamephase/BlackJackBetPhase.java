@@ -134,8 +134,8 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
                 //进入下个阶段
                 nextPhase();
             } else {
-                //重新等待
-                gameDataVo.getPlayerSeatInfoList().clear();
+                //重新等待,并清除数据
+                gameDataVo.resetData(controller);
                 controller.goBackWaitReadyPhase();
                 NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(EGamePhase.WAIT_READY, -1);
                 broadcastMsgToRoom(notifyPokerPhaseChange);

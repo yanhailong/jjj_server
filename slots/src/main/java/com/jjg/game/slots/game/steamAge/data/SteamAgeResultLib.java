@@ -1,10 +1,6 @@
 package com.jjg.game.slots.game.steamAge.data;
 
 import com.jjg.game.slots.data.SlotsResultLib;
-import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAddIconInfo;
-import com.jjg.game.slots.game.steamAge.pb.SteamAgeExpand;
-import com.jjg.game.slots.game.steamAge.pb.SteamAgeIconInfo;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
 
@@ -12,7 +8,6 @@ import java.util.List;
  * @author lihaocao
  * @date 2025/12/2 17:30
  */
-@Document
 public class SteamAgeResultLib extends SlotsResultLib<SteamAgeAwardLineInfo> {
     //增加的免费次数
     private int addFreeCount;

@@ -1,5 +1,6 @@
 package com.jjg.game.core.service;
 
+import com.alibaba.fastjson.JSONArray;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterMsgSender;
@@ -23,17 +24,17 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerLastGameInfo;
 import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.logger.CoreLogger;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -56,6 +57,8 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
     @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+    @Autowired
     private ClusterSystem clusterSystem;
     @Autowired
     private TimerCenter timerCenter;
@@ -71,6 +74,15 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
     private OnlinePlayerDao onlinePlayerDao;
     @Autowired
     private AccountDao accountDao;
+
+    // Lua 脚本：获取并删除
+    private final String luaScript = """
+            local value = redis.call('HGET', KEYS[1], ARGV[1])
+            if value then
+                redis.call('HDEL', KEYS[1], ARGV[1])
+            end
+            return value
+            """;
 
     private TimerEvent<String> onlineCountEvent;
 
@@ -141,10 +153,26 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
         clusterMsgSender.broadcast2Gates(object);
     }
 
-    public void remove(long playerId) {
-        redisTemplate.opsForHash().delete(SESSION_TABLE_NAME, playerId);
+    public PlayerSessionInfo remove(long playerId) {
         onlinePlayerDao.delete(playerId);
-        //redisTemplate.opsForSet().remove(ONLINEPLAYERS, playerId);
+
+        DefaultRedisScript<String> script = new DefaultRedisScript<>();
+        script.setScriptText(luaScript);
+        script.setResultType(String.class);
+
+        String result = stringRedisTemplate.execute(
+                script,
+                Collections.singletonList(SESSION_TABLE_NAME),
+                String.valueOf(playerId)
+        );
+        if (StringUtils.isNotEmpty(result)) {
+            JSONArray array = JSONArray.parseArray(result);
+            if(array != null && array.size() > 1) {
+                return array.getObject(1, PlayerSessionInfo.class);
+            }
+        }
+
+        return null;
     }
 
     public Map<Long, PlayerSessionInfo> getAll() {
@@ -313,6 +341,7 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
             info.setGameType(player.getGameType());
             info.setRoomCfgId(player.getRoomCfgId());
             info.setSessionId(pfSession.sessionId());
+            info.setCreateTime(TimeHelper.nowInt());
         } else {
             info.setGameType(player.getGameType());
             info.setRoomCfgId(player.getRoomCfgId());
@@ -376,6 +405,7 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
             info.setGameType(gameType);
             info.setRoomCfgId(roomCfgId);
             info.setSessionId(pfSession.sessionId());
+            info.setCreateTime(TimeHelper.nowInt());
         }
         save(info);
         onlinePlayerDao.online(player.getId(), player.getChannel().getValue(), gameType, player.getRoomCfgId(), player.getSubChannel());

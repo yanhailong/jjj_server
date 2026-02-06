@@ -1,11 +1,9 @@
 package com.jjg.game.slots.game.dollarexpress.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.game.dollarexpress.pb.ResStartGame;
+import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -14,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @date 2025/8/5 14:10
  */
 @Document
-public class DollarExpressPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
+public class DollarExpressPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
     //累计的美钞数量
     private int totalDollars;
     //记录出现可收集美元的局数

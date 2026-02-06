@@ -94,53 +94,6 @@ public class AccountController extends AbstractController {
         return success(vo);
     }
 
-//    @RequestMapping("loginConfig")
-//    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
-//        Map<Integer, LoginConfigData> map;
-//        if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
-//            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
-//        } else {
-//            map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
-//        }
-//
-//        List<ThirdLoginConfigVo> resultList = new ArrayList<>();
-//        //登录开关配置
-//        if (map != null && !map.isEmpty()) {
-//            map.forEach((k, v) -> {
-//                ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
-//                thirdLoginConfigVo.setType(v.getLoginType());
-//                thirdLoginConfigVo.setOpen(v.isLoginOpen());
-//                resultList.add(thirdLoginConfigVo);
-//            });
-//        }
-//        return success(resultList);
-//    }
-
-
-//    @RequestMapping("loginConfig")
-//    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
-//        Map<Integer, LoginConfigData> map;
-//        if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
-//            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
-//        } else {
-//            map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
-//        }
-//
-//        List<ThirdLoginConfigVo> resultList = new ArrayList<>();
-//        //登录开关配置
-//        if (map != null && !map.isEmpty()) {
-//            map.forEach((k, v) -> {
-//                ThirdLoginConfigVo thirdLoginConfigVo = new ThirdLoginConfigVo();
-//                thirdLoginConfigVo.setType(v.getLoginType());
-//                thirdLoginConfigVo.setOpen(v.isLoginOpen());
-//                resultList.add(thirdLoginConfigVo);
-//            });
-//        }
-//        return success(resultList);
-//    }
-
-
-
     /**
      * 游客登录
      *
@@ -395,7 +348,7 @@ public class AccountController extends AbstractController {
 //            String email = payload.getEmail();
 //            String name = (String) payload.get("name");
 
-        CommonResult<GoogleUserInfo> userInfoResult = thirdAccountHttpService.verifyGoogleToken(dto.getData());
+        CommonResult<GoogleUserInfo> userInfoResult = thirdAccountHttpService.verifyGoogleToken(dto.getWesteId(), dto.getData());
         if (!userInfoResult.success()) {
             return fail(userInfoResult.code);
         }
@@ -537,7 +490,7 @@ public class AccountController extends AbstractController {
 
         //保存token，方便weboskcet连接时进行校验
         playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), dto.getChannel(), ip, deviceType.getValue(),
-                dto.getMac(), account.getChannel().getValue(), dto.getShareId(), dto.getSubChannel());
+                dto.getMac(), account.getChannel().getValue(), dto.getShareId(), dto.getSubChannel(), dto.getWesteId());
 
         LoginVo vo = new LoginVo();
         vo.setToken(token);
@@ -611,7 +564,7 @@ public class AccountController extends AbstractController {
                 result.code = Code.IP_BLOCKED_SERVER_URL_UNAVAILABLE;
                 return result;
             }
-            result.data =  clientIp;
+            result.data = clientIp;
         } catch (Exception e) {
             log.error("", e);
         }

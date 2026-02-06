@@ -1,6 +1,7 @@
 package com.jjg.game.slots.handler;
 
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.handler.CoreRPCController;
 import com.jjg.game.core.rpc.GmToSlotsBridge;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.manager.SlotsFactoryManager;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Component;
  * @date 2026/1/28
  */
 @Component
-public class SlotsRPCHandler implements GmToSlotsBridge {
+public class SlotsRPCHandler extends CoreRPCController implements GmToSlotsBridge {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired

@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.dollarexpress.manager;
 
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -25,5 +26,10 @@ public class DollarExpressRoomGameManager extends AbstractDollarExpressGameManag
     @Override
     protected List<Integer> checkLibPool(DollarExpressResultLib resultLib, DollarExpressPlayerGameData playerGameData) {
         return Collections.emptyList();
+    }
+
+    @Override
+    protected Class<DollarExpressPlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
+        return DollarExpressPlayerGameDataRoomDTO.class;
     }
 }
