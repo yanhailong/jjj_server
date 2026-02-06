@@ -897,7 +897,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     protected T putGameData(PlayerController playerController, T gameData) {
-        return this.gameDataMap.computeIfAbsent(playerController.getPlayer().getRoomCfgId(), k -> new HashMap<>()).put(playerController.playerId(), gameData);
+        return this.gameDataMap.computeIfAbsent(playerController.getPlayer().getRoomCfgId(), k -> new ConcurrentHashMap<>()).put(playerController.playerId(), gameData);
     }
 
     /**
@@ -2147,6 +2147,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param value
      */
     public boolean gmChangePool(PlayerController playerController, int type, long value) {
+        if (getRoomType() != null) {
+            log.warn("gm修改奖池失败，暂不支持房间修改 playerId = {},type = {},value = {}", playerController.playerId(), type, value);
+            return false;
+        }
+
         if (value < 0) {
             log.warn("gm修改奖池失败 playerId = {},type = {},value = {}", playerController.playerId(), type, value);
             return false;
@@ -2180,6 +2185,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param value
      */
     public boolean gmChangeContribtGold(PlayerController playerController, long value) {
+        if (getRoomType() != null) {
+            log.warn("gm修改贡献值失败，暂不支持房间修改 playerId = {},value = {}", playerController.playerId(), value);
+            return false;
+        }
         if (value < 0) {
             log.warn("gm修改贡献值失败 playerId = {},value = {}", playerController.playerId(), value);
             return false;

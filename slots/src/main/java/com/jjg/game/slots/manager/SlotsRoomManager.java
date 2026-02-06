@@ -313,7 +313,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         slotsRoomController.getRoom().setOverdueTime(overdueTime);
         slotsRoomController.getRoom().setPredictCostGoldNum(slotsRoomController.getRoom().getPredictCostGoldNum());
 
-        Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), (long) itemNum);
+        Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), totalTake);
         ItemOperationResult itemOperationResult = new ItemOperationResult();
         itemOperationResult.setDiamond(slotsRoomController.getRoom().getPredictCostGoldNum());
         slotsLogger.roomOperate(slotsRoomController.getRoom(), 2, roomExpendCfg.getDurationTime(), itemMap, itemOperationResult);
