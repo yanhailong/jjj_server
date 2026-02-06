@@ -195,4 +195,37 @@ public class SlotsPoolDao extends AbstractPoolDao {
         log.debug("从小池子按照百分比扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},beforeValue = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId, poolValue, value, afterPoolValue, addType);
         return result;
     }
+
+    /**
+     * @param roomCfgId
+     * @param value
+     */
+    public void setBigPool(int gameType, int roomCfgId, long value) {
+        if (value < 0) {
+            return;
+        }
+        this.redisTemplate.opsForHash().put(tableName(gameType), roomCfgId, value);
+    }
+
+    /**
+     * @param roomCfgId
+     * @param value
+     */
+    public void setSmallPool(int gameType, int roomCfgId, long value) {
+        if (value < 0) {
+            return;
+        }
+        this.redisTemplate.opsForHash().put(smallTableName(gameType), roomCfgId, value);
+    }
+
+    /**
+     * @param roomCfgId
+     * @param value
+     */
+    public void setFakeSmallPool(int gameType, int roomCfgId, long value) {
+        if (value < 0) {
+            return;
+        }
+        this.redisTemplate.opsForHash().put(fakeSmallTableName(gameType), roomCfgId, value);
+    }
 }
