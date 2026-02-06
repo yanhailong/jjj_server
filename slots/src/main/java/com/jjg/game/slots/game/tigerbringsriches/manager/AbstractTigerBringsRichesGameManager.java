@@ -65,8 +65,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new TigerBringsRichesGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
-        if (playerGameData.getStatus() == TigerBringsRichesConstant.Status.REAL_TIGER_BRINGS_RICHES
-                && playerGameData.getSpecialLib() == null) {
+        if (playerGameData.getStatus() == TigerBringsRichesConstant.Status.REAL_TIGER_BRINGS_RICHES && playerGameData.getSpecialLib() == null) {
             playerGameData.setStatus(TigerBringsRichesConstant.Status.NORMAL);
             log.info("虎虎生财玩家状态重置为正常状态 playerId = {}", playerController.playerId());
         }
