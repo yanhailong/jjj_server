@@ -94,10 +94,13 @@ public class TableMessageBuilder {
         Map<Long, GamePlayer> sortedGamePlayer = getSortedGamePlayer(gameController, tableGameDataVo, limit);
         List<GamePlayer> gamePlayers = new ArrayList<>(sortedGamePlayer.values());
         if (!sortedGamePlayer.containsKey(playerId)) {
-            if (gamePlayers.size() == limit) {
+            if (limit > 0 && gamePlayers.size() == limit) {
                 gamePlayers.remove(gamePlayers.size() - 1);
             }
-            gamePlayers.add(tableGameDataVo.getGamePlayer(playerId));
+            GamePlayer gamePlayer = tableGameDataVo.getGamePlayer(playerId);
+            if (gamePlayer != null) {
+                gamePlayers.add(gamePlayer);
+            }
         }
         List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(gamePlayers.size());
         for (GamePlayer gamePlayer : gamePlayers) {
@@ -223,10 +226,6 @@ public class TableMessageBuilder {
             Map<Integer, List<Integer>> value = betEntry.getValue();
             Long playerId = betEntry.getKey();
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-            if (gamePlayer == null) {
-                log.error("buildBetTableInfos gamePlayer is null playerId:{}", playerId);
-                continue;
-            }
             for (Map.Entry<Integer, List<Integer>> entry : value.entrySet()) {
                 if (!baccaratTableInfoMap.containsKey(entry.getKey())) {
                     baccaratTableInfoMap.put(entry.getKey(), new BetTableInfo());
@@ -243,7 +242,9 @@ public class TableMessageBuilder {
                         //筹码值和皮肤
                         BetPlayerChip betPlayerChip = new BetPlayerChip();
                         betPlayerChip.chipValue = betValue;
-                        betPlayerChip.chipId = gamePlayer.getChipsId();
+                        if (gamePlayer != null) {
+                            betPlayerChip.chipId = gamePlayer.getChipsId();
+                        }
                         betTableInfo.betGoldList.add(betPlayerChip);
                     }
                 }

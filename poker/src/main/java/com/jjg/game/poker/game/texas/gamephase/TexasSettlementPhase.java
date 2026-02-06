@@ -316,7 +316,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 texasRoundInfos.add(TexasBuilder.getTexasRoundInfo(nextRound, clientId, rank));
             }
             TexasRoundInfo texasRoundInfo = new TexasRoundInfo();
-            texasRoundInfo.round = round;
+            texasRoundInfo.round = nextRound;
             texasRoundInfo.cards = clientId;
             defaultInfo.add(texasRoundInfo);
         }
@@ -345,6 +345,11 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 .toList();
         if (infoList.size() > 1) {
             log.error("出现错误 未弃牌人数大于1");
+            normalSettlement(controller);
+            return;
+        }
+        if (infoList.isEmpty()) {
+            log.error("出现错误 未弃牌人数小于1");
             normalSettlement(controller);
             return;
         }

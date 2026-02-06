@@ -57,6 +57,11 @@ public class TexasMessageHandler {
             NotifyTexasSeatStateChange change = new NotifyTexasSeatStateChange();
             //获取座位信息
             RoomPlayer roomPlayer = controller.getRoomController().getRoomPlayer(playerId);
+            if (roomPlayer == null) {
+                change.code = Code.PARAM_ERROR;
+                controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
+                return;
+            }
             SeatInfo seatInfo = gameDataVo.getSeatInfo().get(roomPlayer.getSit());
             if (Objects.isNull(seatInfo) || seatInfo.getPlayerId() != playerId) {
                 change.code = Code.PARAM_ERROR;

@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
@@ -24,8 +25,6 @@ import com.jjg.game.table.birdsanimals.message.AnimalsMessageBuilder;
 import com.jjg.game.table.birdsanimals.message.NotifyAnimalsSettlement;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
-import com.jjg.game.table.common.message.TableMessageBuilder;
-import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 
@@ -105,8 +104,14 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             playerChangedGold.playerWinGold = settlementData.getTotalWin();
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(settlementData.getTotalWin());
-            // 给玩家添加金币
-            gameController.addItem(gamePlayer.getId(), settlementData.getTotalWin(), AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+            long totalWin = settlementData.getTotalWin();
+            if (totalWin > 0) {
+                int addCode = gameController.addItem(gamePlayer.getId(), totalWin, AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+                if (addCode != Code.SUCCESS) {
+                    log.error("飞禽走兽结算给玩家加金币失败 playerId:{} totalWin:{} code:{}",
+                            gamePlayer.getId(), totalWin, addCode);
+                }
+            }
             playerChangedGold.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
             playerChangedGolds.add(playerChangedGold);
             settlementDataMap.put(playerId, settlementData);

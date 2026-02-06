@@ -2,6 +2,7 @@ package com.jjg.game.slots.dao;
 
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AbstractPoolDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -33,7 +34,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
     public void initPool() {
         for (Map.Entry<Integer, BaseRoomCfg> en : GameDataManager.getBaseRoomCfgMap().entrySet()) {
             BaseRoomCfg cfg = en.getValue();
-            if (cfg.getRoomName() >= 10) {
+            if (cfg.getRoomName() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
                 continue;
             }
             this.redisTemplate.opsForHash().putIfAbsent(tableName(cfg.getGameType()), cfg.getId(), cfg.getInitBasePool());
@@ -145,7 +146,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
             return result;
         }
 
-        result = slotsPlayerService.addGold(playerId, poolValue, addType, desc);
+        result = slotsPlayerService.addGold(playerId, value, addType, desc);
         if (!result.success()) {  //如果失败，要把钱重新加回池子
             addToSmallPool(gameType, roomCfgId, value);
             return result;
@@ -193,5 +194,38 @@ public class SlotsPoolDao extends AbstractPoolDao {
         result.data = value;
         log.debug("从小池子按照百分比扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},beforeValue = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId, poolValue, value, afterPoolValue, addType);
         return result;
+    }
+
+    /**
+     * @param roomCfgId
+     * @param value
+     */
+    public void setBigPool(int gameType, int roomCfgId, long value) {
+        if (value < 0) {
+            return;
+        }
+        this.redisTemplate.opsForHash().put(tableName(gameType), roomCfgId, value);
+    }
+
+    /**
+     * @param roomCfgId
+     * @param value
+     */
+    public void setSmallPool(int gameType, int roomCfgId, long value) {
+        if (value < 0) {
+            return;
+        }
+        this.redisTemplate.opsForHash().put(smallTableName(gameType), roomCfgId, value);
+    }
+
+    /**
+     * @param roomCfgId
+     * @param value
+     */
+    public void setFakeSmallPool(int gameType, int roomCfgId, long value) {
+        if (value < 0) {
+            return;
+        }
+        this.redisTemplate.opsForHash().put(fakeSmallTableName(gameType), roomCfgId, value);
     }
 }

@@ -112,7 +112,15 @@ public class RedisLock {
      */
     public void tryUnlock(String key) {
         RLock redissonLock = redissonClient.getLock(getKey(key));
-        redissonLock.unlock();
+        try {
+            if (!redissonLock.isHeldByCurrentThread()) {
+                log.error("跳过解锁，当前线程未持有锁 key={}", key);
+                return;
+            }
+            redissonLock.unlock();
+        } catch (Exception e) {
+            log.error("释放锁失败 key={}", key, e);
+        }
     }
 
     /**

@@ -895,7 +895,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     protected T putGameData(PlayerController playerController, T gameData) {
-        return this.gameDataMap.computeIfAbsent(playerController.getPlayer().getRoomCfgId(), k -> new HashMap<>()).put(playerController.playerId(), gameData);
+        return this.gameDataMap.computeIfAbsent(playerController.getPlayer().getRoomCfgId(), k -> new ConcurrentHashMap<>()).put(playerController.playerId(), gameData);
     }
 
     /**
@@ -2138,8 +2138,74 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setTestLibDataList(null);
         } else {
             SlotsPlayerGameDataDTO dto = getGameDataDao().getGameDataByPlayerId(playerId, roomCfgId);
-            dto.setStatus(0);
-            dto.setFreeAllWin(0);
+            if (dto != null) {
+                dto.setStatus(0);
+                dto.setFreeAllWin(0);
+            }
         }
+    }
+
+    /**
+     * gm修改奖池
+     *
+     * @param playerController
+     * @param type             0.标准池  1.小奖池
+     * @param value
+     */
+    public boolean gmChangePool(PlayerController playerController, int type, long value) {
+        if (getRoomType() != null) {
+            log.warn("gm修改奖池失败，暂不支持房间修改 playerId = {},type = {},value = {}", playerController.playerId(), type, value);
+            return false;
+        }
+
+        if (value < 0) {
+            log.warn("gm修改奖池失败 playerId = {},type = {},value = {}", playerController.playerId(), type, value);
+            return false;
+        }
+        T playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.warn("gm修改奖池失败 playerId = {}", playerController.playerId());
+            return false;
+        }
+
+        if (type == 0) {
+            slotsPoolDao.setBigPool(playerGameData.getGameType(), playerGameData.getRoomCfgId(), value);
+            log.debug("玩家gm修改标准池 playerId = {},roomCfgId = {},value = {}", playerController.playerId(), playerGameData.getRoomCfgId(), value);
+        } else if (type == 1) {
+            slotsPoolDao.setSmallPool(playerGameData.getGameType(), playerGameData.getRoomCfgId(), value);
+            log.debug("玩家gm修改小奖池 playerId = {},roomCfgId = {},value = {}", playerController.playerId(), playerGameData.getRoomCfgId(), value);
+        } else if (type == 2) {
+            slotsPoolDao.setFakeSmallPool(playerGameData.getGameType(), playerGameData.getRoomCfgId(), value);
+            log.debug("玩家gm修改假奖池 playerId = {},roomCfgId = {},value = {}", playerController.playerId(), playerGameData.getRoomCfgId(), value);
+        } else {
+            log.warn("gm修改奖池失败,不支持的类型 playerId = {},type = {}", playerController.playerId(), type);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * gm修改玩家贡献金额
+     *
+     * @param playerController
+     * @param value
+     */
+    public boolean gmChangeContribtGold(PlayerController playerController, long value) {
+        if (getRoomType() != null) {
+            log.warn("gm修改贡献值失败，暂不支持房间修改 playerId = {},value = {}", playerController.playerId(), value);
+            return false;
+        }
+        if (value < 0) {
+            log.warn("gm修改贡献值失败 playerId = {},value = {}", playerController.playerId(), value);
+            return false;
+        }
+        T playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.warn("gm修改贡献值失败 playerId = {}", playerController.playerId());
+            return false;
+        }
+        playerGameData.setContribtPoolGold(value);
+        log.debug("玩家修改贡献金额 playerId = {},value = {}", playerController.playerId(), value);
+        return true;
     }
 }

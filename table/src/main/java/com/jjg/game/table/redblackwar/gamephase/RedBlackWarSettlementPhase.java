@@ -5,8 +5,8 @@ import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Card;
-import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -136,8 +136,14 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     } else {
                         settlementDataMap.get(playerId).increaseBySettlementData(settlementData);
                     }
-                    // 给玩家添加金币
-                    gameController.addItem(gamePlayer.getId(), settlementData.getTotalWin(), AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+                    long totalWin = settlementData.getTotalWin();
+                    if (totalWin > 0) {
+                        int addCode = gameController.addItem(gamePlayer.getId(), totalWin, AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+                        if (addCode != Code.SUCCESS) {
+                            log.error("红黑大战结算给玩家加金币失败 playerId:{} totalWin:{} code:{}",
+                                    gamePlayer.getId(), totalWin, addCode);
+                        }
+                    }
                     DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
                     keyValue.setKey(keyValue.getKey() + totalBet);
                     keyValue.setValue(keyValue.getValue() + settlementData.getTotalWin());
@@ -183,7 +189,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         //记录
         addLog(gameDataVo, playerGet, settleInfo.redCards, settleInfo.blackCards);
         //更新房间记录
-        updateGameHistory(gameDataVo, blackHandType, winState);
+        updateGameHistory(gameDataVo, redHandType, blackHandType, winState);
         //清除押注历史
         betInfo.clear();
         //更新结算信息
@@ -206,6 +212,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         }
 
         List<Integer> cardPool = PokerCardUtils.getPokerIntIdExceptJoker();
+        PokerHandGenerator pokerHandGenerator = new PokerHandGenerator();
         // 尝试两种策略：0-生成带幸运牌型，1-仅生成高牌（无幸运）
         for (int strategy = 0; strategy < 2; strategy++) {
             List<Card> handA;
@@ -213,12 +220,12 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
 
             if (strategy == 0) {
                 // 策略0：随机生成幸运范围内的牌型 (Rank 2-6)
-                handA = PokerHandGenerator.dealHand(HandType.getHandType(RandomUtil.randomInt(2, 7)), cardPool);
-                handB = PokerHandGenerator.dealHand(HandType.getHandType(RandomUtil.randomInt(2, 7)), cardPool);
+                handA = pokerHandGenerator.dealHand(HandType.getHandType(RandomUtil.randomInt(2, 7)), cardPool);
+                handB = pokerHandGenerator.dealHand(HandType.getHandType(RandomUtil.randomInt(2, 7)), cardPool);
             } else {
                 // 策略1：强制生成高牌
-                handA = PokerHandGenerator.dealHand(HandType.HIGH_CARD, cardPool);
-                handB = PokerHandGenerator.dealHand(HandType.HIGH_CARD, cardPool);
+                handA = pokerHandGenerator.dealHand(HandType.HIGH_CARD, cardPool);
+                handB = pokerHandGenerator.dealHand(HandType.HIGH_CARD, cardPool);
             }
 
             Card[] cardsA = handA.toArray(CardComparatorUtil.SAMPLE);
@@ -306,9 +313,10 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
 
-    private void updateGameHistory(RedBlackWarGameDataVo gameDataVo, HandType blackHandType, int result) {
+    private void updateGameHistory(RedBlackWarGameDataVo gameDataVo, HandType redHandType, HandType blackHandType, int result) {
         RedBlackWarHistory redBlackWarHistory = new RedBlackWarHistory();
-        redBlackWarHistory.cardType = blackHandType.getRank();
+        // 历史牌型应记录本局胜方牌型，避免红胜时写入黑方牌型
+        redBlackWarHistory.cardType = result == 1 ? redHandType.getRank() : blackHandType.getRank();
         redBlackWarHistory.winner = result;
         gameDataVo.addHistory(redBlackWarHistory);
     }

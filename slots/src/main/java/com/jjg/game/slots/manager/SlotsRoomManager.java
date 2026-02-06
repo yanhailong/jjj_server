@@ -292,7 +292,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         }
         long overdueTime = slotsRoomController.getRoom().getOverdueTime();
         long totalTake = 0;
-        while (itemNum < slotsRoomController.getRoom().getPredictCostGoldNum()) {
+        while (itemNum <= slotsRoomController.getRoom().getPredictCostGoldNum()) {
             slotsRoomController.getRoom().setPredictCostGoldNum(slotsRoomController.getRoom().getPredictCostGoldNum() - itemNum);
             totalTake += itemNum;
             overdueTime += durationTime;
@@ -313,7 +313,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         slotsRoomController.getRoom().setOverdueTime(overdueTime);
         slotsRoomController.getRoom().setPredictCostGoldNum(slotsRoomController.getRoom().getPredictCostGoldNum());
 
-        Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), (long) itemNum);
+        Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), totalTake);
         ItemOperationResult itemOperationResult = new ItemOperationResult();
         itemOperationResult.setDiamond(slotsRoomController.getRoom().getPredictCostGoldNum());
         slotsLogger.roomOperate(slotsRoomController.getRoom(), 2, roomExpendCfg.getDurationTime(), itemMap, itemOperationResult);
@@ -351,6 +351,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         slotsFriendRoomDao.removeRoom(room.getGameType(), room.getId(), room.getRoomCfgId());
         //删除缓存中的slotsRoomController
         this.roomControllers.remove(room.getId());
+        this.poolMap.remove(room.getId());
         //删除奖池
         long poolRaminValue = roomSlotsPoolDao.removePoolByRoomId(room.getId());
 

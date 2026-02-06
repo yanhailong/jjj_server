@@ -151,7 +151,7 @@ public class SteamAgeSendMessageManager extends BaseSendMessageManager {
                 SteamAgeExpandIconInfo info = lib.getAddIconInfos().get(i);
                 SteamAgeExpand iconInfo = new SteamAgeExpand();
                 iconInfo.iconList = info.getAddIconList();
-                iconInfo.rewardIconInfo = addRewardIcons(info.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore(), i + 1, lib.getGameType(), lib.getExpandTimes());
+                iconInfo.rewardIconInfo = addRewardIcons(info.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore(), i + 1,gameRunInfo.getStatus(), lib.getExpandTimes());
                 iconInfos.add(iconInfo);
             }
         }

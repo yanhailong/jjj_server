@@ -91,7 +91,12 @@ public class PropInfo implements Cloneable{
         if(this.maxShowLimitMap == null) {
             return Integer.MAX_VALUE;
         }
-        return this.maxShowLimitMap.get(key);
+
+        Integer v = this.maxShowLimitMap.get(key);
+        if(v == null) {
+            return Integer.MAX_VALUE;
+        }
+        return v;
     }
 
     // 删除指定 key 并重新计算 sum 和范围
