@@ -6,7 +6,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.TablePlayerInfo;
-import com.jjg.game.table.luxurycarclub.LuxuryCarClubGameController;
 import com.jjg.game.table.luxurycarclub.data.LuxuryCarClubGameDataVo;
 
 import java.util.Collections;
@@ -23,7 +22,7 @@ public class LuxuryCarClubMessageBuilder {
      * 构建结算信息体
      */
     private static LuxuryCarClubSettlementInfo buildLuxuryCarClubSettlementInfo(
-        LuxuryCarClubGameDataVo gameDataVo, int rewardPosId) {
+            LuxuryCarClubGameDataVo gameDataVo, int rewardPosId) {
         LuxuryCarClubSettlementInfo luxuryCarClubSettlementInfo = new LuxuryCarClubSettlementInfo();
         luxuryCarClubSettlementInfo.betTableInfos = TableMessageBuilder.buildBetTableInfos(gameDataVo, false);
         luxuryCarClubSettlementInfo.tableCountDownTime = gameDataVo.getPhaseEndTime();
@@ -35,7 +34,7 @@ public class LuxuryCarClubMessageBuilder {
      * 结算信息
      */
     public static NotifyLuxuryCarClubSettlement notifyLuxuryCarClubSettlement(
-        BaseTableGameController<LuxuryCarClubGameDataVo> gameController, int rewardPosId) {
+            BaseTableGameController<LuxuryCarClubGameDataVo> gameController, int rewardPosId) {
         LuxuryCarClubGameDataVo gameDataVo = gameController.getGameDataVo();
         NotifyLuxuryCarClubSettlement settlement = new NotifyLuxuryCarClubSettlement();
         settlement.settlementInfo = buildLuxuryCarClubSettlementInfo(gameDataVo, rewardPosId);
@@ -46,14 +45,16 @@ public class LuxuryCarClubMessageBuilder {
      * 桌面信息
      */
     public static NotifyLuxuryCarClubTableInfo notifyLuxuryCarClubTableInfo(
-        BaseTableGameController<LuxuryCarClubGameDataVo> gameController, boolean isInitial, long playerId) {
+            BaseTableGameController<LuxuryCarClubGameDataVo> gameController, boolean isInitial, long playerId) {
         NotifyLuxuryCarClubTableInfo tableInfo = new NotifyLuxuryCarClubTableInfo();
         LuxuryCarClubGameDataVo gameDataVo = gameController.getGameDataVo();
         tableInfo.gamePhase = gameController.getCurrentGamePhase();
         tableInfo.tableCountDownTime = gameDataVo.getPhaseEndTime();
         List<TablePlayerInfo> playerInfo =
-            TableMessageBuilder.buildTablePlayerInfo(gameController, Collections.singletonList(playerId), gameDataVo);
-        tableInfo.playerInfo = playerInfo.get(0);
+                TableMessageBuilder.buildTablePlayerInfo(gameController, Collections.singletonList(playerId), gameDataVo);
+        if (!playerInfo.isEmpty()) {
+            tableInfo.playerInfo = playerInfo.getFirst();
+        }
         if (tableInfo.gamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
             tableInfo.settlementInfo = gameDataVo.getAnimalsSettlementInfo();
         }
@@ -64,7 +65,7 @@ public class LuxuryCarClubMessageBuilder {
         tableInfo.settlementHistory = gameDataVo.getWinAreaCfgIdHistory();
         tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(gameDataVo, isInitial);
         tableInfo.maxChipOnTable =
-            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
+                GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
         return tableInfo;
     }
 }

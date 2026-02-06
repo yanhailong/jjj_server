@@ -139,8 +139,8 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
 
     @Command(value = BaccaratMessageConstant.ReqMsgBean.REQ_JOIN_ROOM_IN_GAME)
     public void joinRoomInGame(PlayerController playerController, ReqJoinRoomInGame reqJoinRoomInGame) {
-        // 非法的GameType
-        if (EGameType.getGameByTypeId(reqJoinRoomInGame.gameType) == null) {
+        // 只允许通过百家乐消息进入百家乐房间
+        if (reqJoinRoomInGame.gameType != EGameType.BACCARAT.getGameTypeId()) {
             RespJoinRoomInGame respJoinRoomInGame = new RespJoinRoomInGame(Code.PARAM_ERROR);
             playerController.send(respJoinRoomInGame);
             return;
@@ -155,11 +155,6 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         // 发送进入成功消息
         RespJoinRoomInGame respJoinRoomInGame = new RespJoinRoomInGame(Code.SUCCESS);
         respJoinRoomInGame.roomCfgId = room.getRoomCfgId();
-        playerController.send(respJoinRoomInGame);
-        // 获取当前节点
-        String clusterCurrentNodePath = clusterSystem.getNodePath();
-        // 进入房间需要先将玩家从临时房间中移除
-        baccaratTempRoom.exit(playerController.getSession(), playerController);
         //等待进入人数+1
         boolean joinNum = matchDataDao.changeRoomJoinNum(reqJoinRoomInGame.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), 1, 1);
         if (!joinNum) {
@@ -168,22 +163,53 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
             playerController.send(respJoinRoomInGame);
             return;
         }
+        // 进入房间需要先将玩家从临时房间中移除
+        baccaratTempRoom.exit(playerController.getSession(), playerController);
         matchDataDao.addPlayerExpiredWaiting(reqJoinRoomInGame.roomId, playerController.playerId());
+        // 获取当前节点
+        String clusterCurrentNodePath = clusterSystem.getNodePath();
         // 如果就在当前节点
         if (clusterCurrentNodePath.equalsIgnoreCase(room.getPath())) {
             // 将玩家加入房间
-            roomManager.joinRoom(playerController, reqJoinRoomInGame.gameType, room.getRoomCfgId(), reqJoinRoomInGame.roomId);
+            int result = roomManager.joinRoom(playerController, reqJoinRoomInGame.gameType, room.getRoomCfgId(), reqJoinRoomInGame.roomId);
             log.info("玩家：{} 请求加入房间：{} {} 处于当前节点", playerController.playerId(), room.getRoomCfgId(), room.getId());
-
+            if (result != Code.SUCCESS) {
+                boolean rollback = matchDataDao.changeRoomJoinNum(reqJoinRoomInGame.gameType, room.getRoomCfgId(),
+                        room.getId(), room.getMaxLimit(), -1, -1);
+                if (!rollback) {
+                    log.error("玩家加入百家乐房间失败后，回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
+                            playerController.playerId(), room.getRoomCfgId(), room.getId());
+                }
+                PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
+                playerSessionInfo.setRoomCfgId(room.getRoomCfgId());
+                baccaratTempRoom.enter(playerController.getSession(), playerController, playerSessionInfo);
+            }
+            respJoinRoomInGame.code = result;
+            playerController.send(respJoinRoomInGame);
         } else {
-            // 将玩家的房间ID设置成请求的，在session进入时会自动加入到对应的房间
-            playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(reqJoinRoomInGame.roomId));
             // 将玩家切入到对应的房间节点
             MarsNode marsNode = nodeManager.getMarNode(room.getPath());
+            if (marsNode == null) {
+                boolean rollback = matchDataDao.changeRoomJoinNum(reqJoinRoomInGame.gameType, room.getRoomCfgId(),
+                        room.getId(), room.getMaxLimit(), -1, -1);
+                if (!rollback) {
+                    log.error("百家乐跨节点入房失败后，回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
+                            playerController.playerId(), room.getRoomCfgId(), room.getId());
+                }
+                PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
+                playerSessionInfo.setRoomCfgId(room.getRoomCfgId());
+                baccaratTempRoom.enter(playerController.getSession(), playerController, playerSessionInfo);
+                respJoinRoomInGame.code = Code.FAIL;
+                playerController.send(respJoinRoomInGame);
+                return;
+            }
+            // 将玩家的房间ID设置成请求的，在session进入时会自动加入到对应的房间
+            playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(reqJoinRoomInGame.roomId));
             // sessionEnter时处理
             //切换节点
             clusterSystem.switchNode(playerController.getSession(), marsNode);
             log.info("玩家：{} 请求加入房间：{} 处于节点：{}", playerController.playerId(), room.getRoomCfgId(), room.getPath());
+            playerController.send(respJoinRoomInGame);
         }
     }
 
@@ -194,6 +220,11 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         if (gameController == null) {
             log.error("玩家请求退出房间，但找不到对应的游戏控制器");
             playerController.send(new RespExitRoomInGame(Code.FAIL));
+            return;
+        }
+        if (gameController.gameControlType() != EGameType.BACCARAT) {
+            log.error("玩家请求退出百家乐房间，但当前不在百家乐游戏中 playerId:{}", playerController.playerId());
+            playerController.send(new RespExitRoomInGame(Code.PARAM_ERROR));
             return;
         }
         int code = roomManager.exitRoom(playerController, false);

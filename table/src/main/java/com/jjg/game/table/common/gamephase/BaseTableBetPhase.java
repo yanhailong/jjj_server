@@ -84,6 +84,11 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         }
         // 判断合法性
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
+        if (gamePlayer == null) {
+            notifyPlayerBet.code = Code.ERROR_REQ;
+            playerController.send(notifyPlayerBet);
+            return;
+        }
         // 检查是否是合法押注
         int checkRes = checkBetAction(gamePlayer, reqBetBeans);
         log.info("玩家：{} 请求下注，下注数据：{}, checkRes：{}", playerController.playerId(), JSON.toJSONString(reqBet), checkRes);
@@ -94,8 +99,14 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         }
         long playerTotalBetGold = 0;
         notifyPlayerBet.betTableInfoList = new ArrayList<>();
-        // 处理下注数据
-        Map<Integer, List<Integer>> playerAreaInfoMap = gameDataVo.getPlayerBetInfo(playerController.playerId());
+        // 处理下注数据，先基于当前下注构造副本，避免扣款失败污染原下注数据
+        Map<Integer, List<Integer>> playerAreaInfoMap = new HashMap<>();
+        Map<Integer, List<Integer>> currentPlayerAreaInfoMap = gameDataVo.getPlayerBetInfo(playerController.playerId());
+        if (currentPlayerAreaInfoMap != null) {
+            for (Map.Entry<Integer, List<Integer>> entry : currentPlayerAreaInfoMap.entrySet()) {
+                playerAreaInfoMap.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+            }
+        }
         Map<Integer, List<Integer>> playerReqBetMap = new HashMap<>();
         for (ReqBetBean betBean : reqBetBeans) {
             playerReqBetMap.computeIfAbsent(betBean.betAreaIdx, k -> new ArrayList<>()).add((int) betBean.betValue);
@@ -104,11 +115,15 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             int betAreaIdx = entry.getKey();
             long betValue = entry.getValue().stream().mapToInt(Integer::intValue).sum();
             playerTotalBetGold += betValue;
-            if (playerAreaInfoMap == null) {
-                playerAreaInfoMap = new HashMap<>();
-            }
             playerAreaInfoMap.computeIfAbsent(
                     betAreaIdx, k -> new ArrayList<>()).addAll(entry.getValue());
+        }
+        // 扣除玩家金币
+        int result = gameController.deductItem(gamePlayer.getId(), playerTotalBetGold, AddType.GAME_BET, gameDataVo.getRoomCfg().getId() + "");
+        if (result != Code.SUCCESS) {
+            notifyPlayerBet.code = result;
+            playerController.send(notifyPlayerBet);
+            return;
         }
         // 更新押注数据
         gameDataVo.updatePlayerBetInfo(playerController.playerId(), playerAreaInfoMap);
@@ -124,9 +139,6 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             betTableInfo.betValue = betValue;
             notifyPlayerBet.betTableInfoList.add(betTableInfo);
         }
-        // 扣除玩家金币
-        gameController.deductItem(
-                gamePlayer.getId(), playerTotalBetGold, AddType.GAME_BET, gameDataVo.getRoomCfg().getId() + "");
         gamePlayer.getTableGameData().addTotalBet(playerTotalBetGold);
         notifyPlayerBet.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
         notifyPlayerBet.chipId = gamePlayer.getChipsId();

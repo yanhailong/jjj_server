@@ -3,7 +3,6 @@ package com.jjg.game.table.birdsanimals.message;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.table.birdsanimals.AnimalsGameController;
 import com.jjg.game.table.birdsanimals.data.AnimalsGameDataVo;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -30,7 +29,7 @@ public class AnimalsMessageBuilder {
      * 构建结算信息体
      */
     private static AnimalsSettlementInfo buildAnimalsSettlementInfo(
-        AnimalsGameDataVo gameDataVo, AnimalsHistoryBean animalsHistoryBean) {
+            AnimalsGameDataVo gameDataVo, AnimalsHistoryBean animalsHistoryBean) {
         AnimalsSettlementInfo animalsSettlementInfo = new AnimalsSettlementInfo();
         animalsSettlementInfo.betTableInfos = TableMessageBuilder.buildBetTableInfos(gameDataVo, false);
         animalsSettlementInfo.tableCountDownTime = gameDataVo.getPhaseEndTime();
@@ -51,7 +50,7 @@ public class AnimalsMessageBuilder {
      * 结算信息
      */
     public static NotifyAnimalsSettlement notifyAnimalsSettlement(
-        BaseTableGameController<AnimalsGameDataVo> gameController, AnimalsHistoryBean animalsHistoryBean) {
+            BaseTableGameController<AnimalsGameDataVo> gameController, AnimalsHistoryBean animalsHistoryBean) {
         AnimalsGameDataVo gameDataVo = gameController.getGameDataVo();
         NotifyAnimalsSettlement settlement = new NotifyAnimalsSettlement();
         settlement.settlementInfo = buildAnimalsSettlementInfo(gameDataVo, animalsHistoryBean);
@@ -62,14 +61,15 @@ public class AnimalsMessageBuilder {
      * 桌面信息
      */
     public static NotifyAnimalsTableInfo notifyAnimalsTableInfo(
-        BaseTableGameController<AnimalsGameDataVo> gameController, boolean isInitial, long playerId) {
+            BaseTableGameController<AnimalsGameDataVo> gameController, boolean isInitial, long playerId) {
         NotifyAnimalsTableInfo tableInfo = new NotifyAnimalsTableInfo();
         AnimalsGameDataVo gameDataVo = gameController.getGameDataVo();
         tableInfo.gamePhase = gameController.getCurrentGamePhase();
         tableInfo.tableCountDownTime = gameDataVo.getPhaseEndTime();
-        List<TablePlayerInfo> playerInfo =
-            TableMessageBuilder.buildTablePlayerInfo(gameController, Collections.singletonList(playerId), gameDataVo);
-        tableInfo.playerInfo = playerInfo.get(0);
+        List<TablePlayerInfo> playerInfo = TableMessageBuilder.buildTablePlayerInfo(gameController, Collections.singletonList(playerId), gameDataVo);
+        if (!playerInfo.isEmpty()) {
+            tableInfo.playerInfo = playerInfo.getFirst();
+        }
         if (tableInfo.gamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
             tableInfo.settlementInfo = gameDataVo.getAnimalsSettlementInfo();
         }
@@ -80,7 +80,7 @@ public class AnimalsMessageBuilder {
         tableInfo.settlementHistory = gameDataVo.getWinAreaCfgIdHistory();
         tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(gameDataVo, isInitial);
         tableInfo.maxChipOnTable =
-            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
+                GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
         return tableInfo;
     }
 }
