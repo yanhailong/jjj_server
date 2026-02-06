@@ -294,6 +294,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             blackJackSettlementInfo.currentGold = controller.getTransactionItemNum(playerId);
             settlementPlayerInfo.settlementInfos.add(settlementInfo);
         }
+        totalTax.keySet().removeIf(RobotUtil::isRobot);
         gameDataTracker.addGameLogData("tax", totalTax);
         gameDataTracker.addGameLogData("dealerCards", settlementPlayerInfo.cardIds);
         gameDataTracker.addGameLogData("playerCards", playerCards);
