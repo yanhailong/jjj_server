@@ -8,7 +8,6 @@ import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
-import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.table.baccarat.BaccaratGameController;
@@ -18,7 +17,6 @@ import com.jjg.game.table.baccarat.message.resp.*;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.message.TableMessageBuilder;
-import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -208,10 +206,10 @@ public class BaccaratMessageBuilder {
         tableInfo.totalTime = (int) (gameDataVo.getPhaseRunTime());
         if (needTablePlayer) {
             // 刷新场上的玩家数据
-            List<GamePlayer> gamePlayers =
-                    gameDataVo.getGamePlayerMap().values().stream().filter(g -> g.getTableGameData().getSitNum() > 0).toList();
             tableInfo.tablePlayerInfoList =
-                    gamePlayers.stream()
+                    gameDataVo.getGamePlayerMap().values().stream()
+                            .sorted((o1, o2) ->
+                                    Long.compare(gameController.getTransactionItemNum(o2.getId()), gameController.getTransactionItemNum(o1.getId())))
                             .limit(TableConstant.ON_TABLE_PLAYER_NUM)
                             .map(g -> TableMessageBuilder.buildTablePlayerInfo(gameController, g))
                             .toList();

@@ -1,11 +1,9 @@
 package com.jjg.game.table.baccarat.data;
 
 import com.jjg.game.room.controller.AbstractGameController;
-import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.baccarat.message.resp.BaccaratCardState;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratSettlementInfo;
-import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.data.TableGameDataVo;
 
 import java.util.ArrayList;
@@ -37,22 +35,6 @@ public class BaccaratGameDataVo extends TableGameDataVo {
     public void clearRoundData(AbstractGameController<?, ?> gameController) {
         super.clearRoundData(gameController);
         isFillCard = false;
-        // 将玩家的座位复位
-        for (GamePlayer gamePlayer : gamePlayerMap.values()) {
-            gamePlayer.getTableGameData().setSitNum(0);
-        }
-        List<GamePlayer> gamePlayers =
-            // 取金币最高的7个人，放在场上
-            gamePlayerMap.values()
-                .stream()
-                .sorted((o1, o2) ->
-                    Long.compare(gameController.getTransactionItemNum(o2.getId()), gameController.getTransactionItemNum(o1.getId()))).toList()
-                .subList(0, Math.min(gamePlayerMap.size(), TableConstant.ON_TABLE_PLAYER_NUM));
-        // 将前7个人的位置进行排序
-        for (int i = 1; i <= gamePlayers.size(); i++) {
-            GamePlayer gamePlayer = gamePlayers.get(i - 1);
-            gamePlayer.getTableGameData().setSitNum(i);
-        }
         // 结算信息清除
         baccaratSettlementInfo = null;
     }

@@ -24,8 +24,8 @@ public class LoongTigerWarMessageBuilder {
      * 构架初始化信息
      */
     public static NotifyLoongTigerWarInfo buildInitInfo(
-        AbstractGameController<?, ?> gameController, long playerId, LoongTigerWarGameDataVo dataVo,
-        EGamePhase gamePhase) {
+            AbstractGameController<?, ?> gameController, long playerId, LoongTigerWarGameDataVo dataVo,
+            EGamePhase gamePhase) {
         NotifyLoongTigerWarInfo notifyLoongTigerWarInfo = new NotifyLoongTigerWarInfo();
         //历史记录
         notifyLoongTigerWarInfo.histories = dataVo.getHistories();
@@ -40,7 +40,6 @@ public class LoongTigerWarMessageBuilder {
             //遍历押注信息
             for (Map.Entry<Integer, Map<Long, List<Integer>>> mapEntry : betInfoMap.entrySet()) {
                 Map<Long, List<Integer>> playerBetInfo = mapEntry.getValue();
-                GamePlayer gamePlayer = dataVo.getGamePlayer(playerId);
                 BetTableInfo betTableInfo = new BetTableInfo();
                 betTableInfo.betIdx = mapEntry.getKey();
                 //计算个人押注和总押注
@@ -49,12 +48,15 @@ public class LoongTigerWarMessageBuilder {
                 long totalBet = 0;
                 List<BetPlayerChip> betGoldList = new ArrayList<>();
                 for (Map.Entry<Long, List<Integer>> longLongEntry : playerBetInfo.entrySet()) {
+                    GamePlayer gamePlayer = dataVo.getGamePlayer(longLongEntry.getKey());
                     int playerTotalBet = longLongEntry.getValue().stream().mapToInt(Integer::intValue).sum();
                     for (Integer betValue : longLongEntry.getValue()) {
                         //筹码值和皮肤
                         BetPlayerChip betPlayerChip = new BetPlayerChip();
                         betPlayerChip.chipValue = betValue;
-                        betPlayerChip.chipId = gamePlayer.getChipsId();
+                        if (gamePlayer != null) {
+                            betPlayerChip.chipId = gamePlayer.getChipsId();
+                        }
                         betGoldList.add(betPlayerChip);
                     }
                     totalBet += playerTotalBet;
