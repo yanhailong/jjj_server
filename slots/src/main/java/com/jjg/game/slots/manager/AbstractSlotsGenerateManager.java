@@ -1529,6 +1529,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         for (int i = 0; i < maxForCount; i++) {
             //获取一个需要替换的格子
             Integer girdId = cloneAffectGirdPropInfo.getRandKey();
+            if(girdId == null){
+                log.debug("获取一个需要替换的格子失败");
+                break;
+            }
             girdShowMap.merge(girdId, 1, Integer::sum);
 
             //该格子上的图标id
@@ -1539,13 +1543,21 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             }
 
             //随机一个需要出现的图标
-            int newIcon = girdUpdatePropConfig.getShowIconPropInfo().getRandKey();
+            Integer newIcon = girdUpdatePropConfig.getShowIconPropInfo().getRandKey();
+            if(newIcon == null){
+                log.debug("随机一个需要出现的图标失败");
+                break;
+            }
             log.debug("修改格子 girdId = {}, oldIcon = {}, newIcon = {}", girdId, arr[girdId], newIcon);
             arr[girdId] = newIcon;
 
             //赋值
             if (girdUpdatePropConfig.getValuePropInfo() != null) {
-                int value = girdUpdatePropConfig.getValuePropInfo().getRandKey();
+                Integer value = girdUpdatePropConfig.getValuePropInfo().getRandKey();
+                if(value == null){
+                    log.debug("修改图标后赋值失败 girdId = {}, oldIcon = {}, newIcon = {}", girdId, arr[girdId], newIcon);
+                    break;
+                }
                 info.addValue(girdId, value);
                 log.debug("赋值 girdId = {}, value = {}", girdId, value);
             }

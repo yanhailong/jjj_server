@@ -351,6 +351,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         slotsFriendRoomDao.removeRoom(room.getGameType(), room.getId(), room.getRoomCfgId());
         //删除缓存中的slotsRoomController
         this.roomControllers.remove(room.getId());
+        this.poolMap.remove(room.getId());
         //删除奖池
         long poolRaminValue = roomSlotsPoolDao.removePoolByRoomId(room.getId());
 

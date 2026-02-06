@@ -2,6 +2,7 @@ package com.jjg.game.slots.dao;
 
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AbstractPoolDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -33,7 +34,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
     public void initPool() {
         for (Map.Entry<Integer, BaseRoomCfg> en : GameDataManager.getBaseRoomCfgMap().entrySet()) {
             BaseRoomCfg cfg = en.getValue();
-            if (cfg.getRoomName() >= 10) {
+            if (cfg.getRoomName() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
                 continue;
             }
             this.redisTemplate.opsForHash().putIfAbsent(tableName(cfg.getGameType()), cfg.getId(), cfg.getInitBasePool());
