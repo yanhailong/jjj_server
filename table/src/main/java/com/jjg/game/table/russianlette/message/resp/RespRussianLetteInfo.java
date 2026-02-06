@@ -27,7 +27,7 @@ public class RespRussianLetteInfo extends AbstractResponse {
     public EGamePhase gamePhase;
 
     @ProtoDesc("玩家第一次进入时初始化数据")
-    public List<RussianLetteCardState> cardStateList;
+    public List<Integer> cardStateList;
 
     @ProtoDesc("桌面的数据")
     public RussianLetteInfo russianletteTableInfo;

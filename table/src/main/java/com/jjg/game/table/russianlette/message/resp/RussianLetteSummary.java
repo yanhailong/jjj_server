@@ -20,6 +20,23 @@ public class RussianLetteSummary {
     @ProtoDesc("俄罗斯转盘游戏基础信息")
     public RussianLetteBaseInfo baseInfo;
 
-    @ProtoDesc("转盘状态")
-    public List<RussianLetteCardState> cardStateList;
+    @ProtoDesc("结果转盘状态")
+    public List<Integer> cardStateList;
+
+    @ProtoDesc("场次ID")
+    public int wareId;
+
+    @ProtoDesc("红色概率")
+    public double red;
+
+    @ProtoDesc("黑色概率")
+    public double black;
+
+    @ProtoDesc("奇数概率")
+    public double odd;
+
+    @ProtoDesc("偶数概率")
+    public double event;
+
+
 }

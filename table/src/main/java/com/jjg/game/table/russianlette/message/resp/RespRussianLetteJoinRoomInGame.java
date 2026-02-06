@@ -12,12 +12,15 @@ import com.jjg.game.table.russianlette.message.RussianLetteMessageConstant;
 @ProtobufMessage(
     messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
     resp = true,
-    cmd = RussianLetteMessageConstant.RespMsgBean.RESP_EXIT_ROOM_IN_GAME
+    cmd = RussianLetteMessageConstant.RespMsgBean.RESP_JOIN_ROOM_IN_GAME
 )
-@ProtoDesc("在游戏中返回退出房间")
-public class RespExitRoomInGame extends AbstractResponse {
+@ProtoDesc("俄罗斯转盘在游戏中返回加入房间")
+public class RespRussianLetteJoinRoomInGame extends AbstractResponse {
 
-    public RespExitRoomInGame(int code) {
+    @ProtoDesc("房间配置ID")
+    public int roomCfgId;
+
+    public RespRussianLetteJoinRoomInGame(int code) {
         super(code);
     }
 }

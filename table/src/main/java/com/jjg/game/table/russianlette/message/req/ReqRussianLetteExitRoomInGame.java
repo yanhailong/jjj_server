@@ -15,6 +15,6 @@ import com.jjg.game.table.russianlette.message.RussianLetteMessageConstant;
     messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
     cmd = RussianLetteMessageConstant.ReqMsgBean.REQ_EXIT_ROOM_IN_GAME
 )
-@ProtoDesc("在游戏中请求退出房间")
-public class ReqExitRoomInGame extends AbstractMessage {
+@ProtoDesc("俄罗斯转盘在游戏中请求退出房间")
+public class ReqRussianLetteExitRoomInGame extends AbstractMessage {
 }

@@ -17,12 +17,6 @@ public class RussianLetteBaseInfo {
     @ProtoDesc("场次ID")
     public int wareId;
 
-//    @ProtoDesc("剩余牌数量")
-//    public int remainingCardNum;
-//
-//    @ProtoDesc("总的牌数量")
-//    public int totalCardNum;
-
     @ProtoDesc("游戏阶段信息")
     public EGamePhase eGamePhase;
 
