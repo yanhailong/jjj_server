@@ -1191,9 +1191,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 continue;
             }
             tmpIconMap.computeIfAbsent(cfg.getType(), k -> new HashSet<>()).add(cfg.getElementId());
-            if (cfg.getPostChangeElementId() > 0) {
-                tmpReplaceIconMap.put(cfg.getElementId(), cfg.getPostChangeElementId());
-            }
+            //TODO
+//            if(CollectionUtil.isNotEmpty(cfg.getPostChangeElementId())){
+//                tmpReplaceIconMap.put(cfg.getElementId(), cfg.getPostChangeElementId().get(cfg.getElementId()));
+//            }
         }
         this.iconsMap = tmpIconMap;
         this.replaceIconMap = tmpReplaceIconMap;
