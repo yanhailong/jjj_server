@@ -18,6 +18,7 @@ import com.jjg.game.hall.pointsaward.PointsAwardService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardSignInConfig;
 import com.jjg.game.sampledata.bean.PointsAwardSigninCfg;
+import jakarta.annotation.PreDestroy;
 import org.redisson.api.RKeys;
 import org.redisson.api.RMap;
 import org.redisson.api.RSet;
@@ -360,5 +361,10 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
             //解锁玩家签到数据
             unlock(playerId);
         });
+    }
+
+    @PreDestroy
+    public void destroy() {
+        executor.shutdown();
     }
 }

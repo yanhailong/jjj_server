@@ -1,7 +1,6 @@
 package com.jjg.game.slots.manager;
 
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
@@ -11,7 +10,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author 11
@@ -63,7 +64,10 @@ public class SlotsFactoryManager {
      * 关闭游戏管理器
      */
     private void closeGameManager() {
-        this.slotsGameManagerMap.forEach((k, v) -> v.shutdown());
+        Set<AbstractSlotsGameManager> allManagers = new HashSet<>();
+        allManagers.addAll(this.slotsGameManagerMap.values());
+        allManagers.addAll(this.slotsRoomGameManagerMap.values());
+        allManagers.forEach(AbstractSlotsGameManager::shutdown);
     }
 
     public AbstractSlotsGameManager getGameManager(int gameType, int roomCfgId) {

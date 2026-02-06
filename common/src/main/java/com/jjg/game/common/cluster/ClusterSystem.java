@@ -672,6 +672,20 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
         init(true, timerCenter);
     }
 
+    public void shutdown() {
+        try {
+            if (timerCenter != null && clusterSystemEvent != null) {
+                timerCenter.remove(clusterSystemEvent);
+            }
+            clusterClientMap.values().forEach(ClusterClient::shutdown);
+            clusterClientMap.clear();
+            sessionMap.clear();
+            playerIdSessionMap.clear();
+        } catch (Exception e) {
+            log.warn("cluster system shutdown error", e);
+        }
+    }
+
     private void writePidFile() {
         if (created.compareAndSet(false, true)) {
             try {

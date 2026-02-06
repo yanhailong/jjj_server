@@ -45,6 +45,7 @@ import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.pb.NotifySlotsStatus;
 import com.jjg.game.slots.service.SlotsPlayerService;
+import io.netty.util.Timeout;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -134,6 +135,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected TimerEvent<String> clearAllLibEvent;
     //房间Slot游戏超时提出的倒计时
     protected long playerRoomIldeIimeMills = 0;
+    //玩家状态检查任务句柄
+    private volatile Timeout checkPlayerStatusTimeout;
 
 
     public AbstractSlotsGameManager(Class<T> playerGameDataClass, Class<L> libClass, Class<G> gameRunInfoClass) {
@@ -152,7 +155,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         getGenerateManager().init(this.gameType);
         initConfig();
         //初始化离线处理定时器
-        WheelTimerUtil.scheduleAtFixedRate(this::checkPlayerStatus, 1, 2, TimeUnit.SECONDS);
+        if (checkPlayerStatusTimeout != null && !checkPlayerStatusTimeout.isCancelled()) {
+            checkPlayerStatusTimeout.cancel();
+        }
+        checkPlayerStatusTimeout = WheelTimerUtil.scheduleAtFixedRate(this::checkPlayerStatus, 1, 2, TimeUnit.SECONDS);
     }
 
     /**
@@ -660,6 +666,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * 关闭
      */
     public void shutdown() {
+        if (checkPlayerStatusTimeout != null && !checkPlayerStatusTimeout.isCancelled()) {
+            checkPlayerStatusTimeout.cancel();
+        }
+        checkPlayerStatusTimeout = null;
         this.gameDataMap.forEach((k, v) -> {
             v.forEach((k1, v1) -> {
                 try {
