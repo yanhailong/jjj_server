@@ -35,7 +35,6 @@ import com.jjg.game.hall.pb.req.*;
 import com.jjg.game.hall.pb.res.*;
 import com.jjg.game.hall.pb.struct.MailInfo;
 import com.jjg.game.hall.pb.struct.NoticeInfo;
-import com.jjg.game.hall.pb.struct.PackItemInfo;
 import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
@@ -452,8 +451,9 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
         playerController.send(res);
     }
 
+
     /**
-     * 获取背包
+     * 获取背包（兼容旧大厅协议，后续版本移除）
      *
      * @param playerController
      * @param req
@@ -462,14 +462,15 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
     public void reqGetPack(PlayerController playerController, ReqGetPack req) {
         ResGetPack res = new ResGetPack(HallCode.SUCCESS);
         try {
-            res.packItemInfos = getPlayerPack(playerController.playerId());
-            log.debug("返回玩家背包数据 playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
+            res.packItemInfos = playerPackService.getPlayerPack(playerController.playerId());
+            log.debug("返回玩家背包数据(旧协议) playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
         }
         playerController.send(res);
     }
+
 
     /**
      * 使用道具
@@ -492,7 +493,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
                 playerController.send(res);
                 return;
             }
-            res.packItemInfos = getPlayerPack(playerController.playerId());
+            res.packItemInfos = playerPackService.getPlayerPack(playerController.playerId());
             if (useResult.data != null) {
                 res.addItemInfos = ItemUtils.buildItemInfo(useResult.data);
             }
@@ -1136,30 +1137,6 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
 
     /*****************************************************************************************************/
 
-
-    /**
-     * 获取玩家的背包数据
-     *
-     * @param playerId
-     * @return
-     */
-    private List<PackItemInfo> getPlayerPack(long playerId) {
-        PlayerPack playerPack = hallService.getPlayerPack(playerId);
-        if (playerPack == null || playerPack.getItems().isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<PackItemInfo> packItemInfos = new ArrayList<>();
-        playerPack.getItems().forEach((key, value) -> {
-            PackItemInfo info = new PackItemInfo();
-            info.girdId = key;
-            info.item = new ItemInfo();
-            info.item.itemId = value.getId();
-            info.item.count = value.getItemCount();
-            packItemInfos.add(info);
-        });
-        return packItemInfos;
-    }
 
     @Override
     public void onChooseWare(PlayerController playerController, ReqChooseWare req) {

@@ -1,6 +1,7 @@
 package com.jjg.game.core.service;
 
 import com.jjg.game.common.data.DataSaveCallback;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.item.EItemUseStrategy;
 import com.jjg.game.core.base.player.IPlayerRegister;
@@ -11,6 +12,7 @@ import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.PlayerPackDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.core.pb.PackItemInfo;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.TaskConditionParam12101;
 import com.jjg.game.core.utils.ItemUtils;
@@ -244,7 +246,7 @@ public class PlayerPackService implements IPlayerRegister {
      */
     public CommonResult<ItemOperationResult> removeItems(Player player, Map<Integer, Long> removeItemMap,
                                                          AddType addType) {
-        return removeItems(player, removeItemMap, addType,null);
+        return removeItems(player, removeItemMap, addType, null);
     }
 
     /**
@@ -630,5 +632,29 @@ public class PlayerPackService implements IPlayerRegister {
     public void playerRegister(Player player) {
         PlayerPack pack = new PlayerPack(player.getId());
         redisSave(pack);
+    }
+
+    /**
+     * 获取玩家的背包数据
+     *
+     * @param playerId
+     * @return
+     */
+    public List<PackItemInfo> getPlayerPack(long playerId) {
+        PlayerPack playerPack = getFromAllDB(playerId);
+        if (playerPack == null || playerPack.getItems().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<PackItemInfo> packItemInfos = new ArrayList<>();
+        playerPack.getItems().forEach((key, value) -> {
+            PackItemInfo info = new PackItemInfo();
+            info.girdId = key;
+            info.item = new ItemInfo();
+            info.item.itemId = value.getId();
+            info.item.count = value.getItemCount();
+            packItemInfos.add(info);
+        });
+        return packItemInfos;
     }
 }

@@ -265,6 +265,10 @@ public interface MessageConst {
         //请求配置数据
         int REQ_EXCEL_INFOS = BASE_MSG_PREFIX | 0x1D;
         int RES_EXCEL_INFOS = BASE_MSG_PREFIX | 0x1F;
+
+        //请求背包数据
+        int REQ_GET_PACK = BASE_MSG_PREFIX | 0x20;
+        int RES_GET_PACK = BASE_MSG_PREFIX | 0x21;
     }
 
     interface RoomMessage {
