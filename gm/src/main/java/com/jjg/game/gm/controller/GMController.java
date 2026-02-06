@@ -717,7 +717,7 @@ public class GMController extends AbstractController {
     public WebResult<PageVo<List<OnlinePlayerVo>>> onlinePlayer(@RequestBody OnlinePlayerDto dto) {
         try {
             log.info("收到后台查询在线玩家的请求 dto = {}", dto);
-            if (dto.gameId() < 1 || dto.pageSize() < 1 || dto.page() < 1) {
+            if (dto.pageSize() < 1 || dto.page() < 1) {
                 log.debug("参数错误 dto = {}", dto);
                 return fail("common.paramerror");
             }

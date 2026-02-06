@@ -24,8 +24,8 @@ import com.jjg.game.common.protostuff.ProtostuffUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 玩家网关服务器会话对象
@@ -40,7 +40,7 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
     /**
      * TODO 在GateSession中管理所有的网关会话?是否应该在{@linkplain com.jjg.game.gate.GateSessionManager}中管理操作所有的网关会话
      */
-    protected static final Map<String, GateSession> gateSessionMap = new HashMap<>();
+    protected static final Map<String, GateSession> gateSessionMap = new ConcurrentHashMap<>();
     /**
      * 会话ID
      */
@@ -140,8 +140,14 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
             PFMessage pfMessage = MessageUtil.getPFMessage(sessionLogout);
             ClusterMessage clusterMessage = new ClusterMessage(sessionId, pfMessage, playerId);
             ClusterClient clusterClient = ClusterSystem.system.getByNodeType(NodeType.HALL, remoteAddress.getHost(), playerId);
-            if (currentClient != null) {
+            if (clusterClient == null) {
+                // 哈希路由节点不可用时，降级到任意可用hall节点，避免在线状态残留
+                clusterClient = ClusterSystem.system.randClientByType(NodeType.HALL);
+            }
+            if (clusterClient != null) {
                 clusterClient.getConnect().write(clusterMessage);
+            } else {
+                log.warn("用户下线消息发送失败，未找到可用hall节点，playerId={},sessionId={}", playerId, sessionId);
             }
         } catch (Exception e) {
             log.warn("用户下线消息发送异常", e);

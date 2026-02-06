@@ -6,6 +6,7 @@ import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterMsgSender;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
+import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.listener.SessionLogoutListener;
@@ -228,6 +229,7 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
         List<Long> keys = new ArrayList<>();
         if (playerSessionInfoMap != null) {
             long currentTime = System.currentTimeMillis();
+            long sessionTimeoutMillis = (long) SESSION_TIME_OUT_MINUTES * TimeHelper.ONE_MINUTE_OF_MILLIS;
             for (Map.Entry<Long, PlayerSessionInfo> en : playerSessionInfoMap.entrySet()) {
                 PlayerSessionInfo playerSessionInfo = en.getValue();
                 long lastActiveTime = playerSessionInfo.getLastActiveTime();
@@ -239,14 +241,24 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
                     continue;
                 }
 
-                if (!currentNode.equals(playerSessionInfo.getCurrentNode())) {
+                String sessionCurrentNode = playerSessionInfo.getCurrentNode();
+                if (!currentNode.equals(sessionCurrentNode)) {
+                    boolean nodeUnavailable = StringUtils.isEmpty(sessionCurrentNode);
+                    if (!nodeUnavailable) {
+                        MarsNode marsNode = clusterSystem.getNode(sessionCurrentNode);
+                        nodeUnavailable = marsNode == null;
+                    }
+                    if (nodeUnavailable && lastActiveTime > 0 && currentTime - lastActiveTime > sessionTimeoutMillis) {
+                        keys.add(playerSessionInfo.getPlayerId());
+                        log.info("移除节点不可达的超时session，playerId={},node={}", playerSessionInfo.getPlayerId(), sessionCurrentNode);
+                    }
                     continue;
                 }
                 if (clusterSystem.existSession(playerSessionInfo.getSessionId())) {
                     continue;
                 }
-                //session 的活跃时间超过三个小时的
-                if (lastActiveTime > 0 && currentTime - lastActiveTime > TimeHelper.ONE_DAY_OF_MILLIS) {
+                // 当前节点中已不存在会话，超过会话超时时间后清理，避免在线玩家统计不准确
+                if (lastActiveTime > 0 && currentTime - lastActiveTime > sessionTimeoutMillis) {
                     keys.add(playerSessionInfo.getPlayerId());
                     log.info("移除超时无效session，playerId={}", playerSessionInfo.getPlayerId());
                 }
@@ -390,14 +402,16 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
                 } catch (InterruptedException e) {
                     log.error("顶号切换节点失败", e);
                 }
-                //保存
-                info.setPlayerId(player.getId());
-                info.setSessionId(pfSession.sessionId());
-                info.setNodeName(pfSession.gatePath);
-                info.setGameType(gameType);
-                info.setRoomCfgId(roomCfgId);
                 log.info("顶号成功! playerId = {}", player.getId());
+            } else {
+                log.warn("顶号时旧节点不可用，直接覆盖session信息 playerId={},oldNode={}", player.getId(), info.getNodeName());
             }
+            //保存
+            info.setPlayerId(player.getId());
+            info.setSessionId(pfSession.sessionId());
+            info.setNodeName(pfSession.gatePath);
+            info.setGameType(gameType);
+            info.setRoomCfgId(roomCfgId);
         } else {
             info = new PlayerSessionInfo();
             info.setNodeName(pfSession.gatePath);
@@ -408,13 +422,14 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
             info.setCreateTime(TimeHelper.nowInt());
         }
         save(info);
-        onlinePlayerDao.online(player.getId(), player.getChannel().getValue(), gameType, player.getRoomCfgId(), player.getSubChannel());
+        onlinePlayerDao.online(player.getId(), player.getChannel().getValue(), gameType, roomCfgId, player.getSubChannel());
         return info;
     }
 
     @Override
     public void onTimer(TimerEvent<String> e) {
         if (e == onlineCountEvent) {
+            checkSessionByNode();
             int size = clusterSystem.clusterSessionSize();
             log.info("打印在线人数 ,size={}", size);
             coreLogger.online(size, nodeManager.nodeConfig.getTcpAddress().getHost());
