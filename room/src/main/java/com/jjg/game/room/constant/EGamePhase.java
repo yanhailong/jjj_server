@@ -26,6 +26,10 @@ public enum EGamePhase {
     GAME_ROUND_OVER_SETTLEMENT("游戏一个回合结束进行结算"),
     @ProtoDesc("游戏暂停")
     GAME_PAUSE("游戏暂停"),
+    @ProtoDesc("开奖时间（俄罗斯转盘专用）")
+    DRAW_ON("开奖（俄罗斯转盘专用）"),
+    @ProtoDesc("休闲时间（俄罗斯转盘专用）")
+    REST("休闲时间（俄罗斯转盘专用）"),
     ;
 
     /**
