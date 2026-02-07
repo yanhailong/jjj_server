@@ -87,14 +87,16 @@ public class DailyRechargeController extends BaseActivityController implements G
             return res;
         }
         ClaimRewardsResult claimRewardsResult = claimActivityRewards(playerId, activityData, detailId, AddType.ACTIVITY_DAILY_RECHARGE_PROGRESS, cfg.getAwardItem());
-        if (claimRewardsResult != null) {
-            // 记录日志并构建返回值
-            if (claimRewardsResult.itemOperationResult() != null) {
-//                activityLogger.sendCashCowRewards(player, activityData, detailId, claimRewardsResult.itemOperationResult(), activityProgress, cfg.getRewards());
-            }
-            res.infoList = ItemUtils.buildItemInfo(cfg.getAwardItem());
-            res.detailInfo = buildPlayerActivityDetail(player, activityData, cfg, claimRewardsResult.playerActivityData());
+        if (!claimRewardsResult.success()) {
+            res.code = claimRewardsResult.code();
+            return res;
         }
+        // 记录日志并构建返回值
+        if (claimRewardsResult.itemOperationResult() != null) {
+//                activityLogger.sendCashCowRewards(player, activityData, detailId, claimRewardsResult.itemOperationResult(), activityProgress, cfg.getRewards());
+        }
+        res.infoList = ItemUtils.buildItemInfo(cfg.getAwardItem());
+        res.detailInfo = buildPlayerActivityDetail(player, activityData, cfg, claimRewardsResult.playerActivityData());
         return res;
     }
 

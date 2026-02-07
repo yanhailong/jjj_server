@@ -602,13 +602,18 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         String cmd = gmOrders[0];
         if ("rechargeGold".equalsIgnoreCase(cmd)) {
             long count = Long.parseLong(gmOrders[1]);
-            PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerController.getSession().getWorkId(), 0, new BaseHandler<String>() {
+            boolean published = PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerController.getSession().getWorkId(), 0, new BaseHandler<String>() {
                 @Override
                 public void action() {
                     addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), RedisUtils.toLong(BigDecimal.valueOf(count))
                             , null);
                 }
             });
+            if (!published) {
+                log.error("GM rechargeGold 分发失败，降级当前线程处理 playerId:{} count:{}", playerController.playerId(), count);
+                addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), RedisUtils.toLong(BigDecimal.valueOf(count))
+                        , null);
+            }
             return new CommonResult<>(Code.SUCCESS);
         }
 
