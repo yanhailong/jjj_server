@@ -185,16 +185,9 @@ public class CashCowController extends BaseActivityController implements TimerLi
         long added = cashCowDao.addPlayerActivityProgress(playerId, data.getId(), progress);
 
         // 对玩家个人活动数据加分布式锁，确保并发安全
-        String lockKey = playerActivityDao.getLockKey(playerId, data.getId());
         Map<Integer, CashcowCfg> baseCfgBeanMap = getDetailCfgBean(data);
         boolean canClaim = false;
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                log.error("获取锁失败 lockKey:{} activityId:{} playerId:{} added:{}", lockKey, data.getId(), playerId, added);
-                return false;
-            }
             // 获取玩家在该活动下的所有 detail 的数据（map: detailId -> CashCowPlayerActivityData）
             Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, data.getType(), data.getId());
             for (CashcowCfg cfg : baseCfgBeanMap.values()) {
@@ -216,10 +209,6 @@ public class CashCowController extends BaseActivityController implements TimerLi
             playerActivityDao.savePlayerActivityData(playerId, data.getType(), data.getId(), playerActivityData);
         } catch (Exception e) {
             log.error("摇钱树增加玩家个人进度失败 playerId:{} addValue:{}", player, progress);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
         return canClaim;
     }
@@ -267,14 +256,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             long get = 0;
             Pair<Integer, Long> vipGet = null;
             // 对玩家参加活动的关键流程上分布式锁，保证玩家活动数据原子性
-            String lockKey = playerActivityDao.getLockKey(playerId, activityId);
             try {
-                boolean lock = redisLock.tryLockWithDefaultTime(lockKey);
-                if (!lock) {
-                    res.code = Code.FAIL;
-                    log.error("获取锁失败 lockKey:{} activityId:{} playerId:{} detail:{} times:{}", lockKey, activityData.getId(), playerId, detailId, times);
-                    return res;
-                }
                 //获取奖池数量
                 long pool = cashCowDao.getSpecifiedActivityPool(activityId);
                 // 读取玩家在该活动的 detail 记录（包括 joinTimes 等）
@@ -315,6 +297,17 @@ public class CashCowController extends BaseActivityController implements TimerLi
                             if (get > 0) {
                                 // 给玩家发放金币（或其他道具，目前为金币）
                                 addedItem = playerPackService.addItem(playerId, ItemUtils.getGoldItemId(), get, AddType.ACTIVITY_CASHCOW_JOIN);
+                                if (!addedItem.success()) {
+                                    log.error("摇钱树发奖失败 playerId:{} activityId:{} detailId:{} get:{}", playerId, activityId, detailId, get);
+                                    // 发奖失败回滚奖池与消耗道具，避免资产不一致
+                                    cashCowDao.addActivityPool(activityId, get);
+                                    CommonResult<ItemOperationResult> rollback = playerPackService.addItems(playerId, cfg.getNeedItem(), AddType.ACTIVITY_CASHCOW);
+                                    if (!rollback.success()) {
+                                        log.error("摇钱树发奖失败后回滚消耗道具失败 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId);
+                                    }
+                                    res.code = Code.FAIL;
+                                    return res;
+                                }
                                 // 记录玩家中奖记录（写到玩家记录表或排行榜）
                                 CashCowRecordData cashCowRecordData = new CashCowRecordData(activityData.getRound(), System.currentTimeMillis(), oldPlayer.getNickName(), cfg.getType(), get);
                                 cashCowDao.savePlayerRecordActivity(playerId, activityId, cashCowRecordData, isFix);
@@ -339,9 +332,6 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 // 捕获到异常后记录并设置通用异常码
                 log.error("玩家参加摇钱树加锁后出现异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
                 res.code = Code.EXCEPTION;
-            } finally {
-                // 解锁（注意：确保 redisLock.unlock 在任何情况下都会被调用）
-                redisLock.tryUnlock(lockKey);
             }
             //vip 邮件
             if (vipGet != null) {
@@ -502,16 +492,18 @@ public class CashCowController extends BaseActivityController implements TimerLi
             return res;
         }
         ClaimRewardsResult claimRewardsResult = claimActivityRewards(playerId, activityData, detailId, AddType.ACTIVITY_CASHCOW_REWARDS, cfg.getRewards());
-        if (claimRewardsResult != null) {
-            // 记录日志并构建返回值
-            if (claimRewardsResult.itemOperationResult() != null) {
-                activityLogger.sendCashCowRewards(player, activityData, detailId, claimRewardsResult.itemOperationResult(), activityProgress, cfg.getRewards());
-            }
-            res.activityId = activityId;
-            res.detailId = detailId;
-            res.infoList = ItemUtils.buildItemInfo(cfg.getRewards());
-            res.detailInfo = buildPlayerActivityDetail(player, activityData, cfg, claimRewardsResult.playerActivityData());
+        if (!claimRewardsResult.success()) {
+            res.code = claimRewardsResult.code();
+            return res;
         }
+        // 记录日志并构建返回值
+        if (claimRewardsResult.itemOperationResult() != null) {
+            activityLogger.sendCashCowRewards(player, activityData, detailId, claimRewardsResult.itemOperationResult(), activityProgress, cfg.getRewards());
+        }
+        res.activityId = activityId;
+        res.detailId = detailId;
+        res.infoList = ItemUtils.buildItemInfo(cfg.getRewards());
+        res.detailInfo = buildPlayerActivityDetail(player, activityData, cfg, claimRewardsResult.playerActivityData());
         // 返回响应
         return res;
     }
@@ -819,7 +811,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                                     int hour = LocalDateTime.now().getHour();
                                     for (List<Integer> list : cfgAdd) {
                                         // 这里 list 的格式为 [hourStart, hourEnd, minAdd, maxAdd]
-                                        if (list.getFirst() >= hour && hour < list.get(1)) {
+                                        if (list.getFirst() <= hour && hour < list.get(1)) {
                                             int addValue = RandomUtil.randomInt(list.get(2), list.get(3));
                                             // 将 addValue 增加到所有该类型活动的每个非累计 detail 的奖池中
                                             Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(ActivityType.CASH_COW);
@@ -917,8 +909,9 @@ public class CashCowController extends BaseActivityController implements TimerLi
         CommonResult<ItemOperationResult> addItems = null;
         // 使用玩家免费锁，防止并发重复领取
         String playerFreeLockKey = cashCowDao.getPlayerFreeLockKey(playerController.playerId(), req.activityId);
+        boolean lock = false;
         try {
-            boolean lock = redisLock.tryLockWithDefaultTime(playerFreeLockKey);
+            lock = redisLock.tryLockWithDefaultTime(playerFreeLockKey);
             if (!lock) {
                 res.code = Code.FAIL;
                 log.error("获取锁失败 lockKey:{} activityId:{} playerId:{} ", playerFreeLockKey, data.getId(), playerController.playerId());
@@ -933,22 +926,25 @@ public class CashCowController extends BaseActivityController implements TimerLi
             // 发放道具到玩家背包
             addItems = playerPackService.addItem(playerController.playerId(), freeRewards.getId(), freeRewards.getItemCount(), AddType.ACTIVITY_CASHCOW_FREE_REWARDS);
             if (!addItems.success()) {
-                res.code = Code.UNKNOWN_ERROR;
+                res.code = Code.FAIL;
                 return res;
             }
             // 标记玩家已领取
             cashCowDao.addFreeRewardsCount(playerController.playerId(), req.activityId);
         } catch (Exception e) {
             log.error("摇钱树请求领取免费道具失败 playerId:{} activityId:{}", playerController.playerId(), req.activityId, e);
+            res.code = Code.EXCEPTION;
         } finally {
-            redisLock.tryUnlock(playerFreeLockKey);
+            if (lock) {
+                redisLock.tryUnlock(playerFreeLockKey);
+            }
         }
         if (addItems != null && addItems.success()) {
             // 记录领取日志
             activityLogger.sendCashCowFreeRewards(playerController.getPlayer(), data, addItems.data, freeRewards);
+            res.itemInfos = ItemUtils.buildItemInfo(freeRewards.getId(), freeRewards.getItemCount());
         }
         res.activityId = req.activityId;
-        res.itemInfos = ItemUtils.buildItemInfo(freeRewards.getId(), freeRewards.getItemCount());
         return res;
     }
 

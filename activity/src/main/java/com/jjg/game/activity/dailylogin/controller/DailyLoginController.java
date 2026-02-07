@@ -4,7 +4,6 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityTargetType;
-import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -18,23 +17,12 @@ import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.condition.MatchResult;
-import com.jjg.game.core.base.condition.MatchResultData;
-import com.jjg.game.core.base.condition.event.PlayerRechargeEvent;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
-import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
-import com.jjg.game.core.pb.NoticeTip;
 import com.jjg.game.core.utils.ItemUtils;
-import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.DailyRewardsCfg;
@@ -88,14 +76,7 @@ public class DailyLoginController extends BaseActivityController {
         long playerId = player.getId();
         long continuousLoginDay = dailyLoginDao.getContinuousLoginDay(activityId, playerId);
         boolean change = false;
-        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} progress:{}", lockKey, playerId, activityId, progress);
-                return false;
-            }
             Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             for (DailyRewardsCfg cfg : baseCfgBeanMap.values()) {
                 //连续奖励
@@ -124,10 +105,6 @@ public class DailyLoginController extends BaseActivityController {
             }
         } catch (Exception e) {
             log.error("每日签到增加进度异常 playerId:{} activityId:{}", player, activityId, e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
         return change;
     }
@@ -154,19 +131,10 @@ public class DailyLoginController extends BaseActivityController {
         if (!conditionManager.isAchievementAndNotify(player, "", cfg.getCondition())) {
             return null;
         }
-        PlayerActivityData data = null;
+        PlayerActivityData data;
         List<Pair<DailyRewardsCfg, PlayerActivityData>> changData = new ArrayList<>();
-        CommonResult<ItemOperationResult> addedItems = null;
-        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-        // 加锁，保证领取操作原子性
-        boolean lock = false;
+        CommonResult<ItemOperationResult> addedItems;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                res.code = Code.FAIL;
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{}", lockKey, playerId, activityId, detailId);
-                return res;
-            }
             Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             if (CollectionUtil.isEmpty(dataMap)) {
                 res.code = Code.PARAM_ERROR;
@@ -184,7 +152,7 @@ public class DailyLoginController extends BaseActivityController {
             // 发放奖励
             addedItems = playerPackService.addItems(playerId, cfg.getGetItem(), AddType.ACTIVITY_DAILY_LOGIN);
             if (!addedItems.success()) {
-                res.code = Code.UNKNOWN_ERROR;
+                res.code = Code.FAIL;
                 return res;
             }
             data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
@@ -206,19 +174,17 @@ public class DailyLoginController extends BaseActivityController {
             playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, dataMap);
         } catch (Exception e) {
             log.error("活动领取异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
+            res.code = Code.FAIL;
+            return res;
         }
-        if (data != null) {
+        if (addedItems.success()) {
             if (cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE) {
                 dailyLoginDao.updateClaimTime(activityId, playerId);
                 dailyLoginDao.addContinuousLoginDay(activityId, playerId);
             }
             //日志
             activityLogger.sendDailyLoginRewards(player, activityData, detailId, cfg.getType(), cfg.getGetItem(),
-                    addedItems != null && addedItems.success() ? addedItems.data : null);
+                    addedItems.success() ? addedItems.data : null);
             // 构建响应数据
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetItem());
             res.detailInfo = new ArrayList<>();

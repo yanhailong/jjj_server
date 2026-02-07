@@ -13,7 +13,10 @@ import com.jjg.game.activity.firstpayment.message.res.ResFirstPaymentDetailInfo;
 import com.jjg.game.activity.firstpayment.message.res.ResFirstPaymentTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.core.base.condition.handler.RemainingAttemptsCondition;
-import com.jjg.game.core.base.gameevent.*;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
+import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -75,16 +78,7 @@ public class FirstPaymentController extends BaseActivityController implements Ga
         PlayerActivityData data;
         CommonResult<ItemOperationResult> addedItems = null;
         Map<Integer, Long> rewards = null;
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        // 加锁，防止并发修改
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                res.code = Code.FAIL;
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} times:{}", lockKey, playerId, activityData.getId(), detailId, times);
-                return res;
-            }
             Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
             // 获取玩家首充数据，若不存在则创建
             data = playerActivityData.computeIfAbsent(detailId, key -> new PlayerActivityData(activityData.getId(), activityData.getRound()));
@@ -111,10 +105,6 @@ public class FirstPaymentController extends BaseActivityController implements Ga
             playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
         } catch (Exception e) {
             log.error("玩家加入首充活动异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
         if (addedItems != null && addedItems.success()) {
             activityLogger.sendFirstPaymentJoinLog(player, activityData, cfg, addedItems.data, rewards);
@@ -123,10 +113,10 @@ public class FirstPaymentController extends BaseActivityController implements Ga
         if (rewards != null) {
             res.infoList = ItemUtils.buildItemInfo(rewards);
         }
-        try {
-            remainingAttemptsCondition.addBaseProgress(playerId, BigDecimal.ONE);
-        } catch (Exception e) {
-            log.error("玩家加入首充活动增加活动进度异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
+            try {
+                remainingAttemptsCondition.addBaseProgress(playerId, BigDecimal.ONE);
+            } catch (Exception e) {
+                log.error("玩家加入首充活动增加活动进度异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
         }
         res.activityId = activityData.getId();
         res.detailId = detailId;

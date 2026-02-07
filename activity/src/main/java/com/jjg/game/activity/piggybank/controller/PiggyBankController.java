@@ -85,18 +85,8 @@ public class PiggyBankController extends BaseActivityController implements GameE
         // 判断配置是否有储钱罐活动配置
         if (cfg != null) {
             long timeMillis = System.currentTimeMillis();
-            String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-
-            // 分布式锁，防止并发购买
-
-            boolean lock = false;
             PiggyBankData piggyBankData = null;
             try {
-                lock = redisLock.tryLockWithDefaultTime(lockKey);
-                if (!lock) {
-                    log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} times:{}", lockKey, playerId, activityData.getId(), detailId, times);
-                    return res;
-                }
                 // 获取玩家活动数据
                 Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
 
@@ -117,12 +107,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
                 playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
             } catch (Exception e) {
                 log.error("玩家参加活动失败 出现异常,playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
-            } finally {
-                if (lock) {
-                    redisLock.tryUnlock(lockKey);
-                }
             }
-
             // 日志记录玩家参加活动
             if (piggyBankData != null) {
                 activityLogger.sendPiggyBankJoin(player, activityData, piggyBankData, cfg.getType(), detailId);
@@ -167,15 +152,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
         Map<Integer, PiggyBankCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         boolean changeStatus = false;
         List<Pair<PiggyBankData, PiggyBankCfg>> piggyBankDataList = new ArrayList<>();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-        // 分布式锁
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} progress:{} ", lockKey, playerId, activityData.getId(), progress);
-                return false;
-            }
             Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
 
             // 遍历所有储钱罐子活动
@@ -211,10 +188,6 @@ public class PiggyBankController extends BaseActivityController implements GameE
             }
         } catch (Exception e) {
             log.error("储钱罐添加玩家进度异常 playerId:{}  activityId:{} ", player, activityData.getId(), e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
         //推送满的信息
         if (!piggyBankDataList.isEmpty()) {
@@ -246,15 +219,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
         PiggyBankData data = null;
         CommonResult<ItemOperationResult> addedItems = null;
         Map<Integer, Long> rewards = Map.of();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} ", lockKey, playerId, activityData.getId(), detailId);
-                res.code = Code.FAIL;
-                return res;
-            }
             // 获取玩家储钱罐数据
             Map<Integer, PiggyBankData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
             data = dataMap.get(detailId);
@@ -280,7 +245,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
             // 添加奖励到背包
             addedItems = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_PIGGY_BANK_REWARDS);
             if (!addedItems.success()) {
-                res.code = Code.UNKNOWN_ERROR;
+                res.code = Code.FAIL;
                 return res;
             }
             // 重置储钱罐数据
@@ -289,10 +254,6 @@ public class PiggyBankController extends BaseActivityController implements GameE
             playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
         } catch (Exception e) {
             log.error("领取每日奖金异常 playerId:{} activityId:{}", playerId, activityData.getId(), e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
 
         // 记录日志
@@ -411,15 +372,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
         boolean change = false;
         Map<Integer, PiggyBankCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         Map<Integer, PlayerActivityData> playerActivityData = null;
-        //加锁防止重置数据时请求领奖导致多发奖励
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{}", lockKey, playerId, activityData.getId());
-                return playerActivityData;
-            }
             playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
             // 遍历所有储钱罐数据
             for (Map.Entry<Integer, PlayerActivityData> piggyBankDataEntry : playerActivityData.entrySet()) {
@@ -446,10 +399,6 @@ public class PiggyBankController extends BaseActivityController implements GameE
             }
         } catch (Exception e) {
             log.info("储钱罐重置数据失败");
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
         return playerActivityData;
     }

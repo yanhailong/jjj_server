@@ -45,7 +45,7 @@ public class TigerBringsRichesGameSendMessageManager extends BaseSendMessageMana
      *
      * @param playerController
      */
-    public void reqPegasusUnbridleEnterGame(PlayerController playerController, TigerBringsRichesGameRunInfo gameRunInfo) {
+    public void reqTigerBringsRichesEnterGame(PlayerController playerController, TigerBringsRichesGameRunInfo gameRunInfo) {
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
         List<Integer> prizePoolIdList = baseInitCfg.getPrizePoolIdList();
@@ -102,7 +102,7 @@ public class TigerBringsRichesGameSendMessageManager extends BaseSendMessageMana
      * @param playerController
      * @param gameRunInfo
      */
-    public void reqPegasusUnbridleStartGame(PlayerController playerController, TigerBringsRichesGameRunInfo gameRunInfo) {
+    public void reqTigerBringsRichesStartGame(PlayerController playerController, TigerBringsRichesGameRunInfo gameRunInfo) {
         SendInfo sendInfo = new SendInfo();
 
         ResTigerBringsRichesStartGame res = new ResTigerBringsRichesStartGame(gameRunInfo.getCode());

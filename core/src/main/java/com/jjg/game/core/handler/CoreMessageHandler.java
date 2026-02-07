@@ -2,7 +2,6 @@ package com.jjg.game.core.handler;
 
 import cn.hutool.core.util.EnumUtil;
 import com.alibaba.fastjson.JSON;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
@@ -13,7 +12,6 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.HttpUtils;
-import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.*;
@@ -38,7 +36,6 @@ import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.DefaultTaskConditionParam;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
-import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.container.BaseCfgContainer;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -49,7 +46,6 @@ import org.springframework.stereotype.Component;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -564,6 +560,25 @@ public class CoreMessageHandler {
         this.chooseWareListenerMap.forEach((s, listener) -> {
             listener.onChooseWare(playerController, req);
         });
+    }
+
+    /**
+     * 获取背包
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(MessageConst.CoreMessage.REQ_GET_PACK)
+    public void reqGetPack(PlayerController playerController, ReqCoreGetPack req) {
+        ResCoreGetPack res = new ResCoreGetPack(Code.SUCCESS);
+        try {
+            res.packItemInfos = playerPackService.getPlayerPack(playerController.playerId());
+            log.debug("返回玩家背包数据 playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
     }
 
     /**

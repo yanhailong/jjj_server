@@ -42,7 +42,7 @@ public class TigerBringsRichesMessageHandler {
      *
      */
     @Command(TigerBringsRichesConstant.MsgBean.REQ_TIGER_BRINGS_RICHES_ENTER_GAME)
-    public void reqPegasusUnbridleEnterGame(PlayerController playerController, ReqTigerBringsRichesEnterGame req) {
+    public void reqTigerBringsRichesEnterGame(PlayerController playerController, ReqTigerBringsRichesEnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
             TigerBringsRichesGameRunInfo gameRunInfo;
@@ -54,7 +54,7 @@ public class TigerBringsRichesMessageHandler {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
-            sendMessageManager.reqPegasusUnbridleEnterGame(playerController, gameRunInfo);
+            sendMessageManager.reqTigerBringsRichesEnterGame(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -65,7 +65,7 @@ public class TigerBringsRichesMessageHandler {
      *
      */
     @Command(TigerBringsRichesConstant.MsgBean.REQ_TIGER_BRINGS_RICHES_START_GAME)
-    public void reqStartGame(PlayerController playerController, ReqTigerBringsRichesStartGame req) {
+    public void reqTigerBringsRichesStartGame(PlayerController playerController, ReqTigerBringsRichesStartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             TigerBringsRichesGameRunInfo gameRunInfo;
@@ -77,7 +77,7 @@ public class TigerBringsRichesMessageHandler {
                 log.warn("reqStartGame playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
-            sendMessageManager.reqPegasusUnbridleStartGame(playerController, gameRunInfo);
+            sendMessageManager.reqTigerBringsRichesStartGame(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -90,7 +90,7 @@ public class TigerBringsRichesMessageHandler {
      * @param req
      */
     @Command(TigerBringsRichesConstant.MsgBean.REQ_TIGER_BRINGS_RICHES_POOL_VALUE)
-    public void reqPegasusUnbridlePoolValue(PlayerController playerController, ReqTigerBringsRichesPoolValue req) {
+    public void reqTigerBringsRichesPoolValue(PlayerController playerController, ReqTigerBringsRichesPoolValue req) {
         try {
             TigerBringsRichesGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {

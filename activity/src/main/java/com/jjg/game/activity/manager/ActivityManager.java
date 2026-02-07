@@ -145,7 +145,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     private final GameEventManager gameEventManager;
 
-    private Map<EGameEventType, List<ActivityData>> activityConditionCache = new HashMap<>();
+    private volatile Map<EGameEventType, List<ActivityData>> activityConditionCache = Map.of();
 
 
     public ActivityManager(TimerCenter timerCenter, ClusterSystem clusterSystem,
@@ -313,6 +313,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     public ActivityData getOpenActivityData(Player player, ActivityType activityType) {
         Map<Long, ActivityData> activityDataMap = getActivityTypeData().get(activityType);
+        if (CollectionUtil.isEmpty(activityDataMap)) {
+            return null;
+        }
         List<ActivityData> list = activityDataMap.values().stream()
                 .filter(activityData -> playerCanJoinActivity(activityData, player))
                 .sorted(Comparator.comparing(ActivityData::getTimeStart).reversed())
@@ -599,8 +602,13 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         String cmd = gmOrders[0];
         if ("rechargeGold".equalsIgnoreCase(cmd)) {
             long count = Long.parseLong(gmOrders[1]);
-            addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), RedisUtils.toLong(BigDecimal.valueOf(count))
-                    , null);
+            PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerController.getSession().getWorkId(), 0, new BaseHandler<String>() {
+                @Override
+                public void action() {
+                    addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), RedisUtils.toLong(BigDecimal.valueOf(count))
+                            , null);
+                }
+            });
             return new CommonResult<>(Code.SUCCESS);
         }
 
@@ -962,7 +970,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             ConditionNode node = conditionParser.parse(data.getCondition());
             analysisCondition(data, node, tempMap);
         }
-        activityConditionCache = tempMap;
+        Map<EGameEventType, List<ActivityData>> immutableMap = new HashMap<>(tempMap.size());
+        tempMap.forEach((key, value) -> immutableMap.put(key, List.copyOf(value)));
+        activityConditionCache = Map.copyOf(immutableMap);
     }
 
     private void analysisCondition(ActivityData activityData, ConditionNode node, Map<EGameEventType, List<ActivityData>> tmpGameTypeOfFuncCache) {

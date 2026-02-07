@@ -1,12 +1,12 @@
 package com.jjg.game.hall.pb.res;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.core.pb.PackItemInfo;
 import com.jjg.game.hall.constant.HallConstant;
-import com.jjg.game.common.pb.ItemInfo;
-import com.jjg.game.hall.pb.struct.PackItemInfo;
 
 import java.util.List;
 
