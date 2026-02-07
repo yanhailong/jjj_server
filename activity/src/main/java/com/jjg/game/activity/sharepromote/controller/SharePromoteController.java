@@ -85,16 +85,20 @@ public class SharePromoteController extends BaseActivityController {
             return res;
         }
         ClaimRewardsResult claimRewardsResult = claimActivityRewards(playerId, activityData, detailId, AddType.ACTIVITY_SHARE_PROMOTE, cfg.getGetitem());
-        if (claimRewardsResult != null) {
-            //发送日志
-            Long add = cfg.getGetitem().getOrDefault(ItemUtils.getGoldItemId(), 0L);
-            if (add > 0) {
-                activityLogger.sendSharePromoteAddRewards(player, activityData, 0, 4, 0, 0, add, 0,
-                        claimRewardsResult.itemOperationResult().getGoldNum(), 0);
-            }
-            res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
-            res.detailInfo = buildPlayerActivityDetail(player, activityData, cfg, claimRewardsResult.playerActivityData());
-            SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
+        if (!claimRewardsResult.success()) {
+            res.code = claimRewardsResult.code();
+            return res;
+        }
+        //发送日志
+        Long add = cfg.getGetitem().getOrDefault(ItemUtils.getGoldItemId(), 0L);
+        if (add > 0) {
+            activityLogger.sendSharePromoteAddRewards(player, activityData, 0, 4, 0, 0, add, 0,
+                    claimRewardsResult.itemOperationResult().getGoldNum(), 0);
+        }
+        res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
+        res.detailInfo = buildPlayerActivityDetail(player, activityData, cfg, claimRewardsResult.playerActivityData());
+        SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
+        if (playerInfoData != null) {
             addRecord(playerInfoData, add);
             sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
             sharePromoteDao.addPlayerIncome(playerId, add);
@@ -192,8 +196,9 @@ public class SharePromoteController extends BaseActivityController {
             //添加到有效下级
             String key = sharePromoteDao.getLock(beneficiaryPlayerId);
             SharePromotePlayerData newPlayerInfoData = null;
+            boolean lock = false;
             try {
-                boolean lock = redisLock.tryLockWithDefaultTime(key);
+                lock = redisLock.tryLockWithDefaultTime(key);
                 if (!lock) {
                     log.error("推广分享保存有效下级 获取锁失败 playerId:{}", beneficiaryPlayerId);
                     return;
@@ -208,7 +213,9 @@ public class SharePromoteController extends BaseActivityController {
             } catch (Exception e) {
                 log.error("推广分享保存有效下级失败", e);
             } finally {
-                redisLock.tryUnlock(key);
+                if (lock) {
+                    redisLock.tryUnlock(key);
+                }
             }
             //修改活动状态
             if (newPlayerInfoData != null) {
@@ -476,15 +483,20 @@ public class SharePromoteController extends BaseActivityController {
                 if (playerIncome <= 0) {
                     return res;
                 }
-                //删除记录
-                sharePromoteDao.delPlayerIncome(playerId);
                 //发放奖励
                 CommonResult<ItemOperationResult> addedItem = playerPackService.addItem(playerId, goldItemId, playerIncome, AddType.ACTIVITY_SHARE_PROMOTE_REWARDS);
                 if (!addedItem.success()) {
                     log.error("玩家领取收益时方法奖励失败 playerId:{} playerIncome:{}", playerId, playerIncome);
+                    res.code = Code.FAIL;
+                    return res;
                 }
+                //发奖成功后再删除可领取收益，避免奖励丢失
+                sharePromoteDao.delPlayerIncome(playerId);
                 //添加领取记录
                 playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
+                if (playerInfoData == null) {
+                    playerInfoData = new SharePromotePlayerData();
+                }
                 //添加记录
                 addRecord(playerInfoData, playerIncome);
                 //回存玩家推广分享数据
@@ -492,11 +504,12 @@ public class SharePromoteController extends BaseActivityController {
                 //更新排行榜
                 sharePromoteDao.updateRankScore(playerId, playerIncome);
                 sharePromoteDao.addPlayerIncome(playerId, playerIncome);
-                if (addedItem.data != null) {
-                    //添加日志
-                    activityLogger.sendSharePromoteAddRewards(playerController.getPlayer(), activityData, 0, 3, 0, 0, playerIncome,
-                            0, addedItem.data.getGoldNum(), 0);
-                }
+                //添加日志
+                long goldNum = addedItem.data == null ? 0 : addedItem.data.getGoldNum();
+                activityLogger.sendSharePromoteAddRewards(playerController.getPlayer(), activityData, 0, 3, 0, 0, playerIncome,
+                        0, goldNum, 0);
+                res.itemInfo = ItemUtils.buildItemInfo(goldItemId, playerIncome);
+                res.recodes = buildRecords(playerInfoData.getHistory());
             } catch (Exception e) {
                 log.error("玩家领取收益奖励异常 playerId={}", playerId, e);
                 res.code = Code.EXCEPTION;
@@ -505,8 +518,6 @@ public class SharePromoteController extends BaseActivityController {
                     redisLock.tryUnlock(lock);
                 }
             }
-            res.itemInfo = ItemUtils.buildItemInfo(goldItemId, playerIncome);
-            res.recodes = buildRecords(playerInfoData.getHistory());
         }
         return res;
     }
@@ -603,8 +614,17 @@ public class SharePromoteController extends BaseActivityController {
                     continue;
                 }
                 SharePromoteRewardsRecode recode = new SharePromoteRewardsRecode();
-                recode.getNum = Integer.parseInt(split[0]);
-                recode.getTime = Long.parseLong(split[1]);
+                try {
+                    long getNum = Long.parseLong(split[0]);
+                    if (getNum > Integer.MAX_VALUE || getNum < Integer.MIN_VALUE) {
+                        continue;
+                    }
+                    recode.getNum = (int) getNum;
+                    recode.getTime = Long.parseLong(split[1]);
+                } catch (NumberFormatException e) {
+                    log.warn("推广分享记录解析失败 record:{}", record, e);
+                    continue;
+                }
                 list.add(recode);
             }
             return list;
@@ -857,7 +877,7 @@ public class SharePromoteController extends BaseActivityController {
         //获取玩家信息
         long playerId = playerController.playerId();
         SharePromotePlayerData playerInfoData;
-        long totalRewards = 0;
+        long totalRewards;
         String lock = sharePromoteDao.getLock(playerId);
         boolean isLock = false;
         try {
@@ -873,27 +893,31 @@ public class SharePromoteController extends BaseActivityController {
                 return res;
             }
             totalRewards = playerInfoData.getNotClaimedPlayerIds().size() * count;
-            //清除数据
-            playerInfoData.getNotClaimedPlayerIds().clear();
             //发送奖励
             CommonResult<ItemOperationResult> result = playerPackService.addItem(playerId, itemId, totalRewards, AddType.ACTIVITY_SHARE_PROMOTE_BIND_REWARDS);
             if (!result.success()) {
                 log.error("领取推广分享绑定玩家奖励失败 playerId:{} count:{}", playerId, count);
+                res.code = Code.FAIL;
+                return res;
             }
+            // 发奖成功后再清理未领取数据
+            playerInfoData.getNotClaimedPlayerIds().clear();
+            long goldNum = result.data == null ? 0 : result.data.getGoldNum();
             activityLogger.sendSharePromoteAddRewards(playerController.getPlayer(), activityData, 0, 8, 0, 0,
-                    totalRewards, 0, result.data.getGoldNum(), 0);
+                    totalRewards, 0, goldNum, 0);
             //添加记录
             addRecord(playerInfoData, totalRewards);
             sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
+            sharePromoteDao.addPlayerIncome(playerId, totalRewards);
+            res.infoList = ItemUtils.buildItemInfo(itemId, totalRewards);
         } catch (Exception e) {
             log.error("创建玩家推广分享数据失败 playerId={}", playerId, e);
+            res.code = Code.EXCEPTION;
         } finally {
             if (isLock) {
                 redisLock.tryUnlock(lock);
             }
         }
-        sharePromoteDao.addPlayerIncome(playerId, totalRewards);
-        res.infoList = ItemUtils.buildItemInfo(itemId, totalRewards);
         return res;
     }
 }

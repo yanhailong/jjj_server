@@ -115,39 +115,30 @@ public class PrivilegeCardController extends BaseActivityController implements G
         PrivilegeCardCfg cfg = baseCfgBeanMap.get(detailId);
 
         if (cfg != null) {
-            LocalDateTime nowMidnight = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
-            long timeMillis = TimeHelper.getTimestamp(nowMidnight);
+        LocalDateTime nowMidnight = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
+        long timeMillis = TimeHelper.getTimestamp(nowMidnight);
             PlayerPrivilegeCard privilegeCard = null;
-            CommonResult<ItemOperationResult> addedItems = null;
-            String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
+        CommonResult<ItemOperationResult> addedItems = null;
+        try {
+            Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+            // 获取玩家特权卡数据，若不存在则创建
+            privilegeCard = playerActivityData.computeIfAbsent(detailId, key -> new PlayerPrivilegeCard(activityData.getId(), activityData.getRound()));
 
-            // 加锁，防止并发修改
-            boolean lock = false;
-            try {
-                lock = redisLock.tryLockWithDefaultTime(lockKey);
-                if (!lock) {
-                    log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} times:{}", lockKey, playerId, activityData.getId(), detailId, times);
-                    return res;
-                }
-                Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-                // 获取玩家特权卡数据，若不存在则创建
-                privilegeCard = playerActivityData.computeIfAbsent(detailId, key -> new PlayerPrivilegeCard(activityData.getId(), activityData.getRound()));
-
-                // 判断玩家是否已购买特权卡
-                if (privilegeCard.getEndTime() > timeMillis) {
-                    log.error("玩家已参加活动 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
+            // 判断玩家是否已购买特权卡
+            if (privilegeCard.getEndTime() > timeMillis) {
+                log.error("玩家已参加活动 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
                     return res;
                 }
 
                 // 设置购买时间
-                privilegeCard.setBuyTime(timeMillis);
+            privilegeCard.setBuyTime(timeMillis);
 
                 // 设置结束时间
-                if (cfg.getDays() == -1) {
-                    privilegeCard.setEndTime(-1); // 永久有效
-                } else {
-                    privilegeCard.setEndTime(TimeHelper.getTimestamp(nowMidnight.plusDays(cfg.getDays())));
-                }
+            if (cfg.getDays() == -1) {
+                privilegeCard.setEndTime(-1); // 永久有效
+            } else {
+                privilegeCard.setEndTime(TimeHelper.getTimestamp(nowMidnight.plusDays(cfg.getDays())));
+            }
 
                 // 购买奖励发放
                 if (CollectionUtil.isNotEmpty(cfg.getGetItem())) {
@@ -157,24 +148,19 @@ public class PrivilegeCardController extends BaseActivityController implements G
                     }
                 }
 
-                // 保存玩家活动数据
-                playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
+            // 保存玩家活动数据
+            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
 
-            } catch (Exception e) {
-                log.error("玩家加入特权卡活动异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
-            } finally {
-                if (lock) {
-                    redisLock.tryUnlock(lockKey);
-                }
-            }
+        } catch (Exception e) {
+            log.error("玩家加入特权卡活动异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
+        }
+        // 发送日志
+        activityLogger.sendPrivilegeCardJoinLog(player, activityData, cfg, addedItems == null ? null : addedItems.data, cfg.getGetItem());
 
-            // 发送日志
-            activityLogger.sendPrivilegeCardJoinLog(player, activityData, cfg, addedItems == null ? null : addedItems.data, cfg.getGetItem());
-
-            // 构建响应数据
+        // 构建响应数据
             res = new ResPrivilegeCardDetailInfo(Code.SUCCESS);
-            res.detailInfo = new ArrayList<>();
-            res.detailInfo.add(buildPlayerActivityDetail(player, activityData, cfg, privilegeCard));
+        res.detailInfo = new ArrayList<>();
+        res.detailInfo.add(buildPlayerActivityDetail(player, activityData, cfg, privilegeCard));
 
         } else {
             log.error("活动配置为空 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
@@ -195,7 +181,6 @@ public class PrivilegeCardController extends BaseActivityController implements G
     public AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId) {
         ResPrivilegeCardClaimRewards res = new ResPrivilegeCardClaimRewards(Code.SUCCESS);
         long playerId = player.getId();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         Map<Integer, PrivilegeCardCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         PrivilegeCardCfg cfg = baseCfgBeanMap.get(detailId);
         if (cfg == null || CollectionUtil.isEmpty(cfg.getDayRebate())) {
@@ -204,15 +189,7 @@ public class PrivilegeCardController extends BaseActivityController implements G
         }
         PlayerPrivilegeCard data = null;
         CommonResult<ItemOperationResult> addedItems = null;
-        // 加锁，保证领取操作原子性
-        boolean lock = false;
         try {
-            lock = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!lock) {
-                res.code = Code.FAIL;
-                log.error("获取锁失败 lockKey:{} playerId:{} activityId:{} detailId:{} ", lockKey, playerId, activityData.getId(), detailId);
-                return res;
-            }
             Map<Integer, PlayerPrivilegeCard> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
             if (CollectionUtil.isEmpty(dataMap)) {
                 res.code = Code.PARAM_ERROR;
@@ -235,7 +212,7 @@ public class PrivilegeCardController extends BaseActivityController implements G
             // 发放每日奖励
             addedItems = playerPackService.addItems(playerId, cfg.getDayRebate(), AddType.ACTIVITY_PRIVILEGE_REWARDS);
             if (!addedItems.success()) {
-                res.code = Code.UNKNOWN_ERROR;
+                res.code = Code.FAIL;
                 return res;
             }
 
@@ -245,18 +222,16 @@ public class PrivilegeCardController extends BaseActivityController implements G
 
         } catch (Exception e) {
             log.error("领取每日奖励异常 playerId:{} activityId:{} detailid:{}", playerId, activityData.getId(), detailId, e);
-        } finally {
-            if (lock) {
-                redisLock.tryUnlock(lockKey);
-            }
+            res.code = Code.FAIL;
+            return res;
         }
-
         // 构建响应数据
-        if (data != null && addedItems != null && addedItems.success()) {
-            //计算天数
-            long remain = data.getEndTime() == -1 ? data.getEndTime() : ChronoUnit.DAYS.between(LocalDateTime.now(), TimeHelper.getLocalDateTime(data.getEndTime()));
-            activityLogger.sendPrivilegeCardRewardsLog(player, activityData, cfg, remain, addedItems.data, cfg.getDayRebate());
+        if (!addedItems.success()) {
+            return res;
         }
+        //计算天数
+        long remain = data.getEndTime() == -1 ? data.getEndTime() : ChronoUnit.DAYS.between(LocalDateTime.now(), TimeHelper.getLocalDateTime(data.getEndTime()));
+        activityLogger.sendPrivilegeCardRewardsLog(player, activityData, cfg, remain, addedItems.data, cfg.getDayRebate());
         res.activityId = activityData.getId();
         res.detailId = detailId;
         res.infoList = ItemUtils.buildItemInfo(cfg.getDayRebate());

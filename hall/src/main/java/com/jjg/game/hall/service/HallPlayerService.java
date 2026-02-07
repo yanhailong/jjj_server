@@ -204,7 +204,7 @@ public class HallPlayerService extends AbstractPlayerService implements ConfigEx
         for (PFSession pfSession : clusterSystem.getAllOnlinePlayerPFSession()) {
             if (pfSession.getPlayerId() > 0 && pfSession.getReference() instanceof PlayerController) {
                 PlayerExecutorGroupDisruptor.getDefaultExecutor()
-                        .tryPublish(pfSession.getPlayerId(), HallConstant.MsgBean.REQ_FUNCTION_OPEN_LIST, new BaseHandler<String>() {
+                        .tryPublish(pfSession.getWorkId(), HallConstant.MsgBean.REQ_FUNCTION_OPEN_LIST, new BaseHandler<String>() {
                             @Override
                             public void action() {
                                 if (pfSession.getPlayerId() > 0 && pfSession.getReference() instanceof PlayerController playerController) {

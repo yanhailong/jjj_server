@@ -1,5 +1,6 @@
 package com.jjg.game.activity.common.data;
 
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.ItemOperationResult;
 
 /**
@@ -7,5 +8,9 @@ import com.jjg.game.core.data.ItemOperationResult;
  * @date 2025/10/13 09:54
  */
 public record ClaimRewardsResult(PlayerActivityData playerActivityData,
-                                 ItemOperationResult itemOperationResult) {
+                                 ItemOperationResult itemOperationResult,
+                                 int code) {
+    public boolean success() {
+        return code == Code.SUCCESS;
+    }
 }

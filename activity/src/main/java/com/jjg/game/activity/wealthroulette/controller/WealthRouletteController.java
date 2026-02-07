@@ -322,6 +322,11 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerId, finalRewardMap, AddType.ACTIVITY_WEALTH_ROULETTE_REWARDS);
         if (!addItems.success()) {
             log.error("玩家添加财富转盘奖励失败 playerId:{} addItems:{}", playerId, finalRewardMap);
+            // 发奖失败时回滚扣除积分，避免玩家扣分不到账
+            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId),
+                    BigDecimal.valueOf(needPoint));
+            res.code = Code.FAIL;
+            return res;
         }
         //发送日志
         int toDayMax = getTodayMaxPoint(playerId);
@@ -377,7 +382,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             result = wealthRouletteDao.incrementIfLessThan(playerId, req.goodId, req.buyNum, cfg.getFrequency());
             if (result == null) {
                 res.code = Code.WEALTH_ROULETTE_BUY_LIMIT;
-                countDao.incrBy(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), getChildId(playerId, LocalDate.now()),
+                countDao.incrBy(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId),
                         BigDecimal.valueOf(needPoint));
                 return res;
             }
@@ -387,12 +392,21 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, addItemMap, AddType.ACTIVITY_WEALTH_ROULETTE_REWARDS);
         if (!addResult.success()) {
             log.error("财富转盘 购买商品后添加道具失败 playerId:{} goodId:{}", playerId, req.goodId);
+            // 发奖失败时补偿回滚积分与限购次数，避免扣分/扣次数但不到账
+            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId),
+                    BigDecimal.valueOf(needPoint));
+            if (noLimit) {
+                playerBuyTimes.addAndGet(req.goodId, -req.buyNum);
+            }
+            res.code = Code.FAIL;
+            return res;
         }
         //发送日志
         int toDayMax = getTodayMaxPoint(playerId);
         activityLogger.sendWealthRouletteLog(player, toDayMax, needPoint, remainPoint.intValue(), 2, addItemMap, addResult);
         addHistoryRecord(playerId, 2, needPoint, addItemMap);
-        res.goodInfo = buildWealthRouletteGoodInfo(cfg, result.intValue());
+        int currentBuyTimes = noLimit ? result.intValue() : buyTimes + req.buyNum;
+        res.goodInfo = buildWealthRouletteGoodInfo(cfg, currentBuyTimes);
         res.remainPoint = remainPoint.intValue();
         res.buyNum = req.buyNum;
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(71);

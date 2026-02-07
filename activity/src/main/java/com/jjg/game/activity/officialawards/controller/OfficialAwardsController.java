@@ -140,6 +140,8 @@ public class OfficialAwardsController extends BaseActivityController {
             }
         }
         if (cfg == null || getRewards.isEmpty()) {
+            // 返还扣除积分，避免无奖时资产丢失
+            officialAwardsDao.incrementPlayerProgress(playerId, needPoints);
             //奖池不足
             res.code = Code.OFFICIAL_AWARDS_POOL_NULL;
             return res;
@@ -150,6 +152,10 @@ public class OfficialAwardsController extends BaseActivityController {
         CommonResult<ItemOperationResult> addResult = playerPackService.addItem(playerId, id, totalGet, AddType.ACTIVITY_OFFICIAL_AWARDS);
         if (!addResult.success()) {
             log.error("官方派奖玩家参加活动发奖失败 playerId:{} get:{}", playerId, totalGet);
+            // 发奖失败回滚积分和奖池
+            officialAwardsDao.incrementPlayerProgress(playerId, needPoints);
+            officialAwardsDao.incrementTotalPool(activityData.getId(), totalGet);
+            res.code = Code.FAIL;
             return res;
         }
         //发送日志
