@@ -154,6 +154,12 @@ public class ScratchCardsController extends BaseActivityController implements Ga
             commonResult = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_SCRATCH_CARDS_JOIN);
             if (!commonResult.success()) {
                 log.error("刮刮乐添加道具失败 playerId={}", playerId);
+                // 回滚扣除道具，避免先扣后发导致玩家资产丢失
+                CommonResult<ItemOperationResult> rollback = playerPackService.addItem(playerId, costItem.getId(), costItem.getItemCount(), AddType.ACTIVITY_SCRATCH_CARDS_JOIN);
+                if (!rollback.success()) {
+                    log.error("刮刮乐发奖失败后回滚消耗道具失败 playerId:{} itemId:{} count:{}", playerId, costItem.getId(), costItem.getItemCount());
+                }
+                res.code = Code.FAIL;
                 return res;
             }
             // 记录日志
@@ -237,7 +243,7 @@ public class ScratchCardsController extends BaseActivityController implements Ga
             CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerId, cfg.getGetItem(), AddType.ACTIVITY_SCRATCH_CARDS_BUY_GIFT);
             if (!addItems.success()) {
                 log.error("刮刮乐购买礼包自动领奖失败 playerId:{} activityData:{}", playerId, activityData);
-                res.code = Code.UNKNOWN_ERROR;
+                res.code = Code.FAIL;
                 activityManager.sendToPlayer(playerId, res);
                 return;
             }
@@ -362,6 +368,13 @@ public class ScratchCardsController extends BaseActivityController implements Ga
         CommonResult<ItemOperationResult> addItems = playerPackService.addItems(player.getId(), getItem, AddType.ACTIVITY_SCRATCH_CARDS_EXCHANGE);
         if (!addItems.success()) {
             log.error("刮刮卡兑换道具发奖失败 playerId:{} activityId:{}", player.getId(), activityData.getId());
+            // 兑换发奖失败时回滚扣除道具
+            CommonResult<ItemOperationResult> rollback = playerPackService.addItems(player.getId(), cfg.getCostItem(), AddType.ACTIVITY_SCRATCH_CARDS_EXCHANGE);
+            if (!rollback.success()) {
+                log.error("刮刮卡兑换发奖失败后回滚道具失败 playerId:{} activityId:{}", player.getId(), activityData.getId());
+            }
+            msg.code = Code.FAIL;
+            return msg;
         }
         msg.rewardList = ItemUtils.buildItemInfo(getItem);
         activityLogger.sendActivityGift(player, activityData, addItems.data, getItem, cfg.getCostItem(), cfg.getId());

@@ -458,29 +458,27 @@ public abstract class BaseActivityController {
             Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             if (CollectionUtil.isEmpty(dataMap)) {
                 TipUtils.sendTip(playerId, TipUtils.TipType.TOAST, Code.PARAM_ERROR);
-                return null;
+                return new ClaimRewardsResult(null, null, Code.PARAM_ERROR);
             }
             data = dataMap.get(detailId);
             if (data == null) {
-                TipUtils.sendTip(playerId, TipUtils.TipType.TOAST, Code.PARAM_ERROR);
-                return null;
+                return new ClaimRewardsResult(null, null, Code.PARAM_ERROR);
             }
             if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                TipUtils.sendTip(playerId, TipUtils.TipType.TOAST, Code.REPEAT_OP);
-                return null;
+                return new ClaimRewardsResult(null, null, Code.REPEAT_OP);
             }
             // 发放奖励
             addedItems = playerPackService.addItems(playerId, getItem, addType);
             if (!addedItems.success()) {
-                return null;
+                return new ClaimRewardsResult(null, null, Code.FAIL);
             }
             data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
             playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, dataMap);
-            return new ClaimRewardsResult(data, addedItems.data);
+            return new ClaimRewardsResult(data, addedItems.data, Code.SUCCESS);
         } catch (Exception e) {
             log.error("活动领取异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
+            return new ClaimRewardsResult(null, null, Code.FAIL);
         }
-        return null;
     }
 
     /**

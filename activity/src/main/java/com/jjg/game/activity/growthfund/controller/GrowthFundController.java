@@ -242,7 +242,6 @@ public class GrowthFundController extends BaseActivityController implements Game
                     continue;
                 }
                 fundCfg.getGetItem().forEach((key, value) -> rewards.merge(key, value, Long::sum));
-                playerActivityData.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
                 dataPair.add(Pair.newPair(fundCfg, playerActivityData));
                 levels.add(fundCfg.getLevel());
             }
@@ -250,16 +249,21 @@ public class GrowthFundController extends BaseActivityController implements Game
                 res.code = Code.REPEAT_OP;
                 return res;
             }
-            // 更新状态
-            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
             // 发放成长基金奖励
             addedItems = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_GROWTH_FUND_CLAIM_REWARDS);
             if (!addedItems.success()) {
-                res.code = Code.UNKNOWN_ERROR;
+                res.code = Code.FAIL;
                 return res;
             }
+            // 发奖成功后再更新状态，避免状态先变更导致奖励丢失
+            for (Pair<GrowthFundCfg, PlayerActivityData> pair : dataPair) {
+                pair.getSecond().setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
+            }
+            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
         } catch (Exception e) {
             log.error("领取成长基金奖励异常 playerId:{} activityId:{} detailid:{}", playerId, activityData.getId(), detailId, e);
+            res.code = Code.FAIL;
+            return res;
         }
         // 构建响应数据
         res.activityId = activityId;

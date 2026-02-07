@@ -173,6 +173,14 @@ public class OfficialAwardsDao {
     }
 
     /**
+     * 奖池增量更新
+     */
+    public long incrementTotalPool(long activityId, long delta) {
+        Long value = redisTemplate.opsForValue().increment(TOTAL_POOL_KEY.formatted(activityId), delta);
+        return value == null ? 0 : value;
+    }
+
+    /**
      * 扣除奖池数量（扣减数量 剩余数量）
      *
      * @return 扣减数量 剩余数量
@@ -185,7 +193,7 @@ public class OfficialAwardsDao {
             lock = redisLock.tryLockWithDefaultTime(lockKey);
             if (!lock) {
                 log.error("获取锁失败 lockKey:{} activityId:{} reduceValue:{} ", lockKey, activityId, reduceValue);
-                return null;
+                return Pair.newPair(0L, 0L);
             }
             String val = redisTemplate.opsForValue().get(key);
             long current = val == null ? 0 : Long.parseLong(val);
@@ -204,7 +212,7 @@ public class OfficialAwardsDao {
             }
 
         }
-        return null;
+        return Pair.newPair(0L, 0L);
     }
 
     /**

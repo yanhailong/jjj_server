@@ -245,7 +245,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
             // 添加奖励到背包
             addedItems = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_PIGGY_BANK_REWARDS);
             if (!addedItems.success()) {
-                res.code = Code.UNKNOWN_ERROR;
+                res.code = Code.FAIL;
                 return res;
             }
             // 重置储钱罐数据

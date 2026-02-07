@@ -75,7 +75,7 @@ public class GameEventManager {
         if (gameEvent instanceof PlayerEvent event) {
             PFSession session = clusterSystem.getSession(event.getPlayer().getId());
             if (session != null) {
-                PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
+                boolean published = PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
                     @Override
                     public void action() {
                         // 处理事件
@@ -91,8 +91,13 @@ public class GameEventManager {
                         }
                     }
                 }.setHandlerParamWithSelf("event %s".formatted(gameEventType.name())));
+                if (published) {
+                    return;
+                }
+                log.error("玩家事件分发失败，降级异步处理 playerId:{} gameEventType:{}", event.getPlayer().getId(), gameEventType);
+            } else {
+                log.error("玩家事件 session为null playerId:{} gameEventType:{}", event.getPlayer().getId(), gameEventType);
             }
-            log.error("玩家事件 session为null playerId:{} gameEventType:{}", event.getPlayer().getId(), gameEventType);
         }
         // 处理事件
         for (GameEventListener eventListener : eventListeners) {
