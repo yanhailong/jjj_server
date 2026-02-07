@@ -4,6 +4,9 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.poker.game.texas.constant.TexasConstant;
+import com.jjg.game.poker.game.texas.message.req.ReqTexasChangeTable;
+import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.tosouth.constant.ToSouthConstant;
 import com.jjg.game.poker.game.tosouth.message.req.ReqTurnAction;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
@@ -29,6 +32,15 @@ public class ToSouthMessageHandler {
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
         if (gameController instanceof ToSouthGameController controller) {
             controller.turnAction(playerController.playerId(), reqTurnAction);
+        }
+    }
+
+    @Command(value = ToSouthConstant.MsgBean.REQ_CHANGE_TABLE)
+    public void reqToSouthChangeTable(PlayerController playerController, ReqTexasChangeTable changeTable) {
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
+        if (gameController instanceof ToSouthGameController controller) {
+            controller.reqChangeTable(playerController, controller);
         }
     }
 }

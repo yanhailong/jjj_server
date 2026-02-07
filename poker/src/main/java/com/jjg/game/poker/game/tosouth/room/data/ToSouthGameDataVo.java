@@ -11,6 +11,8 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
     private long roomBet;
     // 上一家出的牌
     private List<Integer> lastPlayCards;
+    // 上一家出牌牌型
+    private int lastPlayCardsType;
     // 上一家座位
     private int lastPlaySeatId;
     // 当前轮的首出者
@@ -51,6 +53,14 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
 
     public void setLastPlayCards(List<Integer> lastPlayCards) {
         this.lastPlayCards = lastPlayCards;
+    }
+
+    public int getLastPlayCardsType() {
+        return lastPlayCardsType;
+    }
+
+    public void setLastPlayCardsType(int lastPlayCardsType) {
+        this.lastPlayCardsType = lastPlayCardsType;
     }
 
     public int getLastPlaySeatId() {

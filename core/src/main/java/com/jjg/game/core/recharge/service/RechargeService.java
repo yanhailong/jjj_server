@@ -1,7 +1,6 @@
 package com.jjg.game.core.recharge.service;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
@@ -65,78 +64,133 @@ public class RechargeService {
     }
 
     public void loadOfflineRecharge(long playerId) {
+        List<String> offlineRechargeJson;
         try {
-            List<String> offlineRechargeJson = offlineRechargeDao.pollAll(playerId);
-            if (CollectionUtil.isEmpty(offlineRechargeJson)) {
-                return;
-            }
-            ObjectMapper mapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
-            for (String json : offlineRechargeJson) {
-                NotifyRechargeServer notifyRechargeServer = null;
-                try {
-                    notifyRechargeServer = mapper.readValue(json, NotifyRechargeServer.class);
-                } catch (Exception e) {
-                    log.info("离线充值解析失败 playerId = {},json = {}", playerId, json);
-                }
+            offlineRechargeJson = offlineRechargeDao.pollAll(playerId);
+        } catch (Exception e) {
+            log.error("检查玩家离线充值数据异常 playerId = {}", playerId, e);
+            return;
+        }
+        if (CollectionUtil.isEmpty(offlineRechargeJson)) {
+            return;
+        }
+        ObjectMapper mapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
+        for (String json : offlineRechargeJson) {
+            try {
+                NotifyRechargeServer notifyRechargeServer = mapper.readValue(json, NotifyRechargeServer.class);
                 if (notifyRechargeServer == null) {
                     continue;
                 }
                 log.info("离线充值成功 playerId = {},orderId = {}", playerId, notifyRechargeServer.orderId);
                 notifyRecharge(notifyRechargeServer, false);
+            } catch (Exception e) {
+                log.error("处理离线充值记录异常 playerId = {},json = {}", playerId, json, e);
             }
-        } catch (Exception e) {
-            log.error("检查玩家离线充值数据异常 playerId = {}", playerId, e);
         }
     }
 
     public void notifyRecharge(NotifyRechargeServer notify, boolean needCheck) {
-        PFSession session = clusterSystem.getSession(notify.playerId);
-        if (needCheck && session == null) {
-            log.error("处理充值时玩家PFSession为null playerId={}", notify.playerId);
-            offlineRechargeDao.addRecharge(notify.playerId, JSON.toJSONString(notify));
-            return;
+        try {
+            PFSession session = clusterSystem.getSession(notify.playerId);
+            if (needCheck && session == null) {
+                log.error("处理充值时玩家PFSession为null playerId={}", notify.playerId);
+                addOfflineRecharge(notify, "处理充值时玩家PFSession为null");
+                return;
+            }
+            if (session != null) {
+                try {
+                    boolean published = PlayerExecutorGroupDisruptor.getDefaultExecutor()
+                            .tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
+                                @Override
+                                public void action() {
+                                    dealRecharge(notify);
+                                }
+                            });
+                    if (published) {
+                        return;
+                    }
+                    log.error("充值事件分发到玩家线程失败，回滚到离线充值队列 playerId:{} orderId:{}", notify.playerId, notify.orderId);
+                    addOfflineRecharge(notify, "充值事件分发失败");
+                } catch (Exception e) {
+                    log.error("充值事件分发异常 playerId:{} orderId:{}", notify.playerId, notify.orderId, e);
+                    addOfflineRecharge(notify, "充值事件分发异常");
+                }
+                return;
+            }
+            log.info("充值时玩家session 为null playerId:{}", notify.playerId);
+            dealRecharge(notify);
+        } catch (Exception e) {
+            log.error("通知充值异常 playerId:{} orderId:{}", notify.playerId, notify.orderId, e);
+            addOfflineRecharge(notify, "通知充值异常");
         }
-        if (session != null) {
-            PlayerExecutorGroupDisruptor.getDefaultExecutor()
-                    .tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
-                        @Override
-                        public void action() {
-                            dealRecharge(notify);
-                        }
-                    });
-            return;
-        }
-        log.info("充值时玩家session 为null playerId:{}", notify.playerId);
-        dealRecharge(notify);
     }
 
     private void dealRecharge(NotifyRechargeServer notify) {
+        Player player;
+        Order order;
         try {
-
-            Player player = playerService.get(notify.playerId);
-            Order order = orderService.getOrder(notify.orderId);
+            player = playerService.get(notify.playerId);
+            order = orderService.getOrder(notify.orderId);
+            if (player == null || order == null) {
+                log.error("处理充值时玩家或订单为空，停止重试以避免离线队列毒消息 playerId:{} orderId:{} playerNull:{} orderNull:{}",
+                        notify.playerId, notify.orderId, player == null, order == null);
+                return;
+            }
+        } catch (Exception e) {
+            log.error("处理充值读取玩家或订单异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+            addOfflineRecharge(notify, "处理充值读取玩家或订单异常");
+            return;
+        }
+        try {
             todayDepositCondition.addBaseProgress(player.getId(), order.getPrice());
-            //充值事件
+        } catch (Exception e) {
+            log.error("充值增加今日充值进度异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+        }
+        try {
             gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order, notify.money, notify.regionCode, notify.channelProductId));
-            //任务条件参数
-            Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
-                DefaultTaskConditionParam param = new DefaultTaskConditionParam();
-                param.setAddValue(order.getPrice().multiply(BigDecimal.valueOf(100)).longValue());
-                return param;
-            };
-            Map<String, Object> resMap = countDao.incrRechargeInfo(player.getId(), String.valueOf(player.getId()), order.getPrice());
-            //单笔充值任务
+        } catch (Exception e) {
+            log.error("充值触发事件异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+        }
+        Map<String, Object> resMap = null;
+        try {
+            resMap = countDao.incrRechargeInfo(player.getId(), String.valueOf(player.getId()), order.getPrice());
+        } catch (Exception e) {
+            log.error("充值累计统计异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+        }
+        Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
+            DefaultTaskConditionParam param = new DefaultTaskConditionParam();
+            param.setAddValue(order.getPrice().multiply(BigDecimal.valueOf(100)).longValue());
+            return param;
+        };
+        try {
             taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
-            //累计充值任务
+        } catch (Exception e) {
+            log.error("充值触发单笔任务异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+        }
+        try {
             taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_SUM_PAY, paramSupplier);
+        } catch (Exception e) {
+            log.error("充值触发累计任务异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+        }
+        try {
             NotifyPayInfo notifyPayInfo = new NotifyPayInfo();
             notifyPayInfo.orderId = order.getId();
-
-            notifyPayInfo.allRechargeCount = resMap == null ? 0 : ((Long) resMap.get(CountDao.CountType.RECHARGE_COUNT.getParam())).intValue();
+            Object rechargeCount = resMap == null ? null : resMap.get(CountDao.CountType.RECHARGE_COUNT.getParam());
+            notifyPayInfo.allRechargeCount = rechargeCount instanceof Number number ? number.intValue() : 0;
             clusterSystem.sendToPlayer(notifyPayInfo, player.getId());
             log.info("充值成功，通知到玩家所在的当前节点 playerId = {},orderId = {}", player.getId(), order.getId());
         } catch (Exception e) {
-            log.error("处理充值出现异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+            log.error("充值通知玩家异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+        }
+    }
+
+    private void addOfflineRecharge(NotifyRechargeServer notify, String reason) {
+        try {
+            String json = ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(notify);
+            offlineRechargeDao.addRecharge(notify.playerId, json);
+            log.info("{}，已写入离线充值队列 playerId:{} orderId:{}", reason, notify.playerId, notify.orderId);
+        } catch (Exception e) {
+            log.error("{}，写入离线充值队列失败 playerId:{} orderId:{}", reason, notify.playerId, notify.orderId, e);
         }
     }
 }

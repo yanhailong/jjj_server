@@ -31,6 +31,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_3;
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUITS;
+
 /**
  * 南方前进开始游戏阶段 (洗牌发牌动画)
  */
@@ -61,7 +64,7 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             sendCards(cardListMap, gameDataVo);
 
             // 2. 确定首出玩家 (黑桃3)
-            PlayerSeatInfo playerSeatInfo = findSeatWithSpecifyCard(gameDataVo, cardListMap, 3, 4);
+            PlayerSeatInfo playerSeatInfo = findSeatWithSpecifyCard(gameDataVo, cardListMap, RANK_3, SPADE_SUITS);
             if (playerSeatInfo == null) {
                 log.warn("南方前进牌组中没有黑桃3，请检查配置");
                 return;
