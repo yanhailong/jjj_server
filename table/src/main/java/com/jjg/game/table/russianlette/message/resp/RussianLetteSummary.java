@@ -18,10 +18,10 @@ public class RussianLetteSummary {
     public long roomId;
 
     @ProtoDesc("俄罗斯转盘游戏基础信息")
-    public RussianLetteBaseInfo baseInfo;
+    public RussianLetteBaseInfo baccaratBaseInfo;
 
     @ProtoDesc("结果转盘状态")
-    public List<Integer> cardStateList;
+    public List<Integer> baccaratCardState;
 
     @ProtoDesc("场次ID")
     public int wareId;

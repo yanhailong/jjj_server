@@ -25,4 +25,16 @@ public class RussianLetteSingleRes {
 
     @ProtoDesc("是否需要清除路单, 在结算阶段告知下一回合服务器是否会重新洗牌")
     public boolean needClearRoad;
+
+    @ProtoDesc("红色概率")
+    public double red;
+
+    @ProtoDesc("黑色概率")
+    public double black;
+
+    @ProtoDesc("奇数概率")
+    public double odd;
+
+    @ProtoDesc("偶数概率")
+    public double event;
 }
