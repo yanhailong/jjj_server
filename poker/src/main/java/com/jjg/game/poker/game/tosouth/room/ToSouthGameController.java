@@ -20,10 +20,9 @@ import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.tosouth.data.ToSouthSettlementContext;
 import com.jjg.game.poker.game.tosouth.gamephase.ToSouthSettlementPhase;
 import com.jjg.game.poker.game.tosouth.gamephase.ToSouthStartGamePhase;
-import com.jjg.game.poker.game.tosouth.message.bean.ToSouthActionInfo;
-import com.jjg.game.poker.game.tosouth.message.bean.ToSouthPlayerInfo;
-import com.jjg.game.poker.game.tosouth.message.bean.ToSouthRecommendCards;
+import com.jjg.game.poker.game.tosouth.message.bean.*;
 import com.jjg.game.poker.game.tosouth.message.req.ReqTurnAction;
+import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthChangTable;
 import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthRoomBaseInfo;
 import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthTurnActionInfo;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
@@ -36,8 +35,6 @@ import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthBombSettlement;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthRoundRecord;
-
-import com.jjg.game.poker.game.tosouth.message.bean.ToSouthBombDetail;
 
 import java.util.*;
 
@@ -89,6 +86,19 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     @Override
     public void sampleCardOperation(long playerId, ReqPokerSampleCardOperation req) {
 
+    }
+
+    /**
+     * 换桌
+     */
+    public void reqChangeTable(PlayerController playerController, ToSouthGameController controller) {
+        AbstractRoomController<Room_ChessCfg, ? extends Room> abstractRoomController = controller.getRoomController();
+        Room room = abstractRoomController.getRoom();
+        boolean changed =
+                roomController.getRoomManager().changeRoom(
+                        playerController, room, room.getGameType(), controller.getRoom().getRoomCfgId(), controller.getRoom().getMaxLimit());
+        RespToSouthChangTable res = new RespToSouthChangTable(changed ? Code.SUCCESS : Code.FAIL);
+        playerController.send(res);
     }
 
     @Override
@@ -209,11 +219,12 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
         info.getCurrentCards().removeAll(realPlayCardIds);
         gameDataVo.setLastPlayCards(realPlayCardIds);
+        gameDataVo.setLastPlayCardsType(type.getType());
         gameDataVo.setLastPlaySeatId(info.getSeatId());
         gameDataVo.setPassCount(0); // 重置过牌计数
 
         // 记录出牌
-        gameDataVo.getCurrentRoundPlays().add(new ToSouthRoundRecord(info.getSeatId(), realPlayCardIds, type));
+        gameDataVo.getCurrentRoundPlays().add(new ToSouthRoundRecord(info.getSeatId(), realPlayCardIds, playCardIds, type));
         if (log.isDebugEnabled()) {
             playCards.sort(ToSouthHandUtils.CARD_COMPARATOR);
             log.debug("玩家 {} 出牌成功 - 类型: {}, 牌: {}, 剩余手牌: {}", info.getPlayerId(), type, ToSouthHandUtils.cardListToString(playCards), info.getCurrentCards().size());
@@ -427,33 +438,26 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
 
     public void broadcastNextTurn(long waitPlayerId, Set<Integer> curRoundPassedPlayerSeats, boolean canPass) {
+        NotifyToSouthTurnActionInfo notify = new NotifyToSouthTurnActionInfo();
         ToSouthActionInfo actionInfo = new ToSouthActionInfo();
         actionInfo.waitPlayerId = waitPlayerId;
-        actionInfo.curRoundPassedPlayerSeats = curRoundPassedPlayerSeats;
         actionInfo.canPass = canPass;
 
         actionInfo.lastPlayCards = gameDataVo.getLastPlayCards();
+        actionInfo.lastPlayCardsType = gameDataVo.getLastPlayCardsType();
         actionInfo.lastPlaySeatId = gameDataVo.getLastPlaySeatId();
         actionInfo.roundLeaderSeatId = gameDataVo.getRoundLeaderSeatId();
         actionInfo.isFirstRound = gameDataVo.isFirstRound();
-
+        fillCurRoundPlayerInfos(actionInfo);
+        fillCurRoundPlayedCardsHistory(actionInfo);
         // 计算等待时间
         long currentTime = System.currentTimeMillis();
         long duration = PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.PLAY_CARDS);
         actionInfo.waitEndTime = currentTime + duration;
-
-        NotifyToSouthTurnActionInfo notify = new NotifyToSouthTurnActionInfo();
-
         // 1. 发给其他人,不携带推荐牌组
         actionInfo.recommendCardsList = null;
         actionInfo.canPlay = true;
         notify.actionInfo = actionInfo;
-
-        // 获取按座位序列的玩家手牌数量
-        Map<Long, PlayerSeatInfo> playerSeatInfoMap = gameDataVo.getPlayerSeatInfoMap();
-        for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
-            actionInfo.handCardCountList.add(playerSeatInfoMap.get(seatInfo.getPlayerId()).getCurrentCards().size());
-        }
 
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
             if (info.getPlayerId() == waitPlayerId) continue;
@@ -467,7 +471,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             notify.actionInfo = playerActionInfo;
             RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), notify);
         }
-
+        Map<Long, PlayerSeatInfo> playerSeatInfoMap = gameDataVo.getPlayerSeatInfoMap();
         PlayerSeatInfo waitPlayer = playerSeatInfoMap.get(waitPlayerId);
         // 计算推荐出牌 (仅针对等待玩家) 发给当前操作玩家 (带 recommend)
         fillRecommendCards(actionInfo, waitPlayer);
@@ -477,6 +481,32 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         
         notify.actionInfo = waitPlayerActionInfo;
         RoomMessageBuilder.newBuilder().sendPlayer(waitPlayerId, notify);
+    }
+
+    // 当前轮玩家公开信息
+    private void fillCurRoundPlayerInfos(ToSouthActionInfo actionInfo) {
+        for (PlayerSeatInfo playerSeatInfo : gameDataVo.getPlayerSeatInfoList()) {
+            ToSouthCurRoundPlayerInfo curRoundPlayerInfo = new ToSouthCurRoundPlayerInfo();
+            curRoundPlayerInfo.playerId = playerSeatInfo.getPlayerId();
+            curRoundPlayerInfo.seatId = playerSeatInfo.getSeatId();
+            curRoundPlayerInfo.passed = gameDataVo.getCurRoundPassedPlayerSeats().contains(curRoundPlayerInfo.seatId);
+            curRoundPlayerInfo.cardCount = playerSeatInfo.getCurrentCards().size();
+            actionInfo.curRoundPlayerInfos.add(curRoundPlayerInfo);
+        }
+    }
+
+    // 本轮出牌历史
+    private void fillCurRoundPlayedCardsHistory(ToSouthActionInfo actionInfo) {
+        if (gameDataVo.getCurrentRoundPlays().isEmpty()) {
+            return;
+        }
+        // 本轮出牌历史
+        actionInfo.curRoundPlayedCardHistory = gameDataVo.getCurrentRoundPlays().stream().map(play -> {
+            ToSouthPlayCardRecord playCardRecord = new ToSouthPlayCardRecord();
+            playCardRecord.seatId = play.seatId;
+            playCardRecord.playedCards = play.getCardClientIds();
+            return playCardRecord;
+        }).toList();
     }
 
     /**
@@ -541,9 +571,11 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         target.waitEndTime = source.waitEndTime;
         target.canPass = source.canPass;
         target.canPlay = source.canPlay;
-        target.curRoundPassedPlayerSeats = source.curRoundPassedPlayerSeats;
+        target.curRoundPlayerInfos = source.curRoundPlayerInfos;
+        target.curRoundPlayedCardHistory = source.curRoundPlayedCardHistory;
         target.recommendCardsList = source.recommendCardsList;
         target.lastPlayCards = source.lastPlayCards;
+        target.lastPlayCardsType = source.lastPlayCardsType;
         target.lastPlaySeatId = source.lastPlaySeatId;
         target.roundLeaderSeatId = source.roundLeaderSeatId;
         target.isFirstRound = source.isFirstRound;
@@ -588,10 +620,6 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             PlayerSeatInfo selfPlayerInfo = gameDataVo.getPlayerSeatInfoMap().get(playerController.playerId());
             if (selfPlayerInfo != null && !selfPlayerInfo.isDelState()) {
                 actionInfo.selfHandCards = PokerDataHelper.getClientId(gameDataVo, selfPlayerInfo.getCurrentCards());
-                List<Integer> highlightCards = gameDataVo.getPlayerHighlightCards().get(playerController.playerId());
-                if (CollUtil.isNotEmpty(highlightCards)) {
-                    actionInfo.highlightCards = highlightCards;
-                }
             }
 
             PlayerSeatInfo currentPlayer = gameDataVo.getCurrentPlayerSeatInfo();
@@ -605,9 +633,10 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             if (Objects.nonNull(gameDataVo.getPlayerTimerEvent())) {
                 actionInfo.waitEndTime = gameDataVo.getPlayerTimerEvent().getNextTime();
             }
-            
-            actionInfo.curRoundPassedPlayerSeats = gameDataVo.getCurRoundPassedPlayerSeats();
+            fillCurRoundPlayerInfos(actionInfo);
+            fillCurRoundPlayedCardsHistory(actionInfo);
             actionInfo.lastPlayCards = gameDataVo.getLastPlayCards();
+            actionInfo.lastPlayCardsType = gameDataVo.getLastPlayCardsType();
             actionInfo.lastPlaySeatId = gameDataVo.getLastPlaySeatId();
             actionInfo.roundLeaderSeatId = gameDataVo.getRoundLeaderSeatId();
             actionInfo.isFirstRound = gameDataVo.isFirstRound();

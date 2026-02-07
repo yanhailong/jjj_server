@@ -18,15 +18,16 @@ public class ToSouthActionInfo {
     public boolean canPass = true;
     @ProtoDesc("是否能 play")
     public boolean canPlay = true;
-    @ProtoDesc("本轮中已pass的玩家座位，不能再出牌")
-    public Set<Integer> curRoundPassedPlayerSeats;
-    @ProtoDesc("本轮中玩家手牌数量，从座位0开始")
-    public List<Integer> handCardCountList = new ArrayList<>();
     @ProtoDesc("推荐出牌组合列表 (仅针对当前操作玩家，其他玩家为null)")
     public List<ToSouthRecommendCards> recommendCardsList;
-    
+    @ProtoDesc("在本轮中玩家基本信息")
+    public List<ToSouthCurRoundPlayerInfo> curRoundPlayerInfos = new ArrayList<>();
+    @ProtoDesc("在本轮中已打出的牌历史记录")
+    public List<ToSouthPlayCardRecord> curRoundPlayedCardHistory = new ArrayList<>();
     @ProtoDesc("上一手出的牌")
     public List<Integer> lastPlayCards;
+    @ProtoDesc("上一手出的牌类型  1 单张  2 对子  3 三张  4 顺子  5 连对 6 炸弹")
+    public int lastPlayCardsType;
     @ProtoDesc("上一手出牌玩家座位 ID")
     public int lastPlaySeatId;
     @ProtoDesc("当前轮领打玩家座位 ID")
@@ -35,6 +36,4 @@ public class ToSouthActionInfo {
     public boolean isFirstRound;
     @ProtoDesc("当前玩家的手牌")
     public List<Integer> selfHandCards;
-    @ProtoDesc("高亮手牌列表 (仅在发完牌打牌前显示，对自己可见，包含2、炸弹、连对)")
-    public List<Integer> highlightCards;
 }
