@@ -18,7 +18,7 @@ public class RussianLetteMessageBuilder {
     /**
      * 构建结算信息体
      */
-    private static RussianLetteSettlementInfo buildAnimalsSettlementInfo(
+    private static RussianLetteSettlementInfo buildSettlementInfo(
         RussianLetteHistoryBean russianLetteHistoryBean) {
         RussianLetteSettlementInfo russianLetteSettlementInfo = new RussianLetteSettlementInfo();
         russianLetteSettlementInfo.rewardAreaIdx = russianLetteHistoryBean.betIdxId;
@@ -32,7 +32,7 @@ public class RussianLetteMessageBuilder {
     public static NotifyRussianLetteSettlement notifyAnimalsSettlement(
         RussianLetteHistoryBean russianLetteHistoryBean) {
         NotifyRussianLetteSettlement settlement = new NotifyRussianLetteSettlement();
-        settlement.settlementInfo = buildAnimalsSettlementInfo(russianLetteHistoryBean);
+        settlement.settlementInfo = buildSettlementInfo(russianLetteHistoryBean);
         return settlement;
     }
 
@@ -46,7 +46,7 @@ public class RussianLetteMessageBuilder {
         tableInfo.baseDiceTableInfo =
             BaseDiceMessageBuilder.buildDiceTableInfo(playerId, gameController, gameDataVo, isInitial);
         tableInfo.settlementHistory = gameDataVo.getWinAreaCfgIdHistory();
-        tableInfo.settlementInfo = gameDataVo.getAnimalsSettlementInfo();
+        tableInfo.settlementInfo = gameDataVo.getSettlementInfo();
         return tableInfo;
     }
 }

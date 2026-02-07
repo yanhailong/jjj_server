@@ -2,8 +2,8 @@ package com.jjg.game.table.russianlette.message.resp;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.table.baccarat.message.resp.BaccaratBaseInfo;
-import com.jjg.game.table.baccarat.message.resp.BaccaratCardState;
+
+import java.util.List;
 
 /**
  * 俄罗斯转盘房间摘要，进入场次时展示
@@ -15,10 +15,10 @@ import com.jjg.game.table.baccarat.message.resp.BaccaratCardState;
 public class RussianLetteSingleRes {
 
     @ProtoDesc("俄罗斯转盘游戏基础信息")
-    public RussianLetteBaseInfo baccaratBaseInfo;
+    public RussianLetteBaseInfo baseInfo;
 
-    @ProtoDesc("俄罗斯转盘牌状态")
-    public RussianLetteCardState baccaratCardState;
+    @ProtoDesc("结果转盘状态")
+    public List<Integer> cardStateList;
 
     @ProtoDesc("对局ID")
     public int roundId;

@@ -68,7 +68,6 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
                         .stream()
                         .distinct()
                         .map(a -> GameDataManager.getBetAreaCfg((Integer) a)).toList();
-        // 1梅花鹿 2葫芦 3鸡 4鱼 5螃蟹 6虾
         log.debug("{} 摇中俄罗斯转盘：{}, 区域ID: {} 对应的中奖区域：{}",
                 gameDataVo.roomLogInfo(),
                 diceDate,
@@ -86,7 +85,7 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
         settlementDice(settlement.settlementInfo.diceSettlementInfo, winPosWeightCfgs, settlement);
         log.debug("俄罗斯转盘房间：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));
         // 保存记录
-        gameDataVo.setAnimalsSettlementInfo(settlement.settlementInfo);
+        gameDataVo.setSettlementInfo(settlement.settlementInfo);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
 

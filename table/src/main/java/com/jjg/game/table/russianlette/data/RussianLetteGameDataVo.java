@@ -1,6 +1,5 @@
 package com.jjg.game.table.russianlette.data;
 
-
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
@@ -43,11 +42,11 @@ public class RussianLetteGameDataVo extends TableGameDataVo {
         winAreaCfgIdHistory.add(russianLetteHistoryBean);
     }
 
-    public RussianLetteSettlementInfo getAnimalsSettlementInfo() {
+    public RussianLetteSettlementInfo getSettlementInfo() {
         return russianLetteSettlementInfo;
     }
 
-    public void setAnimalsSettlementInfo(RussianLetteSettlementInfo russianLetteSettlementInfo) {
+    public void setSettlementInfo(RussianLetteSettlementInfo russianLetteSettlementInfo) {
         this.russianLetteSettlementInfo = russianLetteSettlementInfo;
     }
 }
