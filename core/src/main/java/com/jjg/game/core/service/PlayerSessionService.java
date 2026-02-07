@@ -85,6 +85,7 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
             return value
             """;
 
+    private TimerEvent<String> checkSessionEvent;
     private TimerEvent<String> onlineCountEvent;
 
     public PlayerSessionInfo getInfo(long playerId) {
@@ -168,7 +169,7 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
         );
         if (StringUtils.isNotEmpty(result)) {
             JSONArray array = JSONArray.parseArray(result);
-            if(array != null && array.size() > 1) {
+            if (array != null && array.size() > 1) {
                 return array.getObject(1, PlayerSessionInfo.class);
             }
         }
@@ -281,9 +282,13 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
         if (timerCenter != null) {
 
             if (NodeType.HALL.name().equals(nodeManager.nodeConfig.getType()) || NodeType.GAME.name().equals(nodeManager.nodeConfig.getType())) {
-                onlineCountEvent =
-                        new TimerEvent<>(this, "OnlineCount", ONLINE_COUNT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
+                //每分钟检查当前在线人数
+                onlineCountEvent = new TimerEvent<>(this, "OnlineCount", ONLINE_COUNT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
                 timerCenter.add(onlineCountEvent);
+
+                //每30分钟检查过期session
+                checkSessionEvent = new TimerEvent<>(this, "PlayerSession", SESSION_TIME_OUT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
+                timerCenter.add(checkSessionEvent);
             }
         }
     }
@@ -429,12 +434,44 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
     @Override
     public void onTimer(TimerEvent<String> e) {
         if (e == onlineCountEvent) {
-            checkSessionByNode();
             int size = clusterSystem.clusterSessionSize();
             log.info("打印在线人数 ,size={}", size);
             coreLogger.online(size, nodeManager.nodeConfig.getTcpAddress().getHost());
+        } else if (e == checkSessionEvent) {
+            log.info("开始执行session检查");
+            checkSessionByNode();
 
+            Iterator<Map.Entry<Long, String>> it1 = clusterSystem.getPlayerIdSessionMap().entrySet().iterator();
+            Set<String> removeSessionIds = new HashSet<>();
+            while (it1.hasNext()) {
+                Map.Entry<Long, String> entry = it1.next();
+                PFSession session = clusterSystem.getSession(entry.getValue());
+                if (session == null) {
+                    removeSessionIds.add(entry.getValue());
+                } else if (checkCacheSessionExpire(session, e.getCurrentTime())) {
+                    removeSessionIds.add(entry.getValue());
+                }
+            }
+
+            Iterator<Map.Entry<String, PFSession>> it2 = clusterSystem.getSessionMap().entrySet().iterator();
+            while (it2.hasNext()) {
+                Map.Entry<String, PFSession> entry = it2.next();
+                PFSession pfSession = entry.getValue();
+                if (checkCacheSessionExpire(pfSession, e.getCurrentTime())) {
+                    removeSessionIds.add(pfSession.sessionId());
+                }
+            }
+
+            removeSessionIds.forEach(sessionId -> {clusterSystem.removeSession(sessionId);});
         }
+    }
+
+    private boolean checkCacheSessionExpire(PFSession pfSession, long now) {
+        //如果seesion 长时间没有活跃
+        if (now - pfSession.activeTime > SESSION_TIME_OUT_MINUTES * TimeHelper.ONE_MINUTE_OF_MILLIS) {
+            return true;
+        }
+        return false;
     }
 
 

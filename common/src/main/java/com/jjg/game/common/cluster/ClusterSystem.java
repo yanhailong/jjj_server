@@ -796,6 +796,14 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
         return new ArrayList<>(sessionMap.values());
     }
 
+    public Map<String, PFSession> getSessionMap() {
+        return sessionMap;
+    }
+
+    public Map<Long, String> getPlayerIdSessionMap() {
+        return playerIdSessionMap;
+    }
+
     @Override
     public void onSwitchNodeAction(PFSession pfSession) {
         if (pfSession == null) {
