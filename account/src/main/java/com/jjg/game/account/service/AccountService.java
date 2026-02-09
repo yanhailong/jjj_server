@@ -118,7 +118,7 @@ public class AccountService {
                 account.setLastLoginMac(loginDto.getMac());
                 account.setChannel(ChannelType.valueOf(loginDto.getChannel()));
                 account.setStatus(AccountStatus.NORMAL.getCode());
-
+                account.setRegisterIp(ip);
                 account = accountDao.setChannelValue(loginType, channelUserInfo, account);
                 account.setCreateTime((int) (now / 1000));
 

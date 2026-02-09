@@ -3,8 +3,11 @@ package com.jjg.game.hall.dao;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.hall.data.SharePromoteReward;
+import com.jjg.game.hall.sharepromote.SharePromoteRewardService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -24,7 +27,7 @@ public class SharePromoteRewardDao {
     @Autowired
     protected RedisTemplate<String, Player> redisTemplate;
 
-
+    private static final Logger log = LoggerFactory.getLogger(SharePromoteRewardDao.class);
     /**
      * 添加收藏的游戏
      *
@@ -127,11 +130,29 @@ public class SharePromoteRewardDao {
             int equipNumSize = getEquipNumSize(sharePromoteList, equipNum);
             int ipSize = getIpSize(sharePromoteList, ip);
             int registerIpSize = getIpSize(sharePromoteList, registerIp);
+            if(equipNumSize >= equipNumSizeRequire){
+                log.info("分享上线 已领取设备:{}, 配置上线:{}", equipNumSize, equipNumSizeRequire);
+            }
+            if(ipSize >= ipSizeRequire){
+                log.info("分享上线 已领取ip:{}, 配置ip:{}",  ipSize , ipSizeRequire);
+            }
+            if(registerIpSize >= registerIpSizeRequire){
+                log.info("分享上线 已领取注册ip:{}, 配置注册ip:{}",  registerIpSize,registerIpSizeRequire);
+            }
             return equipNumSize < equipNumSizeRequire && ipSize < ipSizeRequire && registerIpSize < registerIpSizeRequire;
         } else if (sharePromote.getNum() < playerSizeRequire) {
             int equipNumSize = getEquipNumSize(getSharePromoteList(), equipNum);
             int ipSize = getIpSize(getSharePromoteList(), ip);
             int registerIpSize = getIpSize(getSharePromoteList(), registerIp);
+            if(equipNumSize >= equipNumSizeRequire){
+                log.info("分享上线 已领取设备:{}, 配置上线:{}", equipNumSize, equipNumSizeRequire);
+            }
+            if(ipSize >= ipSizeRequire){
+                log.info("分享上线 已领取ip:{}, 配置ip:{}",  ipSize , ipSizeRequire);
+            }
+            if(registerIpSize >= registerIpSizeRequire){
+                log.info("分享上线 已领取注册ip:{}, 配置注册ip:{}",  registerIpSize,registerIpSizeRequire);
+            }
             return equipNumSize < equipNumSizeRequire && ipSize < ipSizeRequire && registerIpSize < registerIpSizeRequire;
         }
         return false;
