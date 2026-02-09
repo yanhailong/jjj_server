@@ -346,13 +346,13 @@ public class ThirdAccountHttpService {
      * @param adid
      * @return
      */
-    public boolean checkSwitchServer(String adid) {
+    public boolean checkSwitchServerByAdid(String adid) {
         if (this.adjustConfig == null || !this.adjustConfig.isOpen() || StringUtils.isBlank(adid)) {
             return false;
         }
 
         if (StringUtils.isBlank(this.adjustConfig.getApiToken()) || StringUtils.isBlank(this.adjustConfig.getAppToken())) {
-            log.warn("adjust配饰为空");
+            log.warn("adjust配置为空");
             return false;
         }
 
@@ -364,15 +364,18 @@ public class ThirdAccountHttpService {
             httpRequest.form("app_token", this.adjustConfig.getAppToken());
             httpRequest.form("advertising_id", adid);
 
+            httpRequest.timeout(10000);
 
             HttpResponse resp = httpRequest.execute();
             String body = resp.body();
-
-            JSONObject json = JSONUtil.parseObj(body);
-            if ("Organic".equals(json.getStr("TrackerName"))) {
-                return true;
+            if (resp.isOk()) {
+                JSONObject json = JSONUtil.parseObj(body);
+                if ("Organic".equals(json.getStr("TrackerName"))) {
+                    return true;
+                }
+            } else {
+                log.warn("从adjust获取信息失败 adid = {},body = {}", adid, body);
             }
-
             return false;
         } catch (Exception e) {
             log.error("", e);

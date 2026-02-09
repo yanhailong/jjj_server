@@ -15,6 +15,10 @@ public class ServerUrlDto {
     private int device;
     //手机型号
     private String phoneType;
+    //马甲id
+    private int westeId;
+    //adid
+    private String adid;
 
     public long getPlayerId() {
         return playerId;
@@ -54,5 +58,21 @@ public class ServerUrlDto {
 
     public void setPhoneType(String phoneType) {
         this.phoneType = phoneType;
+    }
+
+    public int getWesteId() {
+        return westeId;
+    }
+
+    public void setWesteId(int westeId) {
+        this.westeId = westeId;
+    }
+
+    public String getAdid() {
+        return adid;
+    }
+
+    public void setAdid(String adid) {
+        this.adid = adid;
     }
 }
