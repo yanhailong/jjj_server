@@ -156,7 +156,7 @@ public class Room {
             this.playerSits = new HashMap<>();
         }
         if (this.roomPlayers == null) {
-            this.roomPlayers = new HashMap<>();
+            this.roomPlayers = new ConcurrentHashMap<>();
         }
         this.playerSits.put(roomPlayer.getSit(), roomPlayer.getPlayerId());
         this.roomPlayers.put(roomPlayer.getPlayerId(), roomPlayer);
@@ -201,7 +201,7 @@ public class Room {
             return null;
         }
         if (this.roomPlayers.isEmpty()) {
-            this.roomPlayers = new HashMap<>();
+            this.roomPlayers = new ConcurrentHashMap<>();
         }
         if (this.playerSits != null) {
             this.playerSits.remove(removePlayer.getSit());

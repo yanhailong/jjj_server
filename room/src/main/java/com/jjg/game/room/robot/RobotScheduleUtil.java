@@ -7,8 +7,7 @@ import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ChessRobotCfg;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.netty.util.Timeout;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -53,8 +52,8 @@ public class RobotScheduleUtil {
      * @param processor      执行的任务
      * @param delayTime      延迟时间
      */
-    public static void schedule(AbstractRoomController<?, ?> roomController, BaseHandler<?> processor, int delayTime) {
-        WheelTimerUtil.schedule(() -> roomController.getRoomProcessor().tryPublish(0, processor), delayTime, TimeUnit.MILLISECONDS);
+    public static Timeout schedule(AbstractRoomController<?, ?> roomController, BaseHandler<?> processor, int delayTime) {
+        return WheelTimerUtil.schedule(() -> roomController.getRoomProcessor().tryPublish(0, processor), delayTime, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -64,10 +63,10 @@ public class RobotScheduleUtil {
      * @param period       间隔时间
      * @param unit         时间单位
      */
-    public static void scheduleAtFixedRate(AbstractRoomController<?, ?> roomController, BaseHandler<?> processor,
-                                           long initialDelay,
-                                           long period,
-                                           TimeUnit unit) {
-        WheelTimerUtil.scheduleAtFixedRate(() -> roomController.getRoomProcessor().tryPublish(0, processor), initialDelay, period, unit);
+    public static Timeout scheduleAtFixedRate(AbstractRoomController<?, ?> roomController, BaseHandler<?> processor,
+                                              long initialDelay,
+                                              long period,
+                                              TimeUnit unit) {
+        return WheelTimerUtil.scheduleAtFixedRate(() -> roomController.getRoomProcessor().tryPublish(0, processor), initialDelay, period, unit);
     }
 }

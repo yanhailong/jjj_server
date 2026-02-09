@@ -171,6 +171,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     @Override
     public void notLeader() {
         log.info("夺宝奇兵管理器失去主节点身份");
+        clearAllTimers();
     }
 
     /**
@@ -189,6 +190,11 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         try {
             // 只有主节点才处理定时器事件
             if (!marsCurator.isMaster()) {
+                if (timerType == LuckyTreasureTimerEvent.TimerType.ROBOT_BUY) {
+                    removeRobotBuyTimer(issueNumber);
+                } else {
+                    removeActivityTimer(issueNumber);
+                }
                 return;
             }
             //结束
@@ -465,6 +471,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      */
     public void addRobotBuyTimer(LuckyTreasure newRound) {
         long issueNumber = newRound.getIssueNumber();
+        removeRobotBuyTimer(issueNumber);
         LuckyTreasureConfig config = newRound.getConfig();
         if (config.getRobotHaveMax() <= 0) {
             return;
@@ -658,6 +665,21 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         }
     }
 
+    private void removeRobotBuyTimer(long issueNumber) {
+        TimerEvent<LuckyTreasureTimerEvent> timer = activityBuyTimers.remove(issueNumber);
+        if (timer != null) {
+            timerCenter.remove(timer);
+            log.debug("移除夺宝奇兵活动 {} 的机器人购买定时器", issueNumber);
+        }
+    }
+
+    private void clearAllTimers() {
+        activityTimers.values().forEach(timerCenter::remove);
+        activityTimers.clear();
+        activityBuyTimers.values().forEach(timerCenter::remove);
+        activityBuyTimers.clear();
+    }
+
     /**
      * 处理活动结束定时器事件
      *
@@ -666,6 +688,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     private void handleActivityEndTimer(long issueNumber) {
         // 移除定时器
         removeActivityTimer(issueNumber);
+        removeRobotBuyTimer(issueNumber);
 
         //获取配置的开奖时间
         int rewardTime = 0;
@@ -704,6 +727,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         log.debug("开始处理幸运夺宝开奖事件 issueNumber = {}", issueNumber);
         // 移除定时器
         removeActivityTimer(issueNumber);
+        removeRobotBuyTimer(issueNumber);
 
         RMapCache<Long, LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
         // 从redis获取活动数据
@@ -732,6 +756,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * @param issueNumber 期号
      */
     private void handleActivityRobotBuyTimer(long issueNumber) {
+        removeRobotBuyTimer(issueNumber);
         robotBuy(issueNumber);
 
     }

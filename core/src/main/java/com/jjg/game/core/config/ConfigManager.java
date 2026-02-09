@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.ClassUtils;
 import com.jjg.game.common.utils.ObjectMapperUtil;
+import jakarta.annotation.PreDestroy;
 import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -654,6 +655,11 @@ public class ConfigManager {
                 }
             }));
         }
+    }
+
+    @PreDestroy
+    public void destroy() {
+        executor.shutdown();
     }
 
 }

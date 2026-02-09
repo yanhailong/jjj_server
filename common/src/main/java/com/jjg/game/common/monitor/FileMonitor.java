@@ -38,6 +38,19 @@ public class FileMonitor extends FileAlterationListenerAdaptor {
         }
     }
 
+    public void stop() {
+        log.info("文件监视器停止");
+        try {
+            monitor.stop();
+        } catch (Exception e) {
+            log.warn("文件监听器停止失败...", e);
+        } finally {
+            fileObserver.clear();
+            fileChangeListenerMap.clear();
+            fileLoaders.clear();
+        }
+    }
+
     /**
      * 添加文件监听器
      *

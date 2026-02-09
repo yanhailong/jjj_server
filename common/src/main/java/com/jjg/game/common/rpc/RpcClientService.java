@@ -209,15 +209,18 @@ public class RpcClientService {
         String nodePath = clusterClient.marsNode.getNodePath();
         CompletableFuture<RespRpcServiceData> completableFuture = new CompletableFuture<>();
         // 请求ID
-        long requestId = message.requestId = requestIdGenerator.nextId();
+        long requestId = requestIdGenerator.nextId();
+        ReqRpcServiceData reqMessage = copyReqMessage(message, requestId);
         messagePending.put(requestId, completableFuture);
         log.debug("SingleClientRpcMsg put ID, {}", requestId);
         try {
-            clusterClient.getConnect().writeWithFuture(new ClusterMessage(message), f -> {
+            clusterClient.getConnect().writeWithFuture(new ClusterMessage(reqMessage), f -> {
                 if (!f.isSuccess()) {
-                    CompletableFuture<?> finishedFuture = messagePending.remove(requestId);
+                    CompletableFuture<RespRpcServiceData> finishedFuture = messagePending.remove(requestId);
                     log.error("SingleClientRpcMsg 调用RPC向节点:{} 发送消息异常!", nodePath);
-                    finishedFuture.completeExceptionally(f.cause());
+                    if (finishedFuture != null) {
+                        finishedFuture.completeExceptionally(f.cause());
+                    }
                 }
             });
         } catch (InterruptedException exception) {
@@ -241,6 +244,8 @@ public class RpcClientService {
         } catch (TimeoutException exception) {
             log.warn("SingleClientRpcMsg 调用RPC向节点：{} 发出消息：{} 超时", nodePath, message);
             throw exception;
+        } finally {
+            messagePending.remove(requestId);
         }
         GameRpcContext rpcMetadataCarrier = GameRpcContext.getContext();
         if (rpcMetadataCarrier != null) {
@@ -264,16 +269,19 @@ public class RpcClientService {
                 String nodePath = clusterClient.marsNode.getNodePath();
                 CompletableFuture<RespRpcServiceData> completableFuture = new CompletableFuture<>();
                 // 请求ID
-                long requestId = message.requestId = requestIdGenerator.nextId();
+                long requestId = requestIdGenerator.nextId();
+                ReqRpcServiceData reqMessage = copyReqMessage(message, requestId);
                 messagePending.put(requestId, completableFuture);
                 log.debug("batchSendRpcMsg send cluster: {} with id, {}",
                         clusterClient.nodeConfig.getName(), requestId);
                 try {
-                    clusterClient.getConnect().writeWithFuture(new ClusterMessage(message), f -> {
+                    clusterClient.getConnect().writeWithFuture(new ClusterMessage(reqMessage), f -> {
                         if (!f.isSuccess()) {
-                            CompletableFuture<?> finishedFuture = messagePending.remove(requestId);
+                            CompletableFuture<RespRpcServiceData> finishedFuture = messagePending.remove(requestId);
                             log.error("batchSendRpcMsg 调用RPC向节点:{} 发送消息异常!", nodePath);
-                            finishedFuture.completeExceptionally(f.cause());
+                            if (finishedFuture != null) {
+                                finishedFuture.completeExceptionally(f.cause());
+                            }
                         }
                     });
                 } catch (InterruptedException e) {
@@ -303,6 +311,8 @@ public class RpcClientService {
                 } catch (TimeoutException e) {
                     log.warn("batchSendRpcMsg 调用RPC向节点：{} 发出消息：{} 超时", nodePath, message);
                     responseMap.put(nodePath, null);
+                } finally {
+                    messagePending.remove(requestId);
                 }
             }));
         }
@@ -339,5 +349,14 @@ public class RpcClientService {
      */
     public CompletableFuture<RespRpcServiceData> completeCompletableFuture(long requestId) {
         return messagePending.remove(requestId);
+    }
+
+    private ReqRpcServiceData copyReqMessage(ReqRpcServiceData source, long requestId) {
+        ReqRpcServiceData target = new ReqRpcServiceData();
+        target.requestId = requestId;
+        target.serviceClassName = source.serviceClassName;
+        target.serviceMethodName = source.serviceMethodName;
+        target.parameterTypeWithData = source.parameterTypeWithData;
+        return target;
     }
 }

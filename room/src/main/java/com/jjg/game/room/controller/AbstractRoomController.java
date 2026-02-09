@@ -25,6 +25,7 @@ import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.services.RobotService;
 import com.jjg.game.room.timer.RoomTimerCenter;
 import com.jjg.game.sampledata.bean.RoomCfg;
+import io.netty.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +62,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     protected GamePlayFlowPojo gamePlayFlowPojo;
     // 房间计时器，不要将此引用暴露到外部
     protected RoomTimerCenter timerCenter;
+    // 房间级周期定时任务句柄，房间销毁时必须取消
+    private volatile Timeout checkNoJoinPlayerTimeout;
+    private volatile Timeout roomTickTimeout;
     // 游戏控制器
     protected AbstractGameController<RC, ? extends GameDataVo<RC>> gameController;
     // 房间配置
@@ -327,6 +331,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      */
     @Override
     public void gameDestroy(boolean closeByPlayer, boolean notifyExit) {
+        cancelWheelTimers();
         // 调用游戏控制器中的结束逻辑
         gameController.gameDestroy(closeByPlayer, notifyExit);
     }
@@ -352,10 +357,12 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     @Override
     public void disbandRoom(Boolean disbandRoomByPlayer) {
+        cancelWheelTimers();
         // 调用房间控制器中的解散房间逻辑
         gameController.disbandRoom(disbandRoomByPlayer);
         // 标记游戏状态为销毁完成
         gameController.markDestroyed();
+        roomState = ERoomState.ROOM_DESTROYED;
         // 向玩家发送解散房间消息
         broadcastDisbandRoomMsg();
         // 时间管理移除当前注册器
@@ -394,8 +401,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         // 房间Timer执行tick时间 现在默认 200ms
         // 添加房间tick
         //机器人检查
-        WheelTimerUtil.scheduleAtFixedRate(this::checkNoJoinPlayer, RoomConstant.ROOM_TICK_TIME, RoomConstant.ROOM_PLAYER_NUM_CHECK, TimeUnit.MILLISECONDS);
-        WheelTimerUtil.scheduleAtFixedRate(this::roomTick, RoomConstant.ROOM_TICK_TIME, RoomConstant.ROOM_TICK_TIME, TimeUnit.MILLISECONDS);
+        cancelWheelTimers();
+        checkNoJoinPlayerTimeout = WheelTimerUtil.scheduleAtFixedRate(this::checkNoJoinPlayer, RoomConstant.ROOM_TICK_TIME, RoomConstant.ROOM_PLAYER_NUM_CHECK, TimeUnit.MILLISECONDS);
+        roomTickTimeout = WheelTimerUtil.scheduleAtFixedRate(this::roomTick, RoomConstant.ROOM_TICK_TIME, RoomConstant.ROOM_TICK_TIME, TimeUnit.MILLISECONDS);
         roomState = ERoomState.READY;
     }
 
@@ -715,10 +723,25 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     public void stopGame() {
         log.info("开始停止游戏 {}", room.logStr());
         roomState = ERoomState.ROOM_DESTROYING;
+        cancelWheelTimers();
         // 移除定时器
         this.timerCenter.remove(this);
         // 暂停游戏
         gameController.stopGame();
+    }
+
+    private void cancelWheelTimers() {
+        Timeout checkTimeout = checkNoJoinPlayerTimeout;
+        if (checkTimeout != null && !checkTimeout.isCancelled()) {
+            checkTimeout.cancel();
+        }
+        checkNoJoinPlayerTimeout = null;
+
+        Timeout tickTimeout = roomTickTimeout;
+        if (tickTimeout != null && !tickTimeout.isCancelled()) {
+            tickTimeout.cancel();
+        }
+        roomTickTimeout = null;
     }
 
     public boolean isStartedGame() {

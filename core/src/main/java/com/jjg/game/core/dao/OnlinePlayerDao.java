@@ -57,7 +57,10 @@ public class OnlinePlayerDao extends MongoBaseDao<OnlinePlayer, Long> {
             page = 0;
         }
 
-        Criteria criteria = Criteria.where("gameType").is(gameType);
+        Criteria criteria = new Criteria();
+        if (gameType > 0) {
+            criteria.and("gameType").is(gameType);
+        }
 
         ChannelType channelType = ChannelType.valueOf(channel, null);
         if (channelType != null) {

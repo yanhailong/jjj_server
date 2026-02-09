@@ -75,6 +75,11 @@ public class MarsCoreStartService {
     }
 
     public void shutdown() {
+        clusterSystem.shutdown();
+        fileMonitor.stop();
+        if (this.timerCenter != null) {
+            this.timerCenter.close();
+        }
     }
 
 

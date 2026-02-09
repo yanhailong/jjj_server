@@ -233,6 +233,9 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
             // 调用房间关闭逻辑
             roomManager.onServerShutdown();
         }
+        if (timerCenter != null) {
+            timerCenter.close();
+        }
     }
 
     @Override
