@@ -1120,8 +1120,8 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_SHARE_PROMOTE_START)
     public void ReqSharePromoteStart(PlayerController playerController, ReqSharePromoteStart req) {
-        ResSharePromoteStart res = new ResSharePromoteStart(Code.SUCCESS);
-       int code = sharePromoteService.startSharePromote(playerController);
+        int code = sharePromoteService.startSharePromote(playerController);
+        ResSharePromoteStart res = new ResSharePromoteStart(code);
         playerController.send(res);
     }
 
