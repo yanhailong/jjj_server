@@ -1,8 +1,6 @@
 package com.jjg.game.hall.sharepromote;
 
 import com.jjg.game.common.curator.MarsCurator;
-import com.jjg.game.common.timer.TimerEvent;
-import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.base.condition.MatchResult;
 import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.handler.BindPhoneCondition;
@@ -16,12 +14,9 @@ import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.LoginType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.MailService;
-import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.dao.SharePromoteRewardDao;
-import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
-import org.redisson.client.codec.LongCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,15 +57,13 @@ public class SharePromoteRewardService implements GameEventListener {
     /**
      * 开始分享推广
      *
-     * @param playId
-     * @param ip
      * @return
      */
     public int startSharePromote(PlayerController playerController) {
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.SHARE_PROMOTE);
 
         String value = globalConfigCfg.getValue();
-        if(value == null || value.isEmpty()){
+        if (value == null || value.isEmpty()) {
             return Code.SUCCESS;
         }
         String[] split = value.split("\\|");
@@ -78,10 +71,10 @@ public class SharePromoteRewardService implements GameEventListener {
         long playId = playerController.getPlayer().getId();
         MatchResultData match = bindPhoneCondition.match(playId);
         String ip = playerController.getPlayer().getIp();
-        Account account = accountDao.queryAccountByPlayerId(playId);
-        if (account.getThirdAccounts() != null) {
-            Map<LoginType, String> thirdAccounts = account.getThirdAccounts();
-            if (match.result() == MatchResult.MATCH) {
+        if (match.result() == MatchResult.MATCH) {
+            Account account = accountDao.queryAccountByPlayerId(playId);
+            if (account.getThirdAccounts() != null) {
+                Map<LoginType, String> thirdAccounts = account.getThirdAccounts();
                 log.info("开始分享推广 playId = {}, ip = {}", playId, ip);
                 String registerIp = account.getRegisterIp();
                 String equipNum = thirdAccounts.get(LoginType.GUEST);
@@ -93,6 +86,9 @@ public class SharePromoteRewardService implements GameEventListener {
                         //返回奖励
                         mailService.addCfgMail(playId, GameConstant.Mail.ID_SHARING_REWARD, List.of(new Item(itemId, itemNum)));
                     }
+                    return Code.SUCCESS;
+                } else {
+                    log.info("开始分享推广 次数受到上线，不发送邮件 playId = {}, ip = {}", playId, ip);
                     return Code.SUCCESS;
                 }
             }
