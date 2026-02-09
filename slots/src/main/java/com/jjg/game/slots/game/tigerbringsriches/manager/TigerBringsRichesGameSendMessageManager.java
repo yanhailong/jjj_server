@@ -67,7 +67,7 @@ public class TigerBringsRichesGameSendMessageManager extends BaseSendMessageMana
                     if (CollectionUtil.isNotEmpty(randomResult)) {
                         TigerBringsRichesResultLib resultLib = randomResult.get(playerGameData.getCurrentRandomIndex());
                         res.iconList = Arrays.stream(resultLib.getIconArr(), 1, resultLib.getIconArr().length).boxed().collect(Collectors.toList());
-                        res.scrollType = playerGameData.getSpecialLib().getRollerMode();
+                        res.scrollType = resultLib.getRollerMode();
                         res.specialModeIcon = resultLib.getSpecialModeIcon();
                     }
                 }
