@@ -167,4 +167,8 @@ public class AccountService {
             }
         }
     }
+
+    public Account getByPlayerId(long playerId) {
+        return accountDao.queryAccountByPlayerId(playerId);
+    }
 }

@@ -38,7 +38,7 @@ public class SmsService {
     @Autowired
     private SmsConfigDao smsConfigDao;
 
-    public void init(){
+    public void init() {
         reloadConfig();
     }
 
@@ -131,12 +131,12 @@ public class SmsService {
             HttpResponse resp = httpRequest.body(params).execute();
             String body = resp.body();
 
-            JSONObject json = JSONUtil.parseObj(body);
-
             if (!resp.isOk()) {
-                log.warn("发送短信失败 phoneNumber = {},code = {},reason = {},cfgId = {}", phoneNumber, json.getInt("status"), json.getStr("reason"), smsConfigInfo.getCfgId());
+                log.warn("发送短信失败 phoneNumber = {},cfgId = {},body = {}", phoneNumber, smsConfigInfo.getCfgId(), body);
                 return Code.SEND_SMS_FAILED;
             }
+
+            JSONObject json = JSONUtil.parseObj(body);
 
             int status = json.getInt("status");
             if (status != 0) {
