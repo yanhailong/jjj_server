@@ -370,7 +370,7 @@ public class ThirdAccountHttpService {
             String body = resp.body();
             if (resp.isOk()) {
                 JSONObject json = JSONUtil.parseObj(body);
-                if ("Organic".equals(json.getStr("TrackerName"))) {
+                if (!"Organic".equalsIgnoreCase(json.getStr("TrackerName"))) {
                     return true;
                 }
             } else {
