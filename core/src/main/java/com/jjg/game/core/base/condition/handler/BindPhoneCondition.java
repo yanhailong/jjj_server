@@ -56,6 +56,16 @@ public class BindPhoneCondition implements ConditionHandler<Integer> {
         return MatchResultData.notMatch(getErrorCode());
     }
 
+    public MatchResultData match(Long playerId) {
+        Account account = accountDao.queryAccountByPlayerId(playerId);
+        if (account == null) {
+            return MatchResultData.notMatch(Code.SUCCESS);
+        }
+        if (StringUtils.isNotEmpty(account.getThirdAccount(LoginType.PHONE))) {
+            return MatchResultData.match();
+        }
+        return MatchResultData.notMatch(getErrorCode());
+    }
     @Override
     public MatchResultData addProgress(ConditionContext ctx, Integer config) {
         return MatchResultData.unknown();

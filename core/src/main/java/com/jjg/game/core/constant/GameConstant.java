@@ -99,6 +99,9 @@ public class GameConstant {
 
         //积分大奖进度奖励
         public static final int ID_POINTS_AWARD = 40;
+
+        //分享奖励
+        public static final int ID_SHARING_REWARD = 45;
     }
 
     public class GlobalConfig {

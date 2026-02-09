@@ -23,4 +23,6 @@ public interface GlobalSampleConstantId {
     int BUY_ALL_CLAIM_ALL_REWARDS = 19;
     //创建房间-房间销毁时房主获得实际准备金的万分比
     int FRIEND_ROOM_DESTROY_GAIN_RATIO = 27;
+    // 分享推广
+    int SHARE_PROMOTE = 113;
 }

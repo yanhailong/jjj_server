@@ -15,6 +15,8 @@ public enum EGameEventType {
     ACTIVITY_JOIN("remainingAttempts"),    // 活动剩余参加次数
     //充值
     RECHARGE(""),
+    //分享推广
+    SHAREPROMOTE(""),
     // 产生有效流水
     EFFECTIVE_FLOWING(""),
     // 整点事件
