@@ -32,8 +32,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
     //type -> iconSet
     protected Map<Integer, Set<Integer>> iconsMap = null;
-    //图标替换
-    protected Map<Integer, Integer> replaceIconMap = null;
+    //BaseElement表替换元素权重信息
+    protected Map<Integer, PropInfo> baseElementPostChangeMap = null;
     //rollerGroup -> column -> cfg
     protected Map<Integer, Map<Integer, BaseRollerCfg>> baseRollerCfgMap = null;
     //gameMode -> lineId -> cfg
@@ -49,6 +49,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     protected Map<Integer, SpecialAuxiliaryPropConfig> specialAuxiliaryPropConfigMap = null;
     //格子修改相关的权重信息
     protected Map<Integer, GirdUpdatePropConfig> specialGirdCfgMap = null;
+
 
     //specialResultLib表的一些权重等等信息
     protected SpecialResultLibCacheData specialResultLibCacheData = null;
@@ -410,10 +411,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                     case SlotsConst.BaseLine.DIRECTION_LEFT -> {
                         for (Integer index : lineList) {
                             int icon = arr[index];
-                            int elementIcon = isIconSame( lastElementIcon, icon, wildIconSet, noralIconSet);
+                            int elementIcon = isIconSame(lastElementIcon, icon, wildIconSet, noralIconSet);
                             if (elementIcon == 0) {
                                 break;
-                            }else {
+                            } else {
                                 lastElementIcon = elementIcon;
                             }
                             sameCount++;
@@ -426,7 +427,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                             int elementIcon = isIconSame(lastElementIcon, icon, wildIconSet, noralIconSet);
                             if (elementIcon == 0) {
                                 break;
-                            }else {
+                            } else {
                                 lastElementIcon = elementIcon;
                             }
                             sameCount++;
@@ -1183,7 +1184,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      */
     protected void baseElementConfig() {
         Map<Integer, Set<Integer>> tmpIconMap = new HashMap<>();
-        Map<Integer, Integer> tmpReplaceIconMap = new HashMap<>();
+        Map<Integer, PropInfo> tmpBaseElementPostChangeMap = new HashMap<>();
 
         for (Map.Entry<Integer, BaseElementCfg> en : GameDataManager.getBaseElementCfgMap().entrySet()) {
             BaseElementCfg cfg = en.getValue();
@@ -1191,13 +1192,13 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 continue;
             }
             tmpIconMap.computeIfAbsent(cfg.getType(), k -> new HashSet<>()).add(cfg.getElementId());
-            //TODO
-//            if(CollectionUtil.isNotEmpty(cfg.getPostChangeElementId())){
-//                tmpReplaceIconMap.put(cfg.getElementId(), cfg.getPostChangeElementId().get(cfg.getElementId()));
-//            }
+
+            if (cfg.getPostChangeElementId() != null && !cfg.getPostChangeElementId().isEmpty()) {
+                tmpBaseElementPostChangeMap.put(cfg.getElementId(), SlotsUtil.converMapToPropInfo(cfg.getPostChangeElementId()));
+            }
         }
         this.iconsMap = tmpIconMap;
-        this.replaceIconMap = tmpReplaceIconMap;
+        this.baseElementPostChangeMap = tmpBaseElementPostChangeMap;
     }
 
     /**
@@ -1530,7 +1531,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         for (int i = 0; i < maxForCount; i++) {
             //获取一个需要替换的格子
             Integer girdId = cloneAffectGirdPropInfo.getRandKey();
-            if(girdId == null){
+            if (girdId == null) {
                 log.debug("获取一个需要替换的格子失败");
                 break;
             }
@@ -1545,7 +1546,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
             //随机一个需要出现的图标
             Integer newIcon = girdUpdatePropConfig.getShowIconPropInfo().getRandKey();
-            if(newIcon == null){
+            if (newIcon == null) {
                 log.debug("随机一个需要出现的图标失败");
                 break;
             }
@@ -1555,7 +1556,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             //赋值
             if (girdUpdatePropConfig.getValuePropInfo() != null) {
                 Integer value = girdUpdatePropConfig.getValuePropInfo().getRandKey();
-                if(value == null){
+                if (value == null) {
                     log.debug("修改图标后赋值失败 girdId = {}, oldIcon = {}, newIcon = {}", girdId, arr[girdId], newIcon);
                     break;
                 }
@@ -1754,5 +1755,22 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             }
         }
         return false;
+    }
+
+    /**
+     * 获取一个替换元素
+     * @param oldIcon
+     * @return
+     */
+    protected Integer getPostChangeIcon(int oldIcon){
+        if(this.baseElementPostChangeMap == null || this.baseElementPostChangeMap.isEmpty()){
+            return null;
+        }
+
+        PropInfo propInfo = this.baseElementPostChangeMap.get(oldIcon);
+        if(propInfo == null){
+            return null;
+        }
+        return propInfo.getRandKey();
     }
 }

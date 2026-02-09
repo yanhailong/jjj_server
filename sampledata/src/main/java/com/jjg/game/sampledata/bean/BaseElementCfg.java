@@ -1,7 +1,9 @@
 package com.jjg.game.sampledata.bean;
 
+import java.util.*;
+
+
 import javax.annotation.processing.Generated;
-import java.util.Map;
 /**
  * 配置bean
  *
@@ -23,10 +25,8 @@ public class BaseElementCfg extends BaseCfgBean {
   protected int gameId;
   /** 图标上显示多语言ID */
   protected int languageID;
-  /**
-   * 消除后变化元素ID_权重
-   */
-  protected Map<Integer, Integer> postChangeElementId;
+  /** 消除后变化元素ID_权重 */
+  protected Map<Integer,Integer> postChangeElementId;
   /** 向上占据格子 */
   protected int space;
   /** 类型 */
@@ -47,10 +47,8 @@ public class BaseElementCfg extends BaseCfgBean {
     return languageID;
   }
 
-  /**
-   * 返回消除后变化元素ID_权重
-   */
-  public Map<Integer, Integer> getPostChangeElementId() {
+  /** 返回消除后变化元素ID_权重 */
+  public Map<Integer,Integer> getPostChangeElementId() {
     return postChangeElementId;
   }
 

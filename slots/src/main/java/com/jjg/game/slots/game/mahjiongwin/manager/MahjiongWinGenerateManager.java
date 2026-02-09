@@ -211,7 +211,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
                 //判断消除的图标是不是金色图标
                 if (icon >= MahjiongWinConstant.BaseElement.GOLD_MIN && icon <= MahjiongWinConstant.BaseElement.GOLD_MAX) {
-                    Integer replaceIcon = this.replaceIconMap.get(icon);
+                    Integer replaceIcon = getPostChangeIcon(icon);
                     if (replaceIcon != null) {
                         replaceWildIndexs.add(index);
                     }
@@ -293,7 +293,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
             if (removedIndexes.contains(i)) {
                 //判断消除的图标是不是金色图标
                 if (icon >= MahjiongWinConstant.BaseElement.GOLD_MIN && icon <= MahjiongWinConstant.BaseElement.GOLD_MAX) {
-                    Integer replaceIcon = this.replaceIconMap.get(icon);
+                    Integer replaceIcon = getPostChangeIcon(icon);
                     if (replaceIcon != null) {
                         validIndexes.add(replaceIcon);
                     }

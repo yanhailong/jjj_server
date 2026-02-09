@@ -327,7 +327,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
 
                 //判断消除的图标是不是金色图标
                 if (icon >= AceDjConstant.BaseElement.GOLD_MIN && icon <= AceDjConstant.BaseElement.GOLD_MAX) {
-                    Integer replaceIcon = this.replaceIconMap.get(icon);
+                    Integer replaceIcon = getPostChangeIcon(icon);
                     if (replaceIcon != null) {
                         replaceWildIndexs.add(index);
                     }
@@ -452,7 +452,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
             if (removedIndexes.contains(i)) {
                 //判断消除的图标是不是金色图标
                 if (icon >= AceDjConstant.BaseElement.GOLD_MIN && icon <= AceDjConstant.BaseElement.GOLD_MAX) {
-                    Integer replaceIcon = this.replaceIconMap.get(icon);
+                    Integer replaceIcon = getPostChangeIcon(icon);
                     if (replaceIcon != null) {
                         validIndexes.add(replaceIcon);
                     }
