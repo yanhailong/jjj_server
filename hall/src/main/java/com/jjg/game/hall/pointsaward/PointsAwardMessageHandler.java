@@ -159,7 +159,7 @@ public class PointsAwardMessageHandler {
         NotifySyncPlayerPoint res = new NotifySyncPlayerPoint();
         Pair<Integer, Integer> rank = pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerController.playerId());
         res.setRank(rank.getFirst());
-        res.setPoint(pointsAwardService.getPoints(playerController.playerId()));
+        res.setPoint(rank.getSecond());
         res.setState(1);
         res.setUrl(commonDao.getStrValue(GameConstant.CommonDaoId.POINTS_AWARD_URL));
         playerController.send(res);
