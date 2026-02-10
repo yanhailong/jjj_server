@@ -15,13 +15,14 @@ import java.util.Map;
  * @date 2025/9/29 10:37
  */
 public record CurrentChangeEventHandler(Player player, AbstractGameController<?, ?> gameController,
-                                        Map<Integer, Long> currencyMap) implements IProcessorHandler {
+                                        Map<Integer, Long> currencyMap, AddType addType,
+                                        String desc) implements IProcessorHandler {
     private static final Logger log = LoggerFactory.getLogger(CurrentChangeEventHandler.class);
 
     @Override
     public void action() throws Exception {
         try {
-            gameController.changeCurrency(player, currencyMap, AddType.ROOM_CURRENCY_CHANGE, "", true);
+            gameController.changeCurrency(player, currencyMap, addType, desc, true);
         } catch (Exception e) {
             log.error("货币变化时更新房间内货币失败 playerId:{} currencyMap:{} ", player.getId(), JSON.toJSONString(currencyMap), e);
         }

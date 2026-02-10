@@ -1,5 +1,6 @@
 package com.jjg.game.core.base.gameevent;
 
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.Player;
 
 import java.util.Map;
@@ -19,10 +20,16 @@ public class CurrencyChangeEvent extends GameEvent {
      */
     private final Map<Integer, Long> currencyMap;
 
-    public CurrencyChangeEvent(EGameEventType gameEventType,Player player, Map<Integer, Long> currencyMap) {
+    private final AddType addType;
+
+    private final String desc;
+
+    public CurrencyChangeEvent(EGameEventType gameEventType, Player player, Map<Integer, Long> currencyMap, AddType addType, String desc) {
         super(gameEventType);
         this.player = player;
         this.currencyMap = currencyMap;
+        this.addType = addType;
+        this.desc = desc;
     }
 
     public Map<Integer, Long> getCurrencyMap() {
@@ -31,5 +38,13 @@ public class CurrencyChangeEvent extends GameEvent {
 
     public Player getPlayer() {
         return player;
+    }
+
+    public AddType getAddType() {
+        return addType;
+    }
+
+    public String getDesc() {
+        return desc;
     }
 }

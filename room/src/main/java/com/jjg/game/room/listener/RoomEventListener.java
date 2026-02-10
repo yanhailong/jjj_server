@@ -247,7 +247,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 log.error("货币变化日志找不到玩家所在房间 playerId:{} changeValue:{}", event.getPlayer().getId(), JSON.toJSONString(event.getCurrencyMap()));
                 return;
             }
-            CurrentChangeEventHandler handler = new CurrentChangeEventHandler(event.getPlayer(), gameController, event.getCurrencyMap());
+            CurrentChangeEventHandler handler = new CurrentChangeEventHandler(event.getPlayer(), gameController, event.getCurrencyMap(), event.getAddType(), event.getDesc());
             //抛到对应房间线程处理
             gameController.addGameTimeEvent(new TimerEvent<>(gameController, handler), RoomEventType.CURRENCY_CHANGE_EVENT);
         }

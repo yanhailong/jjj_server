@@ -137,7 +137,7 @@ public enum AddType {
     //游戏押注
     GAME_BET(712),
     //货币变化
-    ROOM_CURRENCY_CHANGE(713),
+//    ROOM_CURRENCY_CHANGE(713),
     //好友房道具收益
     FRIEND_ROOM_INCOME_TAKE_ALL(714),
     //好友房游戏结算
