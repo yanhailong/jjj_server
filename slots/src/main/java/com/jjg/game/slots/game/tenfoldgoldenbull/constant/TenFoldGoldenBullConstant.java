@@ -34,10 +34,21 @@ public interface TenFoldGoldenBullConstant {
     interface SpecialMode {
         int NORMAL = 1;
         int REAL_LUCKY_BULL = 2;
+        int JACKPOT = 3;
     }
 
-
+    interface ElementId {
+        int WILD = 7;
+    }
     interface Common {
-        int SPECIAL_PLAY_ID = 5034001;
+        //普通模式触发假金牛的概率
+        int SPECIAL_PLAY_ID = 5037001;
+        //随机icon
+        int RANDOM_ICON = 5037002;
+        //随机次数
+        int RANDOM_TIME = 5037003;
+
+        //奖池id
+        int JACKPOT_ID = 103700101;
     }
 }
