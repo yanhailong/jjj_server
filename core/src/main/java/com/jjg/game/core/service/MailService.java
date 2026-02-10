@@ -208,7 +208,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
                 desc = desc + "&" + mail.getTitle().getContent();
             }
 
-            CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, map, AddType.GET_ALL_MAILS_ITEMS, desc);
+            CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, mail.getItems(), AddType.GET_ALL_MAILS_ITEMS, desc);
             if (!addItemsResult.success()) {
                 log.debug("一键领取失败 playerId = {},code = {},mailId = {}", playerId, addItemsResult.code, mail.getId());
             } else {

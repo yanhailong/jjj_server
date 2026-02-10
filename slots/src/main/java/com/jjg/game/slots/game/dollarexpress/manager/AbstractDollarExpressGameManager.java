@@ -895,6 +895,10 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 log.debug("获取的池子id小于1 trainCoinId = {},poolId = {}", trainInfo.type, poolId);
                 continue;
             }
+
+            if(!lib.containsJackpotId(poolId)){
+                continue;
+            }
             PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
             if (poolCfg == null) {
                 continue;
