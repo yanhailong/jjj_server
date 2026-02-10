@@ -1,6 +1,7 @@
 package com.jjg.game.hall.pointsaward.turntable;
 
 import com.jjg.game.common.curator.MarsCurator;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
@@ -18,6 +19,7 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.pointsaward.PointsAwardLogger;
 import com.jjg.game.hall.pointsaward.PointsAwardService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
+import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardTurntableConfig;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardTurntableHistory;
 import com.jjg.game.hall.pointsaward.pb.res.ResPointsAwardTurntableSpin;
@@ -61,7 +63,7 @@ public class PointsAwardTurntableService implements IRedDotService {
     private final RedissonClient redissonClient;
     private final RedisLock redisLock;
     private final RedDotManager redDotManager;
-
+    private final PointsAwardLeaderboardService pointsAwardLeaderboardService;
     private final TreeMap<Integer, PointsAwardTurntableCfg> cfgTreeMap = new TreeMap<>();
 
     /**
@@ -76,7 +78,7 @@ public class PointsAwardTurntableService implements IRedDotService {
     public PointsAwardTurntableService(PointsAwardService pointsAwardService,
                                        PlayerPackService playerPackService,
                                        RedissonClient redissonClient,
-                                       RedisLock redisLock, PointsAwardLogger pointsAwardLogger, MarsCurator marsCurator, RedDotManager redDotManager) {
+                                       RedisLock redisLock, PointsAwardLogger pointsAwardLogger, MarsCurator marsCurator, RedDotManager redDotManager, PointsAwardLeaderboardService pointsAwardLeaderboardService) {
         this.pointsAwardService = pointsAwardService;
         this.redissonClient = redissonClient;
         this.playerPackService = playerPackService;
@@ -84,6 +86,7 @@ public class PointsAwardTurntableService implements IRedDotService {
         this.pointsAwardLogger = pointsAwardLogger;
         this.marsCurator = marsCurator;
         this.redDotManager = redDotManager;
+        this.pointsAwardLeaderboardService = pointsAwardLeaderboardService;
     }
 
     public void init() {
@@ -226,7 +229,8 @@ public class PointsAwardTurntableService implements IRedDotService {
         //积分消耗数量
         int consume = globalConfigCfg.getIntValue();
         //判断积分条件
-        long points = pointsAwardService.getPoints(playerId);
+        Pair<Integer, Integer> rank = pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerId);
+        long points = rank.getSecond();
         if (points < consume) {
             result.code = Code.POINT_AWARD_POINT_NOT_ENOUGH;
             return result;
@@ -299,7 +303,8 @@ public class PointsAwardTurntableService implements IRedDotService {
 
             int afterCount = maxCount - useCount;
             //转盘日志
-            pointsAwardLogger.turntableLog(playerId, afterCount + 1, -1, afterCount, consume, integralPoints, pointsAwardService.getPoints(playerId));
+            Pair<Integer, Integer> newRank = pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerId);
+            pointsAwardLogger.turntableLog(playerId, afterCount + 1, -1, afterCount, consume, integralPoints, newRank.getSecond());
         }
 
         return result;
@@ -366,8 +371,10 @@ public class PointsAwardTurntableService implements IRedDotService {
         }
 
         int afterCount = getMaxCount(playerId) - getCount(playerId);
+
+        Pair<Integer, Integer> rank = pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerId);
         //转盘日志
-        pointsAwardLogger.turntableLog(playerId, beforeCount, afterCount - beforeCount, afterCount, 0, 0, pointsAwardService.getPoints(playerId));
+        pointsAwardLogger.turntableLog(playerId, beforeCount, afterCount - beforeCount, afterCount, 0, 0, rank.getSecond());
     }
 
     /**
@@ -451,7 +458,8 @@ public class PointsAwardTurntableService implements IRedDotService {
         boolean hasRed = false;
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.POINTS_AWARDS_TURNTABLE_SPEND_SCORE);
         if (globalConfigCfg != null) {
-            hasRed = checkTurntable(playerId).get() && pointsAwardService.getPoints(playerId) >= globalConfigCfg.getIntValue();
+            Pair<Integer, Integer> rank = pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerId);
+            hasRed = checkTurntable(playerId).get() && rank.getSecond() >= globalConfigCfg.getIntValue();
         }
         //积分消耗数量
         details.setCount(hasRed ? 1 : 0);
