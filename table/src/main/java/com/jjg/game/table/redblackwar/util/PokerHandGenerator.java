@@ -17,17 +17,17 @@ import java.util.List;
  */
 public class PokerHandGenerator {
 
-    private static List<Integer> deck = new ArrayList<>();
-    private static List<Integer> suitList = new ArrayList<>();
+    private List<Integer> deck = new ArrayList<>();
+    private List<Integer> suitList = new ArrayList<>();
 
-    static {
+    public PokerHandGenerator() {
         suitList.add(PokerCardUtils.EPokerSuit.DIAMOND.getSuitId() - 1);
         suitList.add(PokerCardUtils.EPokerSuit.CLUBS.getSuitId() - 1);
         suitList.add(PokerCardUtils.EPokerSuit.HEART.getSuitId() - 1);
         suitList.add(PokerCardUtils.EPokerSuit.SPADES.getSuitId() - 1);
     }
 
-    public static List<Card> dealHand(HandType type, List<Integer> deckList) {
+    public List<Card> dealHand(HandType type, List<Integer> deckList) {
         if (deckList.size() < 3) {
             return List.of();
         }
@@ -45,14 +45,14 @@ public class PokerHandGenerator {
     }
     // ----------- 牌型生成方法 -----------
 
-    private static int getCardPoint(int value) {
+    private int getCardPoint(int value) {
         return (value - 1) % 13 + 1;
     }
 
     /**
      * 生成豹子
      */
-    private static List<Card> generateLeopard() {
+    private List<Card> generateLeopard() {
         for (int i = 0; i < deck.size(); i++) {
             int cardPoint = getCardPoint(deck.get(i));
             List<Card> result = new ArrayList<>();
@@ -73,7 +73,7 @@ public class PokerHandGenerator {
     /**
      * 生成顺金 12345678910 j(11) q(12) k(13)
      */
-    private static List<Card> generateStraightFlush() {
+    private List<Card> generateStraightFlush() {
         for (int i = 0; i < deck.size(); i++) {
             int start = getCardPoint(deck.get(i));
             if (start > 12) {
@@ -102,7 +102,7 @@ public class PokerHandGenerator {
     /**
      * 生成金花 和初始牌值不一样 不连续 花色一样
      */
-    private static List<Card> generateFlush() {
+    private List<Card> generateFlush() {
         for (int i = 0; i < deck.size(); i++) {
             Card[] temp = new Card[3];
             temp[0] = new Card(deck.get(i));
@@ -132,7 +132,7 @@ public class PokerHandGenerator {
     /**
      * 生成顺子
      */
-    private static List<Card> generateStraight() {
+    private List<Card> generateStraight() {
 
         for (int i = 0; i < deck.size(); i++) {
             int start = getCardPoint(deck.get(i));
@@ -170,7 +170,7 @@ public class PokerHandGenerator {
     /**
      * 生成对子
      */
-    private static List<Card> generatePair() {
+    private List<Card> generatePair() {
         for (int i = 0; i < deck.size(); i++) {
             Card card = new Card(deck.get(i));
             Card[] temp = new Card[3];
@@ -207,7 +207,7 @@ public class PokerHandGenerator {
     /**
      * 生成散牌
      */
-    private static List<Card> generateHighCard() {
+    private List<Card> generateHighCard() {
         for (int i = 0; i < deck.size(); i++) {
             Card[] temp = new Card[3];
             Card card = new Card(deck.get(i));
@@ -236,11 +236,11 @@ public class PokerHandGenerator {
 
     // ------------ 工具方法 ------------
 
-    private static void remove(List<Card> cards) {
+    private void remove(List<Card> cards) {
         for (Card c : cards) deck.remove(Integer.valueOf(c.getValue()));
     }
 
-    private static boolean isStraightRanks(List<Card> cards) {
+    private boolean isStraightRanks(List<Card> cards) {
         List<Integer> ranks = cards.stream().map(Card::getRank).sorted().toList();
         return (ranks.contains(1) && ranks.contains(12) && ranks.contains(13)) ||
                 (ranks.get(1) - ranks.get(0) == 1 && ranks.get(2) - ranks.get(1) == 1);

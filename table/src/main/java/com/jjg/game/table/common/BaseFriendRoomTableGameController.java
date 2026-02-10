@@ -245,7 +245,9 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
     protected void nextRoundStart() {
         super.nextRoundStart();
         // 添加坐庄次数
-        gameDataVo.addBeBankerTimes();
+        if (getRoom() instanceof FriendRoom friendRoom && friendRoom.roomBankerId() > 0) {
+            gameDataVo.addBeBankerTimes();
+        }
     }
 
 }

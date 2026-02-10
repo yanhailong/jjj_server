@@ -11,8 +11,7 @@ import java.util.List;
  * @author 2CL
  */
 public class TablePlayerGameData {
-    // 开局时玩家的座位号，在场上显示的人才有座位号
-    private int sitNum;
+
     // 最近20场的下注数据 / 临时数据
     private final List<Pair<Boolean, Long>> betInfoList = new ArrayList<>();
     // 红黑大战玩家本场此押注总金币
@@ -44,14 +43,6 @@ public class TablePlayerGameData {
 
     public void addTotalBet(long bet) {
         this.totalBet += bet;
-    }
-
-    public int getSitNum() {
-        return sitNum;
-    }
-
-    public void setSitNum(int sitNum) {
-        this.sitNum = sitNum;
     }
 
     public long getPlayerLatestOperateTime() {

@@ -22,7 +22,6 @@ import com.jjg.game.table.baccarat.message.resp.BaccaratSettlementInfo;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratSettlementInfo;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
-import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 import org.slf4j.Logger;
@@ -267,7 +266,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 case 3 -> playerThirdPointId != 8;
                 case 4 -> playerThirdPointId > 1 && playerThirdPointId < 8;
                 case 5 -> playerThirdPointId > 3 && playerThirdPointId < 8;
-                case 6 -> playerThirdPointId != 6 && playerThirdPointId != 7;
+                case 6 -> playerThirdPointId == 6 || playerThirdPointId == 7;
                 default -> false;
             };
         }

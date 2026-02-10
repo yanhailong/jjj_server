@@ -239,11 +239,12 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         // 随机押注金币
         int randomGoldIdx = RandomUtils.randomByWeightList(betRobotCfg.getBetChips());
         List<Integer> betList = gameDataVo.getRoomCfg().getBetList();
-        Integer randomGold = betList.get(randomGoldIdx - 1);
-        if (randomGold == null) {
+        int index = randomGoldIdx - 1;
+        if (index < 0 || index >= betList.size()) {
             log.error("配置表异常，机器人押注筹码表：{} 下标：{} 在压分列表中找不到", BetRobotCfg.EXCEL_NAME, randomGoldIdx);
             return;
         }
+        Integer randomGold = betList.get(randomGoldIdx - 1);
         // 检查下注行为
         int code = checkBetAction(robotPlayer, randomBetArea, randomGold);
         // 检查机器人是否下注
@@ -427,7 +428,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
                             .sum();
             long areaTotalBet = playerBet + playerReqBet;
             // 需要乘以赔付倍数
-            areaTotalBet = areaTotalBet * (entry.getValue().getMaxPetMultiplier() / 100);
+            areaTotalBet = areaTotalBet * entry.getValue().getMaxPetMultiplier() / 100;
             if (entry.getValue().getRepulsionID() > 0) {
                 repulsionAreaTotal = Math.abs(repulsionAreaTotal - areaTotalBet);
             } else {
