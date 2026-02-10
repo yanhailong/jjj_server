@@ -4,7 +4,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
-import com.jjg.game.core.data.FriendRoom;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -102,8 +102,14 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                     } else {
                         settlementDataMap.get(playerId).increaseBySettlementData(settlementData);
                     }
-                    // 给玩家添加金币
-                    gameController.addItem(gamePlayer.getId(), settlementData.getTotalWin(), AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+                    long totalWin = settlementData.getTotalWin();
+                    if (totalWin > 0) {
+                        int addCode = gameController.addItem(gamePlayer.getId(), totalWin, AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+                        if (addCode != Code.SUCCESS) {
+                            log.error("龙虎斗结算给玩家加金币失败 playerId:{} totalWin:{} code:{}",
+                                    gamePlayer.getId(), totalWin, addCode);
+                        }
+                    }
                     DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
                     keyValue.setKey(keyValue.getKey() + totalBet);
                     keyValue.setValue(keyValue.getValue() + settlementData.getTotalWin());

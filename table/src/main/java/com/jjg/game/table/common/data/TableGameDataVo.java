@@ -51,7 +51,7 @@ public class TableGameDataVo extends GameDataVo<Room_BetCfg> {
         Map<Integer, Map<Long, Long>> areaBetmap = new HashMap<>();
         for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : playerBetInfo.entrySet()) {
             GamePlayer gamePlayer = getGamePlayerMap().get(entry.getKey());
-            if (gamePlayer instanceof GameRobotPlayer) {
+            if (gamePlayer == null || gamePlayer instanceof GameRobotPlayer) {
                 continue;
             }
             for (Map.Entry<Integer, List<Integer>> listEntry : entry.getValue().entrySet()) {
