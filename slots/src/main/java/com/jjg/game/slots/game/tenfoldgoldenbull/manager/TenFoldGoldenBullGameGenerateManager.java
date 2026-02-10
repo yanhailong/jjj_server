@@ -33,8 +33,8 @@ public class TenFoldGoldenBullGameGenerateManager extends AbstractSlotsGenerateM
     }
 
     private Pair<Integer, Integer> modelRandom;
-    private WeightRandom<Integer> randomCount = new WeightRandom<>();
-    private WeightRandom<Integer> randomIcon = new WeightRandom<>();
+    private final WeightRandom<Integer> randomCount = new WeightRandom<>();
+    private final WeightRandom<Integer> randomIcon = new WeightRandom<>();
 
     @Override
     public TenFoldGoldenBullResultLib checkAward(int[] arr, TenFoldGoldenBullResultLib lib, boolean freeModel) throws Exception {
@@ -112,13 +112,17 @@ public class TenFoldGoldenBullGameGenerateManager extends AbstractSlotsGenerateM
         }
         for (int i = 0; i < 100; i++) {
             TenFoldGoldenBullResultLib tempLib = generateOne(libType, specialModeCfg);
-            if (CollectionUtil.isNotEmpty(tempLib.getAwardLineInfoList())) {
+            if (tempLib == null || CollectionUtil.isNotEmpty(tempLib.getAwardLineInfoList())) {
                 continue;
             }
             lib.addRandomResult(tempLib);
             if (lib.getRandomResult().size() >= count) {
                 //再生成一个全屏的
                 TenFoldGoldenBullResultLib jackPot = generateOne(libType, specialModeCfg);
+                if (jackPot == null) {
+                    log.error("牛气冲天生成带jackpot的结果失败");
+                    break;
+                }
                 int[] iconArr = jackPot.getIconArr();
                 for (int j = 1; j < iconArr.length; j++) {
                     int oldIcon = iconArr[j];
@@ -127,6 +131,7 @@ public class TenFoldGoldenBullGameGenerateManager extends AbstractSlotsGenerateM
                     }
                     iconArr[j] = icon;
                 }
+                jackPot.setTimes(0);
                 jackPot.setJackpotId(TenFoldGoldenBullConstant.Common.JACKPOT_ID);
                 checkAward(iconArr, jackPot);
                 lib.addRandomResult(jackPot);
@@ -149,6 +154,9 @@ public class TenFoldGoldenBullGameGenerateManager extends AbstractSlotsGenerateM
         }
         for (int i = 0; i < 100; i++) {
             TenFoldGoldenBullResultLib tempLib = generateOne(libType, specialModeCfg);
+            if (tempLib == null) {
+                continue;
+            }
             lib.addLibType(libType);
             lib.addRandomResult(tempLib);
             if (CollectionUtil.isNotEmpty(tempLib.getAwardLineInfoList())) {
@@ -218,6 +226,7 @@ public class TenFoldGoldenBullGameGenerateManager extends AbstractSlotsGenerateM
     }
 
     private void loadIconRandom() {
+        randomIcon.clear();
         SpecialPlayCfg specialPlayCfg = GameDataManager.getSpecialPlayCfg(TenFoldGoldenBullConstant.Common.RANDOM_ICON);
         if (specialPlayCfg == null || StringUtil.isEmpty(specialPlayCfg.getValue())) {
             return;
@@ -233,6 +242,7 @@ public class TenFoldGoldenBullGameGenerateManager extends AbstractSlotsGenerateM
     }
 
     private void loadCountRandom() {
+        randomCount.clear();
         SpecialPlayCfg specialPlayCfg = GameDataManager.getSpecialPlayCfg(TenFoldGoldenBullConstant.Common.RANDOM_TIME);
         if (specialPlayCfg == null || StringUtil.isEmpty(specialPlayCfg.getValue())) {
             return;

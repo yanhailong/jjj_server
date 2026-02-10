@@ -186,9 +186,10 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
             gameRunInfo.setCode(Code.PARAM_ERROR);
             return;
         }
-        gameRunInfo.setScrollType(luckyBullResult.getRollerMode());
+        TenFoldGoldenBullResultLib resultLib = randomResult.get(currentRandomIndex);
+        gameRunInfo.setScrollType(resultLib.getRollerMode());
         if (currentRandomIndex == randomResult.size() - 1) {
-            PoolCfg poolCfg = GameDataManager.getPoolCfg(luckyBullResult.getJackpotId());
+            PoolCfg poolCfg = GameDataManager.getPoolCfg(resultLib.getJackpotId());
             if (poolCfg != null) {
                 //检查是否中大奖
                 CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(),
@@ -201,15 +202,14 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
             playerGameData.setStatus(TenFoldGoldenBullConstant.Status.NORMAL);
             playerGameData.setLuckyBull(null);
             playerGameData.setCurrentRandomIndex(0);
-            gameRunInfo.setBigShowId(luckyBullResult.getJackpotId());
+            gameRunInfo.setBigShowId(resultLib.getJackpotId());
             gameRunInfo.setLuckyBullEnd(true);
-            gameRunInfo.setBigPoolTimes(luckyBullResult.getTimes());
-            gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(luckyBullResult.getAwardLineInfoList(), playerGameData.getOneBetScore()));
-            gameRunInfo.setIconArr(luckyBullResult.getIconArr());
+            gameRunInfo.setBigPoolTimes(resultLib.getTimes());
+            gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
+            gameRunInfo.setIconArr(resultLib.getIconArr());
             gameRunInfo.setStatus(TenFoldGoldenBullConstant.Status.REAL_LUCKY_BULL);
             return;
         }
-        TenFoldGoldenBullResultLib resultLib = randomResult.get(currentRandomIndex);
         playerGameData.setCurrentRandomIndex(currentRandomIndex + 1);
         gameRunInfo.setStatus(TenFoldGoldenBullConstant.Status.REAL_LUCKY_BULL);
         gameRunInfo.setIconArr(resultLib.getIconArr());
