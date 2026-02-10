@@ -25,6 +25,8 @@ public class ResDemonChildStartGame extends AbstractResponse {
     public long allWinGold;
     @ProtoDesc("当前状态 0.正常  1.免费 ")
     public int status;
+    @ProtoDesc("总免费次数")
+    public int totalFreeCount;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
     @ProtoDesc("玩家当前金币")

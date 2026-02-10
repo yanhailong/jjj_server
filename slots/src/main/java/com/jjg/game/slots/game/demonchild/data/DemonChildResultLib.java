@@ -7,14 +7,14 @@ import com.jjg.game.slots.data.SlotsResultLib;
  * @date 2025/12/2 17:30
  */
 public class DemonChildResultLib extends SlotsResultLib<DemonChildAwardLineInfo> {
-    //增加的免费次数
-    private int addFreeCount;
+    //免费总次数
+    private int freeTotalCount;
 
-    public int getAddFreeCount() {
-        return addFreeCount;
+    public int getFreeTotalCount() {
+        return freeTotalCount;
     }
 
-    public void setAddFreeCount(int addFreeCount) {
-        this.addFreeCount = addFreeCount;
+    public void setFreeTotalCount(int freeTotalCount) {
+        this.freeTotalCount = freeTotalCount;
     }
 }

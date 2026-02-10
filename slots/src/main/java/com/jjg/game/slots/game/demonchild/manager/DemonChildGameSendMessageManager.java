@@ -12,17 +12,20 @@ import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.demonchild.constant.DemonChildConstant;
-import com.jjg.game.slots.game.demonchild.data.*;
+import com.jjg.game.slots.game.demonchild.data.DemonChildGameRunInfo;
+import com.jjg.game.slots.game.demonchild.data.DemonChildPlayerGameData;
+import com.jjg.game.slots.game.demonchild.data.DemonChildResultLib;
 import com.jjg.game.slots.game.demonchild.pb.bean.DemonChildPoolInfo;
-import com.jjg.game.slots.game.demonchild.pb.bean.DemonChildLineInfo;
 import com.jjg.game.slots.game.demonchild.pb.res.ResDemonChildEnterGame;
 import com.jjg.game.slots.game.demonchild.pb.res.ResDemonChildPoolValue;
 import com.jjg.game.slots.game.demonchild.pb.res.ResDemonChildStartGame;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -66,11 +69,9 @@ public class DemonChildGameSendMessageManager extends BaseSendMessageManager {
             res.remainFreeCount = playerGameData.getRemainFreeCount().get();
             //计算当前免费倍率
             if (playerGameData.getStatus() == DemonChildConstant.Status.FREE) {
-                AtomicInteger freeIndex = playerGameData.getFreeIndex();
-                if (playerGameData.getFreeLib() instanceof DemonChildResultLib lib) {
-                    res.freeAmount = generateManager.calFree(lib, freeIndex.get()) * playerGameData.getOneBetScore();
-                }
+                res.freeAmount = playerGameData.getFreeAllWin();
             }
+            res.totalFreeCount = gameRunInfo.getTotalFreeCount();
             res.poolList = new ArrayList<>();
             for (int poolId : prizePoolIdList) {
                 PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
@@ -116,12 +117,13 @@ public class DemonChildGameSendMessageManager extends BaseSendMessageManager {
             res.iconList = Arrays.stream(gameRunInfo.getIconArr(), 1, gameRunInfo.getIconArr().length).boxed().collect(Collectors.toList());
             //剩余免费次数
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
+            res.totalFreeCount = gameRunInfo.getRemainFreeCount();
             //大奖展示id
             res.bigWinShow = gameRunInfo.getBigShowId();
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
-
+            res.totalFreeCount = gameRunInfo.getTotalFreeCount();
             DemonChildResultLib lib = (DemonChildResultLib) gameRunInfo.getResultLib();
             res.iconAmountList = buildIconAmount(lib);
             res.rewardLineInfo = gameRunInfo.getAwardLineInfos();

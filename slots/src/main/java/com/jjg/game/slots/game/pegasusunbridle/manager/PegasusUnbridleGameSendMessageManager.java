@@ -67,7 +67,7 @@ public class PegasusUnbridleGameSendMessageManager extends BaseSendMessageManage
                     if (CollectionUtil.isNotEmpty(randomResult)) {
                         PegasusUnbridleResultLib resultLib = randomResult.get(playerGameData.getCurrentRandomIndex());
                         res.iconList = Arrays.stream(resultLib.getIconArr(), 1, resultLib.getIconArr().length).boxed().collect(Collectors.toList());
-                        res.scrollType = playerGameData.getFuMa().getRollerMode();
+                        res.scrollType = resultLib.getRollerMode();
                         res.specialModeIcon = playerGameData.getFuMa().getSpecialModeIcon();
                     }
                 }
