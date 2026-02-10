@@ -51,24 +51,13 @@ public class HallSchedulManager {
         }
     }
 
-    /**
-     * 每天凌晨0点定时执行
-     */
-    @Scheduled(cron = "0 0 0 * * ? ")
-//    @Scheduled(initialDelay = 10 * 1000, fixedRate = 40 * 1000)
-    private void dailyZero() {
-        //是主节点才能执行
-        if (marsCurator.isMaster()) {
-            hallPoolDao.snapshot();
-        }
-    }
-
     @Scheduled(cron = "0 0 0/1 * * ?")
     private void clearToken() {
         //是主节点才能执行
         if (marsCurator.isMaster()) {
             int delCount = playerSessionTokenDao.clearExpireToken();
             log.info("删除过期token条数: {}", delCount);
+            hallPoolDao.snapshot();
         }
     }
 

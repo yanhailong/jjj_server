@@ -1489,6 +1489,10 @@ public class GMController extends AbstractController {
                 clusterClient = clusterSystem.randClientByType(NodeType.HALL);
             } else {
                 clusterClient = clusterSystem.getClusterByPath(info.getCurrentNode());
+                //只能是大厅节点才能进行绑定操作
+                if (clusterClient != null && !NodeType.HALL.toString().equals(clusterClient.getType())) {
+                    clusterClient = clusterSystem.randClientByType(NodeType.HALL);
+                }
             }
 
             if (clusterClient == null) {
