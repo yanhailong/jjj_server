@@ -1,8 +1,6 @@
 package com.jjg.game.slots.game.demonchild.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
 import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
@@ -36,9 +34,18 @@ public class DemonChildGameGenerateManager extends AbstractSlotsGenerateManager<
         //检查全局分散图案
         List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
         lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
+        //设置免费总次数
+        if (CollectionUtil.isNotEmpty(overallDisperseAuxiliaryInfoList)) {
+            for (SpecialAuxiliaryInfo auxiliaryInfo : overallDisperseAuxiliaryInfoList) {
+                if (CollectionUtil.isNotEmpty(auxiliaryInfo.getFreeGames())) {
+                    lib.setFreeTotalCount(lib.getFreeTotalCount() + auxiliaryInfo.getFreeGames().size());
+                }
+            }
+        }
         calTimes(lib);
         return lib;
     }
+
 
     @Override
     protected DemonChildAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
@@ -79,29 +86,5 @@ public class DemonChildGameGenerateManager extends AbstractSlotsGenerateManager<
         }
         return times;
     }
-
-    /**
-     * 计算免费游戏的总倍数
-     */
-    public long calFree(DemonChildResultLib lib, int endIndex) {
-        if (CollectionUtil.isEmpty(lib.getSpecialAuxiliaryInfoList())) {
-            return 0;
-        }
-        long totalTimes = 0;
-        for (SpecialAuxiliaryInfo info : lib.getSpecialAuxiliaryInfoList()) {
-            if (CollectionUtil.isEmpty(info.getFreeGames())) {
-                continue;
-            }
-            endIndex = Math.min(endIndex, info.getFreeGames().size());
-            for (int i = 0; i < endIndex; i++) {
-                JSONObject jsonObject = info.getFreeGames().get(i);
-                DemonChildResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), DemonChildResultLib.class);
-                //中奖线
-                totalTimes += tmpLib.getTimes();
-            }
-        }
-        return totalTimes;
-    }
-
 
 }

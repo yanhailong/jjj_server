@@ -128,18 +128,15 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(DemonChildConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(DemonChildConstant.Status.FREE);
-            long times = gameGenerateManager.calLineTimes(resultLib.getAwardLineInfoList());
             playerGameData.setFreeLib(resultLib);
-            playerGameData.getRemainFreeCount().set(resultLib.getAddFreeCount());
-            gameRunInfo.addBigPoolTimes(times);
+            playerGameData.getRemainFreeCount().set(resultLib.getFreeTotalCount());
+            gameRunInfo.setTotalFreeCount(resultLib.getFreeTotalCount());
             log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(),
-                    playerGameData.getRemainFreeCount().get(), times);
-        } else {
-            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+                    playerGameData.getRemainFreeCount().get(), resultLib.getTimes());
         }
+        gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         //检查是否中大奖
         rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
-
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
@@ -162,12 +159,7 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
         }
         //扣除免费次数
         int afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
-
         DemonChildResultLib freeGame = libResult.data;
-        if (freeGame.getAddFreeCount() > 0) {
-            afterCount = playerGameData.getRemainFreeCount().addAndGet(freeGame.getAddFreeCount());
-            log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(), afterCount);
-        }
         //累计免费模式的中奖金额
         playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
         gameRunInfo.addBigPoolTimes(freeGame.getTimes());
@@ -175,8 +167,8 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
             playerGameData.setStatus(DemonChildConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
-            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
+            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
         }
         gameRunInfo.setIconArr(freeGame.getIconArr());
