@@ -26,6 +26,8 @@ import com.jjg.game.core.service.BlackListService;
 import com.jjg.game.core.service.LoginConfigService;
 import com.jjg.game.core.service.SmsService;
 import com.jjg.game.core.utils.CoreUtil;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.UndergarmentCfg;
 import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,6 +64,8 @@ public class AccountController extends AbstractController {
     private CountDao countDao;
     @Autowired
     private CommonDao commonDao;
+    @Autowired
+    private AdjustConfig adjustConfig;
 
     /**
      * 获取开启的登录方式
@@ -169,6 +173,12 @@ public class AccountController extends AbstractController {
     @RequestMapping("serverurl")
     private WebResult<ServerUrlVo> serverUrl(@RequestBody ServerUrlDto dto, @RequestHeader("token") String token, HttpServletRequest request) {
         try {
+            //检查是否需要切换地址
+            if (checkSwitchServer(dto.getPlayerId(), dto.getWesteId(), dto.getAdid())) {
+                log.info("可以切换服务器 playerId = {},westeId = {},adid = {}", dto.getPlayerId(), dto.getWesteId(), dto.getAdid());
+                return fail(Code.SWITCH_TO_OFFICAL_SERVER);
+            }
+
             long playerId = dto.getPlayerId();
             if (StringUtils.isEmpty(token)) {
                 log.debug("参数不能为空，获取服务器地址失败 token = {}", token);
@@ -489,8 +499,7 @@ public class AccountController extends AbstractController {
         }
 
         //保存token，方便weboskcet连接时进行校验
-        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), dto.getChannel(), ip, deviceType.getValue(),
-                dto.getMac(), account.getChannel().getValue(), dto.getShareId(), dto.getSubChannel(), dto.getWesteId());
+        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), dto.getChannel(), ip, deviceType.getValue(), dto.getMac(), account.getChannel().getValue(), dto.getShareId(), dto.getSubChannel(), dto.getWesteId());
 
         LoginVo vo = new LoginVo();
         vo.setToken(token);
@@ -569,5 +578,44 @@ public class AccountController extends AbstractController {
             log.error("", e);
         }
         return result;
+    }
+
+    /**
+     * 根据id判断是否要切换服务器
+     *
+     * @param westeId
+     * @param adid
+     * @return
+     */
+    private boolean checkSwitchServer(long playerId, int westeId, String adid) {
+        if (westeId < 1 || playerId < 1) {
+            return false;
+        }
+
+        UndergarmentCfg undergarmentCfg = GameDataManager.getUndergarmentCfg(westeId);
+        if (undergarmentCfg == null) {
+            log.warn("获取马甲配置失败 playerId = {},westeId = {}", playerId, westeId);
+            return false;
+        }
+
+        if (adjustConfig != null && adjustConfig.isOpen()) {
+            Account account = accountService.getByPlayerId(playerId);
+            if (account == null) {
+                return false;
+            }
+
+            String thirdAccount = account.getThirdAccount(LoginType.PHONE);
+            if (StringUtils.isNotBlank(thirdAccount)) {
+                log.info("该玩家已绑定手机 playerId = {},westeId = {},adid = {},thirdAccount = {}", playerId, westeId, adid, thirdAccount);
+                return true;
+            }
+        }
+
+        boolean flag = thirdAccountHttpService.checkSwitchServerByAdid(adid);
+        if (flag) {
+            log.info("该玩家为点击广告用户 playerId = {},westeId = {},adid = {}", playerId, westeId, adid);
+            return true;
+        }
+        return false;
     }
 }

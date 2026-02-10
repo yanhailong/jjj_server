@@ -1,6 +1,7 @@
 package com.jjg.game.hall.pointsaward.signin;
 
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
@@ -16,6 +17,7 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.pointsaward.PointsAwardLogger;
 import com.jjg.game.hall.pointsaward.PointsAwardService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
+import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardSignInConfig;
 import com.jjg.game.sampledata.bean.PointsAwardSigninCfg;
 import jakarta.annotation.PreDestroy;
@@ -51,7 +53,7 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
     private final RedisLock redisLock;
     private final RedDotManager redDotManager;
     private final PointsAwardLogger pointsAwardLogger;
-
+    private final PointsAwardLeaderboardService pointsAwardLeaderboardService;
     /**
      * 签到管理器
      */
@@ -68,7 +70,7 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
                                     RedisLock redisLock,
                                     ClusterSystem clusterSystem,
                                     RedDotManager redDotManager,
-                                    PointsAwardLogger pointsAwardLogger) {
+                                    PointsAwardLogger pointsAwardLogger, PointsAwardLeaderboardService pointsAwardLeaderboardService) {
         this.pointsAwardService = pointsAwardService;
         this.playerPackService = playerPackService;
         this.redissonClient = redissonClient;
@@ -76,6 +78,7 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
         this.clusterSystem = clusterSystem;
         this.redDotManager = redDotManager;
         this.pointsAwardLogger = pointsAwardLogger;
+        this.pointsAwardLeaderboardService = pointsAwardLeaderboardService;
     }
 
     public void init(PointsAwardSignInManager manager) {
@@ -277,8 +280,9 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
             if (signInCfg.getGetItem() != null && !signInCfg.getGetItem().isEmpty()) {
                 playerPackService.addItems(player.getId(), ItemUtils.buildItems(signInCfg.getGetItem()), AddType.POINTS_AWARD_SIGN_REWARDS);
             }
+            Pair<Integer, Integer> rank = pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, player.getId());
             //记录日志
-            pointsAwardLogger.signInLog(player, getSignSet(player.getId()).size(), signInCfg.getIntegralNum(), pointsAwardService.getPoints(player.getId()));
+            pointsAwardLogger.signInLog(player, getSignSet(player.getId()).size(), signInCfg.getIntegralNum(), rank.getSecond());
             //更新红点
             redDotManager.updateRedDotByInitialize(getModule(), getSubmodule(), player.getId());
         }

@@ -3,7 +3,6 @@ package com.jjg.game.hall.pointsaward.leaderboard;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.PageUtils;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.RankEntry;
 import com.jjg.game.core.manager.AwardCodeManager;
@@ -24,7 +23,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 使用 Redisson 实现的分布式排行榜服务
@@ -93,8 +95,8 @@ public class PointsAwardLeaderboardService {
      * 不满足最低分时移除。
      * 并发控制：对同一排行榜使用分布式锁，保证读取-计算-写入与裁剪的原子性。
      */
-    public void upsert(int type, long playerId, int points) {
-        rankService.addPoints(getRankKey(type), playerId, points);
+    public long upsert(int type, long playerId, int points) {
+        return rankService.addPoints(getRankKey(type), playerId, points);
     }
 
     public long getEndTime(int type) {
