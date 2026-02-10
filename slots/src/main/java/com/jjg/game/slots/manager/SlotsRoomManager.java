@@ -6,6 +6,7 @@ import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.data.*;
@@ -263,7 +264,7 @@ public class SlotsRoomManager implements HallRoomBridge {
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(slotsRoomController.getRoom().getRoomCfgId());
             params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
             params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
-            mailService.addCfgMail(slotsRoomController.getRoom().getCreator(), 2, null, params);
+            mailService.addCfgMail(slotsRoomController.getRoom().getCreator(), 2, null, params, AddType.FRIEND_ROOM_NO_PLAYER_PAUSE_RENEWAL);
             log.info("房间时长到期,没有玩家暂停续费 roomId = {},roomCfgId = {}", roomId, slotsRoomController.getRoom().getRoomCfgId());
             return false;
         }
@@ -287,7 +288,7 @@ public class SlotsRoomManager implements HallRoomBridge {
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(slotsRoomController.getRoom().getRoomCfgId());
             params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
             params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
-            mailService.addCfgMail(slotsRoomController.getRoom().getCreator(), 3, null, params);
+            mailService.addCfgMail(slotsRoomController.getRoom().getCreator(), 3, null, params, AddType.FRIEND_ROOM_RENEWAL_FAIL);
             return false;
         }
         long overdueTime = slotsRoomController.getRoom().getOverdueTime();
@@ -363,7 +364,7 @@ public class SlotsRoomManager implements HallRoomBridge {
 
         if (poolRaminValue > 0) {
             List<Item> returnItems = List.of(new Item(warehouseCfg.getTransactionItemId(), poolRaminValue));
-            Mail mail = mailService.addCfgMail(room.getCreator(), 35, returnItems, params);
+            Mail mail = mailService.addCfgMail(room.getCreator(), 35, returnItems, params, AddType.FRIEND_ROOM_DESTROY_ROOM_BANKER_ADD_GOLD);
             slotsLogger.roomDisband(room, mail.getId(), returnItems);
         } else {
             slotsLogger.roomDisband(room, 0, List.of());

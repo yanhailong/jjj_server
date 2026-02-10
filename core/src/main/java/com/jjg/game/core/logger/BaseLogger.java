@@ -693,4 +693,28 @@ public class BaseLogger {
             log.error("sendVipLog", e);
         }
     }
+
+    /**
+     * 房间解散日志
+     */
+    public void addMail(Mail mail) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("playerId", mail.getPlayerId());
+            json.put("mailId", mail);
+
+            json.put("title", objectMapper.writeValueAsString(mail.getTitle()));
+            json.put("content", objectMapper.writeValueAsString(mail.getContent()));
+
+            json.put("sendTime", mail);
+            json.put("timeout", mail);
+            json.put("serverMail", mail.isServerMail());
+            json.put("items", ItemUtils.itemListToJson(mail.getItems()));
+            json.put("addType", mail.getAddType().getValue());
+
+            sendLog("mail", null, json);
+        } catch (Exception e) {
+            log.error("sendVipLog", e);
+        }
+    }
 }

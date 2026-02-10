@@ -289,7 +289,7 @@ public class DailyRechargeController extends BaseActivityController implements G
                         CollectionUtil.isEmpty(dailyRechargeCfg.getAwardItem())) {
                     continue;
                 }
-                mailService.addCfgMail(playerId, MAIL_CFG_ID, ItemUtils.buildItems(dailyRechargeCfg.getAwardItem()));
+                mailService.addCfgMail(playerId, MAIL_CFG_ID, ItemUtils.buildItems(dailyRechargeCfg.getAwardItem()),AddType.ACTIVITY_DAILY_RECHARGE_PROGRESS);
             } catch (Exception e) {
                 log.error("每日充值未领取奖励发送邮件异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), entry.getKey(), e);
             }

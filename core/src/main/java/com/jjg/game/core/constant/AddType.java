@@ -144,6 +144,13 @@ public enum AddType {
     FRIEND_GAME_SETTLEMENT(715),
     //好友房游戏押注
     FRIEND_GAME_BET(716),
+
+    //好友房没有玩家时暂停续费
+    FRIEND_ROOM_NO_PLAYER_PAUSE_RENEWAL(717),
+    //好友房续费失败
+    FRIEND_ROOM_RENEWAL_FAIL(718),
+
+
     //任务奖励
     TASKAWARD(801),
 
@@ -203,7 +210,7 @@ public enum AddType {
     //购买头像
     BUY_AVATAR(1601),
 
-    //注册金币领取
+    //玩家注册
     PLAYER_REGISTER(1602),
     ;
 

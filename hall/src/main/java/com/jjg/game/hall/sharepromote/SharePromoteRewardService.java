@@ -5,6 +5,7 @@ import com.jjg.game.core.base.condition.MatchResult;
 import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.handler.BindPhoneCondition;
 import com.jjg.game.core.base.gameevent.*;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
@@ -84,7 +85,7 @@ public class SharePromoteRewardService implements GameEventListener {
                         int itemId = Integer.parseInt(split1[0]);
                         int itemNum = Integer.parseInt(split1[1]);
                         //返回奖励
-                        mailService.addCfgMail(playId, GameConstant.Mail.ID_SHARING_REWARD, List.of(new Item(itemId, itemNum)));
+                        mailService.addCfgMail(playId, GameConstant.Mail.ID_SHARING_REWARD, List.of(new Item(itemId, itemNum)), AddType.ACTIVITY_SHARE_PROMOTE);
                     }
                     return Code.SUCCESS;
                 } else {

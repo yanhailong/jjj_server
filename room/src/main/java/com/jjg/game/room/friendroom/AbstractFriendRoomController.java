@@ -251,7 +251,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
 
         List<Item> returnItems = List.of(new Item(gameTransactionItemId, gainGold));
-        Mail mail = roomManager.getMailService().addCfgMail(playerId, 35, returnItems, params);
+        Mail mail = roomManager.getMailService().addCfgMail(playerId, 35, returnItems, params, AddType.FRIEND_ROOM_DESTROY_ROOM_BANKER_ADD_GOLD);
         roomManager.getCoreLogger().roomDisband(this.room, mail.getId(), returnItems);
     }
 
@@ -267,7 +267,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(room.getRoomCfgId());
         params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
         params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
-        roomManager.getMailService().addCfgMail(playerId, 39, List.of(new Item(gameTransactionItemId, gainGold)), params);
+        roomManager.getMailService().addCfgMail(playerId, 39, List.of(new Item(gameTransactionItemId, gainGold)), params, AddType.FRIEND_ROOM_CANCEL_BANKER_ADD_GOLD);
     }
 
     /**
@@ -297,7 +297,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(room.getRoomCfgId());
                 params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
                 params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
-                roomManager.getMailService().addCfgMail(room.getCreator(), 2, null, params);
+                roomManager.getMailService().addCfgMail(room.getCreator(), 2, null, params, AddType.FRIEND_ROOM_NO_PLAYER_PAUSE_RENEWAL);
                 log.info("房间：{} 时长到期,没有玩家暂停续费", room.logStr());
                 return false;
             }
@@ -318,7 +318,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(room.getRoomCfgId());
                 params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
                 params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
-                roomManager.getMailService().addCfgMail(room.getCreator(), 3, null, params);
+                roomManager.getMailService().addCfgMail(room.getCreator(), 3, null, params, AddType.FRIEND_ROOM_RENEWAL_FAIL);
                 return false;
             }
             long overdueTime = room.getOverdueTime();

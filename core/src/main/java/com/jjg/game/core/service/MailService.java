@@ -13,6 +13,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.MailDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.NotifyRedDot;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
@@ -48,6 +49,8 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     private RedDotManager redDotManager;
     @Autowired
     private LoginConfigService loginConfigService;
+    @Autowired
+    private CoreLogger coreLogger;
 
     //每页数量
     private int mailPageSize = 50;
@@ -236,63 +239,50 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
      * @param content
      * @param items
      */
-    public void addMail(long playerId, String title, String content, List<Item> items) {
+    public Mail addMail(long playerId, String title, String content, List<Item> items, AddType addType) {
         LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, title);
         LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, content);
-
-        Mail mail = createMail(titleData, contentData, items, false);
-        mail.setId(IdUtil.getSnowflakeNextId());
-        mail.setPlayerId(playerId);
-        mailDao.save(mail);
-        log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}", playerId, mail.getId());
-        //邮件变化时通知客户端刷新小红点
-        redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, 1);
+        return addLangMail(playerId, titleData, contentData, items, addType);
     }
 
 
     /**
      * 添加系统配置邮件
      */
-    public Mail addCfgMail(long playerId, int titleLanId, int contentId, List<Item> items, List<LanguageParamData> params) {
+    public Mail addCfgMail(long playerId, int titleLanId, int contentId, List<Item> items, List<LanguageParamData> params, AddType addType) {
         LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, "");
         LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, "");
         titleData.setLangId(titleLanId);
         contentData.setLangId(contentId);
         contentData.setParams(params);
-        Mail mail = createMail(titleData, contentData, items, false);
-        mail.setId(IdUtil.getSnowflakeNextId());
-        mail.setPlayerId(playerId);
-        log.debug("玩家：{} 添加配置邮件：{}", playerId, JSON.toJSONString(mail));
-        mailDao.save(mail);
-        //邮件变化时通知客户端刷新小红点
-        redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, 1);
-        return mail;
+
+        return addLangMail(playerId, titleData, contentData, items, addType);
     }
 
 
     /**
      * 添加系统配置邮件
      */
-    public Mail addCfgMail(long playerId, int mailCfgId) {
+    public Mail addCfgMail(long playerId, int mailCfgId, AddType addType) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), Collections.emptyList(), Collections.emptyList());
+        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), Collections.emptyList(), Collections.emptyList(), addType);
     }
 
     /**
      * 添加系统配置邮件
      */
-    public Mail addCfgMail(long playerId, int mailCfgId, List<Item> items) {
+    public Mail addCfgMail(long playerId, int mailCfgId, List<Item> items, AddType addType) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, Collections.emptyList());
+        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, Collections.emptyList(), addType);
     }
 
 
     /**
      * 添加系统配置邮件
      */
-    public Mail addCfgMail(long playerId, int mailCfgId, List<Item> items, List<LanguageParamData> params) {
+    public Mail addCfgMail(long playerId, int mailCfgId, List<Item> items, List<LanguageParamData> params, AddType addType) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, params);
+        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, params, addType);
     }
 
 
@@ -304,18 +294,22 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
      * @param content
      * @param items
      */
-    public void addLangMail(long playerId, LanguageData title, LanguageData content, List<Item> items) {
+    public Mail addLangMail(long playerId, LanguageData title, LanguageData content, List<Item> items, AddType addType) {
         Mail mail = createMail(title, content, items, false);
         mail.setId(IdUtil.getSnowflakeNextId());
         mail.setPlayerId(playerId);
-        mailDao.save(mail);
-        log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}", playerId, mail.getId());
-        //邮件变化时通知客户端刷新小红点
-        redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, 1);
+        mail.setAddType(addType);
+        addMail(mail);
+        return mail;
     }
 
-    public void addMails(List<Long> playerIds, String title, String content, List<Item> items) {
-        addMails(playerIds, title, content, items, null);
+    public Mail addMail(Mail mail) {
+        log.debug("玩家添加邮件 playerId = {},mailId = {}", mail.getPlayerId(), mail.getId());
+        mailDao.save(mail);
+        //邮件变化时通知客户端刷新小红点
+        redDotManager.incrementRedDotDataAndUpdate(getModule(), mail.getPlayerId(), 1);
+        coreLogger.addMail(mail);
+        return mail;
     }
 
     /**
@@ -361,10 +355,6 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         }
     }
 
-    public void addAllServerMail(String title, String content, List<Item> items) {
-        addAllServerMail(title, content, items, null);
-    }
-
     /**
      * 添加全服邮件
      *
@@ -375,7 +365,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     /**
      * 给所有在线玩家发送全服邮件（分批执行，防止内存或查询压力过大）
      */
-    public void addAllServerMail(String title, String content, List<Item> items, AddType addType) {
+    public void addAllServerMail(String title, String content, List<Item> items, AddType addType) throws Exception {
         LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, title);
         LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, content);
 
@@ -395,7 +385,10 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         for (Map.Entry<Long, PlayerSessionInfo> en : all.entrySet()) {
             PFSession session = playerSessionService.getSession(en.getValue());
             if (session != null) {
-                addMail(en.getValue().getPlayerId(), title, content, items);
+                Mail tmpMail = mail.clone();
+                tmpMail.setId(IdUtil.getSnowflakeNextId());
+                tmpMail.setPlayerId(session.playerId);
+                addMail(tmpMail);
                 playerSessions.put(en.getValue().getPlayerId(), session);
             }
         }
@@ -642,6 +635,6 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             return;
 //            mailId = GameConstant.Mail.ID_BIND_GOOGLE;
         }
-        addCfgMail(player.getId(), mailId, ItemUtils.buildItems(loginConfigCfg.getAwardItem()));
+        addCfgMail(player.getId(), mailId, ItemUtils.buildItems(loginConfigCfg.getAwardItem()), AddType.PLAYER_REGISTER);
     }
 }
