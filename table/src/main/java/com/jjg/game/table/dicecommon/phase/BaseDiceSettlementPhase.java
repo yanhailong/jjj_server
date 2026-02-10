@@ -1,24 +1,21 @@
 package com.jjg.game.table.dicecommon.phase;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
-import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
-import com.jjg.game.table.common.message.TableMessageBuilder;
-import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.dicecommon.DiceDataHolder;
 import com.jjg.game.table.dicecommon.message.BaseDiceSettlementInfo;
@@ -101,8 +98,14 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             playerChangedGold.playerId = playerId;
             playerChangedGold.playerWinGold = playerSettlementData.getTotalWin();
             playerChangedGolds.add(playerChangedGold);
-            // 给玩家添加金币
-            gameController.addItem(gamePlayer.getId(), playerSettlementData.getTotalWin(), AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+            long totalWin = playerSettlementData.getTotalWin();
+            if (totalWin > 0) {
+                int addCode = gameController.addItem(gamePlayer.getId(), totalWin, AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+                if (addCode != Code.SUCCESS) {
+                    log.error("骰子结算给玩家加金币失败 gameType:{} playerId:{} totalWin:{} code:{}",
+                            gameController.gameControlType(), gamePlayer.getId(), totalWin, addCode);
+                }
+            }
             playerChangedGold.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());

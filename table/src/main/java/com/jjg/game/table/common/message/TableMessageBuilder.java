@@ -94,10 +94,13 @@ public class TableMessageBuilder {
         Map<Long, GamePlayer> sortedGamePlayer = getSortedGamePlayer(gameController, tableGameDataVo, limit);
         List<GamePlayer> gamePlayers = new ArrayList<>(sortedGamePlayer.values());
         if (!sortedGamePlayer.containsKey(playerId)) {
-            if (gamePlayers.size() == limit) {
+            if (limit > 0 && gamePlayers.size() == limit) {
                 gamePlayers.remove(gamePlayers.size() - 1);
             }
-            gamePlayers.add(tableGameDataVo.getGamePlayer(playerId));
+            GamePlayer gamePlayer = tableGameDataVo.getGamePlayer(playerId);
+            if (gamePlayer != null) {
+                gamePlayers.add(gamePlayer);
+            }
         }
         List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(gamePlayers.size());
         for (GamePlayer gamePlayer : gamePlayers) {
