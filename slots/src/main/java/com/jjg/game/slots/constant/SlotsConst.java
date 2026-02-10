@@ -74,6 +74,10 @@ public class SlotsConst {
 
         //无效的图标起始id
         public static final int INVALID_ICON_BEGIN_ID = 1000;
+
+        //不可变固定元素
+        public static final int IMMUTABLE_ELEMENTS = 99999;
+
     }
 
     //结果库变更类型
