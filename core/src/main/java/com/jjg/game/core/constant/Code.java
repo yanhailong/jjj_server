@@ -17,6 +17,8 @@ public interface Code {
     int ROOM_STOPPING = 204;
     // 数据查询异常
     int QUERY_EXCEPTION = 205;
+    // 可以切换服务器
+    int SWITCH_TO_OFFICAL_SERVER = 210;
     // 失败
     int FAIL = 400;
     // 错误的请求

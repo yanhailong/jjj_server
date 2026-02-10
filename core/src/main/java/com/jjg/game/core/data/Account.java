@@ -36,7 +36,16 @@ public class Account {
     private ChannelType channel;
     //第三方账号
     private Map<LoginType, String> thirdAccounts;
+    //注册ip
+    private String registerIp;
 
+    public String getRegisterIp() {
+        return registerIp;
+    }
+
+    public void setRegisterIp(String registerIp) {
+        this.registerIp = registerIp;
+    }
 
     public long getPlayerId() {
         return playerId;

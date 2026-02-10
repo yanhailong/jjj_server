@@ -40,6 +40,7 @@ import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.hall.service.NoticeService;
+import com.jjg.game.hall.sharepromote.SharePromoteRewardService;
 import com.jjg.game.hall.utils.HallTool;
 import com.jjg.game.hall.vip.VipManager;
 import com.jjg.game.hall.vip.data.VipCfgCache;
@@ -97,6 +98,8 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
     private PlayerPackService playerPackService;
     @Autowired
     private LoginConfigService loginConfigService;
+    @Autowired
+    private SharePromoteRewardService sharePromoteService;
 
     /**
      * 进入游戏
@@ -1109,6 +1112,16 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
             }
         }
         res.code = Code.REPEAT_OP;
+        playerController.send(res);
+    }
+
+    /**
+     * 请求分享
+     */
+    @Command(HallConstant.MsgBean.REQ_SHARE_PROMOTE_START)
+    public void ReqSharePromoteStart(PlayerController playerController, ReqSharePromoteStart req) {
+        int code = sharePromoteService.startSharePromote(playerController);
+        ResSharePromoteStart res = new ResSharePromoteStart(code);
         playerController.send(res);
     }
 

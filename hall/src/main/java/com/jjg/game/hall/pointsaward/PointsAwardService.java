@@ -16,8 +16,6 @@ import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.rpc.HallPointsAwardBridge;
-import com.jjg.game.core.service.MailService;
-import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
@@ -56,9 +54,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     private final ClusterSystem clusterSystem;
     private final MarsCurator marsCurator;
     private final PointsAwardLogger pointsAwardLogger;
-    private final PlayerPackService playerPackService;
     private final RedDotManager redDotManager;
-    private final MailService mailService;
 
 //    private Map<Long, PointsAwardLadderRewardsInfo> pointsAwardMap;
 //    private List<PointsAwardLadderRewardsInfo> sortPointsAwardList;
@@ -67,34 +63,20 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * 玩家累计充值金额
      */
     private RMap<Long, Long> rechargeMap;
-    private static final String REMOVE = """
-            local cur = redis.call('HGET', KEYS[1], ARGV[1])
-            cur = tonumber(cur) or 0
-            
-            local cost = tonumber(ARGV[2])
-            
-            if cur < cost then
-                return -1
-            end
-            
-            return redis.call('HINCRBY', KEYS[1], ARGV[1], -cost)
-            """;
 
     public PointsAwardService(RedissonClient redissonClient,
                               @Lazy ClusterSystem clusterSystem,
                               PointsAwardLeaderboardService leaderboardService,
                               MarsCurator marsCurator,
                               RedisLock redisLock,
-                              PointsAwardLogger pointsAwardLogger, PlayerPackService playerPackService, RedDotManager redDotManager, MailService mailService) {
+                              PointsAwardLogger pointsAwardLogger, RedDotManager redDotManager) {
         this.redissonClient = redissonClient;
         this.clusterSystem = clusterSystem;
         this.leaderboardService = leaderboardService;
         this.marsCurator = marsCurator;
         this.redisLock = redisLock;
         this.pointsAwardLogger = pointsAwardLogger;
-        this.playerPackService = playerPackService;
         this.redDotManager = redDotManager;
-        this.mailService = mailService;
     }
 
     /**
@@ -224,11 +206,11 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         if (pointsAward <= 0) {
             return;
         }
-        RMap<Long, Long> counter = getPointsRedisMap();
-        //排行榜的积分
-        long currentPoints = counter.addAndGet(playerId, (long) pointsAward);
         // 排行榜更新
-        updateLeaderboards(playerId, pointsAward);
+        long currentPoints = updateLeaderboards(playerId, pointsAward);
+        if (currentPoints < 0) {
+            return;
+        }
         //记录日志
         pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, currentPoints);
         //添加时间段积分
@@ -318,18 +300,20 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      *
      * @param playerId    玩家ID
      * @param pointsAward 增加的积分
+     * @return 更新后月榜积分
      */
-    private void updateLeaderboards(long playerId, int pointsAward) {
+    private long updateLeaderboards(long playerId, int pointsAward) {
         try {
             // 更新日榜
             leaderboardService.upsert(PointsAwardConstant.Leaderboard.DAY, playerId, pointsAward);
             // 更新周榜
             leaderboardService.upsert(PointsAwardConstant.Leaderboard.WEEK, playerId, pointsAward);
             // 同步更新月榜(用于每月结算快照)
-            leaderboardService.upsert(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerId, pointsAward);
+            return leaderboardService.upsert(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerId, pointsAward);
         } catch (Exception e) {
             log.warn("更新排行榜失败 playerId=[{}], points=[{}]", playerId, pointsAward, e);
         }
+        return -1;
     }
 
     /**
@@ -368,14 +352,12 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             return false;
         }
         try {
-            long remain = removePoint(playerId, pointsAward);
+            // 排行榜更新
+            long remain = updateLeaderboards(playerId, -pointsAward);
             if (remain < 0) {
                 log.error("积分扣减失败，余额不足 playerId = [{}],pointsAward = [{}]", playerId, pointsAward);
                 return false;
             }
-
-            // 排行榜更新
-            updateLeaderboards(playerId, -pointsAward);
             //通知玩家同步分数
             noticeSyncPoints(playerId, remain);
             //记录日志
@@ -385,18 +367,6 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
             log.error("deductWithinLock 玩家积分扣减失败!playerId = [{}],pointsAward = [{}]", playerId, pointsAward, e);
             return false;
         }
-    }
-
-    private long removePoint(long playerId, int pointsAward) {
-        Long result = redissonClient.getScript(LongCodec.INSTANCE).eval(
-                RScript.Mode.READ_WRITE,
-                REMOVE,
-                RScript.ReturnType.INTEGER,
-                List.of(atomicKey()),
-                playerId,
-                pointsAward
-        );
-        return result == null ? -1 : result;
     }
 
     /**
@@ -439,29 +409,6 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      */
     public <T> T lockAndGet(long playerId, Supplier<T> supplier) {
         return redisLock.lockAndGet(lockKey(playerId), PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, supplier);
-    }
-
-    /**
-     * 获取玩家积分
-     */
-    public long getPoints(long playerId) {
-        RMap<Long, Long> rMap = getPointsRedisMap();
-        return rMap.getOrDefault(playerId, 0L);
-    }
-
-    /**
-     * 获取时间段积分
-     *
-     * @param playerId
-     * @return
-     */
-    public long getTimePoints(long playerId) {
-        RMap<Long, TimePoints> playerTimePointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME_DATA_POINTS);
-        TimePoints timePoints = playerTimePointsMap.get(playerId);
-        if (timePoints == null) {
-            return 0;
-        }
-        return timePoints.getPoints();
     }
 
     /**

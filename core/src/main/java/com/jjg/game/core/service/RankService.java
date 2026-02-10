@@ -52,7 +52,13 @@ public class RankService {
                 points = math.floor(tonumber(oldScore) / BASE) + addPoints
             end
             
-            if points < 0 then points = 0 end
+            if points < 0 then
+                return -1
+            end
+            if points == 0 then
+                redis.call('ZREM', key, member)
+                return 0
+            end
             if points > POINTS_MAX then points = POINTS_MAX end
             
             local newScore = points * BASE + (TIME_MAX - nowTime)
@@ -136,6 +142,12 @@ public class RankService {
                 addPoints,
                 now
         );
+        if (score == null) {
+            return 0;
+        }
+        if (score < 0) {
+            return score;
+        }
         return score >>> TIME_BITS;
     }
 
