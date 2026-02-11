@@ -540,6 +540,12 @@ public class AccountController extends AbstractController {
             change = true;
         }
 
+        //对比马甲包id
+        if (dto.getWesteId() != playerSessionToken.getWesteId()) {
+            playerSessionToken.setChannel(dto.getWesteId());
+            change = true;
+        }
+
         if (change) {
             playerSessionTokenDao.save(playerSessionToken);
         }
