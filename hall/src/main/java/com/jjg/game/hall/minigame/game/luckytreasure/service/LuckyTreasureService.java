@@ -753,7 +753,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         if (treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
             // 已售完但未到结束时间，等待开奖
             if (soldCount >= total) {
-                return LuckyTreasureStatusUtil.STATUS_CAN_BUY;
+                return LuckyTreasureStatusUtil.STATUS_WAIT_DRAW;
             }
             if (endTime < currentTime) {
                 return LuckyTreasureStatusUtil.STATUS_WAIT_DRAW;

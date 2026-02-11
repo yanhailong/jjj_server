@@ -321,7 +321,7 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
         int day = unlockSet.size() + 1;
         int signInMaxCount = manager.getSignInMaxCount();
         //签到满了已经
-        if (day >= signInMaxCount) {
+        if (day > signInMaxCount) {
             return;
         }
         PointsAwardSigninCfg todayConfig = manager.getSignInCfg(day);

@@ -17,6 +17,7 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.dao.room.AbstractFriendRoomDao.CreateFriendsRoom;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
@@ -234,8 +235,8 @@ public class FriendRoomServices {
             return Code.ILLEGAL_NAME;
         }
         // 检查场次是否存在
-        RoomCfg roomCfg = GameDataManager.getRoomCfg(reqCreateFriendsRoom.roomCfgId);
-        if (roomCfg != null) {
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(reqCreateFriendsRoom.roomCfgId);
+        if (warehouseCfg == null || warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
             return Code.PARAM_ERROR;
         }
         // 牌局时长合法性检查
