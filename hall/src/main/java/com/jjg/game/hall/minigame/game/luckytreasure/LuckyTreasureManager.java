@@ -538,7 +538,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         long rewardTime = 0L;
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
         if (globalConfigCfg != null && globalConfigCfg.getIntValue() > 1) {
-            rewardTime = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+            rewardTime =  TimeUnit.SECONDS.toMinutes(globalConfigCfg.getIntValue());
         }
 
 //         设置过期时间

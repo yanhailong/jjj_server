@@ -44,8 +44,24 @@ public class RespRussianLetteInfo extends AbstractResponse {
     @ProtoDesc("玩家总人数")
     public int playerTotalNum;
 
-    @ProtoDesc("押注桌面展示的筹码数量上限")
-    public int maxChipOnTable;
+    @ProtoDesc("红色概率")
+    public double red;
+
+    @ProtoDesc("黑色概率")
+    public double black;
+
+    @ProtoDesc("奇数概率")
+    public double odd;
+
+    @ProtoDesc("偶数概率")
+    public double event;
+
+    @ProtoDesc("玩家牌桌玩的次数")
+    public double playNum;
+
+    @ProtoDesc("累计这次下注总金额（断线重连同步）")
+    public double allBet;
+
 
     public RespRussianLetteInfo(int code) {
         super(code);

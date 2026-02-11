@@ -25,4 +25,16 @@ public class RussianLetteInfo {
 
     @ProtoDesc("区域下注信息")
     public List<BetTableInfo> tableAreaInfos;
+
+    @ProtoDesc("红色概率")
+    public double red;
+
+    @ProtoDesc("黑色概率")
+    public double black;
+
+    @ProtoDesc("奇数概率")
+    public double odd;
+
+    @ProtoDesc("偶数概率")
+    public double event;
 }
