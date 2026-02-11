@@ -283,11 +283,11 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
 
             if (NodeType.HALL.name().equals(nodeManager.nodeConfig.getType()) || NodeType.GAME.name().equals(nodeManager.nodeConfig.getType())) {
                 //每分钟检查当前在线人数
-                onlineCountEvent = new TimerEvent<>(this, "OnlineCount", ONLINE_COUNT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
+                onlineCountEvent = new TimerEvent<>(this, "OnlineCount", ONLINE_COUNT_MINUTES).setInitTime(ONLINE_COUNT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
                 timerCenter.add(onlineCountEvent);
 
                 //每30分钟检查过期session
-                checkSessionEvent = new TimerEvent<>(this, "PlayerSession", SESSION_TIME_OUT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
+                checkSessionEvent = new TimerEvent<>(this, "PlayerSession", SESSION_TIME_OUT_MINUTES).setInitTime(SESSION_TIME_OUT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
                 timerCenter.add(checkSessionEvent);
             }
         }
