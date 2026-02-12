@@ -537,12 +537,15 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
                 pointAwardTasks = tasks.stream()
                         .filter(detail -> {
                             TaskCfg taskCfg = GameDataManager.getTaskCfg(detail.getConfigId());
+                            if (taskCfg == null) {
+                                return false;
+                            }
                             return taskCfg.getTaskType() == submodule;
                         })
                         .toList();
             }
             if (!pointAwardTasks.isEmpty()) {
-                List<Integer> taskIds = tasks.stream().map(TaskDetail::getConfigId).toList();
+                List<Integer> taskIds = pointAwardTasks.stream().map(TaskDetail::getConfigId).toList();
                 redDotDetails.setCount(taskIds.size());
                 JSONObject extra = new JSONObject();
                 extra.put("taskIds", taskIds);

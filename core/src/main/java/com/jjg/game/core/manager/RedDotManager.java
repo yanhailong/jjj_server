@@ -97,9 +97,10 @@ public class RedDotManager {
 
     /**
      * 构建红点详情
-     * @param module 模块
+     *
+     * @param module    模块
      * @param submodule 子模块
-     * @param count 数量
+     * @param count     数量
      * @return 红点详情
      */
     public RedDotDetails buildRedDotDetails(RedDotDetails.RedDotModule module, int submodule, int count) {
@@ -138,9 +139,10 @@ public class RedDotManager {
 
     /**
      * 更新活动红点
-     * @param playerId 玩家id
+     *
+     * @param playerId     玩家id
      * @param activityType 活动类型
-     * @param hasRedDot 是否有红点
+     * @param hasRedDot    是否有红点
      */
     public void updateActivityRedDot(long playerId, int activityType, boolean hasRedDot) {
         List<RedDotDetails> list = new ArrayList<>();
@@ -218,12 +220,12 @@ public class RedDotManager {
         }
         if (submodule == 0) {
             for (IRedDotService redDotService : serviceMap.values()) {
-                list.addAll(redDotService.initialize(playerId, 0));
+                list.addAll(redDotService.initialize(playerId, submodule));
             }
         } else {
             IRedDotService redDotService = serviceMap.get(submodule);
             if (redDotService != null) {
-                list.addAll(redDotService.initialize(playerId, 0));
+                list.addAll(redDotService.initialize(playerId, submodule));
             }
         }
         return list;
@@ -257,8 +259,8 @@ public class RedDotManager {
     /**
      * 通知客户端刷新红点数据
      *
-     * @param submodule     子模块
-     * @param playerId      玩家id 如果参数<=0则广播给所有在线玩家
+     * @param submodule 子模块
+     * @param playerId  玩家id 如果参数<=0则广播给所有在线玩家
      */
     public void updateRedDot(RedDotDetails.RedDotModule module, int submodule, long playerId, int redCount) {
         if (module == null) {
@@ -270,9 +272,9 @@ public class RedDotManager {
     /**
      * 通知客户端刷新红点数据
      *
-     * @param submodule     子模块
-     * @param playerId      玩家id 如果参数<=0则广播给所有在线玩家
-     * @param module 红点模块
+     * @param submodule 子模块
+     * @param playerId  玩家id 如果参数<=0则广播给所有在线玩家
+     * @param module    红点模块
      */
     public void updateRedDot(RedDotDetails.RedDotModule module, int submodule, long playerId) {
         if (module == null) {
@@ -286,9 +288,9 @@ public class RedDotManager {
     /**
      * 通知客户端刷新红点数据
      *
-     * @param submodule     子模块
-     * @param playerId      玩家id 如果参数<=0则广播给所有在线玩家
-     * @param module 红点模块
+     * @param submodule 子模块
+     * @param playerId  玩家id 如果参数<=0则广播给所有在线玩家
+     * @param module    红点模块
      */
     public void updateRedDotByInitialize(RedDotDetails.RedDotModule module, int submodule, long playerId) {
         updateRedDotByInitialize(module, List.of(submodule), playerId);
@@ -297,15 +299,18 @@ public class RedDotManager {
     /**
      * 通知客户端刷新红点数据
      *
-     * @param submoduleList     子模块列表
+     * @param submoduleList 子模块列表
      * @param playerId      玩家id 如果参数<=0则广播给所有在线玩家
-     * @param module 红点模块
+     * @param module        红点模块
      */
     public void updateRedDotByInitialize(RedDotDetails.RedDotModule module, List<Integer> submoduleList, long playerId) {
         if (module == null || module.isNeedTrusteeship() || CollectionUtil.isEmpty(submoduleList)) {
             return;
         }
         Map<Integer, IRedDotService> serviceMap = redDotServiceMap.get(module);
+        if (serviceMap == null) {
+            return;
+        }
         List<RedDotDetails> updateList = new ArrayList<>();
         for (Integer submodule : submoduleList) {
             IRedDotService iRedDotService = serviceMap.get(submodule);
@@ -321,20 +326,18 @@ public class RedDotManager {
     /**
      * 通知客户端刷新出红点数据
      *
-     * @param playerId      玩家id 如果参数<=0则广播给所有在线玩家
+     * @param playerId 玩家id 如果参数<=0则广播给所有在线玩家
      */
     public void updateRedDot(RedDotDetails.RedDotModule module, long playerId) {
         updateRedDot(module, 0, playerId);
     }
 
 
-    public void notifyReddot(PlayerController playerController, RedDotDetails.RedDotModule module, int submodule){
+    public void notifyReddot(PlayerController playerController, RedDotDetails.RedDotModule module, int submodule) {
         List<RedDotDetails> result = new ArrayList<>();
         if (module != null) {
-            if (submodule == 0) {
-                List<RedDotDetails> redDots = load(module, submodule, playerController.playerId());
-                result.addAll(redDots);
-            }
+            List<RedDotDetails> redDots = load(module, submodule, playerController.playerId());
+            result.addAll(redDots);
         } else {
             List<RedDotDetails> redDotDetails = loadAll(playerController.playerId());
             result.addAll(redDotDetails);

@@ -263,7 +263,7 @@ public class CoreMessageHandler {
             moneyChangeInfoList.add(coreSendMessageManager.buildMoneyChangeInfo(GameConstant.Item.TYPE_GOLD, goldNum, result.data.getGold()));
         }
         if (diamongNum > 0) {
-            moneyChangeInfoList.add(coreSendMessageManager.buildMoneyChangeInfo(GameConstant.Item.TYPE_DIAMOND, diamongNum, result.data.getGold()));
+            moneyChangeInfoList.add(coreSendMessageManager.buildMoneyChangeInfo(GameConstant.Item.TYPE_DIAMOND, diamongNum, result.data.getDiamond()));
         }
         coreSendMessageManager.buildMoneyChangeInfoMessage(playerController.getSession(), moneyChangeInfoList);
     }

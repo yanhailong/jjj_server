@@ -57,7 +57,6 @@ public class SubscriptionManager implements SessionCloseListener {
      * @param playerId 玩家id
      */
     public void unsubscription(SubscriptionTopic topic, long playerId) {
-        topicPlayerIdMap.computeIfAbsent(topic, k -> new ConcurrentHashSet<>()).add(playerId);
         ConcurrentHashSet<Long> playerIds = topicPlayerIdMap.get(topic);
         if (playerIds != null && !playerIds.isEmpty()) {
             playerIds.remove(playerId);

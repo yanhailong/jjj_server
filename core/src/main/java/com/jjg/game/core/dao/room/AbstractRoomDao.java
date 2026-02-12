@@ -71,7 +71,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         // 最大等待3分钟
         boolean lock = false;
         try {
-            lock = redisLock.tryLock(lockKey, TimeHelper.ONE_DAY_OF_MILLIS * 3);
+            lock = redisLock.tryLock(lockKey, TimeHelper.ONE_MINUTE_OF_MILLIS * 3);
             if (!lock) {
                 log.error("获取锁失败 lockKey:{} gameType:{} roomCfgId:{} maxLimit:{} nodeName:{}", lockKey, gameType, roomCfgId, maxLimit, nodeName);
                 return null;
@@ -163,7 +163,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
      */
     protected T createRoom(T room, boolean save) {
         try {
-            if(room.getId() < 1){
+            if (room.getId() < 1) {
                 //随机房间号
                 long roomId = snowflakeManager.nextId();
                 room.setId(roomId);
@@ -379,7 +379,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
                     return null;
                 }
                 Long newSitId = playerSits.getOrDefault(newSitIndex, -1L);
-                if (newSitId != null && !forcedExchange) {
+                if (newSitId != -1 && !forcedExchange) {
                     log.error("player:{} 更新玩家座位时 新座位有玩家", playerId);
                     return null;
                 }
@@ -465,7 +465,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
      * 删除房间奖池
      *
      * @param gameType 游戏类型
-     * @param key   key
+     * @param key      key
      */
     public void removeRoomPool(int gameType, long key) {
     }

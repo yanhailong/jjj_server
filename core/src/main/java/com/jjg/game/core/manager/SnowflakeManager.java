@@ -211,8 +211,10 @@ public class SnowflakeManager implements TimerListener<String> {
                         currentNodeInfo.setLastUpdateTime(System.currentTimeMillis());
                         nodeInfoMap.fastPut(currentNodeInfo.getNodeName(), currentNodeInfo);
                     }
-                    // 清理过期节点
-                    cleanupExpiredNodes(nodeInfoMap);
+                    if (marsCurator.isMaster()) {
+                        // 清理过期节点
+                        cleanupExpiredNodes(nodeInfoMap);
+                    }
                 } finally {
                     lock.unlock();
                 }
@@ -228,9 +230,7 @@ public class SnowflakeManager implements TimerListener<String> {
     @Override
     public void onTimer(TimerEvent<String> timerEvent) {
         if (timerEvent == cleanupTimer) {
-            if (marsCurator.isMaster()) {
-                performCleanup();
-            }
+            performCleanup();
         }
     }
 
@@ -267,7 +267,8 @@ public class SnowflakeManager implements TimerListener<String> {
         private long lastUpdateTime;
         private String nodeName;
 
-        public SnowflakeNodeInfo() {}
+        public SnowflakeNodeInfo() {
+        }
 
         public SnowflakeNodeInfo(long workerId, long datacenterId, long lastUpdateTime, String nodeName) {
             this.workerId = workerId;

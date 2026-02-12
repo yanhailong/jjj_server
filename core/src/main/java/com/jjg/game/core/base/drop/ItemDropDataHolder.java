@@ -86,6 +86,9 @@ public class ItemDropDataHolder implements ConfigExcelChangeListener {
         if (!tempGroupLimitMap.isEmpty() && !tempGroupCfgMap.isEmpty()) {
             dropGroupCfgMap = tempGroupCfgMap;
             dropGroupLimit = tempGroupLimitMap;
+        } else {
+            dropGroupCfgMap.clear();
+            dropGroupLimit.clear();
         }
     }
 

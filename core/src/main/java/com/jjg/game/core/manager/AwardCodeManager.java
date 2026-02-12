@@ -81,6 +81,10 @@ public class AwardCodeManager {
      * @return 雪花ID
      */
     public long decode(String str) {
+        List<Long> decode = sqids.decode(str);
+        if (decode.isEmpty()) {
+            return 0;
+        }
         return sqids.decode(str).getFirst();
     }
 
@@ -151,8 +155,11 @@ public class AwardCodeManager {
      */
     public boolean deleteCode(String code) {
         long id = decode(code);
-        awardCodeDao.deleteById(id);
-        return true;
+        if (id > 0) {
+            awardCodeDao.deleteById(id);
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -163,6 +170,9 @@ public class AwardCodeManager {
      */
     public boolean useCode(String code) {
         long id = decode(code);
+        if (id <= 0) {
+            return false;
+        }
         Optional<AwardCode> awardCodeOptional = awardCodeDao.findById(id);
         if (awardCodeOptional.isPresent()) {
             AwardCode awardCode = awardCodeOptional.get();

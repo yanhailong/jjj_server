@@ -25,7 +25,7 @@ public class SmsConfigDao {
 
     public void save(Map<Integer, SmsConfigInfo> map) {
         redisTemplate.delete(TABLE_NAME);
-        if(map != null || !map.isEmpty()){
+        if(map != null && !map.isEmpty()){
             redisTemplate.opsForHash().putAll(TABLE_NAME, map);
         }
     }

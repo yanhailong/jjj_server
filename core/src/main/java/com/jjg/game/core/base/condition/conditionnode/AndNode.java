@@ -42,7 +42,7 @@ public class AndNode implements ConditionNode {
             if (r.result() == MatchResult.UNKNOWN) hasUnknown = true;
         }
         if (notMatch) {
-            return MatchResultData.notMatch(Code.SUCCESS);
+            return MatchResultData.notMatch(Code.FAIL);
         }
         return hasUnknown ? MatchResultData.unknown() : MatchResultData.match();
     }

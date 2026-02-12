@@ -108,7 +108,8 @@ public class FriendRoom extends Room {
      * 取消申请成为庄家
      */
     public long cancelApplyBanker(long playerId) {
-        return bankerPredicateMap.remove(playerId);
+        Long remove = bankerPredicateMap.remove(playerId);
+        return remove == null ? 0 : remove;
     }
 
     /**
