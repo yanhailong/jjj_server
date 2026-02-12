@@ -2,9 +2,6 @@ package com.jjg.game.table.russianlette.message;
 
 import com.jjg.game.common.constant.MessageConst;
 
-import static com.jjg.game.common.constant.MessageConst.MessageTypeDef.BACCARAT_TYPE;
-import static com.jjg.game.common.constant.MessageConst.MessageTypeDef.RUSSIAN_ROULETTE_TYPE;
-
 /**
  * 俄罗斯转盘消息常量
  *
@@ -12,7 +9,7 @@ import static com.jjg.game.common.constant.MessageConst.MessageTypeDef.RUSSIAN_R
  */
 public interface  RussianLetteMessageConstant {
 
-    int BASE_MSG_PREFIX = RUSSIAN_ROULETTE_TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
+    int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.RUSSIAN_ROULETTE_TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
 
     interface ReqMsgBean {
         // 请求俄罗斯转盘房间摘要信息列表
@@ -25,6 +22,10 @@ public interface  RussianLetteMessageConstant {
         int REQ_JOIN_ROOM_IN_GAME = BASE_MSG_PREFIX | 0x05;
         // 请求退出房间
         int REQ_EXIT_ROOM_IN_GAME = BASE_MSG_PREFIX | 0x06;
+        // 请求房间返回
+        int REQ_SWITCH_ROOM_IN_GAME = BASE_MSG_PREFIX | 0x07;
+        // 请求查看其他房间
+        int REQ_RUSSIAN_LETTE_OTHER_SUMMARY_LIST = BASE_MSG_PREFIX | 0x08;
     }
 
     interface RespMsgBean {
@@ -42,5 +43,9 @@ public interface  RussianLetteMessageConstant {
         int RESP_JOIN_ROOM_IN_GAME = BASE_MSG_PREFIX | 0x86;
         // 退出房间返回
         int RESP_EXIT_ROOM_IN_GAME = BASE_MSG_PREFIX | 0x87;
+        // 返回切换房间返回
+        int RESP_SWITCH_ROOM_IN_GAME = BASE_MSG_PREFIX | 0x88;
+        // 返回查看其他房间
+        int RESP_RUSSIAN_LETTE_OTHER_SUMMARY_LIST = BASE_MSG_PREFIX | 0x89;
     }
 }
