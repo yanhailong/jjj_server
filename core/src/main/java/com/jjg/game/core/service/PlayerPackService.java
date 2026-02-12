@@ -1,5 +1,6 @@
 package com.jjg.game.core.service;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.redis.RedisLock;
@@ -27,7 +28,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author 11
@@ -76,11 +76,27 @@ public class PlayerPackService implements IPlayerRegister {
      * 添加多个道具
      */
     public CommonResult<ItemOperationResult> addItems(long playerId, Map<Integer, Long> addItemMap, AddType addType, String desc) {
-        List<Item> itemList = new ArrayList<>();
-        for (Map.Entry<Integer, Long> entry : addItemMap.entrySet()) {
-            itemList.add(new Item(entry.getKey(), entry.getValue()));
+        List<Item> itemList = checkItemParam(addItemMap);
+        if (CollectionUtil.isEmpty(itemList)) {
+            CommonResult<ItemOperationResult> result = new CommonResult<>(Code.SUCCESS);
+            result.data = new ItemOperationResult();
+            return result;
         }
         return addItems(playerId, itemList, addType, desc);
+    }
+
+    public List<Item> checkItemParam(Map<Integer, Long> addItemMap) {
+        if (CollectionUtil.isEmpty(addItemMap)) {
+            return List.of();
+        }
+        List<Item> itemList = new ArrayList<>();
+        for (Map.Entry<Integer, Long> entry : addItemMap.entrySet()) {
+            if (entry == null || entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            itemList.add(new Item(entry.getKey(), entry.getValue()));
+        }
+        return itemList;
     }
 
     /**
@@ -94,15 +110,34 @@ public class PlayerPackService implements IPlayerRegister {
      * 添加多个道具
      */
     public CommonResult<ItemOperationResult> addItems(long playerId, List<Item> addItemList, AddType addType, String desc) {
+        if (CollectionUtil.isEmpty(addItemList)) {
+            CommonResult<ItemOperationResult> result = new CommonResult<>(Code.SUCCESS);
+            result.data = new ItemOperationResult();
+            return result;
+        }
         CommonResult<ItemOperationResult> result = new CommonResult<>(Code.FAIL);
         long addGold = 0;
         long addDiamond = 0;
         result.data = new ItemOperationResult();
-        List<Item> itemList = new ArrayList<>();
+        List<Item> validAddItemList = new ArrayList<>(addItemList.size());
         for (Item item : addItemList) {
+            if (item == null) {
+                continue;
+            }
+            validAddItemList.add(item);
+        }
+        if (validAddItemList.isEmpty()) {
+            result.code = Code.SUCCESS;
+            return result;
+        }
+
+        List<Item> itemList = new ArrayList<>();
+        for (Item item : validAddItemList) {
             int itemId = item.getId();
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
             if (itemCfg == null) {
+                log.error("添加道具失败，未找到道具配置 playerId={},itemId={},count={},addType={},desc={}",
+                        playerId, itemId, item.getItemCount(), addType, desc);
                 continue;
             }
             if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
@@ -116,25 +151,24 @@ public class PlayerPackService implements IPlayerRegister {
             itemList.add(item);
         }
 
-        if (addGold > 0 || addDiamond > 0) {
-            CommonResult<Player> goldAndDiamond =
-                    corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, desc);
-            if (!goldAndDiamond.success()) {
-                result.code = goldAndDiamond.code;
-                return result;
-            }
-            result.data.goldChange(addGold, goldAndDiamond.data.getGold());
-            result.data.diamondChange(addDiamond, goldAndDiamond.data.getDiamond());
-        }
-
         if (itemList.isEmpty()) {
+            if (addGold > 0 || addDiamond > 0) {
+                CommonResult<Player> goldAndDiamond =
+                        corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, desc);
+                if (!goldAndDiamond.success()) {
+                    result.code = goldAndDiamond.code;
+                    return result;
+                }
+                result.data.goldChange(addGold, goldAndDiamond.data.getGold());
+                result.data.diamondChange(addDiamond, goldAndDiamond.data.getDiamond());
+            }
             result.code = Code.SUCCESS;
             return result;
         }
         PlayerPack playerPack = null;
         String key = getLockKey(playerId);
-        // TODO 当前的加锁位置会有数据覆盖问题
         boolean lock = false;
+        boolean currencyAdded = false;
         try {
             lock = redisLock.tryLockWithDefaultTime(key);
             if (!lock) {
@@ -162,10 +196,21 @@ public class PlayerPackService implements IPlayerRegister {
                     useNum = strategy.getUseStrategy().autoUse(playerId, item, itemCfg);
                 }
                 if (item.getItemCount() - useNum > 0) {
-                    changeBefore.put(itemId, changeBefore.getOrDefault(itemId, 0L) + playerPack.getItemCount(itemId));
+                    changeBefore.putIfAbsent(itemId, playerPack.getItemCount(itemId));
                     playerPack.addItem(itemId, item.getItemCount() - useNum, itemCfg.getProp());
                     hasChange = true;
                 }
+            }
+            if (addGold > 0 || addDiamond > 0) {
+                CommonResult<Player> goldAndDiamond =
+                        corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, desc);
+                if (!goldAndDiamond.success()) {
+                    result.code = goldAndDiamond.code;
+                    return result;
+                }
+                currencyAdded = true;
+                result.data.goldChange(addGold, goldAndDiamond.data.getGold());
+                result.data.diamondChange(addDiamond, goldAndDiamond.data.getDiamond());
             }
             // 如果有改变才写入，自使用的道具不会改变背包数据
             if (hasChange) {
@@ -174,6 +219,10 @@ public class PlayerPackService implements IPlayerRegister {
             }
             result.code = Code.SUCCESS;
         } catch (Exception e) {
+            if (currencyAdded) {
+                rollbackAddedCurrency(playerId, addGold, addDiamond);
+            }
+            result.code = Code.FAIL;
             log.error("添加多个道具，保存 playerPack 失败 playerId={}", playerId, e);
         } finally {
             if (lock) {
@@ -190,7 +239,7 @@ public class PlayerPackService implements IPlayerRegister {
                 result.data.setChangeEndItemNum(changeAfterNum);
             }
             Map<Integer, Long> addTempItemMap =
-                    itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getItemCount()),
+                    itemList.stream().collect(HashMap::new, (map, e) -> map.merge(e.getId(), e.getItemCount(), Long::sum),
                             HashMap::putAll);
             coreLogger.addItems(playerId, result.data.getChangeBeforeItemNum(), addTempItemMap, result.data.getChangeEndItemNum(), addType, desc);
         }
@@ -206,6 +255,11 @@ public class PlayerPackService implements IPlayerRegister {
      * @return 最新的背包结果
      */
     public CommonResult<ItemOperationResult> removeItem(long playerId, Item remove, AddType addType) {
+        if (remove == null) {
+            CommonResult<ItemOperationResult> result = new CommonResult<>(Code.PARAM_ERROR);
+            result.data = new ItemOperationResult();
+            return result;
+        }
         return removeItem(playerId, remove.getId(), remove.getItemCount(), addType);
     }
 
@@ -222,6 +276,11 @@ public class PlayerPackService implements IPlayerRegister {
     public CommonResult<ItemOperationResult> removeItem(long playerId, Integer girdId, int id, long count,
                                                         AddType addType) {
         Player player = corePlayerService.get(playerId);
+        if (player == null) {
+            CommonResult<ItemOperationResult> result = new CommonResult<>(Code.NOT_FOUND);
+            result.data = new ItemOperationResult();
+            return result;
+        }
         return removeItem(player, Collections.singletonList(new Item(girdId, id, count)), addType);
     }
 
@@ -232,9 +291,11 @@ public class PlayerPackService implements IPlayerRegister {
      */
     public CommonResult<ItemOperationResult> removeItems(Player player, Map<Integer, Long> removeItemMap,
                                                          AddType addType, String desc) {
-        List<Item> itemList = new ArrayList<>();
-        for (Map.Entry<Integer, Long> entry : removeItemMap.entrySet()) {
-            itemList.add(new Item(entry.getKey(), entry.getValue()));
+        List<Item> itemList = checkItemParam(removeItemMap);
+        if (CollectionUtil.isEmpty(itemList)) {
+            CommonResult<ItemOperationResult> result = new CommonResult<>(Code.SUCCESS);
+            result.data = new ItemOperationResult();
+            return result;
         }
         return removeItem(player, itemList, addType, desc);
     }
@@ -264,8 +325,30 @@ public class PlayerPackService implements IPlayerRegister {
      * @param player 玩家信息
      */
     public CommonResult<ItemOperationResult> removeItem(Player player, List<Item> removeItemList, AddType addType, String desc) {
+        if (player == null) {
+            CommonResult<ItemOperationResult> result = new CommonResult<>(Code.NOT_FOUND);
+            result.data = new ItemOperationResult();
+            return result;
+        }
+        if (removeItemList == null || removeItemList.isEmpty()) {
+            CommonResult<ItemOperationResult> result = new CommonResult<>(Code.SUCCESS);
+            result.data = new ItemOperationResult();
+            return result;
+        }
+        List<Item> validRemoveItemList = new ArrayList<>(removeItemList.size());
+        for (Item item : removeItemList) {
+            if (item == null) {
+                continue;
+            }
+            validRemoveItemList.add(item);
+        }
+        if (validRemoveItemList.isEmpty()) {
+            CommonResult<ItemOperationResult> result = new CommonResult<>(Code.SUCCESS);
+            result.data = new ItemOperationResult();
+            return result;
+        }
         CommonResult<ItemOperationResult> result = new CommonResult<>(Code.NOT_ENOUGH_ITEM);
-        int code = checkHasItems(player, removeItemList);
+        int code = checkHasItems(player, validRemoveItemList);
         if (code != Code.SUCCESS) {
             result.code = code;
             return result;
@@ -276,6 +359,8 @@ public class PlayerPackService implements IPlayerRegister {
         long playerId = player.getId();
         String key = getLockKey(playerId);
         boolean lock = false;
+        boolean currencyDeducted = false;
+        boolean committed = false;
         try {
             lock = redisLock.tryLockWithDefaultTime(key);
             if (!lock) {
@@ -284,7 +369,7 @@ public class PlayerPackService implements IPlayerRegister {
                 return result;
             }
             List<Item> packItemList = new ArrayList<>();
-            for (Item item : removeItemList) {
+            for (Item item : validRemoveItemList) {
                 int itemId = item.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
                 if (itemCfg == null) {
@@ -307,49 +392,46 @@ public class PlayerPackService implements IPlayerRegister {
             // 如果道具列表为空，但是还需要处理金币钻石，继续处理
             if (packItemList.isEmpty() && !hasGoldAndDiamond) {
                 result.code = Code.SUCCESS;
+                committed = true;
                 return result;
             }
 
-            PlayerPack playerPack = getFromAllDB(playerId);
-            if (playerPack == null) {
-                result.code = Code.NOT_FOUND;
-                return result;
-            }
-
-            //检查道具
-            if (!playerPack.checkHasItems(packItemList)) {
-                result.code = Code.NOT_ENOUGH_ITEM;
-                return result;
-            }
-
+            PlayerPack playerPack = null;
             Map<Integer, Long> changeBefore = new HashMap<>(packItemList.size());
-            for (Item item : packItemList) {
-                int id = item.getId();
-                long count = item.getItemCount();
-                Integer gridId = item.getGridId();
-                ItemCfg itemCfg = GameDataManager.getItemCfg(id);
-                if (itemCfg == null) {
+            Map<Integer, Long> consumedMap = new HashMap<>(packItemList.size());
+            if (!packItemList.isEmpty()) {
+                playerPack = getFromAllDB(playerId);
+                if (playerPack == null) {
                     result.code = Code.NOT_FOUND;
                     return result;
                 }
-                CommonResult<Long> removeResult;
-                changeBefore.put(id, changeBefore.getOrDefault(id, 0L) + playerPack.getItemCount(id));
-                if (gridId == null) {
-                    removeResult = playerPack.removeItem(id, count);
-                } else {
-                    removeResult = playerPack.removeItem(gridId, id, count);
-                }
-                if (!removeResult.success()) {
-                    result.code = removeResult.code;
+                //检查道具
+                if (!playerPack.checkHasItems(packItemList)) {
+                    result.code = Code.NOT_ENOUGH_ITEM;
                     return result;
                 }
-                //触发消耗道具任务
-                taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> {
-                    TaskConditionParam12101 param = new TaskConditionParam12101();
-                    param.setItemId(id);
-                    param.setAddValue(count);
-                    return param;
-                });
+                for (Item item : packItemList) {
+                    int id = item.getId();
+                    long count = item.getItemCount();
+                    Integer gridId = item.getGridId();
+                    ItemCfg itemCfg = GameDataManager.getItemCfg(id);
+                    if (itemCfg == null) {
+                        result.code = Code.NOT_FOUND;
+                        return result;
+                    }
+                    CommonResult<Long> removeResult;
+                    changeBefore.putIfAbsent(id, playerPack.getItemCount(id));
+                    if (gridId == null) {
+                        removeResult = playerPack.removeItem(id, count);
+                    } else {
+                        removeResult = playerPack.removeItem(gridId, id, count);
+                    }
+                    if (!removeResult.success()) {
+                        result.code = removeResult.code;
+                        return result;
+                    }
+                    consumedMap.merge(id, count, Long::sum);
+                }
             }
             //扣除金币和钻石
             if (deductGoldV > 0 || deductDiamondV > 0) {
@@ -359,15 +441,42 @@ public class PlayerPackService implements IPlayerRegister {
                     result.code = removeResult.code;
                     return result;
                 }
+                currencyDeducted = true;
                 result.data.goldChange(-deductGoldV, removeResult.data.getGold());
                 result.data.diamondChange(-deductDiamondV, removeResult.data.getDiamond());
+            }
+            if (!packItemList.isEmpty()) {
+                redisTemplate.opsForHash().put(tableName, playerId, playerPack);
+                //放入最新的道具信息
+                Map<Integer, Long> changeAfterNum = new HashMap<>();
+                for (Item item : packItemList) {
+                    changeAfterNum.put(item.getId(), playerPack.getItemCount(item.getId()));
+                }
+                result.data.setChangeEndItemNum(changeAfterNum);
+                result.data.setChangeBeforeItemNum(changeBefore);
+                coreLogger.consumeItem(playerId, changeBefore, consumedMap, changeAfterNum, addType);
+            }
+            result.code = Code.SUCCESS;
+            committed = true;
 
+            // 只有在道具和货币都成功后才触发任务；触发失败不应影响已提交数据的返回码。
+            try {
+                for (Item item : packItemList) {
+                    int id = item.getId();
+                    long count = item.getItemCount();
+                    taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> {
+                        TaskConditionParam12101 param = new TaskConditionParam12101();
+                        param.setItemId(id);
+                        param.setAddValue(count);
+                        return param;
+                    });
+                }
                 //触发消耗金币任务
                 if (deductGoldV > 0) {
                     TaskConditionParam12101 param = new TaskConditionParam12101();
                     param.setItemId(ItemUtils.getGoldItemId());
                     param.setAddValue(deductGoldV);
-                    param.setResultValue(removeResult.data.getGold());
+                    param.setResultValue(result.data.getGoldNum());
                     taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> param);
                 }
                 //触发消耗钻石任务
@@ -375,27 +484,18 @@ public class PlayerPackService implements IPlayerRegister {
                     TaskConditionParam12101 param = new TaskConditionParam12101();
                     param.setItemId(ItemUtils.getDiamondItemId());
                     param.setAddValue(deductDiamondV);
-                    param.setResultValue(removeResult.data.getDiamond());
+                    param.setResultValue(result.data.getDiamond());
                     taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> param);
                 }
+            } catch (Exception e) {
+                log.error("移除道具成功后触发任务失败 playerId={}", playerId, e);
             }
-            if (packItemList.isEmpty()) {
-                result.code = Code.SUCCESS;
-                return result;
-            }
-            redisTemplate.opsForHash().put(tableName, playerId, playerPack);
-            result.code = Code.SUCCESS;
-            //放入最新的道具信息
-            Map<Integer, Long> changeAfterNum = new HashMap<>();
-            for (Item item : packItemList) {
-                changeAfterNum.put(item.getId(), playerPack.getItemCount(item.getId()));
-            }
-            result.data.setChangeEndItemNum(changeAfterNum);
-            result.data.setChangeBeforeItemNum(changeBefore);
-            Map<Integer, Long> map = packItemList.stream().collect(Collectors.toMap(Item::getId, Item::getItemCount, Long::sum));
-            coreLogger.consumeItem(playerId, changeBefore, map, changeAfterNum, addType);
             return result;
         } catch (Exception e) {
+            if (currencyDeducted && !committed) {
+                rollbackDeductedCurrency(playerId, deductGoldV, deductDiamondV);
+            }
+            result.code = Code.FAIL;
             log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
         } finally {
             if (lock) {
@@ -403,6 +503,28 @@ public class PlayerPackService implements IPlayerRegister {
             }
         }
         return result;
+    }
+
+    private void rollbackAddedCurrency(long playerId, long goldNum, long diamondNum) {
+        if (goldNum <= 0 && diamondNum <= 0) {
+            return;
+        }
+        CommonResult<Player> rollbackResult =
+                corePlayerService.deductGoldAndDiamond(playerId, goldNum, diamondNum, AddType.FAIL_ROLLBACK, false, "PlayerPackService addItems rollback");
+        if (!rollbackResult.success()) {
+            log.error("添加道具回滚货币失败(需人工修复) playerId={},gold={},diamond={},code={}", playerId, goldNum, diamondNum, rollbackResult.code);
+        }
+    }
+
+    private void rollbackDeductedCurrency(long playerId, long goldNum, long diamondNum) {
+        if (goldNum <= 0 && diamondNum <= 0) {
+            return;
+        }
+        CommonResult<Player> rollbackResult =
+                corePlayerService.addGoldAndDiamond(playerId, goldNum, diamondNum, AddType.FAIL_ROLLBACK, false, "PlayerPackService removeItem rollback");
+        if (!rollbackResult.success()) {
+            log.error("移除道具回滚货币失败(需人工修复) playerId={},gold={},diamond={},code={}", playerId, goldNum, diamondNum, rollbackResult.code);
+        }
     }
 
     /**
@@ -413,13 +535,16 @@ public class PlayerPackService implements IPlayerRegister {
      * @return true 拥有 false 未拥有
      */
     public boolean checkHasItems(Player player, Map<Integer, Long> itemMap) {
+        if (player == null) {
+            return false;
+        }
+        if (itemMap == null || itemMap.isEmpty()) {
+            return true;
+        }
         long playerId = player.getId();
 
         try {
-            List<Item> itemList = new ArrayList<>();
-            for (Map.Entry<Integer, Long> entry : itemMap.entrySet()) {
-                itemList.add(new Item(entry.getKey(), entry.getValue()));
-            }
+            List<Item> itemList = checkItemParam(itemMap);
             return checkHasItems(player, itemList) == Code.SUCCESS;
         } catch (Exception e) {
             log.error("检查道具异常 失败 playerId={}", playerId, e);
@@ -435,10 +560,19 @@ public class PlayerPackService implements IPlayerRegister {
      * @return true 拥有 false 未拥有
      */
     public int checkHasItems(Player player, List<Item> itemList) {
+        if (player == null) {
+            return Code.NOT_FOUND;
+        }
+        if (itemList == null || itemList.isEmpty()) {
+            return Code.SUCCESS;
+        }
         long playerId = player.getId();
         try {
             PlayerPack playerPack = getFromAllDB(playerId);
             for (Item item : itemList) {
+                if (item == null) {
+                    continue;
+                }
                 ItemCfg itemCfg = GameDataManager.getItemCfg(item.getId());
                 if (Objects.isNull(itemCfg)) {
                     return Code.NOT_FOUND;
@@ -497,15 +631,16 @@ public class PlayerPackService implements IPlayerRegister {
             result.code = removeResult.code;
             return result;
         }
-
-        if (removeResult.success()) {
-            coreLogger.consumeItem(playerId, removeResult.data.getChangeBeforeItemNum(), Map.of(useItemId, useItemCount), removeResult.data.getChangeEndItemNum(), addType);
-        }
-
         CommonResult<ItemOperationResult> addResult = addItems(playerId, addItemsMap, addType);
         if (!addResult.success()) {
             //添加失败，要将之前扣除的道具加回去
-            addItem(playerId, useItemId, useItemCount, AddType.FAIL_ROLLBACK);
+            CommonResult<ItemOperationResult> rollbackResult = addItem(playerId, useItemId, useItemCount, AddType.FAIL_ROLLBACK);
+            if (!rollbackResult.success()) {
+                log.error("使用道具失败后回滚道具失败(需人工修复) playerId={},girdId={},useItemId={},useItemCount={},addCode={},rollbackCode={}",
+                        playerId, girdId, useItemId, useItemCount, addResult.code, rollbackResult.code);
+                result.code = Code.FAIL;
+                return result;
+            }
             result.code = addResult.code;
             log.debug("使用道具时，添加失败 playerId = {},girdId = {},useItemId = {}", playerId, girdId, useItemId);
             return result;
