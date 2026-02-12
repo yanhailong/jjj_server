@@ -86,7 +86,6 @@ public class SharePromoteRewardDao {
         String[] split = value.split("\\|");
         String[] split1 = split[2].split("_");
         int playerSizeRequire = Integer.parseInt(split1[0]);
-
         SharePromoteReward sharePromote = getSharePromote(playerId);
         if (sharePromote == null) {
             sharePromote = new SharePromoteReward();
@@ -142,9 +141,10 @@ public class SharePromoteRewardDao {
             }
             return equipNumSize < equipNumSizeRequire && ipSize < ipSizeRequire && registerIpSize < registerIpSizeRequire;
         } else if (sharePromote.getNum() < playerSizeRequire) {
-            int equipNumSize = getEquipNumSize(getSharePromoteList(), equipNum);
-            int ipSize = getIpSize(getSharePromoteList(), ip);
-            int registerIpSize = getIpSize(getSharePromoteList(), registerIp);
+            List<SharePromoteReward> sharePromoteList = getSharePromoteList();
+            int equipNumSize = getEquipNumSize(sharePromoteList, equipNum);
+            int ipSize = getIpSize(sharePromoteList, ip);
+            int registerIpSize = getIpSize(sharePromoteList, registerIp);
             if (equipNumSize >= equipNumSizeRequire) {
                 log.info("分享上线 已领取设备:{}, 配置上线:{}", equipNumSize, equipNumSizeRequire);
             }
