@@ -1,5 +1,6 @@
 package com.jjg.game.core.service;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.NumberUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.pb.ItemInfo;
@@ -55,7 +56,7 @@ public class ShopService implements OrderGenerate, GameEventListener {
     @Autowired
     private PlayerSessionTokenDao playerSessionTokenDao;
     //商城商品
-    private Map<Long, ShopProduct> shopProductMap;
+    private Map<Long, ShopProduct> shopProductMap = Map.of();
 
     public void init() {
         //加载商城商品
@@ -130,9 +131,12 @@ public class ShopService implements OrderGenerate, GameEventListener {
      */
     public void loadShopProducts() {
         List<ShopProduct> all = shopProductDao.getAll();
-        if (all != null && !all.isEmpty()) {
+        if (CollectionUtil.isNotEmpty(all)) {
             this.shopProductMap = all.stream().collect(Collectors.toUnmodifiableMap(ShopProduct::getId, Function.identity()));
             log.info("加载商城商品数量 size = {}", this.shopProductMap.size());
+        } else {
+            this.shopProductMap = Map.of();
+            log.info("清空商城商品");
         }
     }
 
@@ -223,7 +227,11 @@ public class ShopService implements OrderGenerate, GameEventListener {
             log.debug("商品未开启 playerId = {}, shopProductId = {}", player.getId(), shopProductId);
             return null;
         }
-
+        ChannelType channel = player.getChannel();
+        if (channel == null) {
+            log.error("玩家channel为空 playerId = {}, shopProductId = {}", player.getId(), shopProductId);
+            return null;
+        }
         String channelProductId = shopProduct.channelProductId(player.getChannel().getValue());
         if (channelProductId == null) {
             log.debug("获取商品的渠道商品id为空 playerId = {}, shopProductId = {}", player.getId(), shopProductId);

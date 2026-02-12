@@ -37,7 +37,7 @@ public class RemainingAttemptsCondition extends BaseRedisCondition<RemainingAtte
     public RemainingAttempts parse(List<String> args) {
         String activityId = args.getFirst();
         String needTimes = args.get(1);
-        String maxTimes = args.get(1);
+        String maxTimes = args.get(2);
         return new RemainingAttempts(Long.parseLong(activityId), Integer.parseInt(needTimes), Integer.parseInt(maxTimes));
     }
 
@@ -56,10 +56,6 @@ public class RemainingAttemptsCondition extends BaseRedisCondition<RemainingAtte
         if (ctx.event() instanceof RemainingAttemptsEvent event && matchCheck(event, config)) {
             String customId = getCustomId(ctx);
             String featureId = getFeatureId(ctx);
-            BigDecimal count = countDao.getCount(featureId, customId);
-            if (config.maxTimes() - count.intValue() >= config.remainTimes()) {
-                return MatchResultData.match();
-            }
             BigDecimal add = countDao.incrBy(ctx.player().getId(), featureId, customId, BigDecimal.valueOf(event.addTimes()));
             if (config.maxTimes() - add.intValue() >= config.remainTimes()) {
                 return MatchResultData.match();
@@ -79,3 +75,4 @@ public class RemainingAttemptsCondition extends BaseRedisCondition<RemainingAtte
         return 0;
     }
 }
+

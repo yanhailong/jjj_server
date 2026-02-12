@@ -50,7 +50,7 @@ public class TodayDepositCondition extends BaseRedisCondition<PlayerRecharge> {
     @Override
     public MatchResultData match(ConditionContext ctx, PlayerRecharge config) {
         String customId = String.valueOf(ctx.player().getId()) + TimeHelper.getCurrentDateZeroSecondTime();
-        BigDecimal count = countDao.getCount(getFeatureId(ctx) + ctx.player(), customId);
+        BigDecimal count = countDao.getCount(getFeatureId(ctx), customId);
         if (count.compareTo(config.amount()) >= 0) {
             return MatchResultData.match();
         }

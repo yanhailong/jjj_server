@@ -57,7 +57,7 @@ public class ShopMessageHandler {
                     }
 
                     List<ItemInfo> items = new ArrayList<>();
-                    shopProduct.getRewardItems().forEach((k,v) -> {
+                    shopProduct.getRewardItems().forEach((k, v) -> {
                         ItemInfo item = new ItemInfo();
                         item.itemId = k;
                         item.count = v;
@@ -80,7 +80,7 @@ public class ShopMessageHandler {
             });
         }
         playerController.send(res);
-        log.debug("返回商品 req = {},resp = {}", JSON.toJSONString(req),JSON.toJSONString(res));
+        log.debug("返回商品 req = {},resp = {}", JSON.toJSONString(req), JSON.toJSONString(res));
     }
 
     /**
@@ -132,7 +132,7 @@ public class ShopMessageHandler {
                 shopProduct.getRewardItems().forEach((k, v) -> {
                     ItemInfo itemInfo = new ItemInfo();
                     itemInfo.itemId = k;
-                    itemInfo.count = v;
+                    itemInfo.count = v * req.count;
                     res.items.add(itemInfo);
                 });
             }
@@ -140,8 +140,11 @@ public class ShopMessageHandler {
             res.count = req.count;
             playerController.send(res);
             log.debug("玩家道具购买成功 playerId = {},productId = {},res = {}", playerController.playerId(), req.productId, JSON.toJSONString(res));
+            return;
         } catch (Exception e) {
             log.error("", e);
         }
+        res.code = Code.EXCEPTION;
+        playerController.send(res);
     }
 }

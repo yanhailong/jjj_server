@@ -2,7 +2,6 @@ package com.jjg.game.core.base.condition.conditionnode;
 
 import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.ConditionNode;
-import com.jjg.game.core.base.condition.MatchResult;
 import com.jjg.game.core.base.condition.MatchResultData;
 
 /**
@@ -21,7 +20,7 @@ public class NotNode implements ConditionNode {
     public MatchResultData match(ConditionContext ctx) {
         MatchResultData r = child.match(ctx);
         return switch (r.result()) {
-            case MATCH -> r;
+            case MATCH -> MatchResultData.notMatch(r.errorCode());
             case NOT_MATCH -> MatchResultData.match();
             case UNKNOWN -> MatchResultData.unknown();
         };
@@ -31,7 +30,7 @@ public class NotNode implements ConditionNode {
     public MatchResultData addProgress(ConditionContext ctx) {
         MatchResultData r = child.addProgress(ctx);
         return switch (r.result()) {
-            case MATCH -> r;
+            case MATCH -> MatchResultData.notMatch(r.errorCode());
             case NOT_MATCH -> MatchResultData.match();
             case UNKNOWN -> MatchResultData.unknown();
         };

@@ -1,6 +1,5 @@
 package com.jjg.game.core.service;
 
-import com.alibaba.fastjson.JSONArray;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterMsgSender;
@@ -17,6 +16,7 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.OnlinePlayerDao;
@@ -168,12 +168,12 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
                 String.valueOf(playerId)
         );
         if (StringUtils.isNotEmpty(result)) {
-            JSONArray array = JSONArray.parseArray(result);
-            if (array != null && array.size() > 1) {
-                return array.getObject(1, PlayerSessionInfo.class);
+            try {
+                return ObjectMapperUtil.getDefualtConfigObjectMapper().readValue(result, PlayerSessionInfo.class);
+            } catch (Exception e) {
+                log.error("PlayerSessionInfo JSON解析失败 playerId:{}", playerId);
             }
         }
-
         return null;
     }
 
@@ -295,6 +295,10 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
 
     public void changeGameType(long playerId, int gameType, int roomCfgId) {
         PlayerSessionInfo info = getInfo(playerId);
+        if (info == null) {
+            log.error("changeGameType时info为null playerId:{} gameType:{} roomCfgId:{}", playerId, gameType, roomCfgId);
+            return;
+        }
         info.setGameType(gameType);
         info.setRoomCfgId(roomCfgId);
         save(info);

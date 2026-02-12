@@ -86,6 +86,9 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
             friendRoom.setCreator(playerId);
             friendRoom.setRoomExpendId(req.roomExpandId);
             FriendRoom savedRoom = createRoom(friendRoom);
+            if (savedRoom == null) {
+                return null;
+            }
             String tableName = getPlayerFriendRoomTableName(playerId);
             redisTemplate.opsForHash().put(tableName, savedRoom.getId(), gameType);
             return savedRoom;

@@ -39,6 +39,9 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
      * 推送基本信息变化
      */
     public void buildBaseInfoChangeMessage(Player player) {
+        if (player == null) {
+            return;
+        }
         PFSession session = playerSessionService.getSession(player.getId());
         if (session == null) {
             return;
@@ -86,13 +89,13 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
             return;
         }
         List<MoneyChangeInfo> moneyChangeInfoList = new ArrayList<>();
-        if(goldChangeValue != 0){
-            moneyChangeInfoList.add(buildMoneyChangeInfo(GameConstant.Item.TYPE_GOLD,goldChangeValue,player.getGold()));
+        if (goldChangeValue != 0) {
+            moneyChangeInfoList.add(buildMoneyChangeInfo(GameConstant.Item.TYPE_GOLD, goldChangeValue, player.getGold()));
         }
-        if(diamondChangeValue != 0){
-            moneyChangeInfoList.add(buildMoneyChangeInfo(GameConstant.Item.TYPE_DIAMOND,diamondChangeValue,player.getDiamond()));
+        if (diamondChangeValue != 0) {
+            moneyChangeInfoList.add(buildMoneyChangeInfo(GameConstant.Item.TYPE_DIAMOND, diamondChangeValue, player.getDiamond()));
         }
-        buildMoneyChangeInfoMessage(session,moneyChangeInfoList);
+        buildMoneyChangeInfoMessage(session, moneyChangeInfoList);
     }
 
     /**
@@ -101,7 +104,7 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
      * @param session
      */
     public void buildGoldChangeMessage(PFSession session, long changeValue, long afterValue) {
-        buildMoneyChangeMessage(session,GameConstant.Item.TYPE_GOLD, changeValue, afterValue);
+        buildMoneyChangeMessage(session, GameConstant.Item.TYPE_GOLD, changeValue, afterValue);
     }
 
     /**
@@ -113,7 +116,7 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
         if (session == null) {
             return;
         }
-        buildMoneyChangeMessage(session,GameConstant.Item.TYPE_GOLD, changeValue, player.getGold());
+        buildMoneyChangeMessage(session, GameConstant.Item.TYPE_GOLD, changeValue, player.getGold());
     }
 
     /**
@@ -125,7 +128,7 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
         if (session == null) {
             return;
         }
-        buildMoneyChangeMessage(session,GameConstant.Item.TYPE_DIAMOND, changeValue, player.getDiamond());
+        buildMoneyChangeMessage(session, GameConstant.Item.TYPE_DIAMOND, changeValue, player.getDiamond());
     }
 
     /**
@@ -134,7 +137,7 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
      * @param session
      */
     public void buildDiamondChangeMessage(PFSession session, long changeValue, long afterValue) {
-        buildMoneyChangeMessage(session,GameConstant.Item.TYPE_DIAMOND, changeValue, afterValue);
+        buildMoneyChangeMessage(session, GameConstant.Item.TYPE_DIAMOND, changeValue, afterValue);
     }
 
     /**

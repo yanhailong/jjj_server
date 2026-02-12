@@ -141,6 +141,7 @@ public class ConfigManager {
 
     /**
      * 获取存储在redis中的配置信息
+     *
      * @return redis中的配置信息
      */
     private Map<String, Map<Integer, AbstractExcelConfig>> getRedisConfigMap() {
@@ -330,7 +331,7 @@ public class ConfigManager {
                     // 先更新Redis数据
                     excelConfigMap.put(config.getId(), config);
                 });
-                log.debug("afterMap = {}",objectMapper.writeValueAsString(excelConfigMap));
+                log.debug("afterMap = {}", objectMapper.writeValueAsString(excelConfigMap));
                 configMap.put(name, objectMapper.writeValueAsString(excelConfigMap));
                 isReplace = true;
                 log.info("批量覆盖[{}]的配置[{}]条! ", name, configs.size());
@@ -418,7 +419,9 @@ public class ConfigManager {
                 // 从本地缓存中删除配置数据
                 if (excelConfigs != null) {
                     AbstractExcelConfig config = excelConfigs.remove(id);
-                    notifyUpdateConfig(name, ConfigChangeState.DELETE, config);
+                    if (config != null) {
+                        notifyUpdateConfig(name, ConfigChangeState.DELETE, config);
+                    }
                 }
             });
         } catch (Exception e) {
@@ -569,7 +572,7 @@ public class ConfigManager {
 
 //            refreshAllConfigsFromRedis();
 
-            log.debug("打印本地缓存 localCache = {}",JSON.toJSONString(localCache));
+            log.debug("打印本地缓存 localCache = {}", JSON.toJSONString(localCache));
             Map<Integer, AbstractExcelConfig> localConfigMap = localCache.get(name);
             Map<Integer, AbstractExcelConfig> oldLocal = null;
             if (localConfigMap == null) {
@@ -641,9 +644,10 @@ public class ConfigManager {
         if (configClass == null) {
             return;
         }
-
-        Map<Integer, AbstractExcelConfig> excelConfigMap = localCache.computeIfAbsent(name, k -> new ConcurrentHashMap<>());
-        excelConfigMap.put(newConfig.getId(), newConfig);
+        if (state != ConfigChangeState.DELETE) {
+            Map<Integer, AbstractExcelConfig> excelConfigMap = localCache.computeIfAbsent(name, k -> new ConcurrentHashMap<>());
+            excelConfigMap.put(newConfig.getId(), newConfig);
+        }
 
         List<ConfigUpdateHandler<? extends AbstractExcelConfig>> configListenerList = updateConfigListenerMap.get(configClass);
         if (configListenerList != null && !configListenerList.isEmpty()) {

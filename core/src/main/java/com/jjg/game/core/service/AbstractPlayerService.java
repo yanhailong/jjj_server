@@ -761,7 +761,7 @@ public class AbstractPlayerService {
             result.data = p;
             return result;
         } else {
-            result.code = Code.NOT_FOUND;
+            result.code = Code.NOT_ENOUGH;
         }
         return result;
     }
@@ -1124,7 +1124,7 @@ public class AbstractPlayerService {
      * @return
      */
     public CommonResult<Player> goldInSafeBox(long playerId, long gold, AddType addType) {
-        CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (gold < 1) {
             result.code = Code.PARAM_ERROR;
             return result;
@@ -1172,7 +1172,7 @@ public class AbstractPlayerService {
      * @return
      */
     public CommonResult<Player> diamondInSafeBox(long playerId, long diamond, AddType addType) {
-        CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (diamond < 1) {
             result.code = Code.PARAM_ERROR;
             return result;
@@ -1220,7 +1220,7 @@ public class AbstractPlayerService {
      * @return
      */
     public CommonResult<Player> goldOutFromSafeBox(long playerId, long gold, AddType addType) {
-        CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (gold < 1) {
             result.code = Code.PARAM_ERROR;
             return result;
@@ -1269,7 +1269,7 @@ public class AbstractPlayerService {
      * @return
      */
     public CommonResult<Player> diamondOutFromSafeBox(long playerId, long diamond, AddType addType) {
-        CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (diamond < 1) {
             result.code = Code.PARAM_ERROR;
             return result;
@@ -1395,7 +1395,7 @@ public class AbstractPlayerService {
      * @return 最新Player
      */
     public CommonResult<Player> gmPlayerInit(long playerId, long goldNum, long diamondNum, int vip, int level, AddType addType, String desc) {
-        CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (goldNum < 0 || diamondNum < 0) {
             result.code = Code.PARAM_ERROR;
             return result;

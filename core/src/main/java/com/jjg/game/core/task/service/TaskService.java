@@ -160,7 +160,7 @@ public class TaskService {
             return true;
         }
         // 获取同组的激活任务
-        List<TaskCfg> activeGroupTasks = taskGroupCfgs.stream().filter(cfg -> checkTaskActive(taskCfg)).toList();
+        List<TaskCfg> activeGroupTasks = taskGroupCfgs.stream().filter(this::checkTaskActive).toList();
         // 任务已经过期（不在激活任务列表中）
         if (activeGroupTasks.stream().noneMatch(cfg -> cfg.getId() == taskCfg.getId())) {
             return true;
