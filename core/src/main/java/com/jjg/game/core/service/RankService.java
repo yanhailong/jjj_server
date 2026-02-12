@@ -81,12 +81,12 @@ public class RankService {
             for i = 1, argc - 1, 2 do
                 local member = ARGV[i]
                 local points = tonumber(ARGV[i + 1])
-            
-                if points < 0 then points = 0 end
-                if points > POINTS_MAX then points = POINTS_MAX end
-            
-                local newScore = points * BASE + (TIME_MAX - nowTime)
-                redis.call('ZADD', key, newScore, member)
+                if points ~= nil then
+                    if points < 0 then points = 0 end
+                    if points > POINTS_MAX then points = POINTS_MAX end
+                    local newScore = points * BASE + (TIME_MAX - nowTime)
+                    redis.call('ZADD', key, newScore, member)
+                end
             end
             """;
     private static final String BATCH_ADD_LUA = """
@@ -110,11 +110,17 @@ public class RankService {
                     points = math.floor(tonumber(oldScore) / BASE) + addPoints
                 end
             
-                if points < 0 then points = 0 end
-                if points > POINTS_MAX then points = POINTS_MAX end
-            
-                local newScore = points * BASE + (TIME_MAX - nowTime)
-                redis.call('ZADD', key, newScore, member)
+                if points ~= nil then
+                    if points < 0 then
+                        -- Keep old score when result would go negative, same as SINGLE_ADD_LUA.
+                    elseif points == 0 then
+                        redis.call('ZREM', key, member)
+                    else
+                        if points > POINTS_MAX then points = POINTS_MAX end
+                        local newScore = points * BASE + (TIME_MAX - nowTime)
+                        redis.call('ZADD', key, newScore, member)
+                    end
+                end
             end
             """;
 
