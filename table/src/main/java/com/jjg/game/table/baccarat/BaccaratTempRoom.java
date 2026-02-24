@@ -5,10 +5,11 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
+import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.listener.IPlayerRoomEventListener;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,6 +24,11 @@ public class BaccaratTempRoom implements IPlayerRoomEventListener {
     // 观察百家乐路单的玩家集合
     private final Map<Integer, Set<Long>> baccaratObserverPlayers =
             new ConcurrentHashMap<>();
+    private final TaskManager taskManager;
+
+    public BaccaratTempRoom(TaskManager taskManager) {
+        this.taskManager = taskManager;
+    }
 
     @Override
     public int[] getGameTypes() {
@@ -31,6 +37,13 @@ public class BaccaratTempRoom implements IPlayerRoomEventListener {
 
     @Override
     public void enter(PFSession session, PlayerController playerController, PlayerSessionInfo playerSessionInfo) {
+        // 玩家当前仍在真实房间场景时，不应加入临时房间。
+        if (playerController.getPlayer().getRoomId() > 0 && playerController.getScene() instanceof AbstractRoomController<?, ?>) {
+            return;
+        }
+        session.setWorkId(playerController.playerId());
+        //加载任务
+        taskManager.loadTaskData(playerController.playerId());
         baccaratObserverPlayers
                 .computeIfAbsent(playerSessionInfo.getRoomCfgId(), k -> new ConcurrentHashSet<>())
                 .add(playerController.playerId());
@@ -38,10 +51,13 @@ public class BaccaratTempRoom implements IPlayerRoomEventListener {
 
     @Override
     public void exit(PFSession session, PlayerController playerController) {
-        int roomCfgId = playerController.getPlayer().getRoomCfgId();
-        if (baccaratObserverPlayers.containsKey(roomCfgId)) {
-            baccaratObserverPlayers.get(roomCfgId).remove(playerController.playerId());
-        }
+        long playerId = playerController.playerId();
+        baccaratObserverPlayers.values().forEach(playerIds -> playerIds.remove(playerId));
+    }
+
+    @Override
+    public boolean containsPlayer(long playerId) {
+        return baccaratObserverPlayers.values().stream().anyMatch(playerIds -> playerIds.contains(playerId));
     }
 
     public Set<Long> getBaccaratObserverPlayers(int roomCfgId) {
