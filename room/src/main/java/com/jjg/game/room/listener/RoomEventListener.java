@@ -301,7 +301,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
             @Override
             public void action() {
-                if (!listener.containsPlayer(playerId, player.getRoomCfgId())) {
+                if (!listener.containsPlayer(playerId)) {
                     log.info("玩家充值事件找不到玩家临时所在房间 尝试寻找gameController playerId:{} ", player.getId());
                     dealEvent(playerEvent, false);
                     return;

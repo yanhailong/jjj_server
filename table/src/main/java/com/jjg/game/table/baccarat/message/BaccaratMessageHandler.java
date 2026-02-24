@@ -183,8 +183,9 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
                 PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
                 playerSessionInfo.setRoomCfgId(room.getRoomCfgId());
                 baccaratTempRoom.enter(playerController.getSession(), playerController, playerSessionInfo);
+            } else {
+                playerController.getSession().setWorkId(reqJoinRoomInGame.roomId);
             }
-            playerController.getSession().setWorkId(reqJoinRoomInGame.roomId);
             respJoinRoomInGame.code = result;
             playerController.send(respJoinRoomInGame);
         } else {

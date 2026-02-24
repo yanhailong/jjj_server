@@ -30,8 +30,7 @@ public interface IPlayerRoomEventListener {
      * 玩家是否在临时房间
      *
      * @param playerId 玩家id
-     * @param roomCfgId 场次id
      * @return true 在临时房间
      */
-    boolean containsPlayer(long playerId, int roomCfgId);
+    boolean containsPlayer(long playerId);
 }
