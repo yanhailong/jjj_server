@@ -5,6 +5,7 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
+import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.room.listener.IPlayerRoomEventListener;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,11 @@ public class BaccaratTempRoom implements IPlayerRoomEventListener {
     // 观察百家乐路单的玩家集合
     private final Map<Integer, Set<Long>> baccaratObserverPlayers =
             new ConcurrentHashMap<>();
+    private final TaskManager taskManager;
+
+    public BaccaratTempRoom(TaskManager taskManager) {
+        this.taskManager = taskManager;
+    }
 
     @Override
     public int[] getGameTypes() {
@@ -31,6 +37,9 @@ public class BaccaratTempRoom implements IPlayerRoomEventListener {
 
     @Override
     public void enter(PFSession session, PlayerController playerController, PlayerSessionInfo playerSessionInfo) {
+        session.setWorkId(playerController.playerId());
+        //加载任务
+        taskManager.loadTaskData(playerController.playerId());
         baccaratObserverPlayers
                 .computeIfAbsent(playerSessionInfo.getRoomCfgId(), k -> new ConcurrentHashSet<>())
                 .add(playerController.playerId());
@@ -42,6 +51,12 @@ public class BaccaratTempRoom implements IPlayerRoomEventListener {
         if (baccaratObserverPlayers.containsKey(roomCfgId)) {
             baccaratObserverPlayers.get(roomCfgId).remove(playerController.playerId());
         }
+    }
+
+    @Override
+    public boolean containsPlayer(long playerId, int roomCfgId) {
+        Set<Long> playerIds = baccaratObserverPlayers.get(roomCfgId);
+        return playerIds != null && playerIds.contains(playerId);
     }
 
     public Set<Long> getBaccaratObserverPlayers(int roomCfgId) {
