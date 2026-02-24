@@ -100,7 +100,7 @@ public class GoogleCallbackController extends AbstractCallbackController {
     public ResponseEntity<String> callback(@RequestBody Map<String, Object> payload,
                                            @RequestHeader("Authorization") String authHeader) {
         try {
-            log.info("收到谷歌充值回调 payload = {}", payload);
+//            log.info("收到谷歌充值回调 payload = {}", payload);
             // ===== 1. 安全验证=====
             if (!verifyJwtToken(authHeader, thirdServiceInfo.getGoogleAud())) {
                 return ResponseEntity.status(403).body("Invalid Authorization header");

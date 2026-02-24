@@ -11,6 +11,7 @@ import com.auth0.jwk.JwkProviderBuilder;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.auth0.jwt.interfaces.Verification;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.core.data.*;
@@ -169,19 +170,14 @@ public class ThirdAccountHttpService {
     /**
      * 验证apple token
      *
+     * @param westeId 马甲id
      * @param token
      * @return
      */
-    public CommonResult<AppleUserInfo> verifyAppleToken(String token) {
+    public CommonResult<AppleUserInfo> verifyAppleToken(int westeId, String token) {
         CommonResult<AppleUserInfo> result = new CommonResult<>(Code.SUCCESS);
 
         try {
-            if (thirdServiceInfo.getAppleAppId() == null || StringUtils.isBlank(thirdServiceInfo.getAppleBundleId())) {
-                result.code = Code.FAIL;
-                log.warn("apple配置缺失 appleId = {},appleBundleId = {}", thirdServiceInfo.getAppleAppId(), thirdServiceInfo.getAppleBundleId());
-                return result;
-            }
-
             // 解析 Token Header，获取 kid
             DecodedJWT tempJwt = JWT.decode(token);
             String kid = tempJwt.getHeaderClaim("kid").asString();
@@ -193,11 +189,37 @@ public class ThirdAccountHttpService {
                 log.warn("非Apple发行的Token = {}", token);
                 return result;
             }
-            if (!decodedJWT.getAudience().contains(thirdServiceInfo.getAppleBundleId())) {
-                result.code = Code.FORBID;
-                log.warn("受众不匹配 configAud = {},jwtAud = {},token = {}", thirdServiceInfo.getAppleBundleId(), decodedJWT.getAudience(), token);
-                return result;
+
+            String bundleId;
+            if (westeId < 1) {
+                if (!StringUtils.isEmpty(thirdServiceInfo.getAppleBundleId())) {
+                    if (!decodedJWT.getAudience().contains(thirdServiceInfo.getAppleBundleId())) {
+                        result.code = Code.FORBID;
+                        log.warn("受众不匹配 configAud = {},jwtAud = {},token = {}", thirdServiceInfo.getAppleBundleId(), decodedJWT.getAudience(), token);
+                        return result;
+                    }
+                }
+                bundleId = thirdServiceInfo.getAppleBundleId();
+            } else {
+                UndergarmentCfg cfg = GameDataManager.getUndergarmentCfg(westeId);
+                if (cfg == null) {
+                    result.code = Code.SAMPLE_ERROR;
+                    log.warn("验证apple token时获取马甲配置为空 westeId = {}", westeId);
+                    return result;
+                }
+
+                if (!StringUtils.isEmpty(cfg.getAppleBundleId())) {
+                    if (!decodedJWT.getAudience().contains(cfg.getAppleBundleId())) {
+                        result.code = Code.FORBID;
+                        log.warn("受众不匹配 configAud = {},jwtAud = {},token = {},westeId = {}", cfg.getAppleBundleId(), decodedJWT.getAudience(), token, westeId);
+                        return result;
+                    }
+                }
+
+                bundleId = cfg.getAppleBundleId();
             }
+
+
             Date now = new Date();
             if (decodedJWT.getExpiresAt().before(now)) {
                 result.code = Code.EXPIRE;
@@ -224,15 +246,12 @@ public class ThirdAccountHttpService {
             }
 
             // 验证
-            DecodedJWT jwt = JWT.require(Algorithm.RSA256(publicKey, null))
-                    .withIssuer("https://appleid.apple.com")
-                    .withAudience(thirdServiceInfo.getAppleBundleId())
-                    .withClaimPresence("sub")
-                    .withClaimPresence("exp")
-                    .withClaimPresence("iat")
-                    .acceptLeeway(60)
-                    .build()
-                    .verify(token);
+            Verification verification = JWT.require(Algorithm.RSA256(publicKey, null)).withIssuer("https://appleid.apple.com");
+            if (!StringUtils.isEmpty(bundleId)) {
+                verification.withAnyOfAudience(bundleId);
+            }
+
+            DecodedJWT jwt = verification.withClaimPresence("sub").withClaimPresence("exp").withClaimPresence("iat").acceptLeeway(60).build().verify(token);
 
             // 8. 填充用户信息
             AppleUserInfo userInfo = new AppleUserInfo();
@@ -250,17 +269,40 @@ public class ThirdAccountHttpService {
     /**
      * 验证facebook token
      *
+     * @param westeId 马甲id
      * @param token
      * @return
      */
-    public CommonResult<FacebookUserInfo> verifyFacebookToken(String token) {
+    public CommonResult<FacebookUserInfo> verifyFacebookToken(int westeId, String token) {
         CommonResult<FacebookUserInfo> result = new CommonResult<>(Code.SUCCESS);
 
         try {
-            if (StringUtils.isBlank(thirdServiceInfo.getFacebookAppId()) || StringUtils.isBlank(thirdServiceInfo.getFacebookSecret())) {
-                result.code = Code.FAIL;
-                log.warn("facebook 配置缺失 facebookAppId = {},facebookSecret is null={}", thirdServiceInfo.getFacebookAppId(), StringUtils.isBlank(thirdServiceInfo.getFacebookSecret()));
-                return result;
+            String appid;
+            String secret;
+            if (westeId < 1) {
+                if (StringUtils.isBlank(thirdServiceInfo.getFacebookAppId()) || StringUtils.isBlank(thirdServiceInfo.getFacebookSecret())) {
+                    result.code = Code.FAIL;
+                    log.warn("默认的 facebook 配置缺失 facebookAppId = {},facebookSecret is null={}", thirdServiceInfo.getFacebookAppId(), StringUtils.isBlank(thirdServiceInfo.getFacebookSecret()));
+                    return result;
+                }
+                appid = thirdServiceInfo.getFacebookAppId();
+                secret = thirdServiceInfo.getFacebookSecret();
+            } else {
+                UndergarmentCfg cfg = GameDataManager.getUndergarmentCfg(westeId);
+                if (cfg == null) {
+                    log.warn("校验facebook token时未找到马甲包配置 westeId = {}", westeId);
+                    result.code = Code.FAIL;
+                    return result;
+                }
+
+                if (StringUtils.isBlank(cfg.getFacebookAppid()) || StringUtils.isBlank(cfg.getFaceBookAppSecret())) {
+                    result.code = Code.FAIL;
+                    log.warn("马甲配置的 facebook 配置缺失 facebookAppId = {},facebookSecret is null={},westeId = {}", cfg.getFacebookAppid(), StringUtils.isBlank(cfg.getFaceBookAppSecret()), westeId);
+                    return result;
+                }
+
+                appid = cfg.getFacebookAppid();
+                secret = cfg.getFaceBookAppSecret();
             }
 
             // 验证token
@@ -269,7 +311,7 @@ public class ThirdAccountHttpService {
 
             Map<String, Object> params = new HashMap<>();
             params.put("input_token", token);
-            params.put("access_token", thirdServiceInfo.getFacebookAppId() + "|" + thirdServiceInfo.getFacebookSecret());
+            params.put("access_token", appid + "|" + secret);
             HttpResponse resp = httpRequest.form(params).execute();
             String body = resp.body();
 
@@ -297,9 +339,9 @@ public class ThirdAccountHttpService {
             }
 
             // 验证应用 ID
-            if (!data.get("app_id").asText().equals(thirdServiceInfo.getFacebookAppId())) {
+            if (!data.get("app_id").asText().equals(appid)) {
                 result.code = Code.FAIL;
-                log.warn("facebook appid验证失败， token = {},appId = {},cfgAppId = {}", token, data.get("app_id").asText(), thirdServiceInfo.getFacebookAppId());
+                log.warn("facebook appid验证失败， token = {},appId = {},cfgAppId = {},westeId = {}", token, data.get("app_id").asText(), appid, westeId);
                 return result;
             }
 

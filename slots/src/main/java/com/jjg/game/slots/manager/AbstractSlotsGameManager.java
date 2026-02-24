@@ -388,6 +388,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         L resultLib = libResult.data;
 
+        log.debug("获取到结果库 lib = {}",JSONObject.toJSONString(resultLib));
+
         //给池子加钱
         CommonResult<Pair<Player, BetDivideInfo>> poolResult = moneyToPool(playerGameData, betValue);
         if (!poolResult.success()) {

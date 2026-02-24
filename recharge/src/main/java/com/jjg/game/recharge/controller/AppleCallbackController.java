@@ -18,10 +18,24 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.cert.CertificateFactory;
+import java.security.cert.CertPath;
+import java.security.cert.PKIXParameters;
+import java.security.cert.TrustAnchor;
+import java.security.cert.CertPathValidator;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author 11
@@ -34,9 +48,49 @@ public class AppleCallbackController extends AbstractCallbackController {
     private static final long CLOCK_SKEW_SECOND = 600; // 10分钟时钟偏差
     private static final long CLOCK_SKEW_MILLS = CLOCK_SKEW_SECOND * 1000;
 
+    /** Apple 受信任的根证书集合 */
+    private static final Set<TrustAnchor> APPLE_TRUST_ANCHORS;
+    private static final Set<X509Certificate> APPLE_ROOT_CERTS;
+
+    /** 根证书文件路径列表（相对于工作目录） */
+    private static final String[] APPLE_ROOT_CA_FILES = {
+            "config/AppleRootCA-G3.cer",
+            "config/AppleRootCA-G2.cer"
+    };
+
+    static {
+        try {
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            Set<TrustAnchor> anchors = new HashSet<>();
+            Set<X509Certificate> rootCerts = new HashSet<>();
+
+            for (String filePath : APPLE_ROOT_CA_FILES) {
+                Path path = Paths.get(filePath);
+                if (!Files.exists(path)) {
+                    continue;
+                }
+                try (InputStream is = new FileInputStream(path.toFile())) {
+                    X509Certificate cert = (X509Certificate) cf.generateCertificate(is);
+                    anchors.add(new TrustAnchor(cert, null));
+                    rootCerts.add(cert);
+                }
+            }
+
+            if (anchors.isEmpty()) {
+                throw new IllegalStateException("未找到任何 Apple 根证书文件，请将 AppleRootCA-G2.cer 和 AppleRootCA-G3.cer 放置到 config 目录下");
+            }
+
+            APPLE_TRUST_ANCHORS = Collections.unmodifiableSet(anchors);
+            APPLE_ROOT_CERTS = Collections.unmodifiableSet(rootCerts);
+        } catch (IllegalStateException e) {
+            throw new ExceptionInInitializerError(e.getMessage());
+        } catch (Exception e) {
+            throw new ExceptionInInitializerError("加载 Apple 根证书失败: " + e.getMessage());
+        }
+    }
+
     @Autowired
     private ThirdServiceInfo thirdServiceInfo;
-
 
     /**
      * 接收App Store Server Notifications V2格式的回调通知
@@ -48,7 +102,7 @@ public class AppleCallbackController extends AbstractCallbackController {
     @RequestMapping("callback")
     public ResponseEntity<String> callback(@RequestBody String rawBody) throws Exception {
         try {
-            log.info("收到apple充值回调 rawBody = {}", rawBody);
+//            log.info("收到apple充值回调 rawBody = {}", rawBody);
 
             //安全验证
             if (!verifyAppleNotificationSignature(rawBody)) {
@@ -218,7 +272,7 @@ public class AppleCallbackController extends AbstractCallbackController {
 
             long signedDate = payloadNode.get("signedDate").asLong();
             long now = System.currentTimeMillis();
-            if (signedDate < (now - CLOCK_SKEW_MILLS)) {  // 5 分钟延迟
+            if (signedDate < (now - CLOCK_SKEW_MILLS)) {
                 log.warn("通知已过期: signedDate={}, now={}", signedDate, now);
                 return false;
             }
@@ -227,15 +281,16 @@ public class AppleCallbackController extends AbstractCallbackController {
                 return false;
             }
 
-            JsonNode dataNode = payloadNode.get("data");
-            if (!thirdServiceInfo.getAppleBundleId().equals(dataNode.get("bundleId").asText())) {
-                log.warn("bundleId 匹配不上 : jwtBundleId={}, cfgBundleId={}", dataNode.get("bundleId").asText(), thirdServiceInfo.getAppleBundleId());
-                return false;
-            }
-            if (thirdServiceInfo.getAppleAppId() != dataNode.get("appAppleId").asLong()) {
-                log.warn("apple app id 匹配不上 : jwtAppid={}, cfgAppid={}", dataNode.get("appAppleId").asText(), thirdServiceInfo.getAppleAppId());
-                return false;
-            }
+            // 验证 environment：防止沙盒回调在生产环境被处理（反之亦然）
+//            JsonNode dataNode = payloadNode.get("data");
+//            if (dataNode != null && dataNode.has("environment")) {
+//                String environment = dataNode.get("environment").asText();
+//                String expected = thirdServiceInfo.isSandbox() ? "Sandbox" : "Production";
+//                if (!expected.equals(environment)) {
+//                    log.warn("environment 不匹配: expected={}, actual={}", expected, environment);
+//                    return false;
+//                }
+//            }
 
             log.debug("基本声明验证通过");
             return true;
@@ -247,7 +302,7 @@ public class AppleCallbackController extends AbstractCallbackController {
     }
 
     /**
-     * 验证签名（使用 x5c 证书链）
+     * 验证签名（使用 x5c 证书链，并验证证书链锚定到 Apple Root CA）
      */
     private boolean verifySignature(DecodedJWT jwt) {
         try {
@@ -259,35 +314,64 @@ public class AppleCallbackController extends AbstractCallbackController {
             }
 
             JsonNode x5cNode = headerNode.get("x5c");
-            if (!x5cNode.isArray() || x5cNode.size() == 0) {
+            if (!x5cNode.isArray() || x5cNode.isEmpty()) {
                 log.warn("x5c 证书链为空或格式无效");
                 return false;
             }
 
-            // 提取证书链中的第一张证书（签名证书）
-            String certStr = x5cNode.get(0).asText();
-            X509Certificate certificate = parseCertificate(certStr);
-            if (certificate == null) {
-                log.warn("无法解析 x5c 证书");
+            // 解析 x5c 中的所有证书
+            List<X509Certificate> allCerts = new ArrayList<>();
+            for (JsonNode certNode : x5cNode) {
+                X509Certificate cert = parseCertificate(certNode.asText());
+                if (cert == null) {
+                    log.warn("无法解析 x5c 证书链中的证书");
+                    return false;
+                }
+                allCerts.add(cert);
+            }
+
+            // 从链中剥离受信任的根证书，剩余部分构建 CertPath
+            // Java PKIX 规范要求 CertPath 不包含 trust anchor
+            List<X509Certificate> pathCerts = new ArrayList<>();
+            for (X509Certificate cert : allCerts) {
+                if (!APPLE_ROOT_CERTS.contains(cert)) {
+                    pathCerts.add(cert);
+                }
+            }
+
+            if (pathCerts.isEmpty()) {
+                log.warn("x5c 证书链中不包含非根证书（叶子/中间证书）");
                 return false;
             }
 
-            // 获取公钥
-            ECPublicKey publicKey = (ECPublicKey) certificate.getPublicKey();
-//            log.debug("成功获取公钥: {}", publicKey);
+            // 使用 PKIX 验证证书链
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            CertPath certPath = cf.generateCertPath(pathCerts);
 
-            // 创建验证器并验证签名
+            PKIXParameters params = new PKIXParameters(APPLE_TRUST_ANCHORS);
+            params.setRevocationEnabled(false);
+
+            CertPathValidator validator = CertPathValidator.getInstance("PKIX");
+            validator.validate(certPath, params);
+
+            // 证书链验证通过，使用叶子证书的公钥验证 JWT 签名
+            X509Certificate leafCert = allCerts.get(0);
+            ECPublicKey publicKey = (ECPublicKey) leafCert.getPublicKey();
+
             Algorithm algorithm = Algorithm.ECDSA256(publicKey, null);
             JWTVerifier verifier = JWT.require(algorithm)
                     .acceptLeeway(CLOCK_SKEW_SECOND)
                     .build();
 
             verifier.verify(jwt.getToken());
-            log.debug("签名验证成功");
+            log.debug("签名及证书链验证成功");
             return true;
 
         } catch (JWTVerificationException e) {
-            log.error("签名验证失败: {}", e.getMessage());
+            log.error("JWT签名验证失败: {}", e.getMessage());
+            return false;
+        } catch (java.security.cert.CertPathValidatorException e) {
+            log.error("x5c证书链验证失败，证书可能不是Apple签发: {}", e.getMessage());
             return false;
         } catch (Exception e) {
             log.error("验证签名异常", e);
