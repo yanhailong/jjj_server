@@ -87,6 +87,8 @@ public class CoreConst {
         public static final int TENFOLD_GOLDEN_BULL = 103700;
         //恶魔之子
         public static final int DEMON_CHILD = 103800;
+        // pan jin lian
+        public static final int PAN_JIN_LIAN = 103900;
         //虎虎生财
         public static final int TIGER_BRINGS_RICHES = 103401;
 

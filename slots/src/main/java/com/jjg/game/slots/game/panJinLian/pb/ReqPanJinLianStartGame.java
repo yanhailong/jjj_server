@@ -1,0 +1,18 @@
+package com.jjg.game.slots.game.panJinLian.pb;
+
+import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractMessage;
+import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.slots.game.panJinLian.PanJinLianConstant;
+
+/**
+ * @author lihaocao
+ * @date 2025/12/2 17:50
+ */
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.PAN_JIN_LIAN, cmd = PanJinLianConstant.MsgBean.REQ_START_GAME)
+@ProtoDesc("请求开始游戏")
+public class ReqPanJinLianStartGame extends AbstractMessage {
+    @ProtoDesc("下注金额")
+    public long stakeVlue;
+}

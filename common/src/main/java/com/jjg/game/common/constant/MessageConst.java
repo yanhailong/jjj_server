@@ -166,6 +166,8 @@ public interface MessageConst {
         int DEMON_CHILD = 0x43;
 
         int TO_SOUTH = 0x44;
+        // pan jin lian
+        int PAN_JIN_LIAN = 0x45;
     }
 
     interface ToClientConst {
