@@ -405,6 +405,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return result;
         }
 
+        //记录押分值
+        playerGameData.setOneBetScore(betScoreArr[0]);
+        playerGameData.setAllBetScore(betScoreArr[1]);
+
         //从数据库获取结果库
         CommonResult<L> libResult = getLibFromDB(playerGameData, specialModeNormalType);
         if (!libResult.success()) {
@@ -427,10 +431,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         //更新玩家数据
         playerGameData.updatePlayer(poolResult.data.getFirst());
-
-        //记录押分值
-        playerGameData.setOneBetScore(betScoreArr[0]);
-        playerGameData.setAllBetScore(betScoreArr[1]);
 
         PlayerController playerController = playerGameData.getPlayerController();
         //获取最新的玩家
@@ -929,26 +929,29 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param modelId
      * @return
      */
-    protected CommonResult<Integer> getResultLibType(int gameType, int modelId, RoomType roomType) {
+    protected CommonResult<Integer> getResultLibType(int gameType, int modelId, long betValue, RoomType roomType) {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
-        PropInfo propInfo;
-        if (roomType == null) {
-            propInfo = getGenerateManager().getSpecialResultLibCacheData().getResultLibTypePropInfoMap().get(modelId);
-        } else if (roomType == RoomType.SLOTS_TEAM_UP_ROOM) {
-            propInfo = getGenerateManager().getSpecialResultLibCacheData().getNoJackpotResultLibTypePropInfoMap().get(modelId);
-        } else {
-            log.warn("获取 resultLibType 是，不支持该roomType, gameType = {},modelId = {},roomType = {}", gameType, modelId, roomType);
-            result.code = Code.FAIL;
+        TypePropData typePropData = getGenerateManager().getSpecialResultLibCacheData().getTypePropData(modelId, betValue);
+        if (typePropData == null) {
+            log.warn("未找到 specialResultLib 中 typeProp相关的权重信息 modelId = {},betValue = {},gameType = {}", modelId, betValue, gameType);
+            result.code = Code.NOT_FOUND;
             return result;
         }
+//        log.warn("找到typePropData信息 modelId = {},betValue = {},gameType = {},data = {}", modelId, betValue, gameType,JSONObject.toJSONString(typePropData));
+
+        PropInfo propInfo = typePropData.getTypePropInfo();
+        if (roomType == RoomType.SLOTS_TEAM_UP_ROOM) {
+            propInfo = typePropData.getNoJackpotTypePropInfo();
+        }
+
         if (propInfo == null) {
-            log.debug("未找到 specialResultLib 中 typeProp相关的权重信息 modelId = {},gameType = {}", modelId, gameType);
+            log.warn("未找到 specialResultLib 中 typeProp相关的权重信息11 modelId = {},gameType = {}", modelId, gameType);
             result.code = Code.NOT_FOUND;
             return result;
         }
         Integer type = propInfo.getRandKey();
         if (type == null) {
-            log.debug("specialResultLib 中 typeProp随机失败 modelId = {},gameType = {}", modelId, gameType);
+            log.warn("specialResultLib 中 typeProp随机失败 modelId = {},gameType = {}", modelId, gameType);
             result.code = Code.FAIL;
             return result;
         }
@@ -967,19 +970,19 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
         Map<Integer, PropInfo> tempPropMap = getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionPropMap().get(modelId);
         if (tempPropMap == null) {
-            log.debug("未找到 specialResultLib 中 section 相关的权重信息1 modelId = {},gameType = {},libType = {}", modelId, this.gameType, libType);
+            log.warn("未找到 specialResultLib 中 section 相关的权重信息1 modelId = {},gameType = {},libType = {}", modelId, this.gameType, libType);
             result.code = Code.NOT_FOUND;
             return result;
         }
         PropInfo propInfo = tempPropMap.get(libType);
         if (propInfo == null || propInfo.getSum() < 1) {
-            log.debug("未找到 specialResultLib 中 section 相关的权重信息2 modelId = {},gameType = {},libType = {}", modelId, this.gameType, libType);
+            log.warn("未找到 specialResultLib 中 section 相关的权重信息2 modelId = {},gameType = {},libType = {}", modelId, this.gameType, libType);
             result.code = Code.NOT_FOUND;
             return result;
         }
         Integer index = propInfo.getRandKey();
         if (index == null) {
-            log.debug("未找到 specialResultLib 中 section 相关的权重信息3 modelId = {},gameType = {},libType = {},index = {}", modelId, this.gameType, libType, index);
+            log.warn("未找到 specialResultLib 中 section 相关的权重信息3 modelId = {},gameType = {},libType = {},index = {}", modelId, this.gameType, libType, index);
             result.code = Code.FAIL;
             return result;
         }
@@ -1925,7 +1928,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //如果gm中没有设置 libType，则需要根据配置获取 libType
             if (!gmLibType && libType <= 1) {
                 //获取 specialResultLib 中的type
-                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId(), playerGameData.getRoomType());
+                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId(), playerGameData.getAllBetScore(), playerGameData.getRoomType());
                 if (!resultLibTypeResult.success()) {
                     result.code = resultLibTypeResult.code;
                     return result;
