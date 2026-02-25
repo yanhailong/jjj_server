@@ -2,9 +2,7 @@ package com.jjg.game.slots.game.pegasusunbridle.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -72,11 +70,14 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new PegasusUnbridleGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        if (playerGameData.getStatus() == PegasusUnbridleConstant.Status.REAL_FU_MA && playerGameData.getFuMa() == null) {
+            playerGameData.setStatus(PegasusUnbridleConstant.Status.NORMAL);
+            log.info("神马飞扬玩家状态重置为正常状态 playerId = {}", playerController.playerId());
+        }
         PegasusUnbridleGameRunInfo gameRunInfo = new PegasusUnbridleGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
     }
-
     @Override
     protected void onAutoExitAction(PegasusUnbridlePlayerGameData gameData, int eventId) {
         if (gameData.getStatus() == PegasusUnbridleConstant.Status.REAL_FU_MA) {
@@ -147,7 +148,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
@@ -156,7 +157,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
-            int times = calWinTimes(gameRunInfo, playerGameData, betValue);
+            int times = calWinTimes(gameRunInfo, playerGameData);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 
