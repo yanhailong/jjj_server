@@ -52,7 +52,7 @@ public class GoogleCallbackController extends AbstractCallbackController {
     private final String JWT_AUD = "https://oauth2.googleapis.com/token";
 
 
-    private final long CLOCK_SKEW = 300000; // 5分钟时钟容差
+    private final long CLOCK_SKEW = 300; // 5分钟时钟容差
     private JwkProvider jwkProvider;
 
     //服务账号
@@ -232,12 +232,7 @@ public class GoogleCallbackController extends AbstractCallbackController {
                 return false;
             }
 
-            // 3. 验证基本声明
-            if (!verifyBasicClaims(decodedJWT, expectedAudience)) {
-                return false;
-            }
-
-            // 4. 从 Google JWKS 端点获取公钥
+            // 3. 从 Google JWKS 端点获取公钥
             String keyId = decodedJWT.getKeyId();
             RSAPublicKey publicKey = getPublicKeyFromJwks(keyId);
 
@@ -246,7 +241,7 @@ public class GoogleCallbackController extends AbstractCallbackController {
                 return false;
             }
 
-            // 5. 创建验证器并验证签名
+            // 4. 创建验证器并验证签名
             Algorithm algorithm = Algorithm.RSA256(publicKey, null);
             JWTVerifier verifier = com.auth0.jwt.JWT.require(algorithm)
                     .withIssuer(ISSUER)
@@ -257,43 +252,13 @@ public class GoogleCallbackController extends AbstractCallbackController {
             // 验证签名和过期时间
             verifier.verify(jwtToken);
 
-            // 6. 验证通过，可以解析 payload 获取更多信息
+            // 5. 验证通过，可以解析 payload 获取更多信息
             String payload = new String(java.util.Base64.getUrlDecoder().decode(decodedJWT.getPayload()));
             log.debug("JWT Payload: " + payload);
             return true;
 
         } catch (Exception e) {
             log.error("验证google jwt 异常", e);
-            return false;
-        }
-    }
-
-    /**
-     * 验证 JWT 的基本声明
-     */
-    private boolean verifyBasicClaims(DecodedJWT jwt, String expectedAudience) {
-        try {
-            // 验证颁发者
-            if (!ISSUER.equals(jwt.getIssuer())) {
-                log.debug("issuer 不匹配, issuer = {}", jwt.getIssuer());
-                return false;
-            }
-
-            // 验证受众
-            if (!jwt.getAudience().contains(expectedAudience)) {
-                log.debug("aud 不匹配 aud = {},cfgAud = {}", jwt.getAudience(), expectedAudience);
-                return false;
-            }
-
-            // 验证过期时间
-            Date expiresAt = jwt.getExpiresAt();
-            if (expiresAt == null || expiresAt.before(new Date())) {
-                log.debug("已过期 expiresAt = {}", expiresAt);
-                return false;
-            }
-            return true;
-        } catch (Exception e) {
-            log.error("验证 JWT 的基本声明 异常 ", e);
             return false;
         }
     }
@@ -335,9 +300,9 @@ public class GoogleCallbackController extends AbstractCallbackController {
 
         // 编码 Header 和 Payload
         String headerBase64 = StrUtil.removeAllLineBreaks(
-                Base64.getUrlEncoder().encodeToString(JSON.toJSONBytes(header)));
+                Base64.getUrlEncoder().withoutPadding().encodeToString(JSON.toJSONBytes(header)));
         String payloadBase64 = StrUtil.removeAllLineBreaks(
-                Base64.getUrlEncoder().encodeToString(JSON.toJSONBytes(payload)));
+                Base64.getUrlEncoder().withoutPadding().encodeToString(JSON.toJSONBytes(payload)));
 
         // 使用 RSA 签名
         String dataToSign = headerBase64 + "." + payloadBase64;
