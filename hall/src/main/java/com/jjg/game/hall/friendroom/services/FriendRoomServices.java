@@ -530,7 +530,7 @@ public class FriendRoomServices {
         long overdueTime = friendRoom.getOverdueTime();
         long curTime = System.currentTimeMillis();
         long totalTake = 0;
-        while (itemNum < friendRoom.getPredictCostGoldNum()) {
+        while (itemNum <= friendRoom.getPredictCostGoldNum()) {
             friendRoom.setPredictCostGoldNum(friendRoom.getPredictCostGoldNum() - itemNum);
             totalTake += itemNum;
             overdueTime += durationTime;
@@ -589,6 +589,16 @@ public class FriendRoomServices {
             playerController.send(res);
             return;
         }
+
+        //self-check
+        long targetPlayerId = numberTargetPlayerId.longValue();
+        if (targetPlayerId == player.getId()) {
+            res.code = Code.ILLEGAL_FRIEND_ROOM_INVITATION_CODE;
+            playerController.send(res);
+            log.warn("不能填写自己的邀请码 playerId = {},invitationCode = {}", player.getId(), invitationCode);
+            return;
+        }
+
         // 判断玩家好友是否达到上限
         long roomFriendSize = friendRoomFollowDao.countRoomFriendSize(player.getId());
         PlayerLevelConfigCfg levelCfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
@@ -598,7 +608,7 @@ public class FriendRoomServices {
             playerController.send(res);
             return;
         }
-        long targetPlayerId = numberTargetPlayerId.longValue();
+
         Player targetPlayer = corePlayerService.get(targetPlayerId);
         // 如果目标玩家为空
         if (targetPlayer == null) {
