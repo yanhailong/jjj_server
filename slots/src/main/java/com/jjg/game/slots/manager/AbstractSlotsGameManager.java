@@ -1799,6 +1799,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     protected int calWinTimes(GameRunInfo<T> gameRunInfo, T playerGameData) {
+        if(playerGameData.getAllBetScore() < 1){
+            return 0;
+        }
         return (int) (gameRunInfo.getAllWinGold() / playerGameData.getAllBetScore());
     }
 
