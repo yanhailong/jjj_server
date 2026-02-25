@@ -1,23 +1,18 @@
 package com.jjg.game.slots.game.hulk.manager;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
-import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
 import com.jjg.game.sampledata.bean.BaseLineCfg;
-import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
-import com.jjg.game.sampledata.bean.SpecialModeCfg;
+import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
-import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.hulk.data.HulkAwardLineInfo;
 import com.jjg.game.slots.game.hulk.data.HulkResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author 11
@@ -41,119 +36,6 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
     }
 
     @Override
-    public SpecialAuxiliaryInfo triggerMiniGame(int specialModeType, int[] arr, int miniGameId, List<SpecialGirdInfo> specialGirdInfoList) {
-        log.debug("触发小游戏 miniGameId = {}", miniGameId);
-        //根据小游戏id去找相关配置
-        SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(miniGameId);
-        if (specialAuxiliaryCfg == null) {
-            log.warn("未找到该小游戏的配置 miniGameId = {}", miniGameId);
-            return null;
-        }
-
-        SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(miniGameId);
-        if (specialAuxiliaryPropConfig == null) {
-            log.warn("未找到该小游戏小关的权重信息配置 miniGameId = {}", miniGameId);
-            return null;
-        }
-
-        SpecialAuxiliaryInfo specialAuxiliaryInfo = new SpecialAuxiliaryInfo();
-        specialAuxiliaryInfo.setCfgId(miniGameId);
-        //检查免费旋转
-        triggerFree(specialModeType, arr, specialAuxiliaryCfg, specialAuxiliaryPropConfig, specialAuxiliaryInfo);
-        //检查是否有额外奖励
-        triggerAuxiliaryExtra(arr, specialAuxiliaryCfg, specialAuxiliaryPropConfig, specialAuxiliaryInfo, specialGirdInfoList);
-        return specialAuxiliaryInfo;
-    }
-
-    protected void triggerFree(int specialModeType, int[] arr, SpecialAuxiliaryCfg specialAuxiliaryCfg, SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig, SpecialAuxiliaryInfo specialAuxiliaryInfo) {
-        if (specialAuxiliaryPropConfig.getTriggerCountPropInfo() == null) {
-            return;
-        }
-
-        //检查是否有免费旋转次数，免费旋转的结果，通过specialMode生成
-        Integer freeCount = specialAuxiliaryPropConfig.getTriggerCountPropInfo().getRandKey();
-        if (freeCount == null || freeCount < 1) {
-            return;
-        }
-
-        for (int i = 0; i < freeCount; i++) {
-            //检查是否有修改图案策略组id
-            int specialGroupGirdID = 0;
-            if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
-                Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
-                if (randKey != null && randKey > 0) {
-                    specialGroupGirdID = randKey;
-                }
-            }
-
-            HulkResultLib lib = generateFreeOne(specialModeType, arr, specialAuxiliaryCfg, specialGroupGirdID);
-            specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
-        }
-    }
-
-    public HulkResultLib generateFreeOne(int specialModeType, int[] beforeArr, SpecialAuxiliaryCfg specialAuxiliaryCfg, int specialGroupGirdID) {
-        try {
-            //获取模式配置
-            SpecialModeCfg specialModeCfg = this.specialModeCfgMap.get(specialModeType);
-            if (specialModeCfg == null) {
-                log.warn("生成免费游戏图标时，specialModeCfg 配置为空 gameType = {},specialModeType = {}", this.gameType, specialModeType);
-                return null;
-            }
-
-            //创建结果库对象
-            HulkResultLib lib = createResultLib();
-            lib.setId(RandomUtils.getUUid());
-            lib.setRollerMode(specialModeCfg.getRollerMode());
-
-            //获取rollerMode
-            int rollerMode = specialAuxiliaryCfg.getRollerMode();
-            if (rollerMode < 1) {
-                rollerMode = specialModeCfg.getRollerMode();
-            }
-
-            int[] arr;
-            if (specialAuxiliaryCfg.getType() == TYPE_CHANGE_TO_ONE_WILD) {
-                arr = new int[beforeArr.length];
-                System.arraycopy(beforeArr, 0, arr, 0, beforeArr.length);
-            } else if (specialAuxiliaryCfg.getType() == TYPE_CHANGE_TO_THREE_WILD) {
-                arr = new int[beforeArr.length];
-                System.arraycopy(beforeArr, 0, arr, 0, beforeArr.length);
-            } else {
-                //生成所有的图标
-                arr = generateAllIcons(rollerMode, specialModeCfg.getCols(), specialModeCfg.getRows());
-            }
-
-            if (arr == null) {
-                return null;
-            }
-
-            log.debug("生成免费游戏图标 arr = {}", Arrays.toString(arr));
-
-            //修改格子策略组
-            if (specialGroupGirdID > 0) {
-                SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGroupGirdID, arr);
-                if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
-                    lib.addSpecialGirdInfo(specialGirdInfo);
-                }
-            }
-            //修改格子
-            if (specialAuxiliaryCfg.getSpecialGirdID() != null && !specialAuxiliaryCfg.getSpecialGirdID().isEmpty()) {
-                for (int specialGirdCfgId : specialAuxiliaryCfg.getSpecialGirdID()) {
-                    SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGirdCfgId, arr);
-                    if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
-                        lib.addSpecialGirdInfo(specialGirdInfo);
-                    }
-                }
-            }
-            //判断中奖，返回
-            return checkAward(arr, lib, true);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-        return null;
-    }
-
-    @Override
     protected HulkAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
         HulkAwardLineInfo awardLineInfo = new HulkAwardLineInfo();
         awardLineInfo.setId(baseLineCfg.getLineId());
@@ -161,6 +43,73 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
         awardLineInfo.setSameCount(sameCount);
         awardLineInfo.setIconId(baseIconId);
         return awardLineInfo;
+    }
+
+    @Override
+    protected List<SpecialAuxiliaryInfo> overallDisperse(HulkResultLib lib) {
+        //获取全局分散图案的配置
+        Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE_GLOBAL);
+        if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
+            return null;
+        }
+        //获取每个图标出现的次数
+        Map<Integer, Integer> showCountMap = checkIconShowCount(lib.getIconArr());
+
+        log.debug("检查全局分散");
+
+        //小游戏
+        List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = new ArrayList<>();
+
+        for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
+            BaseElementRewardCfg cfg = en.getValue();
+
+            //检查出现的个数是否满足
+            int elementsCount = 0;
+            for (int iconId : cfg.getElementId()) {
+                Integer count = showCountMap.get(iconId);
+                if (count != null) {
+                    elementsCount += count;
+                }
+            }
+            if (elementsCount != cfg.getRewardNum()) {
+                continue;
+            }
+
+            //是否触发小游戏
+            if (cfg.getFeatureTriggerId() != null && !cfg.getFeatureTriggerId().isEmpty()) {
+                if (lib.getLibTypeSet() == null || lib.getLibTypeSet().isEmpty()) {
+                    Set<Integer> triggerFreeSet = SlotsConst.specialModeTriggerFreeModeIds.get(this.gameType);
+                    if (triggerFreeSet != null && !triggerFreeSet.isEmpty()) {
+                        cfg.getFeatureTriggerId().forEach(miniGameId -> {
+                            triggerFreeSet.forEach(libType -> {
+                                SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
+                                if (specialAuxiliaryInfo != null) {
+                                    specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
+                                }
+                            });
+
+                        });
+                    }
+                } else {
+                    cfg.getFeatureTriggerId().forEach(miniGameId -> {
+                        lib.getLibTypeSet().forEach(libType -> {
+                            SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
+                            if (specialAuxiliaryInfo != null) {
+                                specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
+                            }
+                        });
+
+                    });
+                }
+            }
+
+
+            //是否有jackpot
+            if (cfg.getJackpotID() > 0) {
+                lib.addJackpotId(cfg.getJackpotID());
+            }
+        }
+        return specialAuxiliaryInfoList;
     }
 
     @Override

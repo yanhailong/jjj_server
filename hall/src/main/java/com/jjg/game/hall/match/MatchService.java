@@ -84,7 +84,7 @@ public class MatchService {
     public long getWaitingRoomId(int gameType, int roomConfigId, int maxPlayer, String nodePath) {
         String matchRedisKey = matchDataDao.getMatchRedisKey(gameType, roomConfigId);
         Pair<Long, String> preCreateData = getPreCreateRoomData(gameType, roomConfigId, maxPlayer, nodePath);
-        if (preCreateData == null) {
+        if (preCreateData == null || preCreateData.getSecond() == null) {
             return 0;
         }
         String result = redissonClient.getScript(StringCodec.INSTANCE)

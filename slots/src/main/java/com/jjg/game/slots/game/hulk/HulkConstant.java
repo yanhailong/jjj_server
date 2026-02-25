@@ -29,4 +29,8 @@ public interface HulkConstant {
     interface SpecialMode{
         int NORMAL = 1;
     }
+
+    interface BaseElement{
+
+    }
 }

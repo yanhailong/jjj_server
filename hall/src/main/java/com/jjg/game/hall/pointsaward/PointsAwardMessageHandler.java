@@ -144,7 +144,7 @@ public class PointsAwardMessageHandler {
      * 获取转盘历史记录
      */
     @Command(PointsAwardConstant.Message.REQ_TURNTABLE_HISTORY)
-    public void turntableHistory(PlayerController playerController, ReqLuckyTreasureHistory message) {
+    public void turntableHistory(PlayerController playerController, ReqPointsAwardTurntableHistory message) {
         ResPointsAwardTurntableHistory res = new ResPointsAwardTurntableHistory(Code.SUCCESS);
         res.setHistoryList(pointsAwardTurntableService.getHistoryList(playerController.playerId()));
         playerController.send(res);
