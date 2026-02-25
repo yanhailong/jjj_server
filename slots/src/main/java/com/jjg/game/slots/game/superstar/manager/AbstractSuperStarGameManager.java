@@ -1,16 +1,11 @@
 package com.jjg.game.slots.game.superstar.manager;
 
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.proto.Pair;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.game.superstar.SuperStarConstant;
 import com.jjg.game.slots.game.superstar.dao.SuperStarGameDataDao;
 import com.jjg.game.slots.game.superstar.dao.SuperStarResultLibDao;
 import com.jjg.game.slots.game.superstar.data.*;
@@ -68,7 +63,6 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
         return CoreConst.GameType.SUPER_STAR;
     }
 
-
     /**
      * 开始游戏
      */
@@ -90,10 +84,10 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //添加大奖展示id
-            int times = calWinTimes(gameRunInfo, playerGameData, betValue);
+            int times = calWinTimes(gameRunInfo, playerGameData);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());

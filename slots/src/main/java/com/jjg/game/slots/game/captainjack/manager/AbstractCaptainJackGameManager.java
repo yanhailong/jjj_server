@@ -1,9 +1,7 @@
 package com.jjg.game.slots.game.captainjack.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -51,6 +49,19 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new CaptainJackGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
+        if (playerGameData.getStatus() == CaptainJackConstant.Status.TREASURE_CHEST && playerGameData.getResultLib() == null) {
+            playerGameData.setResultLib(null);
+            playerGameData.setAlreadyDigCount(null);
+            if (playerGameData.getFreeLib() != null && playerGameData.getRemainFreeCount() != null && playerGameData.getRemainFreeCount().get() > 0) {
+                playerGameData.setStatus(CaptainJackConstant.Status.FREE);
+                log.info("杰克船长玩家挖宝状态异常，回退到免费状态,状态为{}, playerId = {}", playerGameData.getStatus(), playerController.playerId());
+            } else {
+                playerGameData.setStatus(CaptainJackConstant.Status.NORMAL);
+                resetFreeState(playerGameData);
+                log.info("杰克船长玩家挖宝状态异常，重置为正常状态,状态为{}, playerId = {}", playerGameData.getStatus(), playerController.playerId());
+            }
+        }
+        resetFreeStateIfInvalid(playerGameData, CaptainJackConstant.Status.FREE, CaptainJackConstant.Status.NORMAL, "杰克船长");
         CaptainJackGameRunInfo gameRunInfo = new CaptainJackGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
@@ -117,7 +128,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
@@ -126,7 +137,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
-            int times = calWinTimes(gameRunInfo, playerGameData, betValue);
+            int times = calWinTimes(gameRunInfo, playerGameData);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 

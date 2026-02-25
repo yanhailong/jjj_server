@@ -1,9 +1,7 @@
 package com.jjg.game.slots.game.christmasBashNight.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -39,20 +37,6 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
     public void init() {
         log.info("启动圣诞狂欢夜游戏管理器...");
         super.init();
-    }
-
-    @Override
-    public ChristmasBashNightGameRunInfo enterGame(PlayerController playerController) {
-        //获取玩家游戏数据
-        ChristmasBashNightPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new ChristmasBashNightGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-
-        ChristmasBashNightGameRunInfo gameRunInfo = new ChristmasBashNightGameRunInfo(Code.SUCCESS, playerGameData.playerId());
-        gameRunInfo.setData(playerGameData);
-        return gameRunInfo;
     }
 
     /**
@@ -99,7 +83,7 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(player, gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
+            triggerWinTask(player, gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
@@ -108,7 +92,7 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
-            int times = calWinTimes(gameRunInfo, playerGameData, betValue);
+            int times = calWinTimes(gameRunInfo, playerGameData);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 

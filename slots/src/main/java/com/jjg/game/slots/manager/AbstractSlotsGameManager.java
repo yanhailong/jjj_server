@@ -23,10 +23,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
-import com.jjg.game.core.constant.AddType;
-import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.constant.TaskConstant;
+import com.jjg.game.core.constant.*;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
@@ -55,6 +52,7 @@ import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -297,8 +295,37 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
     }
 
-    public G enterGame(PlayerController playerController) {
-        return null;
+
+    public G enterGame(PlayerController playerController) throws Exception {
+        //获取玩家游戏数据
+        T playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+            return createGameRunInfo(playerController.playerId(), Code.NOT_FOUND);
+        }
+        EGameType type = EGameType.getGameByTypeId(getGameType());
+        String gameName = type == null ? String.valueOf(getGameType()) : type.getGameDesc();
+        resetFreeStateIfInvalid(playerGameData, SlotsConst.Status.FREE, SlotsConst.Status.NORMAL, gameName);
+
+        G gameRunInfo = createGameRunInfo(playerController.playerId(), Code.SUCCESS);
+        gameRunInfo.setData(playerGameData);
+        return gameRunInfo;
+    }
+
+    protected void resetFreeState(T gameData) {
+        gameData.setFreeLib(null);
+        gameData.setFreeIndex(new AtomicInteger(0));
+        gameData.setRemainFreeCount(new AtomicInteger(0));
+        gameData.setFreeAllWin(0);
+    }
+
+    protected void resetFreeStateIfInvalid(T gameData, int freeStatus, int normalStatus, String gameName) {
+        AtomicInteger remainFreeCount = gameData.getRemainFreeCount();
+        if (gameData.getStatus() == freeStatus && (gameData.getFreeLib() == null || remainFreeCount == null || remainFreeCount.get() <= 0)) {
+            gameData.setStatus(normalStatus);
+            resetFreeState(gameData);
+            log.info("{}玩家状态异常，重置为正常状态,状态为{}, playerId = {}", gameName, gameData.getStatus(), gameData.playerId());
+        }
     }
 
     public G playerStartGame(PlayerController playerController, long betValue) throws Exception {
@@ -1769,14 +1796,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      *
      * @param gameRunInfo
      * @param playerGameData
-     * @param betValue
      * @return
      */
-    protected int calWinTimes(GameRunInfo<T> gameRunInfo, T playerGameData, long betValue) {
-        if (betValue < 1) {
-            return (int) (gameRunInfo.getAllWinGold() / playerGameData.getAllBetScore());
-        }
-        return (int) (gameRunInfo.getAllWinGold() / betValue);
+    protected int calWinTimes(GameRunInfo<T> gameRunInfo, T playerGameData) {
+        return (int) (gameRunInfo.getAllWinGold() / playerGameData.getAllBetScore());
     }
 
     public boolean canExit(SlotsPlayerGameData playerGameData) {

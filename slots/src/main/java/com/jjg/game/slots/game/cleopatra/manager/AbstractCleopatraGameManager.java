@@ -1,10 +1,8 @@
 package com.jjg.game.slots.game.cleopatra.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -97,7 +95,7 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
@@ -106,7 +104,7 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
-            int times = calWinTimes(gameRunInfo, playerGameData, betValue);
+            int times = calWinTimes(gameRunInfo, playerGameData);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 

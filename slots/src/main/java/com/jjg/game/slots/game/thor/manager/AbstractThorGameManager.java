@@ -44,10 +44,22 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
             log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new ThorGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
-
+        resetFreeStateIfInvalid(playerGameData, ThorConstant.Status.ICE, ThorConstant.Status.NORMAL, "雷神");
+        resetFreeStateIfInvalid(playerGameData, ThorConstant.Status.FIRE, ThorConstant.Status.NORMAL, "雷神");
         ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
+    }
+
+    @Override
+    protected void resetFreeStateIfInvalid(ThorPlayerGameData gameData, int freeStatus, int normalStatus, String gameName) {
+        AtomicInteger remainFreeCount = gameData.getRemainFreeCount();
+        if (gameData.getStatus() == freeStatus && !gameData.isFreeStart()
+                && (gameData.getFreeLib() == null || remainFreeCount == null || remainFreeCount.get() <= 0)) {
+            gameData.setStatus(normalStatus);
+            resetFreeState(gameData);
+            log.info("{}玩家状态异常，重置为正常状态,状态为{}, playerId = {}", gameName, gameData.getStatus(), gameData.playerId());
+        }
     }
 
     /**
@@ -74,6 +86,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         } else {
             playerGameData.setStatus(ThorConstant.Status.ICE);
         }
+        playerGameData.setFreeStart(true);
         return new ThorGameRunInfo(Code.SUCCESS, playerController.playerId());
     }
 
@@ -126,7 +139,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), stake, warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
@@ -135,7 +148,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
-            int times = calWinTimes(gameRunInfo, playerGameData, stake);
+            int times = calWinTimes(gameRunInfo, playerGameData);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 
@@ -185,6 +198,9 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
      * @param playerGameData
      */
     protected ThorGameRunInfo free(ThorGameRunInfo gameRunInfo, ThorPlayerGameData playerGameData, int specialModeFreeLibType) {
+        if (playerGameData.isFreeStart()) {
+            playerGameData.setFreeStart(false);
+        }
         CommonResult<ThorResultLib> libResult = freeGetLib(playerGameData, specialModeFreeLibType);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
@@ -215,6 +231,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
         gameRunInfo.setRemainFreeCount(afterCount);
         gameRunInfo.setResultLib(freeGame);
+
         return gameRunInfo;
     }
 
