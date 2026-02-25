@@ -1,5 +1,5 @@
 {
-  "playerBeginId": 1000000,
+  "playerBeginId": 1300000,
   "gameservers": [
     "ws://192.168.3.31:8090"
   ],

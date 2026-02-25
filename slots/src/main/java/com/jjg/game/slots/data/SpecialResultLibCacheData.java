@@ -2,6 +2,7 @@ package com.jjg.game.slots.data;
 
 import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -13,10 +14,8 @@ public class SpecialResultLibCacheData {
     private int defaultRewardSectionIndex = -1;
     //modelId -> cfg
     private Map<Integer, SpecialResultLibCfg> resultLibMap;
-    //specialResultLib表中typeProp字段的随机权重信息 specialResultLib.modelId -> propInfo
-    private Map<Integer, PropInfo> resultLibTypePropInfoMap;
-    //specialResultLib表中typeProp字段的随机权重信息(排除了jackpot类型) specialResultLib.modelId -> propInfo
-    private Map<Integer, PropInfo> noJackpotResultLibTypePropInfoMap;
+//    specialResultLib表中typeProp字段的随机权重信息
+    private Map<Integer, List<TypePropData>> resultLibTypePropInfoMap;
     //specialResultLib表中section字段的每个倍数的随机权重信息  modelId -> tpyeId -> PropInfo
     private Map<Integer, Map<Integer,PropInfo>> resultLibSectionPropMap;
     //specialResultLib表中section字段的倍数区间  modelId -> tpyeId -> 下标id -> 倍数区间
@@ -38,20 +37,12 @@ public class SpecialResultLibCacheData {
         this.resultLibMap = resultLibMap;
     }
 
-    public Map<Integer, PropInfo> getResultLibTypePropInfoMap() {
+    public Map<Integer, List<TypePropData>> getResultLibTypePropInfoMap() {
         return resultLibTypePropInfoMap;
     }
 
-    public void setResultLibTypePropInfoMap(Map<Integer, PropInfo> resultLibTypePropInfoMap) {
+    public void setResultLibTypePropInfoMap(Map<Integer, List<TypePropData>> resultLibTypePropInfoMap) {
         this.resultLibTypePropInfoMap = resultLibTypePropInfoMap;
-    }
-
-    public Map<Integer, PropInfo> getNoJackpotResultLibTypePropInfoMap() {
-        return noJackpotResultLibTypePropInfoMap;
-    }
-
-    public void setNoJackpotResultLibTypePropInfoMap(Map<Integer, PropInfo> noJackpotResultLibTypePropInfoMap) {
-        this.noJackpotResultLibTypePropInfoMap = noJackpotResultLibTypePropInfoMap;
     }
 
     public Map<Integer, Map<Integer, PropInfo>> getResultLibSectionPropMap() {
@@ -68,5 +59,29 @@ public class SpecialResultLibCacheData {
 
     public void setResultLibSectionMap(Map<Integer, Map<Integer, int[]>> resultLibSectionMap) {
         this.resultLibSectionMap = resultLibSectionMap;
+    }
+
+    /**
+     * 获取specialResultLib中的typeProp信息
+     * @param modelId
+     * @param betValue
+     * @return
+     */
+    public TypePropData getTypePropData(int modelId,long betValue){
+        if(this.resultLibTypePropInfoMap == null || this.resultLibTypePropInfoMap.isEmpty()){
+            return null;
+        }
+
+        List<TypePropData> dataList = this.resultLibTypePropInfoMap.get(modelId);
+        if(dataList == null || dataList.isEmpty()){
+            return null;
+        }
+
+        for(TypePropData data : dataList){
+            if(betValue >= data.getBegin() && betValue < data.getEnd()){
+                return data;
+            }
+        }
+        return null;
     }
 }
