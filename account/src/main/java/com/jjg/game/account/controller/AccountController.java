@@ -383,7 +383,7 @@ public class AccountController extends AbstractController {
      * @return
      */
     private WebResult<LoginVo> appleLogin(LoginDto dto, String ip) {
-        CommonResult<AppleUserInfo> userInfoResult = thirdAccountHttpService.verifyAppleToken(dto.getData());
+        CommonResult<AppleUserInfo> userInfoResult = thirdAccountHttpService.verifyAppleToken(dto.getWesteId(), dto.getData());
         if (!userInfoResult.success()) {
             return fail(Code.BAN_CAUSE_BLACK_LIST);
         }
@@ -462,7 +462,7 @@ public class AccountController extends AbstractController {
      * @return
      */
     public WebResult<LoginVo> facebookLogin(LoginDto dto, String ip) {
-        CommonResult<FacebookUserInfo> userInfoResult = thirdAccountHttpService.verifyFacebookToken(dto.getData());
+        CommonResult<FacebookUserInfo> userInfoResult = thirdAccountHttpService.verifyFacebookToken(dto.getWesteId(), dto.getData());
         if (!userInfoResult.success()) {
             log.debug("token校验失败, 登录失败 dto= {},code = {}", JSONObject.toJSONString(dto), userInfoResult.code);
             return fail(Code.BAN_CAUSE_BLACK_LIST);

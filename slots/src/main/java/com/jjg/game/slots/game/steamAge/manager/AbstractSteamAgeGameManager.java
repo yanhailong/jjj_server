@@ -40,21 +40,6 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
         super.init();
     }
 
-    @Override
-    public SteamAgeGameRunInfo enterGame(PlayerController playerController) {
-        //获取玩家游戏数据
-        SteamAgePlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new SteamAgeGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        resetFreeStateIfInvalid(playerGameData, SteamAgeConstant.Status.FREE, SteamAgeConstant.Status.NORMAL, "蒸汽时代");
-
-        SteamAgeGameRunInfo gameRunInfo = new SteamAgeGameRunInfo(Code.SUCCESS, playerGameData.playerId());
-        gameRunInfo.setData(playerGameData);
-        return gameRunInfo;
-    }
-
     /**
      * 开始游戏
      *
@@ -94,7 +79,7 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(player, gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
+            triggerWinTask(player, gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
@@ -102,7 +87,7 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
-            int times = calWinTimes(gameRunInfo, playerGameData, betValue);
+            int times = calWinTimes(gameRunInfo, playerGameData);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 

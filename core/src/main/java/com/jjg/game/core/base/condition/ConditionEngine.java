@@ -20,8 +20,12 @@ public class ConditionEngine implements ConfigExcelChangeListener {
     }
 
     public boolean check(Player player, String prefix, String expr) {
+        return check(player, prefix, null, expr);
+    }
+
+    public boolean check(Player player, String prefix, Object event, String expr) {
         ConditionNode node = treeCache.getOrParse(expr);
-        MatchResultData r = node.match(new ConditionContext(player, null, prefix));
+        MatchResultData r = node.match(new ConditionContext(player, event, prefix));
         return r.result() == MatchResult.MATCH;
     }
 
@@ -35,8 +39,12 @@ public class ConditionEngine implements ConfigExcelChangeListener {
     }
 
     public MatchResultData checkAndGetCode(Player player, String prefix, String expr) {
+        return checkAndGetCode(player, prefix, null, expr);
+    }
+
+    public MatchResultData checkAndGetCode(Player player, String prefix, Object event, String expr) {
         ConditionNode node = treeCache.getOrParse(expr);
-        return node.match(new ConditionContext(player, null, prefix));
+        return node.match(new ConditionContext(player, event, prefix));
     }
 
     public void delete(Player player, String prefix, String expr) {

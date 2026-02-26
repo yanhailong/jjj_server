@@ -93,7 +93,7 @@ public class DailyLoginController extends BaseActivityController {
                         if (data == null || data.getClaimStatus() != ActivityConstant.ClaimStatus.NOT_CLAIM) {
                             continue;
                         }
-                        if (conditionManager.isAchievement(player, "", cfg.getCondition())) {
+                        if (conditionManager.isAchievement(player, "", createTimeEvent(activityData), cfg.getCondition())) {
                             data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
                             change = true;
                         }
@@ -128,7 +128,7 @@ public class DailyLoginController extends BaseActivityController {
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        if (!conditionManager.isAchievementAndNotify(player, "", cfg.getCondition())) {
+        if (!conditionManager.isAchievementAndNotify(player, "", createTimeEvent(activityData), cfg.getCondition())) {
             return null;
         }
         PlayerActivityData data;
@@ -146,7 +146,7 @@ public class DailyLoginController extends BaseActivityController {
                 return res;
             }
             if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                res.code = Code.REPEAT_OP;
+                res.code = Code.ERROR_REQ;
                 return res;
             }
             // 发放奖励

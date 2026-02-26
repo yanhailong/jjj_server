@@ -8,6 +8,15 @@ import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
  * @date 2025/12/1 18:01
  */
 public class ThorPlayerGameData extends SlotsPlayerGameData {
+    private boolean isFreeStart;
+
+    public boolean isFreeStart() {
+        return isFreeStart;
+    }
+
+    public void setFreeStart(boolean freeStart) {
+        isFreeStart = freeStart;
+    }
     @Override
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
         T dto = super.converToDto(cla);

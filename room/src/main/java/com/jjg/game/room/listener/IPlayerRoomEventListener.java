@@ -11,6 +11,7 @@ import com.jjg.game.core.data.PlayerSessionInfo;
 public interface IPlayerRoomEventListener {
     /**
      * 获取支持的游戏类型
+     *
      * @return
      */
     int[] getGameTypes();
@@ -18,10 +19,18 @@ public interface IPlayerRoomEventListener {
     /**
      * 进入
      */
-    void enter(PFSession session,PlayerController playerController, PlayerSessionInfo playerSessionInfo);
+    void enter(PFSession session, PlayerController playerController, PlayerSessionInfo playerSessionInfo);
 
     /**
      * 离开
      */
-    void exit(PFSession session,PlayerController playerController);
+    void exit(PFSession session, PlayerController playerController);
+
+    /**
+     * 玩家是否在临时房间
+     *
+     * @param playerId 玩家id
+     * @return true 在临时房间
+     */
+    boolean containsPlayer(long playerId);
 }

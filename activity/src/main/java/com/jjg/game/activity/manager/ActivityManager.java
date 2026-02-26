@@ -34,6 +34,7 @@ import com.jjg.game.core.base.condition.conditionnode.AtomicNode;
 import com.jjg.game.core.base.condition.conditionnode.NotNode;
 import com.jjg.game.core.base.condition.conditionnode.OrNode;
 import com.jjg.game.core.base.condition.event.BetEvent;
+import com.jjg.game.core.base.condition.event.TimeEvent;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
@@ -685,7 +686,14 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         if (data == null || player == null) {
             return false;
         }
-        return data.canRun() && conditionManager.isAchievementAndNotify(player, "", data.getCondition());
+        return data.canRun() && conditionManager.isAchievementAndNotify(player, "", createTimeEvent(data), data.getCondition());
+    }
+
+    public TimeEvent createTimeEvent(ActivityData data) {
+        TimeEvent event = new TimeEvent();
+        event.setStartTime(data.getTimeStart());
+        event.setEndTime(data.getTimeEnd());
+        return event;
     }
 
     @Override
@@ -715,7 +723,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                         if (!data.canRun()) {
                             continue;
                         }
-                        if (!conditionManager.isAchievement(player, "", data.getCondition())) {
+                        if (!conditionManager.isAchievement(player, "", createTimeEvent(data), data.getCondition())) {
                             continue;
                         }
                         openActivityData.add(data);

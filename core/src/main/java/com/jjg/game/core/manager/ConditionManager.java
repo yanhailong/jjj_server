@@ -44,7 +44,18 @@ public class ConditionManager {
      * @return 是否达成条件
      */
     public boolean isAchievement(Player player, String prefix, String condition) {
-        return conditionEngine.check(player, prefix, condition);
+        return isAchievement(player, prefix, null, condition);
+    }
+
+    /**
+     * 是否达成条件
+     *
+     * @param player    玩家
+     * @param condition 条件参数
+     * @return 是否达成条件
+     */
+    public boolean isAchievement(Player player, String prefix, Object event, String condition) {
+        return conditionEngine.check(player, prefix, event, condition);
     }
 
     /**
@@ -55,7 +66,19 @@ public class ConditionManager {
      * @return 是否达成条件
      */
     public boolean isAchievementAndNotify(Player player, String prefix, String condition) {
-        MatchResultData resultData = conditionEngine.checkAndGetCode(player, prefix, condition);
+        return isAchievementAndNotify(player, prefix, null, condition);
+    }
+
+    /**
+     * 是否达成条件并通知前端错误信息
+     *
+     * @param player    玩家
+     * @param event     触发事件
+     * @param condition 条件参数
+     * @return 是否达成条件
+     */
+    public boolean isAchievementAndNotify(Player player, String prefix, Object event, String condition) {
+        MatchResultData resultData = conditionEngine.checkAndGetCode(player, prefix, event, condition);
         if (resultData.result() == MatchResult.MATCH) {
             return true;
         }
@@ -77,7 +100,19 @@ public class ConditionManager {
      * @return 是否达成条件
      */
     public MatchResultData isAchievementAndGetResult(Player player, String prefix, String condition) {
-        return conditionEngine.checkAndGetCode(player, prefix, condition);
+        return conditionEngine.checkAndGetCode(player, prefix, null, condition);
+    }
+
+    /**
+     * 是否达成条件返回错误码
+     *
+     * @param player    玩家
+     * @param event     触发事件
+     * @param condition 条件参数
+     * @return 是否达成条件
+     */
+    public MatchResultData isAchievementAndGetResult(Player player, String prefix, Object event, String condition) {
+        return conditionEngine.checkAndGetCode(player, prefix, event, condition);
     }
 
     /**

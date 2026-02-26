@@ -12,6 +12,7 @@ import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.CountDao;
+import com.jjg.game.core.dao.PlayerRechargeFlowDao;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.pb.NotifyPayInfo;
@@ -42,6 +43,7 @@ public class RechargeService {
     private final OrderService orderService;
     private final GameEventManager gameEventManager;
     private final CountDao countDao;
+    private final PlayerRechargeFlowDao playerRechargeFlowDao;
     private final TaskManager taskManager;
     private final ClusterSystem clusterSystem;
     private final TodayDepositCondition todayDepositCondition;
@@ -51,13 +53,16 @@ public class RechargeService {
                            OrderService orderService,
                            GameEventManager gameEventManager,
                            CountDao countDao,
+                           PlayerRechargeFlowDao playerRechargeFlowDao,
                            TaskManager taskManager,
-                           ClusterSystem clusterSystem, TodayDepositCondition conditionManager) {
+                           ClusterSystem clusterSystem,
+                           TodayDepositCondition conditionManager) {
         this.offlineRechargeDao = offlineRechargeDao;
         this.playerService = playerService;
         this.orderService = orderService;
         this.gameEventManager = gameEventManager;
         this.countDao = countDao;
+        this.playerRechargeFlowDao = playerRechargeFlowDao;
         this.taskManager = taskManager;
         this.clusterSystem = clusterSystem;
         this.todayDepositCondition = conditionManager;
@@ -141,6 +146,7 @@ public class RechargeService {
             addOfflineRecharge(notify, "处理充值读取玩家或订单异常");
             return;
         }
+        addRechargeFlowWithCompensate(order, notify.playerId);
         try {
             todayDepositCondition.addBaseProgress(player.getId(), order.getPrice());
         } catch (Exception e) {
@@ -193,4 +199,14 @@ public class RechargeService {
             log.error("{}，写入离线充值队列失败 playerId:{} orderId:{}", reason, notify.playerId, notify.orderId, e);
         }
     }
+
+
+    private void addRechargeFlowWithCompensate(Order order, long playerId) {
+        try {
+            playerRechargeFlowDao.addRechargeFlow(order);
+        } catch (Exception e) {
+            log.error("记录玩家充值流水失败 playerId = {},orderId = {}", playerId, order.getId(), e);
+        }
+    }
+
 }
