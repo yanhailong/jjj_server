@@ -61,7 +61,7 @@ public class DemonChildGameSendMessageManager extends BaseSendMessageManager {
             for (long[] arr : list) {
                 res.stakeList.add(arr[1]);
             }
-            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().getFirst());
+            res.defaultBet = gameRunInfo.getData() != null && gameRunInfo.getData().getAllBetScore() > 0 ? gameRunInfo.getData().getAllBetScore() : gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
             DemonChildPlayerGameData playerGameData = gameRunInfo.getData();
             res.totalWinGold = playerGameData.getFreeAllWin();
             res.status = playerGameData.getStatus();

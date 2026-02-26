@@ -63,7 +63,7 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
                 res.stakeList.add(arr[1]);
             }
 
-            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
+            res.defaultBet = gameRunInfo.getData() != null && gameRunInfo.getData().getAllBetScore() > 0 ? gameRunInfo.getData().getAllBetScore() : gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
             res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
             res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
@@ -72,7 +72,6 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
                 res.status = SteamAgeConstant.Status.NORMAL;
             }
             if (res.status == BasketballSuperstarConstant.Status.FREE) {
-                res.defaultBet = gameRunInfo.getData().getAllBetScore();
                 BasketballSuperstarResultLib freeLib = (BasketballSuperstarResultLib) gameRunInfo.getData().getFreeLib();
                 List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = freeLib.getSpecialAuxiliaryInfoList();
                 if (specialAuxiliaryInfoList != null && !specialAuxiliaryInfoList.isEmpty()) {
