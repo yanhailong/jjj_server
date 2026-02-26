@@ -166,7 +166,7 @@ public class DailyLoginController extends BaseActivityController {
                 return res;
             }
             if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                res.code = Code.REPEAT_OP;
+                res.code = Code.ERROR_REQ;
                 return res;
             }
             // 发放奖励

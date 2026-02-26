@@ -4,6 +4,8 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.mapping.FieldType;
 
 import java.math.BigDecimal;
 
@@ -24,6 +26,7 @@ public class PlayerRechargeFlow {
     //充值时间
     private long rechargeTime;
     //充值金额
+    @Field(targetType = FieldType.DECIMAL128)
     private BigDecimal amount;
     //渠道id
     private int channelId;
