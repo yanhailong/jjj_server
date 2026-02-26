@@ -8,9 +8,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jjg.game.core.data.Order;
-import com.jjg.game.core.data.ThirdServiceInfo;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -45,7 +43,7 @@ import java.util.Set;
 @RequestMapping(method = {RequestMethod.POST}, value = "applepay")
 public class AppleCallbackController extends AbstractCallbackController {
 
-    private static final long CLOCK_SKEW_SECOND = 600; // 10分钟时钟偏差
+    private static final long CLOCK_SKEW_SECOND = 3600; // 1小时时钟偏差
     private static final long CLOCK_SKEW_MILLS = CLOCK_SKEW_SECOND * 1000;
 
     /** Apple 受信任的根证书集合 */
@@ -89,9 +87,6 @@ public class AppleCallbackController extends AbstractCallbackController {
         }
     }
 
-    @Autowired
-    private ThirdServiceInfo thirdServiceInfo;
-
     /**
      * 接收App Store Server Notifications V2格式的回调通知
      *
@@ -103,6 +98,7 @@ public class AppleCallbackController extends AbstractCallbackController {
     public ResponseEntity<String> callback(@RequestBody String rawBody) throws Exception {
         try {
 //            log.info("收到apple充值回调 rawBody = {}", rawBody);
+            log.info("收到apple充值回调");
 
             //安全验证
             if (!verifyAppleNotificationSignature(rawBody)) {
@@ -172,7 +168,7 @@ public class AppleCallbackController extends AbstractCallbackController {
      */
     public boolean verifyAppleNotificationSignature(String notificationData) {
         try {
-            log.debug("开始验证Apple通知签名");
+//            log.debug("开始验证Apple通知签名");
 
             // ===== 1. 解析原始通知数据 =====
             JsonNode notificationNode = objectMapper.readTree(notificationData);
@@ -184,7 +180,6 @@ public class AppleCallbackController extends AbstractCallbackController {
             }
 
             String signedPayload = notificationNode.get("signedPayload").asText();
-            log.debug("获取到signedPayload，长度: {}", signedPayload.length());
 
             // 2. 验证 signedPayload 是否为有效的 JWT
             if (!isValidJWT(signedPayload)) {
@@ -209,7 +204,7 @@ public class AppleCallbackController extends AbstractCallbackController {
             }
 
             // ===== 6. 验证通过，可以安全使用数据 =====
-            log.debug("Apple通知签名验证成功");
+//            log.debug("Apple通知签名验证成功");
             return true;
 
         } catch (Exception e) {
@@ -292,7 +287,7 @@ public class AppleCallbackController extends AbstractCallbackController {
 //                }
 //            }
 
-            log.debug("基本声明验证通过");
+//            log.debug("基本声明验证通过");
             return true;
 
         } catch (Exception e) {
@@ -364,7 +359,7 @@ public class AppleCallbackController extends AbstractCallbackController {
                     .build();
 
             verifier.verify(jwt.getToken());
-            log.debug("签名及证书链验证成功");
+//            log.debug("签名及证书链验证成功");
             return true;
 
         } catch (JWTVerificationException e) {
@@ -422,7 +417,7 @@ public class AppleCallbackController extends AbstractCallbackController {
     }
 
     /**
-     * 验证并解码 signedTransactionInfo
+     * 解码 signedTransactionInfo
      */
     public JsonNode verifyAndDecodeTransactionInfo(JsonNode notificationNode) {
         try {
@@ -451,10 +446,7 @@ public class AppleCallbackController extends AbstractCallbackController {
                 return null;
             }
 
-            // 验证签名
-            if (!verifySignature(decodedJWT)) {
-                return null;
-            }
+            // signedTransactionInfo 来自已验签的 signedPayload，避免重复验签
 
             // 提取 payload
             String payload = new String(Base64.getUrlDecoder().decode(decodedJWT.getPayload()));
