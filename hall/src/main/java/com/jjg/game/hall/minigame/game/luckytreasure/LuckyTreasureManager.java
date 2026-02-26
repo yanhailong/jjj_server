@@ -12,6 +12,7 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.config.ConfigChangeState;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.config.bean.LuckyTreasureConfig;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.AwardCodeType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.LuckyTreasureConstant;
@@ -807,7 +808,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 //获取奖励邮件配置
                 MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
                 //发送邮件奖励
-                mailService.addCfgMail(player.getId(), mailCfg.getTitle(), mailCfg.getText(), ItemUtils.buildItemList(config.getItemId(), config.getItemNum()), Collections.emptyList());
+                mailService.addCfgMail(player.getId(), mailCfg.getTitle(), mailCfg.getText(), ItemUtils.buildItemList(config.getItemId(), config.getItemNum()), Collections.emptyList(), AddType.LUCKY_TREASURE_REWARDS);
             }
 
         }

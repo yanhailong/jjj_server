@@ -335,16 +335,19 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
 
         // 4. 清除系统邮件
         Set<Long> removeSet = new HashSet<>();
+        Set<String> removePlayerServerMailSet = new HashSet<>();
         List<Mail> mailList = getServerMails();
         for (Mail mail : mailList) {
             if (mail.getTimeout() != -1 && mail.getTimeout() < now) {
                 removeSet.add(mail.getId());
+                removePlayerServerMailSet.add(getPlayerServerMailTableName(mail.getId()));
             }
         }
 
         long deletedServermails = 0;
         if (!removeSet.isEmpty()) {
             deletedServermails = redisTemplate.opsForHash().delete(serverMailTableName, removeSet.toArray());
+            redisTemplate.delete(removePlayerServerMailSet);
         }
         result.setServerMailsDeletedCount(deletedServermails);
 

@@ -11,6 +11,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WheelTimerUtil;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.AwardCodeType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
@@ -648,11 +649,11 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
 
         if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.OTHER) {
             // 其他奖励 - 生成领奖码
-            mailService.addCfgMail(info.getPlayerId(), templateId, null, paramData);
+            mailService.addCfgMail(info.getPlayerId(), templateId, null, paramData, AddType.POINTS_AWARD_LADDER_REWARDS);
             code = awardCodeManager.generateCode(info.getPlayerId(), AwardCodeType.POINTS_AWARD);
         } else if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.ITEM) {
             // 道具奖励
-            mailService.addCfgMail(info.getPlayerId(), templateId, ItemUtils.buildItemsByStrList(cfg.getGetItem()), paramData);
+            mailService.addCfgMail(info.getPlayerId(), templateId, ItemUtils.buildItemsByStrList(cfg.getGetItem()), paramData, AddType.POINTS_AWARD_LADDER_REWARDS);
         }
         // 添加历史记录
         leaderboardService.addHistory(info, cfg, code, rankingData.getEndTime());

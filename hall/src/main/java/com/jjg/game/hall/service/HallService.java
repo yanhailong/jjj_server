@@ -757,7 +757,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
             result.data = ItemUtils.buildItems(loginConfigCfg.getAwardItem());
 
-            mailService.addCfgMail(player.getId(), mailId, result.data);
+            mailService.addCfgMail(player.getId(), mailId, result.data, AddType.BIND_REWARD);
             hallLogger.bind(player, type, userId);
             log.debug("已发送绑定账号奖励邮件 playerId = {},type = {},rewaredList = {}", player.getId(), type, result.data);
         } catch (Exception e) {
@@ -1112,7 +1112,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             }
 
             List<Item> list = ItemUtils.buildItems(loginConfigCfg.getAwardItem());
-            mailService.addCfgMail(player.getId(), GameConstant.Mail.ID_BIND_PHONE, list);
+            mailService.addCfgMail(player.getId(), GameConstant.Mail.ID_BIND_PHONE, list, AddType.BIND_REWARD);
 
             log.debug("已发送绑定手机奖励邮件 playerId = {},rewaredList = {}", player.getId(), list);
         }

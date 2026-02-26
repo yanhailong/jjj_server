@@ -312,7 +312,7 @@ public class ShopService implements OrderGenerate, GameEventListener {
                                     languageParamData.add(new LanguageParamData(0, String.valueOf(player.getVipLevel())));
                                     languageParamData.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(add).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN))));
                                     languageParamData.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addNum))));
-                                    mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum.longValue())), languageParamData);
+                                    mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum.longValue())), languageParamData, AddType.VIP_REWARDS);
                                 }
                             }
                         }

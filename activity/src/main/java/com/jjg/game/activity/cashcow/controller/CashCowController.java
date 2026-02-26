@@ -444,7 +444,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         arrayList.add(new LanguageParamData(0, String.valueOf(player.getVipLevel())));
         arrayList.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(addValue.getFirst()).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN))));
         arrayList.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addValue.getSecond()))));
-        mailService.addCfgMail(player.getId(), 38, List.of(new Item(ItemUtils.getGoldItemId(), addValue.getSecond())), arrayList);
+        mailService.addCfgMail(player.getId(), 38, List.of(new Item(ItemUtils.getGoldItemId(), addValue.getSecond())), arrayList, AddType.ACTIVITY_CASHCOW);
     }
 
     @Override
