@@ -43,11 +43,11 @@ public class ActivityTotalRechargeCondition implements ConditionHandler<PlayerRe
 
     @Override
     public MatchResultData match(ConditionContext ctx, PlayerRecharge config) {
-        if (ctx.getEvent() instanceof TimeEvent event) {
+        if (ctx.event() instanceof TimeEvent event) {
             long startTime = event.getStartTime();
             long endTime = event.getEndTime();
             BigDecimal total = playerRechargeFlowDao.sumAmountByPlayerIdAndTimeRange(
-                    ctx.getPlayer().getId(), config.channelId(), startTime, endTime);
+                    ctx.player().getId(), config.channelId(), startTime, endTime);
             if (total.compareTo(config.amount()) >= 0) {
                 return MatchResultData.match();
             }

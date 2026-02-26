@@ -1,6 +1,5 @@
 package com.jjg.game.slots.manager;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.common.data.ActivityTargetType;
@@ -54,7 +53,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -1322,39 +1320,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
 
-    /**
-     * 免费状态退出处理
-     */
-    protected void freeStateAction(T t, Consumer<T> consumer) {
-        if (t.getFreeLib() instanceof SlotsResultLib<?> lib && CollectionUtil.isNotEmpty(lib.getSpecialAuxiliaryInfoList())) {
-            for (SpecialAuxiliaryInfo info : lib.getSpecialAuxiliaryInfoList()) {
-                //计算剩余次数
-                if (CollectionUtil.isNotEmpty(info.getFreeGames())) {
-                    int remainTimes = info.getFreeGames().size() - t.getFreeIndex().get();
-                    for (int i = 0; i < remainTimes; i++) {
-                        consumer.accept(t);
-                    }
-                }
-            }
-        }
-    }
-
-    protected void resetFreeState(T gameData) {
-        gameData.setFreeLib(null);
-        gameData.setFreeIndex(new AtomicInteger(0));
-        gameData.setRemainFreeCount(new AtomicInteger(0));
-    }
-
-    protected boolean resetFreeStateIfInvalid(T gameData, int freeStatus, int normalStatus, String gameName) {
-        if (gameData.getStatus() == freeStatus
-                && (gameData.getFreeLib() == null || gameData.getRemainFreeCount().get() <= 0)) {
-            gameData.setStatus(normalStatus);
-            resetFreeState(gameData);
-            log.info("{}玩家状态异常，重置为正常状态,状态为{}, playerId = {}", gameName, gameData.getStatus(), gameData.playerId());
-            return true;
-        }
-        return false;
-    }
 
     protected abstract <D extends AbstractResultLibDao> D getResultLibDao();
 

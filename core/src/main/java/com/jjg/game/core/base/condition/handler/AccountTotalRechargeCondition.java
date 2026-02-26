@@ -40,7 +40,7 @@ public class AccountTotalRechargeCondition implements ConditionHandler<PlayerRec
 
     @Override
     public MatchResultData match(ConditionContext ctx, PlayerRecharge config) {
-        BigDecimal count = countDao.getCount(CountDao.CountType.RECHARGE.getParam(), String.valueOf(ctx.getPlayer().getId()));
+        BigDecimal count = countDao.getCount(CountDao.CountType.RECHARGE.getParam(), String.valueOf(ctx.player().getId()));
         if (count.compareTo(config.amount()) >= 0) {
             return MatchResultData.match();
         }

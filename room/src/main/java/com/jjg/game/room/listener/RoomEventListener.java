@@ -319,7 +319,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 }
                 if (playerEvent instanceof CurrencyChangeEvent event) {
                     Map<Integer, Long> currencyMap = event.getCurrencyMap();
-                    changeTempRoomCurrency(playerId, currencyMap);
+                    changeTempRoomCurrency(playerId, currencyMap, event.getAddType());
                     log.info("临时房间内玩家货币变化事件完成 playerId:{} ", playerId);
                 }
             }
@@ -332,7 +332,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
      * @param playerId
      * @param currencyMap
      */
-    private void changeTempRoomCurrency(long playerId, Map<Integer, Long> currencyMap) {
+    private void changeTempRoomCurrency(long playerId, Map<Integer, Long> currencyMap, AddType addType) {
         for (Map.Entry<Integer, Long> entry : currencyMap.entrySet()) {
             Long changeValue = entry.getValue();
             if (changeValue == 0) {
@@ -340,13 +340,13 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             }
             if (entry.getKey() == ItemUtils.getGoldItemId()) {
                 if (changeValue > 0) {
-                    CommonResult<Player> result = playerService.addGold(playerId, changeValue, AddType.ROOM_CURRENCY_CHANGE, "", true);
+                    CommonResult<Player> result = playerService.addGold(playerId, changeValue, addType, "", true);
                     if (!result.success()) {
                         log.error("房间内添加金币失败 playerId:{} num:{}", playerId, changeValue);
                         continue;
                     }
                 } else {
-                    CommonResult<Player> result = playerService.deductGold(playerId, Math.abs(changeValue), AddType.ROOM_CURRENCY_CHANGE, "", true);
+                    CommonResult<Player> result = playerService.deductGold(playerId, Math.abs(changeValue), addType, "", true);
                     if (!result.success()) {
                         log.error("房间内移除金币失败 playerId:{} num:{}", playerId, Math.abs(changeValue));
                         continue;
@@ -355,12 +355,12 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             }
             if (entry.getKey() == ItemUtils.getDiamondItemId()) {
                 if (changeValue > 0) {
-                    CommonResult<Player> result = playerService.addDiamond(playerId, changeValue, AddType.ROOM_CURRENCY_CHANGE, "", true);
+                    CommonResult<Player> result = playerService.addDiamond(playerId, changeValue, addType, "", true);
                     if (!result.success()) {
                         log.error("房间内添加钻石失败 playerId:{} num:{}", playerId, changeValue);
                     }
                 } else {
-                    CommonResult<Player> result = playerService.deductDiamond(playerId, Math.abs(changeValue), AddType.ROOM_CURRENCY_CHANGE, "", true);
+                    CommonResult<Player> result = playerService.deductDiamond(playerId, Math.abs(changeValue), addType, "", true);
                     if (!result.success()) {
                         log.error("房间内删除钻石失败 playerId:{} num:{}", playerId, Math.abs(changeValue));
                     }

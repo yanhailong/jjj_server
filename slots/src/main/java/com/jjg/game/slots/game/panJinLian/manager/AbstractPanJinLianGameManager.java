@@ -40,24 +40,6 @@ public abstract class AbstractPanJinLianGameManager extends AbstractSlotsGameMan
         super.init();
     }
 
-    @Override
-    public PanJinLianGameRunInfo enterGame(PlayerController playerController) {
-        // 获取玩家游戏数据
-        PanJinLianPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，进入游戏失败。playerId={}, gameType={}, roomCfgId={}",
-                    playerController.playerId(),
-                    playerController.getPlayer().getGameType(),
-                    playerController.getPlayer().getRoomCfgId());
-            return new PanJinLianGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        resetFreeStateIfInvalid(playerGameData, PanJinLianConstant.Status.FREE, PanJinLianConstant.Status.NORMAL, "潘金莲");
-
-        PanJinLianGameRunInfo gameRunInfo = new PanJinLianGameRunInfo(Code.SUCCESS, playerGameData.playerId());
-        gameRunInfo.setData(playerGameData);
-        return gameRunInfo;
-    }
-
     /**
      * 开始游戏
      */
@@ -93,13 +75,13 @@ public abstract class AbstractPanJinLianGameManager extends AbstractSlotsGameMan
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             // 触发赢钱任务
-            triggerWinTask(player, gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
+            triggerWinTask(player, gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             player = slotsPlayerService.get(playerGameData.playerId());
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             // 计算大赢展示
-            int times = calWinTimes(gameRunInfo, playerGameData, betValue);
+            int times = calWinTimes(gameRunInfo, playerGameData);
             log.debug("计算中奖倍数 times={}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 
