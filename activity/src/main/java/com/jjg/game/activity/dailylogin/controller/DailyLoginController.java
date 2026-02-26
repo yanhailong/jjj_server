@@ -4,7 +4,6 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityTargetType;
-import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -18,23 +17,12 @@ import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.condition.MatchResult;
-import com.jjg.game.core.base.condition.MatchResultData;
-import com.jjg.game.core.base.condition.event.PlayerRechargeEvent;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
-import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
-import com.jjg.game.core.pb.NoticeTip;
 import com.jjg.game.core.utils.ItemUtils;
-import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.DailyRewardsCfg;
@@ -112,7 +100,7 @@ public class DailyLoginController extends BaseActivityController {
                         if (data == null || data.getClaimStatus() != ActivityConstant.ClaimStatus.NOT_CLAIM) {
                             continue;
                         }
-                        if (conditionManager.isAchievement(player, "", cfg.getCondition())) {
+                        if (conditionManager.isAchievement(player, "", createTimeEvent(activityData), cfg.getCondition())) {
                             data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
                             change = true;
                         }
@@ -151,7 +139,7 @@ public class DailyLoginController extends BaseActivityController {
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        if (!conditionManager.isAchievementAndNotify(player, "", cfg.getCondition())) {
+        if (!conditionManager.isAchievementAndNotify(player, "", createTimeEvent(activityData), cfg.getCondition())) {
             return null;
         }
         PlayerActivityData data = null;
