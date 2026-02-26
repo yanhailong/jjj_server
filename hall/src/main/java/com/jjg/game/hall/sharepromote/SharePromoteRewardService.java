@@ -3,8 +3,10 @@ package com.jjg.game.hall.sharepromote;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.core.base.condition.MatchResult;
 import com.jjg.game.core.base.condition.MatchResultData;
-import com.jjg.game.core.base.condition.handler.BindPhoneCondition;
-import com.jjg.game.core.base.gameevent.*;
+import com.jjg.game.core.base.gameevent.ClockEvent;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
@@ -13,6 +15,7 @@ import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.LoginType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.hall.dao.SharePromoteRewardDao;
 import com.jjg.game.sampledata.GameDataManager;
@@ -24,7 +27,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 分享推广信息
@@ -46,7 +48,7 @@ public class SharePromoteRewardService implements GameEventListener {
     private MailService mailService;
 
     @Autowired
-    private BindPhoneCondition bindPhoneCondition;
+    private ConditionManager conditionManager;
 
     /**
      * 节点管理
@@ -69,31 +71,42 @@ public class SharePromoteRewardService implements GameEventListener {
         String[] split = value.split("\\|");
         String[] split1 = split[1].split("_");
         long playId = playerController.getPlayer().getId();
-        MatchResultData match = bindPhoneCondition.match(playId);
+        MatchResultData match = conditionManager.isAchievementAndGetResult(playerController.getPlayer(), "", split[0]);
         String ip = playerController.getPlayer().getIp();
         if (match.result() == MatchResult.MATCH) {
-            Account account = accountDao.queryAccountByPlayerId(playId);
-            if (account.getThirdAccounts() != null) {
-                Map<LoginType, String> thirdAccounts = account.getThirdAccounts();
-                log.info("开始分享推广 playId = {}, ip = {}", playId, ip);
-                String registerIp = account.getRegisterIp();
-                String equipNum = thirdAccounts.get(LoginType.GUEST);
-                if (sharePromoteRewardDao.judge(playId, registerIp, ip, equipNum)) {
-                    boolean b = sharePromoteRewardDao.addSharePromote(playId, ip, equipNum, account.getRegisterIp());
-                    if (b) {
-                        int itemId = Integer.parseInt(split1[0]);
-                        int itemNum = Integer.parseInt(split1[1]);
-                        //返回奖励
-                        mailService.addCfgMail(playId, GameConstant.Mail.ID_SHARING_REWARD, List.of(new Item(itemId, itemNum)));
-                    }
-                    return Code.SUCCESS;
-                } else {
-                    log.info("开始分享推广 次数受到上线，不发送邮件 playId = {}, ip = {}", playId, ip);
-                    return Code.SUCCESS;
+            boolean canReceive = true;
+            if (split.length >= 4) {
+                //判断是否领取条件
+                MatchResultData receiveCheck = conditionManager.isAchievementAndGetResult(playerController.getPlayer(), "", split[3]);
+                if (receiveCheck.result() != MatchResult.MATCH) {
+                    canReceive = false;
                 }
             }
+            if (canReceive) {
+                Account account = accountDao.queryAccountByPlayerId(playId);
+                if (account.getThirdAccounts() != null) {
+                    Map<LoginType, String> thirdAccounts = account.getThirdAccounts();
+                    log.info("开始分享推广 playId = {}, ip = {}", playId, ip);
+                    String registerIp = account.getRegisterIp();
+                    String equipNum = thirdAccounts.get(LoginType.GUEST);
+                    if (sharePromoteRewardDao.judge(playId, registerIp, ip, equipNum)) {
+                        boolean b = sharePromoteRewardDao.addSharePromote(playId, ip, equipNum, account.getRegisterIp());
+                        if (b) {
+                            int itemId = Integer.parseInt(split1[0]);
+                            int itemNum = Integer.parseInt(split1[1]);
+                            //返回奖励
+                            mailService.addCfgMail(playId, GameConstant.Mail.ID_SHARING_REWARD, List.of(new Item(itemId, itemNum)));
+                        }
+                        return Code.SUCCESS;
+                    } else {
+                        log.info("开始分享推广 次数受到上线，不发送邮件 playId = {}, ip = {}", playId, ip);
+                        return Code.SUCCESS;
+                    }
+                }
+            }
+            return Code.SUCCESS;
         }
-        log.info("开始分享推广 失败手机未绑定 playId = {}, ip = {}", playId, ip);
+        log.info("开始分享推广 前置条件检测失败 playId = {}, ip = {}", playId, ip);
         return match.errorCode();
     }
 
