@@ -91,6 +91,8 @@ public class CoreConst {
         public static final int PAN_JIN_LIAN = 103900;
         //虎虎生财
         public static final int TIGER_BRINGS_RICHES = 103401;
+        //愤怒的小鸟
+        public static final int ANGRY_BIRDS = 103900;
 
         //红黑大战
         public static final int RED_BLACK_WAR = 200100;

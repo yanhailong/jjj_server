@@ -12,9 +12,7 @@ import com.jjg.game.slots.game.acedj.data.AceDjAddFreeInfo;
 import com.jjg.game.slots.game.acedj.data.AceDjAddIconInfo;
 import com.jjg.game.slots.game.acedj.data.AceDjAwardLineInfo;
 import com.jjg.game.slots.game.acedj.data.AceDjResultLib;
-import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
-import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -628,7 +626,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
      * @param arr   图标数组
      * @return
      */
-    public SpecialGirdInfo girdUpdate(int cfgId, int[] arr) {
+    public SpecialGirdInfo gridUpdate(int cfgId, int[] arr) {
         log.debug("开始修改格子 specialGirdCfgId = {}", cfgId);
         SpecialGirdCfg specialGirdCfg = GameDataManager.getSpecialGirdCfg(cfgId);
         if (specialGirdCfg == null) {
