@@ -465,7 +465,7 @@ public class HotFootballGenerateManager extends AbstractSlotsGenerateManager<Hot
     }
 
     @Override
-    public SpecialGirdInfo girdUpdate(int cfgId, int[] arr) {
+    public SpecialGirdInfo gridUpdate(int cfgId, int[] arr) {
         log.debug("开始修改格子 specialGirdCfgId = {}", cfgId);
         SpecialGirdCfg specialGirdCfg = GameDataManager.getSpecialGirdCfg(cfgId);
         if (specialGirdCfg == null) {
