@@ -76,7 +76,6 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             int newIndex = (index + i) % playerSeatInfoList.size();
             PlayerSeatInfo info = playerSeatInfoList.get(newIndex);
             if (!info.isOver() && !info.isDelState()) {
-                gameDataVo.setIndex(newIndex);
                 return info;
             }
         }
@@ -340,9 +339,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         if (CollUtil.isNotEmpty(details)) {
              NotifyToSouthBombSettlement notify = new NotifyToSouthBombSettlement();
              notify.details = details;
-             for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
-                 RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), notify);
-             }
+             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
         }
     }
 
@@ -406,8 +403,8 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 // 清空本轮出牌记录
                 gameDataVo.getCurrentRoundPlays().clear();
 
+                broadcastNextTurn(nextLeader.getPlayerId(), false);
                 gameDataVo.setIndex(nextLeader.getSeatId());
-                broadcastNextTurn(nextLeader.getPlayerId(), gameDataVo.getCurRoundPassedPlayerSeats(), false);
                 addNextTimer(nextLeader, 0);
             }
         } else {
@@ -415,8 +412,8 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             PlayerSeatInfo nextPlayer = getNextExePlayer();
             if (nextPlayer != null) {
                 log.debug("当前轮继续，下家 {} 出牌", nextPlayer.getPlayerId());
+                broadcastNextTurn(nextPlayer.getPlayerId());
                 gameDataVo.setIndex(nextPlayer.getSeatId());
-                broadcastNextTurn(nextPlayer.getPlayerId(), gameDataVo.getCurRoundPassedPlayerSeats());
                 addNextTimer(nextPlayer, 0);
             }
         }
@@ -432,19 +429,21 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
          return null;
     }
 
-    public void broadcastNextTurn(long waitPlayerId, Set<Integer> curRoundPassedPlayerSeats) {
-        broadcastNextTurn(waitPlayerId, curRoundPassedPlayerSeats, true);
+    public void broadcastNextTurn(long waitPlayerId) {
+        broadcastNextTurn(waitPlayerId, true);
     }
 
 
-    public void broadcastNextTurn(long waitPlayerId, Set<Integer> curRoundPassedPlayerSeats, boolean canPass) {
+    public void broadcastNextTurn(long waitPlayerId, boolean canPass) {
         NotifyToSouthTurnActionInfo notify = new NotifyToSouthTurnActionInfo();
         ToSouthActionInfo actionInfo = new ToSouthActionInfo();
         actionInfo.waitPlayerId = waitPlayerId;
         actionInfo.canPass = canPass;
-
-        actionInfo.lastPlayCards = gameDataVo.getLastPlayCards();
-        actionInfo.lastPlayCardsType = gameDataVo.getLastPlayCardsType();
+        // 如果上一个玩家是pass的，则不发送牌信息，gameDataVo中的lastPayCards是上一个出牌玩家的牌，而不是前一个座位的出牌信息
+        if (CollUtil.isNotEmpty(gameDataVo.getLastPlayCards()) && !gameDataVo.getCurRoundPassedPlayerSeats().contains(gameDataVo.getIndex())) {
+            actionInfo.lastPlayCards = PokerDataHelper.getClientId(gameDataVo, gameDataVo.getLastPlayCards());
+            actionInfo.lastPlayCardsType = gameDataVo.getLastPlayCardsType();
+        }
         actionInfo.lastPlaySeatId = gameDataVo.getLastPlaySeatId();
         actionInfo.roundLeaderSeatId = gameDataVo.getRoundLeaderSeatId();
         actionInfo.isFirstRound = gameDataVo.isFirstRound();
@@ -469,7 +468,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             playerActionInfo.selfHandCards = PokerDataHelper.getClientId(gameDataVo, info.getCurrentCards());
             
             notify.actionInfo = playerActionInfo;
-            RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), notify);
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), notify));
         }
         Map<Long, PlayerSeatInfo> playerSeatInfoMap = gameDataVo.getPlayerSeatInfoMap();
         PlayerSeatInfo waitPlayer = playerSeatInfoMap.get(waitPlayerId);
@@ -480,7 +479,8 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         waitPlayerActionInfo.selfHandCards = PokerDataHelper.getClientId(gameDataVo, waitPlayer.getCurrentCards());
         
         notify.actionInfo = waitPlayerActionInfo;
-        RoomMessageBuilder.newBuilder().sendPlayer(waitPlayerId, notify);
+
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(waitPlayerId, notify));
     }
 
     // 当前轮玩家公开信息
@@ -635,8 +635,10 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             }
             fillCurRoundPlayerInfos(actionInfo);
             fillCurRoundPlayedCardsHistory(actionInfo);
-            actionInfo.lastPlayCards = gameDataVo.getLastPlayCards();
-            actionInfo.lastPlayCardsType = gameDataVo.getLastPlayCardsType();
+            if (CollUtil.isNotEmpty(gameDataVo.getLastPlayCards()) && !gameDataVo.getCurRoundPassedPlayerSeats().contains(gameDataVo.getIndex())) {
+                actionInfo.lastPlayCards = PokerDataHelper.getClientId(gameDataVo, gameDataVo.getLastPlayCards());
+                actionInfo.lastPlayCardsType = gameDataVo.getLastPlayCardsType();
+            }
             actionInfo.lastPlaySeatId = gameDataVo.getLastPlaySeatId();
             actionInfo.roundLeaderSeatId = gameDataVo.getRoundLeaderSeatId();
             actionInfo.isFirstRound = gameDataVo.isFirstRound();
@@ -678,7 +680,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
         // 如果是机器人，添加机器人处理器
         if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
-             int delay = RandomUtils.nextInt(200, 500);
+             int delay = RandomUtils.nextInt(2000, 5000);
              ToSouthAutoPlayHandler handler = new ToSouthAutoPlayHandler(playerId, gameDataVo.getId(), this);
              addPlayerTimer(handler, delay);
         } else {

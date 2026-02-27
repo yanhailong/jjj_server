@@ -77,6 +77,8 @@ public interface MessageConst {
         int FISH_SHRIMP_CRAB_TYPE = 0x1C;
         //俄罗斯转盘
         int RUSSIAN_ROULETTE_TYPE = 0x50;
+        //火热足球
+        int HOT_FOOTBALL_TYPE = 0x51;
 
         //21点
         int BLACK_JACK_TYPE = 0x1D;

@@ -9,7 +9,7 @@ import com.jjg.game.poker.game.tosouth.message.bean.ToSouthPlayerSettlementInfo;
 
 import java.util.List;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthConstant.MsgBean.NOTIFY_SETTLEMENT_INFO)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthConstant.MsgBean.NOTIFY_SETTLEMENT_INFO, resp = true)
 @ProtoDesc("通知南方前进结算信息")
 public class NotifyToSouthSettlementInfo extends AbstractNotice {
     @ProtoDesc("玩家结算列表")

@@ -1,8 +1,10 @@
 package com.jjg.game.poker.game.tosouth.gamephase;
 
+import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BasePlayCardPhase;
 import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
@@ -28,8 +30,11 @@ public class ToSouthPlayCardPhase extends BasePlayCardPhase<ToSouthGameDataVo> {
             // 启动第一个玩家的回合
             PlayerSeatInfo firstPlayer = gameDataVo.getCurrentPlayerSeatInfo();
             if (firstPlayer != null) {
-                // 广播回合开始
-                controller.broadcastNextTurn(firstPlayer.getPlayerId(), gameDataVo.getCurRoundPassedPlayerSeats(), false);
+                // 通知打牌阶段开始
+                NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(getGamePhase(), gameDataVo.getPhaseEndTime());
+                broadcastMsgToRoom(notifyPokerPhaseChange);
+                // 广播回合开始  TODO
+                controller.broadcastNextTurn(firstPlayer.getPlayerId(), false);
                 // 添加操作定时器
                 controller.addNextTimer(firstPlayer, 0);
             } else {

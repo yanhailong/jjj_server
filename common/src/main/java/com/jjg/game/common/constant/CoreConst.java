@@ -93,7 +93,8 @@ public class CoreConst {
         public static final int TIGER_BRINGS_RICHES = 103401;
         //愤怒的小鸟
         public static final int ANGRY_BIRDS = 103900;
-
+        // 热血足球
+        public static final int HOT_FOOTBALL = 101600;
         //红黑大战
         public static final int RED_BLACK_WAR = 200100;
         //龙虎斗

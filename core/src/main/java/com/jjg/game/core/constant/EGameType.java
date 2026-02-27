@@ -45,6 +45,7 @@ public enum EGameType {
     TENFOLD_GOLDEN_BULL(CoreConst.GameType.TENFOLD_GOLDEN_BULL, RoomType.SLOTS, "十倍金牛"),
     DEMON_CHILD(CoreConst.GameType.DEMON_CHILD, RoomType.SLOTS, "恶魔之子"),
     TIGER_BRINGS_RICHES(CoreConst.GameType.TIGER_BRINGS_RICHES, RoomType.SLOTS, "虎虎生财"),
+    HOT_FOOTBALL(CoreConst.GameType.HOT_FOOTBALL, RoomType.SLOTS, "热血足球"),
 
 
     // TABLE
