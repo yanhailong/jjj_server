@@ -160,8 +160,8 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
                     }
                 }
             }
-            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(),
-                    playerGameData.getRemainFreeCount().get(), resultLib.getFreeTimes());
+            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(),
+                    playerGameData.getRemainFreeCount().get());
         }
         gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         //检查是否中大奖

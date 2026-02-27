@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
-import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -30,14 +29,8 @@ public class GoldSnakeFortuneGenerateManager extends AbstractSlotsGenerateManage
     }
 
     @Override
-    protected GoldSnakeFortuneAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
-        GoldSnakeFortuneAwardLineInfo awardLineInfo = new GoldSnakeFortuneAwardLineInfo();
-        awardLineInfo.setId(baseLineCfg.getLineId());
-        awardLineInfo.setBaseTimes(rewardCfg.getBet());
-        awardLineInfo.setSameCount(sameCount);
-        awardLineInfo.setIconId(baseIconId);
-
-        return awardLineInfo;
+    protected GoldSnakeFortuneAwardLineInfo getAwardLineInfo() {
+        return new GoldSnakeFortuneAwardLineInfo();
     }
 
     @Override

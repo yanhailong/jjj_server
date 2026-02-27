@@ -6,8 +6,6 @@ import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
-import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleAwardLineInfo;
@@ -133,15 +131,9 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
     }
 
     @Override
-    protected PegasusUnbridleAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
-        PegasusUnbridleAwardLineInfo awardLineInfo = new PegasusUnbridleAwardLineInfo();
-        awardLineInfo.setId(baseLineCfg.getLineId());
-        awardLineInfo.setBaseTimes(rewardCfg.getBet());
-        awardLineInfo.setSameCount(sameCount);
-        awardLineInfo.setIconId(baseIconId);
-        return awardLineInfo;
+    protected PegasusUnbridleAwardLineInfo getAwardLineInfo() {
+        return new PegasusUnbridleAwardLineInfo();
     }
-
 
     public Pair<Integer, Integer> getModelRandom() {
         return modelRandom;

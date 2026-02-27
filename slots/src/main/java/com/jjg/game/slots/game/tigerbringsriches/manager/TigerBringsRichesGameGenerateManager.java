@@ -6,8 +6,6 @@ import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
-import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.game.tigerbringsriches.constant.TigerBringsRichesConstant;
 import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesAwardLineInfo;
@@ -131,14 +129,10 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
     }
 
     @Override
-    protected TigerBringsRichesAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
-        TigerBringsRichesAwardLineInfo awardLineInfo = new TigerBringsRichesAwardLineInfo();
-        awardLineInfo.setId(baseLineCfg.getLineId());
-        awardLineInfo.setBaseTimes(rewardCfg.getBet());
-        awardLineInfo.setSameCount(sameCount);
-        awardLineInfo.setIconId(baseIconId);
-        return awardLineInfo;
+    protected TigerBringsRichesAwardLineInfo getAwardLineInfo() {
+        return new TigerBringsRichesAwardLineInfo();
     }
+
 
     public Pair<Integer, Integer> getModelRandom() {
         return modelRandom;

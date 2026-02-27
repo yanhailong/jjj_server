@@ -13,18 +13,9 @@ import java.util.List;
 public class AngryBirdsResultLib extends SlotsResultLib<AngryBirdsAwardLineInfo> {
     //免费基础倍率
     private int freeMultiplier;
-    //免费次数
-    private int freeTimes;
+
     //替换图标
     private List<AngryBirdsReplaceInfo> replaceInfoList;
-
-    public int getFreeTimes() {
-        return freeTimes;
-    }
-
-    public void setFreeTimes(int freeTimes) {
-        this.freeTimes = freeTimes;
-    }
 
     public int getFreeMultiplier() {
         return freeMultiplier;

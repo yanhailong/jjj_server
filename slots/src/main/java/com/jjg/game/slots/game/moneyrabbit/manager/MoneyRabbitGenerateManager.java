@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
-import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -30,14 +29,8 @@ public class MoneyRabbitGenerateManager extends AbstractSlotsGenerateManager<Mon
     }
 
     @Override
-    protected MoneyRabbitAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
-        MoneyRabbitAwardLineInfo awardLineInfo = new MoneyRabbitAwardLineInfo();
-        awardLineInfo.setId(baseLineCfg.getLineId());
-        awardLineInfo.setBaseTimes(rewardCfg.getBet());
-        awardLineInfo.setSameCount(sameCount);
-        awardLineInfo.setIconId(baseIconId);
-
-        return awardLineInfo;
+    protected MoneyRabbitAwardLineInfo getAwardLineInfo() {
+        return new MoneyRabbitAwardLineInfo();
     }
 
     @Override

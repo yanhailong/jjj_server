@@ -1,8 +1,6 @@
 package com.jjg.game.slots.game.demonchild.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
-import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.demonchild.data.DemonChildAwardLineInfo;
@@ -48,13 +46,8 @@ public class DemonChildGameGenerateManager extends AbstractSlotsGenerateManager<
 
 
     @Override
-    protected DemonChildAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
-        DemonChildAwardLineInfo awardLineInfo = new DemonChildAwardLineInfo();
-        awardLineInfo.setId(baseLineCfg.getLineId());
-        awardLineInfo.setBaseTimes(rewardCfg.getBet());
-        awardLineInfo.setSameCount(sameCount);
-        awardLineInfo.setIconId(baseIconId);
-        return awardLineInfo;
+    protected DemonChildAwardLineInfo getAwardLineInfo() {
+        return new DemonChildAwardLineInfo();
     }
 
     @Override

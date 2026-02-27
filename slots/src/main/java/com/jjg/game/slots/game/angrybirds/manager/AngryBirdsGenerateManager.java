@@ -8,7 +8,6 @@ import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.angrybirds.constant.AngryBirdsConstant;
 import com.jjg.game.slots.game.angrybirds.data.AngryBirdsAwardLineInfo;
@@ -128,33 +127,22 @@ public class AngryBirdsGenerateManager extends AbstractSlotsGenerateManager<Angr
             log.warn("未找到该小游戏的配置 miniGameId = {}", miniGameId);
             return;
         }
-        SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(miniGameId);
-        if (specialAuxiliaryPropConfig == null) {
-            log.warn("未找到该小游戏小关的权重信息配置 miniGameId = {}", miniGameId);
-            return;
-        }
-        if (specialAuxiliaryPropConfig.getRandCountPropInfo() == null) {
-            return;
-        }
-
         List<Integer> specialGirdIdList = specialAuxiliaryCfg.getSpecialGirdID();
-
         if (CollectionUtil.isEmpty(specialGirdIdList)) {
             return;
         }
         int[] iconArr = lib.getIconArr();
         for (int specialGirdCfgId : specialAuxiliaryCfg.getSpecialGirdID()) {
             int[] old = Arrays.copyOfRange(iconArr, 0, iconArr.length);
-            SpecialGirdInfo specialGirdInfo = gridUpdate(specialGirdCfgId, iconArr);
-            if (specialGirdInfo == null || CollectionUtil.isEmpty(specialGirdInfo.getValueMap())) {
-                continue;
-            }
-            for (Map.Entry<Integer, Integer> entry : specialGirdInfo.getValueMap().entrySet()) {
-                AngryBirdsReplaceInfo replaceInfo = new AngryBirdsReplaceInfo();
-                replaceInfo.index = entry.getKey();
-                replaceInfo.newIcon = iconArr[replaceInfo.index];
-                replaceInfo.oldIcon = old[replaceInfo.index];
-                lib.addAngryBirdsReplaceInfo(replaceInfo);
+            gridUpdate(specialGirdCfgId, iconArr);
+            for (int i = 1; i < old.length; i++) {
+                if (old[i] != iconArr[i]) {
+                    AngryBirdsReplaceInfo replaceInfo = new AngryBirdsReplaceInfo();
+                    replaceInfo.index = i;
+                    replaceInfo.newIcon = iconArr[i];
+                    replaceInfo.oldIcon = old[i];
+                    lib.addAngryBirdsReplaceInfo(replaceInfo);
+                }
             }
         }
     }

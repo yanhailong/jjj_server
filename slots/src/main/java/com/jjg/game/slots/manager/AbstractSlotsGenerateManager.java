@@ -873,7 +873,14 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     }
 
     protected A addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
-        return null;
+        A awardLineInfo = getAwardLineInfo();
+        if (awardLineInfo instanceof BaseLineAwardLineInfo info) {
+            info.setId(baseLineCfg.getLineId());
+            info.setBaseTimes(rewardCfg.getBet());
+            info.setSameCount(sameCount);
+            info.setIconId(baseIconId);
+        }
+        return awardLineInfo;
     }
 
     protected A addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
@@ -1380,8 +1387,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             List<TypePropData> dataList = new ArrayList<>();
             tempResultLibTypePropInfoMap.put(cfg.getModelId(), dataList);
             //解析typeProp字段
-            if(cfg.getTypeProp() != null && !cfg.getTypeProp().isEmpty()){
-                for(List<String> list : cfg.getTypeProp()){
+            if (cfg.getTypeProp() != null && !cfg.getTypeProp().isEmpty()) {
+                for (List<String> list : cfg.getTypeProp()) {
                     TypePropData data = new TypePropData();
                     String[] scopeStrArr = list.get(0).split("&");
                     data.setBegin(Long.parseLong(scopeStrArr[0]));
@@ -1389,8 +1396,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
                     String[] propStrArr = list.get(1).split("\\|");
 
-                    Map<Integer,Integer> propMap = new HashMap<>();
-                    for(String propStr : propStrArr){
+                    Map<Integer, Integer> propMap = new HashMap<>();
+                    for (String propStr : propStrArr) {
                         String[] strArr = propStr.split("_");
                         propMap.put(Integer.parseInt(strArr[0]), Integer.parseInt(strArr[1]));
                     }
@@ -1400,7 +1407,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             }
 
             //计算typeProp
-            for(TypePropData data: dataList){
+            for (TypePropData data : dataList) {
                 PropInfo propInfo = new PropInfo();
                 int begin = 0;
                 int end = 0;
@@ -1415,7 +1422,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             }
 
             //排除jackpot 后 计算typeProp
-            for(TypePropData data: dataList){
+            for (TypePropData data : dataList) {
                 PropInfo propInfo = new PropInfo();
 
                 int begin = 0;
@@ -1783,16 +1790,17 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
     /**
      * 获取一个替换元素
+     *
      * @param oldIcon
      * @return
      */
-    protected Integer getPostChangeIcon(int oldIcon){
-        if(this.baseElementPostChangeMap == null || this.baseElementPostChangeMap.isEmpty()){
+    protected Integer getPostChangeIcon(int oldIcon) {
+        if (this.baseElementPostChangeMap == null || this.baseElementPostChangeMap.isEmpty()) {
             return null;
         }
 
         PropInfo propInfo = this.baseElementPostChangeMap.get(oldIcon);
-        if(propInfo == null){
+        if (propInfo == null) {
             return null;
         }
         return propInfo.getRandKey();

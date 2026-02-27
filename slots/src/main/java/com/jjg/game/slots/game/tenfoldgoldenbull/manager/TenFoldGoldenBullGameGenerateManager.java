@@ -5,8 +5,6 @@ import cn.hutool.core.lang.WeightRandom;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
-import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.SpecialModeCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -165,15 +163,9 @@ public class TenFoldGoldenBullGameGenerateManager extends AbstractSlotsGenerateM
         }
     }
 
-
     @Override
-    protected TenFoldGoldenBullAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
-        TenFoldGoldenBullAwardLineInfo awardLineInfo = new TenFoldGoldenBullAwardLineInfo();
-        awardLineInfo.setId(baseLineCfg.getLineId());
-        awardLineInfo.setBaseTimes(rewardCfg.getBet());
-        awardLineInfo.setSameCount(sameCount);
-        awardLineInfo.setIconId(baseIconId);
-        return awardLineInfo;
+    protected TenFoldGoldenBullAwardLineInfo getAwardLineInfo() {
+        return new TenFoldGoldenBullAwardLineInfo();
     }
 
     public Pair<Integer, Integer> getModelRandom() {

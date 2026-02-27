@@ -2,7 +2,6 @@ package com.jjg.game.slots.game.hulk.manager;
 
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
-import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
@@ -30,13 +29,8 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
     }
 
     @Override
-    protected HulkAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
-        HulkAwardLineInfo awardLineInfo = new HulkAwardLineInfo();
-        awardLineInfo.setId(baseLineCfg.getLineId());
-        awardLineInfo.setBaseTimes(rewardCfg.getBet());
-        awardLineInfo.setSameCount(sameCount);
-        awardLineInfo.setIconId(baseIconId);
-        return awardLineInfo;
+    protected HulkAwardLineInfo getAwardLineInfo() {
+        return new HulkAwardLineInfo();
     }
 
     @Override

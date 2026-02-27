@@ -21,6 +21,7 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
         super(WealthGodResultLib.class);
     }
 
+    @Override
     protected WealthGodAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount,
                                                       int baseIconId, List<Integer> lineList, int[] arr) {
         WealthGodAwardLineInfo awardLineInfo = new WealthGodAwardLineInfo();
