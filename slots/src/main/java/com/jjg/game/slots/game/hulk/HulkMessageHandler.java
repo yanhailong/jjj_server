@@ -6,11 +6,6 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.controller.SlotsRoomController;
-import com.jjg.game.slots.game.goldsnakefortune.GoldSnakeFortuneConstant;
-import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortuneGameRunInfo;
-import com.jjg.game.slots.game.goldsnakefortune.pb.ReqGoldSnakeFortuneEnterGame;
-import com.jjg.game.slots.game.goldsnakefortune.pb.ReqGoldSnakeFortunePool;
-import com.jjg.game.slots.game.goldsnakefortune.pb.ReqGoldSnakeFortuneStartGame;
 import com.jjg.game.slots.game.hulk.data.HulkGameRunInfo;
 import com.jjg.game.slots.game.hulk.manager.HulkGameManager;
 import com.jjg.game.slots.game.hulk.manager.HulkRoomGameManager;
@@ -99,17 +94,17 @@ public class HulkMessageHandler {
     @Command(HulkConstant.MsgBean.REQ_POOL_VALUE)
     public void reqPoolValue(PlayerController playerController, ReqHulkPool req) {
         try {
-            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-//            HulkGameRunInfo gameRunInfo;
-//            if (playerController.getScene() == null) {
-//                gameRunInfo = gameManager.getPoolValue(GoldSnakeFortuneGameRunInfo.class, playerController, req.stakeVlue);
-//            } else if (playerController.getScene() instanceof SlotsRoomController) {
-//                gameRunInfo = roomGameManager.getPoolValue(GoldSnakeFortuneGameRunInfo.class, playerController, req.stakeVlue);
-//            } else {
-//                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
-//                return;
-//            }
-//            sendMessageManager.sendPoolValue(playerController, gameRunInfo);
+//            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+            HulkGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeVlue);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
+            sendMessageManager.sendPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

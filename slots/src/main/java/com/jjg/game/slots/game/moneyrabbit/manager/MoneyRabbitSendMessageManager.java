@@ -56,6 +56,7 @@ public class MoneyRabbitSendMessageManager extends BaseSendMessageManager {
 
             res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
+            res.freeModeTotalReward = gameRunInfo.getData().getFreeAllWin();
 
             //奖池信息
             if (prizePoolIdList != null && !prizePoolIdList.isEmpty()) {

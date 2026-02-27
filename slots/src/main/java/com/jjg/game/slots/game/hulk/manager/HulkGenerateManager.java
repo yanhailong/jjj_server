@@ -1,9 +1,13 @@
 package com.jjg.game.slots.game.hulk.manager;
 
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
 import com.jjg.game.sampledata.bean.BaseLineCfg;
+import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import com.jjg.game.slots.game.hulk.HulkConstant;
 import com.jjg.game.slots.game.hulk.data.HulkAwardLineInfo;
 import com.jjg.game.slots.game.hulk.data.HulkResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
@@ -20,16 +24,6 @@ import java.util.Set;
  */
 @Component
 public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardLineInfo, HulkResultLib> {
-    //第三轴扩列成大wild
-    private final int TYPE_CHANGE_TO_ONE_WILD = 303101;
-    //在二三四扩列成大wild
-    private final int TYPE_CHANGE_TO_THREE_WILD = 303102;
-
-    //免费游戏-免费旋转
-    private final int TYPE_FREE = 303103;
-    //小游戏
-    private final int TYPE_MINI_GAME = 303104;
-
 
     public HulkGenerateManager() {
         super(HulkResultLib.class);
@@ -114,6 +108,57 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
 
     @Override
     public void calTimes(HulkResultLib lib) throws Exception {
-        super.calTimes(lib);
+        //中奖线
+        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        //小游戏
+        lib.addTimes(miniGame(lib.getSpecialAuxiliaryInfoList()));
+        //免费
+        lib.addTimes(calFree(lib));
+    }
+
+    /**
+     * 单线倍数
+     * @param awardLineInfoList
+     * @return
+     */
+    private long calLineTimes(List<HulkAwardLineInfo> awardLineInfoList) {
+        if(awardLineInfoList == null || awardLineInfoList.isEmpty()) {
+            return 0;
+        }
+
+        long times = 0;
+        for(HulkAwardLineInfo info : awardLineInfoList) {
+            times += info.getBaseTimes();
+        }
+        return times;
+    }
+
+    private long miniGame(List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList){
+        if(specialAuxiliaryInfoList == null || specialAuxiliaryInfoList.isEmpty()) {
+            return 0;
+        }
+
+        long times = 0;
+        for(SpecialAuxiliaryInfo info : specialAuxiliaryInfoList){
+            SpecialAuxiliaryCfg cfg = GameDataManager.getSpecialAuxiliaryCfg(info.getCfgId());
+            if(cfg.getType() != HulkConstant.SpecialAuxiliary.MINI_GAME){
+                continue;
+            }
+
+            if(info.getAwardInfos() == null || info.getAwardInfos().isEmpty()){
+                continue;
+            }
+
+            for(SpecialAuxiliaryAwardInfo awardInfo : info.getAwardInfos()){
+                if(awardInfo.getAwardCList() == null || awardInfo.getAwardCList().isEmpty()){
+                    continue;
+                }
+
+                for(int i : awardInfo.getAwardCList()){
+                    times += i;
+                }
+            }
+        }
+        return times;
     }
 }

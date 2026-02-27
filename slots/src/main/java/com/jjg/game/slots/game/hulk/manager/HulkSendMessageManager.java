@@ -7,7 +7,9 @@ import com.jjg.game.core.manager.BaseSendMessageManager;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.hulk.data.HulkGameRunInfo;
+import com.jjg.game.slots.game.hulk.pb.HulkPoolInfo;
 import com.jjg.game.slots.game.hulk.pb.ResHulkEnterGame;
 import com.jjg.game.slots.game.hulk.pb.ResHulkPool;
 import com.jjg.game.slots.game.hulk.pb.ResHulkStartGame;
@@ -58,7 +60,25 @@ public class HulkSendMessageManager extends BaseSendMessageManager {
 
             res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
+            res.freeModeTotalReward = gameRunInfo.getData().getFreeAllWin();
 
+            //奖池信息
+            if (prizePoolIdList != null && !prizePoolIdList.isEmpty()) {
+                res.poolList = new ArrayList<>();
+                for (int poolId : prizePoolIdList) {
+                    PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+                    if (poolCfg == null) {
+                        continue;
+                    }
+                    HulkPoolInfo poolInfo = new HulkPoolInfo();
+                    poolInfo.id = poolId;
+                    poolInfo.initTimes = poolCfg.getFakePoolInitTimes();
+                    poolInfo.maxTimes = poolCfg.getFakePoolMax();
+                    poolInfo.perSomeSec = poolCfg.getGrowthRate().get(0);
+                    poolInfo.updateProp = poolCfg.getGrowthRate().get(1);
+                    res.poolList.add(poolInfo);
+                }
+            }
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -85,14 +105,21 @@ public class HulkSendMessageManager extends BaseSendMessageManager {
             res.allWinGold = gameRunInfo.getAllWinGold();
             //图标信息
             res.iconList = IntStream.range(1, gameRunInfo.getIconArr().length).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
+            //中奖线信息
+            res.winIconInfoList = gameRunInfo.getAwardLineInfos();
             //大奖展示id
             res.bigWinShow = gameRunInfo.getBigShowId();
             //等级信息
             res.level = playerController.getPlayer().getLevel();
+            //经验
             res.exp = playerController.getPlayer().getExp();
+            //从奖池获得的奖励
             res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
+            //当前状态
             res.status = gameRunInfo.getStatus();
+            //免费模式累计奖励
             res.freeModeTotalReward = gameRunInfo.getFreeModeTotalReward();
+            //剩余免费次数
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
 
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);

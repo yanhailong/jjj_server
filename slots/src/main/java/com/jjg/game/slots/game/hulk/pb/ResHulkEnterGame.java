@@ -21,12 +21,14 @@ public class ResHulkEnterGame extends AbstractResponse {
     public long defaultBet;
     @ProtoDesc("当前奖池的值")
     public long poolValue;
-    @ProtoDesc("状态  0.普通   1.真免费   2.假免费")
+    @ProtoDesc("状态  0.普通  1.免费模式  2.小游戏  3.第3列wild  4.第234列wild")
     public int status;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
     @ProtoDesc("免费模式累计奖励")
     public long freeModeTotalReward;
+    @ProtoDesc("奖池配置信息")
+    public List<HulkPoolInfo> poolList;
 
     public ResHulkEnterGame(int code) {
         super(code);

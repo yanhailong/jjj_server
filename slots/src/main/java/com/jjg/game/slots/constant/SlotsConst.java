@@ -34,6 +34,13 @@ public class SlotsConst {
         specialModeJackpotModeIds.put(CoreConst.GameType.CAPTAIN_JACK, Set.of(4));
         specialModeJackpotModeIds.put(CoreConst.GameType.MONEY_RABBIT, Set.of(3));
         specialModeJackpotModeIds.put(CoreConst.GameType.DEMON_CHILD, Set.of(3));
+        specialModeJackpotModeIds.put(CoreConst.GameType.ACE_DJ, Set.of(3));
+        specialModeJackpotModeIds.put(CoreConst.GameType.ELEPHANT_GOD, Set.of(3));
+        specialModeJackpotModeIds.put(CoreConst.GameType.HULK, Set.of(4));
+        specialModeJackpotModeIds.put(CoreConst.GameType.LUCKY_MOUSE, Set.of(3));
+        specialModeJackpotModeIds.put(CoreConst.GameType.TENFOLD_GOLDEN_BULL, Set.of(3));
+        specialModeJackpotModeIds.put(CoreConst.GameType.TIGER_BRINGS_RICHES, Set.of(3));
+        specialModeJackpotModeIds.put(CoreConst.GameType.ZEUS_VS_HADES, Set.of(3));
 
         //免费触发局的类型id
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.DOLLAR_EXPRESS, Set.of(6));
@@ -49,6 +56,14 @@ public class SlotsConst {
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.CAPTAIN_JACK, Set.of(2));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.MONEY_RABBIT, Set.of(2));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.DEMON_CHILD, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.ACE_DJ, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.ELEPHANT_GOD, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.HULK, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.LUCKY_MOUSE, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.TENFOLD_GOLDEN_BULL, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.TIGER_BRINGS_RICHES, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.ZEUS_VS_HADES, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.PEGASUS_UNBRIDLE, Set.of(2));
     }
 
     public class Status {

@@ -4,9 +4,6 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.slots.game.goldsnakefortune.GoldSnakeFortuneConstant;
-import com.jjg.game.slots.game.goldsnakefortune.pb.GoldSnakeFortuneCoinInfo;
-import com.jjg.game.slots.game.goldsnakefortune.pb.GoldSnakeFortuneWinIconInfo;
 import com.jjg.game.slots.game.hulk.HulkConstant;
 
 import java.util.List;
@@ -26,9 +23,11 @@ public class ResHulkStartGame extends AbstractResponse {
     public int level;
     @ProtoDesc("经验")
     public long exp;
+    @ProtoDesc("中奖图标信息")
+    public List<HulkWinIconInfo> winIconInfoList;
     @ProtoDesc("从奖池获得的奖励")
     public long rewardPoolValue;
-    @ProtoDesc("状态  0.普通  1.免费模式  2.真免费   3.假免费")
+    @ProtoDesc("状态  0.普通  1.免费模式  2.小游戏  3.第3列wild  4.第234列wild")
     public int status;
     @ProtoDesc("免费模式累计奖励,免费模式最后一局才赋值")
     public long freeModeTotalReward;
