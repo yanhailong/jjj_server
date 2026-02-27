@@ -9,7 +9,7 @@ import java.util.*;
 
 public class ToSouthGameDataVo extends BasePokerGameDataVo {
     private long roomBet;
-    // 上一家出的牌
+    // 上一家出牌的人所出的牌  中间可能有pass的
     private List<Integer> lastPlayCards;
     // 上一家出牌牌型
     private int lastPlayCardsType;

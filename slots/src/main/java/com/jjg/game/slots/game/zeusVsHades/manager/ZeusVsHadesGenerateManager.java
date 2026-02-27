@@ -2,16 +2,11 @@ package com.jjg.game.slots.game.zeusVsHades.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.*;
-
-import com.jjg.game.slots.game.acedj.AceDjConstant;
 import com.jjg.game.slots.game.zeusVsHades.ZeusVsHadesConstant;
 import com.jjg.game.slots.game.zeusVsHades.data.*;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
@@ -1009,7 +1004,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
      * @param arr   图标数组
      * @return
      */
-    public SpecialGirdInfo girdUpdate(int cfgId, int[] arr) {
+    public SpecialGirdInfo gridUpdate(int cfgId, int[] arr) {
         log.debug("开始修改格子 specialGirdCfgId = {}", cfgId);
         SpecialGirdCfg specialGirdCfg = GameDataManager.getSpecialGirdCfg(cfgId);
         if (specialGirdCfg == null) {

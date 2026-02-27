@@ -28,8 +28,6 @@ public class ResDemonChildEnterGame extends AbstractResponse {
     public int totalFreeCount;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
-    @ProtoDesc("当前累计免费金额")
-    public long freeAmount;
     @ProtoDesc("奖池信息")
     public List<DemonChildPoolInfo> poolList;
     public ResDemonChildEnterGame(int code) {

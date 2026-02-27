@@ -77,6 +77,8 @@ public interface MessageConst {
         int FISH_SHRIMP_CRAB_TYPE = 0x1C;
         //俄罗斯转盘
         int RUSSIAN_ROULETTE_TYPE = 0x50;
+        //火热足球
+        int HOT_FOOTBALL_TYPE = 0x51;
 
         //21点
         int BLACK_JACK_TYPE = 0x1D;
@@ -166,8 +168,11 @@ public interface MessageConst {
         int DEMON_CHILD = 0x43;
 
         int TO_SOUTH = 0x44;
+        //愤怒的小鸟
+        int ANGRY_BIRDS = 0x45;
+
         // pan jin lian
-        int PAN_JIN_LIAN = 0x45;
+        int PAN_JIN_LIAN = 0x46;
     }
 
     interface ToClientConst {

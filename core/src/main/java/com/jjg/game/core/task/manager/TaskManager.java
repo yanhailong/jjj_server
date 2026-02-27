@@ -353,7 +353,7 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
                         }
                     }
                     case TaskConstant.TaskStatus.STATUS_REWARDED -> {
-                        return 1;
+                        return 0;
                     }
                 }
             }
