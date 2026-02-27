@@ -169,6 +169,7 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
         gameRunInfo.setReplaceInfo(resultLib.getReplaceInfoList());
         log.debug("id = {}", resultLib.getId());
         gameRunInfo.setIconArr(resultLib.getIconArr());
+        gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setResultLib(resultLib);
         gameRunInfo.setStake(betValue);
         gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());

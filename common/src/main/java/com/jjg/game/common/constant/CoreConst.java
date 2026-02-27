@@ -88,7 +88,7 @@ public class CoreConst {
         //恶魔之子
         public static final int DEMON_CHILD = 103800;
         // pan jin lian
-        public static final int PAN_JIN_LIAN = 103900;
+        public static final int PAN_JIN_LIAN = 104000;
         //虎虎生财
         public static final int TIGER_BRINGS_RICHES = 103401;
         //愤怒的小鸟

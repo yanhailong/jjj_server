@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/8/1 17:37
  */
 @Component
-@MessageType(MessageConst.MessageTypeDef.CAPTAIN_JACK)
+@MessageType(MessageConst.MessageTypeDef.ANGRY_BIRDS)
 public class AngryBirdsMessageHandler {
     private final Logger log = LoggerFactory.getLogger(getClass());
 

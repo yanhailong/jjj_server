@@ -142,13 +142,17 @@ public class AngryBirdsGenerateManager extends AbstractSlotsGenerateManager<Angr
         if (CollectionUtil.isEmpty(specialGirdIdList)) {
             return;
         }
+        int[] iconArr = lib.getIconArr();
         for (int specialGirdCfgId : specialAuxiliaryCfg.getSpecialGirdID()) {
-            int[] old = Arrays.copyOfRange(lib.getIconArr(), 1, lib.getIconArr().length);
-            SpecialGirdInfo specialGirdInfo = gridUpdate(specialGirdCfgId, lib.getIconArr());
+            int[] old = Arrays.copyOfRange(iconArr, 0, iconArr.length);
+            SpecialGirdInfo specialGirdInfo = gridUpdate(specialGirdCfgId, iconArr);
+            if (specialGirdInfo == null || CollectionUtil.isEmpty(specialGirdInfo.getValueMap())) {
+                continue;
+            }
             for (Map.Entry<Integer, Integer> entry : specialGirdInfo.getValueMap().entrySet()) {
                 AngryBirdsReplaceInfo replaceInfo = new AngryBirdsReplaceInfo();
                 replaceInfo.index = entry.getKey();
-                replaceInfo.newIcon = entry.getValue();
+                replaceInfo.newIcon = iconArr[replaceInfo.index];
                 replaceInfo.oldIcon = old[replaceInfo.index];
                 lib.addAngryBirdsReplaceInfo(replaceInfo);
             }
