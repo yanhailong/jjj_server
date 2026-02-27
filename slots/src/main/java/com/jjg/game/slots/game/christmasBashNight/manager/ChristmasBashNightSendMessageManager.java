@@ -60,7 +60,7 @@ public class ChristmasBashNightSendMessageManager extends BaseSendMessageManager
                 res.stakeList.add(arr[1]);
             }
 
-            res.defaultBet = gameRunInfo.getData() != null && gameRunInfo.getData().getAllBetScore() > 0 ? gameRunInfo.getData().getAllBetScore() : gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
+            res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
             res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();

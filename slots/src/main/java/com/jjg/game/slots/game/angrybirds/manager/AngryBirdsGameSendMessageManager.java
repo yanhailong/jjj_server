@@ -61,7 +61,7 @@ public class AngryBirdsGameSendMessageManager extends BaseSendMessageManager {
             for (long[] arr : list) {
                 res.stakeList.add(arr[1]);
             }
-            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().getFirst());
+            res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             AngryBirdsPlayerGameData playerGameData = gameRunInfo.getData();
             res.totalWinGold = playerGameData.getFreeAllWin();
             res.status = playerGameData.getStatus();

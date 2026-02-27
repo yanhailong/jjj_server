@@ -13,8 +13,6 @@ import com.jjg.game.slots.game.cleopatra.manager.CleopatraSendMessageManager;
 import com.jjg.game.slots.game.cleopatra.pb.ReqCleopatraEnterGame;
 import com.jjg.game.slots.game.cleopatra.pb.ReqCleopatraPool;
 import com.jjg.game.slots.game.cleopatra.pb.ReqCleopatraStartGame;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
-import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressRoomGameManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +44,16 @@ public class CleopatraMessageHandler {
     public void reqConfigInfo(PlayerController playerController, ReqCleopatraEnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
-            sendMessageManager.sendConfigMessage(playerController);
+            CleopatraGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.enterGame(playerController);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.enterGame(playerController);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
+            sendMessageManager.sendConfigMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.hotfootball.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
@@ -18,7 +17,10 @@ import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -40,7 +42,7 @@ public class HotFootballSendMessageManager extends BaseSendMessageManager {
      *
      * @param playerController
      */
-    public void sendConfigMessage(PlayerController playerController,HotFootballGameRunInfo gameRunInfo) {
+    public void sendConfigMessage(PlayerController playerController, HotFootballGameRunInfo gameRunInfo) {
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
 
         SendInfo sendInfo = new SendInfo();
@@ -53,20 +55,20 @@ public class HotFootballSendMessageManager extends BaseSendMessageManager {
                 res.stakeList.add(arr[1]);
             }
 
-            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
+            res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
             res.status = gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
 
             //连续中奖倍数信息
-            if(generateManager.getAddTimesMap() != null && !generateManager.getAddTimesMap().isEmpty()){
+            if (generateManager.getAddTimesMap() != null && !generateManager.getAddTimesMap().isEmpty()) {
                 res.timesInfoList = new ArrayList<>(generateManager.getAddTimesMap().size());
                 generateManager.getAddTimesMap().forEach((k, v) -> {
                     HotFootballAddTimesInfo info = new HotFootballAddTimesInfo();
                     info.status = (k == HotFootballConstant.SpecialMode.FREE ? 1 : 0);
                     info.times = new ArrayList<>(v.size());
 
-                    v.forEach((k1,v1) -> {
+                    v.forEach((k1, v1) -> {
                         KVInfo kv = new KVInfo();
                         kv.key = k1;
                         kv.value = v1;
@@ -117,10 +119,10 @@ public class HotFootballSendMessageManager extends BaseSendMessageManager {
 
             HotFootballResultLib lib = (HotFootballResultLib) gameRunInfo.getResultLib();
 
-            res.rewardIconInfo = addRewardIcons(lib.getIconArr(),lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
+            res.rewardIconInfo = addRewardIcons(lib.getIconArr(), lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
 
-            slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
+            slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
@@ -133,11 +135,12 @@ public class HotFootballSendMessageManager extends BaseSendMessageManager {
 
     /**
      * 添加中奖图标信息
+     *
      * @param awardLineInfoList
      * @param oneBetScore
      * @return
      */
-    private HotFootballIconInfo addRewardIcons(int[] arr,List<HotFootballAwardLineInfo> awardLineInfoList, long oneBetScore) {
+    private HotFootballIconInfo addRewardIcons(int[] arr, List<HotFootballAwardLineInfo> awardLineInfoList, long oneBetScore) {
         if (awardLineInfoList == null || awardLineInfoList.isEmpty()) {
             return null;
         }
@@ -151,7 +154,7 @@ public class HotFootballSendMessageManager extends BaseSendMessageManager {
         awardLineInfoList.forEach(info -> {
             indexSet.addAll(info.getSameIconSet());
             winIconSet.add(info.getSameIcon());
-            if(info.getReplaceWildIndexs() != null && !info.getReplaceWildIndexs().isEmpty()){
+            if (info.getReplaceWildIndexs() != null && !info.getReplaceWildIndexs().isEmpty()) {
                 replaceWildIndexs.addAll(info.getReplaceWildIndexs());
             }
             iconInfo.win += info.getBaseTimes() * oneBetScore;
@@ -165,6 +168,7 @@ public class HotFootballSendMessageManager extends BaseSendMessageManager {
 
     /**
      * 添加消除图标后，补齐的图标信息
+     *
      * @param lib
      * @param gameRunInfo
      * @return
@@ -175,17 +179,17 @@ public class HotFootballSendMessageManager extends BaseSendMessageManager {
         }
 
         List<HotFootballCascade> list = new ArrayList<>();
-        for(HotFootballAddIconInfo hotFootballAddIconInfo : lib.getAddIconInfos()){
+        for (HotFootballAddIconInfo hotFootballAddIconInfo : lib.getAddIconInfos()) {
             HotFootballCascade hotFootballCascade = new HotFootballCascade();
             List<KVInfo> addIconInfos = new ArrayList<>();
 
-            hotFootballAddIconInfo.getAddIconMap().forEach((k,v) -> {
+            hotFootballAddIconInfo.getAddIconMap().forEach((k, v) -> {
                 KVInfo kv = new KVInfo();
                 kv.key = k;
                 kv.value = v;
                 addIconInfos.add(kv);
             });
-            hotFootballCascade.rewardIconInfo = addRewardIcons(lib.getIconArr(),hotFootballAddIconInfo.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
+            hotFootballCascade.rewardIconInfo = addRewardIcons(lib.getIconArr(), hotFootballAddIconInfo.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
             hotFootballCascade.addIconInfos = addIconInfos;
 
             list.add(hotFootballCascade);

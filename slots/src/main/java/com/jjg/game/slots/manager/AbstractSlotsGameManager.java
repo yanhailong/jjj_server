@@ -157,6 +157,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         checkPlayerStatusTimeout = WheelTimerUtil.scheduleAtFixedRate(this::checkPlayerStatus, 1, 2, TimeUnit.SECONDS);
     }
 
+    public long getDefaultBetValue(G gameRunInfo,BaseRoomCfg config){
+       return gameRunInfo.getData() != null && gameRunInfo.getData().getAllBetScore() > 0 ? gameRunInfo.getData().getAllBetScore() : oneLineToAllStake(config.getDefaultBet().getFirst());
+    }
+
     /**
      * 生成结果集
      *
@@ -1577,7 +1581,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
         int lineCount = baseInitCfg.getMaxLine();
 
-        return lineCount * stake * baseInitCfg.getBetMultiple().get(0) * baseInitCfg.getLineMultiple().get(0);
+        return lineCount * stake * baseInitCfg.getBetMultiple().getFirst() * baseInitCfg.getLineMultiple().getFirst();
     }
 
     /**
