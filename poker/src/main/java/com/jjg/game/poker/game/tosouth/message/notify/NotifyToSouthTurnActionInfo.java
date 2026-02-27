@@ -8,7 +8,7 @@ import com.jjg.game.poker.game.tosouth.constant.ToSouthConstant;
 
 import com.jjg.game.poker.game.tosouth.message.bean.ToSouthActionInfo;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthConstant.MsgBean.NOTIFY_TURN_ACTION_INFO)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthConstant.MsgBean.NOTIFY_TURN_ACTION_INFO, resp = true)
 @ProtoDesc("响应南方前进玩家回合行动信息")
 public class NotifyToSouthTurnActionInfo extends AbstractNotice {
     @ProtoDesc("牌桌操作信息")

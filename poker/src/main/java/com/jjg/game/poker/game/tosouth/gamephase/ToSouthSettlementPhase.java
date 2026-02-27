@@ -177,10 +177,10 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             int bombMulti = 0;
 
             if (countTwo > 0) {
-                twoMulti = ToSouthDataHelper.getMultipleByWeight(moneyCfg.getRemain2());
+                twoMulti = moneyCfg.getRemain2();
             }
             if (countBomb > 0) {
-                bombMulti = ToSouthDataHelper.getMultipleByWeight(moneyCfg.getRemainBoom());
+                bombMulti = moneyCfg.getRemainBoom();
             }
             int totalMulti = doubleMulti * otherCards + countTwo * twoMulti + countBomb * bombMulti;
             loseScore = (long)totalMulti * baseBet;

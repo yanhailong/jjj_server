@@ -9,7 +9,7 @@ import com.jjg.game.poker.game.tosouth.constant.ToSouthConstant;
 import com.jjg.game.poker.game.tosouth.message.bean.ToSouthBombDetail;
 import java.util.List;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthConstant.MsgBean.NOTIFY_BOMB_SETTLEMENT)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthConstant.MsgBean.NOTIFY_BOMB_SETTLEMENT, resp = true)
 @ProtoDesc("南方前进炸弹结算通知")
 public class NotifyToSouthBombSettlement extends AbstractNotice {
     @ProtoDesc("炸弹赔付明细列表")
