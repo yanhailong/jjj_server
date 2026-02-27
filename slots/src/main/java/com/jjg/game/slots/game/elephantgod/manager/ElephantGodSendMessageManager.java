@@ -54,7 +54,7 @@ public class ElephantGodSendMessageManager extends BaseSendMessageManager {
             for (long[] arr : list) {
                 res.stakeList.add(arr[1]);
             }
-            res.defaultBet = gameRunInfo.getData() != null && gameRunInfo.getData().getAllBetScore() > 0 ? gameRunInfo.getData().getAllBetScore() : gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
+            res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             ElephantGodPlayerGameData playerGameData = gameRunInfo.getData();
             res.freeTotalWinGold = playerGameData.getFreeAllWin();
             res.status = playerGameData.getStatus();

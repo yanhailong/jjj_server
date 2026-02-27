@@ -15,7 +15,9 @@ import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -36,8 +38,9 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
      * 发送游戏配置
      *
      * @param playerController
+     * @param gameRunInfo
      */
-    public void sendConfigMessage(PlayerController playerController) {
+    public void sendConfigMessage(PlayerController playerController, CleopatraGameRunInfo gameRunInfo) {
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
 
         SendInfo sendInfo = new SendInfo();
@@ -50,7 +53,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
                 res.stakeList.add(arr[1]);
             }
 
-            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
+            res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             res.poolValue = gameManager.getPoolValueByRoomCfgId(config.getId());
         } else {
             res.code = Code.NOT_FOUND;
@@ -88,8 +91,8 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
             CleopatraResultLib lib = (CleopatraResultLib) gameRunInfo.getResultLib();
             res.winIconInfoList = new ArrayList<>();
 
-            if(lib.getWinIcons() != null && !lib.getWinIcons().isEmpty()) {
-                lib.getWinIcons().forEach((k,v) -> {
+            if (lib.getWinIcons() != null && !lib.getWinIcons().isEmpty()) {
+                lib.getWinIcons().forEach((k, v) -> {
                     CleopatraWinIconInfo winIconInfo = new CleopatraWinIconInfo();
                     winIconInfo.iconId = k;
                     winIconInfo.indexList = new ArrayList<>(v);
@@ -100,11 +103,11 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
 
             res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
             res.poolValue = gameRunInfo.getCurrentPoolValue();
-            if(lib.getPoolIconIndexSet() != null && !lib.getPoolIconIndexSet().isEmpty()) {
+            if (lib.getPoolIconIndexSet() != null && !lib.getPoolIconIndexSet().isEmpty()) {
                 res.poolIconIndexs = new ArrayList<>(lib.getPoolIconIndexSet());
             }
 
-            slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
+            slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
@@ -136,21 +139,21 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
         sendRun(playerController, sendInfo, "返回奖池结果", true);
     }
 
-    private List<CleopatraAddColumInfo> addColumInfoList(CleopatraResultLib lib){
-        if(lib == null || lib.getAwardLineInfoList() == null || lib.getAwardLineInfoList().isEmpty()){
+    private List<CleopatraAddColumInfo> addColumInfoList(CleopatraResultLib lib) {
+        if (lib == null || lib.getAwardLineInfoList() == null || lib.getAwardLineInfoList().isEmpty()) {
             return null;
         }
 
         List<CleopatraAddColumInfo> list = new ArrayList<>();
 
         int winCount = 1;
-        for(CleopatraAddColumnInfo info : lib.getAwardLineInfoList()){
+        for (CleopatraAddColumnInfo info : lib.getAwardLineInfoList()) {
             CleopatraAddColumInfo addColumInfo = new CleopatraAddColumInfo();
             addColumInfo.icons = Arrays.stream(info.getArr()).boxed().collect(Collectors.toList());
 
-            if(info.getWinIconIndexMap() != null && !info.getWinIconIndexMap().isEmpty()){
+            if (info.getWinIconIndexMap() != null && !info.getWinIconIndexMap().isEmpty()) {
                 addColumInfo.winIconInfoList = new ArrayList<>();
-                info.getWinIconIndexMap().forEach((k,v) -> {
+                info.getWinIconIndexMap().forEach((k, v) -> {
                     CleopatraWinIconInfo winIconInfo = new CleopatraWinIconInfo();
                     winIconInfo.iconId = k;
                     winIconInfo.indexList = new ArrayList<>(v);
@@ -161,7 +164,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
             addColumInfo.times = addColumnConfig.getTimes();
             winCount++;
 
-            if(info.getPoolIconIndexSet() != null && !info.getPoolIconIndexSet().isEmpty()){
+            if (info.getPoolIconIndexSet() != null && !info.getPoolIconIndexSet().isEmpty()) {
                 addColumInfo.poolIconIndexs = new ArrayList<>(info.getPoolIconIndexSet());
             }
             list.add(addColumInfo);

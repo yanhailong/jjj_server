@@ -39,8 +39,9 @@ public class SuperStarSendMessageManager extends BaseSendMessageManager {
      * 发送游戏配置
      *
      * @param playerController
+     * @param gameRunInfo
      */
-    public void sendConfigMessage(PlayerController playerController) {
+    public void sendConfigMessage(PlayerController playerController, SuperStarGameRunInfo gameRunInfo) {
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
         List<Integer> prizePoolIdList = baseInitCfg.getPrizePoolIdList();
@@ -55,7 +56,7 @@ public class SuperStarSendMessageManager extends BaseSendMessageManager {
                 res.stakeList.add(arr[1]);
             }
 
-            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().getFirst());
+            res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
 
             //奖池信息
             if (prizePoolIdList != null && !prizePoolIdList.isEmpty()) {

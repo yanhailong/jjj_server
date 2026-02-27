@@ -11,11 +11,7 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.panJinLian.data.PanJinLianAwardLineInfo;
 import com.jjg.game.slots.game.panJinLian.data.PanJinLianGameRunInfo;
 import com.jjg.game.slots.game.panJinLian.data.PanJinLianResultLib;
-import com.jjg.game.slots.game.panJinLian.pb.PanJinLianIconInfo;
-import com.jjg.game.slots.game.panJinLian.pb.PanJinLianPoolInfo;
-import com.jjg.game.slots.game.panJinLian.pb.ResPanJinLianEnterGame;
-import com.jjg.game.slots.game.panJinLian.pb.ResPanJinLianPoolInfo;
-import com.jjg.game.slots.game.panJinLian.pb.ResPanJinLianStartGame;
+import com.jjg.game.slots.game.panJinLian.pb.*;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -57,7 +53,7 @@ public class PanJinLianSendMessageManager extends BaseSendMessageManager {
                 res.stakeList.add(arr[1]);
             }
 
-            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
+            res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             res.totalWinGold = gameRunInfo.getData() == null ? 0 : gameRunInfo.getData().getFreeAllWin();
             res.status = gameRunInfo.getData() == null ? 0 : gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData() == null ? 0 : gameRunInfo.getData().getRemainFreeCount().get();

@@ -6,7 +6,6 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.controller.SlotsRoomController;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.superstar.data.SuperStarGameRunInfo;
 import com.jjg.game.slots.game.superstar.manager.SuperStarGameManager;
 import com.jjg.game.slots.game.superstar.manager.SuperStarRoomGameManager;
@@ -44,8 +43,17 @@ public class SuperStarMessageHandler {
     @Command(SuperStarConstant.MsgBean.REQ_CONFIG_INFO)
     public void reqConfigInfo(PlayerController playerController, ReqSuperStarConfigInfo req) {
         try {
-            log.info("收到玩家请求配置 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            sendMessageManager.sendConfigMessage(playerController);
+            log.info("收到玩家请求配置 playerId={}", playerController.playerId());
+            SuperStarGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.enterGame(playerController);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.enterGame(playerController);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
+            sendMessageManager.sendConfigMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

@@ -22,6 +22,16 @@ public class ThorPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
     //当前的免费游戏数组中的下标值
     private int freeIndex;
 
+    private boolean isFreeStart;
+
+    public boolean isFreeStart() {
+        return isFreeStart;
+    }
+
+    public void setFreeStart(boolean freeStart) {
+        isFreeStart = freeStart;
+    }
+
     public ThorResultLib getFreeLib() {
         return freeLib;
     }
@@ -55,6 +65,7 @@ public class ThorPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
             playerGameData.setFreeIndex(new AtomicInteger(safeFreeIndex));
             playerGameData.setRemainFreeCount(new AtomicInteger(safeRemainFreeCount));
             playerGameData.setFreeLib(this.freeLib);
+            playerGameData.setFreeStart(this.isFreeStart);
         }
         return t;
     }
