@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author 11
@@ -44,6 +45,9 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
             return new HulkGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
 
+        resetFreeStateIfInvalid(playerGameData, HulkConstant.Status.FREE, HulkConstant.Status.NORMAL, "hulk");
+        resetFreeStateIfInvalid(playerGameData, HulkConstant.Status.ONE_WILD, HulkConstant.Status.NORMAL, "hulk");
+        resetFreeStateIfInvalid(playerGameData, HulkConstant.Status.THREE_WILD, HulkConstant.Status.NORMAL, "hulk");
         HulkGameRunInfo gameRunInfo = new HulkGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
@@ -168,13 +172,14 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
         //是否触发特殊模式
         int libType = resultLib.getLibTypeSet().stream().findFirst().get().intValue();
 
-        int clientShowStatus = HulkConstant.SpecialMode.NORMAL;
+        int clientShowStatus = HulkConstant.Status.NORMAL;
         if (libType == HulkConstant.SpecialMode.NORMAL) {
             //因为normal概率最大，所以放在开头
         } else if (libType == HulkConstant.SpecialMode.FREE) {
             clientShowStatus = HulkConstant.Status.FREE;
             playerGameData.setStatus(HulkConstant.Status.FREE);
             playerGameData.setFreeLib(resultLib);
+            playerGameData.setRemainFreeCount(new AtomicInteger(resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames().size()));
             log.debug("触发免费  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
         } else if (libType == HulkConstant.SpecialMode.MINI) {
             clientShowStatus = HulkConstant.Status.MINI;
@@ -183,11 +188,13 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
             clientShowStatus = HulkConstant.Status.ONE_WILD;
             playerGameData.setStatus(HulkConstant.Status.ONE_WILD);
             playerGameData.setFreeLib(resultLib);
+            playerGameData.setRemainFreeCount(new AtomicInteger(resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames().size()));
             log.debug("第3列变成wild  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
         } else if (libType == HulkConstant.SpecialMode.THREE_WILD) {
             clientShowStatus = HulkConstant.Status.THREE_WILD;
             playerGameData.setStatus(HulkConstant.Status.THREE_WILD);
             playerGameData.setFreeLib(resultLib);
+            playerGameData.setRemainFreeCount(new AtomicInteger(resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames().size()));
             log.debug("第234列变成wild  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
         }
 

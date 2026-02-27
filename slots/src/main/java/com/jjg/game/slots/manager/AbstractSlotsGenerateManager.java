@@ -1313,8 +1313,13 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
             //需要出现的元素
             config.setShowIconPropInfo(SlotsUtil.converMapToPropInfo(cfg.getElement()));
-            //影响格子
+            try{
+                //影响格子
             config.setAffectGirdPropInfo(SlotsUtil.converMapToLimitPropInfo(cfg.getAffectGird()));
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
             //随机次数
             config.setRandCountPropInfo(SlotsUtil.converMapToPropInfo(cfg.getRandCount()));
             //成功后赋值
