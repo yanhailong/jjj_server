@@ -20,29 +20,29 @@ public class SouthernMoneyCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "SouthernMoney";
 
   /** 押分列表 */
-  protected List<Integer> betList;
+  protected int betList;
   /** 牌局中炸弹倍数 */
-  protected List<List<Integer>> boomMultiple;
+  protected List<Integer> boomMultiple;
   /** 游戏ID */
   protected int gameId;
   /** 牌池ID */
   protected int poolId;
   /** 结算剩余手牌2的倍数 */
-  protected List<List<Integer>> remain2;
+  protected int remain2;
   /** 结算剩余炸弹的倍数 */
-  protected List<List<Integer>> remainBoom;
+  protected int remainBoom;
   /** 结算剩余普通牌的倍数 */
   protected int remainNormal;
   /** 房间类型 */
   protected int roomId;
 
   /** 返回押分列表 */
-  public List<Integer> getBetList() {
+  public int getBetList() {
     return betList;
   }
 
   /** 返回牌局中炸弹倍数 */
-  public List<List<Integer>> getBoomMultiple() {
+  public List<Integer> getBoomMultiple() {
     return boomMultiple;
   }
 
@@ -57,12 +57,12 @@ public class SouthernMoneyCfg extends BaseCfgBean {
   }
 
   /** 返回结算剩余手牌2的倍数 */
-  public List<List<Integer>> getRemain2() {
+  public int getRemain2() {
     return remain2;
   }
 
   /** 返回结算剩余炸弹的倍数 */
-  public List<List<Integer>> getRemainBoom() {
+  public int getRemainBoom() {
     return remainBoom;
   }
 
