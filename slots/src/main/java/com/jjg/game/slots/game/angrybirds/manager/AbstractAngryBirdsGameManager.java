@@ -68,20 +68,6 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
         return list;
     }
 
-    @Override
-    public AngryBirdsGameRunInfo enterGame(PlayerController playerController) {
-        //获取玩家游戏数据
-        AngryBirdsPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new AngryBirdsGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        resetFreeStateIfInvalid(playerGameData, AngryBirdsConstant.Status.FREE, AngryBirdsConstant.Status.NORMAL, "愤怒的小鸟");
-        AngryBirdsGameRunInfo gameRunInfo = new AngryBirdsGameRunInfo(Code.SUCCESS, playerGameData.playerId());
-        gameRunInfo.setData(playerGameData);
-        return gameRunInfo;
-    }
-
     /**
      * 玩家开始游戏
      *
@@ -146,7 +132,7 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
-            int times = calWinTimes(gameRunInfo, playerGameData, betValue);
+            int times = calWinTimes(gameRunInfo, playerGameData);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 
