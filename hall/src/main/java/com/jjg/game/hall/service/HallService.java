@@ -1,7 +1,6 @@
 package com.jjg.game.hall.service;
 
 import cn.hutool.core.util.EnumUtil;
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.timer.TimerCenter;
@@ -79,6 +78,12 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private DropItemManager dropItemManager;
     @Autowired
     private HallLogger hallLogger;
+    @Autowired
+    private MailService mailService;
+    @Autowired
+    private LoginConfigService loginConfigService;
+    @Autowired
+    private AdjustConfig adjustConfig;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
@@ -89,10 +94,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private Map<Integer, List<GameListConfig>> westeSortGameMap;
     //游戏倍场界面的奖池
     private Map<Integer, List<WarePoolInfo>> poolMap;
-    @Autowired
-    private MailService mailService;
-    @Autowired
-    private LoginConfigService loginConfigService;
 
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
@@ -706,7 +707,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 mailId = GameConstant.Mail.ID_BIND_GOOGLE;
                 userId = verifyResult.data.getUserId();
             } else if (loginType == LoginType.FACEBOOK) {
-                CommonResult<FacebookUserInfo> verifyResult = thirdAccountHttpService.verifyFacebookToken(token);
+                CommonResult<FacebookUserInfo> verifyResult = thirdAccountHttpService.verifyFacebookToken(westeId, token);
                 if (!verifyResult.success()) {
                     result.code = verifyResult.code;
                     return result;
@@ -716,7 +717,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 mailId = GameConstant.Mail.ID_BIND_FACEBOOK;
                 userId = verifyResult.data.getUserId();
             } else if (loginType == LoginType.APPLE) {
-                CommonResult<AppleUserInfo> verifyResult = thirdAccountHttpService.verifyAppleToken(token);
+                CommonResult<AppleUserInfo> verifyResult = thirdAccountHttpService.verifyAppleToken(westeId, token);
                 if (!verifyResult.success()) {
                     result.code = verifyResult.code;
                     return result;
@@ -998,6 +999,10 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     }
 
     public List<GameListConfig> getSortGameList(int westeId) {
+        if(this.adjustConfig == null || !this.adjustConfig.isOpen()){
+            return sortGameList;
+        }
+
         if (westeId < 1) {
             return sortGameList;
         }

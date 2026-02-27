@@ -30,7 +30,7 @@ public class SpecialResultLibCfg extends BaseCfgBean {
   /** 倍数区间及权重 */
   protected Map<Integer,List<String>> sectionProp;
   /** 类型权重 */
-  protected Map<Integer,Integer> typeProp;
+  protected List<List<String>> typeProp;
 
   /** 返回进入条件上限 */
   public int getEnterLimitMax() {
@@ -58,7 +58,7 @@ public class SpecialResultLibCfg extends BaseCfgBean {
   }
 
   /** 返回类型权重 */
-  public Map<Integer,Integer> getTypeProp() {
+  public List<List<String>> getTypeProp() {
     return typeProp;
   }
 

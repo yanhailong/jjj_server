@@ -28,6 +28,7 @@ public class SharePromoteRewardDao {
     protected RedisTemplate<String, Player> redisTemplate;
 
     private static final Logger log = LoggerFactory.getLogger(SharePromoteRewardDao.class);
+
     /**
      * 添加收藏的游戏
      *
@@ -35,14 +36,14 @@ public class SharePromoteRewardDao {
      */
     public int getEquipNumSize(List<SharePromoteReward> sharePromoteList, String equipNum) {
         List<SharePromoteReward> newList = sharePromoteList.stream().filter(sharePromoteReward -> {
-            return sharePromoteReward.getEquipNum().equals(equipNum);
+            return sharePromoteReward.getEquipNum() != null && sharePromoteReward.getEquipNum().equals(equipNum);
         }).toList();
         return newList.size();
     }
 
     public int getIpSize(List<SharePromoteReward> sharePromoteList, String ip) {
         List<SharePromoteReward> newList = sharePromoteList.stream().filter(sharePromoteReward -> {
-            return sharePromoteReward.getIp().equals(ip);
+            return sharePromoteReward.getIp() != null && sharePromoteReward.getIp().equals(ip);
         }).toList();
         return newList.size();
     }
@@ -50,7 +51,7 @@ public class SharePromoteRewardDao {
 
     public int getRegisterIpSize(List<SharePromoteReward> sharePromoteList, String registerIp) {
         List<SharePromoteReward> newList = sharePromoteList.stream().filter(sharePromoteReward -> {
-            return sharePromoteReward.getRegisterIp().equals(registerIp);
+            return sharePromoteReward.getRegisterIp()!=null && sharePromoteReward.getRegisterIp().equals(registerIp);
         }).toList();
         return newList.size();
     }
@@ -85,7 +86,6 @@ public class SharePromoteRewardDao {
         String[] split = value.split("\\|");
         String[] split1 = split[2].split("_");
         int playerSizeRequire = Integer.parseInt(split1[0]);
-
         SharePromoteReward sharePromote = getSharePromote(playerId);
         if (sharePromote == null) {
             sharePromote = new SharePromoteReward();
@@ -130,28 +130,29 @@ public class SharePromoteRewardDao {
             int equipNumSize = getEquipNumSize(sharePromoteList, equipNum);
             int ipSize = getIpSize(sharePromoteList, ip);
             int registerIpSize = getIpSize(sharePromoteList, registerIp);
-            if(equipNumSize >= equipNumSizeRequire){
+            if (equipNumSize >= equipNumSizeRequire) {
                 log.info("分享上线 已领取设备:{}, 配置上线:{}", equipNumSize, equipNumSizeRequire);
             }
-            if(ipSize >= ipSizeRequire){
-                log.info("分享上线 已领取ip:{}, 配置ip:{}",  ipSize , ipSizeRequire);
+            if (ipSize >= ipSizeRequire) {
+                log.info("分享上线 已领取ip:{}, 配置ip:{}", ipSize, ipSizeRequire);
             }
-            if(registerIpSize >= registerIpSizeRequire){
-                log.info("分享上线 已领取注册ip:{}, 配置注册ip:{}",  registerIpSize,registerIpSizeRequire);
+            if (registerIpSize >= registerIpSizeRequire) {
+                log.info("分享上线 已领取注册ip:{}, 配置注册ip:{}", registerIpSize, registerIpSizeRequire);
             }
             return equipNumSize < equipNumSizeRequire && ipSize < ipSizeRequire && registerIpSize < registerIpSizeRequire;
         } else if (sharePromote.getNum() < playerSizeRequire) {
-            int equipNumSize = getEquipNumSize(getSharePromoteList(), equipNum);
-            int ipSize = getIpSize(getSharePromoteList(), ip);
-            int registerIpSize = getIpSize(getSharePromoteList(), registerIp);
-            if(equipNumSize >= equipNumSizeRequire){
+            List<SharePromoteReward> sharePromoteList = getSharePromoteList();
+            int equipNumSize = getEquipNumSize(sharePromoteList, equipNum);
+            int ipSize = getIpSize(sharePromoteList, ip);
+            int registerIpSize = getIpSize(sharePromoteList, registerIp);
+            if (equipNumSize >= equipNumSizeRequire) {
                 log.info("分享上线 已领取设备:{}, 配置上线:{}", equipNumSize, equipNumSizeRequire);
             }
-            if(ipSize >= ipSizeRequire){
-                log.info("分享上线 已领取ip:{}, 配置ip:{}",  ipSize , ipSizeRequire);
+            if (ipSize >= ipSizeRequire) {
+                log.info("分享上线 已领取ip:{}, 配置ip:{}", ipSize, ipSizeRequire);
             }
-            if(registerIpSize >= registerIpSizeRequire){
-                log.info("分享上线 已领取注册ip:{}, 配置注册ip:{}",  registerIpSize,registerIpSizeRequire);
+            if (registerIpSize >= registerIpSizeRequire) {
+                log.info("分享上线 已领取注册ip:{}, 配置注册ip:{}", registerIpSize, registerIpSizeRequire);
             }
             return equipNumSize < equipNumSizeRequire && ipSize < ipSizeRequire && registerIpSize < registerIpSizeRequire;
         }

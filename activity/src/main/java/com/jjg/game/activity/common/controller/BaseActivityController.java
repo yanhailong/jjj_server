@@ -15,6 +15,7 @@ import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.base.condition.event.TimeEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
@@ -157,7 +158,11 @@ public abstract class BaseActivityController {
      */
     public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
         // 调用条件检查服务，验证触发条件是否完成
-        return conditionManager.isAchievement(player, "", activityData.getCondition());
+        return conditionManager.isAchievement(player, "", createTimeEvent(activityData), activityData.getCondition());
+    }
+
+    protected TimeEvent createTimeEvent(ActivityData activityData) {
+        return activityManager.createTimeEvent(activityData);
     }
 
 

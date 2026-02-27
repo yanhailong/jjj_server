@@ -11,8 +11,6 @@ import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
-import com.jjg.game.slots.game.captainjack.pb.res.ResCaptainJackPoolValue;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodAwardLineInfo;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodGameRunInfo;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodPlayerGameData;
@@ -56,8 +54,7 @@ public class ElephantGodSendMessageManager extends BaseSendMessageManager {
             for (long[] arr : list) {
                 res.stakeList.add(arr[1]);
             }
-            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().getFirst());
-            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().getFirst());
+            res.defaultBet = gameRunInfo.getData() != null && gameRunInfo.getData().getAllBetScore() > 0 ? gameRunInfo.getData().getAllBetScore() : gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
             ElephantGodPlayerGameData playerGameData = gameRunInfo.getData();
             res.freeTotalWinGold = playerGameData.getFreeAllWin();
             res.status = playerGameData.getStatus();

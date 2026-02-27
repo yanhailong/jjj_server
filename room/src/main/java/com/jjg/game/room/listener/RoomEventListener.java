@@ -3,6 +3,7 @@ package com.jjg.game.room.listener;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
@@ -11,14 +12,17 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.*;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.PlayerSessionInfo;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.core.manager.VipCheckManager;
+import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.MessageBuildUtil;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -171,6 +175,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
 
             final PlayerSessionInfo tempInfo = info;
+            session.setWorkId(playerId);
 
             Player player = playerService.doSave(playerId, p -> {
                 p.setGameType(tempInfo.getGameType());
@@ -240,28 +245,127 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
     @Override
     public <T extends GameEvent> void handleEvent(T gameEvent) {
+        dealEvent(gameEvent, true);
+    }
+
+    /**
+     * 处理玩家充值和货币相关事件
+     *
+     * @param gameEvent 游戏事件
+     * @param diffuse   是否扩散
+     * @param <T>       游戏事件
+     */
+    private <T extends GameEvent> void dealEvent(T gameEvent, boolean diffuse) {
         if (gameEvent instanceof CurrencyChangeEvent event) {
             //获取玩家所在线程
             AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController = roomManager.getGameControllerByPlayerId(event.getPlayer().getId());
             if (gameController == null) {
                 log.error("货币变化日志找不到玩家所在房间 playerId:{} changeValue:{}", event.getPlayer().getId(), JSON.toJSONString(event.getCurrencyMap()));
+                if (diffuse) {
+                    inTempRoomAction(event.getPlayer(), event);
+                }
                 return;
             }
             CurrentChangeEventHandler handler = new CurrentChangeEventHandler(event.getPlayer(), gameController, event.getCurrencyMap(), event.getAddType(), event.getDesc());
             //抛到对应房间线程处理
             gameController.addGameTimeEvent(new TimerEvent<>(gameController, handler), RoomEventType.CURRENCY_CHANGE_EVENT);
         }
-
         if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
             //获取玩家所在线程
             AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController = roomManager.getGameControllerByPlayerId(event.getPlayer().getId());
             if (gameController == null) {
                 log.error("玩家充值事件找不到玩家所在房间 playerId:{} order:{}", event.getPlayer().getId(), JSON.toJSONString(event.getOrder()));
+                if (diffuse) {
+                    inTempRoomAction(event.getPlayer(), event);
+                }
                 return;
             }
             PlayerRechargeEventHandler handler = new PlayerRechargeEventHandler(event.getPlayer().getId(), gameController, event.getOrder());
             //抛到对应房间线程处理
             gameController.addGameTimeEvent(new TimerEvent<>(gameController, handler), RoomEventType.PLAYER_RECHARGE_EVENT);
+        }
+    }
+
+    public void inTempRoomAction(Player player, GameEvent playerEvent) {
+        long playerId = player.getId();
+        PFSession session = clusterSystem.getSession(playerId);
+        if (session == null) {
+            log.error("玩家充值临时房间中找不到玩家session playerId:{} ", player.getId());
+            return;
+        }
+        IPlayerRoomEventListener listener = roomListenerMap.get(player.getGameType());
+        if (listener == null) {
+            log.error("玩家临时玩家中事件找不到玩家临时所在房间脚本 playerId:{} ", player.getId());
+            return;
+        }
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
+            @Override
+            public void action() {
+                if (!listener.containsPlayer(playerId)) {
+                    log.info("玩家充值事件找不到玩家临时所在房间 尝试寻找gameController playerId:{} ", player.getId());
+                    dealEvent(playerEvent, false);
+                    return;
+                }
+                if (playerEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
+                    Order order = event.getOrder();
+                    Player newPlayer = playerService.doSave(playerId, updatePlayer -> {
+                        //修改vip等级和经验
+                        VipCheckManager.rechargeCheckVipLevel(updatePlayer, order.getPrice());
+                    });
+                    NoticeBaseInfoChange notice = MessageBuildUtil.buildNoticeBaseInfoChange(newPlayer);
+                    clusterSystem.sendToPlayer(notice, playerId);
+                    log.info("临时房间内玩家充值事件完成 playerId:{} orderId:{}", playerId, order.getId());
+                    return;
+                }
+                if (playerEvent instanceof CurrencyChangeEvent event) {
+                    Map<Integer, Long> currencyMap = event.getCurrencyMap();
+                    changeTempRoomCurrency(playerId, currencyMap, event.getAddType());
+                    log.info("临时房间内玩家货币变化事件完成 playerId:{} ", playerId);
+                }
+            }
+        });
+    }
+
+    /**
+     * 修改临时房间的货币
+     *
+     * @param playerId
+     * @param currencyMap
+     */
+    private void changeTempRoomCurrency(long playerId, Map<Integer, Long> currencyMap, AddType addType) {
+        for (Map.Entry<Integer, Long> entry : currencyMap.entrySet()) {
+            Long changeValue = entry.getValue();
+            if (changeValue == 0) {
+                continue;
+            }
+            if (entry.getKey() == ItemUtils.getGoldItemId()) {
+                if (changeValue > 0) {
+                    CommonResult<Player> result = playerService.addGold(playerId, changeValue, addType, "", true);
+                    if (!result.success()) {
+                        log.error("房间内添加金币失败 playerId:{} num:{}", playerId, changeValue);
+                        continue;
+                    }
+                } else {
+                    CommonResult<Player> result = playerService.deductGold(playerId, Math.abs(changeValue), addType, "", true);
+                    if (!result.success()) {
+                        log.error("房间内移除金币失败 playerId:{} num:{}", playerId, Math.abs(changeValue));
+                        continue;
+                    }
+                }
+            }
+            if (entry.getKey() == ItemUtils.getDiamondItemId()) {
+                if (changeValue > 0) {
+                    CommonResult<Player> result = playerService.addDiamond(playerId, changeValue, addType, "", true);
+                    if (!result.success()) {
+                        log.error("房间内添加钻石失败 playerId:{} num:{}", playerId, changeValue);
+                    }
+                } else {
+                    CommonResult<Player> result = playerService.deductDiamond(playerId, Math.abs(changeValue), addType, "", true);
+                    if (!result.success()) {
+                        log.error("房间内删除钻石失败 playerId:{} num:{}", playerId, Math.abs(changeValue));
+                    }
+                }
+            }
         }
     }
 

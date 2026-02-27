@@ -51,20 +51,6 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
         addUpdatePoolEvent();
     }
 
-    @Override
-    public LuckyMouseGameRunInfo enterGame(PlayerController playerController) {
-        LuckyMousePlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new LuckyMouseGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        resetFreeStateIfInvalid(playerGameData, LuckyMouseConstant.Status.REAL_FU_SHU, LuckyMouseConstant.Status.NORMAL, "幸运小鼠");
-
-        LuckyMouseGameRunInfo gameRunInfo = new LuckyMouseGameRunInfo(Code.SUCCESS, playerGameData.playerId());
-        gameRunInfo.setData(playerGameData);
-        return gameRunInfo;
-    }
-
 
     @Override
     protected LuckyMouseGameRunInfo startGame(PlayerController playerController, LuckyMousePlayerGameData playerGameData, long stake, boolean auto) {
@@ -93,14 +79,14 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
             rewardFromBigPool(gameRunInfo, playerGameData);
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), stake, warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
             playerController.setPlayer(player);
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
-            int times = calWinTimes(gameRunInfo, playerGameData, stake);
+            int times = calWinTimes(gameRunInfo, playerGameData);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 

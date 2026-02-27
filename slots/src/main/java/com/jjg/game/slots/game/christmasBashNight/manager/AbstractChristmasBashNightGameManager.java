@@ -40,20 +40,6 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
         super.init();
     }
 
-    @Override
-    public ChristmasBashNightGameRunInfo enterGame(PlayerController playerController) {
-        //获取玩家游戏数据
-        ChristmasBashNightPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new ChristmasBashNightGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        resetFreeStateIfInvalid(playerGameData, ChristmasBashNightConstant.Status.FREE, ChristmasBashNightConstant.Status.NORMAL, "圣诞狂欢夜");
-        ChristmasBashNightGameRunInfo gameRunInfo = new ChristmasBashNightGameRunInfo(Code.SUCCESS, playerGameData.playerId());
-        gameRunInfo.setData(playerGameData);
-        return gameRunInfo;
-    }
-
     /**
      * 开始游戏
      *
@@ -98,7 +84,7 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(player, gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
+            triggerWinTask(player, gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
@@ -107,7 +93,7 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
-            int times = calWinTimes(gameRunInfo, playerGameData, betValue);
+            int times = calWinTimes(gameRunInfo, playerGameData);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 

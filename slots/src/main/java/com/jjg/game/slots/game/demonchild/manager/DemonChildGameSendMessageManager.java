@@ -11,7 +11,6 @@ import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.data.SpecialGirdInfo;
-import com.jjg.game.slots.game.demonchild.constant.DemonChildConstant;
 import com.jjg.game.slots.game.demonchild.data.DemonChildGameRunInfo;
 import com.jjg.game.slots.game.demonchild.data.DemonChildPlayerGameData;
 import com.jjg.game.slots.game.demonchild.data.DemonChildResultLib;
@@ -62,15 +61,11 @@ public class DemonChildGameSendMessageManager extends BaseSendMessageManager {
             for (long[] arr : list) {
                 res.stakeList.add(arr[1]);
             }
-            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().getFirst());
+            res.defaultBet = gameRunInfo.getData() != null && gameRunInfo.getData().getAllBetScore() > 0 ? gameRunInfo.getData().getAllBetScore() : gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
             DemonChildPlayerGameData playerGameData = gameRunInfo.getData();
             res.totalWinGold = playerGameData.getFreeAllWin();
             res.status = playerGameData.getStatus();
             res.remainFreeCount = playerGameData.getRemainFreeCount().get();
-            //计算当前免费倍率
-            if (playerGameData.getStatus() == DemonChildConstant.Status.FREE) {
-                res.freeAmount = playerGameData.getFreeAllWin();
-            }
             res.totalFreeCount = gameRunInfo.getTotalFreeCount();
             res.poolList = new ArrayList<>();
             for (int poolId : prizePoolIdList) {
@@ -117,7 +112,6 @@ public class DemonChildGameSendMessageManager extends BaseSendMessageManager {
             res.iconList = Arrays.stream(gameRunInfo.getIconArr(), 1, gameRunInfo.getIconArr().length).boxed().collect(Collectors.toList());
             //剩余免费次数
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
-            res.totalFreeCount = gameRunInfo.getRemainFreeCount();
             //大奖展示id
             res.bigWinShow = gameRunInfo.getBigShowId();
             //等级信息
@@ -125,7 +119,7 @@ public class DemonChildGameSendMessageManager extends BaseSendMessageManager {
             res.exp = playerController.getPlayer().getExp();
             res.totalFreeCount = gameRunInfo.getTotalFreeCount();
             DemonChildResultLib lib = (DemonChildResultLib) gameRunInfo.getResultLib();
-            res.iconAmountList = buildIconAmount(lib);
+            res.iconAmountList = buildIconAmount(lib, gameRunInfo.getData());
             res.rewardLineInfo = gameRunInfo.getAwardLineInfos();
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
@@ -138,7 +132,7 @@ public class DemonChildGameSendMessageManager extends BaseSendMessageManager {
 
     }
 
-    private List<KVInfo> buildIconAmount(DemonChildResultLib lib) {
+    private List<KVInfo> buildIconAmount(DemonChildResultLib lib, DemonChildPlayerGameData playerGameData) {
         List<KVInfo> kvInfos = new ArrayList<>();
         if (CollectionUtil.isEmpty(lib.getSpecialGirdInfoList())) {
             return kvInfos;
@@ -151,7 +145,7 @@ public class DemonChildGameSendMessageManager extends BaseSendMessageManager {
             valueMap.forEach((key, value) -> {
                 KVInfo kvInfo = new KVInfo();
                 kvInfo.key = key;
-                kvInfo.value = value;
+                kvInfo.value = value * (int) playerGameData.getOneBetScore();
                 kvInfos.add(kvInfo);
             });
         }

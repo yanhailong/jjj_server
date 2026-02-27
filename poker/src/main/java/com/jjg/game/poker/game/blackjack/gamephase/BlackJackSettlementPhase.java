@@ -202,11 +202,14 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             long playerId = info.getPlayerId();
             BlackJackSettlementInfo settlementInfo = new BlackJackSettlementInfo();
             int size = info.getCards().size();
-            playerCards.put(playerId, info.getCards());
+            boolean robot = RobotUtil.isRobot(info.getPlayerId());
             //获胜牌组索引
             settlementInfo.cardGroupState = new ArrayList<>(size);
             for (int i = 0; i < size; i++) {
                 List<Integer> card = info.getCards().get(i);
+                if (!robot) {
+                    playerCards.computeIfAbsent(playerId, key -> new ArrayList<>()).add(BlackJackDataHelper.getClientId(gameDataVo, card));
+                }
                 Map<Integer, Long> betInfo = allBetInfo.get(playerId);
                 if (Objects.isNull(betInfo)) {
                     continue;

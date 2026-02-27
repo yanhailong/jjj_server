@@ -29,19 +29,6 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
         this.gameDataDao = gameDataDao;
     }
 
-    @Override
-    public ElephantGodGameRunInfo enterGame(PlayerController playerController) {
-        //获取玩家游戏数据
-        ElephantGodPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new ElephantGodGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        resetFreeStateIfInvalid(playerGameData, ElephantGodConstant.Status.FREE, ElephantGodConstant.Status.NORMAL, "象财神");
-        ElephantGodGameRunInfo gameRunInfo = new ElephantGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
-        gameRunInfo.setData(playerGameData);
-        return gameRunInfo;
-    }
 
     @Override
     protected ElephantGodGameRunInfo startGame(PlayerController playerController, ElephantGodPlayerGameData playerGameData, long betValue, boolean auto) {
@@ -73,7 +60,7 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), betValue, warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
@@ -82,7 +69,7 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             //添加大奖展示id
-            int times = calWinTimes(gameRunInfo, playerGameData, betValue);
+            int times = calWinTimes(gameRunInfo, playerGameData);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 
