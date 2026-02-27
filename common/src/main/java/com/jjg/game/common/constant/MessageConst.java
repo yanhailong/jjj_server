@@ -168,6 +168,9 @@ public interface MessageConst {
         int TO_SOUTH = 0x44;
         // pan jin lian
         int PAN_JIN_LIAN = 0x45;
+
+        //愤怒的小鸟
+        int ANGRY_BIRDS = 0x45;
     }
 
     interface ToClientConst {

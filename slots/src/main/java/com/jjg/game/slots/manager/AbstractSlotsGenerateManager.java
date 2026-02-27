@@ -1481,7 +1481,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * @return 更新后的SpecialGirdInfo对象
      */
     protected SpecialGirdInfo gridUpdate(T lib, int cfgId, int[] arr) {
-        return girdUpdate(cfgId, arr);
+        return gridUpdate(cfgId, arr);
     }
 
     /**
@@ -1491,7 +1491,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * @param arr   图标数组
      * @return
      */
-    public SpecialGirdInfo girdUpdate(int cfgId, int[] arr) {
+    public SpecialGirdInfo gridUpdate(int cfgId, int[] arr) {
         log.debug("开始修改格子 specialGirdCfgId = {}", cfgId);
         SpecialGirdCfg specialGirdCfg = GameDataManager.getSpecialGirdCfg(cfgId);
         if (specialGirdCfg == null) {
