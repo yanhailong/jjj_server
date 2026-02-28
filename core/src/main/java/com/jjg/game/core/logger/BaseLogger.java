@@ -699,6 +699,11 @@ public class BaseLogger {
      */
     public void addMail(Mail mail) {
         try {
+            //根据需求，附件为空的邮件，不发送日志
+            if(mail.getItems() == null || mail.getItems().isEmpty()){
+                return;
+            }
+
             JSONObject json = new JSONObject();
             json.put("playerId", mail.getPlayerId());
             //邮件id
