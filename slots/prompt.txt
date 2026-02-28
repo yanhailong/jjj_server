@@ -1,0 +1,8 @@
+--转csv在gametool
+--pandoc 2.docx -t gfm --strip-comments -o WOLF_MOON.md word文档转md(https://github.com/jgm/pandoc/releases)
+请按本仓库 AGENTS.md 的通用 slots 规则，实现 `example/WOLF_MOON.md` 中的需求。
+当前是新玩法开发，目录下可能暂无现成子类实现，请基于父类能力补齐实现。
+目标目录：`slots/src/main/java/com/jjg/game/slots/game/wolfmoon/`
+配置数据来自 `example/*.csv`。
+类名前缀统一为 `WolfMoon`。
+完成后先输出新建/修改类清单及职责，再运行：`mvn -DskipTests=false test -e`，并报告结果。
