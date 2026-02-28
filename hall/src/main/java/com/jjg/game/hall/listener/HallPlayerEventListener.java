@@ -332,6 +332,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
         Player player = resetPlayerRoomData(playerId);
         PlayerController playerController = new PlayerController(session, player);
         session.setReference(playerController);
+        session.setWorkId(playerId);
         taskManager.loadTaskData(playerId);
         //更新节点地址
         playerSessionService.updateNodePath(session, player);
