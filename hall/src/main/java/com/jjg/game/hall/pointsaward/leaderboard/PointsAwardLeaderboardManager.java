@@ -228,7 +228,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                             }
                             int currentRank = i + 1;
                             //a)	机器人积分 = 当前排行榜对应位置的积分 + (最小增长积分 × 排行榜最大名次（300） × 随机数（0~1） / Max { 1，（当前排名 × （当前排名 - 1））}  + 最小增长积分  × 排行榜最大名次（300） ÷ 当前排名)/100
-                            double newPoint = oldPoint + ((minAdd * maxRank * RandomUtil.randomDouble(0, 1) / Math.max(1, currentRank * (currentRank - 1)) + (double) minAdd * maxRank / currentRank) / 100);
+                            double newPoint = oldPoint + ((minAdd * maxRank * RandomUtil.randomDouble(0, 1) / Math.max(1, currentRank * (currentRank - maxRank)) + (double) minAdd * maxRank / currentRank) / 100);
                             rankChanges.add(new RankChange(robotCfgPair.getFirst(), (int) newPoint));
                         }
                         if (rankChanges.isEmpty()) {
