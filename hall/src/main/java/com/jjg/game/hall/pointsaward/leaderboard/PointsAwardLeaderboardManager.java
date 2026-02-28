@@ -178,7 +178,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                         //iv.	当前排名，机器人对标的占位排名位置
                         //v.	排行榜最大名次（300），配置中的最大名次，当前300
                         int minAdd = Integer.parseInt(config[2]);
-                        int maxRank = Integer.parseInt(config[3]);
+                        int maxRank = Math.max(0, getMaxRankSize(PointsAwardConstant.Leaderboard.DAY));
                         //缓存中没有从redis中取
                         if (CollectionUtil.isEmpty(robotList)) {
                             robotList = new ArrayList<>(maxRank);
@@ -211,11 +211,14 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                         if (CollectionUtil.isEmpty(robotList)) {
                             return;
                         }
+                        int showMaxRank = Math.max(0, Math.min(Integer.parseInt(config[3]), robotList.size()));
+
                         //取出对应的排名
                         String rankKey = leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.DAY);
-                        List<RankEntry> rankEntries = rankService.topN(rankKey, robotList.size());
-                        List<RankChange> rankChanges = new ArrayList<>(robotList.size());
-                        for (int i = 0; i < robotList.size(); i++) {
+                        List<RankEntry> rankEntries = rankService.topN(rankKey, showMaxRank);
+                        List<RankChange> rankChanges = new ArrayList<>(showMaxRank);
+
+                        for (int i = 0; i < showMaxRank; i++) {
                             Pair<Long, Integer> robotCfgPair = robotList.get(i);
                             PointsAwardRobotCfg rankingCfg = GameDataManager.getPointsAwardRobotCfg(robotCfgPair.getSecond());
                             if (rankingCfg == null) {
@@ -227,7 +230,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                             }
                             int currentRank = i + 1;
                             //a)	机器人积分 = 当前排行榜对应位置的积分 + (最小增长积分 × 排行榜最大名次（300） × 随机数（0~1） / Max { 1，（当前排名 × （当前排名 - 排行榜最大名次））}  + 最小增长积分  × 排行榜最大名次（300） ÷ 当前排名)/100
-                            double newPoint = oldPoint + ((minAdd * maxRank * RandomUtil.randomDouble(0, 1) / Math.max(1, currentRank * (currentRank - maxRank)) + (double) minAdd * maxRank / currentRank) / 100);
+                            double newPoint = oldPoint + ((minAdd * showMaxRank * RandomUtil.randomDouble(0, 1) / Math.max(1, currentRank * (currentRank - showMaxRank)) + (double) minAdd * showMaxRank / currentRank) / 100);
                             rankChanges.add(new RankChange(robotCfgPair.getFirst(), (int) newPoint));
                         }
                         if (rankChanges.isEmpty()) {
@@ -258,6 +261,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             }
         }.setHandlerParamWithSelf("pointsAward robotAction"));
     }
+
 
     public RList<String> getRedisRobotList() {
         return redissonClient.getList(PointsAwardConstant.RedisKey.POINTS_AWARD_ROBOT_ID);
@@ -558,15 +562,19 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
      */
     public int getMaxRankSize(int type) {
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(49);
-        if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
-            String[] split = StringUtils.split(globalConfigCfg.getValue());
-            if (split.length != 3) {
-                return PointsAwardConstant.Leaderboard.MAX_RANK_SIZE;
+        try {
+            if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
+                String[] split = StringUtils.split(globalConfigCfg.getValue(), "_");
+                if (split.length != 3) {
+                    return PointsAwardConstant.Leaderboard.MAX_RANK_SIZE;
+                }
+                if (type > split.length) {
+                    return PointsAwardConstant.Leaderboard.MAX_RANK_SIZE;
+                }
+                return Math.max(0, Integer.parseInt(split[type - 1]));
             }
-            if (type > split.length) {
-                return PointsAwardConstant.Leaderboard.MAX_RANK_SIZE;
-            }
-            return Integer.parseInt(split[type - 1]);
+        } catch (Exception e) {
+            log.error("获取排行榜的大小异常", e);
         }
         return PointsAwardConstant.Leaderboard.MAX_RANK_SIZE;
     }
