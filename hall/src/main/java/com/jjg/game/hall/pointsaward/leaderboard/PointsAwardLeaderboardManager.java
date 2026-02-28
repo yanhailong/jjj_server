@@ -208,6 +208,38 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                                 loadRobotData(redisIdList);
                             }
                         }
+                        int needAdd = maxRank - robotList.size();
+                        if (needAdd > 0) {
+                            Set<Long> oldRobotIds = new HashSet<>(robotList.size());
+                            for (Pair<Long, Integer> pair : robotList) {
+                                oldRobotIds.add(pair.getFirst());
+                            }
+                            List<PointsAwardRobotCfg> pointsRobot = new ArrayList<>(GameDataManager.getPointsAwardRobotCfgList());
+                            List<RobotCfg> robotCfgList = new ArrayList<>(GameDataManager.getRobotCfgList());
+                            //打乱
+                            Collections.shuffle(robotCfgList);
+                            Collections.shuffle(pointsRobot);
+                            int maxCfgRank = Math.min(pointsRobot.size(), robotCfgList.size());
+                            List<String> add = new ArrayList<>(needAdd);
+                            int addCount = 0;
+                            for (int i = 0; i < maxCfgRank; i++) {
+                                RobotCfg robotCfg = robotCfgList.get(i);
+                                long robotId = robotUtil.getId(robotCfg.getId());
+                                if (!oldRobotIds.contains(robotId)) {
+                                    PointsAwardRobotCfg pointsRobotCfg = pointsRobot.get(i);
+                                    add.add(robotId + "_" + pointsRobotCfg.getId());
+                                    robotList.add(Pair.newPair(robotId, pointsRobotCfg.getId()));
+                                    addCount++;
+                                }
+                                if (addCount >= needAdd) {
+                                    break;
+                                }
+                            }
+                            if (addCount > 0) {
+                                RList<String> redisIdList = getRedisRobotList();
+                                redisIdList.addAll(add);
+                            }
+                        }
                         if (CollectionUtil.isEmpty(robotList)) {
                             return;
                         }
@@ -271,10 +303,19 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
         if (robotList == null) {
             loadRobotData(getRedisRobotList());
         }
-        if (CollectionUtil.isEmpty(robotList)) {
+        List<Pair<Long, Integer>> localRobotList = robotList;
+        if (CollectionUtil.isEmpty(localRobotList)) {
             return Map.of();
         }
-        return robotList.stream().collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
+        Map<Long, Integer> hashMap = new HashMap<>(localRobotList.size());
+        // 使用下标遍历避免并发修改时 Iterator 的 fail-fast
+        for (int i = 0, size = localRobotList.size(); i < size; i++) {
+            Pair<Long, Integer> pair = localRobotList.get(i);
+            if (pair != null) {
+                hashMap.putIfAbsent(pair.getFirst(), pair.getSecond());
+            }
+        }
+        return hashMap;
     }
 
     public boolean isRobot(long playerId) {
