@@ -332,6 +332,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             mail.setPlayerId(playerId);
             mail.setAddType(addType);
             mails.add(mail);
+            coreLogger.addMail(mail);
         }
         long saveCount = mailDao.batchSaveMails(mails);
         log.debug("批量保存邮件数量 mails.size = {}", saveCount);
