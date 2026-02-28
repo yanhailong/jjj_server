@@ -719,6 +719,8 @@ public class BaseLogger {
             json.put("items", ItemUtils.itemListToJson(mail.getItems()));
             //来源，添加类型
             json.put("addType", mail.getAddType().getValue());
+            //备注
+            json.put("desc", mail.getDesc());
 
             sendLog("mail", null, json);
         } catch (Exception e) {

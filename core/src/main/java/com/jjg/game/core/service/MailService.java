@@ -22,6 +22,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.LoginConfigCfg;
 import com.jjg.game.sampledata.bean.MailCfg;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,19 +99,19 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             Mail mail = getMail(playerId, mailId);
             if (mail == null) {
                 result.code = Code.NOT_FOUND;
-                log.debug("未找到玩家有邮件，获取道具失败 playerId = {},mailId = {},addType = {}", playerId, mailId, addType);
+                log.debug("未找到玩家有邮件，获取道具失败 playerId = {},mailId = {}", playerId, mailId);
                 return result;
             }
 
             if (mail.getStatus() == GameConstant.Mail.STATUS_GET_ITEMS) {
                 result.code = Code.NOT_FOUND;
-                log.debug("该道具已被领取，获取道具失败 playerId = {},mailId = {},addType = {}", playerId, mailId, addType);
+                log.debug("该道具已被领取，获取道具失败 playerId = {},mailId = {}", playerId, mailId);
                 return result;
             }
 
             if (mail.getItems() == null || mail.getItems().isEmpty()) {
                 result.code = Code.NOT_FOUND;
-                log.debug("该邮件内没有道具，获取道具失败 playerId = {},mailId = {},addType = {}", playerId, mailId, addType);
+                log.debug("该邮件内没有道具，获取道具失败 playerId = {},mailId = {}", playerId, mailId);
                 return result;
             }
 
@@ -119,7 +120,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
                 int id = mailItem.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(id);
                 if (itemCfg == null) {
-                    log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {},desc = {}", playerId, id, addType);
+                    log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {},addType = {}", playerId, id, mail.getAddType());
                 } else {
                     map.merge(id, mailItem.getItemCount(), Long::sum);
                 }
@@ -128,11 +129,14 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             if (!map.isEmpty()) {
                 mailDao.getMailItems(playerId, mailId);
 
+                AddType tmpAddType = addType;
                 String desc = String.valueOf(mailId);
                 if (mail.getAddType() == AddType.BACKEND_OPERATOR) {  //如果是后台发送的邮件，要修改desc的格式
                     desc = desc + "&" + mail.getTitle().getContent();
+                } else {
+                    tmpAddType = mail.getAddType();
                 }
-                playerPackService.addItems(playerId, map, addType, desc);
+                playerPackService.addItems(playerId, map, tmpAddType, desc);
             }
             //邮件变化时通知客户端刷新小红点
             redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, -1);
@@ -206,12 +210,15 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
                 }
             });
 
+            AddType tmpAddType = AddType.GET_ALL_MAILS_ITEMS;
             String desc = String.valueOf(mail.getId());
             if (mail.getAddType() == AddType.BACKEND_OPERATOR) {  //如果是后台发送的邮件，要修改desc的格式
                 desc = desc + "&" + mail.getTitle().getContent();
+            }else {
+                tmpAddType = mail.getAddType();
             }
 
-            CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, mail.getItems(), AddType.GET_ALL_MAILS_ITEMS, desc);
+            CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, mail.getItems(), tmpAddType, desc);
             if (!addItemsResult.success()) {
                 log.debug("一键领取失败 playerId = {},code = {},mailId = {}", playerId, addItemsResult.code, mail.getId());
             } else {
@@ -242,47 +249,50 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     public Mail addMail(long playerId, String title, String content, List<Item> items, AddType addType) {
         LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, title);
         LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, content);
-        return addLangMail(playerId, titleData, contentData, items, addType);
+        return addLangMail(playerId, titleData, contentData, items, addType, null);
     }
 
 
     /**
      * 添加系统配置邮件
      */
-    public Mail addCfgMail(long playerId, int titleLanId, int contentId, List<Item> items, List<LanguageParamData> params, AddType addType) {
+    public Mail addCfgMail(long playerId, int titleLanId, int contentId, List<Item> items, List<LanguageParamData> params, AddType addType, String desc) {
         LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, "");
         LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, "");
         titleData.setLangId(titleLanId);
         contentData.setLangId(contentId);
         contentData.setParams(params);
 
-        return addLangMail(playerId, titleData, contentData, items, addType);
+        return addLangMail(playerId, titleData, contentData, items, addType, desc);
     }
 
 
     /**
      * 添加系统配置邮件
      */
-    public Mail addCfgMail(long playerId, int mailCfgId, AddType addType) {
+    public Mail addCfgMail(long playerId, int mailCfgId, AddType addType, String desc) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), Collections.emptyList(), Collections.emptyList(), addType);
+        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), Collections.emptyList(), Collections.emptyList(), addType, desc);
     }
 
     /**
      * 添加系统配置邮件
      */
     public Mail addCfgMail(long playerId, int mailCfgId, List<Item> items, AddType addType) {
-        MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, Collections.emptyList(), addType);
+        return addCfgMail(playerId, mailCfgId, items, addType, null);
     }
 
+    public Mail addCfgMail(long playerId, int mailCfgId, List<Item> items, AddType addType, String desc) {
+        MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
+        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, Collections.emptyList(), addType, desc);
+    }
 
     /**
      * 添加系统配置邮件
      */
     public Mail addCfgMail(long playerId, int mailCfgId, List<Item> items, List<LanguageParamData> params, AddType addType) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, params, addType);
+        return addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, params, addType, null);
     }
 
 
@@ -294,11 +304,12 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
      * @param content
      * @param items
      */
-    public Mail addLangMail(long playerId, LanguageData title, LanguageData content, List<Item> items, AddType addType) {
+    public Mail addLangMail(long playerId, LanguageData title, LanguageData content, List<Item> items, AddType addType, String desc) {
         Mail mail = createMail(title, content, items, false);
         mail.setId(IdUtil.getSnowflakeNextId());
         mail.setPlayerId(playerId);
         mail.setAddType(addType);
+        mail.setDesc(desc);
         addMail(mail);
         return mail;
     }
@@ -320,7 +331,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
      * @param content
      * @param items
      */
-    public void addMails(List<Long> playerIds, String title, String content, List<Item> items, AddType addType) {
+    public void addMails(List<Long> playerIds, String title, String content, List<Item> items, AddType addType, String desc) {
         List<Mail> mails = new ArrayList<>();
 
         LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, title);
@@ -331,6 +342,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             mail.setId(IdUtil.getSnowflakeNextId());
             mail.setPlayerId(playerId);
             mail.setAddType(addType);
+            mail.setDesc(desc);
             mails.add(mail);
             coreLogger.addMail(mail);
         }
@@ -366,13 +378,14 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     /**
      * 给所有在线玩家发送全服邮件（分批执行，防止内存或查询压力过大）
      */
-    public void addAllServerMail(String title, String content, List<Item> items, AddType addType) throws Exception {
+    public void addAllServerMail(String title, String content, List<Item> items, AddType addType, String desc) throws Exception {
         LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, title);
         LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, content);
 
         // 创建并保存全服邮件模板
         Mail mail = createMail(titleData, contentData, items, true);
         mail.setAddType(addType);
+        mail.setDesc(desc);
         mailDao.saveServerMail(mail);
 
         // 获取所有在线玩家
@@ -486,6 +499,14 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
                 getMail.setServerMail(false);
                 getMail.setPlayerId(player.getId());
                 getMails.add(getMail);
+
+                if (StringUtils.isNotEmpty(getMail.getDesc())) {
+                    getMail.setDesc(getMail.getDesc() + ";" + mail.getId());
+                } else {
+                    getMail.setDesc(String.valueOf(mail.getId()));
+                }
+
+                coreLogger.addMail(getMail);
             } catch (Exception e) {
                 log.error("领取全服邮件异常 playerId = {},mailId = {}", player.getId(), mail.getId(), e);
             }
@@ -493,8 +514,8 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
 
         if (!getMails.isEmpty()) {
             long count = mailDao.batchSaveMails(getMails);
-            log.info("玩家接收全服邮件成功 playerId = {},count = {}", player.getId(), count);
             redDotManager.incrementRedDotDataAndUpdate(getModule(), player.getId(), getMails.size());
+            log.info("玩家接收全服邮件成功 playerId = {},count = {}", player.getId(), count);
         }
     }
 

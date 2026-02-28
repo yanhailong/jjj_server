@@ -44,7 +44,17 @@ public enum AddType {
 
 
     //绑定奖励
-    BIND_REWARD(301),
+//    BIND_REWARD(301),
+    //google绑定
+    BIND_GOOGLE(301),
+    //ios绑定
+    BIND_APPLE(302),
+    //fb绑定
+    BIND_FACEBOOK(303),
+    //手机号绑定
+    BIND_PHONE(304),
+    //邮箱绑定
+    BIND_MAIL(305),
 
     //创建好友房
     CREATE_FRIEND_ROOM(401),
@@ -195,6 +205,12 @@ public enum AddType {
     POINTS_AWARD_TURNTABLE_REWARDS(1302),
     //积分大奖签到奖励
     POINTS_AWARD_SIGN_REWARDS(1303),
+    //积分大奖日榜
+    POINTS_AWARD_DAILY(1304),
+    //积分大奖周榜
+    POINTS_AWARD_WEEK(1305),
+    //积分大奖月榜
+    POINTS_AWARD_MONTH(1306),
 
 
     //存入保险箱

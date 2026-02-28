@@ -696,6 +696,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             CommonResult<Account> addResult;
             int mailId = 0;
             String userId = "";
+            AddType addType;
             if (loginType == LoginType.GOOGLE) {
                 CommonResult<GoogleUserInfo> verifyResult = thirdAccountHttpService.verifyGoogleToken(westeId, token);
                 if (!verifyResult.success()) {
@@ -706,6 +707,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 addResult = accountDao.addThirdAccount(player, loginType, verifyResult.data);
                 mailId = GameConstant.Mail.ID_BIND_GOOGLE;
                 userId = verifyResult.data.getUserId();
+                addType = AddType.BIND_GOOGLE;
             } else if (loginType == LoginType.FACEBOOK) {
                 CommonResult<FacebookUserInfo> verifyResult = thirdAccountHttpService.verifyFacebookToken(westeId, token);
                 if (!verifyResult.success()) {
@@ -716,6 +718,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 addResult = accountDao.addThirdAccount(player, loginType, verifyResult.data);
                 mailId = GameConstant.Mail.ID_BIND_FACEBOOK;
                 userId = verifyResult.data.getUserId();
+                addType = AddType.BIND_FACEBOOK;
             } else if (loginType == LoginType.APPLE) {
                 CommonResult<AppleUserInfo> verifyResult = thirdAccountHttpService.verifyAppleToken(westeId, token);
                 if (!verifyResult.success()) {
@@ -725,6 +728,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 addResult = accountDao.addThirdAccount(player, loginType, verifyResult.data);
                 mailId = GameConstant.Mail.ID_BIND_APPLE;
                 userId = verifyResult.data.getUserId();
+                addType = AddType.BIND_APPLE;
             } else {
                 log.debug("该接口不支持该类型绑定，绑定第三方账号失败 type = {}", type);
                 result.code = Code.FAIL;
@@ -749,15 +753,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return result;
             }
 
-//            CommonResult<ItemOperationResult> bindRewardResult = playerPackService.addItems(playerId, loginConfigCfg.getAwardItem(), AddType.BIND_REWARD);
-//            if (!bindRewardResult.success()) {
-//                log.debug("添加绑定奖励失败 playerId = {},type = {}", playerId, type);
-//                return result;
-//            }
-
             result.data = ItemUtils.buildItems(loginConfigCfg.getAwardItem());
 
-            mailService.addCfgMail(player.getId(), mailId, result.data, AddType.BIND_REWARD);
+            mailService.addCfgMail(player.getId(), mailId, result.data, addType, userId);
             hallLogger.bind(player, type, userId);
             log.debug("已发送绑定账号奖励邮件 playerId = {},type = {},rewaredList = {}", player.getId(), type, result.data);
         } catch (Exception e) {
@@ -999,7 +997,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     }
 
     public List<GameListConfig> getSortGameList(int westeId) {
-        if(this.adjustConfig == null || !this.adjustConfig.isOpen()){
+        if (this.adjustConfig == null || !this.adjustConfig.isOpen()) {
             return sortGameList;
         }
 
@@ -1112,7 +1110,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             }
 
             List<Item> list = ItemUtils.buildItems(loginConfigCfg.getAwardItem());
-            mailService.addCfgMail(player.getId(), GameConstant.Mail.ID_BIND_PHONE, list, AddType.BIND_REWARD);
+            mailService.addCfgMail(player.getId(), GameConstant.Mail.ID_BIND_PHONE, list, AddType.BIND_PHONE, realPhone);
 
             log.debug("已发送绑定手机奖励邮件 playerId = {},rewaredList = {}", player.getId(), list);
         }
