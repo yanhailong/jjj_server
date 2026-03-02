@@ -25,6 +25,11 @@ public interface DemonChildConstant {
     }
 
     interface BaseElement {
+        int GOLD_GET = 18;               //	用于收集金币
+    }
+
+    interface Common {
+        int MIND_INDEX = 8;
     }
 
     interface Status {
