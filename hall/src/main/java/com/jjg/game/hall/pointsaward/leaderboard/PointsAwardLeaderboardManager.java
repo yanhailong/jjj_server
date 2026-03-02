@@ -250,9 +250,12 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                         String rankKey = leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.DAY);
                         List<RankEntry> rankEntries = rankService.topN(rankKey, showMaxRank);
                         List<RankChange> rankChanges = new ArrayList<>(showMaxRank);
-
+                        // 使用每日固定种子对机器人池做确定性洗牌，避免重复选中同一机器人
+                        long currentDateZeroMilliTime = TimeHelper.getCurrentDateZeroMilliTime();
+                        List<Pair<Long, Integer>> shuffledRobotList = new ArrayList<>(robotList);
+                        Collections.shuffle(shuffledRobotList, new Random(currentDateZeroMilliTime));
                         for (int i = 0; i < showMaxRank; i++) {
-                            Pair<Long, Integer> robotCfgPair = robotList.get(i);
+                            Pair<Long, Integer> robotCfgPair = shuffledRobotList.get(i);
                             PointsAwardRobotCfg rankingCfg = GameDataManager.getPointsAwardRobotCfg(robotCfgPair.getSecond());
                             if (rankingCfg == null) {
                                 continue;
@@ -416,9 +419,6 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             if (isMaster()) {
                 handleMidnightSettlement();
             }
-            if (isFirstDayOfMonth()) {
-                clearRobotData();
-            }
             // 重载配置
             reloadConfig();
         } catch (Exception e) {
@@ -457,18 +457,6 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
         } catch (Exception e) {
             log.error("午夜0点结算失败", e);
         }
-    }
-
-    /**
-     * 清除机器人数据
-     */
-    private void clearRobotData() {
-        if (isMaster()) {
-            RList<String> redisIdList = redissonClient.getList(PointsAwardConstant.RedisKey.POINTS_AWARD_ROBOT_ID);
-            redisIdList.delete();
-        }
-        robotList = null;
-        log.info("月榜结束 清除机器人数据成功");
     }
 
 
@@ -697,13 +685,13 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
         int templateId = getMailTemplateId(rankingData.getRankType(), cfg.getAwardType());
 
         AddType addType;
-        if(rankingData.getRankType() == 1){
+        if (rankingData.getRankType() == 1) {
             addType = AddType.POINTS_AWARD_DAILY;
-        }else if(rankingData.getRankType() == 2){
+        } else if (rankingData.getRankType() == 2) {
             addType = AddType.POINTS_AWARD_WEEK;
-        }else if(rankingData.getRankType() == 3){
+        } else if (rankingData.getRankType() == 3) {
             addType = AddType.POINTS_AWARD_MONTH;
-        }else {
+        } else {
             addType = AddType.POINTS_AWARD_LADDER_REWARDS;
         }
 
