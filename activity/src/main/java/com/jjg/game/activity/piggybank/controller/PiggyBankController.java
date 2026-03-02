@@ -431,7 +431,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
                         if (resetTime <= timeMillis) {
                             if (piggyBankData.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
                                 // 邮件发奖
-                                mailService.addCfgMail(playerId, ActivityConstant.PiggyBank.MAIL_ID, ItemUtils.buildItems(cfg.getGetItem()),AddType.ACTIVITY_PIGGY_BANK_REWARDS);
+                                mailService.addCfgMail(playerId, ActivityConstant.PiggyBank.MAIL_ID, ItemUtils.buildItems(cfg.getGetItem()),AddType.ACTIVITY_PIGGY_BANK_EXPIRE_REWARDS);
                             }
                             // 重置数据
                             resetPiggyBankData(piggyBankData);

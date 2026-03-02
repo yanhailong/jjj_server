@@ -11,7 +11,7 @@ public enum AddType {
     FAIL_ROLLBACK(2),
     //gm操作
     GM_OPERATOR(3),
-    //后台操作
+    //后台操作(GM加减货币\GM充值) ，这是被策划那边定死的对应成(后台加减货币\后台充值),所以其他地方需要用后台操作类型的，需要单独定义一个类型
     BACKEND_OPERATOR(4),
 
 
@@ -122,12 +122,20 @@ public enum AddType {
     ACTIVITY_DAILY_RECHARGE_GIFT(622),
     //刮刮卡兑换道具
     ACTIVITY_SCRATCH_CARDS_EXCHANGE(623),
+    //推广分享(周榜)
+    ACTIVITY_SHARE_PROMOTE_WEEK(624),
+    //每日分享
+    ACTIVITY_DAILY_SHARE_REWARD(625),
+    //储钱罐-未领奖励
+    ACTIVITY_PIGGY_BANK_EXPIRE_REWARDS(626),
+
+
     //好友房申请庄家扣除准备金
     FRIEND_ROOM_APPLY_BANKER_DEDUCT_PREDICATE(701),
     //好友房取消申请庄家，添加准备金
-    FRIEND_ROOM_CANCEL_BANKER_ADD_GOLD(702),
-    //好友房销毁房间回退预付金币
-    FRIEND_ROOM_DESTROY_ROOM_BANKER_ADD_GOLD(703),
+    FRIEND_ROOM_CANCEL_BANKER_ADD_COIN(702),
+    //好友房销毁房间回退预付金
+    FRIEND_ROOM_DESTROY_ROOM_BANKER_ADD_COIN(703),
     //好友房离开房间回退预付金币
     FRIEND_ROOM_LEAVE_ROOM_ADD_GOLD(704),
     //好友房连续坐庄，自动下庄回退预付金币
@@ -223,6 +231,14 @@ public enum AddType {
     VIP_REWARDS(1501),
     //解散房间时保证金退还
     BANKER_PREDICATE_BACK(1502),
+    //[ VIP充值返利 ]金币
+    VIP_REWARDS_GOLD(1503),
+    //[ VIP充值返利 ]钻石
+    VIP_REWARDS_DIAMOND(1504),
+    //[ VIP充值返利 ]摇钱树
+    VIP_REWARDS_CASHCOW(1505),
+
+
     //购买头像
     BUY_AVATAR(1601),
 
@@ -233,7 +249,7 @@ public enum AddType {
 
     private int value;
 
-    AddType(int value){
+    AddType(int value) {
         this.value = value;
     }
 

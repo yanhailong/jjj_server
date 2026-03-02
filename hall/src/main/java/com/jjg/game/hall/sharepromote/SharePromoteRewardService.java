@@ -96,7 +96,7 @@ public class SharePromoteRewardService implements GameEventListener {
                             int itemId = Integer.parseInt(split1[0]);
                             int itemNum = Integer.parseInt(split1[1]);
                             //返回奖励
-                            mailService.addCfgMail(playId, GameConstant.Mail.ID_SHARING_REWARD, List.of(new Item(itemId, itemNum)), AddType.ACTIVITY_SHARE_PROMOTE);
+                            mailService.addCfgMail(playId, GameConstant.Mail.ID_SHARING_REWARD, List.of(new Item(itemId, itemNum)), AddType.ACTIVITY_DAILY_SHARE_REWARD);
                         }
                         return Code.SUCCESS;
                     } else {
