@@ -386,14 +386,14 @@ public class GMController extends AbstractController {
             }
 
             if (StringUtils.isEmpty(dto.designated())) {  //为空表示全服邮件
-                mailService.addAllServerMail(dto.title(), dto.content(), mailItems, AddType.BACKEND_OPERATOR, null);
+                mailService.addAllServerMail(dto.title(), dto.content(), mailItems, AddType.HUMAN_MAIL, null);
             } else {
                 List<Long> playerIds = new ArrayList<>();
                 String[] arr = dto.designated().split(",");
                 for (String str : arr) {
                     playerIds.add(Long.parseLong(str));
                 }
-                mailService.addMails(playerIds, dto.title(), dto.content(), mailItems, AddType.BACKEND_OPERATOR, null);
+                mailService.addMails(playerIds, dto.title(), dto.content(), mailItems, AddType.HUMAN_MAIL, null);
             }
 
             //返回修改结果
@@ -448,7 +448,7 @@ public class GMController extends AbstractController {
             long beforeSafeDiamond = player.getSafeBoxDiamond();
 
             boolean notifyNode = false;
-            AddType addType = AddType.GM_OPERATOR;
+            AddType addType = AddType.BACKEND_CHANGE_MONEY;
             CommonResult<Player> result;
             if (dto.operator_type() == 1) {  //账户
                 PlayerSessionInfo info = playerSessionService.getInfo(player.getId());

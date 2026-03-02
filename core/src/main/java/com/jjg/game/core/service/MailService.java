@@ -129,14 +129,11 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             if (!map.isEmpty()) {
                 mailDao.getMailItems(playerId, mailId);
 
-                AddType tmpAddType = addType;
                 String desc = String.valueOf(mailId);
-                if (mail.getAddType() == AddType.BACKEND_OPERATOR) {  //如果是后台发送的邮件，要修改desc的格式
+                if (mail.getAddType() == AddType.HUMAN_MAIL) {  //如果是后台发送的邮件，要修改desc的格式
                     desc = desc + "&" + mail.getTitle().getContent();
-                } else {
-                    tmpAddType = mail.getAddType();
                 }
-                playerPackService.addItems(playerId, map, tmpAddType, desc);
+                playerPackService.addItems(playerId, map, mail.getAddType(), desc);
             }
             //邮件变化时通知客户端刷新小红点
             redDotManager.incrementRedDotDataAndUpdate(getModule(), playerId, -1);
@@ -210,15 +207,12 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
                 }
             });
 
-            AddType tmpAddType = AddType.GET_ALL_MAILS_ITEMS;
             String desc = String.valueOf(mail.getId());
-            if (mail.getAddType() == AddType.BACKEND_OPERATOR) {  //如果是后台发送的邮件，要修改desc的格式
+            if (mail.getAddType() == AddType.HUMAN_MAIL) {  //如果是后台发送的邮件，要修改desc的格式
                 desc = desc + "&" + mail.getTitle().getContent();
-            }else {
-                tmpAddType = mail.getAddType();
             }
 
-            CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, mail.getItems(), tmpAddType, desc);
+            CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, mail.getItems(), mail.getAddType(), desc);
             if (!addItemsResult.success()) {
                 log.debug("一键领取失败 playerId = {},code = {},mailId = {}", playerId, addItemsResult.code, mail.getId());
             } else {
@@ -573,10 +567,10 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
                 for (Mail mail : playerMails) {
                     if (mail.getItems() != null && !mail.getItems().isEmpty()) {
                         String desc = String.valueOf(mail.getId());
-                        if (mail.getAddType() == AddType.BACKEND_OPERATOR) {  //如果是后台发送的邮件，要修改desc的格式
+                        if (mail.getAddType() == AddType.HUMAN_MAIL) {  //如果是后台发送的邮件，要修改desc的格式
                             desc = desc + "&" + mail.getTitle().getContent();
                         }
-                        playerPackService.addItems(playerId, mail.getItems(), AddType.GET_MAIL_ITEMS, desc);
+                        playerPackService.addItems(playerId, mail.getItems(), mail.getAddType(), desc);
                         mailIdsToDelete.add(mail.getId());
                         log.debug("玩家{}自动领取{}封邮件的附件，获得道具: {}", playerId, mailIdsToDelete.size(), mail.getItems());
                     }
