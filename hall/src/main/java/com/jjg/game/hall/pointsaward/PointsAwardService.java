@@ -6,6 +6,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.RpcCallSetting;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.Code;
@@ -101,10 +102,10 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     /**
      * 跨天
      */
-    public void daily() {
+    public void daily(LocalDate now) {
         if (marsCurator.isMaster()) {
             //跨月检查
-            clear();
+            clear(now);
             //重置时间段积分
             resetTimePoints();
             // 初始化充值数据记录map
@@ -127,6 +128,10 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * 检测玩家数据是否需要清除
      */
     public void clear() {
+        clear(LocalDate.now());
+    }
+
+    public void clear(LocalDate now) {
         RBucket<Long> bucket = redissonClient.getBucket(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME);
         Runnable command = () -> {
             // 初始化充值数据记录map
@@ -142,8 +147,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         } else {
             long initDateMills = bucket.get();
             LocalDate initDate = LocalDate.ofInstant(Instant.ofEpochMilli(initDateMills), ZoneId.systemDefault());
-            if (LocalDate.now().getMonthValue() != initDate.getMonthValue()) {
-                bucket.set(System.currentTimeMillis());
+            if (now.getMonthValue() != initDate.getMonthValue()) {
+                bucket.set(TimeHelper.getTimestamp(now.atStartOfDay()));
                 command.run();
             }
         }
