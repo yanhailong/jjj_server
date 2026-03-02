@@ -206,7 +206,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                             }
                             int currentRank = i + 1;
                             //a)	机器人积分 = 当前排行榜对应位置的积分 + (最小增长积分 × 排行榜最大名次（300） × 随机数（0~1） / Max { 1，（当前排名 × （当前排名 - 1））}  + 最小增长积分  × 排行榜最大名次（300） ÷ 当前排名)/100
-                            double newPoint = oldPoint + ((minAdd * maxRank * RandomUtil.randomDouble(0, 1) / Math.max(1, currentRank * (currentRank - 1)) + (double) minAdd * maxRank / currentRank) / 100);
+                            double newPoint = oldPoint + ((minAdd * maxRank * RandomUtil.randomDouble(0, 1) / Math.max(1, currentRank * (currentRank - maxRank)) + (double) minAdd * maxRank / currentRank) / 100);
                             rankChanges.add(new RankChange(robotCfgPair.getFirst(), (int) newPoint));
                         }
                         if (rankChanges.isEmpty()) {
@@ -702,13 +702,24 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
         List<LanguageParamData> paramData = buildMailParams(info, rankingData);
         int templateId = getMailTemplateId(rankingData.getRankType(), cfg.getAwardType());
 
+        AddType addType;
+        if(rankingData.getRankType() == 1){
+            addType = AddType.POINTS_AWARD_DAILY;
+        }else if(rankingData.getRankType() == 2){
+            addType = AddType.POINTS_AWARD_WEEK;
+        }else if(rankingData.getRankType() == 3){
+            addType = AddType.POINTS_AWARD_MONTH;
+        }else {
+            addType = AddType.POINTS_AWARD_LADDER_REWARDS;
+        }
+
         if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.OTHER) {
             // 其他奖励 - 生成领奖码
-            mailService.addCfgMail(info.getPlayerId(), templateId, null, paramData, AddType.POINTS_AWARD_LADDER_REWARDS);
+            mailService.addCfgMail(info.getPlayerId(), templateId, null, paramData, addType);
             code = awardCodeManager.generateCode(info.getPlayerId(), AwardCodeType.POINTS_AWARD);
         } else if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.ITEM) {
             // 道具奖励
-            mailService.addCfgMail(info.getPlayerId(), templateId, ItemUtils.buildItemsByStrList(cfg.getGetItem()), paramData, AddType.POINTS_AWARD_LADDER_REWARDS);
+            mailService.addCfgMail(info.getPlayerId(), templateId, ItemUtils.buildItemsByStrList(cfg.getGetItem()), paramData, addType);
         }
         // 添加历史记录
         leaderboardService.addHistory(info, cfg, code, rankingData.getEndTime());

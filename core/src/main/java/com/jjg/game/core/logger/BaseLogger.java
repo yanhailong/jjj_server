@@ -699,19 +699,33 @@ public class BaseLogger {
      */
     public void addMail(Mail mail) {
         try {
+            //根据需求，附件为空的邮件，不发送日志
+            if(mail.getItems() == null || mail.getItems().isEmpty()){
+                return;
+            }
+
             JSONObject json = new JSONObject();
             json.put("playerId", mail.getPlayerId());
-            json.put("mailId", mail);
+            //邮件id
+            json.put("mailId", mail.getId());
 
+            //标题，多语言结构
             //{"type":0,"content":"aaa","langId":"1122","params":[{"type":"1","param":"123"}]}
             json.put("title", objectMapper.writeValueAsString(mail.getTitle()));
             json.put("content", objectMapper.writeValueAsString(mail.getContent()));
 
-            json.put("sendTime", mail);
-            json.put("timeout", mail);
+            //发送时间
+            json.put("sendTime", mail.getSendTime());
+            //过期时间
+            json.put("timeout", mail.getTimeout());
+            //是否为全服邮件
             json.put("serverMail", mail.isServerMail());
+            //附件道具
             json.put("items", ItemUtils.itemListToJson(mail.getItems()));
+            //来源，添加类型
             json.put("addType", mail.getAddType().getValue());
+            //备注
+            json.put("desc", mail.getDesc());
 
             sendLog("mail", null, json);
         } catch (Exception e) {

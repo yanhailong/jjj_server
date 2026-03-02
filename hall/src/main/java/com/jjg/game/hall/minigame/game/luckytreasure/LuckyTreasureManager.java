@@ -833,7 +833,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 //获取奖励邮件配置
                 MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
                 //发送邮件奖励
-                mailService.addCfgMail(player.getId(), mailCfg.getTitle(), mailCfg.getText(), ItemUtils.buildItemList(config.getItemId(), config.getItemNum()), Collections.emptyList(), AddType.LUCKY_TREASURE_REWARDS);
+                mailService.addCfgMail(player.getId(), mailCfg.getTitle(), mailCfg.getText(), ItemUtils.buildItemList(config.getItemId(), config.getItemNum()), Collections.emptyList(), AddType.LUCKY_TREASURE_REWARDS, null);
             }
 
         }

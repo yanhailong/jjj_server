@@ -297,17 +297,20 @@ public class ShopService implements OrderGenerate, GameEventListener {
                         if (add != null && add > 0) {
                             int magnification = 0;
                             int mailId = 0;
+                            AddType addType = AddType.VIP_REWARDS;
                             if (currencyItemId == ItemUtils.getDiamondItemId()) {
                                 GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(54);
                                 if (globalConfigCfg != null) {
                                     magnification = globalConfigCfg.getIntValue();
                                     mailId = 37;
+                                    addType = AddType.VIP_REWARDS_DIAMOND;
                                 }
                             } else if (currencyItemId == ItemUtils.getGoldItemId()) {
                                 GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(52);
                                 if (globalConfigCfg != null) {
                                     magnification = globalConfigCfg.getIntValue();
                                     mailId = 36;
+                                    addType = AddType.VIP_REWARDS_GOLD;
                                 }
                             }
                             if (magnification > 0) {
@@ -320,7 +323,7 @@ public class ShopService implements OrderGenerate, GameEventListener {
                                     languageParamData.add(new LanguageParamData(0, String.valueOf(player.getVipLevel())));
                                     languageParamData.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(add).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN))));
                                     languageParamData.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addNum))));
-                                    mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum.longValue())), languageParamData, AddType.VIP_REWARDS);
+                                    mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum.longValue())), languageParamData, addType);
                                 }
                             }
                         }

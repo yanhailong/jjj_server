@@ -35,6 +35,8 @@ public class Mail implements Cloneable{
     private int status;
     //添加类型
     private AddType addType;
+    //备注
+    private String desc;
 
     public long getId() {
         return id;
@@ -114,6 +116,14 @@ public class Mail implements Cloneable{
 
     public void setAddType(AddType addType) {
         this.addType = addType;
+    }
+
+    public String getDesc() {
+        return desc;
+    }
+
+    public void setDesc(String desc) {
+        this.desc = desc;
     }
 
     @Override

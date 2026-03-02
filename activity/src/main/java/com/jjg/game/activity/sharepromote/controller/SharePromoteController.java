@@ -797,7 +797,7 @@ public class SharePromoteController extends BaseActivityController {
                     Map<Integer, Long> rankRewards = getRankRewards(rankRewardPair, i++);
                     List<Item> getItems = ItemUtils.buildItems(rankRewards);
                     //发送奖励邮件
-                    mailService.addCfgMail(playerId, ActivityConstant.SharePromote.MAIL_ID, getItems, params, AddType.ACTIVITY_SHARE_PROMOTE);
+                    mailService.addCfgMail(playerId, ActivityConstant.SharePromote.MAIL_ID, getItems, params, AddType.ACTIVITY_SHARE_PROMOTE_WEEK);
                     Player player = playerMap.get(playerId);
                     if (player == null) {
                         continue;

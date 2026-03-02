@@ -364,7 +364,7 @@ public class SlotsRoomManager implements HallRoomBridge {
 
         if (poolRaminValue > 0) {
             List<Item> returnItems = List.of(new Item(warehouseCfg.getTransactionItemId(), poolRaminValue));
-            Mail mail = mailService.addCfgMail(room.getCreator(), 35, returnItems, params, AddType.FRIEND_ROOM_DESTROY_ROOM_BANKER_ADD_GOLD);
+            Mail mail = mailService.addCfgMail(room.getCreator(), 35, returnItems, params, AddType.FRIEND_ROOM_DESTROY_ROOM_BANKER_ADD_COIN);
             slotsLogger.roomDisband(room, mail.getId(), returnItems);
         } else {
             slotsLogger.roomDisband(room, 0, List.of());

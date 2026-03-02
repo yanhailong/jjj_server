@@ -251,7 +251,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
 
         List<Item> returnItems = List.of(new Item(gameTransactionItemId, gainGold));
-        Mail mail = roomManager.getMailService().addCfgMail(playerId, 35, returnItems, params, AddType.FRIEND_ROOM_DESTROY_ROOM_BANKER_ADD_GOLD);
+        Mail mail = roomManager.getMailService().addCfgMail(playerId, 35, returnItems, params, AddType.FRIEND_ROOM_DESTROY_ROOM_BANKER_ADD_COIN);
         roomManager.getCoreLogger().roomDisband(this.room, mail.getId(), returnItems);
     }
 
@@ -267,7 +267,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(room.getRoomCfgId());
         params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
         params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
-        roomManager.getMailService().addCfgMail(playerId, 39, List.of(new Item(gameTransactionItemId, gainGold)), params, AddType.FRIEND_ROOM_CANCEL_BANKER_ADD_GOLD);
+        roomManager.getMailService().addCfgMail(playerId, 39, List.of(new Item(gameTransactionItemId, gainGold)), params, AddType.FRIEND_ROOM_CANCEL_BANKER_ADD_COIN);
     }
 
     /**
@@ -481,7 +481,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 });
         if (result.success()) {
             //添加道具
-            int code = gameController.addItem(playerId, playerGold, AddType.FRIEND_ROOM_CANCEL_BANKER_ADD_GOLD);
+            int code = gameController.addItem(playerId, playerGold, AddType.FRIEND_ROOM_CANCEL_BANKER_ADD_COIN);
             if (code != Code.SUCCESS) {
                 log.error("玩家：{} 申请取消成为庄家 添加道具失败 itemId:{} num:{}", playerId, gameController.getGameTransactionItemId(), playerGold);
             }

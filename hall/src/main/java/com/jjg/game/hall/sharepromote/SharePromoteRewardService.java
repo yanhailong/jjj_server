@@ -3,9 +3,6 @@ package com.jjg.game.hall.sharepromote;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.core.base.condition.MatchResult;
 import com.jjg.game.core.base.condition.MatchResultData;
-import com.jjg.game.core.base.condition.handler.BindPhoneCondition;
-import com.jjg.game.core.base.gameevent.*;
-import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.base.gameevent.ClockEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
@@ -99,7 +96,7 @@ public class SharePromoteRewardService implements GameEventListener {
                             int itemId = Integer.parseInt(split1[0]);
                             int itemNum = Integer.parseInt(split1[1]);
                             //返回奖励
-                        mailService.addCfgMail(playId, GameConstant.Mail.ID_SHARING_REWARD, List.of(new Item(itemId, itemNum)), AddType.ACTIVITY_SHARE_PROMOTE);
+                            mailService.addCfgMail(playId, GameConstant.Mail.ID_SHARING_REWARD, List.of(new Item(itemId, itemNum)), AddType.ACTIVITY_DAILY_SHARE_REWARD);
                         }
                         return Code.SUCCESS;
                     } else {

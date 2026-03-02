@@ -129,7 +129,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                     controller.sendComeDownRoomBack(roomBankerId, getGameTransactionItemId(), backNum.get());
                 }
             } else {
-                int addCode = addItem(roomBankerId, backNum.get(), AddType.FRIEND_ROOM_CANCEL_BANKER_ADD_GOLD);
+                int addCode = addItem(roomBankerId, backNum.get(), AddType.FRIEND_ROOM_CANCEL_BANKER_ADD_COIN);
                 if (addCode != Code.SUCCESS) {
                     log.info("玩家：{} 申请下庄成功 返回道具失败 itemId:{} num:{}", roomBankerId, getGameTransactionItemId(), backNum.get());
                 }
