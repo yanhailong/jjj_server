@@ -115,11 +115,10 @@ public class PointsAwardTurntableService implements IRedDotService {
      * 配置重载和每日重置
      * 使用分布式锁确保多节点环境下只有一个节点执行重置操作
      */
-    public void dailyReset() {
-        LocalDate now = LocalDate.now();
+    public void dailyReset(LocalDate now) {
         if (now.getMonthValue() != configDate.getMonthValue()) {
             //重新初始化配置
-            initConfig();
+            initConfig(now);
         }
         if (!marsCurator.isMaster()) {
             return;
@@ -146,8 +145,11 @@ public class PointsAwardTurntableService implements IRedDotService {
      * 初始化配置
      */
     public void initConfig() {
-        configDate = LocalDate.now();
-        LocalDate now = LocalDate.now();
+        initConfig(LocalDate.now());
+    }
+
+    public void initConfig(LocalDate now) {
+        configDate = now;
         //当前月最大天数
         int totalDays = now.lengthOfMonth();
         List<PointsAwardTurntableCfg> cfgList = GameDataManager.getPointsAwardTurntableCfgList();

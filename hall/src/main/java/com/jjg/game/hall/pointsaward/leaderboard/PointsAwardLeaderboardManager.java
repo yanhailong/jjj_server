@@ -361,6 +361,10 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
      * 重新加载配置
      */
     public void reloadConfig() {
+        reloadConfig(LocalDate.now());
+    }
+
+    public void reloadConfig(LocalDate now) {
         try {
             log.debug("开始重新加载排行榜配置");
 
@@ -377,7 +381,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                     PointsAwardConstant.Leaderboard.DAY,
                     PointsAwardConstant.Leaderboard.WEEK
             ).forEach(type -> {
-                Map<Integer, PointsAwardRankingCfg> typeConfig = filterConfig(type, configList, LocalDate.now());
+                Map<Integer, PointsAwardRankingCfg> typeConfig = filterConfig(type, configList, now);
                 if (!typeConfig.isEmpty()) {
                     configMap.put(type, typeConfig);
                     log.debug("加载排行榜配置，类型: {}, 配置数量: {}", type, typeConfig.size());
@@ -410,47 +414,48 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
 
     // ==================== 定时任务方法 ====================
 
+
     /**
      * 根据指定的小时数执行相应的业务逻辑。
      * 0 点：保存每日，每周榜（全天最终）快照并清空日榜；若为每月第一天，保存上月榜并清空月榜
      */
-    public void clock(int hour) {
+    public void clock(int hour, LocalDate now) {
         try {
-            if (isMaster()) {
-                handleMidnightSettlement();
+            if (hour == 0 && isMaster()) {
+                handleMidnightSettlement(now);
             }
             // 重载配置
-            reloadConfig();
+            reloadConfig(now);
         } catch (Exception e) {
             log.error("定时任务执行失败，小时: {}", hour, e);
         }
     }
 
 
-    private boolean isWeekStart() {
-        return LocalDate.now().getDayOfWeek() == DayOfWeek.MONDAY;
+    private boolean isWeekStart(LocalDate now) {
+        return now.getDayOfWeek() == DayOfWeek.MONDAY;
     }
 
     /**
      * 处理午夜0点的结算逻辑
      */
-    private void handleMidnightSettlement() {
+    private void handleMidnightSettlement(LocalDate now) {
         try {
             //日榜
             if (configMap.containsKey(PointsAwardConstant.Leaderboard.DAY)) {
-                snapshotUnderLock(PointsAwardConstant.Leaderboard.DAY);
+                snapshotUnderLock(PointsAwardConstant.Leaderboard.DAY, now);
                 leaderboardService.reset(PointsAwardConstant.Leaderboard.DAY);
             }
             // 周榜
-            boolean weekStart = isWeekStart();
+            boolean weekStart = isWeekStart(now);
             if (weekStart && configMap.containsKey(PointsAwardConstant.Leaderboard.WEEK)) {
-                snapshotUnderLock(PointsAwardConstant.Leaderboard.WEEK);
+                snapshotUnderLock(PointsAwardConstant.Leaderboard.WEEK, now);
                 leaderboardService.reset(PointsAwardConstant.Leaderboard.WEEK);
             }
             // 每月第一天的 0 点，保存上月榜并清空月榜
-            boolean firstDayOfMonth = isFirstDayOfMonth();
+            boolean firstDayOfMonth = isFirstDayOfMonth(now);
             if (firstDayOfMonth && configMap.containsKey(PointsAwardConstant.Leaderboard.TYPE_MONTH)) {
-                snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH);
+                snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH, now);
                 leaderboardService.reset(PointsAwardConstant.Leaderboard.TYPE_MONTH);
             }
             log.info("午夜0点结算完成，是否周一:{} 是否月初: {}", weekStart, firstDayOfMonth);
@@ -550,11 +555,15 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
      * @param snapshotType 快照类型
      */
     private void snapshotUnderLock(int snapshotType) {
+        snapshotUnderLock(snapshotType, LocalDate.now());
+    }
+
+    private void snapshotUnderLock(int snapshotType, LocalDate settlementDate) {
         int maxRankSize = getMaxRankSize(snapshotType);
         List<PointsAwardLeaderboardInfo> topList = leaderboardService.topN(snapshotType, maxRankSize);
         PointsAwardLeaderboardData rankingData = new PointsAwardLeaderboardData();
         rankingData.setRankType(snapshotType);
-        rankingData.setEndTime(TimeHelper.getCurrentDateZeroMilliTime());
+        rankingData.setEndTime(TimeHelper.getTimestamp(settlementDate.atStartOfDay()));
         rankingData.setRankingInfoList(topList);
         // 发奖
         sendAward(rankingData);
@@ -609,19 +618,19 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
         return PointsAwardConstant.Leaderboard.MAX_RANK_SIZE;
     }
 
-    public LocalDate getStartTime(int rankType) {
+    public LocalDate getStartTime(int rankType, LocalDate baseDate) {
         switch (rankType) {
             case PointsAwardConstant.Leaderboard.DAY -> {
-                return LocalDate.now().minusDays(1);
+                return baseDate.minusDays(1);
             }
             case PointsAwardConstant.Leaderboard.WEEK -> {
-                return LocalDate.now().minusWeeks(1);
+                return baseDate.minusWeeks(1);
             }
             case PointsAwardConstant.Leaderboard.TYPE_MONTH -> {
-                return LocalDate.now().minusMonths(1);
+                return baseDate.minusMonths(1);
             }
         }
-        return LocalDate.now();
+        return baseDate;
     }
 
     /**
@@ -636,7 +645,8 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             return;
         }
         //排行开始时间
-        LocalDate rankDate = getStartTime(rankingData.getRankType());
+        LocalDate rankDate = LocalDate.ofInstant(Instant.ofEpochMilli(rankingData.getEndTime()), ZoneId.systemDefault());
+        rankDate = getStartTime(rankingData.getRankType(), rankDate);
         //当前排行榜结算的配置
         Map<Integer, PointsAwardRankingCfg> cfgMap = filterConfig(rankingData.getRankType(), GameDataManager.getPointsAwardRankingCfgList(), rankDate);
         if (cfgMap.isEmpty()) {
@@ -812,8 +822,8 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
      *
      * @return true如果是月初第一天
      */
-    private boolean isFirstDayOfMonth() {
-        return LocalDate.now().getDayOfMonth() == 1;
+    private boolean isFirstDayOfMonth(LocalDate now) {
+        return now.getDayOfMonth() == 1;
     }
 
 

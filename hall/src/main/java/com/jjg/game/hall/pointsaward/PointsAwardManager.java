@@ -3,13 +3,13 @@ package com.jjg.game.hall.pointsaward;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
-import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardManager;
 import com.jjg.game.hall.pointsaward.signin.PointsAwardSignInManager;
 import com.jjg.game.hall.pointsaward.turntable.PointsAwardTurntableService;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -69,12 +69,13 @@ public class PointsAwardManager implements GameEventListener, TimerListener<Stri
     public <T extends GameEvent> void handleEvent(T gameEvent) {
         if (gameEvent instanceof ClockEvent clockEvent) {
             int hour = clockEvent.getHour();
+            LocalDate businessDate = clockEvent.getBusinessDate() == null ? LocalDate.now() : clockEvent.getBusinessDate();
             if (hour == 0) {
-                pointsAwardSignInManager.daily();
-                pointsAwardTurntableService.dailyReset();
-                pointsAwardService.daily();
+                pointsAwardSignInManager.daily(businessDate);
+                pointsAwardTurntableService.dailyReset(businessDate);
+                pointsAwardService.daily(businessDate);
             }
-            pointsAwardLeaderboardManager.clock(hour);
+            pointsAwardLeaderboardManager.clock(hour, businessDate);
             this.delayLoadRankEvent = new TimerEvent<>(this, 20, "delayLoadRank").withTimeUnit(TimeUnit.SECONDS);
             this.timerCenter.add(this.delayLoadRankEvent);
         }
