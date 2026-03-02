@@ -179,7 +179,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                         //iv.	当前排名，机器人对标的占位排名位置
                         //v.	排行榜最大名次（300），配置中的最大名次，当前300
                         int minAdd = Integer.parseInt(config[2]);
-                        int maxRank = Integer.parseInt(config[3]);
+                        int maxRank = Math.max(0, getMaxRankSize(PointsAwardConstant.Leaderboard.DAY));
                         //缓存中没有从redis中取
                         if (CollectionUtil.isEmpty(robotList)) {
                             robotList = new ArrayList<>(maxRank);
@@ -209,14 +209,49 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                                 loadRobotData(redisIdList);
                             }
                         }
+                        int needAdd = maxRank - robotList.size();
+                        if (needAdd > 0) {
+                            Set<Long> oldRobotIds = new HashSet<>(robotList.size());
+                            for (Pair<Long, Integer> pair : robotList) {
+                                oldRobotIds.add(pair.getFirst());
+                            }
+                            List<PointsAwardRobotCfg> pointsRobot = new ArrayList<>(GameDataManager.getPointsAwardRobotCfgList());
+                            List<RobotCfg> robotCfgList = new ArrayList<>(GameDataManager.getRobotCfgList());
+                            //打乱
+                            Collections.shuffle(robotCfgList);
+                            Collections.shuffle(pointsRobot);
+                            int maxCfgRank = Math.min(pointsRobot.size(), robotCfgList.size());
+                            List<String> add = new ArrayList<>(needAdd);
+                            int addCount = 0;
+                            for (int i = 0; i < maxCfgRank; i++) {
+                                RobotCfg robotCfg = robotCfgList.get(i);
+                                long robotId = robotUtil.getId(robotCfg.getId());
+                                if (!oldRobotIds.contains(robotId)) {
+                                    PointsAwardRobotCfg pointsRobotCfg = pointsRobot.get(i);
+                                    add.add(robotId + "_" + pointsRobotCfg.getId());
+                                    robotList.add(Pair.newPair(robotId, pointsRobotCfg.getId()));
+                                    addCount++;
+                                }
+                                if (addCount >= needAdd) {
+                                    break;
+                                }
+                            }
+                            if (addCount > 0) {
+                                RList<String> redisIdList = getRedisRobotList();
+                                redisIdList.addAll(add);
+                            }
+                        }
                         if (CollectionUtil.isEmpty(robotList)) {
                             return;
                         }
+                        int showMaxRank = Math.max(0, Math.min(Integer.parseInt(config[3]), robotList.size()));
+
                         //取出对应的排名
                         String rankKey = leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.DAY);
-                        List<RankEntry> rankEntries = rankService.topN(rankKey, robotList.size());
-                        List<RankChange> rankChanges = new ArrayList<>(robotList.size());
-                        for (int i = 0; i < robotList.size(); i++) {
+                        List<RankEntry> rankEntries = rankService.topN(rankKey, showMaxRank);
+                        List<RankChange> rankChanges = new ArrayList<>(showMaxRank);
+
+                        for (int i = 0; i < showMaxRank; i++) {
                             Pair<Long, Integer> robotCfgPair = robotList.get(i);
                             PointsAwardRobotCfg rankingCfg = GameDataManager.getPointsAwardRobotCfg(robotCfgPair.getSecond());
                             if (rankingCfg == null) {
@@ -227,8 +262,8 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                                 oldPoint = rankEntries.get(i).getPoints();
                             }
                             int currentRank = i + 1;
-                            //a)	机器人积分 = 当前排行榜对应位置的积分 + (最小增长积分 × 排行榜最大名次（300） × 随机数（0~1） / Max { 1，（当前排名 × （当前排名 - 1））}  + 最小增长积分  × 排行榜最大名次（300） ÷ 当前排名)/100
-                            double newPoint = oldPoint + ((minAdd * maxRank * RandomUtil.randomDouble(0, 1) / Math.max(1, currentRank * (currentRank - maxRank)) + (double) minAdd * maxRank / currentRank) / 100);
+                            //a)	机器人积分 = 当前排行榜对应位置的积分 + (最小增长积分 × 排行榜最大名次（300） × 随机数（0~1） / Max { 1，（当前排名 × （当前排名 - 排行榜最大名次））}  + 最小增长积分  × 排行榜最大名次（300） ÷ 当前排名)/100
+                            double newPoint = oldPoint + ((minAdd * showMaxRank * RandomUtil.randomDouble(0, 1) / Math.max(1, currentRank * (currentRank - showMaxRank)) + (double) minAdd * showMaxRank / currentRank) / 100);
                             rankChanges.add(new RankChange(robotCfgPair.getFirst(), (int) newPoint));
                         }
                         if (rankChanges.isEmpty()) {
@@ -260,6 +295,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
         }.setHandlerParamWithSelf("pointsAward robotAction"));
     }
 
+
     public RList<String> getRedisRobotList() {
         return redissonClient.getList(PointsAwardConstant.RedisKey.POINTS_AWARD_ROBOT_ID);
     }
@@ -268,10 +304,19 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
         if (robotList == null) {
             loadRobotData(getRedisRobotList());
         }
-        if (CollectionUtil.isEmpty(robotList)) {
+        List<Pair<Long, Integer>> localRobotList = robotList;
+        if (CollectionUtil.isEmpty(localRobotList)) {
             return Map.of();
         }
-        return robotList.stream().collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
+        Map<Long, Integer> hashMap = new HashMap<>(localRobotList.size());
+        // 使用下标遍历避免并发修改时 Iterator 的 fail-fast
+        for (int i = 0, size = localRobotList.size(); i < size; i++) {
+            Pair<Long, Integer> pair = localRobotList.get(i);
+            if (pair != null) {
+                hashMap.putIfAbsent(pair.getFirst(), pair.getSecond());
+            }
+        }
+        return hashMap;
     }
 
     public boolean isRobot(long playerId) {
@@ -559,15 +604,19 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
      */
     public int getMaxRankSize(int type) {
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(49);
-        if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
-            String[] split = StringUtils.split(globalConfigCfg.getValue());
-            if (split.length != 3) {
-                return PointsAwardConstant.Leaderboard.MAX_RANK_SIZE;
+        try {
+            if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
+                String[] split = StringUtils.split(globalConfigCfg.getValue(), "_");
+                if (split.length != 3) {
+                    return PointsAwardConstant.Leaderboard.MAX_RANK_SIZE;
+                }
+                if (type > split.length) {
+                    return PointsAwardConstant.Leaderboard.MAX_RANK_SIZE;
+                }
+                return Math.max(0, Integer.parseInt(split[type - 1]));
             }
-            if (type > split.length) {
-                return PointsAwardConstant.Leaderboard.MAX_RANK_SIZE;
-            }
-            return Integer.parseInt(split[type - 1]);
+        } catch (Exception e) {
+            log.error("获取排行榜的大小异常", e);
         }
         return PointsAwardConstant.Leaderboard.MAX_RANK_SIZE;
     }

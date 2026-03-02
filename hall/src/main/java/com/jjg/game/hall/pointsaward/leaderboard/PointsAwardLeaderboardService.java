@@ -154,6 +154,10 @@ public class PointsAwardLeaderboardService {
                     continue;
                 }
                 PointsAwardRobotCfg pointsAwardRobotCfg = GameDataManager.getPointsAwardRobotCfg(cfgId);
+                if (pointsAwardRobotCfg == null) {
+                    log.warn("积分大奖机器人配置不存在, playerId={}, cfgId={}", rankEntry.getPlayerId(), cfgId);
+                    continue;
+                }
                 info.setGender((byte) pointsAwardRobotCfg.getGender());
                 info.setHeadFrameId(pointsAwardRobotCfg.getFrame());
                 info.setHeadImgId(pointsAwardRobotCfg.getPicture());
@@ -162,6 +166,10 @@ public class PointsAwardLeaderboardService {
                 info.setLevel(pointsAwardRobotCfg.getPlayerLevel());
             } else {
                 Player player = playerMap.get(rankEntry.getPlayerId());
+                if (player == null) {
+                    log.warn("积分大奖排行榜玩家数据不存在, playerId={}", rankEntry.getPlayerId());
+                    continue;
+                }
                 info.setGender(player.getGender());
                 info.setHeadFrameId(player.getHeadFrameId());
                 info.setHeadImgId(player.getHeadImgId());
