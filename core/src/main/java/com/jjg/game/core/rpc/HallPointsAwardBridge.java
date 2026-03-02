@@ -22,4 +22,12 @@ public interface HallPointsAwardBridge extends IGameRpc {
      */
     boolean deduct(long playerId, int pointsAward, int type);
 
+    /**
+     * 增加转盘次数
+     *
+     * @param playerId 玩家id
+     * @param count    增加的次数
+     */
+    void addTurntableCount(long playerId, int count);
+
 }

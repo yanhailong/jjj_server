@@ -21,7 +21,6 @@ import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.common.utils.CommonUtil;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.*;
 import com.jjg.game.core.dao.*;
 import com.jjg.game.core.data.*;
@@ -1197,6 +1196,16 @@ public class GMController extends AbstractController {
             if (points <= 0 || dto.playerId() <= 0) {
                 return fail("common.paramerror");
             }
+
+            //是否缓存hall节点
+            ClusterClient client = clusterSystem.randClientByType(NodeType.HALL);
+            if (client == null) {
+                log.warn("修改玩家积分大奖积分时，未找到大厅节点 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
+
             changePlayerPoints(dto.playerId(), points, dto.flag());
             return success("common.success");
         } catch (Exception e) {
@@ -1785,6 +1794,63 @@ public class GMController extends AbstractController {
             });
 
             log.warn("清除游戏状态成功 playerId = {},gameType = {},roomCfgId = {}", dto.playerId(), gameType, roomCfgId);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 积分大奖修改
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.POINTS_REWARD_CHANGE)
+    public WebResult<VerCode> pointsRewardChange(@RequestBody PointsRewardChangeDto dto) {
+        log.info("收到修改积分大奖数据 dto = {}", dto);
+        try {
+            if (dto.pointsAddListAto() == null || dto.pointsAddListAto().isEmpty()) {
+                log.warn("改积分大奖数据时，未获取到玩家的游戏id ,dto = {}", dto);
+                return fail("common.fail");
+            }
+
+            //是否缓存hall节点
+//            ClusterClient client = clusterSystem.randClientByType(NodeType.HALL);
+            ClusterClient client = clusterSystem.getNodesByName("DOC_SHIYI_HALL");
+            if (client == null) {
+                log.warn("改积分大奖数据时，未找到大厅节点 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
+
+            if (dto.type() == 0) {  //增加积分
+                for (PointsAddAto d : dto.pointsAddListAto()) {
+                    if (d.playerId() < 1 || d.count() == 0) {
+                        log.warn("添加积分大奖积分时， 参数错误 playerId={},count = {}", d.playerId(), d.count());
+                        continue;
+                    }
+
+                    if (d.count() > 0) {
+                        hallPointsAwardBridge.add(d.playerId(), d.count(), PointsAwardType.GM);
+                    } else {
+                        hallPointsAwardBridge.deduct(d.playerId(), Math.abs(d.count()), PointsAwardType.GM);
+                    }
+                }
+
+            } else if (dto.type() == 1) {  //增加转盘次数
+                for (PointsAddAto d : dto.pointsAddListAto()) {
+                    if (d.playerId() < 1 || d.count() <= 0) {
+                        log.warn("添加转盘次数时， 参数错误 playerId={},count = {}", d.playerId(), d.count());
+                        continue;
+                    }
+                    hallPointsAwardBridge.addTurntableCount(d.playerId(), d.count());
+                }
+            } else {
+                log.warn("改积分大奖数据时，收到无法识别的type ,dto = {}", dto);
+                return fail("common.fail");
+            }
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);

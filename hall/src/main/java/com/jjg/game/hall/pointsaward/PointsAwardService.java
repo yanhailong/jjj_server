@@ -19,6 +19,7 @@ import com.jjg.game.core.rpc.HallPointsAwardBridge;
 import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
+import com.jjg.game.hall.pointsaward.turntable.PointsAwardTurntableService;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLadderRewardsInfo;
 import com.jjg.game.hall.pointsaward.pb.res.NotifySyncPlayerPoint;
 import com.jjg.game.sampledata.GameDataManager;
@@ -55,6 +56,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     private final MarsCurator marsCurator;
     private final PointsAwardLogger pointsAwardLogger;
     private final RedDotManager redDotManager;
+    private final PointsAwardTurntableService pointsAwardTurntableService;
 
 //    private Map<Long, PointsAwardLadderRewardsInfo> pointsAwardMap;
 //    private List<PointsAwardLadderRewardsInfo> sortPointsAwardList;
@@ -69,7 +71,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                               PointsAwardLeaderboardService leaderboardService,
                               MarsCurator marsCurator,
                               RedisLock redisLock,
-                              PointsAwardLogger pointsAwardLogger, RedDotManager redDotManager) {
+                              PointsAwardLogger pointsAwardLogger, RedDotManager redDotManager,
+                              @Lazy PointsAwardTurntableService pointsAwardTurntableService) {
         this.redissonClient = redissonClient;
         this.clusterSystem = clusterSystem;
         this.leaderboardService = leaderboardService;
@@ -77,6 +80,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         this.redisLock = redisLock;
         this.pointsAwardLogger = pointsAwardLogger;
         this.redDotManager = redDotManager;
+        this.pointsAwardTurntableService = pointsAwardTurntableService;
     }
 
     /**
@@ -669,5 +673,18 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     @Override
     public int getSubmodule() {
         return PointsAwardConstant.RedDotSubModule.BONUS;
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg1")
+    public void addTurntableCount(long playerId, int count) {
+        if (count <= 0 || playerId <= 0) {
+            return;
+        }
+        try {
+            pointsAwardTurntableService.addCount(playerId, count);
+        } catch (Exception e) {
+            log.error("增加玩家转盘次数失败! playerId = [{}], count = [{}]", playerId, count, e);
+        }
     }
 }

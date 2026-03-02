@@ -91,6 +91,9 @@ public interface BackendGMCmd {
     //清除slots状态
     String CLEAN_SLOTS_STATUS = "cleanSlotsStatus";
 
+    //积分大奖修改数据
+    String POINTS_REWARD_CHANGE = "pointsRewardChange";
+
     /**
      * 配置相关q
      */
