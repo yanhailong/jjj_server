@@ -28,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -271,6 +272,13 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
     @Override
     public int getGameType() {
         return CoreConst.GameType.TIGER_BRINGS_RICHES;
+    }
+
+    @Override
+    public void generate(Map<Integer, Integer> libTypeCountMap, boolean saveToDB) {
+        Integer jackpotCount = libTypeCountMap.getOrDefault(TigerBringsRichesConstant.SpecialMode.JACKPOT, 0);
+        libTypeCountMap.put(TigerBringsRichesConstant.SpecialMode.JACKPOT, jackpotCount / 10);
+        super.generate(libTypeCountMap, saveToDB);
     }
 
     @Override
