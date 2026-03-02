@@ -6,9 +6,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Repository;
 
+/**
+ * @author 11
+ * @date 2025/2/27 15:33
+ */
 @Repository
 public class WolfMoonGameDataDao extends AbstractGameDataDao<WolfMoonPlayerGameDataDTO> {
+
     public WolfMoonGameDataDao(@Autowired MongoTemplate mongoTemplate) {
         super(WolfMoonPlayerGameDataDTO.class, mongoTemplate);
     }
+
 }

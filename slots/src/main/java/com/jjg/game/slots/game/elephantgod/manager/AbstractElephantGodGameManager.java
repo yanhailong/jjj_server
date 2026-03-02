@@ -29,6 +29,11 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
         this.gameDataDao = gameDataDao;
     }
 
+    @Override
+    public void init() {
+//        log.info("启动象财神游戏管理器...");
+//        super.init();
+    }
 
     @Override
     protected ElephantGodGameRunInfo startGame(PlayerController playerController, ElephantGodPlayerGameData playerGameData, long betValue, boolean auto) {
@@ -123,13 +128,6 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
     protected ElephantGodGameRunInfo normal(ElephantGodGameRunInfo gameRunInfo, ElephantGodPlayerGameData playerGameData, long betValue, ElephantGodResultLib resultLib) {
         return null;
     }
-
-    @Override
-    public void init() {
-        log.info("启动象财神游戏管理器...");
-        super.init();
-    }
-
 
     @Override
     protected ElephantGodResultLibDao getResultLibDao() {

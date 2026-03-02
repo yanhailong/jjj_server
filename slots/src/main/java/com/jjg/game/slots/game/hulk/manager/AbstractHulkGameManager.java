@@ -37,6 +37,11 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
     }
 
     @Override
+    public void init() {
+//        super.init();
+    }
+
+    @Override
     public HulkGameRunInfo enterGame(PlayerController playerController) {
         //获取玩家游戏数据
         HulkPlayerGameData playerGameData = getPlayerGameData(playerController);

@@ -40,8 +40,8 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
 
     @Override
     public void init() {
-        log.info("启动王牌Dj游戏管理器...");
-        super.init();
+//        log.info("启动王牌Dj游戏管理器...");
+//        super.init();
     }
 
 

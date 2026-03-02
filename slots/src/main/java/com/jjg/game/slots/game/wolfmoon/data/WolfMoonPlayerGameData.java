@@ -1,36 +1,39 @@
 package com.jjg.game.slots.game.wolfmoon.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
+import org.springframework.beans.BeanUtils;
 
+/**
+ * @author 11
+ * @date 2025/2/27 15:33
+ */
 public class WolfMoonPlayerGameData extends SlotsPlayerGameData {
-    private int freeMultiplyValue;
 
-    public int getFreeMultiplyValue() {
-        return freeMultiplyValue;
+    /**
+     * 免费游戏类型
+     * 1-高赔付符号 2-固定堆叠百搭符号 3-递增奖励倍数
+     */
+    private int freeGameType;
+
+    /**
+     * 当前递增奖励倍数（仅在递增奖励倍数模式下使用）
+     */
+    private int currentMultiplier = 5;
+
+    public int getFreeGameType() {
+        return freeGameType;
     }
 
-    public void setFreeMultiplyValue(int freeMultiplyValue) {
-        this.freeMultiplyValue = freeMultiplyValue;
+    public void setFreeGameType(int freeGameType) {
+        this.freeGameType = freeGameType;
     }
 
-    @Override
-    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
-        T dto = super.converToDto(cla);
-        if (dto instanceof WolfMoonPlayerGameDataDTO dataDTO) {
-            dataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
-            dataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
-            dataDTO.setFreeMultiplyValue(this.freeMultiplyValue);
-            WolfMoonResultLib freeLib = this.freeLib instanceof WolfMoonResultLib lib ? lib : null;
-            dataDTO.setFreeLib(freeLib);
-        }
-        if (dto instanceof WolfMoonPlayerGameDataRoomDTO dataDTO) {
-            dataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
-            dataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
-            dataDTO.setFreeMultiplyValue(this.freeMultiplyValue);
-            WolfMoonResultLib freeLib = this.freeLib instanceof WolfMoonResultLib lib ? lib : null;
-            dataDTO.setFreeLib(freeLib);
-        }
-        return dto;
+    public int getCurrentMultiplier() {
+        return currentMultiplier;
     }
+
+    public void setCurrentMultiplier(int currentMultiplier) {
+        this.currentMultiplier = currentMultiplier;
+    }
+
 }

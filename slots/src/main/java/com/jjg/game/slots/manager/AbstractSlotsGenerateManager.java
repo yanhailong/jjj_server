@@ -217,6 +217,18 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      *
      * @param arr
      * @param lib
+     * @return
+     * @throws Exception
+     */
+    public T checkAward(int[] arr, T lib, int specialModeType) throws Exception {
+        return checkAward(arr, lib, true);
+    }
+
+    /**
+     * 检查奖励
+     *
+     * @param arr
+     * @param lib
      * @param freeModel 是否为免费模式
      * @return
      * @throws Exception
@@ -1320,10 +1332,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
             //需要出现的元素
             config.setShowIconPropInfo(SlotsUtil.converMapToPropInfo(cfg.getElement()));
-            try{
+            try {
                 //影响格子
-            config.setAffectGirdPropInfo(SlotsUtil.converMapToLimitPropInfo(cfg.getAffectGird()));
-            }catch (Exception e){
+                config.setAffectGirdPropInfo(SlotsUtil.converMapToLimitPropInfo(cfg.getAffectGird()));
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 

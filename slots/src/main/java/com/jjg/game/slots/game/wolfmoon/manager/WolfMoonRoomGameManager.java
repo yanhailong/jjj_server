@@ -10,6 +10,10 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * @author 11
+ * @date 2025/2/27 15:33
+ */
 @Component
 public class WolfMoonRoomGameManager extends AbstractWolfMoonGameManager {
     public WolfMoonRoomGameManager() {

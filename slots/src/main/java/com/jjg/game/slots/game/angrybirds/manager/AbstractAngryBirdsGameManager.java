@@ -41,8 +41,8 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
 
     @Override
     public void init() {
-        log.info("启动愤怒的小鸟游戏管理器...");
-        super.init();
+//        log.info("启动愤怒的小鸟游戏管理器...");
+//        super.init();
 
     }
 

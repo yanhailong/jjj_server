@@ -38,8 +38,8 @@ public abstract class AbstractHotFootballGameManager extends AbstractSlotsGameMa
 
     @Override
     public void init() {
-        log.info("启动火热足球游戏管理器...");
-        super.init();
+//        log.info("启动火热足球游戏管理器...");
+//        super.init();
     }
 
     @Override

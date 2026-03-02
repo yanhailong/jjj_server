@@ -703,6 +703,7 @@ public class BaseLogger {
             json.put("playerId", mail.getPlayerId());
             json.put("mailId", mail);
 
+            //{"type":0,"content":"aaa","langId":"1122","params":[{"type":"1","param":"123"}]}
             json.put("title", objectMapper.writeValueAsString(mail.getTitle()));
             json.put("content", objectMapper.writeValueAsString(mail.getContent()));
 

@@ -36,3 +36,4 @@ stresstool/config/serverIndex.txt
 *.class
 CLAUDE.md
 .claude
+.auto

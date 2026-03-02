@@ -3,59 +3,88 @@ package com.jjg.game.slots.game.wolfmoon;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.slots.constant.SlotsConst;
 
+/**
+ * @author 11
+ * @date 2025/2/27 15:08
+ */
 public interface WolfMoonConstant {
+
+    interface SpecialMode {
+        //普通旋转
+        int TYPE_NORMAL = 1;
+        //高赔付符号免费游戏
+        int FREE_HIGH_PAY = 2;
+        //固定堆叠百搭符号免费游戏
+        int FREE_FIXED_STACKED_WILD = 3;
+        //递增奖励倍数免费游戏
+        int FREE_INCREASING_MULTIPLIER = 4;
+    }
+
+    interface Status {
+        //普通旋转
+        int NORMAL = SlotsConst.Status.NORMAL;
+        //等待玩家选择免费游戏类型
+        int WAITING_FREE_CHOICE = 1;
+        //免费游戏中
+        int FREE = 2;
+    }
+
+    /**
+     * 免费游戏类型
+     */
+    interface FreeGameType {
+        //高赔付符号 - 12次
+        int HIGH_PAY_SYMBOLS = 1;
+        //固定堆叠百搭符号 - 8次
+        int FIXED_STACKED_WILD = 2;
+        //递增奖励倍数 - 5次，初始倍数5，每次+5，最高100
+        int INCREASING_MULTIPLIER = 3;
+    }
+
+    /**
+     * 免费游戏次数
+     */
+    interface FreeGameCount {
+        int HIGH_PAY_SYMBOLS = 12;
+        int FIXED_STACKED_WILD = 8;
+        int INCREASING_MULTIPLIER = 5;
+    }
+
+    /**
+     * 递增倍数配置
+     */
+    interface Multiplier {
+        int INITIAL = 5;
+        int INCREMENT = 5;
+        int MAX = 100;
+    }
+
+    /**
+     * 图标ID定义
+     */
+    interface BaseElement {
+        // 特殊符号
+        // 免费游戏+1
+        int EXTRA_FREE = 15;
+    }
 
     interface MsgBean {
         int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.WOLF_MOON << MessageConst.MessageCommon.RIGHT_MOVE;
 
-        int REQ_CONFIG_INFO = BASE_MSG_PREFIX | 0x1;
-        int RES_CONFIG_INFO = BASE_MSG_PREFIX | 0x2;
+        //请求配置
+        int REQ_ENTER_GAME = BASE_MSG_PREFIX | 0x1;
+        int RES_ENTER_GAME = BASE_MSG_PREFIX | 0x2;
 
+        //开始游戏
         int REQ_START_GAME = BASE_MSG_PREFIX | 0x3;
         int RES_START_GAME = BASE_MSG_PREFIX | 0x4;
 
+        //二选一（免费游戏选择）
         int REQ_FREE_CHOOSE_ONE = BASE_MSG_PREFIX | 0x5;
         int RES_FREE_CHOOSE_ONE = BASE_MSG_PREFIX | 0x6;
-    }
 
-    interface Status {
-        int NORMAL = SlotsConst.Status.NORMAL;
-        int CHOOSE_ONE = 1;
-        int FREE_HIGH_PAY = 2;
-        int FREE_STACK_WILD = 3;
-        int FREE_MULTIPLIER = 4;
-    }
-
-    interface BaseElement {
-        int ID_WILD = 13;
-        int ID_SCATTER = 14;
-        int ID_ADD_FREE = 15;
-
-        int ID_MINI = 16;
-        int ID_MINOR = 17;
-        int ID_MAJOR = 18;
-        int ID_GRAND = 19;
-    }
-
-    interface SpecialMode {
-        int NORMAL = 1;
-        int WISH_WILD = 2;
-        int FREE_TRIGGER = 3;
-        int JACKPOT = 4;
-        int FREE_HIGH_PAY = 5;
-        int FREE_STACK_WILD = 6;
-        int FREE_MULTIPLIER = 7;
-    }
-
-    interface SpecialPlay {
-        int TYPE_FREE_CHOOSE = 1;
-        int TYPE_FREE_MULTIPLIER = 2;
-        int TYPE_ADD_FREE_COUNT = 3;
-    }
-
-    interface FreeChoose {
-        int HIGH_PAY = 0;
-        int STACK_WILD = 1;
-        int MULTIPLIER = 2;
+        //获取奖池
+        int REQ_POOL_VALUE = BASE_MSG_PREFIX | 0x7;
+        int RES_POOL_VALUE = BASE_MSG_PREFIX | 0x8;
     }
 }
