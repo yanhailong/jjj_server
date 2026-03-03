@@ -275,11 +275,12 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                         //批量获取原积分,然后计算真正的积分
                         Map<Long, Long> oldPointMap = rankService.batchGetPoints(rankKey, rankChanges.stream().map(RankChange::getPlayerId).collect(Collectors.toList()));
                         //从新计算需要增加的分数
+                        log.info("变化积分 ：{}", JSON.toJSONString(rankChanges));
                         for (RankChange rankChange : rankChanges) {
                             rankChange.setAddPoints(rankChange.getAddPoints() - (oldPointMap.getOrDefault(rankChange.getPlayerId(), 0L)).intValue());
                         }
-
-                        log.info("变化积分 ：{}", JSON.toJSONString(rankChanges));
+                        rankChanges.removeIf(rankChange -> rankChange.getAddPoints() <= 0);
+                        log.info("变化过滤后的积分 ：{}", JSON.toJSONString(rankChanges));
                         //更新排行榜
                         rankService.batchAddPoints(rankKey, rankChanges);
                         log.info("积分大奖更新日榜成功 size:{}", rankChanges.size());
@@ -297,7 +298,6 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             }
         }.setHandlerParamWithSelf("pointsAward robotAction"));
     }
-
 
     public RList<String> getRedisRobotList() {
         return redissonClient.getList(PointsAwardConstant.RedisKey.POINTS_AWARD_ROBOT_ID);
