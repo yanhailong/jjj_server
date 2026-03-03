@@ -40,9 +40,13 @@ public interface PointsAwardConstant {
          */
         String TURNTABLE_COUNT = "pointsAward:turntable:count:";
         /**
-         * 转盘增加的次数
+         * 转盘增加的次数(充值)
          */
         String TURNTABLE_ADD_COUNT = "pointsAward:turntable:addCount:";
+        /**
+         * 转盘增加的次数(GM)
+         */
+        String TURNTABLE_GM_ADD_COUNT = "pointsAward:turntable:gmAddCount:";
         /**
          * 玩家的排行榜历史记录
          */

@@ -137,6 +137,8 @@ public interface Code {
     int WEALTH_ROULETTE_BUY_LIMIT = 80029;
     // 已领取所有带附件的邮件
     int MAIL_ITEM_ALL_GET = 11010;
+    //房间续费已达上线
+    int ROOM_RENEW_TIME_LIMIT = 49147;
     // 服务器错误
     int EXCEPTION = 500;
 

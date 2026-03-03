@@ -6,6 +6,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.RpcCallSetting;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.Code;
@@ -19,6 +20,7 @@ import com.jjg.game.core.rpc.HallPointsAwardBridge;
 import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
+import com.jjg.game.hall.pointsaward.turntable.PointsAwardTurntableService;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLadderRewardsInfo;
 import com.jjg.game.hall.pointsaward.pb.res.NotifySyncPlayerPoint;
 import com.jjg.game.sampledata.GameDataManager;
@@ -55,6 +57,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     private final MarsCurator marsCurator;
     private final PointsAwardLogger pointsAwardLogger;
     private final RedDotManager redDotManager;
+    private final PointsAwardTurntableService pointsAwardTurntableService;
 
 //    private Map<Long, PointsAwardLadderRewardsInfo> pointsAwardMap;
 //    private List<PointsAwardLadderRewardsInfo> sortPointsAwardList;
@@ -69,7 +72,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                               PointsAwardLeaderboardService leaderboardService,
                               MarsCurator marsCurator,
                               RedisLock redisLock,
-                              PointsAwardLogger pointsAwardLogger, RedDotManager redDotManager) {
+                              PointsAwardLogger pointsAwardLogger, RedDotManager redDotManager,
+                              @Lazy PointsAwardTurntableService pointsAwardTurntableService) {
         this.redissonClient = redissonClient;
         this.clusterSystem = clusterSystem;
         this.leaderboardService = leaderboardService;
@@ -77,6 +81,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         this.redisLock = redisLock;
         this.pointsAwardLogger = pointsAwardLogger;
         this.redDotManager = redDotManager;
+        this.pointsAwardTurntableService = pointsAwardTurntableService;
     }
 
     /**
@@ -97,10 +102,10 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     /**
      * 跨天
      */
-    public void daily() {
+    public void daily(LocalDate now) {
         if (marsCurator.isMaster()) {
             //跨月检查
-            clear();
+            clear(now);
             //重置时间段积分
             resetTimePoints();
             // 初始化充值数据记录map
@@ -123,6 +128,10 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * 检测玩家数据是否需要清除
      */
     public void clear() {
+        clear(LocalDate.now());
+    }
+
+    public void clear(LocalDate now) {
         RBucket<Long> bucket = redissonClient.getBucket(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME);
         Runnable command = () -> {
             // 初始化充值数据记录map
@@ -138,8 +147,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         } else {
             long initDateMills = bucket.get();
             LocalDate initDate = LocalDate.ofInstant(Instant.ofEpochMilli(initDateMills), ZoneId.systemDefault());
-            if (LocalDate.now().getMonthValue() != initDate.getMonthValue()) {
-                bucket.set(System.currentTimeMillis());
+            if (now.getMonthValue() != initDate.getMonthValue()) {
+                bucket.set(TimeHelper.getTimestamp(now.atStartOfDay()));
                 command.run();
             }
         }
@@ -669,5 +678,18 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     @Override
     public int getSubmodule() {
         return PointsAwardConstant.RedDotSubModule.BONUS;
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg1")
+    public void addTurntableCount(long playerId, int count) {
+        if (count <= 0 || playerId <= 0) {
+            return;
+        }
+        try {
+            pointsAwardTurntableService.addCount(playerId, count);
+        } catch (Exception e) {
+            log.error("增加玩家转盘次数失败! playerId = [{}], count = [{}]", playerId, count, e);
+        }
     }
 }
