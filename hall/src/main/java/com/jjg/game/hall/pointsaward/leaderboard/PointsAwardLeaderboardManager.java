@@ -212,8 +212,10 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                         int needAdd = maxRank - robotList.size();
                         if (needAdd > 0) {
                             Set<Long> oldRobotIds = new HashSet<>(robotList.size());
+                            Set<Integer> oldRobotCfgIds = new HashSet<>(robotList.size());
                             for (Pair<Long, Integer> pair : robotList) {
                                 oldRobotIds.add(pair.getFirst());
+                                oldRobotCfgIds.add(pair.getSecond());
                             }
                             List<PointsAwardRobotCfg> pointsRobot = new ArrayList<>(GameDataManager.getPointsAwardRobotCfgList());
                             List<RobotCfg> robotCfgList = new ArrayList<>(GameDataManager.getRobotCfgList());
@@ -228,7 +230,19 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                                 long robotId = robotUtil.getId(robotCfg.getId());
                                 if (!oldRobotIds.contains(robotId)) {
                                     PointsAwardRobotCfg pointsRobotCfg = pointsRobot.get(i);
+                                    if (oldRobotCfgIds.contains(pointsRobotCfg.getId())) {
+                                        for (PointsAwardRobotCfg awardRobotCfg : pointsRobot) {
+                                            if (!oldRobotCfgIds.contains(awardRobotCfg.getId())) {
+                                                pointsRobotCfg = awardRobotCfg;
+                                                break;
+                                            }
+                                        }
+                                        if (oldRobotCfgIds.contains(pointsRobotCfg.getId())) {
+                                            continue;
+                                        }
+                                    }
                                     add.add(robotId + "_" + pointsRobotCfg.getId());
+                                    oldRobotCfgIds.add(pointsRobotCfg.getId());
                                     robotList.add(Pair.newPair(robotId, pointsRobotCfg.getId()));
                                     addCount++;
                                 }
