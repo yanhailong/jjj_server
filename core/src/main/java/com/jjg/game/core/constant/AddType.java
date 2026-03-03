@@ -248,6 +248,8 @@ public enum AddType {
 
     //玩家注册
     PLAYER_REGISTER(1602),
+    //购买头像框
+    BUY_AVATAR_FRAME(1603),
     ;
 
 

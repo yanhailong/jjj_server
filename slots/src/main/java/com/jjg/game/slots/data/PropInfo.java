@@ -1,6 +1,5 @@
 package com.jjg.game.slots.data;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.RandomUtils;
 
 import java.util.HashMap;
