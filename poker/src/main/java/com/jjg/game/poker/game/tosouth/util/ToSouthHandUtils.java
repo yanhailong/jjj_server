@@ -120,34 +120,38 @@ public class ToSouthHandUtils {
         ToSouthCardType type2 = getCardType(current);
 
         if (type2 == ToSouthCardType.NONE) return false;
-        // 炸弹牌型，可以炸掉其他牌型（除通杀牌型）和同类型小的牌型
+        // 炸弹牌型，只能炸2的牌型和三连对，不能炸顺子、单张对子3-A等普通牌型
         if (type2 == ToSouthCardType.BOMB_QUAD) {
             if (type1 == ToSouthCardType.BOMB_QUAD) {
                 // 都是四张，比大小
                 return compareMaxCard(prev, current);
             }
-            // 规则2: 炸弹不能通杀，只能炸2的牌型和三连对、四连对的牌型
+            // 规则2: 炸弹不能通杀，只能炸2的牌型和三连对牌型
             // 2-1: 炸单张2
             if (type1 == ToSouthCardType.SINGLE && prev.getFirst().getRank() == RANK_2) return true;
             // 2-2: 炸对子2
             if (type1 == ToSouthCardType.PAIR && prev.getFirst().getRank() == RANK_2) return true;
-            // 2-3: 炸三连对/四连对 其他牌型 (如顺子、单张/对子3-A、三张等) 不能炸
-            return type1 == ToSouthCardType.CONSECUTIVE_PAIRS;
+            // 2-3: 炸三连对 其他牌型 (如顺子、单张/对子3-A、三张等) 不能炸
+            if (type1 == ToSouthCardType.CONSECUTIVE_PAIRS) return prev.size() < 8;
+            return false;
         }
 
         // 连对: 只能大过 单2/对2/同类型
         if (type2 == ToSouthCardType.CONSECUTIVE_PAIRS) {
             // 3连对(6张) > 单张2
             if (current.size() == 6 && type1 == ToSouthCardType.SINGLE && prev.getFirst().getRank() == RANK_2) return true;
-            // 4连对(8张) > 单、对2
-            if (current.size() == 8 && (type1 == ToSouthCardType.PAIR || type1 == ToSouthCardType.SINGLE) && prev.getFirst().getRank() == RANK_2) return true;
+            // 四连对可以炸掉两张2、一张2、四张和同类型牌型，不能大过其他牌型；
+            if (current.size() == 8) {
+                if ((type1 == ToSouthCardType.PAIR || type1 == ToSouthCardType.SINGLE) && prev.getFirst().getRank() == RANK_2) return true;
+                if (type1 == ToSouthCardType.BOMB_QUAD) return true;
+            }
 
             // 连对 vs 连对
             if (type1 == ToSouthCardType.CONSECUTIVE_PAIRS && prev.size() == current.size()) {
                 return compareMaxCard(prev, current);
             }
             
-            // 连对不能大过其他牌型(如炸弹、三张、顺子等)
+            // 连对不能大过其他牌型(如三张、顺子等)
             return false;
         }
         // 普通牌型必须类型相同且张数相同
@@ -247,51 +251,6 @@ public class ToSouthHandUtils {
                 }
             }
             return new Pair<>(consec.size() > 5 ? SIX_CONSEC_PAIRS : FIVE_CONSEC_PAIRS, cardClientIds);
-        }
-
-        // 3 连三张、4 连三张
-        List<Integer> triples = new ArrayList<>();
-        for (Map.Entry<Integer, List<Card>> entry : rankMap.entrySet()) {
-            if (entry.getValue().size() >= 3) {
-                triples.add(entry.getKey());
-            }
-        }
-        triples.removeIf(r -> r == RANK_2);
-        triples.sort(Comparator.reverseOrder());
-        List<Integer> consec2 = findConsecutiveSubList(triples, 3);
-        if (consec2 != null) {
-            for (Integer r : consec2) {
-                List<Card> cs = rankMap.get(r);
-                for (int k=0; k<3; k++) {
-                    if (cs.get(k) instanceof PokerCard pc) cardClientIds.add(pc.getClientId());
-                }
-            }
-            return new Pair<>(consec2.size() > 3 ? FOUR_CONSEC_TRIPLES : THREE_CONSEC_TRIPLES, cardClientIds);
-        }
-
-        // 2个四张、3个四张、1个四张+3连对
-        int quadsCount = countQuads(cards);
-        if (quadsCount > 0) {
-            for (int i = 0; i < cards.size() - 3; i++) {
-                if (cards.get(i).getRank() == cards.get(i+3).getRank()) {
-                    for (int j = 0; j < 4; j++) {
-                        if (cards.get(i+j) instanceof PokerCard pc) cardClientIds.add(pc.getClientId());
-                    }
-                    i+=3;
-                }
-            }
-            if (quadsCount > 1) {
-                return new Pair<>(quadsCount > 2 ? THREE_QUADS : TWO_QUADS, cardClientIds);
-            } else if (consec != null && consec.size() >= 3) {
-                // 一个四张 + 3连对
-                for (Integer r : consec) {
-                    List<Card> cs = rankMap.get(r);
-                    for (int k=0; k<2; k++) {
-                        if (cs.get(k) instanceof PokerCard pc) cardClientIds.add(pc.getClientId());
-                    }
-                }
-                return new Pair<>(COMB_BOMB, cardClientIds);
-            }
         }
         return null;
     }
@@ -529,13 +488,16 @@ public class ToSouthHandUtils {
                          int targetSize = lastCards.size();
                          
                          // 滑动窗口查找所有能压过的子串
+                         // 注意：必须用 new ArrayList<> 拷贝，不能用 subList 视图。
+                         // compare -> getCardType 会对入参 in-place 排序，若传视图会破坏
+                         // sortedCandidate 后续位置的顺序，导致窗口滑到脏数据。
                          for (int j = 0; j <= sortedCandidate.size() - targetSize; j += step) {
-                             List<Card> subList = sortedCandidate.subList(j, j + targetSize);
+                             List<Card> subList = new ArrayList<>(sortedCandidate.subList(j, j + targetSize));
                              if (compare(lastCards, subList)) {
                                  result.add(subList);
                              }
                          }
-                         continue; 
+                         continue;
                     }
                 }
                 
@@ -570,10 +532,21 @@ public class ToSouthHandUtils {
                          List<Card> sortedCp = new ArrayList<>(cp);
                          sortedCp.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
                          // 截取前8张
-                         result.add(sortedCp.subList(0, 8));
-                     }
-                 }
-             }
+                        result.add(sortedCp.subList(0, 8));
+                    }
+                }
+            } else if (lastType == ToSouthCardType.BOMB_QUAD) {
+                for (List<Card> cp : consecutivePairs) {
+                    if (cp.size() >= 8) {
+                        List<Card> sortedCp = new ArrayList<>(cp);
+                        sortedCp.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
+                        List<Card> candidate = new ArrayList<>(sortedCp.subList(0, 8));
+                        if (compare(lastCards, candidate)) {
+                            result.add(candidate);
+                        }
+                    }
+                }
+            }
         }
         
         // 3. 尝试用炸弹压制

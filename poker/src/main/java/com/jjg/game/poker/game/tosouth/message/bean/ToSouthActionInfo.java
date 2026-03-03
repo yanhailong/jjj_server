@@ -24,11 +24,11 @@ public class ToSouthActionInfo {
     public List<ToSouthCurRoundPlayerInfo> curRoundPlayerInfos = new ArrayList<>();
     @ProtoDesc("在本轮中已打出的牌历史记录")
     public List<ToSouthPlayCardRecord> curRoundPlayedCardHistory = new ArrayList<>();
-    @ProtoDesc("上一手出的牌")
+    @ProtoDesc("上一手出的牌,pass则为空")
     public List<Integer> lastPlayCards;
     @ProtoDesc("上一手出的牌类型  1 单张  2 对子  3 三张  4 顺子  5 连对 6 炸弹")
     public int lastPlayCardsType;
-    @ProtoDesc("上一手出牌玩家座位 ID")
+    @ProtoDesc("上一手出牌 玩家座位 ID")
     public int lastPlaySeatId;
     @ProtoDesc("当前轮领打玩家座位 ID")
     public int roundLeaderSeatId;
@@ -36,4 +36,6 @@ public class ToSouthActionInfo {
     public boolean isFirstRound;
     @ProtoDesc("当前玩家的手牌")
     public List<Integer> selfHandCards;
+    @ProtoDesc("刚刚过牌的玩家座位ID，0表示本次通知不是由过牌触发")
+    public int passedSeatId;
 }
