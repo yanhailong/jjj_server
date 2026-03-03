@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -106,7 +107,7 @@ public class CoreMarqueeManager implements TimerListener {
             return;
         }
 
-        Map<Integer, Marquee> tmpMarqueeMap = new HashMap<>();
+        Map<Integer, Marquee> tmpMarqueeMap = new ConcurrentHashMap<>();
         List<Marquee> tmpList = new ArrayList<>();
         List<Marquee> tmpPlayerWinList = new ArrayList<>();
         List<Marquee> tmpActivityList = new ArrayList<>();
@@ -135,7 +136,7 @@ public class CoreMarqueeManager implements TimerListener {
      */
     public void addNewMarquee(Marquee marquee) {
         if (this.marqueeMap == null) {
-            this.marqueeMap = new HashMap<>();
+            this.marqueeMap = new ConcurrentHashMap<>();
         }
 
         this.marqueeMap.remove(marquee.getId());
