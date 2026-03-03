@@ -78,9 +78,11 @@ public class TexasBuilder {
             publicCards.add(cards.get(j));
         }
         publicCards.addAll(info.getCurrentCards());
-        log.info("roomId:{} playerId:{} 德州机器人获取牌型 公牌id:{}", gameDataVo.getRoomId(), info.getPlayerId(), publicCards);
         Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(TexasDataHelper.getPoolId(gameDataVo));
-        return PokerHandEvaluator.evaluateBestHand(publicCards.stream().map(cardListMap::get).collect(Collectors.toList()));
+        HandResult handResult = PokerHandEvaluator.evaluateBestHand(publicCards.stream().map(cardListMap::get).collect(Collectors.toList()));
+        log.info("roomId:{} playerId:{} 德州机器人获取牌型 公牌id:{} 牌型:{}", gameDataVo.getRoomId(), info.getPlayerId(), TexasDataHelper.getClientId(gameDataVo, publicCards),
+                handResult.getHandRank());
+        return handResult;
     }
 
     public static TexasRoundInfo getTexasRoundInfo(int round, List<Integer> cards, int handRank) {
