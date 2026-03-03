@@ -93,7 +93,7 @@ public class WealthGodSendMessageManager extends BaseSendMessageManager {
         ResWealthGodPoolValue res = new ResWealthGodPoolValue(Code.SUCCESS);
         res.value = poolValue;
         sendInfo.addPlayerMsg(playerController.playerId(), res);
-        sendInfo.getLogMessage().add(res);
+//        sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回奖池结果", true);
     }
 
