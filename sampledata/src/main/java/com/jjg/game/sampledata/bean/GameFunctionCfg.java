@@ -1,9 +1,8 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
-
 import javax.annotation.processing.Generated;
+import java.util.List;
+
 /**
  * 配置bean
  *
@@ -21,7 +20,7 @@ public class GameFunctionCfg extends BaseCfgBean {
 
   /** 游戏中左侧列表按钮 */
   protected int butList;
-  /** 解锁条件 */
+  /** 进入解锁条件 */
   protected String condition;
   /** 显示区域类型 */
   protected int displayArea;
@@ -35,6 +34,8 @@ public class GameFunctionCfg extends BaseCfgBean {
   protected List<Integer> position;
   /** 显示顺序 */
   protected int serialNumber;
+  /** 显示解锁条件 */
+  protected String showCondition;
   /** 提示文本ID */
   protected int tips;
 
@@ -43,7 +44,7 @@ public class GameFunctionCfg extends BaseCfgBean {
     return butList;
   }
 
-  /** 返回解锁条件 */
+  /** 返回进入解锁条件 */
   public String getCondition() {
     return condition;
   }
@@ -76,6 +77,11 @@ public class GameFunctionCfg extends BaseCfgBean {
   /** 返回显示顺序 */
   public int getSerialNumber() {
     return serialNumber;
+  }
+
+  /** 返回显示解锁条件 */
+  public String getShowCondition() {
+    return showCondition;
   }
 
   /** 返回提示文本ID */

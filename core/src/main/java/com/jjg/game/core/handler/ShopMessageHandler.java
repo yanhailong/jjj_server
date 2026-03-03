@@ -1,6 +1,7 @@
 package com.jjg.game.core.handler;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.protostuff.Command;
@@ -12,10 +13,10 @@ import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.ShopProduct;
 import com.jjg.game.core.pb.*;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.ShopService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -30,14 +31,22 @@ import java.util.List;
 public class ShopMessageHandler {
     private Logger log = LoggerFactory.getLogger(getClass());
 
-    @Autowired
-    private ShopService shopService;
+    private final ShopService shopService;
+    private final GameFunctionService gameFunctionService;
+
+    public ShopMessageHandler(ShopService shopService, GameFunctionService gameFunctionService) {
+        this.shopService = shopService;
+        this.gameFunctionService = gameFunctionService;
+    }
 
     /**
      * 获取商城
      */
     @Command(ShopConstant.MsgBean.REQ_SHOP)
     public void reqShop(PlayerController playerController, ReqShop req) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.SHOP_INTERFACE)) {
+            return;
+        }
         ResShop res = new ResShop(Code.SUCCESS);
         List<ShopProduct> shopProductList = shopService.getShop(playerController.getPlayer(), req.channel);
         if (shopProductList != null && !shopProductList.isEmpty()) {
@@ -88,6 +97,9 @@ public class ShopMessageHandler {
      */
     @Command(ShopConstant.MsgBean.REQ_BUY_PRODUCT)
     public void reqBuyProduct(PlayerController playerController, ReqBuyProduct req) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.SHOP_INTERFACE)) {
+            return;
+        }
         ResBuyProduct res = new ResBuyProduct(Code.SUCCESS);
         try {
             ShopProduct shopProduct = shopService.getShopProduct(req.productId);

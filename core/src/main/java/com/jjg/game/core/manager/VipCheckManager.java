@@ -15,7 +15,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ViplevelCfg;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.poi.ss.formula.functions.T;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -47,7 +46,7 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
     private final RedDotManager redDotManager;
 
     public VipCheckManager(NodeManager nodeManager, CoreSendMessageManager sendMessageManager, CorePlayerService playerService,
-                           RedDotManager redDotManager, GameEventManager gameEventManager) {
+                           RedDotManager redDotManager) {
         this.nodeManager = nodeManager;
         this.sendMessageManager = sendMessageManager;
         this.playerService = playerService;
@@ -149,16 +148,17 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
             }
         }
         if (chenge || newExp != player.getVipExp()) {
-            if (newLv > player.getVipLevel()) {
+            int before = player.getVipLevel();
+            player.setVipExp(newExp);
+            player.setVipLevel(newLv);
+            if (newLv > before) {
                 try {
                     GameEventManager gameEventManager = CommonUtil.getContext().getBean(GameEventManager.class);
-                    gameEventManager.triggerEvent(new PlayerEvent(player, EGameEventType.PLAYER_VIP_LEVEL, player.getVipLevel(), newLv));
+                    gameEventManager.triggerEvent(new PlayerEvent(player, EGameEventType.PLAYER_VIP_LEVEL, before, newLv));
                 } catch (Exception e) {
                     log.error("vip等级变化时触发事件失败 playerId:{}", player.getId(), e);
                 }
             }
-            player.setVipExp(newExp);
-            player.setVipLevel(newLv);
             //发送日志
             try {
                 CoreLogger bean = CommonUtil.getContext().getBean(CoreLogger.class);
@@ -183,7 +183,7 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
     }
 
     @Override
-    public <T extends GameEvent> void handleEvent(T gameEvent) {
+    public <K extends GameEvent> void handleEvent(K gameEvent) {
         if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
             boolean inMemoryNode = nodeManager.isPlayerDataInMemoryNode();
             Player player = event.getPlayer();
