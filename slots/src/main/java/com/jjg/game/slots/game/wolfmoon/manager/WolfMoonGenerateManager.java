@@ -4,20 +4,19 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.bean.BaseInitCfg;
+import com.jjg.game.sampledata.bean.BaseRollerCfg;
+import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
+import com.jjg.game.sampledata.bean.SpecialModeCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAddIconInfo;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAwardLineInfo;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
 import com.jjg.game.slots.game.wolfmoon.WolfMoonConstant;
 import com.jjg.game.slots.game.wolfmoon.data.WolfMoonAddIconInfo;
 import com.jjg.game.slots.game.wolfmoon.data.WolfMoonAwardLineInfo;
 import com.jjg.game.slots.game.wolfmoon.data.WolfMoonResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
-import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -185,7 +184,7 @@ public class WolfMoonGenerateManager extends AbstractSlotsGenerateManager<WolfMo
     /**
      * 修补图标
      */
-    public void repairIcons(int libType, int[] arr, List<WolfMoonAwardLineInfo> list, List<WolfMoonAddIconInfo> addIconInfoList, int winCount) {
+    public void repairIcons(int[] arr, List<WolfMoonAwardLineInfo> list, List<WolfMoonAddIconInfo> addIconInfoList, int winCount) {
         if (list == null || list.isEmpty()) {
             return;
         }
