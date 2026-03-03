@@ -92,7 +92,7 @@ public class AmazonBucketManager {
             }
 
             //写入到临时目录的文件
-            try (FileOutputStream fos = new FileOutputStream(tmpFile)) {
+            try (FileOutputStream fos = new FileOutputStream(tmpFile); resp) {
                 byte[] buffer = new byte[8192];
                 int bytesRead;
                 while ((bytesRead = resp.read(buffer)) != -1) {
@@ -114,7 +114,7 @@ public class AmazonBucketManager {
     /**
      * 上传文件到S3
      *
-     * @param file     要上传的文件
+     * @param file 要上传的文件
      * @return 上传成功返回true，失败返回false
      */
     public synchronized boolean upload(File file) {

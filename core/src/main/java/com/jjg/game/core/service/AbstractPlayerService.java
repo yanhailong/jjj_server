@@ -337,6 +337,9 @@ public class AbstractPlayerService {
         boolean inMemoryNode = nodeManager.isPlayerDataInMemoryNode();
         if (inMemoryNode) {
             Player player = getFromAllDB(playerId);
+            if(player == null){
+                return false;
+            }
             //游戏内修改内存中的数据并返回
             triggerCurrencyChangeEvent(player, goldNum, diamondNum);
             result.code = Code.SUCCESS;

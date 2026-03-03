@@ -919,7 +919,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     protected T putGameData(PlayerController playerController, T gameData) {
-        return this.gameDataMap.computeIfAbsent(playerController.getPlayer().getRoomCfgId(), k -> new HashMap<>()).put(playerController.playerId(), gameData);
+        return this.gameDataMap.computeIfAbsent(playerController.getPlayer().getRoomCfgId(), k -> new ConcurrentHashMap<>()).put(playerController.playerId(), gameData);
     }
 
     /**

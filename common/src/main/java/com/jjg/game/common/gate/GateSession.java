@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 玩家网关服务器会话对象
@@ -40,7 +41,7 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
     /**
      * TODO 在GateSession中管理所有的网关会话?是否应该在{@linkplain com.jjg.game.gate.GateSessionManager}中管理操作所有的网关会话
      */
-    protected static final Map<String, GateSession> gateSessionMap = new HashMap<>();
+    protected static final Map<String, GateSession> gateSessionMap = new ConcurrentHashMap<>();
     /**
      * 会话ID
      */
@@ -140,7 +141,7 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
             PFMessage pfMessage = MessageUtil.getPFMessage(sessionLogout);
             ClusterMessage clusterMessage = new ClusterMessage(sessionId, pfMessage, playerId);
             ClusterClient clusterClient = ClusterSystem.system.getByNodeType(NodeType.HALL, remoteAddress.getHost(), playerId);
-            if (currentClient != null) {
+            if (clusterClient != null) {
                 clusterClient.getConnect().write(clusterMessage);
             }
         } catch (Exception e) {
