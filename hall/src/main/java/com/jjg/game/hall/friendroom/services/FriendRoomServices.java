@@ -1075,7 +1075,7 @@ public class FriendRoomServices {
         //最大小时数
         long maxHour = 365 * 24;
         //续费时间计算
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(144);
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(114);
         if (globalConfigCfg != null) {
             maxHour = globalConfigCfg.getIntValue();
         }
