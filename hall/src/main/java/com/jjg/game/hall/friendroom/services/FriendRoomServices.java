@@ -1,5 +1,6 @@
 package com.jjg.game.hall.friendroom.services;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterSystem;
@@ -912,6 +913,10 @@ public class FriendRoomServices {
         if (friendRoom == null) {
             return Code.ROOM_DESTROYED;
         }
+        if (!checkOverdueTime(friendRoom, updateFriendRoom.timeOfOpenRoom)) {
+            return Code.ROOM_RENEW_TIME_LIMIT;
+        }
+
         ClusterClient client;
         if (StringUtils.isEmpty(friendRoom.getPath())) {
             client = randomNode(playerController, friendRoom, playerController.playerId());
@@ -949,12 +954,14 @@ public class FriendRoomServices {
                 itemMap.put(diamondItemId,
                         itemMap.getOrDefault(diamondItemId, 0L) + updateFriendRoom.predictCostGoldNum);
             }
-            // 扣除道具
-            removeItem = playerPackService.removeItems(player, itemMap,
-                    AddType.MANAGE_FRIEND_ROOM);
-            // 移除道具失败
-            if (!removeItem.success()) {
-                return removeItem.code;
+            if (CollectionUtil.isNotEmpty(itemMap)) {
+                // 扣除道具
+                removeItem = playerPackService.removeItems(player, itemMap,
+                        AddType.MANAGE_FRIEND_ROOM);
+                // 移除道具失败
+                if (!removeItem.success()) {
+                    return removeItem.code;
+                }
             }
             if (roomExpendCfg != null) {
                 // 开启时长，毫秒
@@ -1023,6 +1030,34 @@ public class FriendRoomServices {
             coreLogger.roomOperate(friendRoom, 3, roomExpendCfg.getDurationTime(), itemMap, removeItem.data);
         }
         return Code.SUCCESS;
+    }
+
+    /**
+     * 续费时长限制
+     *
+     * @param friendRoom     房间数据
+     * @param timeOfOpenRoom 时间变化
+     * @return true 能增加时间
+     */
+    private boolean checkOverdueTime(FriendRoom friendRoom, int timeOfOpenRoom) {
+        long currentTimeMillis = System.currentTimeMillis();
+        if (timeOfOpenRoom == 0 || friendRoom.getOverdueTime() <= currentTimeMillis) {
+            return true;
+        }
+        RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(timeOfOpenRoom);
+        if (roomExpendCfg == null) {
+            return false;
+        }
+        long addTime = (long) roomExpendCfg.getDurationTime() * TimeHelper.ONE_MINUTE_OF_MILLIS;
+        //最大小时数
+        long maxHour = 365 * 24;
+        //续费时间计算
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(144);
+        if (globalConfigCfg != null) {
+            maxHour = globalConfigCfg.getIntValue();
+        }
+        long remainMillis = friendRoom.getOverdueTime() + addTime - currentTimeMillis;
+        return remainMillis <= maxHour * TimeHelper.ONE_HOUR_OF_MILLIS;
     }
 
     /**
