@@ -81,7 +81,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                         return;
                     }
                     //获取牌型
-                    HandResult tempHandType = TexasBuilder.getTempHandType(playerSeatInfo, gameDataVo);
+                    HandResult tempHandType = TexasBuilder.getRobotTempHandType(playerSeatInfo, gameDataVo);
                     if (tempHandType == null) {
                         return;
                     }
@@ -223,7 +223,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
             case 2: {
                 //加注比牌
                 if (isRaise) {
-                    HandResult other = TexasBuilder.getTempHandType(raiseBetPlayer, gameDataVo);
+                    HandResult other = TexasBuilder.getRobotTempHandType(raiseBetPlayer, gameDataVo);
                     if (other.compareTo(tempHandType) <= 0) {
                         return cfg.getPassiveStrategyWin_2();
                     }
@@ -234,7 +234,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
             }
             case 3: {
                 if (isRaise) {
-                    HandResult other = TexasBuilder.getTempHandType(raiseBetPlayer, gameDataVo);
+                    HandResult other = TexasBuilder.getRobotTempHandType(raiseBetPlayer, gameDataVo);
                     if (other.compareTo(tempHandType) <= 0) {
                         return cfg.getPassiveStrategyWin_3();
                     }
@@ -245,7 +245,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
             }
             case 4: {
                 if (isRaise) {
-                    HandResult other = TexasBuilder.getTempHandType(raiseBetPlayer, gameDataVo);
+                    HandResult other = TexasBuilder.getRobotTempHandType(raiseBetPlayer, gameDataVo);
                     if (other.compareTo(tempHandType) <= 0) {
                         return cfg.getPassiveStrategyWin_4();
                     }

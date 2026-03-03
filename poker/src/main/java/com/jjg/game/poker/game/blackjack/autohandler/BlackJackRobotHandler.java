@@ -14,14 +14,13 @@ import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.gamephase.BasePokerRobotProcessorHandler;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
-import com.jjg.game.poker.game.texas.message.TexasBuilder;
-import com.jjg.game.poker.game.texas.room.TexasGameController;
-import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
-import com.jjg.game.poker.game.texas.util.HandResult;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.bean.BlackjackCfg;
+import com.jjg.game.sampledata.bean.ChessJackStrategyCfg;
+import com.jjg.game.sampledata.bean.ChessRobotCfg;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,61 +156,6 @@ public class BlackJackRobotHandler extends BasePokerRobotProcessorHandler<BlackJ
     }
 
 
-    /**
-     * 获取德州机器人策略map
-     *
-     * @param gameController 游戏控制器
-     * @param cfg            策略配置
-     * @param tempHandType   机器人牌型
-     * @param round          当前轮数
-     * @return 策略
-     */
-    public Map<Integer, Integer> getStrategyDataMap(TexasGameController gameController, ChessTexasStrategyCfg cfg, HandResult tempHandType, int round) {
-        TexasGameDataVo gameDataVo = gameController.getGameDataVo();
-        PlayerSeatInfo raiseBetPlayer = gameController.getRaiseBetPlayer();
-        boolean isRaise = raiseBetPlayer != null;
-        //获取
-        switch (round) {
-            case 1: {
-                return isRaise ? cfg.getPassiveStrategy_1() : cfg.getProactiveStrategy_1();
-            }
-            case 2: {
-                //加注比牌
-                if (isRaise) {
-                    HandResult other = TexasBuilder.getTempHandType(raiseBetPlayer, gameDataVo);
-                    if (other.compareTo(tempHandType) <= 0) {
-                        return cfg.getPassiveStrategyWin_2();
-                    }
-                    return cfg.getPassiveStrategyFailed_2();
-                } else {
-                    return cfg.getProactiveStrategy_2();
-                }
-            }
-            case 3: {
-                if (isRaise) {
-                    HandResult other = TexasBuilder.getTempHandType(raiseBetPlayer, gameDataVo);
-                    if (other.compareTo(tempHandType) <= 0) {
-                        return cfg.getPassiveStrategyWin_3();
-                    }
-                    return cfg.getPassiveStrategyFailed_3();
-                } else {
-                    return cfg.getProactiveStrategy_3();
-                }
-            }
-            case 4: {
-                if (isRaise) {
-                    HandResult other = TexasBuilder.getTempHandType(raiseBetPlayer, gameDataVo);
-                    if (other.compareTo(tempHandType) <= 0) {
-                        return cfg.getPassiveStrategyWin_4();
-                    }
-                    return cfg.getPassiveStrategyFailed_4();
-                } else {
-                    return cfg.getProactiveStrategy_4();
-                }
-            }
-        }
-        return Map.of();
-    }
 
 
 }

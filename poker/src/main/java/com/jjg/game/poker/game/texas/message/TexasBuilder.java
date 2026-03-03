@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.texas.message;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
@@ -18,6 +19,8 @@ import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.poker.game.texas.util.HandResult;
 import com.jjg.game.poker.game.texas.util.PokerHandEvaluator;
 import com.jjg.game.room.data.room.GamePlayer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +33,8 @@ import java.util.stream.Collectors;
  * @date 2025/7/31 14:38
  */
 public class TexasBuilder {
+
+    private static final Logger log = LoggerFactory.getLogger(TexasBuilder.class);
 
     public static NotifyTexasPublicCardChange getNotifyPublicCardChange(PlayerSeatInfo playerSeatInfo, PlayerSeatInfo nextExePlayer, List<Integer> addCards, TexasGameDataVo gameDataVo) {
         NotifyTexasPublicCardChange notifyTexasPublicCardChange = new NotifyTexasPublicCardChange();
@@ -57,6 +62,23 @@ public class TexasBuilder {
             publicCards = new ArrayList<>(gameDataVo.getPublicCards());
             publicCards.addAll(info.getCurrentCards());
         }
+        Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(TexasDataHelper.getPoolId(gameDataVo));
+        return PokerHandEvaluator.evaluateBestHand(publicCards.stream().map(cardListMap::get).collect(Collectors.toList()));
+    }
+
+    public static HandResult getRobotTempHandType(PlayerSeatInfo info, TexasGameDataVo gameDataVo) {
+        List<Integer> oldPublicCards = gameDataVo.getPublicCards();
+        List<Integer> publicCards = new ArrayList<>();
+        if (CollectionUtil.isNotEmpty(oldPublicCards)) {
+            publicCards.addAll(oldPublicCards);
+        }
+        int needFind = 5 - publicCards.size();
+        for (int j = 0; j < needFind; j++) {
+            List<Integer> cards = gameDataVo.getCards();
+            publicCards.add(cards.get(j));
+        }
+        publicCards.addAll(info.getCurrentCards());
+        log.info("playerId:{} 德州机器人获取牌型 公牌id:{}", info.getPlayerId(), publicCards);
         Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(TexasDataHelper.getPoolId(gameDataVo));
         return PokerHandEvaluator.evaluateBestHand(publicCards.stream().map(cardListMap::get).collect(Collectors.toList()));
     }
