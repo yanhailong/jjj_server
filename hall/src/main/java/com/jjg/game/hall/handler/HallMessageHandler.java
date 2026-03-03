@@ -517,6 +517,9 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_GET_MAILS)
     public void reqGetMails(PlayerController playerController, ReqGetMails req) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.MAIL)) {
+            return;
+        }
         ResGetMails res = new ResGetMails(HallCode.SUCCESS);
         try {
             List<Mail> mailList = mailService.getMailByPlayerId(playerController.playerId(), req.page);
@@ -568,6 +571,9 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_READ_MAIL)
     public void reqReadMail(PlayerController playerController, ReqReadMail req) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.MAIL)) {
+            return;
+        }
         ResReadMail res = new ResReadMail(HallCode.SUCCESS);
         try {
             if (req.id < 1) {
@@ -594,6 +600,9 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_GET_MAIL_ITEMS)
     public void reqGetMailItems(PlayerController playerController, ReqGetMailItems req) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.MAIL)) {
+            return;
+        }
         ResGetMailItems res = new ResGetMailItems(HallCode.SUCCESS);
         try {
             if (req.id < 1) {
@@ -624,6 +633,9 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_REMOVE_MAIL)
     public void reqRemoveMail(PlayerController playerController, ReqRemoveMail req) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.MAIL)) {
+            return;
+        }
         ResRemoveMail res = new ResRemoveMail(HallCode.SUCCESS);
         try {
             if (req.id < 1) {
@@ -649,6 +661,9 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_REMOVE_READ_MAILS)
     public void reqRemoveReadMails(PlayerController playerController, ReqRemoveReadMails req) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.MAIL)) {
+            return;
+        }
         ResRemoveReadMails res = new ResRemoveReadMails(HallCode.SUCCESS);
         try {
             long count = mailService.removeReadMails(playerController.playerId());
@@ -668,6 +683,9 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_GET_ALL_MAILS_ITEMS)
     public void reqGetAllMailsItems(PlayerController playerController, ReqGetAllMailsItems req) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.MAIL)) {
+            return;
+        }
         ResGetAllMailsItems res = new ResGetAllMailsItems(HallCode.SUCCESS);
         try {
             CommonResult<Map<Integer, Long>> result = mailService.getAllMailsItems(playerController.playerId());
@@ -702,6 +720,9 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_TRANS_SAFE_BOX_GOLD)
     public void reqTransSafeBoxGold(PlayerController playerController, ReqTransSafeBoxGold req) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.SAFE_BOX)) {
+            return;
+        }
         ResTransSafeBoxGold res = new ResTransSafeBoxGold(HallCode.SUCCESS);
         try {
             CommonResult<Player> result;
@@ -734,6 +755,9 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_TRANS_SAFE_BOX_DIAMOND)
     public void reqTransSafeBoxDiamond(PlayerController playerController, ReqTransSafeBoxDiamond req) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.SAFE_BOX)) {
+            return;
+        }
         ResTransSafeBoxDiamond res = new ResTransSafeBoxDiamond(HallCode.SUCCESS);
         try {
             CommonResult<Player> result;
@@ -830,7 +854,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_BUY_CLAIM_ALL_REWARDS)
     public void reqCasinoBuyClaimAllRewards(PlayerController playerController, ReqCasinoBuyClaimAllRewards req) {
-        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+        if (gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.MY_CASINO)) {
             playerController.send(casinoManager.reqCasinoBuyClaimAllRewards(playerController, req));
         }
     }
@@ -842,7 +866,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_INFO)
     public void reqCasinoInfo(PlayerController playerController, ReqCasinoInfo req) {
-        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+        if (gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.MY_CASINO)) {
             playerController.send(casinoManager.reqCasinoInfo(playerController, req));
         }
     }
@@ -854,7 +878,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_CLAIM_ALL_REWARDS)
     public void reqCasinoClaimAllRewards(PlayerController playerController, ReqCasinoClaimAllRewards req) {
-        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+        if (gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.MY_CASINO)) {
             playerController.send(casinoManager.reqCasinoClaimAllRewards(playerController, req));
         }
     }
@@ -866,7 +890,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_CLAIM_REWARDS)
     public void reqCasinoClaimRewards(PlayerController playerController, ReqCasinoClaimRewards req) {
-        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+        if (gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.MY_CASINO)) {
             playerController.send(casinoManager.reqCasinoClaimRewards(playerController, req));
         }
     }
@@ -878,7 +902,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_EMPLOY_STAFF)
     public void reqCasinoEmployStaff(PlayerController playerController, ReqCasinoEmployStaff req) {
-        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+        if (gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.MY_CASINO)) {
             playerController.send(casinoManager.reqCasinoEmployStaff(playerController, req));
         }
     }
@@ -890,7 +914,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_FLOOR_OPERATION)
     public void reqCasinoFloorOperation(PlayerController playerController, ReqCasinoFloorOperation req) {
-        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+        if (gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.MY_CASINO)) {
             playerController.send(casinoManager.reqCasinoFloorOperation(playerController, req));
         }
     }
@@ -902,7 +926,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_UPGRADE_MACHINE)
     public void reqCasinoUpgradeMachine(PlayerController playerController, ReqCasinoUpgradeMachine req) {
-        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+        if (gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.MY_CASINO)) {
             playerController.send(casinoManager.reqCasinoUpgradeMachine(playerController, req));
         }
     }
@@ -960,6 +984,9 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_VIP_INFO)
     public void reqVipInfo(PlayerController playerController, ReqVipInfo req) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.VIP_FUNCTION)) {
+            return;
+        }
         playerController.send(vipManager.reqVipInfo(playerController, req));
     }
 
@@ -971,6 +998,9 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_VIP_CLAIM_GIFT_REWARD)
     public void reqVipClaimGiftReward(PlayerController playerController, ReqVipClaimGiftReward req) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.VIP_FUNCTION)) {
+            return;
+        }
         playerController.send(vipManager.reqVipClaimGiftReward(playerController, req));
     }
 
@@ -1043,6 +1073,10 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_ALL_NOTICE)
     public void reqAllNotice(PlayerController playerController, ReqAllNotice req) {
+        boolean checked = gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.ANNOUNCEMENT);
+        if (!checked) {
+            return;
+        }
         ResAllNotice res = new ResAllNotice(Code.SUCCESS);
         try {
             List<Notice> notices = noticeService.getNotices();
@@ -1074,6 +1108,10 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_READ_NOTICE)
     public void reqReadNotice(PlayerController playerController, ReqReadNotice req) {
+        boolean checked = gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.ANNOUNCEMENT);
+        if (!checked) {
+            return;
+        }
         ResReadNotice res = new ResReadNotice(Code.SUCCESS);
         try {
             noticeService.readNotice(playerController.playerId(), req.id);

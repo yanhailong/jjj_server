@@ -27,6 +27,7 @@ import com.jjg.game.activity.wealthroulette.controller.WealthRouletteController;
 import com.jjg.game.activity.wealthroulette.message.req.*;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.AbstractResponse;
@@ -34,7 +35,7 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.utils.TipUtils;
+import com.jjg.game.core.service.GameFunctionService;
 import org.springframework.stereotype.Component;
 
 /**
@@ -52,10 +53,11 @@ public class ActivityMessageHandler {
     private final OfficialAwardsController officialAwardsController;
     private final WealthRouletteController wealthRouletteController;
     private final ScratchCardsController scratchCardsController;
+    private final GameFunctionService gameFunctionService;
 
     public ActivityMessageHandler(ActivityManager activityManager, CashCowController cashCowController, SharePromoteController sharePromoteController,
                                   PlayerLevelPackManager playerLevelPackManager, NodeConfig nodeConfig, OfficialAwardsController officialAwardsController,
-                                  WealthRouletteController wealthRouletteController, ScratchCardsController scratchCardsController) {
+                                  WealthRouletteController wealthRouletteController, ScratchCardsController scratchCardsController, GameFunctionService gameFunctionService) {
         this.activityManager = activityManager;
         this.cashCowController = cashCowController;
         this.sharePromoteController = sharePromoteController;
@@ -64,6 +66,7 @@ public class ActivityMessageHandler {
         this.officialAwardsController = officialAwardsController;
         this.wealthRouletteController = wealthRouletteController;
         this.scratchCardsController = scratchCardsController;
+        this.gameFunctionService = gameFunctionService;
     }
 
     /**
@@ -298,6 +301,9 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_PACK_DETAIL_INFO)
     public void reqPlayerLevelPackDetailInfo(PlayerController playerController) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.LEVEL_GIFT)) {
+            return;
+        }
         AbstractResponse res = playerLevelPackManager.reqPlayerLevelPackDetailInfo(playerController);
         playerController.send(res);
         if (res.code == Code.SUCCESS) {

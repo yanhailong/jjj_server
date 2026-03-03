@@ -192,7 +192,7 @@ public class DropItemManager implements GameEventListener {
     private List<ActivityItemDropInfo> casinoDropItem(PlayerEventCategory.PlayerEffectiveFlowingEvent event) {
         Player player = event.getPlayer();
         //功能开放配置
-        if (!gameFunctionService.checkGameFunctionOpen(player, EFunctionType.MY_CASINO, false)) {
+        if (!gameFunctionService.checkGameFunctionOpen(player, EFunctionType.MY_CASINO, true, false)) {
             return List.of();
         }
         PlayerLevelConfigCfg cfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());

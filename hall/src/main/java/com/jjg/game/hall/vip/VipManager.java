@@ -8,7 +8,6 @@ import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
@@ -45,7 +44,6 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
     private final Logger log = LoggerFactory.getLogger(VipManager.class);
     private final VipService vipService;
     private final PlayerPackService playerPackService;
-    private final AccountDao accountDao;
     private final CorePlayerService playerService;
     private final CoreLogger coreLogger;
     private final CountDao countDao;
@@ -53,12 +51,10 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
 
     public VipManager(VipService vipService,
                       PlayerPackService playerPackService,
-                      AccountDao accountDao,
                       CorePlayerService playerService,
                       CoreLogger coreLogger, CountDao countDao, RedDotManager redDotManager) {
         this.vipService = vipService;
         this.playerPackService = playerPackService;
-        this.accountDao = accountDao;
         this.playerService = playerService;
         this.coreLogger = coreLogger;
         this.countDao = countDao;

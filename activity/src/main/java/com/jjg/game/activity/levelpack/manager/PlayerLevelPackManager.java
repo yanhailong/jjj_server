@@ -11,6 +11,7 @@ import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelClaimRewards;
 import com.jjg.game.activity.levelpack.message.res.NotifyPlayerLevelPackDetailInfo;
 import com.jjg.game.activity.levelpack.message.res.ResPlayerLevelClaimRewards;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.redis.RedisLock;
@@ -27,6 +28,7 @@ import com.jjg.game.core.pb.NotifyPlayerLevelUp;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.ReqGenerateOrder;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -57,9 +59,10 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
     private final ActivityLogger activityLogger;
     private final CoreSendMessageManager coreSendMessageManager;
     private final RedDotManager redDotManager;
+    private final GameFunctionService gameFunctionService;
 
     public PlayerLevelPackManager(RedisLock redisLock, PlayerLevelDao playerLevelDao, ClusterSystem clusterSystem,
-                                  PlayerPackService playerPackService, ActivityLogger activityLogger, CoreSendMessageManager coreSendMessageManager, RedDotManager redDotManager) {
+                                  PlayerPackService playerPackService, ActivityLogger activityLogger, CoreSendMessageManager coreSendMessageManager, RedDotManager redDotManager, GameFunctionService gameFunctionService) {
         this.redisLock = redisLock;
         this.playerLevelDao = playerLevelDao;
         this.clusterSystem = clusterSystem;
@@ -67,6 +70,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         this.activityLogger = activityLogger;
         this.coreSendMessageManager = coreSendMessageManager;
         this.redDotManager = redDotManager;
+        this.gameFunctionService = gameFunctionService;
     }
 
     /**
@@ -77,6 +81,10 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
     public void targetGift(Player player) {
         if (player == null) {
             log.error("玩家等级变化时触发等级礼包为null");
+            return;
+        }
+        if (!gameFunctionService.checkGameFunctionOpen(player, EFunctionType.LEVEL_GIFT, true, false)) {
+            log.info("玩家等级变化时触发等级礼包 未满足开启条件");
             return;
         }
         long playerLevel = player.getLevel();
