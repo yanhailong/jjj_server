@@ -970,7 +970,7 @@ public class FriendRoomServices {
         }
         int finalAddTime = addTime;
         boolean isSlotsRoom = friendRoom instanceof SlotsFriendRoom;
-        CommonResult<FriendRoom> result = new CommonResult<>(Code.SUCCESS, friendRoom);
+        CommonResult<FriendRoom> result;
         if (!isSlotsRoom) {
             result = friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(),
                     new DataSaveCallback<>() {
@@ -1000,25 +1000,48 @@ public class FriendRoomServices {
                             return true;
                         }
                     });
+            if (!result.success()) {
+                return result.code;
+            }
             if (result.success() && updateFriendRoom.predictCostGoldNum > 0 && friendRoom instanceof BetFriendRoom) {
                 friendRoomDao.modifyRoomPool(result.data.getGameType(), result.data.getId(), updateFriendRoom.predictCostGoldNum);
             }
-        }
-        if ((addTime > 0 || updateFriendRoom.predictCostGoldNum > 0) && friendRoom.isInGaming()) {
-            if (!StringUtils.isEmpty(friendRoom.getPath())) {
+            if ((addTime > 0 || updateFriendRoom.predictCostGoldNum > 0) && friendRoom.isInGaming()) {
+                try {
+                    GameRpcContext.getContext().setReqParameterBuilder(
+                            RpcReqParameterBuilder.create()
+                                    .addClusterClient(client)
+                                    .setTryMillisPerClient(1000));
+                    // 单房间，直接等返回
+                    // 请求尝试开启游戏，如果游戏处于暂停状态，可以考虑异步请求开启游戏
+                    hallRoomBridge.operateFriendRoom(player.getId(), friendRoom.getId(), 1, friendRoom.getRoomCfgId());
+                } catch (Exception e) {
+                    log.error("reqUpdateFriendRoomData operateFriendRoom", e);
+                    return Code.EXCEPTION;
+                } finally {
+                    GameRpcContext.getContext().clearRpcBuilderData();
+                }
+            }
+        } else {
+            try {
                 GameRpcContext.getContext().setReqParameterBuilder(
                         RpcReqParameterBuilder.create()
                                 .addClusterClient(client)
                                 .setTryMillisPerClient(1000));
-                if (isSlotsRoom) {
-                    result = hallRoomBridge.updateFriendRoom(player.getId(), friendRoom.getRoomCfgId(), friendRoom.getId(), addTime,
-                            updateFriendRoom.autoRenewal, updateFriendRoom.predictCostGoldNum, updateFriendRoom.roomAliasName);
-                } else {
-                    // 单房间，直接等返回
-                    // 请求尝试开启游戏，如果游戏处于暂停状态，可以考虑异步请求开启游戏
-                    hallRoomBridge.operateFriendRoom(player.getId(), friendRoom.getId(), 1, friendRoom.getRoomCfgId());
-                }
+                result = hallRoomBridge.updateFriendRoom(player.getId(), friendRoom.getRoomCfgId(), friendRoom.getId(), addTime,
+                        updateFriendRoom.autoRenewal, updateFriendRoom.predictCostGoldNum, updateFriendRoom.roomAliasName);
+            } catch (Exception e) {
+                log.error("reqUpdateFriendRoomData updateFriendRoom", e);
+                return Code.EXCEPTION;
+            } finally {
+                GameRpcContext.getContext().clearRpcBuilderData();
             }
+        }
+        if (result == null) {
+            return Code.UNKNOWN_ERROR;
+        }
+        if (!result.success()) {
+            return result.code;
         }
         res.code = Code.SUCCESS;
         res.roomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(result.data);
@@ -1027,7 +1050,7 @@ public class FriendRoomServices {
                 JSON.toJSONString(updateFriendRoom), JSON.toJSONString(result.data));
 
         if (addTime > 0) {
-            coreLogger.roomOperate(friendRoom, 3, roomExpendCfg.getDurationTime(), itemMap, removeItem.data);
+            coreLogger.roomOperate(friendRoom, 3, roomExpendCfg.getDurationTime(), itemMap, removeItem == null ? null : removeItem.data);
         }
         return Code.SUCCESS;
     }
