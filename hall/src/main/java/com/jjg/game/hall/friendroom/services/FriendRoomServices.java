@@ -1,5 +1,6 @@
 package com.jjg.game.hall.friendroom.services;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterSystem;
@@ -912,6 +913,10 @@ public class FriendRoomServices {
         if (friendRoom == null) {
             return Code.ROOM_DESTROYED;
         }
+        if (!checkOverdueTime(friendRoom, updateFriendRoom.timeOfOpenRoom)) {
+            return Code.ROOM_RENEW_TIME_LIMIT;
+        }
+
         ClusterClient client;
         if (StringUtils.isEmpty(friendRoom.getPath())) {
             client = randomNode(playerController, friendRoom, playerController.playerId());
@@ -949,12 +954,14 @@ public class FriendRoomServices {
                 itemMap.put(diamondItemId,
                         itemMap.getOrDefault(diamondItemId, 0L) + updateFriendRoom.predictCostGoldNum);
             }
-            // 扣除道具
-            removeItem = playerPackService.removeItems(player, itemMap,
-                    AddType.MANAGE_FRIEND_ROOM);
-            // 移除道具失败
-            if (!removeItem.success()) {
-                return removeItem.code;
+            if (CollectionUtil.isNotEmpty(itemMap)) {
+                // 扣除道具
+                removeItem = playerPackService.removeItems(player, itemMap,
+                        AddType.MANAGE_FRIEND_ROOM);
+                // 移除道具失败
+                if (!removeItem.success()) {
+                    return removeItem.code;
+                }
             }
             if (roomExpendCfg != null) {
                 // 开启时长，毫秒
@@ -963,7 +970,7 @@ public class FriendRoomServices {
         }
         int finalAddTime = addTime;
         boolean isSlotsRoom = friendRoom instanceof SlotsFriendRoom;
-        CommonResult<FriendRoom> result = new CommonResult<>(Code.SUCCESS, friendRoom);
+        CommonResult<FriendRoom> result;
         if (!isSlotsRoom) {
             result = friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(),
                     new DataSaveCallback<>() {
@@ -993,25 +1000,48 @@ public class FriendRoomServices {
                             return true;
                         }
                     });
+            if (!result.success()) {
+                return result.code;
+            }
             if (result.success() && updateFriendRoom.predictCostGoldNum > 0 && friendRoom instanceof BetFriendRoom) {
                 friendRoomDao.modifyRoomPool(result.data.getGameType(), result.data.getId(), updateFriendRoom.predictCostGoldNum);
             }
-        }
-        if ((addTime > 0 || updateFriendRoom.predictCostGoldNum > 0) && friendRoom.isInGaming()) {
-            if (!StringUtils.isEmpty(friendRoom.getPath())) {
+            if ((addTime > 0 || updateFriendRoom.predictCostGoldNum > 0) && friendRoom.isInGaming()) {
+                try {
+                    GameRpcContext.getContext().setReqParameterBuilder(
+                            RpcReqParameterBuilder.create()
+                                    .addClusterClient(client)
+                                    .setTryMillisPerClient(1000));
+                    // 单房间，直接等返回
+                    // 请求尝试开启游戏，如果游戏处于暂停状态，可以考虑异步请求开启游戏
+                    hallRoomBridge.operateFriendRoom(player.getId(), friendRoom.getId(), 1, friendRoom.getRoomCfgId());
+                } catch (Exception e) {
+                    log.error("reqUpdateFriendRoomData operateFriendRoom", e);
+                    return Code.EXCEPTION;
+                } finally {
+                    GameRpcContext.getContext().clearRpcBuilderData();
+                }
+            }
+        } else {
+            try {
                 GameRpcContext.getContext().setReqParameterBuilder(
                         RpcReqParameterBuilder.create()
                                 .addClusterClient(client)
                                 .setTryMillisPerClient(1000));
-                if (isSlotsRoom) {
-                    result = hallRoomBridge.updateFriendRoom(player.getId(), friendRoom.getRoomCfgId(), friendRoom.getId(), addTime,
-                            updateFriendRoom.autoRenewal, updateFriendRoom.predictCostGoldNum, updateFriendRoom.roomAliasName);
-                } else {
-                    // 单房间，直接等返回
-                    // 请求尝试开启游戏，如果游戏处于暂停状态，可以考虑异步请求开启游戏
-                    hallRoomBridge.operateFriendRoom(player.getId(), friendRoom.getId(), 1, friendRoom.getRoomCfgId());
-                }
+                result = hallRoomBridge.updateFriendRoom(player.getId(), friendRoom.getRoomCfgId(), friendRoom.getId(), addTime,
+                        updateFriendRoom.autoRenewal, updateFriendRoom.predictCostGoldNum, updateFriendRoom.roomAliasName);
+            } catch (Exception e) {
+                log.error("reqUpdateFriendRoomData updateFriendRoom", e);
+                return Code.EXCEPTION;
+            } finally {
+                GameRpcContext.getContext().clearRpcBuilderData();
             }
+        }
+        if (result == null) {
+            return Code.UNKNOWN_ERROR;
+        }
+        if (!result.success()) {
+            return result.code;
         }
         res.code = Code.SUCCESS;
         res.roomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(result.data);
@@ -1020,9 +1050,37 @@ public class FriendRoomServices {
                 JSON.toJSONString(updateFriendRoom), JSON.toJSONString(result.data));
 
         if (addTime > 0) {
-            coreLogger.roomOperate(friendRoom, 3, roomExpendCfg.getDurationTime(), itemMap, removeItem.data);
+            coreLogger.roomOperate(friendRoom, 3, roomExpendCfg.getDurationTime(), itemMap, removeItem == null ? null : removeItem.data);
         }
         return Code.SUCCESS;
+    }
+
+    /**
+     * 续费时长限制
+     *
+     * @param friendRoom     房间数据
+     * @param timeOfOpenRoom 时间变化
+     * @return true 能增加时间
+     */
+    private boolean checkOverdueTime(FriendRoom friendRoom, int timeOfOpenRoom) {
+        long currentTimeMillis = System.currentTimeMillis();
+        if (timeOfOpenRoom == 0 || friendRoom.getOverdueTime() <= currentTimeMillis) {
+            return true;
+        }
+        RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(timeOfOpenRoom);
+        if (roomExpendCfg == null) {
+            return false;
+        }
+        long addTime = (long) roomExpendCfg.getDurationTime() * TimeHelper.ONE_MINUTE_OF_MILLIS;
+        //最大小时数
+        long maxHour = 365 * 24;
+        //续费时间计算
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(114);
+        if (globalConfigCfg != null) {
+            maxHour = globalConfigCfg.getIntValue();
+        }
+        long remainMillis = friendRoom.getOverdueTime() + addTime - currentTimeMillis;
+        return remainMillis <= maxHour * TimeHelper.ONE_HOUR_OF_MILLIS;
     }
 
     /**
