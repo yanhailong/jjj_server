@@ -66,7 +66,7 @@ public class DemonChildGameSendMessageManager extends BaseSendMessageManager {
             res.totalWinGold = playerGameData.getFreeAllWin();
             res.status = playerGameData.getStatus();
             res.remainFreeCount = playerGameData.getRemainFreeCount().get();
-            res.totalFreeCount = gameRunInfo.getTotalFreeCount();
+            res.totalFreeCount = playerGameData.getFreeIndex().get() + playerGameData.getRemainFreeCount().get();
             res.poolList = new ArrayList<>();
             for (int poolId : prizePoolIdList) {
                 PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
