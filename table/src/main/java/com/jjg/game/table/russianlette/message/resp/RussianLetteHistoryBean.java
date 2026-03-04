@@ -17,6 +17,6 @@ public class RussianLetteHistoryBean {
     @ProtoDesc("下注区域ID")
     public List<Integer> betIdxId;
 
-    @ProtoDesc("转盘数据")
+    @ProtoDesc("转盘数据（0-36） cardStateList从这里开始读")
     public int diceData;
 }

@@ -41,13 +41,13 @@ public class DiceDataHolder implements ConfigExcelChangeListener {
     public void changeSampleCallbackCollector() {
         // 监听押注区域和投注倍数配置表
         addInitSampleFileObserveWithCallBack(
-            WinPosWeightCfg.EXCEL_NAME, DiceDataHolder::buildDiceTreeBySampleData)
-            .addInitSampleFileObserveWithCallBack(
-                BetAreaCfg.EXCEL_NAME, DiceDataHolder::buildDiceTreeBySampleData)
-            .addChangeSampleFileObserveWithCallBack(
                 WinPosWeightCfg.EXCEL_NAME, DiceDataHolder::buildDiceTreeBySampleData)
-            .addChangeSampleFileObserveWithCallBack(
-                BetAreaCfg.EXCEL_NAME, DiceDataHolder::buildDiceTreeBySampleData);
+                .addInitSampleFileObserveWithCallBack(
+                        BetAreaCfg.EXCEL_NAME, DiceDataHolder::buildDiceTreeBySampleData)
+                .addChangeSampleFileObserveWithCallBack(
+                        WinPosWeightCfg.EXCEL_NAME, DiceDataHolder::buildDiceTreeBySampleData)
+                .addChangeSampleFileObserveWithCallBack(
+                        BetAreaCfg.EXCEL_NAME, DiceDataHolder::buildDiceTreeBySampleData);
     }
 
     /**
@@ -58,7 +58,9 @@ public class DiceDataHolder implements ConfigExcelChangeListener {
         diceGameTypes.put(EGameType.DICE_TREASURE, new DiceMetaData(3, 6));
         diceGameTypes.put(EGameType.VIETNAM_DICE, new DiceMetaData(4, 2));
         diceGameTypes.put(EGameType.SIZE_DICE_TREASURE, new DiceMetaData(3, 6));
-        diceGameTypes.put(EGameType.RIVER_ANIMALS, new DiceMetaData(3, 6));
+        diceGameTypes.put(EGameType.RIVER_ANIMALS, new DiceMetaData(3,  6));
+        //俄罗斯钻盘 37-》0
+        diceGameTypes.put(EGameType.RUSSIAN_ROULETTE, new DiceMetaData(1, 37));
         return diceGameTypes;
     }
 
@@ -70,14 +72,14 @@ public class DiceDataHolder implements ConfigExcelChangeListener {
         ROOT_NODES.clear();
         Map<EGameType, DiceMetaData> diceGameTypes = getDiceGameConfig();
         Map<Integer, EGameType> diceGameTypeMap =
-            diceGameTypes.keySet().stream()
-                .collect(HashMap::new, (map, e) -> map.put(e.getGameTypeId(), e), HashMap::putAll);
+                diceGameTypes.keySet().stream()
+                        .collect(HashMap::new, (map, e) -> map.put(e.getGameTypeId(), e), HashMap::putAll);
         // 游戏类型对应的位置权重列表
         Map<EGameType, List<WinPosWeightCfg>> winPosWeightCfgMap = new HashMap<>();
         for (WinPosWeightCfg weightCfg : GameDataManager.getWinPosWeightCfgList()) {
             if (diceGameTypeMap.containsKey(weightCfg.getGameID())) {
                 winPosWeightCfgMap.computeIfAbsent(
-                    diceGameTypeMap.get(weightCfg.getGameID()), k -> new ArrayList<>()).add(weightCfg);
+                        diceGameTypeMap.get(weightCfg.getGameID()), k -> new ArrayList<>()).add(weightCfg);
             }
         }
         // build tree
@@ -85,8 +87,14 @@ public class DiceDataHolder implements ConfigExcelChangeListener {
             DiceTreeNode<List<WinPosWeightCfg>> diceRootNode = new DiceTreeNode<>(-1);
             ROOT_NODES.put(entry.getKey(), diceRootNode);
             for (WinPosWeightCfg weightCfg : entry.getValue()) {
-                // 构建dice树
-                buildDiceNodeTree(0, diceRootNode, weightCfg, diceGameTypes.get(entry.getKey()));
+                if (entry.getKey() == EGameType.RUSSIAN_ROULETTE) {
+                    // 俄罗斯转盘特殊处理：winPosID 直接就是骰点值(0-36)
+                    // 原有按数字位拆分的逻辑会导致 key 碰撞（10-19 全部映射到 1，20-29 全部映射到 2，...）
+                    buildRouletteNodeTree(diceRootNode, weightCfg);
+                } else {
+                    // 构建dice树（多骰子按位路径查找）
+                    buildDiceNodeTree(0, diceRootNode, weightCfg, diceGameTypes.get(entry.getKey()));
+                }
             }
         }
     }
@@ -95,7 +103,7 @@ public class DiceDataHolder implements ConfigExcelChangeListener {
      * 构建骰子tree
      */
     private static void buildDiceNodeTree(
-        int pos, DiceTreeNode<List<WinPosWeightCfg>> diceNode, WinPosWeightCfg winPosWeightCfg, DiceMetaData metaData) {
+            int pos, DiceTreeNode<List<WinPosWeightCfg>> diceNode, WinPosWeightCfg winPosWeightCfg, DiceMetaData metaData) {
         if (pos >= metaData.diceNum) {
             List<WinPosWeightCfg> data = diceNode.getData();
             if (data == null) {
@@ -117,15 +125,49 @@ public class DiceDataHolder implements ConfigExcelChangeListener {
     }
 
     /**
+     * 俄罗斯转盘专用：以 winPosID(0-36) 整数值为 key 直接构建单层节点树
+     * <p>
+     * 原有的 {@link #buildDiceNodeTree} 通过拆分数字位定位节点，<br>
+     * 对单骰、骰点范围 0-36 的场景会产生严重的 key 碰撞：<br>
+     * 例如 10,11,12…19 的首位均为 1，会与骰点 1 共用同一叶子节点，导致数据混乱。
+     * </p>
+     */
+    private static void buildRouletteNodeTree(
+            DiceTreeNode<List<WinPosWeightCfg>> diceRootNode, WinPosWeightCfg winPosWeightCfg) {
+        int winPosId = winPosWeightCfg.getWinPosID();
+        DiceTreeNode<List<WinPosWeightCfg>> node = diceRootNode.getNext(winPosId);
+        if (node == null) {
+            node = new DiceTreeNode<>(winPosId);
+            diceRootNode.addNext(winPosId, node);
+        }
+        List<WinPosWeightCfg> data = node.getData();
+        if (data == null) {
+            data = new ArrayList<>();
+            node.setData(data);
+        }
+        data.add(winPosWeightCfg);
+    }
+
+    /**
      * 通过投掷的骰子，获取配置
      */
     public static List<WinPosWeightCfg> getWinPosWeightCfg(EGameType gameType, List<Integer> winPosId) {
         DiceTreeNode<List<WinPosWeightCfg>> diceTreeNode = ROOT_NODES.get(gameType);
+        // 俄罗斯转盘特殊处理：winPosId[0] 即骰点值(0-36)，直接按整数值查找，不做数字位拆分
+        if (gameType == EGameType.RUSSIAN_ROULETTE) {
+            int diceValue = winPosId.get(0);
+            DiceTreeNode<List<WinPosWeightCfg>> next = diceTreeNode.getNext(diceValue);
+            if (next == null) {
+                log.error("找不到游戏类型：{} 开奖ID：{} 对应的开奖配置", gameType.getGameDesc(), diceValue);
+                return new ArrayList<>();
+            }
+            return next.getData();
+        }
         DiceMetaData diceMetaData = getDiceGameConfig().get(gameType);
         String sortedWinPosId = winPosId.stream()
-            .sorted(Integer::compare)
-            .map(String::valueOf)
-            .collect(Collectors.joining(""));
+                .sorted(Integer::compare)
+                .map(String::valueOf)
+                .collect(Collectors.joining(""));
         long finalWinPosId = Long.parseLong(sortedWinPosId);
         DiceTreeNode<List<WinPosWeightCfg>> next = null;
         for (int i = 0; i < diceMetaData.diceNum; i++) {
@@ -150,9 +192,9 @@ public class DiceDataHolder implements ConfigExcelChangeListener {
         String strNum = String.valueOf(number);
         List<Integer> splitNumber = Arrays.stream(strNum.split("")).map(Integer::parseInt).toList();
         String sortedWinPosId = splitNumber.stream()
-            .sorted(Integer::compare)
-            .map(String::valueOf)
-            .collect(Collectors.joining(""));
+                .sorted(Integer::compare)
+                .map(String::valueOf)
+                .collect(Collectors.joining(""));
         return Long.parseLong(sortedWinPosId);
     }
 

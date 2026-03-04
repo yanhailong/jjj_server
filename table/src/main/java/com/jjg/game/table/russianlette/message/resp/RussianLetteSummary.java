@@ -20,7 +20,7 @@ public class RussianLetteSummary {
     @ProtoDesc("俄罗斯转盘游戏基础信息")
     public RussianLetteBaseInfo baseInfo;
 
-    @ProtoDesc("结果转盘状态")
+    @ProtoDesc("转盘结果 只记录最新12把的数字（0-36）")
     public List<Integer> cardStateList;
 
     @ProtoDesc("概率信息")

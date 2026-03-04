@@ -113,7 +113,7 @@ public class WolfMoonGenerateManager extends AbstractSlotsGenerateManager<WolfMo
         System.arraycopy(arr, 0, newArr, 0, arr.length);
 
         //是否有消除
-        repairIcons(newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
+//        repairIcons(newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
 
         if (!addIconInfoList.isEmpty()) {
             lib.setAddIconInfos(addIconInfoList);
@@ -229,7 +229,7 @@ public class WolfMoonGenerateManager extends AbstractSlotsGenerateManager<WolfMo
         addIconInfo.setAwardLineInfoList(newAwardInfoList);
         addIconInfoList.add(addIconInfo);
 
-        repairIcons(arr, newAwardInfoList, addIconInfoList, winCount);
+//        repairIcons(arr, newAwardInfoList, addIconInfoList, winCount);
     }
 
 

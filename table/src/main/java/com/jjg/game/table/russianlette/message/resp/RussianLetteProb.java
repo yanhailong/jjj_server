@@ -11,7 +11,7 @@ import java.util.List;
  * @author 2CL
  */
 @ProtobufMessage
-@ProtoDesc("俄罗斯转盘桌上概率信息")
+@ProtoDesc("俄罗斯转盘桌上概率信息 只算这桌前 前12把的概率")
 public class RussianLetteProb {
 
     @ProtoDesc("红色概率")

@@ -26,7 +26,7 @@ public class RespRussianLetteInfo extends AbstractResponse {
     @ProtoDesc("场上阶段信息")
     public EGamePhase gamePhase;
 
-    @ProtoDesc("玩家第一次进入时初始化数据")
+    @ProtoDesc("转盘结果 只记录最新12把的数字（0-36）")
     public List<Integer> cardStateList;
 
     @ProtoDesc("桌面的数据")
