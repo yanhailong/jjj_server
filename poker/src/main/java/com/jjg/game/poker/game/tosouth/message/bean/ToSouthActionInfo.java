@@ -37,5 +37,5 @@ public class ToSouthActionInfo {
     @ProtoDesc("当前玩家的手牌")
     public List<Integer> selfHandCards;
     @ProtoDesc("刚刚过牌的玩家座位ID，0表示本次通知不是由过牌触发")
-    public int passedSeatId;
+    public long  lastpassUserId;
 }

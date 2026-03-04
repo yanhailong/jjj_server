@@ -286,10 +286,18 @@ public class ToSouthHandUtils {
 
     private static int countPairs(List<Card> cards) {
         int pairs = 0;
-        for (int i = 0; i < cards.size() - 1; i++) {
-            if (cards.get(i).getRank() == cards.get(i+1).getRank()) {
-                pairs++;
-                i++; // 跳过下一张
+        int i = 0;
+        while (i < cards.size() - 1) {
+            if (cards.get(i).getRank() == cards.get(i + 1).getRank()) {
+                // 四张同点是炸弹，不计入对子，整组跳过
+                if (i + 3 < cards.size() && cards.get(i).getRank() == cards.get(i + 3).getRank()) {
+                    i += 4;
+                } else {
+                    pairs++;
+                    i += 2;
+                }
+            } else {
+                i++;
             }
         }
         return pairs;
@@ -471,38 +479,91 @@ public class ToSouthHandUtils {
 
         // 1. 尝试找同类型压制
         Map<ToSouthCardType, List<List<Card>>> integratedCards = integrateHandCards(handCards);
-        List<List<Card>> sameTypeCandidates = integratedCards.get(lastType);
 
-        if (CollUtil.isNotEmpty(sameTypeCandidates)) {
-            // sameTypeCandidates 是降序排列的 (大 -> 小)
-            // 遍历所有可能的牌型
-            for (List<Card> candidate : sameTypeCandidates) {
-                // 如果找到的 candidate 比 lastCards 长，需要截取
-                if (lastType == ToSouthCardType.STRAIGHT || lastType == ToSouthCardType.CONSECUTIVE_PAIRS) {
-                    if (candidate.size() > lastCards.size()) {
-                         // 尝试截取同等长度
-                         List<Card> sortedCandidate = new ArrayList<>(candidate);
-                         sortedCandidate.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
-                         
-                         int step = (lastType == ToSouthCardType.STRAIGHT) ? 1 : 2;
-                         int targetSize = lastCards.size();
-                         
-                         // 滑动窗口查找所有能压过的子串
-                         // 注意：必须用 new ArrayList<> 拷贝，不能用 subList 视图。
-                         // compare -> getCardType 会对入参 in-place 排序，若传视图会破坏
-                         // sortedCandidate 后续位置的顺序，导致窗口滑到脏数据。
-                         for (int j = 0; j <= sortedCandidate.size() - targetSize; j += step) {
-                             List<Card> subList = new ArrayList<>(sortedCandidate.subList(j, j + targetSize));
-                             if (compare(lastCards, subList)) {
-                                 result.add(subList);
-                             }
-                         }
-                         continue;
+        if (lastType == ToSouthCardType.SINGLE) {
+            // 单张跟牌：手牌中任意一张比上家大的单张都可以出。
+            // 不能依赖 integrateHandCards 的结果——对子/三张/炸弹中的牌不会进入 SINGLE 分组，
+            // 导致"有对3却被判为无法跟单3"的错误。直接遍历全部手牌。
+            for (Card card : handCards) {
+                List<Card> singleCard = new ArrayList<>();
+                singleCard.add(card);
+                if (compare(lastCards, singleCard)) {
+                    result.add(singleCard);
+                }
+            }
+        } else if (lastType == ToSouthCardType.PAIR) {
+            // 对子跟牌：手牌中任意一对比上家大的对子都可以出（包括从三张、炸弹中拆出对子）。
+            // integrateHandCards 会先提走三张/炸弹，导致 PAIR 分组中漏掉可拆出的对子。
+            Map<Integer, List<Card>> allRankMap = new HashMap<>();
+            for (Card card : handCards) {
+                allRankMap.computeIfAbsent(card.getRank(), k -> new ArrayList<>()).add(card);
+            }
+            for (Map.Entry<Integer, List<Card>> entry : allRankMap.entrySet()) {
+                List<Card> rankCards = new ArrayList<>(entry.getValue());
+                if (rankCards.size() >= 2) {
+                    rankCards.sort(CARD_COMPARATOR); // 降序：最大花色排最前
+                    // 取最强两张作为推荐对子
+                    List<Card> bestPair = new ArrayList<>();
+                    bestPair.add(rankCards.get(0));
+                    bestPair.add(rankCards.get(1));
+                    if (compare(lastCards, bestPair)) {
+                        result.add(bestPair);
                     }
                 }
-                
-                if (compare(lastCards, candidate)) {
-                    result.add(candidate);
+            }
+        } else if (lastType == ToSouthCardType.TRIPLE) {
+            // 三张跟牌：手牌中任意一组三张比上家大的都可以出（包括从炸弹中拆出三张）。
+            Map<Integer, List<Card>> allRankMap = new HashMap<>();
+            for (Card card : handCards) {
+                allRankMap.computeIfAbsent(card.getRank(), k -> new ArrayList<>()).add(card);
+            }
+            for (Map.Entry<Integer, List<Card>> entry : allRankMap.entrySet()) {
+                List<Card> rankCards = new ArrayList<>(entry.getValue());
+                if (rankCards.size() >= 3) {
+                    rankCards.sort(CARD_COMPARATOR); // 降序
+                    List<Card> bestTriple = new ArrayList<>();
+                    bestTriple.add(rankCards.get(0));
+                    bestTriple.add(rankCards.get(1));
+                    bestTriple.add(rankCards.get(2));
+                    if (compare(lastCards, bestTriple)) {
+                        result.add(bestTriple);
+                    }
+                }
+            }
+        } else {
+            // 顺子、连对等：使用 integratedCards 的分组结果（这些牌型本身就需要整体出，不存在拆分问题）
+            List<List<Card>> sameTypeCandidates = integratedCards.get(lastType);
+
+            if (CollUtil.isNotEmpty(sameTypeCandidates)) {
+                // sameTypeCandidates 是降序排列的 (大 -> 小)
+                for (List<Card> candidate : sameTypeCandidates) {
+                    // 如果找到的 candidate 比 lastCards 长，需要截取
+                    if (lastType == ToSouthCardType.STRAIGHT || lastType == ToSouthCardType.CONSECUTIVE_PAIRS) {
+                        if (candidate.size() > lastCards.size()) {
+                            // 尝试截取同等长度
+                            List<Card> sortedCandidate = new ArrayList<>(candidate);
+                            sortedCandidate.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
+
+                            int step = (lastType == ToSouthCardType.STRAIGHT) ? 1 : 2;
+                            int targetSize = lastCards.size();
+
+                            // 滑动窗口查找所有能压过的子串
+                            // 注意：必须用 new ArrayList<> 拷贝，不能用 subList 视图。
+                            // compare -> getCardType 会对入参 in-place 排序，若传视图会破坏
+                            // sortedCandidate 后续位置的顺序，导致窗口滑到脏数据。
+                            for (int j = 0; j <= sortedCandidate.size() - targetSize; j += step) {
+                                List<Card> subList = new ArrayList<>(sortedCandidate.subList(j, j + targetSize));
+                                if (compare(lastCards, subList)) {
+                                    result.add(subList);
+                                }
+                            }
+                            continue;
+                        }
+                    }
+
+                    if (compare(lastCards, candidate)) {
+                        result.add(candidate);
+                    }
                 }
             }
         }

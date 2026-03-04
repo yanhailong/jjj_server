@@ -95,14 +95,14 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
 
                 if (change > 0) {
                     // 扣除抽水
-                    long afterTaxWin = BigDecimal.valueOf(change)
-                            .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getEffectiveRatio()))
+                    long tax = BigDecimal.valueOf(change)
+                            .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getEffectiveRatio()))
                             .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
 
-                    totalTax += (change - afterTaxWin);
-                    finalWinScore = afterTaxWin;
+                    totalTax += tax;
+                    finalWinScore = change - tax;
 
-                    controller.addItem(playerId, afterTaxWin, AddType.GAME_SETTLEMENT);
+                    controller.addItem(playerId, finalWinScore, AddType.GAME_SETTLEMENT);
                     gameDataTracker.addGameLogData("tax", totalTax);
                     if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                         robotPlayer.setLastWin(1);

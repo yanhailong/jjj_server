@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_2;
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_3;
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUITS;
 
@@ -41,6 +42,9 @@ import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUI
  */
 public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo> {
     
+    /** 炸弹测试模式：true=每人发满手炸弹（用于验证炸弹结算逻辑），false=正常随机发牌 */
+    private static final boolean BOMB_TEST_MODE = false;
+
     private ToSouthSettlementContext instantWinContext;
 
     public ToSouthStartGamePhase(AbstractPhaseGameController<Room_ChessCfg, ToSouthGameDataVo> gameController, long executionGameId) {
@@ -63,7 +67,12 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             log.debug("南方前进开始游戏，房间底注为：{}", warehouseCfg.getEnterLimit());
             // 1. 洗牌发牌
             Map<Integer, PokerCard> cardListMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
-            sendCards(cardListMap, gameDataVo);
+            if (BOMB_TEST_MODE) {
+                log.info("炸弹测试模式已开启，跳过随机发牌，改为发炸弹牌");
+                sendBombTestCards(cardListMap, gameDataVo);
+            } else {
+                sendCards(cardListMap, gameDataVo);
+            }
 
             // 2. 确定首出玩家 (黑桃3)
             PlayerSeatInfo playerSeatInfo = findSeatWithSpecifyCard(gameDataVo, cardListMap, RANK_3, SPADE_SUITS);
@@ -75,8 +84,10 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             gameDataVo.setIndex(playerSeatInfo.getSeatId());
             gameDataVo.setRoundLeaderSeatId(playerSeatInfo.getSeatId());
 
-            // 3. 检查通杀
-            checkInstantWin(controller);
+            // 3. 检查通杀（炸弹测试模式下跳过，否则人人有炸弹把把触发通杀）
+            if (!BOMB_TEST_MODE) {
+                checkInstantWin(controller);
+            }
         }
     }
 
@@ -129,6 +140,97 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             RespToSouthSendCardsInfo sendCardsInfo = new RespToSouthSendCardsInfo();
             sendCardsInfo.sortedHandCards = sortedHandCards;
             // 简单打乱处理
+            List<Integer> temp = new ArrayList<>(sortedHandCards);
+            Collections.shuffle(temp);
+            sendCardsInfo.originalHandCards = temp;
+            sendCardsInfo.highlightCards = highlightIds;
+            gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), sendCardsInfo));
+        }
+    }
+
+    /**
+     * 炸弹测试模式发牌：
+     * 将3~A各花色组成的四张同点炸弹按轮次分配给玩家，剩余手牌位置用2填充。
+     * 以4人桌为例：每人获得3个炸弹(12张) + 1张2 = 13张。
+     */
+    private void sendBombTestCards(Map<Integer, PokerCard> cardListMap, ToSouthGameDataVo gameDataVo) {
+        // 按点数分组，2单独收集作为填充牌
+        Map<Integer, List<PokerCard>> rankGroups = new HashMap<>();
+        List<PokerCard> deuces = new ArrayList<>();
+        for (PokerCard card : cardListMap.values()) {
+            if (card.getRank() == RANK_2) {
+                deuces.add(card);
+            } else {
+                rankGroups.computeIfAbsent(card.getRank(), k -> new ArrayList<>()).add(card);
+            }
+        }
+
+        // 收集完整的四张同点炸弹组，按点数升序排列保证稳定性（3最小优先分配）
+        List<List<PokerCard>> bombGroups = rankGroups.entrySet().stream()
+                .filter(e -> e.getValue().size() >= 4)
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> new ArrayList<>(e.getValue().subList(0, 4)))
+                .collect(Collectors.toList());
+
+        List<PlayerSeatInfo> activePlayers = gameDataVo.getPlayerSeatInfoList().stream()
+                .filter(p -> !p.isDelState())
+                .collect(Collectors.toList());
+        int playerCount = activePlayers.size();
+        int handPoker = gameDataVo.getRoomCfg().getHandPoker();
+
+        // 炸弹组按轮次分配给玩家（手牌未满才追加）
+        Map<Long, List<PokerCard>> playerCardMap = new HashMap<>();
+        for (PlayerSeatInfo info : activePlayers) {
+            playerCardMap.put(info.getPlayerId(), new ArrayList<>());
+        }
+        for (int i = 0; i < bombGroups.size(); i++) {
+            PlayerSeatInfo player = activePlayers.get(i % playerCount);
+            List<PokerCard> hand = playerCardMap.get(player.getPlayerId());
+            if (hand.size() + 4 <= handPoker) {
+                hand.addAll(bombGroups.get(i));
+            }
+        }
+
+        // 剩余位置用2补齐
+        int deuceIdx = 0;
+        for (PlayerSeatInfo info : activePlayers) {
+            List<PokerCard> hand = playerCardMap.get(info.getPlayerId());
+            while (hand.size() < handPoker && deuceIdx < deuces.size()) {
+                hand.add(deuces.get(deuceIdx++));
+            }
+        }
+
+        // 炸弹测试后牌堆为空
+        gameDataVo.setCards(new ArrayList<>());
+
+        // 与 sendCards 保持相同的发牌协议
+        for (PlayerSeatInfo info : activePlayers) {
+            List<Card> handCards = new ArrayList<>(playerCardMap.get(info.getPlayerId()));
+            // 按规则排列手牌并计算高亮牌
+            List<Integer> highlightIds = ToSouthHandUtils.sortAndGetHighlightCards(handCards);
+            if (!highlightIds.isEmpty()) {
+                gameDataVo.getPlayerHighlightCards().put(info.getPlayerId(), highlightIds);
+            }
+
+            List<Integer> playCard = new ArrayList<>();
+            List<Integer> sortedHandCards = new ArrayList<>();
+            for (Card c : handCards) {
+                if (c instanceof PokerCard pc) {
+                    playCard.add(pc.getPokerPoolId());
+                    sortedHandCards.add(pc.getClientId());
+                }
+            }
+
+            info.setCards(new ArrayList<>());
+            info.getCards().add(playCard);
+
+            if (log.isDebugEnabled()) {
+                log.debug("炸弹测试发牌 - 玩家: {}, 座位: {}, 手牌: {}", info.getPlayerId(), info.getSeatId(),
+                        ToSouthHandUtils.cardListToString(handCards));
+            }
+
+            RespToSouthSendCardsInfo sendCardsInfo = new RespToSouthSendCardsInfo();
+            sendCardsInfo.sortedHandCards = sortedHandCards;
             List<Integer> temp = new ArrayList<>(sortedHandCards);
             Collections.shuffle(temp);
             sendCardsInfo.originalHandCards = temp;
