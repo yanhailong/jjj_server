@@ -212,8 +212,10 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                         int needAdd = maxRank - robotList.size();
                         if (needAdd > 0) {
                             Set<Long> oldRobotIds = new HashSet<>(robotList.size());
+                            Set<Integer> oldRobotCfgIds = new HashSet<>(robotList.size());
                             for (Pair<Long, Integer> pair : robotList) {
                                 oldRobotIds.add(pair.getFirst());
+                                oldRobotCfgIds.add(pair.getSecond());
                             }
                             List<PointsAwardRobotCfg> pointsRobot = new ArrayList<>(GameDataManager.getPointsAwardRobotCfgList());
                             List<RobotCfg> robotCfgList = new ArrayList<>(GameDataManager.getRobotCfgList());
@@ -228,7 +230,19 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                                 long robotId = robotUtil.getId(robotCfg.getId());
                                 if (!oldRobotIds.contains(robotId)) {
                                     PointsAwardRobotCfg pointsRobotCfg = pointsRobot.get(i);
+                                    if (oldRobotCfgIds.contains(pointsRobotCfg.getId())) {
+                                        for (PointsAwardRobotCfg awardRobotCfg : pointsRobot) {
+                                            if (!oldRobotCfgIds.contains(awardRobotCfg.getId())) {
+                                                pointsRobotCfg = awardRobotCfg;
+                                                break;
+                                            }
+                                        }
+                                        if (oldRobotCfgIds.contains(pointsRobotCfg.getId())) {
+                                            continue;
+                                        }
+                                    }
                                     add.add(robotId + "_" + pointsRobotCfg.getId());
+                                    oldRobotCfgIds.add(pointsRobotCfg.getId());
                                     robotList.add(Pair.newPair(robotId, pointsRobotCfg.getId()));
                                     addCount++;
                                 }
@@ -250,9 +264,12 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                         String rankKey = leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.DAY);
                         List<RankEntry> rankEntries = rankService.topN(rankKey, showMaxRank);
                         List<RankChange> rankChanges = new ArrayList<>(showMaxRank);
-
+                        // 使用每日固定种子对机器人池做确定性洗牌，避免重复选中同一机器人
+                        long currentDateZeroMilliTime = TimeHelper.getCurrentDateZeroMilliTime();
+                        List<Pair<Long, Integer>> shuffledRobotList = new ArrayList<>(robotList);
+                        Collections.shuffle(shuffledRobotList, new Random(currentDateZeroMilliTime));
                         for (int i = 0; i < showMaxRank; i++) {
-                            Pair<Long, Integer> robotCfgPair = robotList.get(i);
+                            Pair<Long, Integer> robotCfgPair = shuffledRobotList.get(i);
                             PointsAwardRobotCfg rankingCfg = GameDataManager.getPointsAwardRobotCfg(robotCfgPair.getSecond());
                             if (rankingCfg == null) {
                                 continue;
@@ -272,11 +289,12 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                         //批量获取原积分,然后计算真正的积分
                         Map<Long, Long> oldPointMap = rankService.batchGetPoints(rankKey, rankChanges.stream().map(RankChange::getPlayerId).collect(Collectors.toList()));
                         //从新计算需要增加的分数
+                        log.info("变化积分 ：{}", JSON.toJSONString(rankChanges));
                         for (RankChange rankChange : rankChanges) {
                             rankChange.setAddPoints(rankChange.getAddPoints() - (oldPointMap.getOrDefault(rankChange.getPlayerId(), 0L)).intValue());
                         }
-
-                        log.info("变化积分 ：{}", JSON.toJSONString(rankChanges));
+                        rankChanges.removeIf(rankChange -> rankChange.getAddPoints() <= 0);
+                        log.info("变化过滤后的积分 ：{}", JSON.toJSONString(rankChanges));
                         //更新排行榜
                         rankService.batchAddPoints(rankKey, rankChanges);
                         log.info("积分大奖更新日榜成功 size:{}", rankChanges.size());
@@ -294,7 +312,6 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             }
         }.setHandlerParamWithSelf("pointsAward robotAction"));
     }
-
 
     public RList<String> getRedisRobotList() {
         return redissonClient.getList(PointsAwardConstant.RedisKey.POINTS_AWARD_ROBOT_ID);
@@ -358,6 +375,10 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
      * 重新加载配置
      */
     public void reloadConfig() {
+        reloadConfig(LocalDate.now());
+    }
+
+    public void reloadConfig(LocalDate now) {
         try {
             log.debug("开始重新加载排行榜配置");
 
@@ -374,7 +395,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                     PointsAwardConstant.Leaderboard.DAY,
                     PointsAwardConstant.Leaderboard.WEEK
             ).forEach(type -> {
-                Map<Integer, PointsAwardRankingCfg> typeConfig = filterConfig(type, configList, LocalDate.now());
+                Map<Integer, PointsAwardRankingCfg> typeConfig = filterConfig(type, configList, now);
                 if (!typeConfig.isEmpty()) {
                     configMap.put(type, typeConfig);
                     log.debug("加载排行榜配置，类型: {}, 配置数量: {}", type, typeConfig.size());
@@ -407,68 +428,54 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
 
     // ==================== 定时任务方法 ====================
 
+
     /**
      * 根据指定的小时数执行相应的业务逻辑。
      * 0 点：保存每日，每周榜（全天最终）快照并清空日榜；若为每月第一天，保存上月榜并清空月榜
      */
-    public void clock(int hour) {
+    public void clock(int hour, LocalDate now) {
         try {
-            if (isMaster()) {
-                handleMidnightSettlement();
-            }
-            if (isFirstDayOfMonth()) {
-                clearRobotData();
+            if (hour == 0 && isMaster()) {
+                handleMidnightSettlement(now);
             }
             // 重载配置
-            reloadConfig();
+            reloadConfig(now);
         } catch (Exception e) {
             log.error("定时任务执行失败，小时: {}", hour, e);
         }
     }
 
 
-    private boolean isWeekStart() {
-        return LocalDate.now().getDayOfWeek() == DayOfWeek.MONDAY;
+    private boolean isWeekStart(LocalDate now) {
+        return now.getDayOfWeek() == DayOfWeek.MONDAY;
     }
 
     /**
      * 处理午夜0点的结算逻辑
      */
-    private void handleMidnightSettlement() {
+    private void handleMidnightSettlement(LocalDate now) {
         try {
             //日榜
             if (configMap.containsKey(PointsAwardConstant.Leaderboard.DAY)) {
-                snapshotUnderLock(PointsAwardConstant.Leaderboard.DAY);
+                snapshotUnderLock(PointsAwardConstant.Leaderboard.DAY, now);
                 leaderboardService.reset(PointsAwardConstant.Leaderboard.DAY);
             }
             // 周榜
-            boolean weekStart = isWeekStart();
+            boolean weekStart = isWeekStart(now);
             if (weekStart && configMap.containsKey(PointsAwardConstant.Leaderboard.WEEK)) {
-                snapshotUnderLock(PointsAwardConstant.Leaderboard.WEEK);
+                snapshotUnderLock(PointsAwardConstant.Leaderboard.WEEK, now);
                 leaderboardService.reset(PointsAwardConstant.Leaderboard.WEEK);
             }
             // 每月第一天的 0 点，保存上月榜并清空月榜
-            boolean firstDayOfMonth = isFirstDayOfMonth();
+            boolean firstDayOfMonth = isFirstDayOfMonth(now);
             if (firstDayOfMonth && configMap.containsKey(PointsAwardConstant.Leaderboard.TYPE_MONTH)) {
-                snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH);
+                snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH, now);
                 leaderboardService.reset(PointsAwardConstant.Leaderboard.TYPE_MONTH);
             }
             log.info("午夜0点结算完成，是否周一:{} 是否月初: {}", weekStart, firstDayOfMonth);
         } catch (Exception e) {
             log.error("午夜0点结算失败", e);
         }
-    }
-
-    /**
-     * 清除机器人数据
-     */
-    private void clearRobotData() {
-        if (isMaster()) {
-            RList<String> redisIdList = redissonClient.getList(PointsAwardConstant.RedisKey.POINTS_AWARD_ROBOT_ID);
-            redisIdList.delete();
-        }
-        robotList = null;
-        log.info("月榜结束 清除机器人数据成功");
     }
 
 
@@ -562,11 +569,15 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
      * @param snapshotType 快照类型
      */
     private void snapshotUnderLock(int snapshotType) {
+        snapshotUnderLock(snapshotType, LocalDate.now());
+    }
+
+    private void snapshotUnderLock(int snapshotType, LocalDate settlementDate) {
         int maxRankSize = getMaxRankSize(snapshotType);
         List<PointsAwardLeaderboardInfo> topList = leaderboardService.topN(snapshotType, maxRankSize);
         PointsAwardLeaderboardData rankingData = new PointsAwardLeaderboardData();
         rankingData.setRankType(snapshotType);
-        rankingData.setEndTime(TimeHelper.getCurrentDateZeroMilliTime());
+        rankingData.setEndTime(TimeHelper.getTimestamp(settlementDate.atStartOfDay()));
         rankingData.setRankingInfoList(topList);
         // 发奖
         sendAward(rankingData);
@@ -621,19 +632,19 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
         return PointsAwardConstant.Leaderboard.MAX_RANK_SIZE;
     }
 
-    public LocalDate getStartTime(int rankType) {
+    public LocalDate getStartTime(int rankType, LocalDate baseDate) {
         switch (rankType) {
             case PointsAwardConstant.Leaderboard.DAY -> {
-                return LocalDate.now().minusDays(1);
+                return baseDate.minusDays(1);
             }
             case PointsAwardConstant.Leaderboard.WEEK -> {
-                return LocalDate.now().minusWeeks(1);
+                return baseDate.minusWeeks(1);
             }
             case PointsAwardConstant.Leaderboard.TYPE_MONTH -> {
-                return LocalDate.now().minusMonths(1);
+                return baseDate.minusMonths(1);
             }
         }
-        return LocalDate.now();
+        return baseDate;
     }
 
     /**
@@ -648,7 +659,8 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             return;
         }
         //排行开始时间
-        LocalDate rankDate = getStartTime(rankingData.getRankType());
+        LocalDate rankDate = LocalDate.ofInstant(Instant.ofEpochMilli(rankingData.getEndTime()), ZoneId.systemDefault());
+        rankDate = getStartTime(rankingData.getRankType(), rankDate);
         //当前排行榜结算的配置
         Map<Integer, PointsAwardRankingCfg> cfgMap = filterConfig(rankingData.getRankType(), GameDataManager.getPointsAwardRankingCfgList(), rankDate);
         if (cfgMap.isEmpty()) {
@@ -824,8 +836,8 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
      *
      * @return true如果是月初第一天
      */
-    private boolean isFirstDayOfMonth() {
-        return LocalDate.now().getDayOfMonth() == 1;
+    private boolean isFirstDayOfMonth(LocalDate now) {
+        return now.getDayOfMonth() == 1;
     }
 
 

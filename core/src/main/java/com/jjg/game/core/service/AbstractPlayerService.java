@@ -63,6 +63,7 @@ public class AbstractPlayerService {
     @Autowired
     protected NodeManager nodeManager;
 
+
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
     }
@@ -935,8 +936,7 @@ public class AbstractPlayerService {
         if (p != null) {
             // 升级需要抛升级事件
             if (beforeLevel.value != p.getLevel()) {
-                gameEventManager.triggerEvent(
-                        new PlayerEvent(p, EGameEventType.PLAYER_LEVEL, beforeLevel.value, p.getLevel()));
+                gameEventManager.triggerEvent(new PlayerEvent(p, EGameEventType.PLAYER_LEVEL, beforeLevel.value, p.getLevel()));
             }
 
             coreLogger.useGold(p, beforeCoin.value, -num, addType, desc);

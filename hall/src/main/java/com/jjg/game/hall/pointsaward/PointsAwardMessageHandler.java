@@ -1,6 +1,7 @@
 package com.jjg.game.hall.pointsaward;
 
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.Command;
@@ -12,7 +13,7 @@ import com.jjg.game.core.dao.CommonDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.manager.RedDotManager;
-import com.jjg.game.hall.minigame.game.luckytreasure.message.req.ReqLuckyTreasureHistory;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardData;
@@ -57,20 +58,31 @@ public class PointsAwardMessageHandler {
      * 积分大奖服务
      */
     private final PointsAwardService pointsAwardService;
-
+    /**
+     * 功能开放判断
+     */
+    private final GameFunctionService gameFunctionService;
 
     private final RedDotManager redDotManager;
+
     private final CommonDao commonDao;
+
     public PointsAwardMessageHandler(PointsAwardSignInService pointsAwardSignInService,
                                      PointsAwardLeaderboardService pointsAwardLeaderboardService,
                                      PointsAwardService pointsAwardService,
-                                     PointsAwardTurntableService pointsAwardTurntableService, RedDotManager redDotManager, CommonDao commonDao) {
+                                     PointsAwardTurntableService pointsAwardTurntableService, GameFunctionService gameFunctionService, RedDotManager redDotManager, CommonDao commonDao) {
         this.pointsAwardSignInService = pointsAwardSignInService;
         this.pointsAwardLeaderboardService = pointsAwardLeaderboardService;
         this.pointsAwardService = pointsAwardService;
         this.pointsAwardTurntableService = pointsAwardTurntableService;
+        this.gameFunctionService = gameFunctionService;
         this.redDotManager = redDotManager;
         this.commonDao = commonDao;
+    }
+
+    public boolean checkFunctionOpen(PlayerController playerController) {
+        boolean checked = gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.POINT_REWARD);
+        return !checked;
     }
 
     /**
@@ -78,6 +90,9 @@ public class PointsAwardMessageHandler {
      */
     @Command(PointsAwardConstant.Message.REQ_SIGN_CONFIG)
     public void signInConfig(PlayerController playerController, ReqPointsAwardSignInConfig message) {
+        if (checkFunctionOpen(playerController)) {
+            return;
+        }
         ResPointsAwardSignInConfig res = new ResPointsAwardSignInConfig(Code.SUCCESS);
         try {
             List<PointsAwardSignInConfig> configList = pointsAwardSignInService.getConfigList(playerController.playerId());
@@ -90,11 +105,15 @@ public class PointsAwardMessageHandler {
         playerController.send(res);
     }
 
+
     /**
      * 请求签到
      */
     @Command(PointsAwardConstant.Message.REQ_SIGN)
     public void singIn(PlayerController playerController, ReqPointsAwardSignIn message) {
+        if (checkFunctionOpen(playerController)) {
+            return;
+        }
         ResPointsAwardSignIn res = new ResPointsAwardSignIn(Code.SUCCESS);
         pointsAwardSignInService.signIn(playerController.getPlayer(), message.getDayOfMonth());
         List<PointsAwardSignInConfig> configList = pointsAwardSignInService.getConfigList(playerController.playerId());
@@ -109,6 +128,9 @@ public class PointsAwardMessageHandler {
      */
     @Command(PointsAwardConstant.Message.REQ_TURNTABLE_CONFIG)
     public void turntableConfig(PlayerController playerController, ReqPointsAwardTurntableConfig message) {
+        if (checkFunctionOpen(playerController)) {
+            return;
+        }
         ResPointsAwardTurntableConfig res = new ResPointsAwardTurntableConfig(Code.SUCCESS);
         try {
             List<PointsAwardTurntableConfig> configList = pointsAwardTurntableService.getConfigList();
@@ -128,6 +150,9 @@ public class PointsAwardMessageHandler {
      */
     @Command(PointsAwardConstant.Message.REQ_TURNTABLE)
     public void turntableSpin(PlayerController playerController, ReqPointsAwardTurntableSpin message) {
+        if (checkFunctionOpen(playerController)) {
+            return;
+        }
         CommonResult<ResPointsAwardTurntableSpin> result = pointsAwardTurntableService.spin(playerController.playerId());
         if (!result.success()) {
             playerController.send(new ResPointsAwardTurntableSpin(result.code));
@@ -145,6 +170,9 @@ public class PointsAwardMessageHandler {
      */
     @Command(PointsAwardConstant.Message.REQ_TURNTABLE_HISTORY)
     public void turntableHistory(PlayerController playerController, ReqPointsAwardTurntableHistory message) {
+        if (checkFunctionOpen(playerController)) {
+            return;
+        }
         ResPointsAwardTurntableHistory res = new ResPointsAwardTurntableHistory(Code.SUCCESS);
         res.setHistoryList(pointsAwardTurntableService.getHistoryList(playerController.playerId()));
         playerController.send(res);
@@ -156,6 +184,9 @@ public class PointsAwardMessageHandler {
      */
     @Command(PointsAwardConstant.Message.REQ_POINT)
     public void point(PlayerController playerController, ReqPlayerPoint message) {
+        if (checkFunctionOpen(playerController)) {
+            return;
+        }
         NotifySyncPlayerPoint res = new NotifySyncPlayerPoint();
         Pair<Integer, Integer> rank = pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerController.playerId());
         res.setRank(rank.getFirst());
@@ -171,6 +202,9 @@ public class PointsAwardMessageHandler {
      */
     @Command(PointsAwardConstant.Message.REQ_LOAD_LEADERBOARD)
     public void loadLeaderboard(PlayerController playerController, ReqLoadLeaderboard message) {
+        if (checkFunctionOpen(playerController)) {
+            return;
+        }
         int type = message.getType();
         PageUtils.PageResult<PointsAwardLeaderboardData> pageResult = pointsAwardLeaderboardService.getData(type, message.getPageIndex(), message.getPageSize());
         //自己在排行榜上的名次 -1表示未上榜
@@ -193,6 +227,9 @@ public class PointsAwardMessageHandler {
      */
     @Command(PointsAwardConstant.Message.REQ_LOAD_LEADERBOARD_HISTORY)
     public void loadLeaderboardHistory(PlayerController playerController, ReqLoadLeaderboardHistory message) {
+        if (checkFunctionOpen(playerController)) {
+            return;
+        }
         int pageIndex = message.getPageIndex();
         int pageSize = message.getPageSize();
         ResLoadLeaderboardHistory history = pointsAwardLeaderboardService.getHistory(playerController.playerId(), pageIndex, pageSize);
@@ -205,6 +242,9 @@ public class PointsAwardMessageHandler {
      */
     @Command(PointsAwardConstant.Message.REQ_TURNTABLE_RECHARGE_INFO)
     public void turntableRechargeInfo(PlayerController playerController, ReqTurntableRechargeInfo msg) {
+        if (checkFunctionOpen(playerController)) {
+            return;
+        }
         BigDecimal recharge = pointsAwardService.getRecharge(playerController.playerId());
         int addCount = pointsAwardTurntableService.getAddCount(playerController.playerId());
         int checkValue = pointsAwardTurntableService.getRechargeCheckValue();

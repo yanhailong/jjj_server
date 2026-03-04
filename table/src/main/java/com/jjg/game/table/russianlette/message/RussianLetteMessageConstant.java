@@ -29,6 +29,8 @@ public interface  RussianLetteMessageConstant {
     }
 
     interface RespMsgBean {
+        // 通知切换状态信息
+        int NOTIFY_RUSSIAN_LETTE_PHASE_CHANGE_INFO  = BASE_MSG_PREFIX | 0x80;
         // 进入房间的信息
         int NOTIFY_RUSSIAN_LETTE_TABLE_INFO = BASE_MSG_PREFIX | 0x81;
         // 房间结算通知

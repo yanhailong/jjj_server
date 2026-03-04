@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
+import com.jjg.game.common.concurrent.PlayerWorker;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
@@ -87,15 +88,12 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
     @Override
     public void sessionClose(PFSession session) {
-        if (session.getReference() instanceof PlayerController playerController &&
-                playerController.getScene() instanceof AbstractRoomController<?, ?> roomController) {
-            roomController.getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
-                @Override
-                public void action() {
-                    exitRoomAction(session, false);
-                }
-            });
-        }
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.workId,0, new BaseHandler<String>() {
+            @Override
+            public void action() {
+                exitRoomAction(session, false);
+            }
+        });
     }
 
     public void exitRoomAction(PFSession session, boolean exit) {

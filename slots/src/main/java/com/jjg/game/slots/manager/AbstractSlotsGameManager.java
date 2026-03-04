@@ -944,19 +944,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param modelId
      * @return
      */
-    protected CommonResult<Integer> getResultLibType(int gameType, int modelId, long betValue, RoomType roomType) {
+    protected CommonResult<Integer> getResultLibType(int gameType, int modelId, RoomType roomType) {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
-        TypePropData typePropData = getGenerateManager().getSpecialResultLibCacheData().getTypePropData(modelId, betValue);
-        if (typePropData == null) {
-            log.warn("未找到 specialResultLib 中 typeProp相关的权重信息 modelId = {},betValue = {},gameType = {}", modelId, betValue, gameType);
-            result.code = Code.NOT_FOUND;
+        PropInfo propInfo;
+        if (roomType == null) {
+            propInfo = getGenerateManager().getSpecialResultLibCacheData().getResultLibTypePropInfoMap().get(modelId);
+        } else if (roomType == RoomType.SLOTS_TEAM_UP_ROOM) {
+            propInfo = getGenerateManager().getSpecialResultLibCacheData().getNoJackpotResultLibTypePropInfoMap().get(modelId);
+        } else {
+            log.warn("获取 resultLibType 是，不支持该roomType, gameType = {},modelId = {},roomType = {}", gameType, modelId, roomType);
+            result.code = Code.FAIL;
             return result;
-        }
-//        log.warn("找到typePropData信息 modelId = {},betValue = {},gameType = {},data = {}", modelId, betValue, gameType,JSONObject.toJSONString(typePropData));
-
-        PropInfo propInfo = typePropData.getTypePropInfo();
-        if (roomType == RoomType.SLOTS_TEAM_UP_ROOM) {
-            propInfo = typePropData.getNoJackpotTypePropInfo();
         }
 
         if (propInfo == null) {
@@ -978,32 +976,38 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * 获取 specialResultLib 中的倍数区间
      *
      * @param modelId
-     * @param libType specialResultLib 中的type
+     * @param libType  specialResultLib 中的type
+     * @param betValue 下注金额
      * @return
      */
-    protected CommonResult<Integer> getResultLibSection(int modelId, int libType) {
+    protected CommonResult<Integer> getResultLibSection(int modelId, int libType, long betValue) {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
-        Map<Integer, PropInfo> tempPropMap = getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionPropMap().get(modelId);
+        Map<Integer, PropInfo> tempPropMap;
+        if (betValue < 1) {
+            tempPropMap = getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionPropMap().get(modelId);
+        } else {
+            tempPropMap = getGenerateManager().getSpecialResultLibCacheData().getPropMap(modelId, betValue);
+        }
         if (tempPropMap == null) {
-            log.warn("未找到 specialResultLib 中 section 相关的权重信息1 modelId = {},gameType = {},libType = {}", modelId, this.gameType, libType);
+            log.warn("未找到 specialResultLib 中 section 相关的权重信息1 modelId = {},gameType = {},libType = {},betValue = {}", modelId, this.gameType, libType, betValue);
             result.code = Code.NOT_FOUND;
             return result;
         }
         PropInfo propInfo = tempPropMap.get(libType);
         if (propInfo == null || propInfo.getSum() < 1) {
-            log.warn("未找到 specialResultLib 中 section 相关的权重信息2 modelId = {},gameType = {},libType = {}", modelId, this.gameType, libType);
+            log.warn("未找到 specialResultLib 中 section 相关的权重信息2 modelId = {},gameType = {},libType = {},betValue = {}", modelId, this.gameType, libType, betValue);
             result.code = Code.NOT_FOUND;
             return result;
         }
         Integer index = propInfo.getRandKey();
         if (index == null) {
-            log.warn("未找到 specialResultLib 中 section 相关的权重信息3 modelId = {},gameType = {},libType = {},index = {}", modelId, this.gameType, libType, index);
+            log.warn("未找到 specialResultLib 中 section 相关的权重信息3 modelId = {},gameType = {},libType = {},index = {},betValue = {}", modelId, this.gameType, libType, index, betValue);
             result.code = Code.FAIL;
             return result;
         }
         result.data = index;
         int[] section = getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionMap().get(libType).get(index);
-        log.debug("成功获取区间 modelId = {},gameType = {},libType = {},intdex = {},sectionBegin = {},sectionEnd = {}", modelId, this.gameType, libType, index, section[0], section[1]);
+        log.debug("成功获取区间 modelId = {},gameType = {},libType = {},intdex = {},sectionBegin = {},sectionEnd = {},betValue = {}", modelId, this.gameType, libType, index, section[0], section[1], betValue);
         return result;
     }
 
@@ -1803,7 +1807,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     protected int calWinTimes(GameRunInfo<T> gameRunInfo, T playerGameData) {
-        if(playerGameData.getAllBetScore() < 1){
+        if (playerGameData.getAllBetScore() < 1) {
             return 0;
         }
         return (int) (gameRunInfo.getAllWinGold() / playerGameData.getAllBetScore());
@@ -1931,7 +1935,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //如果gm中没有设置 libType，则需要根据配置获取 libType
             if (!gmLibType && libType <= 1) {
                 //获取 specialResultLib 中的type
-                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId(), playerGameData.getAllBetScore(), playerGameData.getRoomType());
+                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId(), playerGameData.getRoomType());
                 if (!resultLibTypeResult.success()) {
                     result.code = resultLibTypeResult.code;
                     return result;
@@ -1943,7 +1947,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //如果获取结果库失败，会重试，所以用循环
             for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
                 //根据倍数区间从结果库里面随机获取一条
-                resultLib = getLib(libCfgResult.data, libType);
+                resultLib = getLib(libCfgResult.data, libType, playerGameData.getAllBetScore());
                 if (resultLib != null) {
                     //检查该lib是否中奖jackpot
                     if (resultLib.getJackpotIds() != null && !resultLib.getJackpotIds().isEmpty()) {
@@ -2050,12 +2054,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     protected L afterForbidPoolLib(SpecialResultLibCfg specialResultLibCfg, L resultLib) {
-        return getLib(specialResultLibCfg, 1);
+        return getLib(specialResultLibCfg, 1, 0);
     }
 
-    protected L getLib(SpecialResultLibCfg specialResultLibCfg, int libType) {
+    protected L getLib(SpecialResultLibCfg specialResultLibCfg, int libType, long betValue) {
         //获取倍数区间
-        CommonResult<Integer> resultLibSectionResult = getResultLibSection(specialResultLibCfg.getModelId(), libType);
+        CommonResult<Integer> resultLibSectionResult = getResultLibSection(specialResultLibCfg.getModelId(), libType, betValue);
         if (!resultLibSectionResult.success()) {
             log.warn("获取区间失败 modelId = {},libtype = {}", specialResultLibCfg.getModelId(), libType);
             return null;

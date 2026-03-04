@@ -12,6 +12,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 /**
  * cron定时器
  *
@@ -35,12 +38,27 @@ public class TimerManager implements GmListener {
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
         String gmOrder = gmOrders[0];
-        if("onZeroClick".equals(gmOrder)) {
+        if ("onZeroClick".equals(gmOrder)) {
             log.info("onZeroClick trigger");
             gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 0));
             return new CommonResult<>(Code.SUCCESS);
         }
-        if("halfDay".equals(gmOrder)) {
+        if ("onZeroClickAt".equalsIgnoreCase(gmOrder)) {
+            if (gmOrders.length < 2) {
+                return new CommonResult<>(Code.PARAM_ERROR);
+            }
+            try {
+                DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+                LocalDate businessDate = LocalDate.parse(gmOrders[1], dateTimeFormatter);
+                log.info("onZeroClickAt trigger, businessDate={}", businessDate);
+                gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 0, businessDate));
+                return new CommonResult<>(Code.SUCCESS);
+            } catch (Exception e) {
+                log.warn("onZeroClickAt 参数错误, date={}", gmOrders[1], e);
+                return new CommonResult<>(Code.PARAM_ERROR);
+            }
+        }
+        if ("halfDay".equals(gmOrder)) {
             log.info("halfDay trigger");
             gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 12));
             return new CommonResult<>(Code.SUCCESS);

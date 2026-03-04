@@ -1332,13 +1332,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
             //需要出现的元素
             config.setShowIconPropInfo(SlotsUtil.converMapToPropInfo(cfg.getElement()));
-            try {
-                //影响格子
-                config.setAffectGirdPropInfo(SlotsUtil.converMapToLimitPropInfo(cfg.getAffectGird()));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
+            //影响格子
+            config.setAffectGirdPropInfo(SlotsUtil.converMapToLimitPropInfo(cfg.getAffectGird()));
             //随机次数
             config.setRandCountPropInfo(SlotsUtil.converMapToPropInfo(cfg.getRandCount()));
             //成功后赋值
@@ -1383,8 +1378,11 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             return null;
         }
         Map<Integer, SpecialResultLibCfg> tempLibCfgMap = new HashMap<>();
-        Map<Integer, List<TypePropData>> tempResultLibTypePropInfoMap = new HashMap<>();
+        Map<Integer, PropInfo> tempResultLibTypePropInfoMap = new HashMap<>();
+        Map<Integer, PropInfo> tempNoJackpotResultLibTypePropInfoMap = new HashMap<>();
+
         Map<Integer, Map<Integer, PropInfo>> tempResultLibSectionPropMap = new HashMap<>();
+        Map<Integer, List<ChangeSectionData>> tmpChangeResultLibSectionPropMap = null;
 
         boolean addSection = true;
         Map<Integer, Map<Integer, int[]>> tempResultLibSectionMap = new HashMap<>();
@@ -1396,51 +1394,36 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         for (SpecialResultLibCfg cfg : cfgList) {
             tempLibCfgMap.put(cfg.getModelId(), cfg);
 
-            List<TypePropData> dataList = new ArrayList<>();
-            tempResultLibTypePropInfoMap.put(cfg.getModelId(), dataList);
-            //解析typeProp字段
-            if (cfg.getTypeProp() != null && !cfg.getTypeProp().isEmpty()) {
-                for (List<String> list : cfg.getTypeProp()) {
-                    TypePropData data = new TypePropData();
-                    String[] scopeStrArr = list.get(0).split("&");
-                    data.setBegin(Long.parseLong(scopeStrArr[0]));
-                    data.setEnd(Long.parseLong(scopeStrArr[1]));
-
-                    String[] propStrArr = list.get(1).split("\\|");
-
-                    Map<Integer, Integer> propMap = new HashMap<>();
-                    for (String propStr : propStrArr) {
-                        String[] strArr = propStr.split("_");
-                        propMap.put(Integer.parseInt(strArr[0]), Integer.parseInt(strArr[1]));
-                    }
-                    data.setPropMap(propMap);
-                    dataList.add(data);
-                }
-            }
-
             //计算typeProp
-            for (TypePropData data : dataList) {
+            if (cfg.getTypeProp() != null && !cfg.getTypeProp().isEmpty()) {
                 PropInfo propInfo = new PropInfo();
+
                 int begin = 0;
                 int end = 0;
+                for (Map.Entry<Integer, Integer> en2 : cfg.getTypeProp().entrySet()) {
+                    if (en2.getValue() < 1) {
+                        continue;
+                    }
 
-                for (Map.Entry<Integer, Integer> en2 : data.getPropMap().entrySet()) {
                     begin = end;
                     end += en2.getValue();
                     propInfo.addProp(en2.getKey(), begin, end);
                 }
                 propInfo.setSum(end);
-                data.setTypePropInfo(propInfo);
+                tempResultLibTypePropInfoMap.put(cfg.getModelId(), propInfo);
             }
 
-            //排除jackpot 后 计算typeProp
-            for (TypePropData data : dataList) {
+            if (cfg.getTypeProp() != null && !cfg.getTypeProp().isEmpty()) {
                 PropInfo propInfo = new PropInfo();
 
                 int begin = 0;
                 int end = 0;
-                for (Map.Entry<Integer, Integer> en2 : data.getPropMap().entrySet()) {
+                for (Map.Entry<Integer, Integer> en2 : cfg.getTypeProp().entrySet()) {
+                    if (en2.getValue() < 1) {
+                        continue;
+                    }
                     int libType = en2.getKey();
+                    //排除jackpot 后 计算typeProp
                     if (jackpotIds != null && jackpotIds.contains(libType)) {
                         continue;
                     }
@@ -1449,12 +1432,13 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                     propInfo.addProp(en2.getKey(), begin, end);
                 }
                 propInfo.setSum(end);
-                data.setNoJackpotTypePropInfo(propInfo);
+                tempNoJackpotResultLibTypePropInfoMap.put(cfg.getModelId(), propInfo);
             }
 
             //计算sectionProp
+            Map<Integer, PropInfo> typeSectionPropMap = null;
             if (cfg.getSectionProp() != null && !cfg.getSectionProp().isEmpty()) {
-                Map<Integer, PropInfo> typeSectionPropMap = tempResultLibSectionPropMap.computeIfAbsent(cfg.getModelId(), k -> new HashMap<>());
+                typeSectionPropMap = tempResultLibSectionPropMap.computeIfAbsent(cfg.getModelId(), k -> new HashMap<>());
 
                 for (Map.Entry<Integer, List<String>> en2 : cfg.getSectionProp().entrySet()) {
                     PropInfo propInfo = new PropInfo();
@@ -1476,8 +1460,13 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                         String[] arr = prop.split("-");
                         String[] arr2 = arr[0].split("&");
 
+                        int p = Integer.parseInt(arr[1]);
+                        if(p < 1){
+                            continue;
+                        }
+
                         begin = end;
-                        end += Integer.parseInt(arr[1]);
+                        end += p;
                         propInfo.addProp(i, begin, end);
 
                         //倍数区间
@@ -1496,6 +1485,71 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 }
                 addSection = false;
             }
+
+            //计算change后的sectionProp
+            if (cfg.getWeightChange() != null && !cfg.getWeightChange().isEmpty() && typeSectionPropMap != null && !typeSectionPropMap.isEmpty()) {
+                if (tmpChangeResultLibSectionPropMap == null) {
+                    tmpChangeResultLibSectionPropMap = new HashMap<>();
+                }
+
+                List<ChangeSectionData> dataList = new ArrayList<>();
+
+                for (List<List<String>> l1 : cfg.getWeightChange()) {
+                    ChangeSectionData changeSectionData = new ChangeSectionData();
+
+                    //获取下注金额区间
+                    String sectionStr = l1.get(0).get(0);
+                    String[] split = sectionStr.split("&");
+
+                    changeSectionData.setBetMin(Long.parseLong(split[0]));
+                    changeSectionData.setBetMax(Long.parseLong(split[1]));
+
+                    //深拷贝 typeSectionPropMap
+                    Map<Integer, PropInfo> copyTypeSectionPropMap = new HashMap<>();
+                    for (Map.Entry<Integer, PropInfo> innerEntry : typeSectionPropMap.entrySet()) {
+                        copyTypeSectionPropMap.put(innerEntry.getKey(), innerEntry.getValue().clone());
+                    }
+
+                    List<String> changeList = l1.get(1);
+                    for (String s : changeList) {
+                        String[] strArr = s.split(",");
+                        int libType = Integer.parseInt(strArr[0]);
+
+                        PropInfo propInfo = copyTypeSectionPropMap.get(libType);
+                        if (propInfo == null) {
+                            continue;
+                        }
+
+                        String[] changeIndexArr = strArr[1].split("\\|");
+                        for (String indexS : changeIndexArr) {
+                            String[] tmpStrArr = indexS.split("-");
+                            int sectionIndex = Integer.parseInt(tmpStrArr[0]);
+                            int prop = Integer.parseInt(tmpStrArr[1]);
+
+                            //修改这个区间的权重
+                            int[] range = propInfo.getPropMap().get(sectionIndex);
+                            if (range != null) {
+                                range[1] = range[0] + prop;
+                            }
+                        }
+
+                        //移除权重为0的entry，重新计算begin/end区间和sum
+                        propInfo.getPropMap().entrySet().removeIf(entry -> entry.getValue()[1] - entry.getValue()[0] <= 0);
+                        int begin = 0;
+                        for (Map.Entry<Integer, int[]> entry : propInfo.getPropMap().entrySet()) {
+                            int[] range = entry.getValue();
+                            int weight = range[1] - range[0];
+                            range[0] = begin;
+                            range[1] = begin + weight;
+                            begin = range[1];
+                        }
+                        propInfo.setSum(begin);
+                    }
+                    changeSectionData.setSectionPropMap(copyTypeSectionPropMap);
+                    dataList.add(changeSectionData);
+                }
+                tmpChangeResultLibSectionPropMap.put(cfg.getModelId(), dataList);
+            }
         }
 
         if (tempLibCfgMap.isEmpty() || tempResultLibTypePropInfoMap.isEmpty() || tempResultLibSectionPropMap.isEmpty() || tempResultLibSectionMap.isEmpty()) {
@@ -1510,7 +1564,9 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         data.setDefaultRewardSectionIndex(tmpDefaultRewardSectionIndex);
         data.setResultLibMap(tempLibCfgMap);
         data.setResultLibTypePropInfoMap(tempResultLibTypePropInfoMap);
+        data.setNoJackpotResultLibTypePropInfoMap(tempNoJackpotResultLibTypePropInfoMap);
         data.setResultLibSectionPropMap(tempResultLibSectionPropMap);
+        data.setChangeResultLibSectionPropMap(tmpChangeResultLibSectionPropMap);
         data.setResultLibSectionMap(tempResultLibSectionMap);
         return data;
     }
