@@ -34,12 +34,27 @@ public class CommonDao {
 
     public void setValue(int id, String value) {
         redisTemplate.opsForHash().put(COMMON_TABLE_NAME, id, value);
+        if (this.map == null) {
+            this.map = new HashMap<>();
+        }
+        this.map.put(id, value);
     }
 
     public String getStrValue(int id) {
-        if (this.map == null || this.map.isEmpty()) {
+        if (this.map != null && !this.map.isEmpty()) {
+            Object value = map.get(id);
+            if (value != null) {
+                return (String) value;
+            }
+        }
+        Object value = redisTemplate.opsForHash().get(COMMON_TABLE_NAME, id);
+        if (value == null) {
             return null;
         }
-        return (String) map.get(id);
+        if (this.map == null) {
+            this.map = new HashMap<>();
+        }
+        this.map.put(id, value);
+        return (String) value;
     }
 }
