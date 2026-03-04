@@ -82,9 +82,6 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                     }
                     //获取牌型
                     HandResult tempHandType = TexasBuilder.getRobotTempHandType(playerSeatInfo, gameDataVo);
-                    if (tempHandType == null) {
-                        return;
-                    }
                     //获取执行id 最大点数对应执行id
                     int maxRank = tempHandType.getMaxRank();
                     //获取执行策略
@@ -218,7 +215,22 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
         //获取
         switch (round) {
             case 1: {
-                return isRaise ? cfg.getPassiveStrategy_1() : cfg.getProactiveStrategy_1();
+                TexasCfg texasCfg = TexasDataHelper.getTexasCfg(gameDataVo);
+                if (texasCfg != null) {
+                    int bbNum = texasCfg.getBbNum();
+                    if (bbNum == gameDataVo.getMaxBetValue()) {
+                        isRaise = false;
+                    }
+                }
+                if (isRaise) {
+                    HandResult other = TexasBuilder.getRobotTempHandType(raiseBetPlayer, gameDataVo);
+                    if (other.compareTo(tempHandType) <= 0) {
+                        return cfg.getPassiveStrategyWin_1();
+                    }
+                    return cfg.getPassiveStrategyFailed_1();
+                } else {
+                    return cfg.getProactiveStrategy_1();
+                }
             }
             case 2: {
                 //加注比牌

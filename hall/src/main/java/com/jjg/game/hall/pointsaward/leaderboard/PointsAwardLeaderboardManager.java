@@ -266,9 +266,9 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                         List<RankChange> rankChanges = new ArrayList<>(showMaxRank);
                         // 使用每日固定种子对机器人池做确定性洗牌，避免重复选中同一机器人
                         long currentDateZeroMilliTime = TimeHelper.getCurrentDateZeroMilliTime();
-                        List<Pair<Long, Integer>> shuffledRobotList = new ArrayList<>(robotList);
+                        List<Pair<Long, Integer>> shuffledRobotList = new ArrayList<>(robotList.subList(0, showMaxRank));
                         Collections.shuffle(shuffledRobotList, new Random(currentDateZeroMilliTime));
-                        for (int i = 0; i < showMaxRank; i++) {
+                        for (int i = 0; i < shuffledRobotList.size(); i++) {
                             Pair<Long, Integer> robotCfgPair = shuffledRobotList.get(i);
                             PointsAwardRobotCfg rankingCfg = GameDataManager.getPointsAwardRobotCfg(robotCfgPair.getSecond());
                             if (rankingCfg == null) {
