@@ -1449,6 +1449,20 @@ public class GMController extends AbstractController {
         }
     }
 
+    @RequestMapping(BackendGMCmd.GET_URL_PREFIX)
+    public WebResult<List<UrlPrefixVo>> getUrlPrefix() {
+        try {
+            List<UrlPrefixVo> list = List.of(
+                    new UrlPrefixVo(GameConstant.CommonDaoId.CUSTOMER_TABLE_ID, commonDao.getStrValue(GameConstant.CommonDaoId.CUSTOMER_TABLE_ID)),
+                    new UrlPrefixVo(GameConstant.CommonDaoId.POINTS_AWARD_URL, commonDao.getStrValue(GameConstant.CommonDaoId.POINTS_AWARD_URL))
+            );
+            return success("common.success", list);
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
     @RequestMapping(BackendGMCmd.EXPORT_SLOTS_LIB)
     public WebResult<String> exportSlotsLib(@RequestBody ExportSlotsLib dto) {
         log.info("收到导出结果库的请求 dto = {}", dto);
