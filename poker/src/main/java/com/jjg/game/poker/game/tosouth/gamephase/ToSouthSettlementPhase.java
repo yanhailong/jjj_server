@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.tosouth.gamephase;
 import cn.hutool.core.collection.CollUtil;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.Card;
+import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
@@ -43,6 +44,26 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
     }
 
     @Override
+    public void phaseFinishDoAction() {
+        if (!(gameController instanceof ToSouthGameController controller)) {
+            return;
+        }
+        // 结算结束后，踢出离线的真实玩家，避免影响下一局
+        List<GamePlayer> players = new ArrayList<>(controller.getGameDataVo().getGamePlayerMap().values());
+        for (GamePlayer gamePlayer : players) {
+            if (gamePlayer instanceof GameRobotPlayer) {
+                continue;
+            }
+            long playerId = gamePlayer.getId();
+            RoomPlayer roomPlayer = controller.getRoom().getRoomPlayers().get(playerId);
+            if (roomPlayer != null && !roomPlayer.isOnline()) {
+                log.info("南方前进结算后：玩家 {} 离线，踢出房间", playerId);
+                controller.getRoomController().getRoomManager().exitRoom(playerId);
+            }
+        }
+    }
+
+    @Override
     public void phaseDoAction() {
         super.phaseDoAction();
         if (gameController instanceof ToSouthGameController controller) {
@@ -74,14 +95,14 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
 
                 if (change > 0) {
                     // 扣除抽水
-                    long afterTaxWin = BigDecimal.valueOf(change)
+                    long tax = BigDecimal.valueOf(change)
                             .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getEffectiveRatio()))
                             .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
 
-                    totalTax += (change - afterTaxWin);
-                    finalWinScore = afterTaxWin;
+                    totalTax += tax;
+                    finalWinScore = change - tax;
 
-                    controller.addItem(playerId, afterTaxWin, AddType.GAME_SETTLEMENT);
+                    controller.addItem(playerId, finalWinScore, AddType.GAME_SETTLEMENT);
                     gameDataTracker.addGameLogData("tax", totalTax);
                     if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                         robotPlayer.setLastWin(1);
@@ -165,28 +186,35 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             log.debug("计算输家 {} 分数 - 剩余手牌: {}", loser.getPlayerId(), ToSouthHandUtils.cardListToString(handCards));
             long loseScore = 0;
 
-            // 规则 2a: 剩13张翻倍
-            int doubleMulti = (cardCount == 13) ? 2 : 1;
-            int countTwo = ToSouthHandUtils.countTwo(handCards);
-            int countBomb = ToSouthHandUtils.countBomb(handCards);
-            int otherCards = cardCount - countTwo - (countBomb * 4);
-            log.debug("输家 {} 手牌构成 - 13张翻倍: {}, 2的数量: {}, 炸弹数量: {}, 其他牌数量: {}", 
-                    loser.getPlayerId(), doubleMulti, countTwo, countBomb, otherCards);
+            // 规则 2a: 剩13张翻倍 如果是通杀，则不翻倍、不计算炸弹、2的额外扣分
+            int totalMulti = 0;
+            if (context.isInstantWin()) {
+                totalMulti = cardCount;
+                log.debug("被通杀的输家 {} 计算结果总倍数: {}, 输分: {}",
+                        loser.getPlayerId(), totalMulti, loseScore);
 
-            int twoMulti = 0;
-            int bombMulti = 0;
+            } else {
+                int doubleMulti = (cardCount == 13) ? 2 : 1;
+                int countTwo = ToSouthHandUtils.countTwo(handCards);
+                int countBomb = ToSouthHandUtils.countBomb(handCards);
+                log.debug("输家 {} 手牌构成 - 13张翻倍: {}, 2的数量: {}, 炸弹数量: {}",
+                        loser.getPlayerId(), doubleMulti, countTwo, countBomb);
 
-            if (countTwo > 0) {
-                twoMulti = moneyCfg.getRemain2();
+                int twoMulti = 0;
+                int bombMulti = 0;
+
+                if (countTwo > 0) {
+                    twoMulti = moneyCfg.getRemain2();
+                }
+                if (countBomb > 0) {
+                    bombMulti = moneyCfg.getRemainBoom();
+                }
+                totalMulti = doubleMulti * cardCount + countTwo * twoMulti + countBomb * bombMulti;
+                log.debug("输家 {} 计算结果 - 2倍数: {}, 炸弹倍数: {}, 总倍数: {}, 输分: {}",
+                        loser.getPlayerId(), twoMulti, bombMulti, totalMulti, loseScore);
+
             }
-            if (countBomb > 0) {
-                bombMulti = moneyCfg.getRemainBoom();
-            }
-            int totalMulti = doubleMulti * otherCards + countTwo * twoMulti + countBomb * bombMulti;
             loseScore = (long)totalMulti * baseBet;
-            log.debug("输家 {} 计算结果 - 2倍数: {}, 炸弹倍数: {}, 总倍数: {}, 输分: {}", 
-                    loser.getPlayerId(), twoMulti, bombMulti, totalMulti, loseScore);
-
             // 记录输分 (负数)
             settlementMap.put(loser.getPlayerId(), -loseScore * winners.size());
             totalWinScore += loseScore;
