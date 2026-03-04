@@ -215,6 +215,13 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
         //获取
         switch (round) {
             case 1: {
+                TexasCfg texasCfg = TexasDataHelper.getTexasCfg(gameDataVo);
+                if (texasCfg != null) {
+                    int bbNum = texasCfg.getBbNum();
+                    if (bbNum == gameDataVo.getMaxBetValue()) {
+                        isRaise = false;
+                    }
+                }
                 if (isRaise) {
                     HandResult other = TexasBuilder.getRobotTempHandType(raiseBetPlayer, gameDataVo);
                     if (other.compareTo(tempHandType) <= 0) {
