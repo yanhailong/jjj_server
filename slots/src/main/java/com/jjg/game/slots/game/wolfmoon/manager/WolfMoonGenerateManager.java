@@ -185,7 +185,7 @@ public class WolfMoonGenerateManager extends AbstractSlotsGenerateManager<WolfMo
     /**
      * 修补图标
      */
-    public void repairIcons(int libType, int[] arr, List<WolfMoonAwardLineInfo> list, List<WolfMoonAddIconInfo> addIconInfoList, int winCount) {
+    public void repairIcons(int[] arr, List<WolfMoonAwardLineInfo> list, List<WolfMoonAddIconInfo> addIconInfoList, int winCount) {
         if (list == null || list.isEmpty()) {
             return;
         }
