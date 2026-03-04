@@ -3,6 +3,7 @@ package com.jjg.game.slots.game.demonchild.manager;
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialGirdInfo;
+import com.jjg.game.slots.game.demonchild.constant.DemonChildConstant;
 import com.jjg.game.slots.game.demonchild.data.DemonChildAwardLineInfo;
 import com.jjg.game.slots.game.demonchild.data.DemonChildResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
@@ -56,6 +57,11 @@ public class DemonChildGameGenerateManager extends AbstractSlotsGenerateManager<
         if (CollectionUtil.isNotEmpty(lib.getSpecialGirdInfoList())) {
             for (SpecialGirdInfo girdInfo : lib.getSpecialGirdInfoList()) {
                 if (CollectionUtil.isNotEmpty(girdInfo.getValueMap())) {
+                    //计算网格中奖的
+                    int[] iconArr = lib.getIconArr();
+                    if (iconArr.length <= DemonChildConstant.Common.MIND_INDEX || iconArr[DemonChildConstant.Common.MIND_INDEX] != DemonChildConstant.BaseElement.GOLD_GET) {
+                        continue;
+                    }
                     for (Map.Entry<Integer, Integer> entry : girdInfo.getValueMap().entrySet()) {
                         lib.addTimes(entry.getValue());
                     }

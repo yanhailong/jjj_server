@@ -110,6 +110,11 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                     random.add(FOLLOW, strategyDataMap.getOrDefault(FOLLOW, 0));
                     random.add(DISCARD, strategyDataMap.getOrDefault(DISCARD, 0));
                     Integer next = random.next();
+                    if (next == null) {
+                        controller.discardCard(robotPlayer.getId());
+                        log.warn("权重均为0，默认弃牌 robotPlayerId = {}", robotPlayer.getId());
+                        return;
+                    }
                     switch (next) {
                         case RAISE -> {
                             if (gameDataVo.getRound() == TexasConstant.Common.MAX_ROUND) {

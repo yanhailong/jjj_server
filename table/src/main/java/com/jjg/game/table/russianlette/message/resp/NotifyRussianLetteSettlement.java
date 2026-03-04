@@ -23,17 +23,8 @@ public class NotifyRussianLetteSettlement extends AbstractNotice {
     @ProtoDesc("结算信息")
     public RussianLetteSettlementInfo settlementInfo;
 
-    @ProtoDesc("红色概率")
-    public double red;
-
-    @ProtoDesc("黑色概率")
-    public double black;
-
-    @ProtoDesc("奇数概率")
-    public double odd;
-
-    @ProtoDesc("偶数概率")
-    public double event;
+    @ProtoDesc("概率信息")
+    public RussianLetteProb prob;
 
     @ProtoDesc("玩家牌桌玩的次数")
     public double playNum;

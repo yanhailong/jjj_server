@@ -49,7 +49,10 @@ public class PointsAwardSignInManager {
      * 初始化配置
      */
     public void initConfig() {
-        LocalDate now = LocalDate.now();
+        initConfig(LocalDate.now());
+    }
+
+    public void initConfig(LocalDate now) {
         configDate = now;
         //当前月最大天数
         int totalDays = now.lengthOfMonth();
@@ -90,25 +93,18 @@ public class PointsAwardSignInManager {
         }
     }
 
-    /**
-     * 检查跨月
-     */
-    private void checkMonth() {
-        LocalDate now = LocalDate.now();
+    private void checkMonth(LocalDate now) {
         if (now.getMonthValue() != configDate.getMonthValue()) {
             //重新初始化配置
-            initConfig();
+            initConfig(now);
             //清除在线玩家的签到数据
             pointsAwardSignInService.clear();
         }
     }
 
-    /**
-     * 每日0点调用
-     */
-    public void daily() {
+    public void daily(LocalDate now) {
         //先跨月再跨天
-        checkMonth();
+        checkMonth(now);
         pointsAwardSignInService.daily();
     }
 

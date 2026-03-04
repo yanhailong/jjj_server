@@ -11,14 +11,14 @@ import com.jjg.game.room.constant.EGamePhase;
 @ProtoDesc("俄罗斯转盘基础信息")
 public class RussianLetteBaseInfo {
 
+    @ProtoDesc("游戏阶段信息")
+    public EGamePhase eGamePhase;
+
     @ProtoDesc("房间ID,房间唯一ID")
     public long roomId;
 
     @ProtoDesc("场次ID")
     public int wareId;
-
-    @ProtoDesc("游戏阶段信息")
-    public EGamePhase eGamePhase;
 
     @ProtoDesc("阶段总时间")
     public int phaseTotalTime;

@@ -40,6 +40,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -74,6 +75,10 @@ public class PointsAwardTurntableService implements IRedDotService {
      * 通过充值增加的转盘次数
      */
     private RMap<Long, Integer> addCountMap;
+    /**
+     * 通过GM增加的转盘次数
+     */
+    private RMap<Long, Integer> gmAddCountMap;
 
     public PointsAwardTurntableService(PointsAwardService pointsAwardService,
                                        PlayerPackService playerPackService,
@@ -107,6 +112,9 @@ public class PointsAwardTurntableService implements IRedDotService {
             // 初始化充值增加次数Map
             addCountMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_ADD_COUNT);
 
+            // 初始化GM增加次数Map
+            gmAddCountMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_GM_ADD_COUNT);
+
             log.debug("转盘数据Map初始化完成");
         });
     }
@@ -115,11 +123,10 @@ public class PointsAwardTurntableService implements IRedDotService {
      * 配置重载和每日重置
      * 使用分布式锁确保多节点环境下只有一个节点执行重置操作
      */
-    public void dailyReset() {
-        LocalDate now = LocalDate.now();
+    public void dailyReset(LocalDate now) {
         if (now.getMonthValue() != configDate.getMonthValue()) {
             //重新初始化配置
-            initConfig();
+            initConfig(now);
         }
         if (!marsCurator.isMaster()) {
             return;
@@ -134,6 +141,9 @@ public class PointsAwardTurntableService implements IRedDotService {
                 if (addCountMap != null) {
                     addCountMap.clear();
                 }
+                if (gmAddCountMap != null) {
+                    gmAddCountMap.clear();
+                }
                 log.info("转盘每日数据重置完成");
             } catch (Exception e) {
                 log.error("转盘每日数据重置失败", e);
@@ -146,8 +156,11 @@ public class PointsAwardTurntableService implements IRedDotService {
      * 初始化配置
      */
     public void initConfig() {
-        configDate = LocalDate.now();
-        LocalDate now = LocalDate.now();
+        initConfig(LocalDate.now());
+    }
+
+    public void initConfig(LocalDate now) {
+        configDate = now;
         //当前月最大天数
         int totalDays = now.lengthOfMonth();
         List<PointsAwardTurntableCfg> cfgList = GameDataManager.getPointsAwardTurntableCfgList();
@@ -235,8 +248,8 @@ public class PointsAwardTurntableService implements IRedDotService {
             result.code = Code.POINT_AWARD_POINT_NOT_ENOUGH;
             return result;
         }
-        //判断充值次数
-        Integer addCount = addCountMap.getOrDefault(playerId, 0);
+        //判断额外次数（充值+GM）
+        int addCount = getAddCount(playerId);
         Integer costCount = countMap.getOrDefault(playerId, 0);
         if (costCount > addCount) {
             result.code = Code.POINT_AWARD_TIMES_NOT_ENOUGH;
@@ -378,12 +391,42 @@ public class PointsAwardTurntableService implements IRedDotService {
     }
 
     /**
-     * 获取玩家增加的充值次数
+     * GM增加玩家转盘次数（在原有基础上累加，写入独立的gmAddCountMap）
+     *
+     * @param playerId 玩家id
+     * @param count    增加的次数
+     */
+    public void addCount(long playerId, int count) {
+        int beforeCount = getMaxCount(playerId) - getCount(playerId);
+        RLock lock = gmAddCountMap.getReadWriteLock(playerId).writeLock();
+        try {
+            if (!lock.tryLock(PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, TimeUnit.MILLISECONDS)) {
+                throw new RuntimeException("获取GM转盘次数写锁超时，playerId: " + playerId);
+            }
+            try {
+                int currentCount = gmAddCountMap.getOrDefault(playerId, 0);
+                gmAddCountMap.fastPut(playerId, currentCount + count);
+            } finally {
+                lock.unlock();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("获取GM转盘次数写锁被中断，playerId: " + playerId, e);
+        }
+        int afterCount = getMaxCount(playerId) - getCount(playerId);
+        Pair<Integer, Integer> rank = pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerId);
+        pointsAwardLogger.turntableLog(playerId, beforeCount, afterCount - beforeCount, afterCount, 0, 0, rank.getSecond());
+    }
+
+    /**
+     * 获取玩家额外增加的总次数（充值 + GM）
      *
      * @param playerId 玩家id
      */
     public int getAddCount(long playerId) {
-        return addCountMap.getOrDefault(playerId, 0);
+        int rechargeCount = addCountMap != null ? addCountMap.getOrDefault(playerId, 0) : 0;
+        int gmCount = gmAddCountMap != null ? gmAddCountMap.getOrDefault(playerId, 0) : 0;
+        return rechargeCount + gmCount;
     }
 
     /**
