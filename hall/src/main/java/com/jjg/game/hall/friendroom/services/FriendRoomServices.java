@@ -275,7 +275,7 @@ public class FriendRoomServices {
      * @return 错误码
      */
     private int checkRoomName(String aliasName) {
-        boolean baseNameCheck = StringUtils.isEmpty(aliasName) || aliasName.length() > 32;
+        boolean baseNameCheck = StringUtils.isEmpty(aliasName) || aliasName.length() > FriendRoomConstant.MAX_NAME_LENGTH;
         // 房间名检查
         if (baseNameCheck || !illegalNameCheckService.illegalNameCheck(aliasName)) {
             return Code.ILLEGAL_NAME;
@@ -1092,7 +1092,7 @@ public class FriendRoomServices {
             if (!illegalNameCheckService.illegalNameCheck(updateFriendRoom.roomAliasName)) {
                 return Code.ILLEGAL_NAME;
             }
-            if (updateFriendRoom.roomAliasName.length() > 16) {
+            if (updateFriendRoom.roomAliasName.length() > FriendRoomConstant.MAX_NAME_LENGTH) {
                 return Code.ILLEGAL_NAME;
             }
         }
