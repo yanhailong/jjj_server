@@ -11,8 +11,8 @@ public enum AddType {
     FAIL_ROLLBACK(2),
     //gm操作
     GM_OPERATOR(3),
-    //后台充值
-    BACKEND_RECHARGE(4),
+    //后台充值(固定就是这个类型)
+    BACKEND_OPERATOR(4),
     //后台修改货币
     BACKEND_CHANGE_MONEY(5),
     //人工邮件

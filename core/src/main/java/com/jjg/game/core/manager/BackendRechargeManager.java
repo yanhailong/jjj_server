@@ -40,7 +40,7 @@ public class BackendRechargeManager implements GameEventListener {
         if(order.getItems() == null || order.getItems().isEmpty()) {
             return;
         }
-        playerPackService.addItems(player.getId(),order.getItems(), AddType.BACKEND_RECHARGE,order.getId());
+        playerPackService.addItems(player.getId(),order.getItems(), AddType.BACKEND_OPERATOR,order.getId());
     }
 
     @Override
