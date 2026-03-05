@@ -30,11 +30,7 @@ public class NotifyRussianLettePhaseChangInfo extends AbstractNotice {
 
     /** 当前游戏阶段：REST / BET / DRAW_ON / GAME_ROUND_OVER_SETTLEMENT */
     @ProtoDesc("当前阶段")
-    public EGamePhase gamePhase;
-
-    /** 本阶段结束时间戳（毫秒），客户端据此计算剩余倒计时 */
-    @ProtoDesc("结束时间戳(ms)")
-    public long endTime;
+    public RussianLetteStageInfo stageInfo;
 
     /**
      * 近12局统计概率（下注、开奖阶段有值；休闲、结算阶段为 null）
@@ -42,11 +38,4 @@ public class NotifyRussianLettePhaseChangInfo extends AbstractNotice {
      */
     @ProtoDesc("近12局统计概率信息")
     public RussianLetteProb prob;
-
-    /**
-     * 开奖结果（仅 DRAW_ON 阶段推送时有值，其余阶段为 null）
-     * 包含：中奖区域 ID 列表（rewardAreaIdx）、转盘落点数字（diceData 0~36）
-     */
-    @ProtoDesc("开奖结果，仅 DRAW_ON 阶段有值")
-    public RussianLetteSettlementInfo settlementInfo;
 }

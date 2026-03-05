@@ -35,7 +35,7 @@ public class NotifyRussianLetteTableInfo extends AbstractNotice {
     public RussianLetteProb prob;
 
     @ProtoDesc("玩家牌桌玩的次数")
-    public double playNum;
+    public int playNum;
 
     @ProtoDesc("累计这次下注总金额（断线重连同步）")
     public double allBet;
