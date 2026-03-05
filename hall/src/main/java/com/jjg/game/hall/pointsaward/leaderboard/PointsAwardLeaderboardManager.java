@@ -495,7 +495,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             // 筛选需要的配置
             List<PointsAwardRankingCfg> filteredConfigs = configList.stream()
                     .filter(cfg -> cfg.getType() == type)
-                    .filter(cfg -> isConfigTimeValid(cfg, type, now, nowYearMonth))
+                    .filter(cfg -> isConfigTimeValid(cfg, nowYearMonth))
                     .toList();
 
             // 如果没有找到时间匹配的配置，使用默认配置
@@ -519,7 +519,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
     /**
      * 检查配置时间是否有效
      */
-    private boolean isConfigTimeValid(PointsAwardRankingCfg cfg, int type, LocalDate now, YearMonth nowYearMonth) {
+    private boolean isConfigTimeValid(PointsAwardRankingCfg cfg, YearMonth nowYearMonth) {
         String cfgTime = cfg.getTime();
         if (cfgTime == null || cfgTime.trim().isEmpty()) {
             return false;
@@ -531,16 +531,8 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
         }
 
         LocalDateTime configDate = LocalDateTime.ofInstant(Instant.ofEpochMilli(timeMills), ZoneId.systemDefault());
-
-        return switch (type) {
-            case PointsAwardConstant.Leaderboard.TYPE_MONTH -> {
-                YearMonth configYearMonth = YearMonth.from(configDate);
-                yield configYearMonth.equals(nowYearMonth);
-            }
-            case PointsAwardConstant.Leaderboard.DAY, PointsAwardConstant.Leaderboard.WEEK ->
-                    !(configDate.isBefore(now.atStartOfDay()));
-            default -> false;
-        };
+        YearMonth configYearMonth = YearMonth.from(configDate);
+        return configYearMonth.equals(nowYearMonth);
     }
 
     /**
