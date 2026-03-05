@@ -13,12 +13,12 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
     private List<Integer> lastPlayCards;
     // 上一家出牌牌型
     private int lastPlayCardsType;
-    // 上一家座位
+    // 上一家出牌人座位
     private int lastPlaySeatId;
     // 当前轮的首出者
     private int roundLeaderSeatId;
     // 是否为第一轮
-    private boolean isFirstRound;
+    private boolean isFirstRound = true;
     // 当前轮连续过牌次数
     private int passCount;
     // 本轮已过牌玩家列表

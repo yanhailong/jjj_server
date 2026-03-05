@@ -3,8 +3,10 @@ package com.jjg.game.table.russianlette.message;
 import com.jjg.game.common.baselogic.IConsoleReceiver;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
@@ -16,17 +18,46 @@ import com.jjg.game.room.dao.RoomDao;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.manager.RoomManager;
 import com.jjg.game.sampledata.bean.RoomCfg;
+import com.jjg.game.table.common.data.TableGameDataVo;
+import com.jjg.game.table.russianlette.RussianLetteGameController;
+import com.jjg.game.table.russianlette.message.req.ReqRussianLetteExitRoomInGame;
+import com.jjg.game.table.russianlette.message.req.ReqRussianLetteInfo;
+import com.jjg.game.table.russianlette.message.req.ReqRussianLetteJoinRoomInGame;
+import com.jjg.game.table.russianlette.message.req.ReqRussianLetteOtherSummaryList;
+import com.jjg.game.table.russianlette.message.req.ReqRussianLetteSummary;
+import com.jjg.game.table.russianlette.message.req.ReqRussianLetteSummaryList;
+import com.jjg.game.table.russianlette.message.req.ReqRussianLetteSwitchRoomInGame;
+import com.jjg.game.table.russianlette.message.resp.RespRussianLetteExitRoomInGame;
+import com.jjg.game.table.russianlette.message.resp.RespRussianLetteInfo;
+import com.jjg.game.table.russianlette.message.resp.RespRussianLetteJoinRoomInGame;
+import com.jjg.game.table.russianlette.message.resp.RespRussianLetteOtherSummaryList;
+import com.jjg.game.table.russianlette.message.resp.RespRussianLetteSummary;
+import com.jjg.game.table.russianlette.message.resp.RespRussianLetteSummaryList;
+import com.jjg.game.table.russianlette.message.resp.RespRussianLetteSwitchRoomInGame;
+import com.jjg.game.table.russianlette.message.resp.RussianLetteSummary;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 俄罗斯轮盘handler
+ * 俄罗斯轮盘消息处理器
+ * <p>
+ * 负责处理客户端发来的以下请求：
+ * <ul>
+ *   <li>{@code REQ_RUSSIAN_LETTE_INFO}               — 请求当前房间桌面信息（断线重连 / 首次进入）</li>
+ *   <li>{@code REQ_RUSSIAN_LETTE_SUMMARY_LIST}        — 请求同场次所有房间摘要列表</li>
+ *   <li>{@code REQ_RUSSIAN_LETTE_SUMMARY}             — 请求单个房间摘要（按 roomId）</li>
+ *   <li>{@code REQ_RUSSIAN_LETTE_OTHER_SUMMARY_LIST}  — 请求其他场次所有房间摘要列表</li>
+ *   <li>{@code REQ_JOIN_ROOM_IN_GAME}                 — 在游戏中请求进入指定房间</li>
+ *   <li>{@code REQ_SWITCH_ROOM_IN_GAME}               — 在游戏中请求切换到另一个房间</li>
+ *   <li>{@code REQ_EXIT_ROOM_IN_GAME}                 — 请求退出当前房间</li>
+ * </ul>
  *
- * @author 2CL
+ * @author 2CL / lhc
  */
 @MessageType(MessageConst.MessageTypeDef.RUSSIAN_ROULETTE_TYPE)
 @ProtoDesc("俄罗斯轮盘handler")
@@ -39,217 +70,330 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
     private final ClusterSystem clusterSystem;
     private final RoomDao roomDao;
     private final CorePlayerService playerService;
-//    private final RussianLetteTempRoom baccaratTempRoom;
     private final MatchDataDao matchDataDao;
 
-    public RussianLetteMessageHandler(RoomManager roomManager, NodeManager nodeManager, ClusterSystem clusterSystem, RoomDao roomDao, CorePlayerService playerService,  MatchDataDao matchDataDao) {
+    public RussianLetteMessageHandler(RoomManager roomManager, NodeManager nodeManager,
+                                      ClusterSystem clusterSystem, RoomDao roomDao,
+                                      CorePlayerService playerService, MatchDataDao matchDataDao) {
         this.roomManager = roomManager;
         this.nodeManager = nodeManager;
         this.clusterSystem = clusterSystem;
         this.roomDao = roomDao;
         this.playerService = playerService;
-//        this.baccaratTempRoom = baccaratTempRoom;
         this.matchDataDao = matchDataDao;
     }
 
-//    /**
-//     * 请求百家乐房间信息，玩家进入房间时拉取此数据
-//     */z
-//    @Command(RussianLetteMessageConstant.ReqMsgBean.REQ_RUSSIAN_LETTE_INFO)
-//    public void reqRussianLetteTableInfo(PlayerController playerController) {
-//        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-//                roomManager.getGameControllerByPlayerId(playerController.playerId());
-//        if (gameController == null) {
-//            log.error("玩家： {} 找不到对应的房间", playerController.playerId());
-//            playerController.send(new RespRussianLetteTableInfo(Code.FAIL));
-//            return;
-//        }
-//        // 玩家不在百家乐游戏
-//        if (gameController.gameControlType() != EGameType.BACCARAT) {
-//            log.error("玩家： {} 不在百家乐游戏中", playerController.playerId());
-//            playerController.send(new RespRussianLetteTableInfo(Code.PARAM_ERROR));
-//            return;
-//        }
-//        gameController.respRoomInitInfo(playerController);
-//        TableGameDataVo tableGameDataVo = (TableGameDataVo) gameController.getGameDataVo();
-//        // 更新操作时间
-//        tableGameDataVo.updatePlayerOperateTime(playerController.playerId());
-//    }
-//
-//    @Command(RussianLetteMessageConstant.ReqMsgBean.REQ_BACCARAT_TABLE_SUMMARY_LIST)
-//    public void reqRussianLetteSummaryList(PlayerController playerController) {
-//        // 获取进入房间时的配置ID
-//        int roomCfgId = playerController.getPlayer().getRoomCfgId();
-//        CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> result =
-//                getRussianLetteGameController(roomCfgId);
-//        if (result.code != Code.SUCCESS) {
-//            playerController.send(new RespRussianLetteTableSummaryList(result.code));
-//            return;
-//        }
-//        List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameControllers =
-//                result.data;
-//        // 向客户端发送摘要信息
-//        RespRussianLetteTableSummaryList respSummaryList = new RespRussianLetteTableSummaryList(Code.SUCCESS);
-//        respSummaryList.tableSummaryList = new ArrayList<>();
-//        for (AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameWareController :
-//                gameControllers) {
-//            if (gameWareController instanceof RussianLetteGameController baccaratGameController) {
-//                RussianLetteTableSummary baccaratTableSummary =
-//                        RussianLetteMessageBuilder.buildRussianLetteSummaryInfo(baccaratGameController);
-//                respSummaryList.tableSummaryList.add(baccaratTableSummary);
-//            }
-//        }
-//        playerController.send(respSummaryList);
-//    }
-//
-//    // 获取所有节点并发送数据到对应的节点上
-//    public void getAllGameNode() {
-//        String localIpAddress = NetUtils.getLocalIpAddress();
-//        Pair<List<MarsNode>, Boolean> gameNodeListPair = nodeManager.getGameNodeList(EGameType.BACCARAT.getGameTypeId(), 0,
-//                localIpAddress);
-//        if (gameNodeListPair == null) {
-//            return;
-//        }
-//        List<MarsNode> gameNodeList = gameNodeListPair.getFirst();
-//        try {
-//            for (MarsNode marsNode : gameNodeList) {
-//                ClusterClient clusterClient = clusterSystem.getClusterByPath(marsNode.getNodePath());
-//                if (clusterClient == null) {
-//                    continue;
-//                }
-//                NettyConnect<Object> connect = clusterClient.getConnect();
-//                log.info(connect.toString());
-//            }
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
-//
-//    @Command(value = RussianLetteMessageConstant.ReqMsgBean.REQ_JOIN_ROOM_IN_GAME)
-//    public void joinRoomInGame(PlayerController playerController, ReqJoinRoomInGame reqJoinRoomInGame) {
-//        // 只允许通过俄罗斯轮盘进入百家乐房间
-//        if (reqJoinRoomInGame.gameType != EGameType.BACCARAT.getGameTypeId()) {
-//            RespJoinRoomInGame respJoinRoomInGame = new RespJoinRoomInGame(Code.PARAM_ERROR);
-//            playerController.send(respJoinRoomInGame);
-//            return;
-//        }
-//        Room room = roomDao.getRoom(reqJoinRoomInGame.gameType, reqJoinRoomInGame.roomId);
-//        if (room == null) {
-//            // 房间已经销毁或者解散
-//            RespJoinRoomInGame respJoinRoomInGame = new RespJoinRoomInGame(Code.ROOM_NOT_FOUND);
-//            playerController.send(respJoinRoomInGame);
-//            return;
-//        }
-//        // 发送进入成功消息
-//        RespJoinRoomInGame respJoinRoomInGame = new RespJoinRoomInGame(Code.SUCCESS);
-//        respJoinRoomInGame.roomCfgId = room.getRoomCfgId();
-//        //等待进入人数+1
-//        boolean joinNum = matchDataDao.changeRoomJoinNum(reqJoinRoomInGame.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), 1, 1);
-//        if (!joinNum) {
-//            // 房间已满
-//            respJoinRoomInGame.code = Code.ROOM_FULL;
-//            playerController.send(respJoinRoomInGame);
-//            return;
-//        }
-//        // 进入房间需要先将玩家从临时房间中移除
-//        baccaratTempRoom.exit(playerController.getSession(), playerController);
-//        matchDataDao.addPlayerExpiredWaiting(reqJoinRoomInGame.roomId, playerController.playerId());
-//        // 获取当前节点
-//        String clusterCurrentNodePath = clusterSystem.getNodePath();
-//        // 如果就在当前节点
-//        if (clusterCurrentNodePath.equalsIgnoreCase(room.getPath())) {
-//            // 将玩家加入房间
-//            int result = roomManager.joinRoom(playerController, reqJoinRoomInGame.gameType, room.getRoomCfgId(), reqJoinRoomInGame.roomId);
-//            log.info("玩家：{} 请求加入房间：{} {} 处于当前节点", playerController.playerId(), room.getRoomCfgId(), room.getId());
-//            if (result != Code.SUCCESS) {
-//                boolean rollback = matchDataDao.changeRoomJoinNum(reqJoinRoomInGame.gameType, room.getRoomCfgId(),
-//                        room.getId(), room.getMaxLimit(), -1, -1);
-//                if (!rollback) {
-//                    log.error("玩家加入百家乐房间失败后，回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
-//                            playerController.playerId(), room.getRoomCfgId(), room.getId());
-//                }
-//                PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
-//                playerSessionInfo.setRoomCfgId(room.getRoomCfgId());
-//                baccaratTempRoom.enter(playerController.getSession(), playerController, playerSessionInfo);
-//            }
-//            respJoinRoomInGame.code = result;
-//            playerController.send(respJoinRoomInGame);
-//        } else {
-//            // 将玩家切入到对应的房间节点
-//            MarsNode marsNode = nodeManager.getMarNode(room.getPath());
-//            if (marsNode == null) {
-//                boolean rollback = matchDataDao.changeRoomJoinNum(reqJoinRoomInGame.gameType, room.getRoomCfgId(),
-//                        room.getId(), room.getMaxLimit(), -1, -1);
-//                if (!rollback) {
-//                    log.error("百家乐跨节点入房失败后，回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
-//                            playerController.playerId(), room.getRoomCfgId(), room.getId());
-//                }
-//                PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
-//                playerSessionInfo.setRoomCfgId(room.getRoomCfgId());
-//                baccaratTempRoom.enter(playerController.getSession(), playerController, playerSessionInfo);
-//                respJoinRoomInGame.code = Code.FAIL;
-//                playerController.send(respJoinRoomInGame);
-//                return;
-//            }
-//            // 将玩家的房间ID设置成请求的，在session进入时会自动加入到对应的房间
-//            playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(reqJoinRoomInGame.roomId));
-//            // sessionEnter时处理
-//            //切换节点
-//            clusterSystem.switchNode(playerController.getSession(), marsNode);
-//            log.info("玩家：{} 请求加入房间：{} 处于节点：{}", playerController.playerId(), room.getRoomCfgId(), room.getPath());
-//            playerController.send(respJoinRoomInGame);
-//        }
-//    }
-//
-//    @Command(value = RussianLetteMessageConstant.ReqMsgBean.REQ_EXIT_ROOM_IN_GAME)
-//    public void exitRoomInGame(PlayerController playerController, ReqExitRoomInGame reqExitRoomInGame) {
-//        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-//                roomManager.getGameControllerByPlayerId(playerController.playerId());
-//        if (gameController == null) {
-//            log.error("玩家请求退出房间，但找不到对应的游戏控制器");
-//            playerController.send(new RespExitRoomInGame(Code.FAIL));
-//            return;
-//        }
-//        if (gameController.gameControlType() != EGameType.BACCARAT) {
-//            log.error("玩家请求退出百家乐房间，但当前不在百家乐游戏中 playerId:{}", playerController.playerId());
-//            playerController.send(new RespExitRoomInGame(Code.PARAM_ERROR));
-//            return;
-//        }
-//        int code = roomManager.exitRoom(playerController, false);
-//        playerController.send(new RespExitRoomInGame(code));
-//        log.debug("玩家请求退出百家乐房间，code: {}", code);
-//        if (code == Code.SUCCESS) {
-//            // 需要先将玩家加入临时房间中
-//            PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
-//            playerSessionInfo.setRoomCfgId(gameController.getRoom().getRoomCfgId());
-//            baccaratTempRoom.enter(playerController.getSession(), playerController, playerSessionInfo);
-//        }
-//    }
+    // =========================================================================
+    // 请求处理
+    // =========================================================================
 
     /**
-     * 获取所有对应场次的百家乐gameController
+     * 请求俄罗斯转盘房间桌面信息
+     * <p>玩家进入房间后 / 断线重连时调用，服务端推送 {@code NotifyRussianLetteTableInfo}。</p>
      */
-    private CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> getRussianLetteGameController(int roomCfgId) {
-        List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameControllers =
-                roomManager.getGameControllersByGameType(EGameType.BACCARAT, RoomType.BET_ROOM);
-        if (gameControllers.isEmpty()) {
-            // 没有找到百家乐的房间.
-            return new CommonResult<>(Code.FAIL);
+    @Command(RussianLetteMessageConstant.ReqMsgBean.REQ_RUSSIAN_LETTE_INFO)
+    public void reqRussianLetteInfo(PlayerController playerController, ReqRussianLetteInfo req) {
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
+        if (gameController == null) {
+            log.error("reqRussianLetteInfo: 玩家 {} 找不到对应的游戏控制器", playerController.playerId());
+            playerController.send(new RespRussianLetteInfo(Code.FAIL));
+            return;
         }
-        // 房间配置ID
-        List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameWareControllers =
-                gameControllers.stream().filter(controller -> controller.getRoom().getRoomCfgId() == roomCfgId).toList();
-        if (gameWareControllers.isEmpty()) {
-            return new CommonResult<>(Code.FAIL);
+        if (gameController.gameControlType() != EGameType.RUSSIAN_ROULETTE) {
+            log.error("reqRussianLetteInfo: 玩家 {} 当前不在俄罗斯转盘游戏中", playerController.playerId());
+            playerController.send(new RespRussianLetteInfo(Code.PARAM_ERROR));
+            return;
         }
-        return new CommonResult<>(Code.SUCCESS, gameWareControllers);
+        // 推送初始化数据（触发 respRoomInitInfo → 发送 NotifyRussianLetteTableInfo）
+        gameController.respRoomInitInfo(playerController);
+        // 更新玩家操作时间（心跳续约）
+        TableGameDataVo tableGameDataVo = (TableGameDataVo) gameController.getGameDataVo();
+        tableGameDataVo.updatePlayerOperateTime(playerController.playerId());
     }
+
+    /**
+     * 请求同场次所有房间的摘要列表
+     * <p>大厅选场次界面使用，返回玩家当前场次（wareId）下的所有运行中房间概要。</p>
+     */
+    @Command(RussianLetteMessageConstant.ReqMsgBean.REQ_RUSSIAN_LETTE_SUMMARY_LIST)
+    public void reqRussianLetteSummaryList(PlayerController playerController, ReqRussianLetteSummaryList req) {
+        int roomCfgId = playerController.getPlayer().getRoomCfgId();
+        CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> result =
+                getRussianLetteGameControllers(roomCfgId);
+        if (result.code != Code.SUCCESS) {
+            playerController.send(new RespRussianLetteSummaryList(result.code));
+            return;
+        }
+        RespRussianLetteSummaryList respList = new RespRussianLetteSummaryList(Code.SUCCESS);
+        respList.tableSummaryList = new ArrayList<>();
+        for (AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gc : result.data) {
+            if (gc instanceof RussianLetteGameController russianLetteGc) {
+                RussianLetteSummary summary = RussianLetteMessageBuilder.buildRussianLetteSummaryInfo(russianLetteGc);
+                respList.tableSummaryList.add(summary);
+            }
+        }
+        playerController.send(respList);
+    }
+
+    /**
+     * 请求单个房间摘要信息
+     * <p>客户端刷新指定房间的实时状态时使用，按 {@code req.roomId} 定位具体房间。</p>
+     */
+    @Command(RussianLetteMessageConstant.ReqMsgBean.REQ_RUSSIAN_LETTE_SUMMARY)
+    public void reqRussianLetteSummary(PlayerController playerController, ReqRussianLetteSummary req) {
+        List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameControllers =
+                roomManager.getGameControllersByGameType(EGameType.RUSSIAN_ROULETTE, RoomType.BET_ROOM);
+        if (gameControllers == null || gameControllers.isEmpty()) {
+            playerController.send(new RespRussianLetteSummary(Code.FAIL));
+            return;
+        }
+        for (AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gc : gameControllers) {
+            if (gc instanceof RussianLetteGameController rgc
+                    && rgc.getGameDataVo().getRoomId() == req.roomId) {
+                RespRussianLetteSummary resp = new RespRussianLetteSummary(Code.SUCCESS);
+                resp.summary = RussianLetteMessageBuilder.buildRussianLetteSummary(rgc);
+                playerController.send(resp);
+                return;
+            }
+        }
+        log.warn("reqRussianLetteSummary: 找不到 roomId={} 的房间", req.roomId);
+        playerController.send(new RespRussianLetteSummary(Code.ROOM_NOT_FOUND));
+    }
+
+    /**
+     * 请求其他场次的房间摘要列表
+     * <p>用于跨场次切换 UI，返回与当前玩家场次（roomCfgId）不同的所有俄罗斯转盘房间摘要。</p>
+     */
+    @Command(RussianLetteMessageConstant.ReqMsgBean.REQ_RUSSIAN_LETTE_OTHER_SUMMARY_LIST)
+    public void reqRussianLetteOtherSummaryList(PlayerController playerController, ReqRussianLetteOtherSummaryList req) {
+        // 当前玩家所在场次
+        int currentRoomCfgId = playerController.getPlayer().getRoomCfgId();
+        List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameControllers =
+                roomManager.getGameControllersByGameType(EGameType.RUSSIAN_ROULETTE, RoomType.BET_ROOM);
+        RespRussianLetteOtherSummaryList resp = new RespRussianLetteOtherSummaryList(Code.SUCCESS);
+        resp.tableSummaryList = new ArrayList<>();
+        if (gameControllers != null && !gameControllers.isEmpty()) {
+            for (AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gc : gameControllers) {
+                // 只返回其他场次（roomCfgId 不同）的房间
+                if (gc instanceof RussianLetteGameController rgc
+                        && gc.getRoom().getRoomCfgId() != currentRoomCfgId) {
+                    resp.tableSummaryList.add(RussianLetteMessageBuilder.buildRussianLetteSummaryInfo(rgc));
+                }
+            }
+        }
+        playerController.send(resp);
+    }
+
+    /**
+     * 在游戏中请求进入指定俄罗斯转盘房间
+     * <p>
+     * 流程：校验游戏类型 → 查询房间 → 锁定等待人数 → 同节点直接入房 / 跨节点切换节点。
+     * </p>
+     */
+    @Command(value = RussianLetteMessageConstant.ReqMsgBean.REQ_JOIN_ROOM_IN_GAME)
+    public void joinRoomInGame(PlayerController playerController, ReqRussianLetteJoinRoomInGame req) {
+        // 只允许通过俄罗斯转盘消息进入俄罗斯转盘房间
+        if (req.gameType != EGameType.RUSSIAN_ROULETTE.getGameTypeId()) {
+            log.error("joinRoomInGame: 玩家 {} 请求的 gameType={} 非俄罗斯转盘", playerController.playerId(), req.gameType);
+            playerController.send(new RespRussianLetteJoinRoomInGame(Code.PARAM_ERROR));
+            return;
+        }
+        // 查询目标房间
+        Room room = roomDao.getRoom(req.gameType, req.roomId);
+        if (room == null) {
+            log.error("joinRoomInGame: roomId={} 的房间不存在或已销毁", req.roomId);
+            playerController.send(new RespRussianLetteJoinRoomInGame(Code.ROOM_NOT_FOUND));
+            return;
+        }
+        RespRussianLetteJoinRoomInGame resp = new RespRussianLetteJoinRoomInGame(Code.SUCCESS);
+        resp.roomCfgId = room.getRoomCfgId();
+        // 等待进入人数 +1（含满员检测）
+        boolean joinOk = matchDataDao.changeRoomJoinNum(
+                req.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), 1, 1);
+        if (!joinOk) {
+            resp.code = Code.ROOM_FULL;
+            playerController.send(resp);
+            return;
+        }
+        // 将玩家加入过期等待列表，防止入房超时
+        matchDataDao.addPlayerExpiredWaiting(req.roomId, playerController.playerId());
+        String localNodePath = clusterSystem.getNodePath();
+        if (localNodePath.equalsIgnoreCase(room.getPath())) {
+            // ── 同节点：直接加入房间 ──────────────────────────────────────────
+            int result = roomManager.joinRoom(playerController, req.gameType, room.getRoomCfgId(), req.roomId);
+            log.info("joinRoomInGame: 玩家 {} 同节点加入俄罗斯转盘房间 {} result={}",
+                    playerController.playerId(), req.roomId, result);
+            if (result != Code.SUCCESS) {
+                // 入房失败，回滚等待人数
+                boolean rollback = matchDataDao.changeRoomJoinNum(
+                        req.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, -1);
+                if (!rollback) {
+                    log.error("joinRoomInGame 回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
+                            playerController.playerId(), room.getRoomCfgId(), room.getId());
+                }
+            } else {
+                // 绑定 session workId 到新房间
+                playerController.getSession().setWorkId(req.roomId);
+            }
+            resp.code = result;
+            playerController.send(resp);
+        } else {
+            // ── 跨节点：切换节点处理 ──────────────────────────────────────────
+            MarsNode marsNode = nodeManager.getMarNode(room.getPath());
+            if (marsNode == null) {
+                boolean rollback = matchDataDao.changeRoomJoinNum(
+                        req.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, -1);
+                if (!rollback) {
+                    log.error("joinRoomInGame 跨节点回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
+                            playerController.playerId(), room.getRoomCfgId(), room.getId());
+                }
+                resp.code = Code.FAIL;
+                playerController.send(resp);
+                return;
+            }
+            // 持久化 roomId，sessionEnter 时自动完成入房
+            playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(req.roomId));
+            clusterSystem.switchNode(playerController.getSession(), marsNode);
+            log.info("joinRoomInGame: 玩家 {} 跨节点加入俄罗斯转盘房间 {} 目标节点:{}",
+                    playerController.playerId(), req.roomId, room.getPath());
+            playerController.send(resp);
+        }
+    }
+
+    /**
+     * 在游戏中请求切换到另一个俄罗斯转盘房间
+     * <p>
+     * 流程：先退出当前房间 → 查询目标房间 → 锁定等待人数 → 同节点直接入房 / 跨节点切换节点。
+     * </p>
+     */
+    @Command(value = RussianLetteMessageConstant.ReqMsgBean.REQ_SWITCH_ROOM_IN_GAME)
+    public void switchRoomInGame(PlayerController playerController, ReqRussianLetteSwitchRoomInGame req) {
+        int gameTypeId = EGameType.RUSSIAN_ROULETTE.getGameTypeId();
+        // 查询目标房间
+        Room room = roomDao.getRoom(gameTypeId, req.roomId);
+        if (room == null) {
+            log.error("switchRoomInGame: 目标 roomId={} 不存在或已销毁", req.roomId);
+            playerController.send(new RespRussianLetteSwitchRoomInGame(Code.ROOM_NOT_FOUND));
+            return;
+        }
+        // 先退出当前房间（若当前在俄罗斯转盘中）
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> currentGc =
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
+        if (currentGc != null && currentGc.gameControlType() == EGameType.RUSSIAN_ROULETTE) {
+            int exitCode = roomManager.exitRoom(playerController, false);
+            log.info("switchRoomInGame: 玩家 {} 退出当前房间 exitCode={}", playerController.playerId(), exitCode);
+        }
+        RespRussianLetteSwitchRoomInGame resp = new RespRussianLetteSwitchRoomInGame(Code.SUCCESS);
+        resp.roomCfgId = room.getRoomCfgId();
+        // 等待进入人数 +1
+        boolean joinOk = matchDataDao.changeRoomJoinNum(
+                gameTypeId, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), 1, 1);
+        if (!joinOk) {
+            resp.code = Code.ROOM_FULL;
+            playerController.send(resp);
+            return;
+        }
+        matchDataDao.addPlayerExpiredWaiting(req.roomId, playerController.playerId());
+        String localNodePath = clusterSystem.getNodePath();
+        if (localNodePath.equalsIgnoreCase(room.getPath())) {
+            // ── 同节点：直接加入房间 ──────────────────────────────────────────
+            int result = roomManager.joinRoom(playerController, gameTypeId, room.getRoomCfgId(), req.roomId);
+            log.info("switchRoomInGame: 玩家 {} 同节点切换到房间 {} result={}",
+                    playerController.playerId(), req.roomId, result);
+            if (result != Code.SUCCESS) {
+                boolean rollback = matchDataDao.changeRoomJoinNum(
+                        gameTypeId, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, -1);
+                if (!rollback) {
+                    log.error("switchRoomInGame 回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
+                            playerController.playerId(), room.getRoomCfgId(), room.getId());
+                }
+            } else {
+                playerController.getSession().setWorkId(req.roomId);
+            }
+            resp.code = result;
+            playerController.send(resp);
+        } else {
+            // ── 跨节点：切换节点处理 ──────────────────────────────────────────
+            MarsNode marsNode = nodeManager.getMarNode(room.getPath());
+            if (marsNode == null) {
+                boolean rollback = matchDataDao.changeRoomJoinNum(
+                        gameTypeId, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, -1);
+                if (!rollback) {
+                    log.error("switchRoomInGame 跨节点回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
+                            playerController.playerId(), room.getRoomCfgId(), room.getId());
+                }
+                resp.code = Code.FAIL;
+                playerController.send(resp);
+                return;
+            }
+            playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(req.roomId));
+            clusterSystem.switchNode(playerController.getSession(), marsNode);
+            log.info("switchRoomInGame: 玩家 {} 跨节点切换到房间 {} 目标节点:{}",
+                    playerController.playerId(), req.roomId, room.getPath());
+            playerController.send(resp);
+        }
+    }
+
+    /**
+     * 请求退出当前俄罗斯转盘房间
+     * <p>玩家主动离开房间时调用。</p>
+     */
+    @Command(value = RussianLetteMessageConstant.ReqMsgBean.REQ_EXIT_ROOM_IN_GAME)
+    public void exitRoomInGame(PlayerController playerController, ReqRussianLetteExitRoomInGame req) {
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
+        if (gameController == null) {
+            log.error("exitRoomInGame: 玩家 {} 找不到对应的游戏控制器", playerController.playerId());
+            playerController.send(new RespRussianLetteExitRoomInGame(Code.FAIL));
+            return;
+        }
+        if (gameController.gameControlType() != EGameType.RUSSIAN_ROULETTE) {
+            log.error("exitRoomInGame: 玩家 {} 当前不在俄罗斯转盘游戏中", playerController.playerId());
+            playerController.send(new RespRussianLetteExitRoomInGame(Code.PARAM_ERROR));
+            return;
+        }
+        int code = roomManager.exitRoom(playerController, false);
+        playerController.send(new RespRussianLetteExitRoomInGame(code));
+        log.info("exitRoomInGame: 玩家 {} 退出俄罗斯转盘房间 code={}", playerController.playerId(), code);
+    }
+
+    // =========================================================================
+    // 内部工具
+    // =========================================================================
+
+    /**
+     * 获取指定场次配置下所有俄罗斯转盘房间的游戏控制器列表
+     *
+     * @param roomCfgId 场次配置 ID
+     * @return 包含控制器列表的结果；若不存在则返回 FAIL
+     */
+    private CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> getRussianLetteGameControllers(int roomCfgId) {
+        List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameControllers =
+                roomManager.getGameControllersByGameType(EGameType.RUSSIAN_ROULETTE, RoomType.BET_ROOM);
+        if (gameControllers == null || gameControllers.isEmpty()) {
+            log.warn("getRussianLetteGameControllers: 未找到俄罗斯转盘房间 roomCfgId:{}", roomCfgId);
+            return new CommonResult<>(Code.FAIL);
+        }
+        List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> filtered =
+                gameControllers.stream()
+                        .filter(gc -> gc.getRoom().getRoomCfgId() == roomCfgId)
+                        .toList();
+        if (filtered.isEmpty()) {
+            return new CommonResult<>(Code.FAIL);
+        }
+        return new CommonResult<>(Code.SUCCESS, filtered);
+    }
+
+    // =========================================================================
+    // 控制台命令（运维调试）
+    // =========================================================================
 
     @Override
     public void doCommand(String command, List<String> params) {
         switch (command) {
-            case "getAllGameNode":
-//                getAllGameNode();
+            case "summaryList":
+                log.info("[RussianLette] 控制台命令 summaryList, params={}", params);
                 break;
             default:
                 break;
@@ -258,6 +402,6 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
 
     @Override
     public List<String> needHandleCommands() {
-        return List.of("getAllGameNode");
+        return List.of("summaryList");
     }
 }
