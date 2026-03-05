@@ -5,6 +5,8 @@ package com.jjg.game.core.constant;
  * @date 2025/10/29 20:12
  */
 public enum AddType {
+    //默认
+    DEFAULT(0),
     //gm测试
     GM_TEST(1),
     //失败回滚
