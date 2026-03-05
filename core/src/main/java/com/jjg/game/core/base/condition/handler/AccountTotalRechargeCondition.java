@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * 11004  账号个人累计充值 要求金额
+ * 11005  账号个人累计充值 要求金额
  *
  * @author lm
  * @date 2026/1/14 10:35
@@ -54,7 +54,7 @@ public class AccountTotalRechargeCondition implements ConditionHandler<PlayerRec
 
     @Override
     public int getErrorCode() {
-        ConditionCfg conditionCfg = GameDataManager.getConditionCfg(11004);
+        ConditionCfg conditionCfg = GameDataManager.getConditionCfg(11005);
         if (conditionCfg != null) {
             return conditionCfg.getLanguageID();
         }
