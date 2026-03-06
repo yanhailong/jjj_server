@@ -42,6 +42,10 @@ public class RussianLetteMessageBuilder {
         RussianLetteStageInfo stageInfo = new RussianLetteStageInfo();
         stageInfo.gamePhase = gamePhase;
         stageInfo.endTime = endTime;
+        // 开奖/结算阶段：将开奖结果写入 stageInfo（settlementInfo.diceData 已做 37→0 映射）
+        if (settlementInfo != null) {
+            stageInfo.diceData = settlementInfo.diceData;
+        }
         info.stageInfo = stageInfo;
         return info;
     }
@@ -239,11 +243,16 @@ public class RussianLetteMessageBuilder {
         RussianLetteGameDataVo dataVo = gameController.getGameDataVo();
         RespRussianLetteInfo resp = new RespRussianLetteInfo(Code.SUCCESS);
 
-        // ── 1. 当前游戏阶段 ──────────────────────────────────────────────────
+        // ── 1. 当前游戏阶段 + 开奖结果 ─────────────────────────────────────────
         EGamePhase currentPhase = gameController.getCurrentGamePhase();
         RussianLetteStageInfo stageInfo = new RussianLetteStageInfo();
         stageInfo.gamePhase = currentPhase;
         stageInfo.endTime = dataVo.getPhaseEndTime();
+        // 开奖/结算阶段：将当前开奖结果写入 stageInfo（37→0 映射）
+        RussianLetteHistoryBean drawBean = dataVo.getDrawPhaseHistoryBean();
+        if (drawBean != null) {
+            stageInfo.diceData = drawBean.diceData == 37 ? 0 : drawBean.diceData;
+        }
         resp.stageInfo = stageInfo;
 
         // ── 2. 历史转盘结果（37→0 映射，最多 recordsNum 条）───────────────────

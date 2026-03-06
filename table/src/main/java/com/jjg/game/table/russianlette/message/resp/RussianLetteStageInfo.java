@@ -18,4 +18,8 @@ public class RussianLetteStageInfo {
     /** 本阶段结束时间戳（毫秒），客户端据此计算剩余倒计时 */
     @ProtoDesc("结束时间戳(ms)")
     public long endTime;
+
+    /** 开奖结果 0-36 37-》0 */
+    @ProtoDesc("开奖结果")
+    public int diceData;
 }

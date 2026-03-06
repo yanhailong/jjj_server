@@ -19,6 +19,9 @@ import com.jjg.game.table.russianlette.message.RussianLetteMessageConstant;
 )
 @ProtoDesc("通知俄罗斯转盘结算信息")
 public class NotifyRussianLetteSettlement extends AbstractNotice {
+    /** 当前游戏阶段：REST / BET / DRAW_ON / GAME_ROUND_OVER_SETTLEMENT */
+    @ProtoDesc("当前阶段")
+    public RussianLetteStageInfo stageInfo;
 
     @ProtoDesc("结算信息")
     public RussianLetteSettlementInfo settlementInfo;
