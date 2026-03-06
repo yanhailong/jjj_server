@@ -3,6 +3,7 @@ package com.jjg.game.table.russianlette.gamephase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
 import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
 import com.jjg.game.table.russianlette.message.RussianLetteMessageBuilder;
@@ -43,6 +44,9 @@ public class RussianLetteBetPhase extends BaseTableBetPhase<RussianLetteGameData
                         gameDataVo.getPhaseEndTime(),
                         prob,
                         null));
+        // 通知所有观察者（房间列表页玩家）
+        RussianLetteMessageBuilder.notifyObserversOnPhaseChange(
+                (BaseTableGameController<RussianLetteGameDataVo>) gameController);
     }
 
     @Override

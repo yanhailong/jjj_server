@@ -1,5 +1,7 @@
 package com.jjg.game.table.russianlette.message;
 
+import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -8,11 +10,13 @@ import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
+import com.jjg.game.table.russianlette.RussianLetteTempRoom;
 import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
 import com.jjg.game.table.russianlette.message.resp.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 俄罗斯转盘消息构建工具类
@@ -20,6 +24,15 @@ import java.util.Map;
  * @author lhc
  */
 public class RussianLetteMessageBuilder {
+
+    private static ClusterSystem clusterSystem;
+
+    private static ClusterSystem getClusterSystem() {
+        if (clusterSystem == null) {
+            clusterSystem = CommonUtil.getContext().getBean(ClusterSystem.class);
+        }
+        return clusterSystem;
+    }
 
     // =====================================================================
     // 阶段变化通知
@@ -63,7 +76,7 @@ public class RussianLetteMessageBuilder {
      */
     public static RussianLetteProb buildProb(List<RussianLetteHistoryBean> historyBeans) {
         if (historyBeans == null || historyBeans.isEmpty()) {
-            return null;
+            return new RussianLetteProb();
         }
         // 取最近 12 条
         int size = historyBeans.size();
@@ -126,14 +139,29 @@ public class RussianLetteMessageBuilder {
 
     /**
      * 构建结算广播消息（SETTLEMENT 阶段推送给全房间玩家）
+     * <p>
+     * 填充字段：{@code settlementInfo}、{@code stageInfo}（GAME_ROUND_OVER_SETTLEMENT）、{@code prob}。
+     * <p>
+     * 注意：{@code playNum} 和 {@code allBet} 为玩家维度数据，由结算阶段按玩家单独设置后广播。
      *
      * @param russianLetteHistoryBean 本局历史记录（含 diceData 和 betIdxId）
+     * @param gameDataVo             游戏数据（用于读取阶段信息和历史记录）
      * @return 填充了开奖结果的结算通知（playerChangedGolds 由 settlementDice 填充）
      */
     public static NotifyRussianLetteSettlement notifyAnimalsSettlement(
-            RussianLetteHistoryBean russianLetteHistoryBean) {
+            RussianLetteHistoryBean russianLetteHistoryBean, RussianLetteGameDataVo gameDataVo) {
         NotifyRussianLetteSettlement settlement = new NotifyRussianLetteSettlement();
         settlement.settlementInfo = buildSettlementInfo(russianLetteHistoryBean);
+
+        // 当前阶段信息（结算阶段 + 开奖号码）
+        RussianLetteStageInfo stageInfo = new RussianLetteStageInfo();
+        stageInfo.gamePhase = EGamePhase.GAME_ROUND_OVER_SETTLEMENT;
+        stageInfo.endTime = gameDataVo.getPhaseEndTime();
+        stageInfo.diceData = settlement.settlementInfo.diceData; // 已做 37→0 映射
+        settlement.stageInfo = stageInfo;
+
+        // 概率信息
+        settlement.prob = buildProb(gameDataVo.getWinAreaCfgIdHistory());
         return settlement;
     }
 
@@ -153,6 +181,23 @@ public class RussianLetteMessageBuilder {
                 BaseDiceMessageBuilder.buildDiceTableInfo(playerId, gameController, gameDataVo, isInitial);
         tableInfo.settlementHistory = gameDataVo.getWinAreaCfgIdHistory();
         tableInfo.settlementInfo = gameDataVo.getSettlementInfo();
+
+        // 概率信息
+        tableInfo.prob = buildProb(gameDataVo.getWinAreaCfgIdHistory());
+
+        // 玩家牌桌玩的次数
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        if (gamePlayer != null) {
+            tableInfo.playNum = gamePlayer.getTableGameData().getBetInfoList().size();
+        }
+
+        // 累计本局下注总金额
+        Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
+        if (playerBetInfo != null) {
+            tableInfo.allBet = playerBetInfo.values().stream()
+                    .flatMapToInt(list -> list.stream().mapToInt(Integer::intValue))
+                    .sum();
+        }
         return tableInfo;
     }
 
@@ -187,6 +232,12 @@ public class RussianLetteMessageBuilder {
 
         // 近 12 局概率信息
         summary.prob = buildProb(dataVo.getWinAreaCfgIdHistory());
+
+        // 对局 ID（历史记录条数 - 1，与百家乐 roundId = betRecord.size() - 1 一致）
+        summary.roundId = Math.max(0, dataVo.getWinAreaCfgIdHistory().size() - 1);
+
+        // 俄罗斯转盘无洗牌概念，始终不需要清除路单
+        summary.needClearRoad = false;
         return summary;
     }
 
@@ -205,6 +256,16 @@ public class RussianLetteMessageBuilder {
         // 顶层 roomId，供列表中快速定位房间
         summary.roomId = dataVo.getRoomId();
 
+        // 当前阶段 + 开奖结果
+        RussianLetteStageInfo stageInfo = new RussianLetteStageInfo();
+        stageInfo.gamePhase = gameController.getCurrentGamePhase();
+        stageInfo.endTime = dataVo.getPhaseEndTime();
+        RussianLetteHistoryBean drawBean = dataVo.getDrawPhaseHistoryBean();
+        if (drawBean != null) {
+            stageInfo.diceData = drawBean.diceData == 37 ? 0 : drawBean.diceData;
+        }
+        summary.stageInfo = stageInfo;
+
         // 基础阶段信息
         summary.baseInfo = buildBaseInfo(gameController);
 
@@ -221,6 +282,43 @@ public class RussianLetteMessageBuilder {
         // 近 12 局概率信息
         summary.prob = buildProb(dataVo.getWinAreaCfgIdHistory());
         return summary;
+    }
+
+    // =====================================================================
+    // 观察者推送（房间列表页玩家）
+    // =====================================================================
+
+    /**
+     * 构建单条房间摘要通知（{@link NotifyRussianLetteTableSummary}）
+     * <p>用于阶段变化时向观察者推送最新房间状态。</p>
+     *
+     * @param gameController 目标房间的游戏控制器
+     * @return 包含 {@link RussianLetteSummary} 的通知对象
+     */
+    public static NotifyRussianLetteTableSummary buildRussianLetteSingleSummaryInfo(
+            BaseTableGameController<RussianLetteGameDataVo> gameController) {
+        NotifyRussianLetteTableSummary notify = new NotifyRussianLetteTableSummary();
+        notify.tableSummary = buildRussianLetteSummaryInfo(gameController);
+        return notify;
+    }
+
+    /**
+     * 通知所有观察者（正在浏览房间列表但未进入房间的玩家）
+     * <p>在 BET 和 SETTLEMENT 阶段调用，向观察者推送房间摘要更新。</p>
+     *
+     * @param gameController 当前房间的游戏控制器
+     */
+    @SuppressWarnings("unchecked")
+    public static void notifyObserversOnPhaseChange(
+            BaseTableGameController<RussianLetteGameDataVo> gameController) {
+        RussianLetteTempRoom tempRoom = CommonUtil.getContext().getBean(RussianLetteTempRoom.class);
+        NotifyRussianLetteTableSummary notify = buildRussianLetteSingleSummaryInfo(gameController);
+        int roomCfgId = gameController.getGameDataVo().getRoomCfg().getId();
+        Set<Long> playerIds = tempRoom.getObserverPlayers(roomCfgId);
+        ClusterSystem system = getClusterSystem();
+        for (Long playerId : playerIds) {
+            system.sendToPlayer(notify, playerId);
+        }
     }
 
     // =====================================================================
