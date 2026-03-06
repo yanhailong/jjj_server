@@ -395,7 +395,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             if (session != null) {
                 Mail tmpMail = mail.clone();
                 tmpMail.setId(IdUtil.getSnowflakeNextId());
-                tmpMail.setPlayerId(session.playerId);
+                tmpMail.setPlayerId(en.getValue().getPlayerId());
                 addMail(tmpMail);
                 playerSessions.put(en.getValue().getPlayerId(), session);
             }
