@@ -19,7 +19,7 @@ public class WealthBankPlayerGameData extends SlotsPlayerGameData {
     //记录出现可收集美元的局数
     private int addDollarsCount;
     //记录收集美元时的押注总和(用于计算累计的美钞的平均值)
-    private long addDollarsTotalStake;
+    private int addDollarsTotalStake;
     //是否可以投资
     private AtomicBoolean invers = new AtomicBoolean(false);
     //已经选择的地区
@@ -41,7 +41,7 @@ public class WealthBankPlayerGameData extends SlotsPlayerGameData {
 
     public void addDollarsTotalStake(long stake) {
         this.addDollarsCount++;
-        this.addDollarsTotalStake += stake;
+        this.addDollarsTotalStake += (int) stake;
     }
 
     public AtomicBoolean getInvers() {
@@ -94,11 +94,11 @@ public class WealthBankPlayerGameData extends SlotsPlayerGameData {
         this.addDollarsCount = addDollarsCount;
     }
 
-    public long getAddDollarsTotalStake() {
+    public int getAddDollarsTotalStake() {
         return addDollarsTotalStake;
     }
 
-    public void setAddDollarsTotalStake(long addDollarsTotalStake) {
+    public void setAddDollarsTotalStake(int addDollarsTotalStake) {
         this.addDollarsTotalStake = addDollarsTotalStake;
     }
 
@@ -123,11 +123,29 @@ public class WealthBankPlayerGameData extends SlotsPlayerGameData {
         T dto = super.converToDto(cla);
         if (dto instanceof WealthBankPlayerGameDataDTO dollarDto) {
             dollarDto.setInvers(this.invers.get());
+            dollarDto.setTotalDollars(this.totalDollars);
+            dollarDto.setAddDollarsCount(this.addDollarsCount);
+            dollarDto.setAddDollarsTotalStake(this.addDollarsTotalStake);
+            dollarDto.setSelectedAreaSet(this.selectedAreaSet);
             dollarDto.setAllUnLock(this.allUnLock.get());
+            dollarDto.setRemainFreeCount(this.getRemainFreeCount().get());
+            dollarDto.setFreeIndex(this.getFreeIndex().get());
+            if (freeLib instanceof WealthBankResultLib lib) {
+                dollarDto.setFreeLib(lib);
+            }
         }
         if (dto instanceof WealthBankPlayerGameDataRoomDTO dollarDto) {
             dollarDto.setInvers(this.invers.get());
+            dollarDto.setTotalDollars(this.totalDollars);
+            dollarDto.setAddDollarsCount(this.addDollarsCount);
+            dollarDto.setAddDollarsTotalStake(this.addDollarsTotalStake);
+            dollarDto.setSelectedAreaSet(this.selectedAreaSet);
             dollarDto.setAllUnLock(this.allUnLock.get());
+            dollarDto.setRemainFreeCount(this.getRemainFreeCount().get());
+            dollarDto.setFreeIndex(this.getFreeIndex().get());
+            if (freeLib instanceof WealthBankResultLib lib) {
+                dollarDto.setFreeLib(lib);
+            }
         }
         return dto;
     }
