@@ -14,6 +14,8 @@ import com.jjg.game.table.russianlette.RussianLetteTempRoom;
 import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
 import com.jjg.game.table.russianlette.message.resp.*;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -95,10 +97,26 @@ public class RussianLetteMessageBuilder {
             }
         }
         RussianLetteProb prob = new RussianLetteProb();
+
         prob.red = (double) redCount / total;
+        BigDecimal bd = new BigDecimal(prob.red);
+        bd = bd.setScale(2, RoundingMode.HALF_UP);  // 四舍五入保留两位小数
+        prob.red = bd.doubleValue();
+
         prob.black = (double) blackCount / total;
+        bd = new BigDecimal(prob.black);
+        bd = bd.setScale(2, RoundingMode.HALF_UP);  // 四舍五入保留两位小数
+        prob.black = bd.doubleValue();
+
         prob.odd = (double) oddCount / total;
+        bd = new BigDecimal(prob.odd);
+        bd = bd.setScale(2, RoundingMode.HALF_UP);  // 四舍五入保留两位小数
+        prob.odd = bd.doubleValue();
+
         prob.event = (double) evenCount / total;
+        bd = new BigDecimal(prob.event);
+        bd = bd.setScale(2, RoundingMode.HALF_UP);  // 四舍五入保留两位小数
+        prob.event = bd.doubleValue();
         return prob;
     }
 
