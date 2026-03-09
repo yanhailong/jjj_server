@@ -36,12 +36,12 @@ public interface PanJinLianConstant {
     }
 
     interface BaseElement {
-        int ID_WILD = 10;
-        int ID_SCATTER = 11;
-        int ID_MINI = 12;
-        int ID_MINOR = 13;
-        int ID_MAJOR = 14;
-        int ID_GRAND = 15;
+        int ID_WILD = 11;
+        int ID_SCATTER = 12;
+        int ID_MINI = 13;
+        int ID_MINOR = 14;
+        int ID_MAJOR = 15;
+        int ID_GRAND = 16;
     }
 
     interface SpecialMode {

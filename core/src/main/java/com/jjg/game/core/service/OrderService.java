@@ -6,6 +6,7 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.OrderDao;
+import com.jjg.game.core.dao.PlayerRechargeFlowDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.RechargeType;
 import com.mongodb.DuplicateKeyException;
@@ -18,7 +19,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -35,6 +35,8 @@ public class OrderService {
     private AccountDao accountDao;
     @Autowired
     private RedisTemplate redisTemplate;
+    @Autowired
+    private PlayerRechargeFlowDao playerRechargeFlowDao;
 
     private final String CHANNEL_ORDER_TABLE_NAME = "channelOrder:data";
     private final String CHANNEL_ORDER_TIME_TABLE_NAME = "channelOrder:time";
@@ -69,7 +71,7 @@ public class OrderService {
     public Order generateOrder(String orderIdPrefix, long playerId, BigDecimal price, RechargeType rechargeType, List<Item> items) {
         Account account = accountDao.queryAccountByPlayerId(playerId);
         PayType payType = null;
-        if(account.getChannel() != null){
+        if (account.getChannel() != null) {
             payType = PayType.valueOf(account.getChannel().getValue());
         }
         return generateOrder(orderIdPrefix, playerId, account.getChannel(), payType, null, price, rechargeType, OrderStatus.ORDER, null, items);
@@ -152,13 +154,14 @@ public class OrderService {
      * @return 删除的订单数量
      */
     public void clean() {
-        int now =  TimeHelper.nowInt();
-        int expire = now - (int) TimeUnit.DAYS.toSeconds(30);
-        long mongoDelCount = orderDao.deleteOrdersBeforeTimestamp(expire);
+        int now = TimeHelper.nowInt();
+        int expire = now - (int) TimeUnit.DAYS.toSeconds(60);
 
+        long mongoDelCount = orderDao.deleteOrdersBeforeTimestamp(expire);
+        long mongoDelFlowCount = playerRechargeFlowDao.deleteOrdersBeforeTimestamp(expire);
         int channelOrderExpire = now - (int) TimeUnit.DAYS.toSeconds(7);
 
         Long removeChannelOrderCount = removeChannelOrderSet(channelOrderExpire);
-        log.info("删除过期订单数量 mongoDelCount = {},removeChannelOrderCount = {}", mongoDelCount,removeChannelOrderCount);
+        log.info("删除过期订单数量 mongoDelCount = {},mongoDelFlowCount={},removeChannelOrderCount = {}", mongoDelCount, mongoDelFlowCount, removeChannelOrderCount);
     }
 }

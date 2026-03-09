@@ -81,15 +81,22 @@ public class PanJinLianGenerateManager extends AbstractSlotsGenerateManager<PanJ
             }
 
             if (cfg.getFeatureTriggerId() != null && !cfg.getFeatureTriggerId().isEmpty()) {
+                Set<Integer> libTypeSet = lib.getLibTypeSet();
+                if (libTypeSet == null || libTypeSet.isEmpty()) {
+                    libTypeSet = SlotsConst.specialModeTriggerFreeModeIds.get(this.gameType);
+                }
+
                 int count = checkAddFreeCount(lib);
                 if (count > 0) {
-                    Set<Integer> libTypeSet = new HashSet<>();
+                    libTypeSet = new HashSet<>();
                     libTypeSet.add(PanJinLianConstant.SpecialMode.FREE);
                     lib.setLibTypeSet(libTypeSet);
                 }
+
+                final Set<Integer> tmpSet = libTypeSet;
                 cfg.getFeatureTriggerId().forEach(miniGameId -> {
                     if (!showAuxiliaryIdSet.contains(miniGameId)) {
-                        lib.getLibTypeSet().forEach(libType -> {
+                        tmpSet.forEach(libType -> {
                             SpecialAuxiliaryInfo specialAuxiliaryInfo =
                                     triggerMiniGame(libType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
                             if (specialAuxiliaryInfo != null) {
