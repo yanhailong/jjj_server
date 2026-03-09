@@ -12,7 +12,6 @@ import com.jjg.game.table.common.BaseFriendRoomTableGameController;
 import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
 import com.jjg.game.table.russianlette.gamephase.RussianLetteBetPhase;
 import com.jjg.game.table.russianlette.gamephase.RussianLetteSettlementPhase;
-import com.jjg.game.table.russianlette.gamephase.RussianLetteTableWaitReadyPhase;
 import com.jjg.game.table.russianlette.message.RussianLetteMessageBuilder;
 import com.jjg.game.table.russianlette.message.resp.NotifyRussianLetteTableInfo;
 
@@ -47,7 +46,7 @@ public class RussianLetteFriendRoomGameController extends BaseFriendRoomTableGam
     @Override
     protected LinkedHashSet<IRoomPhase> initGamePhaseConf() {
         LinkedHashSet<IRoomPhase> roomPhases = new LinkedHashSet<>();
-        roomPhases.add(new RussianLetteTableWaitReadyPhase(this));
+//        roomPhases.add(new RussianLetteTableWaitReadyPhase(this));
         roomPhases.add(new RussianLetteBetPhase(this));
         roomPhases.add(new RussianLetteSettlementPhase(this));
         return roomPhases;

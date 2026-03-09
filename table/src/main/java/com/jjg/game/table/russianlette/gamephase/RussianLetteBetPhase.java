@@ -11,6 +11,8 @@ import com.jjg.game.table.russianlette.message.resp.RussianLetteProb;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 /**
  * 俄罗斯转盘下注阶段（BET）
  * <p>
@@ -29,6 +31,16 @@ public class RussianLetteBetPhase extends BaseTableBetPhase<RussianLetteGameData
     public RussianLetteBetPhase(AbstractPhaseGameController<Room_BetCfg, RussianLetteGameDataVo> gameController) {
         super(gameController);
     }
+
+    @Override
+    public int getPhaseRunTime() {
+        List<Integer> stageTime = gameDataVo.getRoomCfg().getStageTime();
+        if (stageTime.size() >= 3) {
+            return stageTime.get(0);
+        }
+        return 0;
+    }
+
 
     /**
      * 阶段开始：

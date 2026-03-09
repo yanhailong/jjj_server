@@ -13,11 +13,11 @@ import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
 import com.jjg.game.table.russianlette.gamephase.RussianLetteBetPhase;
 import com.jjg.game.table.russianlette.gamephase.RussianLetteDrawPhase;
 import com.jjg.game.table.russianlette.gamephase.RussianLetteSettlementPhase;
-import com.jjg.game.table.russianlette.gamephase.RussianLetteTableWaitReadyPhase;
 import com.jjg.game.table.russianlette.message.RussianLetteMessageBuilder;
 import com.jjg.game.table.russianlette.message.resp.NotifyRussianLetteTableInfo;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 
 /**
  * 俄罗斯转盘游戏控制器
@@ -60,7 +60,6 @@ public class RussianLetteGameController extends BaseTableGameController<RussianL
     /**
      * 初始化四阶段游戏流程（LinkedHashSet 保证顺序，末尾阶段结束后循环回第一个）：
      * <ol>
-     *   <li>{@link RussianLetteTableWaitReadyPhase}：REST 休闲阶段，清除上局数据</li>
      *   <li>{@link RussianLetteBetPhase}：BET 下注阶段，接受玩家押注</li>
      *   <li>{@link RussianLetteDrawPhase}：DRAW_ON 开奖阶段，生成随机号码并广播</li>
      *   <li>{@link RussianLetteSettlementPhase}：SETTLEMENT 结算阶段，计算并发放奖励</li>
@@ -69,10 +68,10 @@ public class RussianLetteGameController extends BaseTableGameController<RussianL
     @Override
     protected LinkedHashSet<IRoomPhase> initGamePhaseConf() {
         LinkedHashSet<IRoomPhase> roomPhases = new LinkedHashSet<>();
-        roomPhases.add(new RussianLetteTableWaitReadyPhase(this));  // REST        stageTime[0]
-        roomPhases.add(new RussianLetteBetPhase(this));             // BET         stageTime[1]
-        roomPhases.add(new RussianLetteDrawPhase(this));            // DRAW_ON     stageTime[2]
-        roomPhases.add(new RussianLetteSettlementPhase(this));      // SETTLEMENT  stageTime[3]
+//        roomPhases.add(new RussianLetteTableWaitReadyPhase(this));  // REST        stageTime[0]
+        roomPhases.add(new RussianLetteBetPhase(this));             // BET         stageTime[0]
+        roomPhases.add(new RussianLetteDrawPhase(this));            // DRAW_ON     stageTime[1]
+        roomPhases.add(new RussianLetteSettlementPhase(this));      // SETTLEMENT  stageTime[2]
         return roomPhases;
     }
 

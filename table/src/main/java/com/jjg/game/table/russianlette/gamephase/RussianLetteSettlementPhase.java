@@ -43,16 +43,16 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
     }
 
     /**
-     * 结算阶段持续时间：stageTime[3]（默认 5s）
+     * 结算阶段持续时间：stageTime[2]（默认 5s）
      * <p>
      * 基类 {@code BaseSettlementPhase.getPhaseRunTime()} 返回 stageTime[2]+stageTime[3]，
-     * 这里覆盖为只取 stageTime[3]，因为 stageTime[2] 已由 {@link RussianLetteDrawPhase} 使用。
+     * 这里覆盖为只取 stageTime[2]，因为 stageTime[2] 已由 {@link RussianLetteDrawPhase} 使用。
      */
     @Override
     public int getPhaseRunTime() {
         List<Integer> stageTime = gameDataVo.getRoomCfg().getStageTime();
-        if (stageTime.size() >= 4) {
-            return stageTime.get(3);
+        if (stageTime.size() >= 3) {
+            return stageTime.get(2);
         }
         return 5000;
     }

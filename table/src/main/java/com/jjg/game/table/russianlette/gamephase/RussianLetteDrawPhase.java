@@ -17,6 +17,7 @@ import com.jjg.game.sampledata.bean.BetAreaCfg;
 import com.jjg.game.sampledata.bean.RoomCfg;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.dicecommon.DiceDataHolder;
 import com.jjg.game.table.dicecommon.DiceUtils;
 import com.jjg.game.table.dicecommon.phase.BaseDiceSettlementPhase;
@@ -67,13 +68,13 @@ public class RussianLetteDrawPhase extends BaseDiceSettlementPhase<RussianLetteG
     }
 
     /**
-     * 开奖阶段持续时间：stageTime[2]（默认 9s）
+     * 开奖阶段持续时间：stageTime[1]（默认 9s）
      */
     @Override
     public int getPhaseRunTime() {
         List<Integer> stageTime = gameDataVo.getRoomCfg().getStageTime();
         if (stageTime.size() >= 3) {
-            return stageTime.get(2);
+            return stageTime.get(1);
         }
         return 8000;
     }
@@ -154,6 +155,10 @@ public class RussianLetteDrawPhase extends BaseDiceSettlementPhase<RussianLetteG
                 prob,
                 settlementInfo));
         log.debug("俄罗斯转盘 {} DRAW_ON 广播完成：{}", gameDataVo.roomLogInfo(), JSON.toJSONString(settlementInfo));
+
+        // 通知所有观察者（房间列表页玩家）
+        RussianLetteMessageBuilder.notifyObserversOnPhaseChange(
+                (BaseTableGameController<RussianLetteGameDataVo>) gameController);
     }
 
     /**
