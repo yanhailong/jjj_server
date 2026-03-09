@@ -128,5 +128,7 @@ public interface RussianLetteMessageConstant {
         int RESP_SWITCH_ROOM_IN_GAME = BASE_MSG_PREFIX | 0x88;
         // 返回查看其他房间
         int RESP_RUSSIAN_LETTE_OTHER_SUMMARY_LIST = BASE_MSG_PREFIX | 0x89;
+        // 通知俄罗斯状态切换（牌桌界面）
+        int NOTIFY_RUSSIAN_LETTE_SUMMARY = BASE_MSG_PREFIX | 0x90;
     }
 }

@@ -23,8 +23,9 @@ import java.util.List;
 @ProtoDesc("返回俄罗斯转盘桌上信息 首次进入")
 public class RespRussianLetteInfo extends AbstractResponse {
 
-    @ProtoDesc("场上阶段信息")
-    public EGamePhase gamePhase;
+    /** 当前游戏阶段：REST / BET / DRAW_ON / GAME_ROUND_OVER_SETTLEMENT */
+    @ProtoDesc("当前阶段")
+    public RussianLetteStageInfo stageInfo;
 
     @ProtoDesc("转盘结果 只记录最新12把的数字（0-36）")
     public List<Integer> cardStateList;
@@ -48,7 +49,7 @@ public class RespRussianLetteInfo extends AbstractResponse {
     public RussianLetteProb prob;
 
     @ProtoDesc("玩家牌桌玩的次数")
-    public double playNum;
+    public int playNum;
 
     @ProtoDesc("累计这次下注总金额（断线重连同步）")
     public double allBet;

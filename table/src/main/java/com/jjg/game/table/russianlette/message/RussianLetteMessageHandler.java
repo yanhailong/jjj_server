@@ -105,8 +105,11 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
             playerController.send(new RespRussianLetteInfo(Code.PARAM_ERROR));
             return;
         }
-        // 推送初始化数据（触发 respRoomInitInfo → 发送 NotifyRussianLetteTableInfo）
-        gameController.respRoomInitInfo(playerController);
+        // 构建并发送完整的桌面信息响应（含所有字段）
+        RussianLetteGameController rgc = (RussianLetteGameController) gameController;
+        RespRussianLetteInfo resp = RussianLetteMessageBuilder.buildRespRussianLetteInfo(
+                playerController.playerId(), rgc);
+        playerController.send(resp);
         // 更新玩家操作时间（心跳续约）
         TableGameDataVo tableGameDataVo = (TableGameDataVo) gameController.getGameDataVo();
         tableGameDataVo.updatePlayerOperateTime(playerController.playerId());

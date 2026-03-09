@@ -20,12 +20,9 @@ public class RussianLetteInfo {
     @ProtoDesc("场上倒计时结束时间戳")
     public long tableCountDownTime;
 
-    @ProtoDesc("场上总时间")
-    public int totalTime;
+//    @ProtoDesc("场上总时间")
+//    public int totalTime;
 
     @ProtoDesc("区域下注信息")
     public List<BetTableInfo> tableAreaInfos;
-
-    @ProtoDesc("概率信息")
-    public RussianLetteProb prob;
 }

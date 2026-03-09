@@ -7,6 +7,7 @@ import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
 import com.jjg.game.table.dicecommon.phase.BaseDiceSettlementPhase;
 import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
@@ -83,9 +84,9 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
                         null,
                         partialSettlementInfo));
 
-        // ── 3. 构建结算消息体 ────────────────────────────────────────────────────
+        // ── 3. 构建结算消息体（含 stageInfo、prob）─────────────────────────────
         NotifyRussianLetteSettlement settlement =
-                RussianLetteMessageBuilder.notifyAnimalsSettlement(historyBean);
+                RussianLetteMessageBuilder.notifyAnimalsSettlement(historyBean, gameDataVo);
         // 填充玩家下注汇总信息
         settlement.settlementInfo.diceSettlementInfo =
                 BaseDiceMessageBuilder.buildDiceSettlementInfo(gameDataVo);
@@ -100,6 +101,10 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
         // ── 6. 保存最终结算信息（含金币变化），供断线重连恢复 ─────────────────────
         gameDataVo.setSettlementInfo(settlement.settlementInfo);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
+
+        // ── 7. 通知所有观察者（房间列表页玩家）──────────────────────────────────
+        RussianLetteMessageBuilder.notifyObserversOnPhaseChange(
+                (BaseTableGameController<RussianLetteGameDataVo>) gameController);
     }
 
     @Override

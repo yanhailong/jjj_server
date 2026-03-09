@@ -11,6 +11,7 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.game.wealthbank.WealthBankConstant;
 import com.jjg.game.slots.game.wealthbank.data.WealthBankGameRunInfo;
+import com.jjg.game.slots.game.wealthbank.data.WealthBankPlayerGameData;
 import com.jjg.game.slots.game.wealthbank.pb.*;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,7 +75,13 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
                     res.poolList.add(wealthBankPoolInfo);
                 }
             }
-
+            WealthBankPlayerGameData data = gameRunInfo.getData();
+            //火车 数据
+            res.totalDollars = data.getTotalDollars();
+            //投资可选区域，只有当触发投资游戏后才会有值
+            gameManager.checkInvers(data, gameRunInfo);
+            res.choosableAreas = gameRunInfo.getChoosableAreas();
+            res.status = data.getStatus();
             res.dollarTargetCount = gameManager.getDollarExpressCollectDollarConfig().getMax();
             res.collectMinStake = gameManager.getDollarExpressCollectDollarConfig().getStakeAllBetScoreMin();
             res.dollarCollectedCount = gameRunInfo.getTotalDollars();
