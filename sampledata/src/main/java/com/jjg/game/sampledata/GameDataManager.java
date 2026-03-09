@@ -1561,6 +1561,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\workspace\\number\\gamedoc-master\\gamedoc\\游戏配置表");
+    loadAllData("D:\\java_projects\\gamedoc\\游戏配置表");
   }
 }
