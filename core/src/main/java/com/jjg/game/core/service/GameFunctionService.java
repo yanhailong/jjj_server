@@ -143,7 +143,8 @@ public class GameFunctionService implements GameEventListener {
         if (!functionCfg.getIsOpen()) {
             return false;
         }
-        String check = join ? functionCfg.getCondition() : functionCfg.getShowCondition();
+//   TODO liming我改了你代码     String check = join ? functionCfg.getCondition() : functionCfg.getShowCondition();
+        String check = functionCfg.getCondition();
         boolean achievement = conditionManager.isAchievement(player, "", check);
         // 检查是否触发成功
         if (!achievement && notify) {
@@ -169,7 +170,8 @@ public class GameFunctionService implements GameEventListener {
             if (!gameFunctionCfg.getIsOpen()) {
                 continue;
             }
-            ConditionNode node = conditionParser.parse(gameFunctionCfg.getShowCondition());
+            // TODO
+            ConditionNode node = conditionParser.parse(gameFunctionCfg.getCondition());
             analysisCondition(gameFunctionCfg, node, tmpGameTypeOfFuncCache);
         }
         this.gameTypeOfFuncCache = tmpGameTypeOfFuncCache;
