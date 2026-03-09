@@ -41,6 +41,7 @@ public class RussianLetteTableWaitReadyPhase extends TableWaitReadyPhase<Russian
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
+        log.info("执行RussianLetteTableWaitReadyPhase（休闲阶段）中phaseDoAction");
         // 广播俄罗斯转盘专属阶段切换通知（prob/settlementInfo 在休闲阶段均为 null）
         broadcastMsgToRoom(
                 RussianLetteMessageBuilder.buildPhaseChangInfo(

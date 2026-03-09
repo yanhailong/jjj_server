@@ -54,7 +54,7 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
         if (stageTime.size() >= 4) {
             return stageTime.get(3);
         }
-        return 5;
+        return 5000;
     }
 
     /**
@@ -65,7 +65,7 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
-
+        log.info("执行RussianLetteSettlementPhase（结算阶段）中phaseDoAction");
         // ── 1. 读取开奖阶段缓存 ──────────────────────────────────────────────────
         RussianLetteHistoryBean historyBean = gameDataVo.getDrawPhaseHistoryBean();
         List<WinPosWeightCfg> winPosWeightCfgs = gameDataVo.getDrawPhaseWinCfgs();

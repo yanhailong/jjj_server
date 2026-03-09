@@ -35,7 +35,10 @@ public class RussianLetteGameController extends BaseTableGameController<RussianL
     public RussianLetteGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {
         super(roomController);
     }
-
+    @Override
+    public EGameType gameControlType() {
+        return EGameType.RUSSIAN_ROULETTE;
+    }
     /**
      * 玩家进入房间时推送初始化数据（桌面状态、历史记录、当前阶段信息）
      */
@@ -83,8 +86,4 @@ public class RussianLetteGameController extends BaseTableGameController<RussianL
         // 阶段运行结束钩子（无额外操作）
     }
 
-    @Override
-    public EGameType gameControlType() {
-        return EGameType.RUSSIAN_ROULETTE;
-    }
 }

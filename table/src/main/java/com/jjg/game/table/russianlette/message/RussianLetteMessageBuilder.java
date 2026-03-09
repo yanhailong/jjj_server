@@ -16,6 +16,8 @@ import com.jjg.game.table.russianlette.message.resp.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -440,6 +442,7 @@ public class RussianLetteMessageBuilder {
         // 当前游戏阶段
         EGamePhase currentPhase    = gameController.getCurrentGamePhase();
         baseInfo.eGamePhase        = currentPhase;
+
         // 当前阶段总时长（秒）
         baseInfo.phaseTotalTime    = calcPhaseTotalTime(currentPhase, dataVo.getRoomCfg().getStageTime());
         return baseInfo;
@@ -460,5 +463,18 @@ public class RussianLetteMessageBuilder {
             case GAME_ROUND_OVER_SETTLEMENT -> stageTime.size() > 3 ? stageTime.get(3) : 0;
             default                         -> 0;
         };
+    }
+
+    private static List<Integer> buildReversedCardStateList(List<RussianLetteHistoryBean> history) {
+        if (history == null || history.isEmpty()) {
+            return List.of();
+        }
+        List<Integer> result = new ArrayList<>(history.size());
+        for (RussianLetteHistoryBean bean : history) {
+            int value = (bean.diceData == 37) ? 0 : bean.diceData;
+            result.add(value);
+        }
+        Collections.reverse(result);
+        return result;
     }
 }

@@ -75,7 +75,7 @@ public class RussianLetteDrawPhase extends BaseDiceSettlementPhase<RussianLetteG
         if (stageTime.size() >= 3) {
             return stageTime.get(2);
         }
-        return 9;
+        return 8000;
     }
 
     /**
@@ -84,7 +84,7 @@ public class RussianLetteDrawPhase extends BaseDiceSettlementPhase<RussianLetteG
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
-
+        log.info("执行RussianLetteDrawPhase（开奖阶段）中phaseDoAction");
         // ── 1. 生成 0-36（数据库37-》0） 随机骰子点数（优先回收干预）──────────────────────────────
         List<Integer> randomNumDice = null;
         Pair<Long, Long> currentPool = canTriggerRecycling();

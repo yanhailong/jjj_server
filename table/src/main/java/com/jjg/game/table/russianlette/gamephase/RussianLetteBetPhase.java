@@ -8,6 +8,8 @@ import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
 import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
 import com.jjg.game.table.russianlette.message.RussianLetteMessageBuilder;
 import com.jjg.game.table.russianlette.message.resp.RussianLetteProb;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 俄罗斯转盘下注阶段（BET）
@@ -22,6 +24,7 @@ import com.jjg.game.table.russianlette.message.resp.RussianLetteProb;
  * @author lhc
  */
 public class RussianLetteBetPhase extends BaseTableBetPhase<RussianLetteGameDataVo> {
+    protected Logger log = LoggerFactory.getLogger(getClass());
 
     public RussianLetteBetPhase(AbstractPhaseGameController<Room_BetCfg, RussianLetteGameDataVo> gameController) {
         super(gameController);
@@ -35,6 +38,7 @@ public class RussianLetteBetPhase extends BaseTableBetPhase<RussianLetteGameData
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
+        log.info("执行RussianLetteBetPhase（下注阶段）中phaseDoAction");
         // 根据历史记录计算近 12 局的红/黑/奇/偶概率
         RussianLetteProb prob = RussianLetteMessageBuilder.buildProb(gameDataVo.getWinAreaCfgIdHistory());
         // 广播下注阶段变化通知（settlementInfo 在下注阶段为 null）
