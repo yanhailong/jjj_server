@@ -12,21 +12,12 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
 
     private final String roomIdListKey = "roomIdList:";
 
-    public AbstractGoldRoomDao(Class<T> roomClazz,Class<P> roomPlayerClazz) {
+    public AbstractGoldRoomDao(Class<T> roomClazz) {
         super(roomClazz);
     }
 
     protected String getRoomIdListKey(int gameType,int roomCfgId) {
         return roomIdListKey + gameType + ":" + roomCfgId;
-    }
-
-    @Override
-    protected boolean putIfAbsent(T room) {
-        boolean success = super.putIfAbsent(room);
-        if(success){
-            redisTemplate.opsForList().rightPush(getRoomIdListKey(room.getGameType(),room.getRoomCfgId()), room.getId());
-        }
-        return success;
     }
 
     @Override
@@ -39,22 +30,4 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
         return res;
     }
 
-    /**
-     * 从房间id列表中获取一个房间id
-     * @return
-     */
-    @Override
-    public int getCanJoinRoomId(int gameType, int roomCfgId) {
-        //返回list头部元素
-        Object o =  redisTemplate.opsForList().index(getRoomIdListKey(gameType,roomCfgId), 0);
-        if(o == null){
-            return 0;
-        }
-        return Integer.parseInt(o.toString());
-    }
-
-    @Override
-    public long existRoomCount(int gameType, int roomCfgId) {
-        return redisTemplate.opsForList().size(getRoomIdListKey(gameType,roomCfgId));
-    }
 }

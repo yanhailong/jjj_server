@@ -97,7 +97,6 @@ public class MatchDataDao {
             
             return 0
             """;
-
     private static final String CHECK_PLAYER_EXPIRED_SCRIPT = """
             local score = redis.call('ZSCORE', KEYS[1], ARGV[1])
             if not score then
