@@ -53,7 +53,7 @@ public class TotalRechargeCondition extends BaseRedisCondition<PlayerRecharge> {
 
     @Override
     public MatchResultData addProgress(ConditionContext ctx, PlayerRecharge config) {
-        if (ctx.getEvent() instanceof PlayerRechargeEvent event && matchCheck(event, config)) {
+        if (ctx.event() instanceof PlayerRechargeEvent event && matchCheck(event, config)) {
             String customId = getCustomId(ctx);
             String featureId = getFeatureId(ctx);
             BigDecimal count = countDao.getCount(featureId, customId);

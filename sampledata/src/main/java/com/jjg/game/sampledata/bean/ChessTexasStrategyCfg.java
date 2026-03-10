@@ -17,10 +17,6 @@ public class ChessTexasStrategyCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "chessTexasStrategy";
 
-  /**
-   * 他人加注的行为权重-我方牌小
-   */
-  protected Map<Integer, Integer> passiveStrategyFailed_1;
   /** 他人加注的行为权重-我方牌小 */
   protected Map<Integer,Integer> passiveStrategyFailed_1;
   /** 他人加注的行为权重-我方牌小 */
@@ -29,10 +25,6 @@ public class ChessTexasStrategyCfg extends BaseCfgBean {
   protected Map<Integer,Integer> passiveStrategyFailed_3;
   /** 他人加注的行为权重-我方牌小 */
   protected Map<Integer,Integer> passiveStrategyFailed_4;
-  /**
-   * 他人加注的行为权重-我方牌大
-   */
-  protected Map<Integer, Integer> passiveStrategyWin_1;
   /** 他人加注的行为权重-我方牌大 */
   protected Map<Integer,Integer> passiveStrategyWin_1;
   /** 他人加注的行为权重-我方牌大 */
@@ -54,13 +46,6 @@ public class ChessTexasStrategyCfg extends BaseCfgBean {
   /** 牌值 */
   protected int value;
 
-  /**
-   * 返回他人加注的行为权重-我方牌小
-   */
-  public Map<Integer, Integer> getPassiveStrategyFailed_1() {
-    return passiveStrategyFailed_1;
-  }
-
   /** 返回他人加注的行为权重-我方牌小 */
   public Map<Integer,Integer> getPassiveStrategyFailed_1() {
     return passiveStrategyFailed_1;
@@ -79,13 +64,6 @@ public class ChessTexasStrategyCfg extends BaseCfgBean {
   /** 返回他人加注的行为权重-我方牌小 */
   public Map<Integer,Integer> getPassiveStrategyFailed_4() {
     return passiveStrategyFailed_4;
-  }
-
-  /**
-   * 返回他人加注的行为权重-我方牌大
-   */
-  public Map<Integer, Integer> getPassiveStrategyWin_1() {
-    return passiveStrategyWin_1;
   }
 
   /** 返回他人加注的行为权重-我方牌大 */

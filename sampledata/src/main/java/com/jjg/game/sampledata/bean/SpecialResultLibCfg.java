@@ -65,9 +65,7 @@ public class SpecialResultLibCfg extends BaseCfgBean {
     return typeProp;
   }
 
-  /**
-   * 返回模式ID对应的倍数权重修改
-   */
+  /** 返回模式ID对应的倍数权重修改 */
   public List<List<List<String>>> getWeightChange() {
     return weightChange;
   }

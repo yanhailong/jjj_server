@@ -80,9 +80,7 @@ public class GameFunctionCfg extends BaseCfgBean {
     return serialNumber;
   }
 
-  /**
-   * 返回可看见的解锁条件
-   */
+  /** 返回可看见的解锁条件 */
   public String getShowCondition() {
     return showCondition;
   }
