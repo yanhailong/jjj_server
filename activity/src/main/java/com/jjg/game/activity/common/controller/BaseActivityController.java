@@ -381,6 +381,9 @@ public abstract class BaseActivityController {
         for (ActivityData activityData : activityDataMap.values()) {
             Map<Integer, ? extends BaseCfgBean> baseCfgBeanMap = activityData.getType().getController().getDetailCfgBean(activityData);
             // 过滤掉不可运行、无配置、或玩家不符合条件的活动
+            if (!activityData.isOpen()) {
+                continue;
+            }
             if (!activityData.getType().isShowInNotOpen() && (CollectionUtil.isEmpty(baseCfgBeanMap) || !activityData.canRun()
                     || CollectionUtil.isEmpty(activityData.getValue()))) {
                 continue;
