@@ -22,6 +22,8 @@ public class ChessTexasStrategyCfg extends BaseCfgBean {
    */
   protected Map<Integer, Integer> passiveStrategyFailed_1;
   /** 他人加注的行为权重-我方牌小 */
+  protected Map<Integer,Integer> passiveStrategyFailed_1;
+  /** 他人加注的行为权重-我方牌小 */
   protected Map<Integer,Integer> passiveStrategyFailed_2;
   /** 他人加注的行为权重-我方牌小 */
   protected Map<Integer,Integer> passiveStrategyFailed_3;
@@ -31,6 +33,8 @@ public class ChessTexasStrategyCfg extends BaseCfgBean {
    * 他人加注的行为权重-我方牌大
    */
   protected Map<Integer, Integer> passiveStrategyWin_1;
+  /** 他人加注的行为权重-我方牌大 */
+  protected Map<Integer,Integer> passiveStrategyWin_1;
   /** 他人加注的行为权重-我方牌大 */
   protected Map<Integer,Integer> passiveStrategyWin_2;
   /** 他人加注的行为权重-我方牌大 */
@@ -58,6 +62,11 @@ public class ChessTexasStrategyCfg extends BaseCfgBean {
   }
 
   /** 返回他人加注的行为权重-我方牌小 */
+  public Map<Integer,Integer> getPassiveStrategyFailed_1() {
+    return passiveStrategyFailed_1;
+  }
+
+  /** 返回他人加注的行为权重-我方牌小 */
   public Map<Integer,Integer> getPassiveStrategyFailed_2() {
     return passiveStrategyFailed_2;
   }
@@ -76,6 +85,11 @@ public class ChessTexasStrategyCfg extends BaseCfgBean {
    * 返回他人加注的行为权重-我方牌大
    */
   public Map<Integer, Integer> getPassiveStrategyWin_1() {
+    return passiveStrategyWin_1;
+  }
+
+  /** 返回他人加注的行为权重-我方牌大 */
+  public Map<Integer,Integer> getPassiveStrategyWin_1() {
     return passiveStrategyWin_1;
   }
 

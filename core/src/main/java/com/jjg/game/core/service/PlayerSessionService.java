@@ -134,7 +134,10 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
             log.debug("获取session失败!connect 为空。");
             return null;
         }
-        return new PFSession(playerSessionInfo.getSessionId(), connect, null);
+
+        PFSession pfSession = new PFSession(playerSessionInfo.getSessionId(), connect, null);
+        pfSession.setPlayerId(playerSessionInfo.getPlayerId());
+        return pfSession;
     }
 
     /**

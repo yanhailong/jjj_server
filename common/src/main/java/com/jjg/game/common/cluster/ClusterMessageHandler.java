@@ -99,6 +99,7 @@ public class ClusterMessageHandler {
         log.info("用户连接进入，sessionId={}", sessionId);
         if (pfSession == null) {
             pfSession = new PFSession(sessionId, connect, sessionCreate.netAddress);
+            pfSession.setPlayerId(playerId);
         }
         pfSession.setAddress(sessionCreate.netAddress);
         pfSession.gatePath = gatePath;

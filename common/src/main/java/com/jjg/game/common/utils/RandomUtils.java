@@ -111,7 +111,7 @@ public class RandomUtils {
             return (T) objs.toArray()[0];
         }
 
-        int v = RND.nextInt(size - 1);
+        int v = RND.nextInt(size);
         return (T) objs.toArray()[v];
     }
 

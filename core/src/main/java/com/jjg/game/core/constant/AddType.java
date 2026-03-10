@@ -5,14 +5,16 @@ package com.jjg.game.core.constant;
  * @date 2025/10/29 20:12
  */
 public enum AddType {
+    //默认
+    DEFAULT(0),
     //gm测试
     GM_TEST(1),
     //失败回滚
     FAIL_ROLLBACK(2),
     //gm操作
     GM_OPERATOR(3),
-    //后台充值
-    BACKEND_RECHARGE(4),
+    //后台充值(固定就是这个类型)
+    BACKEND_OPERATOR(4),
     //后台修改货币
     BACKEND_CHANGE_MONEY(5),
     //人工邮件

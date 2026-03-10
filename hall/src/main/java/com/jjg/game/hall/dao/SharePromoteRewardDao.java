@@ -51,7 +51,7 @@ public class SharePromoteRewardDao {
 
     public int getRegisterIpSize(List<SharePromoteReward> sharePromoteList, String registerIp) {
         List<SharePromoteReward> newList = sharePromoteList.stream().filter(sharePromoteReward -> {
-            return sharePromoteReward.getRegisterIp()!=null && sharePromoteReward.getRegisterIp().equals(registerIp);
+            return sharePromoteReward.getRegisterIp() != null && sharePromoteReward.getRegisterIp().equals(registerIp);
         }).toList();
         return newList.size();
     }
@@ -97,12 +97,14 @@ public class SharePromoteRewardDao {
             redisTemplate.opsForHash().put(sharePromoteTableName, playerId, sharePromote);
             return true;
         } else if (sharePromote.getNum() < playerSizeRequire) {
+            int beforeNum = sharePromote.getNum();
+
             sharePromote = new SharePromoteReward();
             sharePromote.setPlayerId(playerId);
             sharePromote.setEquipNum(equipNum);
             sharePromote.setRegisterIp(registerIp);
             sharePromote.setIp(ip);
-            sharePromote.setNum(sharePromote.getNum() + 1);
+            sharePromote.setNum(beforeNum + 1);
             redisTemplate.opsForHash().put(sharePromoteTableName, playerId, sharePromote);
             return true;
         }
