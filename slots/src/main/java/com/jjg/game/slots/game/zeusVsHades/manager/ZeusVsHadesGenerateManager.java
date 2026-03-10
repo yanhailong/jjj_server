@@ -62,7 +62,10 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
     protected ZeusVsHadesAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
         ZeusVsHadesAwardLineInfo awardLineInfo = new ZeusVsHadesAwardLineInfo();
         Set<Integer> icons = new HashSet<>();
-        icons.addAll(baseLineCfg.getPosLocation());
+        List<Integer> posLocation = baseLineCfg.getPosLocation();
+        int rewardNum = rewardCfg.getRewardNum();
+        List<Integer> integers = posLocation.subList(0, rewardNum);
+        icons.addAll(integers);
         awardLineInfo.setSameIconSet(icons);
         awardLineInfo.setSameIcon(rewardCfg.getElementId().getFirst());
         awardLineInfo.setLineId(baseLineCfg.getLineId());
