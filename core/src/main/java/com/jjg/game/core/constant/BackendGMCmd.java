@@ -73,6 +73,7 @@ public interface BackendGMCmd {
     String BACKEND_RECHARGE = "backendRecharge";
     //设置设置链接
     String SET_URL_PREFIX = "setUrlPrefix";
+    String GET_URL_PREFIX = "getUrlPrefix";
 
     //玩家绑定手机或解绑
     String PLAYER_BIND_PHONE = "playerBindPhone";
