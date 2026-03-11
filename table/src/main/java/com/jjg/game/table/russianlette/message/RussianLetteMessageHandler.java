@@ -18,8 +18,11 @@ import com.jjg.game.room.dao.RoomDao;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.manager.RoomManager;
 import com.jjg.game.sampledata.bean.RoomCfg;
+import com.jjg.game.table.baccarat.BaccaratTempRoom;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.russianlette.RussianLetteGameController;
+import com.jjg.game.table.russianlette.RussianLetteTempRoom;
+import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
 import com.jjg.game.table.russianlette.message.req.ReqRussianLetteExitRoomInGame;
 import com.jjg.game.table.russianlette.message.req.ReqRussianLetteInfo;
 import com.jjg.game.table.russianlette.message.req.ReqRussianLetteJoinRoomInGame;
@@ -70,16 +73,19 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
     private final ClusterSystem clusterSystem;
     private final RoomDao roomDao;
     private final CorePlayerService playerService;
+    private final RussianLetteTempRoom russianLetteTempRoom;
     private final MatchDataDao matchDataDao;
 
     public RussianLetteMessageHandler(RoomManager roomManager, NodeManager nodeManager,
                                       ClusterSystem clusterSystem, RoomDao roomDao,
-                                      CorePlayerService playerService, MatchDataDao matchDataDao) {
+                                      CorePlayerService playerService, MatchDataDao matchDataDao,
+                                      RussianLetteTempRoom russianLetteTempRoom) {
         this.roomManager = roomManager;
         this.nodeManager = nodeManager;
         this.clusterSystem = clusterSystem;
         this.roomDao = roomDao;
         this.playerService = playerService;
+        this.russianLetteTempRoom = russianLetteTempRoom;
         this.matchDataDao = matchDataDao;
     }
 
@@ -157,10 +163,15 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
                 RespRussianLetteSummary resp = new RespRussianLetteSummary(Code.SUCCESS);
                 resp.summary = RussianLetteMessageBuilder.buildRussianLetteSummary(rgc);
                 playerController.send(resp);
+                // 进入房间需要先将玩家从临时房间中移除
+                PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
+                playerSessionInfo.setRoomCfgId(gc.getRoom().getRoomCfgId());
+                russianLetteTempRoom.enter(playerController.getSession(), playerController, playerSessionInfo);
                 return;
             }
         }
         log.warn("reqRussianLetteSummary: 找不到 roomId={} 的房间", req.roomId);
+
         playerController.send(new RespRussianLetteSummary(Code.ROOM_NOT_FOUND));
     }
 
@@ -219,6 +230,8 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
             playerController.send(resp);
             return;
         }
+        // 进入房间需要先将玩家从临时房间中移除
+        russianLetteTempRoom.exit(playerController.getSession(), playerController);
         // 将玩家加入过期等待列表，防止入房超时
         matchDataDao.addPlayerExpiredWaiting(req.roomId, playerController.playerId());
         String localNodePath = clusterSystem.getNodePath();
@@ -297,6 +310,8 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
             playerController.send(resp);
             return;
         }
+        // 进入房间需要先将玩家从临时房间中移除
+        russianLetteTempRoom.exit(playerController.getSession(), playerController);
         matchDataDao.addPlayerExpiredWaiting(req.roomId, playerController.playerId());
         String localNodePath = clusterSystem.getNodePath();
         if (localNodePath.equalsIgnoreCase(room.getPath())) {

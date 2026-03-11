@@ -105,6 +105,8 @@ public interface RussianLetteMessageConstant {
         int REQ_SWITCH_ROOM_IN_GAME = BASE_MSG_PREFIX | 0x07;
         // 请求查看其他房间
         int REQ_RUSSIAN_LETTE_OTHER_SUMMARY_LIST = BASE_MSG_PREFIX | 0x08;
+//        // 请求进入房间
+//        int REQ_RUSSIAN_LETTE_JOIN_ROOM_IN_GAME = BASE_MSG_PREFIX | 0x09;
     }
 
     interface RespMsgBean {

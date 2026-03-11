@@ -30,5 +30,7 @@ public class RussianLetteSummary {
     @ProtoDesc("概率信息")
     public RussianLetteProb prob;
 
+    @ProtoDesc("房间场次说明")
+    public int roomType;
 
 }

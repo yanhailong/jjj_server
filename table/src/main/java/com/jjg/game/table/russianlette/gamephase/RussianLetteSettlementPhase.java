@@ -75,14 +75,14 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
         }
 
         // ── 2. 广播结算阶段变化通知（通知客户端切换为结算 UI，携带开奖号码，无金币变化）─
-        RussianLetteSettlementInfo partialSettlementInfo =
-                RussianLetteMessageBuilder.buildSettlementInfoFromHistory(historyBean);
-        broadcastMsgToRoom(
-                RussianLetteMessageBuilder.buildPhaseChangInfo(
-                        EGamePhase.GAME_ROUND_OVER_SETTLEMENT,
-                        gameDataVo.getPhaseEndTime(),
-                        null,
-                        partialSettlementInfo));
+//        RussianLetteSettlementInfo partialSettlementInfo =
+//                RussianLetteMessageBuilder.buildSettlementInfoFromHistory(historyBean);
+//        broadcastMsgToRoom(
+//                RussianLetteMessageBuilder.buildPhaseChangInfo(
+//                        EGamePhase.GAME_ROUND_OVER_SETTLEMENT,
+//                        gameDataVo.getPhaseEndTime(),
+//                        null,
+//                        partialSettlementInfo));
 
         // ── 3. 构建结算消息体（含 stageInfo、prob）─────────────────────────────
         NotifyRussianLetteSettlement settlement =

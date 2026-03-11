@@ -58,7 +58,7 @@ public class DiceDataHolder implements ConfigExcelChangeListener {
         diceGameTypes.put(EGameType.DICE_TREASURE, new DiceMetaData(3, 6));
         diceGameTypes.put(EGameType.VIETNAM_DICE, new DiceMetaData(4, 2));
         diceGameTypes.put(EGameType.SIZE_DICE_TREASURE, new DiceMetaData(3, 6));
-        diceGameTypes.put(EGameType.RIVER_ANIMALS, new DiceMetaData(3,  6));
+        diceGameTypes.put(EGameType.RIVER_ANIMALS, new DiceMetaData(3, 6));
         //俄罗斯钻盘 37-》0
         diceGameTypes.put(EGameType.RUSSIAN_ROULETTE, new DiceMetaData(1, 37));
         return diceGameTypes;
@@ -156,6 +156,9 @@ public class DiceDataHolder implements ConfigExcelChangeListener {
         // 俄罗斯转盘特殊处理：winPosId[0] 即骰点值(0-36)，直接按整数值查找，不做数字位拆分
         if (gameType == EGameType.RUSSIAN_ROULETTE) {
             int diceValue = winPosId.get(0);
+            if (diceValue == 0) {
+                diceValue = 37;
+            }
             DiceTreeNode<List<WinPosWeightCfg>> next = diceTreeNode.getNext(diceValue);
             if (next == null) {
                 log.error("找不到游戏类型：{} 开奖ID：{} 对应的开奖配置", gameType.getGameDesc(), diceValue);
