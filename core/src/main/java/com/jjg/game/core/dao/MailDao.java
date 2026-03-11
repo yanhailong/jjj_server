@@ -1,6 +1,5 @@
 package com.jjg.game.core.dao;
 
-import com.jjg.game.common.redis.PlayerKeyIndex;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Mail;
@@ -18,11 +17,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author 11
@@ -41,8 +36,6 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
     private final String playerServerMailTableName = "playerServerMail";
     @Autowired
     private RedisTemplate redisTemplate;
-    @Autowired
-    private PlayerKeyIndex playerKeyIndex;
 
     private String getPlayerServerMailTableName(long mailId) {
         return playerServerMailTableName + ":" + mailId;
@@ -343,7 +336,8 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
         for (Mail mail : mailList) {
             if (mail.getTimeout() != -1 && mail.getTimeout() < now) {
                 removeSet.add(mail.getId());
-                removePlayerServerMailSet.add(getPlayerServerMailTableName(mail.getId()));
+                String tableName = getPlayerServerMailTableName(mail.getId());
+                removePlayerServerMailSet.add(tableName);
             }
         }
 
@@ -387,8 +381,8 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
      * @param mailId
      */
     public void addPlayerServerMail(long playerId, long mailId) {
-        redisTemplate.opsForSet().add(getPlayerServerMailTableName(mailId), playerId);
-        playerKeyIndex.addSetMember(playerId, getPlayerServerMailTableName(mailId), String.valueOf(playerId));
+        String tableName = getPlayerServerMailTableName(mailId);
+        redisTemplate.opsForSet().add(tableName, playerId);
     }
 
     /**
@@ -397,10 +391,8 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
      * @param mailId
      */
     public void addPlayersServerMail(Set<Long> playerIdSet, long mailId) {
-        redisTemplate.opsForSet().add(getPlayerServerMailTableName(mailId), playerIdSet.toArray());
-        for (Long playerId : playerIdSet) {
-            playerKeyIndex.addSetMember(playerId, getPlayerServerMailTableName(mailId), String.valueOf(playerId));
-        }
+        String tableName = getPlayerServerMailTableName(mailId);
+        redisTemplate.opsForSet().add(tableName, playerIdSet.toArray());
     }
 
     /**

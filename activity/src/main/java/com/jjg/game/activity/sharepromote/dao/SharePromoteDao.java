@@ -235,7 +235,7 @@ public class SharePromoteDao {
      */
     public void delPlayerIncome(long playerId) {
         String key = SHARE_PROMOTE_REWARDS_INCOME.formatted(playerId);
-        redisTemplate.delete(key);
+        playerRedis.delete(playerId, key);
     }
 
     /**

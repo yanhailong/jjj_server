@@ -2,7 +2,6 @@ package com.jjg.game.activity.cashcow.dao;
 
 import com.jjg.game.activity.cashcow.data.CashCowRecordData;
 import com.jjg.game.common.proto.Pair;
-import com.jjg.game.common.redis.PlayerRedis;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import org.slf4j.Logger;
@@ -65,10 +64,6 @@ public class CashCowDao {
      */
     private final RedisTemplate<String, String> longRedisTemplate;
 
-    private final PlayerRedis playerRedis;
-    /**
-     * Redis 分布式锁，保证并发安全
-     */
     private final RedisLock lock;
 
     // -------------------- Redis Key 定义 --------------------
@@ -81,10 +76,9 @@ public class CashCowDao {
     private final String PLAYER_FREE_LOCK_KEY = "activity:cashcow:freelock:%d:%d"; // 玩家免费奖励锁 key
 
 
-    public CashCowDao(RedisTemplate<String, CashCowRecordData> recordRedisTemplate, RedisTemplate<String, String> longRedisTemplate, PlayerRedis playerRedis, RedisLock lock) {
+    public CashCowDao(RedisTemplate<String, CashCowRecordData> recordRedisTemplate, RedisTemplate<String, String> longRedisTemplate, RedisLock lock) {
         this.recordRedisTemplate = recordRedisTemplate;
         this.longRedisTemplate = longRedisTemplate;
-        this.playerRedis = playerRedis;
         this.lock = lock;
     }
 
@@ -120,7 +114,18 @@ public class CashCowDao {
      * 存储当前时间戳（通过业务逻辑判断 inSameDay）。
      */
     public void addFreeRewardsCount(long playerId, long activityId) {
-        playerRedis.hset(playerId, PLAYER_FREE_KEY.formatted(activityId), String.valueOf(playerId), String.valueOf(TimeHelper.getCurrentDateZeroMilliTime()));
+        getOpsForHash().put(
+                PLAYER_FREE_KEY.formatted(activityId),
+                String.valueOf(playerId),
+                String.valueOf(TimeHelper.getCurrentDateZeroMilliTime())
+        );
+    }
+
+    /**
+     * 活动开始/结束时清理整期免费领奖状态，避免离线玩家的旧领取标记继续留在当前活动里。
+     */
+    public void clearFreeRewardsStatus(long activityId) {
+        longRedisTemplate.delete(PLAYER_FREE_KEY.formatted(activityId));
     }
 
 
@@ -147,7 +152,7 @@ public class CashCowDao {
      */
     public long addPlayerActivityProgress(long playerId, long activityId, long addValue) {
         String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, activityId);
-        return playerRedis.hincr(playerId, playerProgressKey, String.valueOf(playerId), addValue);
+        return getOpsForHash().increment(playerProgressKey, String.valueOf(playerId), addValue);
     }
 
     /**
@@ -156,7 +161,14 @@ public class CashCowDao {
      */
     public void delPlayerActivityProgress(long playerId, long activityId) {
         String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, activityId);
-        playerRedis.hdelete(playerId, playerProgressKey, String.valueOf(playerId));
+        getOpsForHash().delete(playerProgressKey, String.valueOf(playerId));
+    }
+
+    /**
+     * 按活动清空所有玩家的累计进度，用于轮次切换时回收上一轮残留数据。
+     */
+    public void clearPlayerActivityProgress(long activityId) {
+        longRedisTemplate.delete(String.format(PLAYER_PROGRESS_KEY, activityId));
     }
 
 

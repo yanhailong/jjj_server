@@ -31,7 +31,7 @@ public class PlayerSnapshotService {
                     local listKey = string.sub(k, 3)
                     local v = redis.call("LRANGE", listKey, 0, -1)
                     if v and #v > 0 then
-                        result[k] = v
+                        result[k] = cjson.encode(v)
                     end
                 elseif prefix == "S:" then
                     local setKeyWithMember = string.sub(k, 3)
@@ -46,7 +46,7 @@ public class PlayerSnapshotService {
                     else
                         local v = redis.call("SMEMBERS", setKeyWithMember)
                         if v and #v > 0 then
-                            result[k] = v
+                            result[k] = cjson.encode(v)
                         end
                     end
                 elseif prefix == "Z:" then
@@ -62,7 +62,7 @@ public class PlayerSnapshotService {
                     else
                         local v = redis.call("ZRANGE", zsetKeyWithMember, 0, -1, "WITHSCORES")
                         if v and #v > 0 then
-                            result[k] = v
+                            result[k] = cjson.encode(v)
                         end
                     end
                 elseif prefix == "H:" then
@@ -78,7 +78,7 @@ public class PlayerSnapshotService {
                     else
                         local v = redis.call("HGETALL", hashKeyWithField)
                         if v and #v > 0 then
-                            result[k] = v
+                            result[k] = cjson.encode(v)
                         end
                     end
                 else
@@ -229,37 +229,40 @@ public class PlayerSnapshotService {
         this.mongo = mongo;
     }
 
-    private Map<String, String> dumpByLua(long playerId, Set<String> keys) {
+    private Optional<Map<String, String>> dumpByLua(long playerId, Set<String> keys) {
         try {
             if (keys == null || keys.isEmpty()) {
-                return Map.of();
+                return Optional.empty();
             }
             DefaultRedisScript<String> script = new DefaultRedisScript<>();
             script.setResultType(String.class);
             script.setScriptText(LUA_SCRIPT);
             String json = redis.execute(script, new ArrayList<>(keys));
-            return new ObjectMapper().readValue(json, new TypeReference<>() {
+            Map<String, String> data = new ObjectMapper().readValue(json, new TypeReference<>() {
             });
+            return Optional.of(data);
         } catch (Exception e) {
             log.error("保存玩家数据到mongo失败 playerId:{} ", playerId);
         }
-        return Map.of();
+        return Optional.empty();
     }
 
     public void dumpToMongo(long playerId) {
         String indexKey = "player_keys:" + playerId;
         Set<String> indexedKeys = redis.opsForSet().members(indexKey);
-        Map<String, String> data = dumpByLua(playerId, indexedKeys);
+        Optional<Map<String, String>> data = dumpByLua(playerId, indexedKeys);
         if (data.isEmpty()) {
             return;
         }
+        Map<String, String> dataMap = data.get();
+        if (!dataMap.isEmpty()) {
+            PlayerSnapshot snap = new PlayerSnapshot();
+            snap.setUid(playerId);
+            snap.setKeys(dataMap);
+            snap.setUpdateTime(new Date());
 
-        PlayerSnapshot snap = new PlayerSnapshot();
-        snap.setUid(playerId);
-        snap.setKeys(data);
-        snap.setUpdateTime(new Date());
-
-        mongo.save(snap);
+            mongo.save(snap);
+        }
         deleteByLua(indexedKeys, indexKey);
     }
 

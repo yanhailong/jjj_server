@@ -42,10 +42,10 @@ public abstract class BaseEffectiveCondition extends BaseRedisCondition<PlayerEf
             //减次数需要的值+增加的值
             if (times.compareTo(BigDecimal.ONE) >= 0) {
                 BigDecimal delta = times.multiply(BigDecimal.valueOf(config.achievedProcess())).subtract(betValue).multiply(BigDecimal.valueOf(-1));
-                countDao.incrBy(featureId, customId, delta);
+                countDao.incrBy(ctx.player().getId(), featureId, customId, delta);
                 return new MatchResultData(MatchResult.MATCH, times.intValue(), Code.SUCCESS, BigDecimal.valueOf(config.achievedProcess()), BigDecimal.valueOf(totalCount.longValue()));
             } else {
-                countDao.incrBy(featureId, customId, betValue);
+                countDao.incrBy(ctx.player().getId(), featureId, customId, betValue);
             }
             return MatchResultData.notMatch(getErrorCode());
         }

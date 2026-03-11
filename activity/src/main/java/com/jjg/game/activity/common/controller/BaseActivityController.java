@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -312,7 +313,7 @@ public abstract class BaseActivityController {
      */
     public boolean canInitProgress(long playerId, ActivityData activityData) {
         String customId = INIT_PROGRESS_KEY.formatted(activityData.getId());
-        return countDao.setIfAbsent(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), customId);
+        return countDao.setIfAbsent(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(playerId), customId, BigDecimal.ONE);
     }
 
     /**
@@ -333,25 +334,6 @@ public abstract class BaseActivityController {
      * @param activityData 活动数据
      */
     public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
-        // 限时活动（openType=2）不需要重置
-        if (activityData.getOpenType() == ActivityConstant.Common.LIMIT_TYPE) {
-            return;
-        }
-        // 获取玩家该活动的历史数据
-        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-        if (CollectionUtil.isNotEmpty(playerActivityData)) {
-            boolean needRest = false;
-            for (PlayerActivityData data : playerActivityData.values()) {
-                // 如果期数数不一致，则需要重置
-                if (data.getRound() != activityData.getRound()) {
-                    needRest = true;
-                    break;
-                }
-            }
-            if (needRest) {
-                playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
-            }
-        }
     }
 
 

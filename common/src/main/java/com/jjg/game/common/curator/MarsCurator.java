@@ -2,26 +2,26 @@ package com.jjg.game.common.curator;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.listener.IGameClusterLeaderListener;
-import com.jjg.game.common.utils.CommonUtil;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.curator.framework.recipes.leader.LeaderLatch;
-import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.config.ZookeeperConfig;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.MarsNodeListener.NodeChangeType;
+import com.jjg.game.common.listener.IGameClusterLeaderListener;
+import com.jjg.game.common.net.NetAddress;
+import com.jjg.game.common.utils.CommonUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.TreeCache;
 import org.apache.curator.framework.recipes.cache.TreeCacheEvent;
 import org.apache.curator.framework.recipes.cache.TreeCacheListener;
+import org.apache.curator.framework.recipes.leader.LeaderLatch;
+import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
-import com.jjg.game.common.net.NetAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +29,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -72,6 +74,7 @@ public class MarsCurator implements TreeCacheListener {
     private NetAddress startClientNetAddress;
     private AtomicBoolean nodeInit = new AtomicBoolean();
 
+    private LeaderLatch leaderLatch;
     //节点队列
     private ConcurrentLinkedQueue<TreeCacheEvent> queue = new ConcurrentLinkedQueue<>();
 
@@ -148,9 +151,9 @@ public class MarsCurator implements TreeCacheListener {
             }
 
             final String tmpPath = path;
-            LeaderLatch latch = new LeaderLatch(client, path, nodeConfig.getName(),
+            leaderLatch = new LeaderLatch(client, path, nodeConfig.getName(),
                     LeaderLatch.CloseMode.NOTIFY_LEADER);
-            latch.addListener(new LeaderLatchListener() {
+            leaderLatch.addListener(new LeaderLatchListener() {
                 @Override
                 public void isLeader() {
                     master.set(true);
@@ -180,9 +183,26 @@ public class MarsCurator implements TreeCacheListener {
                     log.info("该节点离开，失去主节点身份 nodeName = {},nodeType = {}", nodeConfig.getName(), nodeConfig.getType());
                 }
             });
-            latch.start();
+            leaderLatch.start();
         } catch (Exception e) {
             log.error("启动节点竞选异常", e);
+        }
+    }
+
+    /**
+     * 如果当前节点已经是主节点，则主动退主以触发重新选主。
+     * <p>
+     * 该方法本身不判断权重变化，只负责执行“当前主节点退位”这一个动作；
+     * 非主节点调用时不做任何处理。
+     */
+    public void stepDownIfMaster() {
+        if (master.get() && leaderLatch != null) {
+            try {
+                log.info("节点权重为0,开始放弃主节点");
+                leaderLatch.close();
+            } catch (Exception e) {
+                log.error("服务器主动失去主节点失败", e);
+            }
         }
     }
 
