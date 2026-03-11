@@ -13,6 +13,7 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.dao.RoomDao;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -191,7 +192,7 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
             for (AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gc : gameControllers) {
                 // 只返回其他场次（roomCfgId 不同）的房间
                 if (gc instanceof RussianLetteGameController rgc
-                        && gc.getRoom().getRoomCfgId() != currentRoomCfgId) {
+                        && gc.getRoom().getRoomCfgId() == currentRoomCfgId) {
                     resp.tableSummaryList.add(RussianLetteMessageBuilder.buildRussianLetteSummaryInfo(rgc));
                 }
             }
@@ -234,6 +235,11 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
         russianLetteTempRoom.exit(playerController.getSession(), playerController);
         // 将玩家加入过期等待列表，防止入房超时
         matchDataDao.addPlayerExpiredWaiting(req.roomId, playerController.playerId());
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> currentGc =
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
+        if (currentGc != null && currentGc.gameControlType() == EGameType.RUSSIAN_ROULETTE) {
+            currentGc.getGamePlayer(playerController.playerId()).getTableGameData().setPlayNum(0);
+        }
         String localNodePath = clusterSystem.getNodePath();
         if (localNodePath.equalsIgnoreCase(room.getPath())) {
             // ── 同节点：直接加入房间 ──────────────────────────────────────────
@@ -296,10 +302,19 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
         // 先退出当前房间（若当前在俄罗斯转盘中）
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> currentGc =
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
+
         if (currentGc != null && currentGc.gameControlType() == EGameType.RUSSIAN_ROULETTE) {
+            if(currentGc instanceof RussianLetteGameController rgc) {
+                if(rgc.getCurrentGamePhase() != EGamePhase.BET){
+                    playerController.send(new RespRussianLetteSwitchRoomInGame(Code.FORBID));
+                    return;
+                }
+            }
+            currentGc.getGamePlayer(playerController.playerId()).getTableGameData().setPlayNum(0);
             int exitCode = roomManager.exitRoom(playerController, false);
             log.info("switchRoomInGame: 玩家 {} 退出当前房间 exitCode={}", playerController.playerId(), exitCode);
         }
+
         RespRussianLetteSwitchRoomInGame resp = new RespRussianLetteSwitchRoomInGame(Code.SUCCESS);
         resp.roomCfgId = room.getRoomCfgId();
         // 等待进入人数 +1
@@ -371,6 +386,7 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
             playerController.send(new RespRussianLetteExitRoomInGame(Code.PARAM_ERROR));
             return;
         }
+        gameController.getGamePlayer(playerController.playerId()).getTableGameData().setPlayNum(0);
         int code = roomManager.exitRoom(playerController, false);
         playerController.send(new RespRussianLetteExitRoomInGame(code));
         log.info("exitRoomInGame: 玩家 {} 退出俄罗斯转盘房间 code={}", playerController.playerId(), code);

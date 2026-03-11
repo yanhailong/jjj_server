@@ -22,7 +22,8 @@ public class TablePlayerGameData {
     private boolean hasNotifyNoOperate = false;
     // 每轮开始时的玩家数据，仅做记录使用
     private long roundStartPlayerGold;
-
+    // 玩家 玩了 多少把 （俄罗斯转盘）
+    private int playNum;
 
     public void addBetRecord(long getGold) {
         int i = (betInfoList.size() - 20) + 1;
@@ -67,5 +68,17 @@ public class TablePlayerGameData {
 
     public void setRoundStartPlayerGold(long roundStartPlayerGold) {
         this.roundStartPlayerGold = roundStartPlayerGold;
+    }
+
+    public int getPlayNum() {
+        return playNum;
+    }
+
+    public void setPlayNum(int playNum) {
+        this.playNum = playNum;
+    }
+
+    public void addPlayNum() {
+        this.playNum = this.playNum + 1;
     }
 }

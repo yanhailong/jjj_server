@@ -63,7 +63,8 @@ public class RoomMessageHandler implements ChooseWareListener {
             long playerId = playerController.playerId();
             log.debug("退出游戏 playerId = {}", playerId);
             GamePlayer gamePlayer = null;
-             if (playerController.getPlayer().getGameType() != EGameType.BACCARAT.getGameTypeId()) {
+             if (playerController.getPlayer().getGameType() != EGameType.BACCARAT.getGameTypeId()
+                     && playerController.getPlayer().getGameType() != EGameType.RUSSIAN_ROULETTE.getGameTypeId() ) {
                 AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                         roomManager.getGameControllerByRoomId(playerController.getPlayer().getRoomId());
                 if (Objects.isNull(gameController)) {

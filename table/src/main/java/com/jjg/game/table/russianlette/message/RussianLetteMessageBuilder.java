@@ -213,7 +213,7 @@ public class RussianLetteMessageBuilder {
         // 玩家牌桌玩的次数
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
         if (gamePlayer != null) {
-            tableInfo.playNum = gamePlayer.getTableGameData().getBetInfoList().size();
+            tableInfo.playNum = gamePlayer.getTableGameData().getPlayNum();
         }
 
         // 累计本局下注总金额
@@ -414,7 +414,7 @@ public class RussianLetteMessageBuilder {
         // ── 9. 玩家牌桌玩的次数 ──────────────────────────────────────────────
         GamePlayer gamePlayer = dataVo.getGamePlayer(playerId);
         if (gamePlayer != null) {
-            resp.playNum = gamePlayer.getTableGameData().getBetInfoList().size();
+            resp.playNum = gamePlayer.getTableGameData().getPlayNum();
         }
 
         // ── 10. 累计本局下注总金额（断线重连同步）────────────────────────────
