@@ -323,7 +323,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         if (!addItems.success()) {
             log.error("玩家添加财富转盘奖励失败 playerId:{} addItems:{}", playerId, finalRewardMap);
             // 发奖失败时回滚扣除积分，避免玩家扣分不到账
-            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId),
+            countDao.incrBy(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId),
                     BigDecimal.valueOf(needPoint));
             res.code = Code.FAIL;
             return res;
@@ -393,7 +393,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         if (!addResult.success()) {
             log.error("财富转盘 购买商品后添加道具失败 playerId:{} goodId:{}", playerId, req.goodId);
             // 发奖失败时补偿回滚积分与限购次数，避免扣分/扣次数但不到账
-            countDao.incrBy(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId),
+            countDao.incrBy(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId),
                     BigDecimal.valueOf(needPoint));
             if (noLimit) {
                 playerBuyTimes.addAndGet(req.goodId, -req.buyNum);

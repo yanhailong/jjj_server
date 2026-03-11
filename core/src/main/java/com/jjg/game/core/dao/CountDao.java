@@ -158,6 +158,7 @@ public class CountDao {
         return BigDecimal.ZERO;
     }
 
+
     /**
      * 原子地执行条件自减操作。
      * 只有当键存在且当前值 >= 要自减的值时，才执行自减。
@@ -390,6 +391,21 @@ public class CountDao {
     public boolean setIfAbsent(String featureId, String customId, BigDecimal delta) {
         long deltaLong = RedisUtils.toLong(delta);
         return redissonClient.getAtomicLong(getKey(featureId, customId)).compareAndSet(0, deltaLong);
+    }
+
+    /**
+     * 如果不存在就设置值
+     *
+     * @param featureId 功能ID
+     * @param customId  功能子ID
+     * @return true 设置成功 false设置失败
+     */
+    public boolean setIfAbsent(long playerId, String featureId, String customId, BigDecimal delta) {
+        long deltaLong = RedisUtils.toLong(delta);
+        String key = getKey(featureId, customId);
+        boolean absent = redissonClient.getAtomicLong(key).compareAndSet(0, deltaLong);
+        playerKeyIndex.add(playerId, key);
+        return absent;
     }
 
 

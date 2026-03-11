@@ -357,7 +357,6 @@ public class PiggyBankController extends BaseActivityController implements GameE
      */
     @Override
     public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
-        super.checkPlayerDataAndResetOnLogin(playerId, activityData);
         resetData(playerId, activityData);
     }
 

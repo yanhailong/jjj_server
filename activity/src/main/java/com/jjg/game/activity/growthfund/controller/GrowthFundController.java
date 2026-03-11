@@ -417,28 +417,6 @@ public class GrowthFundController extends BaseActivityController implements Game
         return false;
     }
 
-    @Override
-    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
-        if (activityData.getOpenType() == ActivityConstant.Common.LIMIT_TYPE) {
-            return;
-        }
-        // 获取玩家该活动的历史数据
-        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-        if (CollectionUtil.isNotEmpty(playerActivityData)) {
-            boolean needRest = false;
-            for (PlayerActivityData data : playerActivityData.values()) {
-                // 如果期数数不一致，则需要重置
-                if (data.getRound() != activityData.getRound()) {
-                    needRest = true;
-                    break;
-                }
-            }
-            if (needRest) {
-                playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
-                clearInitProgress(playerId, activityData);
-            }
-        }
-    }
 
     @Override
     public Map<Integer, PlayerActivityData> checkPlayerDataAndResetOnRequest(Player player, ActivityData activityData) {

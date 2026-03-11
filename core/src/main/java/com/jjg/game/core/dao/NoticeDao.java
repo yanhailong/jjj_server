@@ -1,7 +1,6 @@
 package com.jjg.game.core.dao;
 
 import com.jjg.game.core.data.Notice;
-import com.jjg.game.common.redis.PlayerKeyIndex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -25,8 +24,6 @@ public class NoticeDao extends MongoBaseDao<Notice, Long> {
 
     @Autowired
     private RedisTemplate redisTemplate;
-    @Autowired
-    private PlayerKeyIndex playerKeyIndex;
 
     public NoticeDao(MongoTemplate mongoTemplate) {
         super(Notice.class, mongoTemplate);
@@ -55,12 +52,10 @@ public class NoticeDao extends MongoBaseDao<Notice, Long> {
      */
     public void readNotice(long playerId, long noticeId) {
         redisTemplate.opsForSet().add(getTableName(playerId), noticeId);
-        playerKeyIndex.addSetKey(playerId, getTableName(playerId));
     }
 
     public void removeReadData(long playerId) {
         redisTemplate.delete(getTableName(playerId));
-        playerKeyIndex.removeSetKey(playerId, getTableName(playerId));
     }
 
     public Set<Long> getPlayerReadNotice(long playerId) {

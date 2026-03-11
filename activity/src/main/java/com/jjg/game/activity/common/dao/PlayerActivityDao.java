@@ -9,10 +9,10 @@ import com.jjg.game.common.redis.PlayerRedis;
 import com.jjg.game.common.utils.ObjectMapperUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.HashOperations;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Repository;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -154,12 +154,17 @@ public class PlayerActivityDao {
             long playerId, ActivityType activityType, long activityId, Map<Integer, T> data) {
         try {
             String json = mapper.writeValueAsString(data);
-            playerRedis.hset(
-                    playerId,
-                    getKey(playerId, activityType.getType()),
-                    String.valueOf(activityId),
-                    json
-            );
+            if (activityType.isClearDataOnEnd()) {
+                // 按活动生命周期清理，不进入影子索引。
+                redisTemplate.opsForHash().put(getKey(playerId, activityType.getType()), String.valueOf(activityId), json);
+            } else {
+                playerRedis.hset(
+                        playerId,
+                        getKey(playerId, activityType.getType()),
+                        String.valueOf(activityId),
+                        json
+                );
+            }
         } catch (Exception e) {
             log.error("保存单条活动数据异常 playerId:{} activityType:{} activityId:{}",
                     playerId, activityType, activityId, e);
@@ -183,7 +188,12 @@ public class PlayerActivityDao {
             for (Map.Entry<Integer, T> entry : dataMap.entrySet()) {
                 hashMap.put(String.valueOf(entry.getKey()), mapper.writeValueAsString(entry.getValue()));
             }
-            playerRedis.hsetAll(playerId, getKey(playerId, activityType.getType()), hashMap);
+            if (activityType.isClearDataOnEnd()) {
+                // 按活动生命周期清理，不进入影子索引。
+                redisTemplate.opsForHash().putAll(getKey(playerId, activityType.getType()), hashMap);
+            } else {
+                playerRedis.hsetAll(playerId, getKey(playerId, activityType.getType()), hashMap);
+            }
         } catch (Exception e) {
             log.error("批量保存活动数据异常 playerId:{} activityType:{} dataMapSize:{}",
                     playerId, activityType, dataMap.size(), e);
@@ -216,10 +226,43 @@ public class PlayerActivityDao {
         }
     }
 
+    /**
+     * 按活动生命周期批量清理所有玩家的指定活动数据。
+     * 用于不进入影子索引、但在活动开始/结束时必须整期回收的活动类型。
+     */
+    public void clearActivityData(ActivityType activityType, long activityId) {
+        String pattern = "activity:player:*:%d".formatted(activityType.getType());
+        byte[] activityField = String.valueOf(activityId).getBytes(StandardCharsets.UTF_8);
+        try {
+            redisTemplate.execute((RedisCallback<Object>) connection -> {
+                try (Cursor<byte[]> cursor = connection.keyCommands().scan(
+                        ScanOptions.scanOptions().match(pattern).count(1000).build())) {
+                    while (cursor.hasNext()) {
+                        byte[] key = cursor.next();
+                        connection.hashCommands().hDel(key, activityField);
+                        Long hashSize = connection.hashCommands().hLen(key);
+                        if (hashSize != null && hashSize == 0) {
+                            // 当前活动字段删空后直接删除整个 hash，避免留下无意义空 key。
+                            connection.keyCommands().del(key);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("批量清理活动数据异常 activityType:{} activityId:{} pattern:{}",
+                            activityType, activityId, pattern, e);
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            log.error("执行批量清理活动数据异常 activityType:{} activityId:{} pattern:{}",
+                    activityType, activityId, pattern, e);
+        }
+    }
+
     // -------------------- 首次登录触发时间--------------------
 
     /**
      * 检查是否能触发首次登录 保存10s
+     *
      * @param playerId 玩家id
      * @return true能触发 false不能触发
      */

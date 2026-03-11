@@ -28,6 +28,7 @@ public class PlayerBuildingService {
 
     private final PlayerBuildingDao playerBuildingDao;
 
+
     public PlayerBuildingService(@Autowired RedisTemplate<String, PlayerBuilding> redisTemplate,
                                  @Autowired RedisTemplate<String, String> redisTemplateString,
                                  @Autowired PlayerBuildingDao playerBuildingDao) {
@@ -88,6 +89,8 @@ public class PlayerBuildingService {
      */
     public void moveToMongo(long playerId) {
         try {
+            //删除节点信息
+            delLastNode(playerId);
             List<PlayerBuilding> playerBuilding = getFromAllDB(playerId);
             if (CollectionUtil.isEmpty(playerBuilding)) {
                 return;

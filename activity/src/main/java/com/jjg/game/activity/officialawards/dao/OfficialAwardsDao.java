@@ -6,7 +6,6 @@ import com.jjg.game.activity.officialawards.data.OfficialAwardsRecord;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.PlayerRedis;
 import com.jjg.game.common.redis.RedisLock;
-import com.jjg.game.core.utils.RedisUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -33,13 +32,11 @@ public class OfficialAwardsDao {
     private final PlayerRedis playerRedis;
     private final RecordDao recordDao;
     private final RedisLock redisLock;
-    private final RedisUtils redisUtils;
 
-    public OfficialAwardsDao(RedisTemplate<String, String> redisTemplate, RecordDao recordDao, RedisLock redisLock, RedisUtils redisUtils, PlayerRedis playerRedis) {
+    public OfficialAwardsDao(RedisTemplate<String, String> redisTemplate, RecordDao recordDao, RedisLock redisLock, PlayerRedis playerRedis) {
         this.redisTemplate = redisTemplate;
         this.recordDao = recordDao;
         this.redisLock = redisLock;
-        this.redisUtils = redisUtils;
         this.playerRedis = playerRedis;
     }
 
@@ -152,12 +149,6 @@ public class OfficialAwardsDao {
         return increment == null ? 0 : increment.intValue();
     }
 
-    /**
-     * 删除所有玩家的所有进度
-     */
-    public void deleteAllPlayerAllProgress() {
-        redisUtils.deleteByPattern(redisTemplate, PREFIX + ":player:*");
-    }
 // -------------------- 全局奖池 --------------------
 
     /**

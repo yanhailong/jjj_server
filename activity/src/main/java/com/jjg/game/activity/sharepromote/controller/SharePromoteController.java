@@ -920,4 +920,5 @@ public class SharePromoteController extends BaseActivityController {
         }
         return res;
     }
+
 }

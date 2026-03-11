@@ -510,14 +510,24 @@ public class CashCowController extends BaseActivityController implements TimerLi
 
     @Override
     public void onActivityEnd(ActivityData activityData) {
+        super.onActivityEnd(activityData);
         // 清理内存中的 timerMap（定时器可能需要在 leader 角色退出时同步移除）
         timerMap.clear();
+        // 摇钱树不走影子索引，活动结束时必须把所有玩家的整期数据直接清干净。
+        playerActivityDao.clearActivityData(activityData.getType(), activityData.getId());
+        cashCowDao.clearFreeRewardsStatus(activityData.getId());
+        cashCowDao.clearPlayerActivityProgress(activityData.getId());
     }
 
     @Override
     public void onActivityStart(ActivityData activityData) {
+        super.onActivityStart(activityData);
         long activityId = activityData.getId();
         Map<Integer, CashcowCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        // 新一轮开始前先清空整期玩家数据，避免离线玩家沿用上一轮详情/领奖/进度状态。
+        playerActivityDao.clearActivityData(activityData.getType(), activityId);
+        cashCowDao.clearFreeRewardsStatus(activityId);
+        cashCowDao.clearPlayerActivityProgress(activityId);
         BigDecimal decimal = countDao.incr(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(activityData.getId()), "CashCowRound");
         activityData.setRound(decimal.longValue());
         // 初始化摇钱树活动（首次开活动 round==0）
@@ -554,12 +564,6 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 totalPool += nextPoll;
             }
             cashCowDao.setActivityPool(activityId, totalPool);
-            // 清除在线玩家的进度，防止上一轮数据影响新一轮
-            List<Long> onlinePlayerIds = activityManager.getOnlinePlayerIds();
-            for (Long onlinePlayerId : onlinePlayerIds) {
-                cashCowDao.delPlayerActivityProgress(onlinePlayerId, activityId);
-                playerActivityDao.deletePlayerActivityData(onlinePlayerId, activityData.getType(), activityId);
-            }
         }
     }
 
