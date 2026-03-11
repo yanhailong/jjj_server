@@ -374,8 +374,9 @@ public class PointsAwardTurntableService implements IRedDotService {
      *
      * @param playerId    玩家id
      * @param resultCount 最终次数
+     * @param orderId 订单id
      */
-    public void replaceCount(long playerId, int resultCount) {
+    public void replaceCount(long playerId, int resultCount, String orderId) {
         int beforeCount = getMaxCount(playerId) - getCount(playerId);
         RLock lock = addCountMap.getReadWriteLock(playerId).writeLock();
         if (lock.tryLock()) {
@@ -387,7 +388,7 @@ public class PointsAwardTurntableService implements IRedDotService {
 
         Pair<Integer, Integer> rank = pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerId);
         //转盘日志
-        pointsAwardLogger.turntableLog(playerId, beforeCount, afterCount - beforeCount, afterCount, 0, 0, rank.getSecond());
+        pointsAwardLogger.turntableLog(playerId, beforeCount, afterCount - beforeCount, afterCount, 0, 0, rank.getSecond(), orderId);
     }
 
     /**
@@ -456,7 +457,7 @@ public class PointsAwardTurntableService implements IRedDotService {
         }
         int resultCount = recharge.divide(needValue, 2, RoundingMode.DOWN).intValue();
         if (resultCount > 0) {
-            replaceCount(playerId, resultCount);
+            replaceCount(playerId, resultCount, order.getId());
         }
         redDotManager.updateRedDotByInitialize(getModule(), getSubmodule(), playerId);
     }

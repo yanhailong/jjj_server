@@ -75,11 +75,15 @@ public class PointsAwardLogger extends BaseLogger {
         }
     }
 
+    public void turntableLog(long playerId,int beforeCount, int changeCount, int afterCount, int consumePoints, int getPoints, long afterValue) {
+        turntableLog(playerId, beforeCount, changeCount, afterCount, consumePoints, getPoints, afterValue, "");
+    }
+
     /**
      * 转盘抽奖日志
      *
      */
-    public void turntableLog(long playerId,int beforeCount, int changeCount, int afterCount, int consumePoints, int getPoints, long afterValue) {
+    public void turntableLog(long playerId,int beforeCount, int changeCount, int afterCount, int consumePoints, int getPoints, long afterValue, String orderId) {
         try {
             if(RobotUtil.isRobot(playerId)){
                 return;
@@ -93,6 +97,7 @@ public class PointsAwardLogger extends BaseLogger {
             jsonObject.put("changeCount", changeCount);
             jsonObject.put("afterCount", afterCount);
             jsonObject.put("playerId", playerId);
+            jsonObject.put("orderId", orderId);
             sendLog("pointsAwardTurntable", null, jsonObject);
         } catch (Exception e) {
             log.error("记录转盘日志错误!", e);

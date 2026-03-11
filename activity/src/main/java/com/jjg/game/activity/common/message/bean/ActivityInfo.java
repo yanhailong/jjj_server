@@ -14,6 +14,6 @@ public class ActivityInfo {
     public long activityId;
     @ProtoDesc("活动类型")
     public int activityType;
-    @ProtoDesc("活动状态  2开启 3结束")
+    @ProtoDesc("活动状态 0活动开关关闭 1未开启 2开启 3结束")
     public int status;
 }
