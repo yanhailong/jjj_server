@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.MessageConst;
-import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.Command;
@@ -57,8 +56,6 @@ public class CoreToServerMessageHandler {
     private LoginConfigService loginConfigService;
     @Autowired
     private RechargeService rechargeService;
-    @Autowired
-    protected MarsCurator marsCurator;
 
     /**
      * 其他节点推送的跑马灯信息
@@ -166,6 +163,7 @@ public class CoreToServerMessageHandler {
         log.debug("收到需要改变节点信息的消息 notify = {}", JSON.toJSONString(notify));
         try {
             nodeConfig.setWeight(notify.weight);
+
             if (notify.ips != null && !notify.ips.isEmpty()) {
                 nodeConfig.setWhiteIpList(notify.ips.toArray(new String[0]));
             } else {
@@ -178,11 +176,6 @@ public class CoreToServerMessageHandler {
                 nodeConfig.setWhiteIdList(null);
             }
             nodeManager.update();
-
-            if (nodeConfig.getWeight() == 0) {
-                // 当前节点已是主节点且权重被改为 0 时，主动退主并触发重新选主。
-                marsCurator.stepDownIfMaster();
-            }
         } catch (Exception e) {
             log.error("", e);
         }
