@@ -24,6 +24,7 @@ import com.jjg.game.poker.game.tosouth.message.bean.*;
 import com.jjg.game.poker.game.tosouth.message.req.ReqTurnAction;
 import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthChangTable;
 import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthRoomBaseInfo;
+import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthSendCardsInfo;
 import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthTurnActionInfo;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
 import com.jjg.game.room.constant.EGamePhase;
@@ -687,24 +688,26 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             baseInfo.playerInfos.add(pokerPlayerInfo);
         }
 
+        PlayerSeatInfo selfPlayerInfo = gameDataVo.getPlayerSeatInfoMap().get(playerController.playerId());
+
         if (baseInfo.phase == EGamePhase.PLAY_CART) {
             ToSouthActionInfo actionInfo = new ToSouthActionInfo();
             fillCommonActionInfo(actionInfo);
 
-            // 重连玩家自己的手牌
-            PlayerSeatInfo selfPlayerInfo = gameDataVo.getPlayerSeatInfoMap().get(playerController.playerId());
+            // 重连玩家自己的手牌及高亮牌
             if (selfPlayerInfo != null && !selfPlayerInfo.isDelState()) {
                 actionInfo.selfHandCards = PokerDataHelper.getClientId(gameDataVo, selfPlayerInfo.getCurrentCards());
             }
 
-            // 默认 canPlay=true，若重连玩家正是等待出牌方，fillRecommendCards 会按实际手牌覆盖
-            actionInfo.canPlay = true;
+            // 默认不可出牌；仅当重连玩家正是当前等待出牌方时才可出牌
+            actionInfo.canPlay = false;
 
             PlayerSeatInfo currentPlayer = gameDataVo.getCurrentPlayerSeatInfo();
             if (Objects.nonNull(currentPlayer)) {
                 actionInfo.waitPlayerId = currentPlayer.getPlayerId();
                 actionInfo.canPass = !isFirstPlayer(currentPlayer.getSeatId());
                 if (currentPlayer.getPlayerId() == playerController.playerId()) {
+                    actionInfo.canPlay = true;
                     fillRecommendCards(actionInfo, currentPlayer);
                 }
             }
@@ -716,6 +719,18 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             baseInfo.actionInfo = actionInfo;
         }
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), baseInfo));
+
+        // START_GAME 阶段：已发牌但出牌阶段尚未开始，重连时需补发手牌数据
+        if (baseInfo.phase == EGamePhase.START_GAME && selfPlayerInfo != null && !selfPlayerInfo.isDelState()) {
+            List<Integer> sortedHandCards = PokerDataHelper.getClientId(gameDataVo, selfPlayerInfo.getCurrentCards());
+            List<Integer> highlightCards = gameDataVo.getPlayerHighlightCards().get(playerController.playerId());
+            RespToSouthSendCardsInfo sendCardsInfo = new RespToSouthSendCardsInfo();
+            sendCardsInfo.sortedHandCards = sortedHandCards;
+            sendCardsInfo.originalHandCards = new ArrayList<>(sortedHandCards);
+            Collections.shuffle(sendCardsInfo.originalHandCards);
+            sendCardsInfo.highlightCards = highlightCards;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), sendCardsInfo));
+        }
     }
 
     @Override

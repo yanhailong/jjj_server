@@ -38,10 +38,5 @@ public class ToSouthConstant {
         int SIX_PAIRS = 4; // 6对
         int FIVE_CONSEC_PAIRS = 5; // 5连对
         int SIX_CONSEC_PAIRS = 6; // 6连对
-        int THREE_CONSEC_TRIPLES = 7; // 3 连三张
-        int FOUR_CONSEC_TRIPLES = 8; // 4 连三张
-        int TWO_QUADS = 9; // 2个四张
-        int THREE_QUADS = 10; // 3个四张
-        int COMB_BOMB = 11; // 1个四张+3连对
     }
 }

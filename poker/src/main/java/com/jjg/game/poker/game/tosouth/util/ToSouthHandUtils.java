@@ -902,16 +902,16 @@ public class ToSouthHandUtils {
                 
                 List<Card> selected = new ArrayList<>();
                 if (r == maxRank) {
-                    // 最大对子取最强花色 (取最后两张)
+                    // 最大对子取最强花色：CARD_COMPARATOR 花色升序，最强(♥=1)排最前
                     if (cs.size() >= 2) {
-                        selected.add(cs.removeLast());
-                        selected.add(cs.removeLast());
+                        selected.add(cs.removeFirst());
+                        selected.add(cs.removeFirst());
                     }
                 } else {
-                    // 其他对子取最弱花色 (取前两张)
+                    // 其他对子取最弱花色：最弱(♠=4)排最后
                     if (cs.size() >= 2) {
-                        selected.add(cs.removeFirst());
-                        selected.add(cs.removeFirst());
+                        selected.add(cs.removeLast());
+                        selected.add(cs.removeLast());
                     }
                 }
                 chain.addAll(selected);
@@ -935,11 +935,11 @@ public class ToSouthHandUtils {
                 cs.sort(CARD_COMPARATOR);
                 
                 if (r == maxRank) {
-                    // 最大牌取最强花色 (取最后一张)
-                    chain.add(cs.removeLast());
-                } else {
-                    // 其他牌取最弱花色 (取第一张)
+                    // 最大牌取最强花色：CARD_COMPARATOR 花色升序，最强(♥=1)排最前
                     chain.add(cs.removeFirst());
+                } else {
+                    // 其他牌取最弱花色：最弱(♠=4)排最后
+                    chain.add(cs.removeLast());
                 }
             }
         }

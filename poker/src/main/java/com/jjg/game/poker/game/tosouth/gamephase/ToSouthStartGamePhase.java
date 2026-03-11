@@ -28,6 +28,7 @@ import com.jjg.game.sampledata.bean.WarehouseCfg;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -255,8 +256,8 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
         ToSouthGameDataVo gameDataVo = controller.getGameDataVo();
         Map<Integer, PokerCard> cardMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
 
-        List<PlayerSeatInfo> winners = new ArrayList<>();
-        Pair<Integer, List<Integer>> instantWinCards = null;
+        // key: PlayerSeatInfo, value: 该玩家自己的通杀牌型信息
+        Map<PlayerSeatInfo, Pair<Integer, List<Integer>>> winnerMap = new LinkedHashMap<>();
 
         for (PlayerSeatInfo seatInfo : gameDataVo.getPlayerSeatInfoList()) {
             List<Integer> handCardIds = seatInfo.getCurrentCards();
@@ -266,22 +267,23 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                 sorted.sort(ToSouthHandUtils.CARD_COMPARATOR);
                 log.debug("通杀检查 - 玩家: {}, 手牌: {}", seatInfo.getPlayerId(), ToSouthHandUtils.cardListToString(sorted));
             }
-            instantWinCards = ToSouthHandUtils.getInstantWinCards(handCards);
+            Pair<Integer, List<Integer>> instantWinCards = ToSouthHandUtils.getInstantWinCards(handCards);
             if (instantWinCards != null) {
-                winners.add(seatInfo);
+                winnerMap.put(seatInfo, instantWinCards);
                 log.info("玩家 {} 触发通杀！类型: {}", seatInfo.getPlayerId(), instantWinCards.getFirst());
             }
         }
 
-        if (instantWinCards != null) {
+        if (!winnerMap.isEmpty()) {
             instantWinContext = new ToSouthSettlementContext();
             instantWinContext.setInstantWin(true);
-            for (PlayerSeatInfo w : winners) {
+            for (Map.Entry<PlayerSeatInfo, Pair<Integer, List<Integer>>> entry : winnerMap.entrySet()) {
+                Pair<Integer, List<Integer>> winCards = entry.getValue();
                 instantWinContext.addItem(new ToSouthSettlementContext.SettlementItem(
-                        w,
+                        entry.getKey(),
                         true,
-                        instantWinCards.getFirst(),
-                        instantWinCards.getSecond()
+                        winCards.getFirst(),
+                        winCards.getSecond()
                 ));
             }
         }
