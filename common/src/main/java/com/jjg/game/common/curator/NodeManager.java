@@ -122,10 +122,6 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
             nodeConfig.setFlags(flagsArray.toArray(new String[0]));
         }
         update();
-        if (nodeConfig.getWeight() == 0) {
-            // 当前节点已是主节点且权重被改为 0 时，主动退主并触发重新选主。
-            marsCurator.stepDownIfMaster();
-        }
     }
 
     private void register() {
@@ -155,11 +151,11 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
             nodeConfig.setFlags(checkNull(nodeConfig.getFlags()));
 
             String path = CoreConst.Common.SEPARATOR +
-                    nodeConfig.getParentPath() +
-                    CoreConst.Common.SEPARATOR +
-                    nodeConfig.getType() +
-                    CoreConst.Common.SEPARATOR +
-                    nodeConfig.getName();
+                nodeConfig.getParentPath() +
+                CoreConst.Common.SEPARATOR +
+                nodeConfig.getType() +
+                CoreConst.Common.SEPARATOR +
+                nodeConfig.getName();
             log.info("node update,path is {}", path);
 
             String nc = JSON.toJSONString(nodeConfig, true);
@@ -172,21 +168,21 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
 
     public MarsNode getMarNode(NodeType nodeType) {
         String nodePath =
-                CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.Common.SEPARATOR + nodeConfig.getParentPath()
-                        + CoreConst.Common.SEPARATOR + nodeType;
+            CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.Common.SEPARATOR + nodeConfig.getParentPath()
+                + CoreConst.Common.SEPARATOR + nodeType;
         return marsCurator.getMarsNode(nodePath);
     }
 
     public MarsNode getMarNode(String nodeType) {
         String nodePath =
-                CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.Common.SEPARATOR + nodeConfig.getParentPath()
-                        + CoreConst.Common.SEPARATOR + nodeType;
+            CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.Common.SEPARATOR + nodeConfig.getParentPath()
+                + CoreConst.Common.SEPARATOR + nodeType;
         return marsCurator.getMarsNode(nodePath);
     }
 
     public String getMarNodePath(String nodeType, String nodeName) {
         return CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.Common.SEPARATOR + nodeConfig.getParentPath()
-                + CoreConst.Common.SEPARATOR + nodeType + CoreConst.Common.SEPARATOR + nodeName;
+            + CoreConst.Common.SEPARATOR + nodeType + CoreConst.Common.SEPARATOR + nodeName;
     }
 
     /**
@@ -316,7 +312,6 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
 
     /**
      * 检查空串
-     *
      * @param arr
      * @return
      */
@@ -328,14 +323,14 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
         List<String> list = null;
         for (String s : arr) {
             if (StringUtils.isNotBlank(s)) {
-                if (list == null) {
+                if(list == null){
                     list = new ArrayList<>();
                 }
                 list.add(s);
             }
         }
 
-        if (list == null || list.isEmpty()) {
+        if(list == null || list.isEmpty()){
             return null;
         }
         return list.toArray(new String[0]);

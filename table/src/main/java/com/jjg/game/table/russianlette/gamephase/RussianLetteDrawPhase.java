@@ -141,7 +141,9 @@ public class RussianLetteDrawPhase extends BaseDiceSettlementPhase<RussianLetteG
         // ── 5. 将开奖数据缓存到 DataVo，供结算阶段（SETTLEMENT）使用 ────────────
         gameDataVo.setDrawPhaseHistoryBean(historyBean);
         gameDataVo.setDrawPhaseWinCfgs(winPosWeightCfgs);
-
+        gameDataVo.getGamePlayerMap().forEach((k,v)->{
+            v.getTableGameData().addPlayNum();
+        });
         // ── 6. 构建本阶段广播的 settlementInfo（不含金币结算，仅告知开奖号码）──
         RussianLetteSettlementInfo settlementInfo = RussianLetteMessageBuilder.buildSettlementInfoFromHistory(historyBean);
 
