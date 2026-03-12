@@ -45,6 +45,8 @@ public class Order {
     private String channelProductId;
     //附加的道具
     private List<Item> items;
+    //备注
+    private String desc;
 
     public String getId() {
         return id;
@@ -156,5 +158,13 @@ public class Order {
 
     public void setItems(List<Item> items) {
         this.items = items;
+    }
+
+    public String getDesc() {
+        return desc;
+    }
+
+    public void setDesc(String desc) {
+        this.desc = desc;
     }
 }

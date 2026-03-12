@@ -78,7 +78,7 @@ public abstract class AbstractCallbackController {
             Player player = playerService.get(order.getPlayerId());
             //获取玩家session信息
             PlayerSessionInfo info = playerSessionService.getInfo(order.getPlayerId());
-            coreLogger.order(player, order, money, channelProductId, regionCode, order.getProductId());
+            coreLogger.order(player, order, money, channelProductId, regionCode);
             log.info("玩家充值成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
             //将充值成功消息通知玩家所在节点
             notifyPlayerCurrentNode(info, order, money, regionCode, channelProductId);

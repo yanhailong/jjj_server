@@ -55,7 +55,7 @@ import java.util.Map;
  * @date 2025/9/3 16:14
  */
 public abstract class BaseActivityController {
-    private final Logger log = LoggerFactory.getLogger(BaseActivityController.class);
+    protected final Logger log = LoggerFactory.getLogger(BaseActivityController.class);
 
     /**
      * 活动初始化进度
@@ -116,6 +116,11 @@ public abstract class BaseActivityController {
      */
     @Autowired
     protected CountDao countDao;
+
+    /**
+     * 初始化逻辑
+     */
+    public void init(){}
 
     /**
      * 增加玩家的活动进度

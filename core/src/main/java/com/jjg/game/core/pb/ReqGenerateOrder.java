@@ -18,4 +18,6 @@ public class ReqGenerateOrder extends AbstractMessage {
     public int rechargeType;
     @ProtoDesc("商品id")
     public String productId;
+    @ProtoDesc("json格式备注")
+    public String desc;
 }

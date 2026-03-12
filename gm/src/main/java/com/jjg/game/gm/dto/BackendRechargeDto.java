@@ -7,6 +7,7 @@ public record BackendRechargeDto(
         String channelOrderId,
         String price,
         List<ItemDto> items,
-        int rechargeType
+        int rechargeType,
+        String desc
 ) {
 }
