@@ -1412,7 +1412,7 @@ public class GMController extends AbstractController {
             }
 
             BigDecimal price = new BigDecimal(dto.price());
-            Order order = orderService.generateOrder("htcz", player.getId(), price, rechargeType, items);
+            Order order = orderService.generateOrder("htcz", player.getId(), price, rechargeType, items, dto.desc());
             if (order == null) {
                 log.warn("后台充值时，生成订单失败 dto = {}", dto);
                 return fail("common.paramerror");

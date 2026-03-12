@@ -583,6 +583,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 //同步一次活动状态
                 clusterSystem.sendToPlayer(res, playerId);
             }
+            log.debug("joinActivityResp = {}",JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("玩家参加活动失败 playerId:{} activityId:{} ", playerId, activityId, e);
         }
@@ -636,6 +637,48 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 return new CommonResult<>(Code.NOT_FOUND);
             }
             data.getType().getController().buyActivityGift(playerController.getPlayer(), data, detailId);
+            return new CommonResult<>(Code.SUCCESS);
+        }
+
+        if ("claimActivityReward".equalsIgnoreCase(cmd)) {
+            Long activityId = Long.parseLong(gmOrders[1]);
+            int detailId = Integer.parseInt(gmOrders[2]);
+            ActivityData data = getActivityData().get(activityId);
+            if (data == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+            int times = 1;
+            if (gmOrders.length == 4) {
+                times = Integer.parseInt(gmOrders[3]);
+            }
+            if (times < 1) {
+                return new CommonResult<>(Code.PARAM_ERROR);
+            }
+
+            AbstractResponse res = data.getType().getController().claimActivityRewards(playerController.getPlayer(), data, detailId);
+            if (res != null) {
+                //同步一次活动状态
+                clusterSystem.sendToPlayer(res, playerController.playerId());
+            }
+            return new CommonResult<>(Code.SUCCESS);
+        }
+
+        if ("getPlayerActivityInfoByType".equalsIgnoreCase(cmd)) {
+            int typeId = Integer.parseInt(gmOrders[1]);
+            Long activityId = Long.parseLong(gmOrders[2]);
+            ActivityData data = getActivityData().get(activityId);
+            if (data == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+
+            ActivityType activityType = ActivityType.fromType(typeId);
+
+            AbstractResponse res = data.getType().getController().getPlayerActivityInfoByType(playerController.getPlayer(), activityType);
+            if (res != null) {
+                //同步一次活动状态
+                clusterSystem.sendToPlayer(res, playerController.playerId());
+            }
+            log.debug("res = {}",JSON.toJSONString(res));
             return new CommonResult<>(Code.SUCCESS);
         }
 

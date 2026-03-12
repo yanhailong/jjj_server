@@ -12,4 +12,10 @@ import com.jjg.game.common.proto.ProtobufMessage;
 public class KVInfo {
     public int key;
     public int value;
+
+    public KVInfo() {
+    }
+
+    public KVInfo(int key, int value) {
+    }
 }

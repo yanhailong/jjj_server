@@ -127,6 +127,8 @@ public class GameDataManager {
     containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
     containerMap.put(ChessTexasStrategyCfg.class, new ChessTexasStrategyCfgContainer());
     containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
+    containerMap.put(ContinuouschargingCfg.class, new ContinuouschargingCfgContainer());
+    containerMap.put(CumulativebenefitsCfg.class, new CumulativebenefitsCfgContainer());
     containerMap.put(DailyRechargeCfg.class, new DailyRechargeCfgContainer());
     containerMap.put(DailyRewardsCfg.class, new DailyRewardsCfgContainer());
     containerMap.put(DealerFunctionCfg.class, new DealerFunctionCfgContainer());
@@ -857,6 +859,30 @@ public class GameDataManager {
 
   public static List<ConditionCfg> getConditionCfgList() {
     return getInstance().getCfgContainer(ConditionCfg.class).getCfgBeanList();
+  }
+
+  public static ContinuouschargingCfg getContinuouschargingCfg(int key) {
+    return getInstance().getCfgContainer(ContinuouschargingCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ContinuouschargingCfg> getContinuouschargingCfgMap() {
+    return getInstance().getCfgContainer(ContinuouschargingCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ContinuouschargingCfg> getContinuouschargingCfgList() {
+    return getInstance().getCfgContainer(ContinuouschargingCfg.class).getCfgBeanList();
+  }
+
+  public static CumulativebenefitsCfg getCumulativebenefitsCfg(int key) {
+    return getInstance().getCfgContainer(CumulativebenefitsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, CumulativebenefitsCfg> getCumulativebenefitsCfgMap() {
+    return getInstance().getCfgContainer(CumulativebenefitsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<CumulativebenefitsCfg> getCumulativebenefitsCfgList() {
+    return getInstance().getCfgContainer(CumulativebenefitsCfg.class).getCfgBeanList();
   }
 
   public static DailyRechargeCfg getDailyRechargeCfg(int key) {

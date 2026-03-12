@@ -1,5 +1,6 @@
 package com.jjg.game.activity.common.message.handler;
 
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowFreeRewards;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowRecord;
@@ -35,6 +36,8 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.TipUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -44,6 +47,7 @@ import org.springframework.stereotype.Component;
 @Component
 @MessageType(value = MessageConst.MessageTypeDef.ACTIVITY)
 public class ActivityMessageHandler {
+    private static final Logger log = LoggerFactory.getLogger(ActivityMessageHandler.class);
     private final ActivityManager activityManager;
     private final CashCowController cashCowController;
     private final SharePromoteController sharePromoteController;
@@ -104,6 +108,7 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_ACTIVITY_CLAIM_REWARDS)
     public void reqActivityClaimRewards(PlayerController playerController, ReqActivityClaimRewards req) {
+        log.info("reqActivityClaimRewards playerId={}, req={}", playerController.playerId(), JSONObject.toJSONString(req));
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data == null || !data.getValue().contains(req.detailId)) {
             return;

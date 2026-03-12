@@ -39,14 +39,14 @@ public class OrderService {
     private final String CHANNEL_ORDER_TABLE_NAME = "channelOrder:data";
     private final String CHANNEL_ORDER_TIME_TABLE_NAME = "channelOrder:time";
 
-    public Order generateOrder(Player player, PayType payType, String productId, RechargeType rechargeType) {
+    public Order generateOrder(Player player, PayType payType, String productId, RechargeType rechargeType, String desc) {
         Account account = accountDao.queryAccountByPlayerId(player.getId());
-        return generateOrder(player.getId(), account.getChannel(), payType, productId, BigDecimal.ZERO, rechargeType);
+        return generateOrder(player.getId(), account.getChannel(), payType, productId, BigDecimal.ZERO, rechargeType, null);
     }
 
-    public Order generateOrder(Player player, PayType payType, String productId, BigDecimal price, RechargeType rechargeType) {
+    public Order generateOrder(Player player, PayType payType, String productId, BigDecimal price, RechargeType rechargeType, String desc) {
         Account account = accountDao.queryAccountByPlayerId(player.getId());
-        return generateOrder(player.getId(), account.getChannel(), payType, productId, price, rechargeType);
+        return generateOrder(player.getId(), account.getChannel(), payType, productId, price, rechargeType, desc);
     }
 
     /**
@@ -57,22 +57,22 @@ public class OrderService {
      * @param price
      * @return
      */
-    public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price, RechargeType rechargeType) {
-        return generateOrder(playerId, playerChannel, payType, productId, price, rechargeType, OrderStatus.ORDER, null, null);
+    public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price, RechargeType rechargeType, String desc) {
+        return generateOrder(playerId, playerChannel, payType, productId, price, rechargeType, OrderStatus.ORDER, productId, null, desc);
     }
 
     private Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price,
-                                RechargeType rechargeType, OrderStatus orderStatus, String channelProductId, List<Item> items) {
-        return generateOrder(null, playerId, playerChannel, payType, productId, price, rechargeType, orderStatus, channelProductId, items);
+                                RechargeType rechargeType, OrderStatus orderStatus, String channelProductId, List<Item> items, String desc) {
+        return generateOrder(null, playerId, playerChannel, payType, productId, price, rechargeType, orderStatus, channelProductId, items, desc);
     }
 
-    public Order generateOrder(String orderIdPrefix, long playerId, BigDecimal price, RechargeType rechargeType, List<Item> items) {
+    public Order generateOrder(String orderIdPrefix, long playerId, BigDecimal price, RechargeType rechargeType, List<Item> items, String desc) {
         Account account = accountDao.queryAccountByPlayerId(playerId);
         PayType payType = null;
-        if(account.getChannel() != null){
+        if (account.getChannel() != null) {
             payType = PayType.valueOf(account.getChannel().getValue());
         }
-        return generateOrder(orderIdPrefix, playerId, account.getChannel(), payType, null, price, rechargeType, OrderStatus.ORDER, null, items);
+        return generateOrder(orderIdPrefix, playerId, account.getChannel(), payType, null, price, rechargeType, OrderStatus.ORDER, null, items, null);
     }
 
     /**
@@ -84,7 +84,7 @@ public class OrderService {
      * @return
      */
     private Order generateOrder(String orderIdPrefix, long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price,
-                                RechargeType rechargeType, OrderStatus orderStatus, String channelProductId, List<Item> items) {
+                                RechargeType rechargeType, OrderStatus orderStatus, String channelProductId, List<Item> items, String desc) {
         for (int i = 0; i < CoreConst.Common.MONGO_TRY_COUNT; i++) {
             String orderId = (StringUtils.isBlank(orderIdPrefix) ? "cz" : orderIdPrefix) + DateUtil.format(DateUtil.date(), "yyMMdd") + RandomUtils.getRandomString(9);
             String uuid = RandomUtils.getOriginalUUid();
@@ -107,6 +107,7 @@ public class OrderService {
                 order.setCreateTime(TimeHelper.nowInt());
                 order.setChannelProductId(channelProductId);
                 order.setItems(items);
+                order.setDesc(desc);
                 orderDao.insert(order);
                 return order;
             } catch (DuplicateKeyException e) {
@@ -152,13 +153,13 @@ public class OrderService {
      * @return 删除的订单数量
      */
     public void clean() {
-        int now =  TimeHelper.nowInt();
+        int now = TimeHelper.nowInt();
         int expire = now - (int) TimeUnit.DAYS.toSeconds(30);
         long mongoDelCount = orderDao.deleteOrdersBeforeTimestamp(expire);
 
         int channelOrderExpire = now - (int) TimeUnit.DAYS.toSeconds(7);
 
         Long removeChannelOrderCount = removeChannelOrderSet(channelOrderExpire);
-        log.info("删除过期订单数量 mongoDelCount = {},removeChannelOrderCount = {}", mongoDelCount,removeChannelOrderCount);
+        log.info("删除过期订单数量 mongoDelCount = {},removeChannelOrderCount = {}", mongoDelCount, removeChannelOrderCount);
     }
 }
