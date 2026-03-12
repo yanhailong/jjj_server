@@ -444,8 +444,11 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         info.activityInfos = new ArrayList<>();
         Boolean checked = playerActivityDao.checkCanTargetFirstLogin(player.getId());
         for (ActivityData data : activityData.values()) {
+            if (!data.isOpen()) {
+                continue;
+            }
             BaseActivityController controller = data.getType().getController();
-            if (!data.canRun()) {
+            if (!data.getType().isShowInNotOpen() && !data.canRun()) {
                 continue;
             }
             info.activityInfos.add(controller.buildActivityInfo(data));
@@ -759,11 +762,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                         openActivityData.add(data);
                     }
                     if (CollectionUtil.isNotEmpty(openActivityData)) {
-                        NotifyActivityChange change = new NotifyActivityChange();
-                        change.activityInfos = new ArrayList<>();
-                        for (ActivityData data : openActivityData) {
-                            change.activityInfos.add(ActivityBuilder.buildActivityInfo(data));
-                        }
+                        NotifyActivityChange change = buildNotifyActivityChange(openActivityData);
                         sendToPlayer(player.getId(), change);
                     }
                 }
@@ -778,6 +777,23 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
         }
 
+    }
+
+    /**
+     * 构建活动变化信息
+     *
+     * @param openActivityData 活动数据
+     * @return 活动变化数据
+     */
+    private NotifyActivityChange buildNotifyActivityChange(List<ActivityData> openActivityData) {
+        NotifyActivityChange change = new NotifyActivityChange();
+        if (CollectionUtil.isNotEmpty(openActivityData)) {
+            change.activityInfos = new ArrayList<>();
+            for (ActivityData data : openActivityData) {
+                change.activityInfos.add(ActivityBuilder.buildActivityInfo(data));
+            }
+        }
+        return change;
     }
 
     /**
@@ -850,6 +866,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     private void reloadConfig() {
         List<ActivityConfigCfg> activityConfigCfgList = GameDataManager.getActivityConfigCfgList();
         long currentTime = System.currentTimeMillis();
+        List<ActivityData> changeData = new ArrayList<>();
         for (ActivityConfigCfg activityConfigCfg : activityConfigCfgList) {
             ActivityType activityType = ActivityType.fromType(activityConfigCfg.getType());
             if (activityType == null) {
@@ -859,6 +876,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             ActivityData oldData = activityData.get(activityInfoId);
             //非未开始的只能修改开启关闭状态
             if (oldData != null && oldData.getStatus() != ActivityConstant.ActivityStatus.NOT_START) {
+                if (oldData.isOpen() != activityConfigCfg.getOpen()) {
+                    //推送给前端
+                    changeData.add(oldData);
+                }
                 oldData.setOpen(activityConfigCfg.getOpen());
                 log.info("活动更新 正在进行中的活动只更新开关 activityId:{}", activityInfoId);
                 continue;
@@ -881,7 +902,12 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             //更新类型活动数据
             Map<Long, ActivityData> dataMap = activityTypeData.computeIfAbsent(data.getType(), key -> new ConcurrentHashMap<>());
             dataMap.put(activityInfoId, data);
+            changeData.add(data);
             log.info("活动更新成功 activityId:{} activityData:{}", activityInfoId, JSON.toJSONString(activityData));
+        }
+        if (CollectionUtil.isNotEmpty(changeData)) {
+            NotifyActivityChange notifyActivityChange = buildNotifyActivityChange(changeData);
+            clusterSystem.broadcastToOnlinePlayer(notifyActivityChange);
         }
         loadActivityConditionCache();
         gameEventManager.registerEventListener(this);

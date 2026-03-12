@@ -156,7 +156,8 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         RespJoinRoomInGame respJoinRoomInGame = new RespJoinRoomInGame(Code.SUCCESS);
         respJoinRoomInGame.roomCfgId = room.getRoomCfgId();
         //等待进入人数+1
-        boolean joinNum = matchDataDao.changeRoomJoinNum(reqJoinRoomInGame.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), 1, 1);
+        boolean joinNum = matchDataDao.changeRoomJoinNum(reqJoinRoomInGame.gameType, room.getRoomCfgId(), room.getId(),
+                room.getMaxLimit(), 1, 1, room.getPath());
         if (!joinNum) {
             // 房间已满
             respJoinRoomInGame.code = Code.ROOM_FULL;
@@ -174,8 +175,8 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
             int result = roomManager.joinRoom(playerController, reqJoinRoomInGame.gameType, room.getRoomCfgId(), reqJoinRoomInGame.roomId);
             log.info("玩家：{} 请求加入房间：{} {} 处于当前节点", playerController.playerId(), room.getRoomCfgId(), room.getId());
             if (result != Code.SUCCESS) {
-                boolean rollback = matchDataDao.changeRoomJoinNum(reqJoinRoomInGame.gameType, room.getRoomCfgId(),
-                        room.getId(), room.getMaxLimit(), -1, -1);
+                boolean rollback = matchDataDao.changeRoomJoinNum(reqJoinRoomInGame.gameType, room.getRoomCfgId(), room.getId(),
+                        room.getMaxLimit(), -1, -1, room.getPath());
                 if (!rollback) {
                     log.error("玩家加入百家乐房间失败后，回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
                             playerController.playerId(), room.getRoomCfgId(), room.getId());
@@ -192,8 +193,8 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
             // 将玩家切入到对应的房间节点
             MarsNode marsNode = nodeManager.getMarNode(room.getPath());
             if (marsNode == null) {
-                boolean rollback = matchDataDao.changeRoomJoinNum(reqJoinRoomInGame.gameType, room.getRoomCfgId(),
-                        room.getId(), room.getMaxLimit(), -1, -1);
+                boolean rollback = matchDataDao.changeRoomJoinNum(reqJoinRoomInGame.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(),
+                        -1, -1, room.getPath());
                 if (!rollback) {
                     log.error("百家乐跨节点入房失败后，回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
                             playerController.playerId(), room.getRoomCfgId(), room.getId());
