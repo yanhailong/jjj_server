@@ -54,6 +54,8 @@ public class RespRussianLetteInfo extends AbstractResponse {
     @ProtoDesc("累计这次下注总金额（断线重连同步）")
     public double allBet;
 
+    @ProtoDesc("房间ID")
+    public long roomId;
 
     public RespRussianLetteInfo(int code) {
         super(code);

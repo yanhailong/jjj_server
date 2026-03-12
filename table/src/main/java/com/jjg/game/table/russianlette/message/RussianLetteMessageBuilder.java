@@ -5,6 +5,8 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -13,6 +15,8 @@ import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
 import com.jjg.game.table.russianlette.RussianLetteTempRoom;
 import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
 import com.jjg.game.table.russianlette.message.resp.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -28,6 +32,7 @@ import java.util.Set;
  * @author lhc
  */
 public class RussianLetteMessageBuilder {
+    private static final Logger log = LoggerFactory.getLogger(RussianLetteMessageBuilder.class);
 
     private static ClusterSystem clusterSystem;
 
@@ -165,7 +170,7 @@ public class RussianLetteMessageBuilder {
      * 注意：{@code playNum} 和 {@code allBet} 为玩家维度数据，由结算阶段按玩家单独设置后广播。
      *
      * @param russianLetteHistoryBean 本局历史记录（含 diceData 和 betIdxId）
-     * @param gameDataVo             游戏数据（用于读取阶段信息和历史记录）
+     * @param gameDataVo              游戏数据（用于读取阶段信息和历史记录）
      * @return 填充了开奖结果的结算通知（playerChangedGolds 由 settlementDice 填充）
      */
     public static NotifyRussianLetteSettlement notifyAnimalsSettlement(
@@ -208,7 +213,7 @@ public class RussianLetteMessageBuilder {
         // 玩家牌桌玩的次数
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
         if (gamePlayer != null) {
-            tableInfo.playNum = gamePlayer.getTableGameData().getBetInfoList().size();
+            tableInfo.playNum = gamePlayer.getTableGameData().getPlayNum();
         }
 
         // 累计本局下注总金额
@@ -241,18 +246,17 @@ public class RussianLetteMessageBuilder {
         summary.baseInfo = buildBaseInfo(gameController);
 
         // 历史转盘结果（取 diceData 字段列表）
-        summary.cardStateList = dataVo.getWinAreaCfgIdHistory().stream()
-                .map(b -> {
-                    if (b.diceData == 37) {
-                        return 0;
-                    }
-                    return b.diceData;
-                })
-                .toList();
-
+//        summary.cardStateList = dataVo.getWinAreaCfgIdHistory().stream()
+//                .map(b -> {
+//                    if (b.diceData == 37) {
+//                        return 0;
+//                    }
+//                    return b.diceData;
+//                })
+//                .toList();
+        summary.cardStateList = buildReversedCardStateList(dataVo.getWinAreaCfgIdHistory());
         // 近 12 局概率信息
         summary.prob = buildProb(dataVo.getWinAreaCfgIdHistory());
-
         // 对局 ID（历史记录条数 - 1，与百家乐 roundId = betRecord.size() - 1 一致）
         summary.roundId = Math.max(0, dataVo.getWinAreaCfgIdHistory().size() - 1);
 
@@ -290,17 +294,18 @@ public class RussianLetteMessageBuilder {
         summary.baseInfo = buildBaseInfo(gameController);
 
         // 历史转盘结果（取 diceData 字段列表）
-        summary.cardStateList = dataVo.getWinAreaCfgIdHistory().stream()
-                .map(b -> {
-                    if (b.diceData == 37) {
-                        return 0;
-                    }
-                    return b.diceData;
-                })
-                .toList();
-
+//            summary.cardStateList     = dataVo.getWinAreaCfgIdHistory().stream()
+//                .map(b -> {
+//                    if (b.diceData == 37) {
+//                        return 0;
+//                    }
+//                    return b.diceData;
+//                })
+//                .toList();
+        summary.cardStateList = buildReversedCardStateList(dataVo.getWinAreaCfgIdHistory());
         // 近 12 局概率信息
         summary.prob = buildProb(dataVo.getWinAreaCfgIdHistory());
+        summary.roomType =  dataVo.getRoomCfg().getRoomID();
         return summary;
     }
 
@@ -374,10 +379,10 @@ public class RussianLetteMessageBuilder {
         resp.stageInfo = stageInfo;
 
         // ── 2. 历史转盘结果（37→0 映射，最多 recordsNum 条）───────────────────
-        resp.cardStateList = dataVo.getWinAreaCfgIdHistory().stream()
-                .map(b -> b.diceData == 37 ? 0 : b.diceData)
-                .toList();
-
+//        resp.cardStateList = dataVo.getWinAreaCfgIdHistory().stream()
+//                .map(b -> b.diceData == 37 ? 0 : b.diceData)
+//                .toList();
+        resp.cardStateList = buildReversedCardStateList(dataVo.getWinAreaCfgIdHistory());
         // ── 3. 桌面数据（玩家列表、倒计时、区域下注信息、概率）─────────────────
         RussianLetteInfo tableInfo = new RussianLetteInfo();
         tableInfo.tablePlayerInfoList = TableMessageBuilder.buildTablePlayerInfo(
@@ -409,7 +414,7 @@ public class RussianLetteMessageBuilder {
         // ── 9. 玩家牌桌玩的次数 ──────────────────────────────────────────────
         GamePlayer gamePlayer = dataVo.getGamePlayer(playerId);
         if (gamePlayer != null) {
-            resp.playNum = gamePlayer.getTableGameData().getBetInfoList().size();
+            resp.playNum = gamePlayer.getTableGameData().getPlayNum();
         }
 
         // ── 10. 累计本局下注总金额（断线重连同步）────────────────────────────
@@ -419,7 +424,7 @@ public class RussianLetteMessageBuilder {
                     .flatMapToInt(list -> list.stream().mapToInt(Integer::intValue))
                     .sum();
         }
-
+        resp.roomId = dataVo.getRoomId();
         return resp;
     }
 
@@ -435,16 +440,18 @@ public class RussianLetteMessageBuilder {
             BaseTableGameController<RussianLetteGameDataVo> gameController) {
         RussianLetteGameDataVo dataVo = gameController.getGameDataVo();
         RussianLetteBaseInfo baseInfo = new RussianLetteBaseInfo();
-        baseInfo.roomId            = dataVo.getRoomId();
-        baseInfo.wareId            = gameController.getRoom().getRoomCfgId();
+        baseInfo.roomId = dataVo.getRoomId();
+        baseInfo.wareId = gameController.getRoom().getRoomCfgId();
         baseInfo.phaseEndTimestamp = dataVo.getPhaseEndTime();
         baseInfo.serverCurrentTime = System.currentTimeMillis();
         // 当前游戏阶段
-        EGamePhase currentPhase    = gameController.getCurrentGamePhase();
-        baseInfo.eGamePhase        = currentPhase;
+        EGamePhase currentPhase = gameController.getCurrentGamePhase();
+        baseInfo.eGamePhase = currentPhase;
 
         // 当前阶段总时长（秒）
-        baseInfo.phaseTotalTime    = calcPhaseTotalTime(currentPhase, dataVo.getRoomCfg().getStageTime());
+        int calcPhaseTotalTime = calcPhaseTotalTime(currentPhase, dataVo.getRoomCfg().getStageTime());
+        log.info("currentPhase:{},phaseTotalTime:{}",currentPhase.getPhaseName(), calcPhaseTotalTime);
+        baseInfo.phaseTotalTime = calcPhaseTotalTime(currentPhase, dataVo.getRoomCfg().getStageTime());
         return baseInfo;
     }
 
@@ -457,11 +464,11 @@ public class RussianLetteMessageBuilder {
             return 0;
         }
         return switch (phase) {
-            case REST                       -> stageTime.size() > 0 ? stageTime.get(0) : 0;
-            case BET                        -> stageTime.size() > 1 ? stageTime.get(1) : 0;
-            case DRAW_ON                    -> stageTime.size() > 2 ? stageTime.get(2) : 0;
-            case GAME_ROUND_OVER_SETTLEMENT -> stageTime.size() > 3 ? stageTime.get(3) : 0;
-            default                         -> 0;
+//            case REST                       -> stageTime.size() > 0 ? stageTime.get(0) : 0;
+            case BET -> stageTime.size() > 0 ? stageTime.get(0) : 0;
+            case DRAW_ON -> stageTime.size() > 1 ? stageTime.get(1) : 0;
+            case GAME_ROUND_OVER_SETTLEMENT -> stageTime.size() > 2 ? stageTime.get(2) : 0;
+            default -> 0;
         };
     }
 

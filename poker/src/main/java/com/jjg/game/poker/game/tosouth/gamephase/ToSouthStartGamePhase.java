@@ -14,6 +14,7 @@ import com.jjg.game.poker.game.common.gamephase.BaseStartGamePhase;
 import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.poker.game.tosouth.constant.ToSouthConstant;
 import com.jjg.game.poker.game.tosouth.data.ToSouthSettlementContext;
+import com.jjg.game.poker.game.tosouth.manager.ToSouthStartManager;
 import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthSendCardsInfo;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
@@ -28,6 +29,7 @@ import com.jjg.game.sampledata.bean.WarehouseCfg;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -93,6 +95,36 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
 
     private void sendCards(Map<Integer, PokerCard> cardListMap, ToSouthGameDataVo gameDataVo) {
         List<Integer> list = new ArrayList<>(cardListMap.keySet());
+
+        // ====== GM发牌处理：预分配GM指定的手牌，并从牌池中移除 ======
+        Map<Long, List<Integer>> gmPreAssigned = new HashMap<>();
+        for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+            if (info.isDelState()) {
+                continue;
+            }
+            List<int[]> gmCards = ToSouthStartManager.consumeGmCards(info.getPlayerId());
+            if (gmCards == null || gmCards.isEmpty()) {
+                continue;
+            }
+            List<Integer> preAssignedIds = new ArrayList<>();
+            for (int[] spec : gmCards) {
+                int suit = spec[0];
+                int rank = spec[1];
+                Integer matchedId = findCardIdBySuitRank(cardListMap, suit, rank, list);
+                if (matchedId != null) {
+                    preAssignedIds.add(matchedId);
+                    list.remove(matchedId);
+                } else {
+                    log.warn("GM发牌 - 玩家: {}, 未找到匹配的牌: suit={}, rank={}", info.getPlayerId(), suit, rank);
+                }
+            }
+            if (!preAssignedIds.isEmpty()) {
+                gmPreAssigned.put(info.getPlayerId(), preAssignedIds);
+                log.info("GM发牌 - 玩家: {}, 预分配手牌数: {}", info.getPlayerId(), preAssignedIds.size());
+            }
+        }
+        // ====== GM发牌处理结束 ======
+
         Collections.shuffle(list);
         gameDataVo.setCards(list);
 
@@ -102,8 +134,18 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             if (info.isDelState()) {
                 continue;
             }
+
             List<Integer> playCard = new ArrayList<>();
-            for (int i = 0; i < handPoker; i++) {
+
+            // GM预分配的手牌优先加入
+            List<Integer> preAssigned = gmPreAssigned.get(info.getPlayerId());
+            if (preAssigned != null) {
+                playCard.addAll(preAssigned);
+            }
+
+            // 剩余手牌从洗好的牌堆中补全
+            int remaining = handPoker - playCard.size();
+            for (int i = 0; i < remaining; i++) {
                 if (!cards.isEmpty()) {
                     playCard.add(cards.removeFirst());
                 }
@@ -115,7 +157,7 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             }
             // 按照 炸弹 > 连对 > 顺子 > 三条 > 对子 > 单张 的规则排列手牌，并计算高亮牌(2,炸弹，连对)
             List<Integer> highlightIds = ToSouthHandUtils.sortAndGetHighlightCards(handCards);
-            
+
             if (!highlightIds.isEmpty()) {
                 gameDataVo.getPlayerHighlightCards().put(info.getPlayerId(), highlightIds);
             }
@@ -131,10 +173,12 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
 
             info.setCards(new ArrayList<>());
             info.getCards().add(playCard);
-            
+
             if (log.isDebugEnabled()) {
                  // 此时 playCard 已经排序
-                log.debug("发牌 - 玩家: {}, 座位: {}, 手牌: {}", info.getPlayerId(), info.getSeatId(), ToSouthHandUtils.cardListToString(handCards));
+                log.debug("发牌 - 玩家: {}, 座位: {}, 手牌: {}{}", info.getPlayerId(), info.getSeatId(),
+                        gmPreAssigned.containsKey(info.getPlayerId()) ? "[GM] " : "",
+                        ToSouthHandUtils.cardListToString(handCards));
             }
 
             RespToSouthSendCardsInfo sendCardsInfo = new RespToSouthSendCardsInfo();
@@ -146,6 +190,25 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             sendCardsInfo.highlightCards = highlightIds;
             gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), sendCardsInfo));
         }
+    }
+
+    /**
+     * 根据花色和点数从牌池中查找匹配的牌ID (pokerPoolId)
+     *
+     * @param cardListMap  牌池映射
+     * @param suit         花色
+     * @param rank         点数
+     * @param availableIds 当前可用的牌ID列表
+     * @return 匹配的pokerPoolId，未找到返回null
+     */
+    private Integer findCardIdBySuitRank(Map<Integer, PokerCard> cardListMap, int suit, int rank, List<Integer> availableIds) {
+        for (Integer id : availableIds) {
+            PokerCard card = cardListMap.get(id);
+            if (card != null && card.getSuit() == suit && card.getRank() == rank) {
+                return id;
+            }
+        }
+        return null;
     }
 
     /**
@@ -255,8 +318,8 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
         ToSouthGameDataVo gameDataVo = controller.getGameDataVo();
         Map<Integer, PokerCard> cardMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
 
-        List<PlayerSeatInfo> winners = new ArrayList<>();
-        Pair<Integer, List<Integer>> instantWinCards = null;
+        // key: PlayerSeatInfo, value: 该玩家自己的通杀牌型信息
+        Map<PlayerSeatInfo, Pair<Integer, List<Integer>>> winnerMap = new LinkedHashMap<>();
 
         for (PlayerSeatInfo seatInfo : gameDataVo.getPlayerSeatInfoList()) {
             List<Integer> handCardIds = seatInfo.getCurrentCards();
@@ -266,22 +329,23 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                 sorted.sort(ToSouthHandUtils.CARD_COMPARATOR);
                 log.debug("通杀检查 - 玩家: {}, 手牌: {}", seatInfo.getPlayerId(), ToSouthHandUtils.cardListToString(sorted));
             }
-            instantWinCards = ToSouthHandUtils.getInstantWinCards(handCards);
+            Pair<Integer, List<Integer>> instantWinCards = ToSouthHandUtils.getInstantWinCards(handCards);
             if (instantWinCards != null) {
-                winners.add(seatInfo);
+                winnerMap.put(seatInfo, instantWinCards);
                 log.info("玩家 {} 触发通杀！类型: {}", seatInfo.getPlayerId(), instantWinCards.getFirst());
             }
         }
 
-        if (instantWinCards != null) {
+        if (!winnerMap.isEmpty()) {
             instantWinContext = new ToSouthSettlementContext();
             instantWinContext.setInstantWin(true);
-            for (PlayerSeatInfo w : winners) {
+            for (Map.Entry<PlayerSeatInfo, Pair<Integer, List<Integer>>> entry : winnerMap.entrySet()) {
+                Pair<Integer, List<Integer>> winCards = entry.getValue();
                 instantWinContext.addItem(new ToSouthSettlementContext.SettlementItem(
-                        w,
+                        entry.getKey(),
                         true,
-                        instantWinCards.getFirst(),
-                        instantWinCards.getSecond()
+                        winCards.getFirst(),
+                        winCards.getSecond()
                 ));
             }
         }
