@@ -252,6 +252,8 @@ public enum AddType {
     PLAYER_REGISTER(1602),
     //购买头像框
     BUY_AVATAR_FRAME(1603),
+    //礼包码兑换奖励
+    REDEEM_CODE_REWARDS(1604),
     ;
 
 

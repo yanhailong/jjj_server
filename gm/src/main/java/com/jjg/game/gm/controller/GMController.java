@@ -23,6 +23,8 @@ import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.*;
 import com.jjg.game.core.dao.*;
+import com.jjg.game.core.dao.redeemcode.RedeemCodeDao;
+import com.jjg.game.core.dao.redeemcode.RedeemCodeInfoDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.AmazonBucketManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
@@ -109,6 +111,10 @@ public class GMController extends AbstractController {
     private SmsService smsService;
     @Autowired
     private PlayerLastGameInfoDao playerLastGameInfoDao;
+    @Autowired
+    private RedeemCodeInfoDao redeemCodeInfoDao;
+    @Autowired
+    private RedeemCodeDao redeemCodeDao;
 
     @ClusterRpcReference()
     private GmToRechargeBridge gmToRechargeBridge;
@@ -1872,6 +1878,89 @@ public class GMController extends AbstractController {
         }
     }
 
+    /**
+     * 修改礼包码
+     */
+    @RequestMapping(BackendGMCmd.MODIFY_REDEEM_CODE)
+    public WebResult<VerCode> modifyRedeemCode(@RequestBody RedeemCodeDto dto) {
+        log.info("收到后台修改礼包码");
+        try {
+            if (dto == null || dto.id() < 1 || dto.startTime() < 1 || dto.endTime() < 1 || dto.startTime() >= dto.endTime()) {
+                log.warn("修改礼包码时参数错误 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            List<String> codeList = dto.codeList() == null ? Collections.emptyList() : dto.codeList().stream()
+                    .filter(StringUtils::isNotBlank)
+                    .map(String::trim)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            Optional<RedeemCodeInfo> redeemCodeInfoOptional = redeemCodeInfoDao.findById(dto.id());
+            RedeemCodeInfo redeemCodeInfo;
+            if (redeemCodeInfoOptional.isPresent()) {
+                // 已存在礼包时，只允许修改开始时间和结束时间。
+                redeemCodeInfo = redeemCodeInfoOptional.get();
+            } else {
+                if (dto.rewardsItem() == null || dto.rewardsItem().isEmpty()) {
+                    log.warn("新增礼包码时奖励数据为空 dto = {}", dto);
+                    return fail("common.paramerror");
+                }
+                redeemCodeInfo = new RedeemCodeInfo();
+                redeemCodeInfo.setId(dto.id());
+                redeemCodeInfo.setRewardsItem(dto.rewardsItem());
+                redeemCodeInfo.setUse(true);
+            }
+            redeemCodeInfo.setStartTime(dto.startTime());
+            redeemCodeInfo.setEndTime(dto.endTime());
+
+            if (!codeList.isEmpty()) {
+                for (String code : codeList) {
+                    if (redeemCodeDao.existsById(code)) {
+                        log.warn("新增礼包兑换码失败，兑换码已存在 redeemId = {}, code = {}", dto.id(), code);
+                        return fail("common.paramerror");
+                    }
+                }
+            }
+            redeemCodeInfoDao.save(redeemCodeInfo);
+            if (!codeList.isEmpty()) {
+                redeemCodeDao.addAll(buildRedeemCodeList(dto.id(), codeList));
+            }
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 启用/禁用礼包码
+     */
+    @RequestMapping(BackendGMCmd.CHANGE_REDEEM_CODE_STATUS)
+    public WebResult<String> changeRedeemCodeStatus(@RequestBody RedeemCodeStatusDto dto) {
+        log.info("收到启用/禁用礼包码请求 dto = {}", dto);
+        try {
+            if (dto == null || dto.id() < 1 || dto.use() == null) {
+                log.warn("启用/禁用礼包码时参数错误 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            Optional<RedeemCodeInfo> redeemCodeInfoOptional = redeemCodeInfoDao.findById(dto.id());
+            if (redeemCodeInfoOptional.isEmpty()) {
+                log.warn("启用/禁用礼包码失败，礼包不存在 redeemId = {}", dto.id());
+                return fail("common.paramerror");
+            }
+
+            RedeemCodeInfo redeemCodeInfo = redeemCodeInfoOptional.get();
+            redeemCodeInfo.setUse(dto.use());
+            redeemCodeInfoDao.save(redeemCodeInfo);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
 
     //****************************************************************************************************************/
 
@@ -1889,6 +1978,17 @@ public class GMController extends AbstractController {
         } else {
             hallPointsAwardBridge.deduct(playerId, value, PointsAwardType.GM);
         }
+    }
+
+    private List<RedeemCode> buildRedeemCodeList(long redeemId, List<String> codeList) {
+        long now = System.currentTimeMillis();
+        return codeList.stream().map(code -> {
+            RedeemCode redeemCode = new RedeemCode();
+            redeemCode.setRedeemId(redeemId);
+            redeemCode.setCode(code);
+            redeemCode.setCreateTime(now);
+            return redeemCode;
+        }).collect(Collectors.toList());
     }
 
     /**

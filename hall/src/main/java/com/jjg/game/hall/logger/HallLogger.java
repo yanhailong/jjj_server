@@ -3,6 +3,7 @@ package com.jjg.game.hall.logger;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
 import org.springframework.stereotype.Component;
@@ -85,6 +86,32 @@ public class HallLogger extends BaseLogger {
             sendLog("pool", null, json);
         } catch (Exception e) {
             log.error("记录绑定日志异常", e);
+        }
+    }
+
+    /**
+     * 礼包码日志
+     *
+     * @param player   玩家数据
+     * @param redeemId 礼包id
+     * @param rewards  奖励
+     * @param result   奖励后数据
+     * @param code     礼包码
+     */
+    public void sendRedeemLog(Player player, long redeemId, Map<Integer, Long> rewards, ItemOperationResult result, String code) {
+
+        try {
+            JSONObject json = new JSONObject();
+            json.put("redeemId", redeemId);
+            //奖励
+            json.put("rewards", objectMapper.writeValueAsString(rewards));
+            if (result != null) {
+                json.put("rewardsItemNum", objectMapper.writeValueAsString(result));
+            }
+            json.put("code", code);
+            sendLog("cdk", player, json);
+        } catch (Exception e) {
+            log.error("sendPrivilegeCardJoinLog error:", e);
         }
     }
 }
