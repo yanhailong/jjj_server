@@ -26,8 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -64,7 +62,7 @@ public class HallRoomService implements IConsoleReceiver {
         }
         int gameType = warehouseCfg.getGameID();
         MarsNode marsNode = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(),
-                playerController.getPlayer().getIp());
+                playerController.ipAddress());
 
         if (marsNode == null) {
             log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
@@ -97,31 +95,12 @@ public class HallRoomService implements IConsoleReceiver {
             return Code.SUCCESS;
         }
         Pair<MarsNode, Boolean> marsNodeBooleanPair = nodeManager.getGameNodePairByWeight(gameType, playerController.playerId(),
-                playerController.getPlayer().getIp());
+                playerController.ipAddress());
         if (marsNodeBooleanPair == null) {
             log.debug("加入房间时 获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return Code.NOT_FOUND;
         }
         MarsNode marsNode = marsNodeBooleanPair.getFirst();
-        //白名单
-        if (marsNodeBooleanPair.getSecond()) {
-            List<Room> chooseNodeRoom = new ArrayList<>(hallRoomDao.getChooseNodeRoom(marsNode.getNodePath(), gameType, roomCfgId));
-            if (chooseNodeRoom.isEmpty()) {
-                //创建一个房间
-                long waitingRoomId = createRoom(roomCfgId, warehouseCfg, gameType, marsNode);
-                return joinRoomById(playerController, waitingRoomId, roomCfgId, gameType);
-            }
-            chooseNodeRoom.sort(Comparator.comparingInt(r -> r.getRoomPlayers().size()));
-            //随机选取一个
-            Room room = chooseNodeRoom.getFirst();
-            boolean joinNum = matchDataDao.changeRoomJoinNum(gameType, roomCfgId, room.getId(), room.getMaxLimit(), 1, 1);
-            if (!joinNum) {
-                //创建一个房间
-                long waitingRoomId = createRoom(roomCfgId, warehouseCfg, gameType, marsNode);
-                return joinRoomById(playerController, waitingRoomId, roomCfgId, gameType);
-            }
-            return joinRoomById(playerController, room.getId(), roomCfgId, gameType);
-        }
         // 获取一个等待房间，如果有空闲的话
         int maxPlayer = SampleDataUtils.getRoomMaxLimit(warehouseCfg).getT2();
         long waitingRoomId = matchService.getWaitingRoomId(gameType, roomCfgId, maxPlayer, marsNode.getNodePath());
@@ -131,7 +110,7 @@ public class HallRoomService implements IConsoleReceiver {
             return Code.NOT_FOUND;
         }
         // 加入房间
-        return joinRoomById(playerController, waitingRoomId, roomCfgId, gameType);
+        return joinRoomById(playerController, waitingRoomId, roomCfgId, gameType, marsNode.getNodePath());
     }
 
     /**
@@ -150,7 +129,7 @@ public class HallRoomService implements IConsoleReceiver {
         Room room = hallRoomDao.createRoom(gameType, roomCfgId, maxLimit, marsNode.getNodePath());
         if (maxLimit != 1) {
             // 如果房间的限制人数不止一个，则将当前房间ID挂到房间等待列表中，等待后续玩家的加入
-            matchService.addWaitingRoomId(gameType, roomCfgId, room.getId(), room.getCreateTime());
+            matchService.addWaitingRoomId(gameType, roomCfgId, room.getId(), room.getCreateTime(), room.getPath());
         }
         waitingRoomId = room.getId();
         return waitingRoomId;
@@ -164,7 +143,7 @@ public class HallRoomService implements IConsoleReceiver {
         // 获取所有的游戏
         MarsNode marsNode =
                 nodeManager.getGameNodeByWeight(
-                        EGameType.BACCARAT.getGameTypeId(), playerController.playerId(), playerController.getPlayer().getIp());
+                        EGameType.BACCARAT.getGameTypeId(), playerController.playerId(), playerController.ipAddress());
         //更新session中的gametype
         playerSessionService.changeGameType(
                 playerController.playerId(), EGameType.BACCARAT.getGameTypeId(), roomCfgId);
@@ -187,7 +166,7 @@ public class HallRoomService implements IConsoleReceiver {
             // 随机分配一个
             marsNode =
                     nodeManager.getGameNodeByWeight(
-                            gameType, playerController.playerId(), playerController.getPlayer().getIp());
+                            gameType, playerController.playerId(), playerController.ipAddress());
             if (marsNode == null) {
                 log.debug("加入好友房房间时 获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}",
                         playerController.playerId(), gameType);
@@ -200,7 +179,7 @@ public class HallRoomService implements IConsoleReceiver {
             if (marsNode == null) {
                 // 随机分配一个节点
                 marsNode = nodeManager.getGameNodeByWeight(
-                        gameType, playerController.playerId(), playerController.getPlayer().getIp());
+                        gameType, playerController.playerId(), playerController.ipAddress());
                 if (marsNode == null) {
                     // 直接返回错误
                     return Code.FAIL;
@@ -240,12 +219,12 @@ public class HallRoomService implements IConsoleReceiver {
     /**
      * 通过房间ID加入房间
      */
-    private int joinRoomById(PlayerController playerController, long roomId, int roomCfgId, int gameType) {
+    private int joinRoomById(PlayerController playerController, long roomId, int roomCfgId, int gameType, String nodePath) {
         // 查询房间
         Room room = hallRoomDao.getRoom(gameType, roomId);
         if (room == null) {
             log.error("通过ID: {} 找不到房间", roomId);
-            matchDataDao.removeWaitJoinRoomId(gameType, roomCfgId, roomId);
+            matchDataDao.removeWaitJoinRoomId(gameType, roomCfgId, roomId, nodePath);
             return Code.ROOM_NOT_FOUND;
         }
         // 查询房间节点
@@ -256,7 +235,7 @@ public class HallRoomService implements IConsoleReceiver {
         if (marsNode == null) {
             log.error("房间: {} 对应的节点: {} 不存在或者已关闭", room.getId(), room.getPath());
             // 将有问题的房间ID移动到最前面，房间主节点去处理异常的房间
-            matchDataDao.removeWaitJoinRoomId(gameType, roomCfgId, roomId);
+            matchDataDao.removeWaitJoinRoomId(gameType, roomCfgId, roomId, room.getPath());
             // 直接返回错误
             return Code.ROOM_NOT_FOUND;
         }

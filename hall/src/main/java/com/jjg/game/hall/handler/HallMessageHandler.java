@@ -808,7 +808,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
             return new CommonResult<>(Code.LEVEL_NOT_ENOUGH);
         }
 
-        MarsNode node = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(), playerController.getPlayer().getIp());
+        MarsNode node = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(), playerController.ipAddress());
         if (node == null) {
             log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return new CommonResult<>(Code.NOT_FOUND);

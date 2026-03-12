@@ -250,6 +250,6 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
      */
     public SteamAgeGameRunInfo autoStartGame(SteamAgePlayerGameData playerGameData, long betValue) {
         log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
-        return startGame(null,playerGameData, betValue, true);
+        return startGame(null, playerGameData, betValue, true);
     }
 }

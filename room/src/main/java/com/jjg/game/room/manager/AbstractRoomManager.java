@@ -510,7 +510,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             }
             if (!(room instanceof FriendRoom)) {
                 // 退出房间时删除人数
-                matchDataDao.changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, 0);
+                matchDataDao.changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(), room.getMaxLimit(),
+                        -1, 0, room.getPath());
             }
             // TODO 需要检查房间内玩家是否为空，如果为空则需要检查是否需要删除房间，如果房间不能删除则需要添加机器人进入房间
             // 退出房间将当前场景置为空
@@ -551,7 +552,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 }
             }
         }
-        return matchDataDao.getNewWaitJoinRoomId(gameType, roomConfigId, maxLimit, oldRoomId);
+        return matchDataDao.getNewWaitJoinRoomId(gameType, roomConfigId, maxLimit, oldRoomId, nodeManager.getNodePath());
     }
 
     /**
@@ -699,7 +700,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             log.info("删除房间：{}, 删除：{} ", room.logStr(), removedRes > 0 ? "成功" : "失败");
         }
         // 需要从房间等待列表中删除
-        matchDataDao.removeWaitJoinRoomId(room.getGameType(), room.getRoomCfgId(), room.getId());
+        matchDataDao.removeWaitJoinRoomId(room.getGameType(), room.getRoomCfgId(), room.getId(), room.getPath());
     }
 
     /**
@@ -825,7 +826,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 matchDataDao.addWaitJoinRoomId(gameType,
                         roomController.getRoom().getRoomCfgId(),
                         roomController.getRoom().getId(),
-                        System.currentTimeMillis());
+                        System.currentTimeMillis(),
+                        roomController.getRoom().getPath());
                 log.info("{}游戏启动成功 roomInfo: {}", source, roomController.getRoom().logStr());
                 return;
             }
@@ -1240,7 +1242,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                     oldRoomId, roomOtherId, gameType, roomCfgId);
             return false;
         }
-        boolean join = matchDataDao.changeRoomJoinNum(gameType, roomCfgId, roomOtherId, maxLimit, 1, 1);
+        boolean join = matchDataDao.changeRoomJoinNum(gameType, roomCfgId, roomOtherId,
+                maxLimit, 1, 1, nodeManager.getNodePath());
         if (!join) {
             return false;
         }

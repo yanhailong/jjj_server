@@ -29,5 +29,4 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
         }
         return res;
     }
-
 }
