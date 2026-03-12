@@ -185,5 +185,9 @@ public interface HallConstant {
         //分享推广信息开始
         int REQ_SHARE_PROMOTE_START = BASE_MSG_PREFIX | 0x4F;
         int RES_SHARE_PROMOTE_START = BASE_MSG_PREFIX | 0x50;
+
+        //请求礼包码兑换
+        int REQ_REDEEM_CODE = BASE_MSG_PREFIX | 0x51;
+        int RES_REDEEM_CODE = BASE_MSG_PREFIX | 0x52;
     }
 }

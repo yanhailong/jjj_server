@@ -95,6 +95,11 @@ public interface BackendGMCmd {
     //积分大奖修改数据
     String POINTS_REWARD_CHANGE = "pointsRewardChange";
 
+    //修改礼包码
+    String MODIFY_REDEEM_CODE = "modifyRedeemCode";
+    //启用/禁用礼包码
+    String CHANGE_REDEEM_CODE_STATUS = "changeRedeemCodeStatus";
+
     /**
      * 配置相关q
      */

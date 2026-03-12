@@ -40,6 +40,7 @@ import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.hall.service.NoticeService;
+import com.jjg.game.hall.service.RedeemCodeService;
 import com.jjg.game.hall.sharepromote.SharePromoteRewardService;
 import com.jjg.game.hall.utils.HallTool;
 import com.jjg.game.hall.vip.VipManager;
@@ -100,6 +101,8 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
     private LoginConfigService loginConfigService;
     @Autowired
     private SharePromoteRewardService sharePromoteService;
+    @Autowired
+    private RedeemCodeService redeemCodeService;
 
     /**
      * 进入游戏
@@ -1122,6 +1125,15 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
     public void ReqSharePromoteStart(PlayerController playerController, ReqSharePromoteStart req) {
         int code = sharePromoteService.startSharePromote(playerController);
         ResSharePromoteStart res = new ResSharePromoteStart(code);
+        playerController.send(res);
+    }
+
+    /**
+     * 请求兑换礼包码
+     */
+    @Command(HallConstant.MsgBean.REQ_REDEEM_CODE)
+    public void reqRedeemCode(PlayerController playerController, ReqRedeemCode req) {
+        ResRedeemCode res = redeemCodeService.redeem(playerController,req.code);
         playerController.send(res);
     }
 
