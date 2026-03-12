@@ -72,7 +72,7 @@ public class OrderService {
         if (account.getChannel() != null) {
             payType = PayType.valueOf(account.getChannel().getValue());
         }
-        return generateOrder(orderIdPrefix, playerId, account.getChannel(), payType, null, price, rechargeType, OrderStatus.ORDER, null, items, null);
+        return generateOrder(orderIdPrefix, playerId, account.getChannel(), payType, null, price, rechargeType, OrderStatus.ORDER, null, items, desc);
     }
 
     /**
