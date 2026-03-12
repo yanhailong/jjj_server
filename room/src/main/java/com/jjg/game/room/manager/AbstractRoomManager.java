@@ -1037,6 +1037,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 空房间检测, 5s 检测一次
      */
     protected void emptyRoomCheck() {
+        if (!GameDataManager.getInstance().isLoadAllFinished()) {
+            return;
+        }
         // 房间配置 <=> Pair<此类房间至少保存的数量，房间删除时间>
         Map<Integer, Pair<Integer, Integer>> roomCfgIdPlayerLimitMap = getRoomPlayerLimitCfg();
         // 房间CfgID <=> 房间真人数量+房间控制器
