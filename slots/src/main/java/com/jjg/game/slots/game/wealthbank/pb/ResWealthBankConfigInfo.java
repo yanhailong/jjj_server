@@ -33,8 +33,6 @@ public class ResWealthBankConfigInfo extends AbstractResponse {
     public int remainFreeCount;
     @ProtoDesc("状态")
     public int status;
-    @ProtoDesc("累计的美元数量，进度条")
-    public int totalDollars;
     @ProtoDesc("投资可选区域，只有当触发投资游戏后才会有值")
     public List<Integer> choosableAreas;
     public ResWealthBankConfigInfo(int code) {

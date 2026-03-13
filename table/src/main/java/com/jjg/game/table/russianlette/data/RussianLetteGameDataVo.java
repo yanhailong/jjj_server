@@ -35,6 +35,9 @@ public class RussianLetteGameDataVo extends TableGameDataVo {
      */
     private List<WinPosWeightCfg> drawPhaseWinCfgs;
 
+    /** GM 测试：指定下一局开奖结果（0-36），-1 表示不干预，使用后自动清除 */
+    private int testDiceData = -1;
+
     public RussianLetteGameDataVo(Room_BetCfg roomCfg) {
         super(roomCfg);
     }
@@ -92,5 +95,15 @@ public class RussianLetteGameDataVo extends TableGameDataVo {
 
     public void setDrawPhaseWinCfgs(List<WinPosWeightCfg> drawPhaseWinCfgs) {
         this.drawPhaseWinCfgs = drawPhaseWinCfgs;
+    }
+
+    // ===================== testDiceData (GM) =====================
+
+    public int getTestDiceData() {
+        return testDiceData;
+    }
+
+    public void setTestDiceData(int testDiceData) {
+        this.testDiceData = testDiceData;
     }
 }

@@ -86,20 +86,35 @@ public class RussianLetteDrawPhase extends BaseDiceSettlementPhase<RussianLetteG
     public void phaseDoAction() {
         super.phaseDoAction();
         log.info("执行RussianLetteDrawPhase（开奖阶段）中phaseDoAction");
-        // ── 1. 生成 0-36（数据库37-》0） 随机骰子点数（优先回收干预）──────────────────────────────
+        // ── 1. 生成 0-36（数据库37-》0） 随机骰子点数 ─────────────────────────
+        //      优先级：GM 指定 > 回收干预 > 随机
         List<Integer> randomNumDice = null;
-        Pair<Long, Long> currentPool = canTriggerRecycling();
-        if (currentPool != null) {
-            List<Integer> result = generateRecyclingResults(1, 1, 37, EGameType.RUSSIAN_ROULETTE);
-            if (result == null) {
-                log.error("俄罗斯转盘回收触发 生成结果失败 当前池:{} 标准池:{}",
-                        currentPool.getFirst(), currentPool.getSecond());
-            } else {
-                randomNumDice = result;
-                log.info("俄罗斯转盘回收触发 生成结果成功 当前池:{} 标准池:{}",
-                        currentPool.getFirst(), currentPool.getSecond());
+
+        // GM 测试：如果设置了指定开奖值，直接使用（仅生效一局）
+        int testDice = gameDataVo.getTestDiceData();
+        if (testDice >= 0) {
+            randomNumDice = List.of(testDice);
+            gameDataVo.setTestDiceData(-1);
+            log.info("俄罗斯转盘 {} GM 指定开奖 diceData={}", gameDataVo.roomLogInfo(), testDice);
+        }
+
+        // 回收干预
+        if (randomNumDice == null) {
+            Pair<Long, Long> currentPool = canTriggerRecycling();
+            if (currentPool != null) {
+                List<Integer> result = generateRecyclingResults(1, 1, 37, EGameType.RUSSIAN_ROULETTE);
+                if (result == null) {
+                    log.error("俄罗斯转盘回收触发 生成结果失败 当前池:{} 标准池:{}",
+                            currentPool.getFirst(), currentPool.getSecond());
+                } else {
+                    randomNumDice = result;
+                    log.info("俄罗斯转盘回收触发 生成结果成功 当前池:{} 标准池:{}",
+                            currentPool.getFirst(), currentPool.getSecond());
+                }
             }
         }
+
+        // 随机生成
         if (randomNumDice == null) {
             randomNumDice = DiceUtils.randomDice(1, 0, 37);
         }
