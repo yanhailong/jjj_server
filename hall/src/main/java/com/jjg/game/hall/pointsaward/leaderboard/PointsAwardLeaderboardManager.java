@@ -88,14 +88,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
      * @param awardCodeManager   奖励码管理器
      * @param pointsAwardLogger  积分奖励日志记录器
      */
-    public PointsAwardLeaderboardManager(
-            PointsAwardLeaderboardService leaderboardService,
-            RedisLock redisLock,
-            MarsCurator marsCurator,
-            RedissonClient redissonClient,
-            @Lazy MailService mailService,
-            @Lazy AwardCodeManager awardCodeManager,
-            PointsAwardLogger pointsAwardLogger, RankService rankService, RobotUtil robotUtil) {
+    public PointsAwardLeaderboardManager(PointsAwardLeaderboardService leaderboardService, RedisLock redisLock, MarsCurator marsCurator, RedissonClient redissonClient, @Lazy MailService mailService, @Lazy AwardCodeManager awardCodeManager, PointsAwardLogger pointsAwardLogger, RankService rankService, RobotUtil robotUtil) {
         this.leaderboardService = leaderboardService;
         this.redisLock = redisLock;
         this.marsCurator = marsCurator;
@@ -289,19 +282,15 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
                         //批量获取原积分,然后计算真正的积分
                         Map<Long, Long> oldPointMap = rankService.batchGetPoints(rankKey, rankChanges.stream().map(RankChange::getPlayerId).collect(Collectors.toList()));
                         //从新计算需要增加的分数
-                        log.info("变化积分 ：{}", JSON.toJSONString(rankChanges));
                         for (RankChange rankChange : rankChanges) {
                             rankChange.setAddPoints(rankChange.getAddPoints() - (oldPointMap.getOrDefault(rankChange.getPlayerId(), 0L)).intValue());
                         }
                         rankChanges.removeIf(rankChange -> rankChange.getAddPoints() <= 0);
-                        log.info("变化过滤后的积分 ：{}", JSON.toJSONString(rankChanges));
                         //更新排行榜
                         rankService.batchAddPoints(rankKey, rankChanges);
-                        log.info("积分大奖更新日榜成功 size:{}", rankChanges.size());
                         rankService.batchAddPoints(leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.WEEK), rankChanges);
-                        log.info("积分大奖更新周榜成功size:{}", rankChanges.size());
                         rankService.batchAddPoints(leaderboardService.getRankKey(PointsAwardConstant.Leaderboard.TYPE_MONTH), rankChanges);
-                        log.info("积分大奖更新月榜成功size:{}", rankChanges.size());
+                        log.info("积分大奖更新榜单成功 rankChangesSize={}", rankChanges.size());
                     }
                 } catch (Exception e) {
                     log.error("积分大奖机器人逻辑处理失败");
@@ -390,11 +379,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             // 清空旧配置
             configMap.clear();
             // 按类型分组配置
-            Arrays.asList(
-                    PointsAwardConstant.Leaderboard.TYPE_MONTH,
-                    PointsAwardConstant.Leaderboard.DAY,
-                    PointsAwardConstant.Leaderboard.WEEK
-            ).forEach(type -> {
+            Arrays.asList(PointsAwardConstant.Leaderboard.TYPE_MONTH, PointsAwardConstant.Leaderboard.DAY, PointsAwardConstant.Leaderboard.WEEK).forEach(type -> {
                 Map<Integer, PointsAwardRankingCfg> typeConfig = filterConfig(type, configList, now);
                 if (!typeConfig.isEmpty()) {
                     configMap.put(type, typeConfig);
@@ -493,17 +478,11 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
             YearMonth nowYearMonth = YearMonth.from(now);
 
             // 筛选需要的配置
-            List<PointsAwardRankingCfg> filteredConfigs = configList.stream()
-                    .filter(cfg -> cfg.getType() == type)
-                    .filter(cfg -> isConfigTimeValid(cfg, nowYearMonth))
-                    .toList();
+            List<PointsAwardRankingCfg> filteredConfigs = configList.stream().filter(cfg -> cfg.getType() == type).filter(cfg -> isConfigTimeValid(cfg, nowYearMonth)).toList();
 
             // 如果没有找到时间匹配的配置，使用默认配置
             if (filteredConfigs.isEmpty()) {
-                filteredConfigs = configList.stream()
-                        .filter(cfg -> cfg.getType() == type)
-                        .filter(cfg -> cfg.getTime() == null || cfg.getTime().trim().isEmpty())
-                        .toList();
+                filteredConfigs = configList.stream().filter(cfg -> cfg.getType() == type).filter(cfg -> cfg.getTime() == null || cfg.getTime().trim().isEmpty()).toList();
             }
 
             // 构建配置映射
@@ -721,8 +700,7 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
         }
         // 添加历史记录
         leaderboardService.addHistory(info, cfg, code, rankingData.getEndTime());
-        log.debug("玩家奖励发送完成，排行榜类型: {}, 玩家ID: {}, 排名: {}, 奖励类型: {}",
-                rankingData.getRankType(), info.getPlayerId(), info.getRank(), cfg.getAwardType());
+        log.debug("玩家奖励发送完成，排行榜类型: {}, 玩家ID: {}, 排名: {}, 奖励类型: {}", rankingData.getRankType(), info.getPlayerId(), info.getRank(), cfg.getAwardType());
     }
 
     /**
@@ -748,17 +726,11 @@ public class PointsAwardLeaderboardManager implements IGameClusterLeaderListener
      */
     private int getMailTemplateId(int rankType, int awardType) {
         if (rankType == PointsAwardConstant.Leaderboard.TYPE_MONTH) {
-            return awardType == PointsAwardConstant.Leaderboard.AwardType.ITEM
-                    ? PointsAwardConstant.Leaderboard.MailTemplateId.MONTHLY_ITEM_AWARD
-                    : PointsAwardConstant.Leaderboard.MailTemplateId.MONTHLY_OTHER_AWARD;
+            return awardType == PointsAwardConstant.Leaderboard.AwardType.ITEM ? PointsAwardConstant.Leaderboard.MailTemplateId.MONTHLY_ITEM_AWARD : PointsAwardConstant.Leaderboard.MailTemplateId.MONTHLY_OTHER_AWARD;
         } else if (rankType == PointsAwardConstant.Leaderboard.DAY) {
-            return awardType == PointsAwardConstant.Leaderboard.AwardType.ITEM
-                    ? PointsAwardConstant.Leaderboard.MailTemplateId.DAILY_ITEM_AWARD
-                    : PointsAwardConstant.Leaderboard.MailTemplateId.DAILY_OTHER_AWARD;
+            return awardType == PointsAwardConstant.Leaderboard.AwardType.ITEM ? PointsAwardConstant.Leaderboard.MailTemplateId.DAILY_ITEM_AWARD : PointsAwardConstant.Leaderboard.MailTemplateId.DAILY_OTHER_AWARD;
         } else if (rankType == PointsAwardConstant.Leaderboard.WEEK) {
-            return awardType == PointsAwardConstant.Leaderboard.AwardType.ITEM
-                    ? PointsAwardConstant.Leaderboard.MailTemplateId.WEEK_ITEM_AWARD
-                    : PointsAwardConstant.Leaderboard.MailTemplateId.WEEK_OTHER_AWARD;
+            return awardType == PointsAwardConstant.Leaderboard.AwardType.ITEM ? PointsAwardConstant.Leaderboard.MailTemplateId.WEEK_ITEM_AWARD : PointsAwardConstant.Leaderboard.MailTemplateId.WEEK_OTHER_AWARD;
         }
         return PointsAwardConstant.Leaderboard.MailTemplateId.DAILY_ITEM_AWARD;
     }

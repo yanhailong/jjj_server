@@ -491,17 +491,17 @@ public final class TimeHelper {
      * @param secondTime2
      * @return
      */
-    public static int getDateDifference(int secondTime1, int secondTime2) {
+    public static int getDateDifference(long secondTime1, long secondTime2) {
         if (secondTime1 <= 0)
             return 0;
         GregorianCalendar cd1 = new GregorianCalendar();
         cd1.setTimeZone(TimeZone.getTimeZone(timeZone));
-        cd1.setTimeInMillis((long) secondTime1 * 1000L);
+        cd1.setTimeInMillis(secondTime1);
         int day1 = cd1.get(Calendar.DAY_OF_YEAR);
 
         GregorianCalendar cd2 = new GregorianCalendar();
         cd2.setTimeZone(TimeZone.getTimeZone(timeZone));
-        cd2.setTimeInMillis((long) secondTime2 * 1000L);
+        cd2.setTimeInMillis(secondTime2);
         int day2 = cd2.get(Calendar.DAY_OF_YEAR);
         return Math.abs(day2 - day1);
     }
