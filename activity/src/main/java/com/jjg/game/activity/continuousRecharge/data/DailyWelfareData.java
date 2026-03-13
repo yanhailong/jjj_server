@@ -17,8 +17,6 @@ public class DailyWelfareData {
     private BigDecimal rechargeNum;
     //已领取奖励  cfgId
     private Set<Integer> receSet;
-    //当天的配置
-    private Set<Integer> todayConfigIds;
 
     public int getDate() {
         return date;
@@ -42,14 +40,6 @@ public class DailyWelfareData {
 
     public void setReceSet(Set<Integer> receSet) {
         this.receSet = receSet;
-    }
-
-    public Set<Integer> getTodayConfigIds() {
-        return todayConfigIds;
-    }
-
-    public void setTodayConfigIds(Set<Integer> todayConfigIds) {
-        this.todayConfigIds = todayConfigIds;
     }
 
     public void addRechargeNum(BigDecimal rechargeNum) {

@@ -21,6 +21,8 @@ public class UpcomingMobileGameCfg extends BaseCfgBean {
 
   /** 游戏名称资源名 */
   protected String icon;
+  /** 是否显示 */
+  protected boolean open;
   /** 游戏图片资源名 */
   protected String picture;
   /** 描述多语言ID */
@@ -29,6 +31,11 @@ public class UpcomingMobileGameCfg extends BaseCfgBean {
   /** 返回游戏名称资源名 */
   public String getIcon() {
     return icon;
+  }
+
+  /** 返回是否显示 */
+  public boolean getOpen() {
+    return open;
   }
 
   /** 返回游戏图片资源名 */

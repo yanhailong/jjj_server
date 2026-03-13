@@ -1137,6 +1137,25 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
         playerController.send(res);
     }
 
+    /**
+     * 请求所有的新游期待榜数据
+     */
+    @Command(HallConstant.MsgBean.REQ_ALL_NEW_GAMES)
+    public void reqAllNewGames(PlayerController playerController, ReqAllNewGames req) {
+        ResAllNewGames res = hallService.allNewGames();
+        playerController.send(res);
+        log.info("返回所有的新游期待榜数据 res = {}",JSONObject.toJSONString(res));
+    }
+
+    /**
+     * 请求给新游期待榜点赞
+     */
+    @Command(HallConstant.MsgBean.REQ_LIKE_NEW_GAME)
+    public void reqLikeNewGame(PlayerController playerController, ReqLikeNewGame req) {
+        ResLikeNewGame res = hallService.likeNewGame(playerController.getPlayer(), req.gameType);
+        playerController.send(res);
+    }
+
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
         CommonResult<String> res = new CommonResult<>(Code.SUCCESS);

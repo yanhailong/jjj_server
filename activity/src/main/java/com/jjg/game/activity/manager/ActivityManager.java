@@ -207,6 +207,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             loadActivityConditionCache();
             gameEventManager.registerEventListener(this);
         }
+
+        for(ActivityType activityType : ActivityType.values()){
+            activityType.getController().init();
+        }
     }
 
     /**

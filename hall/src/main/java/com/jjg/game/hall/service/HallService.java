@@ -18,14 +18,19 @@ import com.jjg.game.core.dao.VerCodeDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.DropItemManager;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.*;
 import com.jjg.game.core.utils.CoreUtil;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.dao.LikeGameDao;
+import com.jjg.game.hall.dao.NewGameExpectDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.pb.res.NotifyGameList;
+import com.jjg.game.hall.pb.res.ResAllNewGames;
+import com.jjg.game.hall.pb.res.ResLikeGame;
+import com.jjg.game.hall.pb.res.ResLikeNewGame;
 import com.jjg.game.hall.pb.struct.GameListConfig;
 import com.jjg.game.hall.pb.struct.WarePoolInfo;
 import com.jjg.game.hall.utils.HallTool;
@@ -84,6 +89,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private LoginConfigService loginConfigService;
     @Autowired
     private AdjustConfig adjustConfig;
+    @Autowired
+    public NewGameExpectDao newGameExpectDao;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
@@ -800,7 +807,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             }
 
             AddType addType = AddType.BUY_AVATAR;
-            if(avatarType == AvatarType.FRAME){
+            if (avatarType == AvatarType.FRAME) {
                 addType = AddType.BUY_AVATAR_FRAME;
             }
 
@@ -1120,5 +1127,76 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             log.debug("已发送绑定手机奖励邮件 playerId = {},rewaredList = {}", player.getId(), list);
         }
         return result;
+    }
+
+    /**
+     * 获取期待榜的数据
+     *
+     * @return
+     */
+    public ResAllNewGames allNewGames() {
+        ResAllNewGames res = new ResAllNewGames(Code.SUCCESS);
+        try {
+            Map<Object, Object> map = newGameExpectDao.queryAll();
+            List<KVInfo> list = new ArrayList<>();
+            for (UpcomingMobileGameCfg cfg : GameDataManager.getUpcomingMobileGameCfgList()) {
+                if (!cfg.getOpen()) {
+                    continue;
+                }
+
+                KVInfo kvInfo = new KVInfo();
+                kvInfo.key = cfg.getId();
+                if (map != null) {
+                    Object o = map.get(cfg.getId());
+                    if (o != null) {
+                        Integer likeNum = Integer.parseInt(o.toString());
+                        kvInfo.value = likeNum;
+                    }
+                }
+
+                list.add(kvInfo);
+            }
+
+            res.list = list;
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        return res;
+    }
+
+    /**
+     * 给新游期待榜点赞
+     *
+     * @param player
+     * @param gameType
+     */
+    public ResLikeNewGame likeNewGame(Player player, int gameType) {
+        ResLikeNewGame res = new ResLikeNewGame(Code.SUCCESS);
+        try {
+            UpcomingMobileGameCfg cfg = GameDataManager.getUpcomingMobileGameCfg(gameType);
+            if (cfg == null) {
+                log.warn("给新游点赞失败，该配置不存在 playerId = {},gameType = {}", player.getId(), gameType);
+                res.code = Code.PARAM_ERROR;
+                return res;
+            }
+
+            if (!cfg.getOpen()) {
+                log.warn("给新游点赞失败，该游戏未开启 playerId = {},gameType = {}", player.getId(), gameType);
+                res.code = Code.PARAM_ERROR;
+                return res;
+            }
+
+            boolean add = newGameExpectDao.add(player.getId(), gameType);
+            if (!add) {
+                res.code = Code.REPEAT_OP;
+                return res;
+            }
+            return res;
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        return res;
     }
 }

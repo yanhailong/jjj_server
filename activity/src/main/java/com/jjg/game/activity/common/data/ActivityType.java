@@ -124,7 +124,6 @@ public enum ActivityType {
     public static void initialize() {
         for (ActivityType activityType : values()) {
             activityType.controller = CommonUtil.getContext().getBean(activityType.className);
-            activityType.controller.init();
         }
     }
 }
