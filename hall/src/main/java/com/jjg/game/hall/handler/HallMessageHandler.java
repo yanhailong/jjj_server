@@ -1133,7 +1133,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_REDEEM_CODE)
     public void reqRedeemCode(PlayerController playerController, ReqRedeemCode req) {
-        ResRedeemCode res = redeemCodeService.redeem(playerController, req.code);
+        ResRedeemCode res = redeemCodeService.redeem(playerController,req);
         playerController.send(res);
     }
 
@@ -1168,15 +1168,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
             } else if ("addAvatar".equalsIgnoreCase(gmOrders[0])) {
                 int id = Integer.parseInt(gmOrders[1]);
                 hallService.addPlayerAvatar(playerController.playerId(), id);
-            } else if ("reqAllNewGames".equalsIgnoreCase(gmOrders[0])) {
-                reqAllNewGames(playerController, null);
-            } else if ("reqLikeNewGame".equalsIgnoreCase(gmOrders[0])) {
-                ReqLikeNewGame req = new ReqLikeNewGame();
-                req.gameType = Integer.parseInt(gmOrders[1]);
-                reqLikeNewGame(playerController, req);
-            } else if("clearNewGameS".equalsIgnoreCase(gmOrders[0])) {
-                hallService.newGameExpectDao.clearPlayerData();
-            }else {
+            } else {
                 res.code = Code.NOT_FOUND;
             }
         } catch (Exception e) {

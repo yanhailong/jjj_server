@@ -10,7 +10,10 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.logger.HallLogger;
+import com.jjg.game.hall.pb.req.ReqRedeemCode;
 import com.jjg.game.hall.pb.res.ResRedeemCode;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
@@ -30,7 +33,7 @@ import java.util.Optional;
 @Service
 public class RedeemCodeService {
     private static final Logger log = LoggerFactory.getLogger(RedeemCodeService.class);
-    private static final long REDEEM_CODE_COOLDOWN_MILLIS = Duration.ofMinutes(10).toMillis();
+    private static final long REDEEM_CODE_COOLDOWN_MILLIS = Duration.ofMinutes(1).toMillis();
     private static final String CODE_LOCK_PREFIX = "redeemCode:code:%s";
     private static final String COOLDOWN_KEY_PREFIX = "redeemCode:cooldown:%s";
 
@@ -55,26 +58,45 @@ public class RedeemCodeService {
      * 礼包码领取
      *
      * @param playerController 玩家数据
-     * @param code             礼包码
+     * @param req              请求数据
      * @return 响应
      */
-    public ResRedeemCode redeem(PlayerController playerController, String code) {
+    public ResRedeemCode redeem(PlayerController playerController, ReqRedeemCode req) {
         ResRedeemCode res = new ResRedeemCode(Code.SUCCESS);
         if (playerController == null || playerController.playerId() < 1) {
             res.code = Code.PARAM_ERROR;
             return res;
         }
+        long playerId = playerController.playerId();
+        if (req.type == 1) {
+            res.cooldownEndTime = getCooldownEndTime(playerId);
+            return res;
+        } else {
+            return exchangeCode(playerController, req, res, playerId);
+        }
+    }
+
+    /**
+     * 兑换礼包吗
+     *
+     * @param playerController 玩家数据
+     * @param req              请求
+     * @param res              响应
+     * @param playerId         玩家id
+     * @return 响应
+     */
+    private ResRedeemCode exchangeCode(PlayerController playerController, ReqRedeemCode req, ResRedeemCode res, long playerId) {
+        String code = req.code;
         if (StringUtils.isBlank(code)) {
             res.code = Code.REDEEM_CODE_INVALID;
             return res;
         }
         String finalCode = code.trim();
-        long playerId = playerController.playerId();
         long now = System.currentTimeMillis();
         long cooldownEndTime = getCooldownEndTime(playerId);
         if (cooldownEndTime > now) {
-            res.code = Code.REDEEM_CODE_ERROR_USE;
             res.cooldownEndTime = cooldownEndTime;
+            res.code = Code.REDEEM_CODE_ERROR_USE;
             return res;
         }
         boolean codeLock = false;
@@ -95,7 +117,6 @@ public class RedeemCodeService {
             }
             if (redeemCode.getUsePlayerId() > 0) {
                 log.info("礼包码已被使用 playerId = {}, code = {}, redeemId = {}", playerId, finalCode, redeemCode.getRedeemId());
-                res.cooldownEndTime = setCooldownEndTime(playerId);
                 res.code = Code.REDEEM_CODE_REPEAT_USE;
                 return res;
             }
@@ -103,14 +124,12 @@ public class RedeemCodeService {
             RedeemCodeInfo redeemCodeInfo = redeemCodeInfoOptional.orElse(null);
             if (redeemCodeInfo == null) {
                 log.warn("礼包码配置不存在 playerId = {}, code = {}, redeemId = {}", playerId, finalCode, redeemCode.getRedeemId());
-                res.cooldownEndTime = setCooldownEndTime(playerId);
                 res.code = Code.REDEEM_CODE_INVALID;
                 return res;
             }
             if (!redeemCodeInfo.isUse() || now < redeemCodeInfo.getStartTime() || now > redeemCodeInfo.getEndTime()) {
                 log.info("礼包码未生效或已过期 playerId = {}, code = {}, redeemId = {}, startTime = {}, endTime = {}, isUse = {}",
                         playerId, finalCode, redeemCode.getRedeemId(), redeemCodeInfo.getStartTime(), redeemCodeInfo.getEndTime(), redeemCodeInfo.isUse());
-                res.cooldownEndTime = setCooldownEndTime(playerId);
                 res.code = Code.REDEEM_CODE_INVALID;
                 return res;
             }
@@ -163,9 +182,14 @@ public class RedeemCodeService {
     }
 
     private long setCooldownEndTime(long playerId) {
-        long cooldownEndTime = System.currentTimeMillis() + REDEEM_CODE_COOLDOWN_MILLIS;
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(124);
+        long cooldown = REDEEM_CODE_COOLDOWN_MILLIS;
+        if (globalConfigCfg != null) {
+            cooldown = Duration.ofSeconds(globalConfigCfg.getIntValue()).toMillis();
+        }
+        long cooldownEndTime = System.currentTimeMillis() + cooldown;
         redissonClient.getBucket(COOLDOWN_KEY_PREFIX.formatted(playerId), LongCodec.INSTANCE)
-                .set(cooldownEndTime, Duration.ofMillis(REDEEM_CODE_COOLDOWN_MILLIS));
+                .set(cooldownEndTime, Duration.ofMillis(cooldown));
         return cooldownEndTime;
     }
 }

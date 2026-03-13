@@ -13,6 +13,8 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.REQ_REDEEM_CODE)
 @ProtoDesc("请求兑换礼包码")
 public class ReqRedeemCode extends AbstractMessage {
+    @ProtoDesc("类型 1请求冷却时间 2请求兑换")
+    public int type;
     @ProtoDesc("礼包码")
     public String code;
 }
