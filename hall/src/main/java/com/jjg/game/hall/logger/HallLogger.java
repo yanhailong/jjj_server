@@ -111,7 +111,7 @@ public class HallLogger extends BaseLogger {
             json.put("code", code);
             sendLog("cdk", player, json);
         } catch (Exception e) {
-            log.error("sendPrivilegeCardJoinLog error:", e);
+            log.error("sendRedeemLog error:", e);
         }
     }
 }
