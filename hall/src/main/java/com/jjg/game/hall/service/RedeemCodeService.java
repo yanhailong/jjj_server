@@ -95,7 +95,6 @@ public class RedeemCodeService {
             }
             if (redeemCode.getUsePlayerId() > 0) {
                 log.info("礼包码已被使用 playerId = {}, code = {}, redeemId = {}", playerId, finalCode, redeemCode.getRedeemId());
-                res.cooldownEndTime = setCooldownEndTime(playerId);
                 res.code = Code.REDEEM_CODE_REPEAT_USE;
                 return res;
             }
@@ -103,14 +102,12 @@ public class RedeemCodeService {
             RedeemCodeInfo redeemCodeInfo = redeemCodeInfoOptional.orElse(null);
             if (redeemCodeInfo == null) {
                 log.warn("礼包码配置不存在 playerId = {}, code = {}, redeemId = {}", playerId, finalCode, redeemCode.getRedeemId());
-                res.cooldownEndTime = setCooldownEndTime(playerId);
                 res.code = Code.REDEEM_CODE_INVALID;
                 return res;
             }
             if (!redeemCodeInfo.isUse() || now < redeemCodeInfo.getStartTime() || now > redeemCodeInfo.getEndTime()) {
                 log.info("礼包码未生效或已过期 playerId = {}, code = {}, redeemId = {}, startTime = {}, endTime = {}, isUse = {}",
                         playerId, finalCode, redeemCode.getRedeemId(), redeemCodeInfo.getStartTime(), redeemCodeInfo.getEndTime(), redeemCodeInfo.isUse());
-                res.cooldownEndTime = setCooldownEndTime(playerId);
                 res.code = Code.REDEEM_CODE_INVALID;
                 return res;
             }
