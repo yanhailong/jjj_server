@@ -663,13 +663,9 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * 全局分散
      */
     protected List<SpecialAuxiliaryInfo> overallDisperse(T lib) {
-        return overallDisperse(lib.getLibTypeSet(), lib.getIconArr(), lib.getSpecialGirdInfoList());
-    }
-
-    /**
-     * 全局分散
-     */
-    protected List<SpecialAuxiliaryInfo> overallDisperse(Set<Integer> libTypeSet, int[] arr, List<SpecialGirdInfo> specialGirdInfoList) {
+        int[] arr = lib.getIconArr();
+        List<SpecialGirdInfo> specialGirdInfoList = lib.getSpecialGirdInfoList();
+        Set<Integer> libTypeSet = lib.getLibTypeSet();
         //获取全局分散图案的配置
         Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE_GLOBAL);
         if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
@@ -685,7 +681,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
         for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
             BaseElementRewardCfg cfg = en.getValue();
-
             //检查出现的个数是否满足
             int elementsCount = 0;
             for (int iconId : cfg.getElementId()) {
@@ -697,17 +692,24 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             if (elementsCount != cfg.getRewardNum()) {
                 continue;
             }
-
             //是否触发小游戏
-            if (cfg.getFeatureTriggerId() == null || cfg.getFeatureTriggerId().isEmpty()) {
-                continue;
-            }
+            if (CollectionUtil.isNotEmpty(cfg.getFeatureTriggerId())) {
+                if (libTypeSet == null || libTypeSet.isEmpty()) {
+                    Set<Integer> triggerFreeSet = SlotsConst.specialModeTriggerFreeModeIds.get(this.gameType);
+                    if (triggerFreeSet != null && !triggerFreeSet.isEmpty()) {
+                        cfg.getFeatureTriggerId().forEach(miniGameId -> {
+                            triggerFreeSet.forEach(libType -> {
+                                SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, arr, miniGameId, specialGirdInfoList);
+                                if (specialAuxiliaryInfo != null) {
+                                    specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
+                                }
+                            });
 
-            if (libTypeSet == null || libTypeSet.isEmpty()) {
-                Set<Integer> triggerFreeSet = SlotsConst.specialModeTriggerFreeModeIds.get(this.gameType);
-                if (triggerFreeSet != null && !triggerFreeSet.isEmpty()) {
+                        });
+                    }
+                } else {
                     cfg.getFeatureTriggerId().forEach(miniGameId -> {
-                        triggerFreeSet.forEach(libType -> {
+                        libTypeSet.forEach(libType -> {
                             SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, arr, miniGameId, specialGirdInfoList);
                             if (specialAuxiliaryInfo != null) {
                                 specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
@@ -716,16 +718,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
                     });
                 }
-            } else {
-                cfg.getFeatureTriggerId().forEach(miniGameId -> {
-                    libTypeSet.forEach(libType -> {
-                        SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, arr, miniGameId, specialGirdInfoList);
-                        if (specialAuxiliaryInfo != null) {
-                            specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
-                        }
-                    });
-
-                });
+            }
+            //设置奖池id
+            if (CollectionUtil.isEmpty(lib.getJackpotIds())) {
+                lib.addJackpotId(cfg.getJackpotID());
             }
         }
         return specialAuxiliaryInfoList;
@@ -1461,7 +1457,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                         String[] arr2 = arr[0].split("&");
 
                         int p = Integer.parseInt(arr[1]);
-                        if(p < 1){
+                        if (p < 1) {
                             continue;
                         }
 

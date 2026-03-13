@@ -173,31 +173,31 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable {
     }
 
     public int firstJackpotId() {
-        if(this.jackpotIds == null || this.jackpotIds.isEmpty()) {
+        if (this.jackpotIds == null || this.jackpotIds.isEmpty()) {
             return 0;
         }
         return this.jackpotIds.get(0);
     }
 
     public void addJackpotId(int jackpotId) {
-        if(this.jackpotIds == null) {
+        if (this.jackpotIds == null) {
             this.jackpotIds = new ArrayList<>();
         }
 
-        if(jackpotId < 1){
+        if (jackpotId < 1 || jackpotIds.contains(jackpotId)) {
             return;
         }
         this.jackpotIds.add(jackpotId);
     }
 
     public boolean containsJackpotId(int jackpotId) {
-        if(this.jackpotIds == null || this.jackpotIds.isEmpty()) {
+        if (this.jackpotIds == null || this.jackpotIds.isEmpty()) {
             return false;
         }
         return this.jackpotIds.contains(jackpotId);
     }
 
-    public boolean jackpotEmpty(){
+    public boolean jackpotEmpty() {
         return this.jackpotIds == null || this.jackpotIds.isEmpty();
     }
 
