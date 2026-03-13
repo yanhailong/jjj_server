@@ -1910,10 +1910,9 @@ public class GMController extends AbstractController {
                 redeemCodeInfo.setId(dto.id());
                 redeemCodeInfo.setRewardsItem(dto.rewardsItem());
                 redeemCodeInfo.setUse(true);
+                redeemCodeInfo.setStartTime(dto.startTime());
+                redeemCodeInfo.setEndTime(dto.endTime());
             }
-            redeemCodeInfo.setStartTime(dto.startTime());
-            redeemCodeInfo.setEndTime(dto.endTime());
-
             if (!codeList.isEmpty()) {
                 for (String code : codeList) {
                     if (redeemCodeDao.existsById(code)) {
