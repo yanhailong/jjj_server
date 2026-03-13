@@ -194,6 +194,7 @@ public class GameDataManager {
     containerMap.put(TaskCfg.class, new TaskCfgContainer());
     containerMap.put(TexasCfg.class, new TexasCfgContainer());
     containerMap.put(UndergarmentCfg.class, new UndergarmentCfgContainer());
+    containerMap.put(UpcomingMobileGameCfg.class, new UpcomingMobileGameCfgContainer());
     containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
     containerMap.put(WealthRouletteRewardCfg.class, new WealthRouletteRewardCfgContainer());
@@ -1511,6 +1512,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(UndergarmentCfg.class).getCfgBeanList();
   }
 
+  public static UpcomingMobileGameCfg getUpcomingMobileGameCfg(int key) {
+    return getInstance().getCfgContainer(UpcomingMobileGameCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, UpcomingMobileGameCfg> getUpcomingMobileGameCfgMap() {
+    return getInstance().getCfgContainer(UpcomingMobileGameCfg.class).getCfgBeanMap();
+  }
+
+  public static List<UpcomingMobileGameCfg> getUpcomingMobileGameCfgList() {
+    return getInstance().getCfgContainer(UpcomingMobileGameCfg.class).getCfgBeanList();
+  }
+
   public static ViplevelCfg getViplevelCfg(int key) {
     return getInstance().getCfgContainer(ViplevelCfg.class).getCfgBeanMap().get(key);
   }
@@ -1587,6 +1600,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\workspace\\number\\gamedoc-2.0\\gamedoc\\游戏配置表");
+    loadAllData("D:\\java\\gamedoc\\游戏配置表");
   }
 }

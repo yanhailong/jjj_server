@@ -1133,7 +1133,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_REDEEM_CODE)
     public void reqRedeemCode(PlayerController playerController, ReqRedeemCode req) {
-        ResRedeemCode res = redeemCodeService.redeem(playerController,req.code);
+        ResRedeemCode res = redeemCodeService.redeem(playerController,req);
         playerController.send(res);
     }
 
