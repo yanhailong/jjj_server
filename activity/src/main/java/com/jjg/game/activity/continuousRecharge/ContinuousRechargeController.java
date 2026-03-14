@@ -34,6 +34,8 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
@@ -132,10 +134,12 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             }
 
             Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(player.getId(), ActivityType.CONTINUOUS_RECHARGE, activityData.getId());
-            ContinuousRechargeActivityData data;
+            ContinuousRechargeActivityData data = null;
             if (CollectionUtil.isNotEmpty(dataMap)) {
                 data = (ContinuousRechargeActivityData) dataMap.get(DETAIL_ID);
-            } else {
+            }
+
+            if (data == null) {
                 data = new ContinuousRechargeActivityData();
                 data.setActivityId(activityData.getId());
                 data.setCurrentDayIndex(0);
@@ -146,6 +150,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                 dataMap = new HashMap<>();
                 dataMap.put(DETAIL_ID, data);
             }
+
             data.setJoinType(detailId);
             playerActivityDao.savePlayerActivityData(player.getId(), activityData.getType(), activityData.getId(), dataMap);
             res.activityData = new ArrayList<>();
@@ -186,6 +191,9 @@ public class ContinuousRechargeController extends BaseActivityController impleme
     @Override
     public Map<Integer, PlayerActivityData> checkPlayerDataAndResetOnRequest(Player player, ActivityData activityData) {
         Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
+        if (CollectionUtil.isEmpty(dataMap)) {
+            return Collections.emptyMap();
+        }
         return resetCheck(player.getId(), activityData, dataMap);
     }
 
@@ -283,6 +291,9 @@ public class ContinuousRechargeController extends BaseActivityController impleme
     @Override
     public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
         Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        if (CollectionUtil.isEmpty(dataMap)) {
+            return;
+        }
         resetCheck(playerId, activityData, dataMap);
     }
 
@@ -330,7 +341,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
      * @param playerId 玩家ID
      * @param data     活动数据
      */
-    private void sendWelfareDailyRewardsByMail(long playerId, ContinuousRechargeActivityData data) {
+    private void sendWelfareDailyRewardsByMail(long playerId, ContinuousRechargeActivityData data, Pair<Integer, long[]> phase) {
         try {
             if (data.getDailyWelfareData() == null) {
                 return;
@@ -349,7 +360,21 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                 return;
             }
 
-            for (CumulativebenefitsCfg cfg : this.todayWelfareCfgMap.values()) {
+            //检查 data.getDailyWelfareData().getDate()这一天应该使用哪一个配置
+            LocalDate beginTime = TimeHelper.getLocalDateTime(phase.getSecond()[0]).toLocalDate();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+            LocalDate targetDate = LocalDate.parse(String.valueOf(data.getDailyWelfareData().getDate()), formatter);
+            // 3. 计算天数差
+            int diff = (int) ChronoUnit.DAYS.between(beginTime, targetDate);
+            //根据天数差获取当天的配置
+            int groupSize = this.welfareDailyCfgMap.get(1).size();
+            int index = diff % groupSize;
+            Map<Integer, CumulativebenefitsCfg> tmpTodayCfgMap = cfgIds(index);
+            if (CollectionUtil.isEmpty(tmpTodayCfgMap)) {
+                tmpTodayCfgMap = this.todayWelfareCfgMap;
+            }
+
+            for (CumulativebenefitsCfg cfg : tmpTodayCfgMap.values()) {
                 if (cfg.getType() != ActivityConstant.ContinuousRecharge.WELFARE_DAILY_TYPE) {
                     continue;
                 }
@@ -441,7 +466,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                 if (subType != ActivityType.CONTINUOUS_RECHARGE.getType()) {
                     return;
                 }
-                Integer cid = json.getIntValue("cid");
+                Integer cid = json.getInteger("cid");
                 if (cid == null || (cid != ActivityConstant.ContinuousRecharge.PHASE_CONTINUOUS && cid != ActivityConstant.ContinuousRecharge.PHASE_WELFARE)) {
                     log.warn("订单备注信息中的cid错误 cid = {}", cid);
                     return;
@@ -513,7 +538,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             return;
         }
 
-        if (data.getRebateGoldNum() > 0) {
+        if (data.getClaimStatus() == ActivityConstant.ClaimStatus.CLAIMED) {
             return;
         }
         log.debug("七日连充充值处理 playerId = {},dayIndex = {}", player.getId(), dayIndex);
@@ -610,6 +635,12 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             }
 
             Pair<Integer, long[]> phase = getPhase(activityData, true);
+            if (phase.getFirst() == ActivityConstant.ContinuousRecharge.PHASE_NO_BEGIN || phase.getFirst() == ActivityConstant.ContinuousRecharge.PHASE_OVER) {
+                log.warn("当前活动阶段错误 playerId = {},phase = {}", playerId, phase.getFirst());
+                res.code = Code.FORBID;
+                return res;
+            }
+
             CommonResult<List<Item>> rewardResult;
             if (phase.getFirst() == ActivityConstant.ContinuousRecharge.PHASE_CONTINUOUS) {
                 rewardResult = claimContinuousReward(playerId, activityData, data, dataMap, phase);
@@ -685,12 +716,13 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
         // 标记已结算
         data.setRebateGoldNum(goldAmount);
+        data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
         // 保存数据
         dataMap.put(DETAIL_ID, data);
         playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
 
         result.data = ItemUtils.buildItemList(ItemUtils.getGoldItemId(), goldAmount);
-        log.info("七日连充领取奖励 playerId={}, totalRecharge={}, rebateRate={}, goldAmount={}", playerId, data.calculateContinuousTotalRecharge(), data.getTotalRebateRate(), goldAmount);
+        log.info("七日连充领取奖励 playerId={}, totalRecharge={}, rebateRate={}, goldAmount={}", playerId, data.getContinuousTotalRecharge(), data.getTotalRebateRate(), goldAmount);
         return result;
     }
 
@@ -732,6 +764,8 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             }
 
             if (data.getDailyWelfareData() == null) {
+                result.code = Code.FAIL;
+                log.warn("玩家福利活动每日充值数据为空 playerId = {}", playerId);
                 return result;
             }
 
@@ -891,16 +925,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             }
         }
 
-        //检查是不是最后一天
-        long entTime = phase.getSecond()[1];
-        long now = currentTimeMillis();
-        if (TimeHelper.inSameDay(entTime, now)) {
-            if (data.getRebateGoldNum() < 1) {
-                info.claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
-            } else {
-                info.claimStatus = ActivityConstant.ClaimStatus.CLAIMED;
-            }
-        }
+        info.claimStatus = data.getClaimStatus();
 
         //额外信息
         info.continuousTotalInfo = new ContinuousTotalInfo();
@@ -948,7 +973,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             if (data.getDailyWelfareData() == null) {
                 welfareTaskInfo.claimStatus = ActivityConstant.ClaimStatus.NOT_CLAIM;
             } else {
-                if (data.getDailyWelfareData().getRechargeNum().longValue() >= welfareTaskInfo.target) {
+                if (data.getDailyWelfareData().getRechargeNum() != null && data.getDailyWelfareData().getRechargeNum().longValue() >= welfareTaskInfo.target) {
                     welfareTaskInfo.claimStatus = data.getDailyWelfareData().rece(cfg.getId()) ? ActivityConstant.ClaimStatus.CLAIMED : ActivityConstant.ClaimStatus.CAN_CLAIM;
                 } else {
                     welfareTaskInfo.claimStatus = ActivityConstant.ClaimStatus.NOT_CLAIM;
@@ -974,7 +999,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             info.welfareInfo.monthlyTaskList.add(welfareTaskInfo);
         }
 
-        info.welfareInfo.todayRecharge = data.getDailyWelfareData() == null ? "0" : data.getDailyWelfareData().getRechargeNum().toPlainString();
+        info.welfareInfo.todayRecharge = (data.getDailyWelfareData() == null || data.getDailyWelfareData().getRechargeNum() == null) ? "0" : data.getDailyWelfareData().getRechargeNum().toPlainString();
         info.welfareInfo.monthlyTotalRecharge = data.getWelfarMonthRechargeNum() == null ? "0" : data.getWelfarMonthRechargeNum().toPlainString();
         return info;
     }
@@ -995,7 +1020,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         Pair<Integer, long[]> phase = getPhase(activityData, true);
         info.phase = phase.getFirst();
         if (continuousRechargeActivityData.getJoinType() > 0) {
-            if (info.phase < ActivityConstant.ContinuousRecharge.PHASE_OVER) {
+            if (info.phase == ActivityConstant.ContinuousRecharge.PHASE_CONTINUOUS || info.phase == ActivityConstant.ContinuousRecharge.PHASE_WELFARE) {
                 info.startTime = phase.getSecond()[0];
                 info.endTime = phase.getSecond()[1];
             }
@@ -1038,12 +1063,12 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                 //补发第一阶段的奖励邮件
                 sendContinuousRewardByMail(playerId, data);
                 // 检查昨日未领取的每日任务奖励 → 邮件补发
-                sendWelfareDailyRewardsByMail(playerId, data);
+                sendWelfareDailyRewardsByMail(playerId, data, phase);
                 //跨天重置福利活动的数据
                 handleWelfareDaySwitch(playerId, data, lastCheckDate, today);
                 data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
             } else { //如果已结束，则要检查第二阶段的奖励是否发放
-                sendWelfareDailyRewardsByMail(playerId, data);
+                sendWelfareDailyRewardsByMail(playerId, data, phase);
                 sendWelfareMonthRewardsByMail(playerId, data);
                 playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
                 return Collections.emptyMap();
@@ -1075,7 +1100,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         //累计比例
         BigDecimal rate = BigDecimal.valueOf(data.getTotalRebateRate()).divide(TEN_THOUSAND, 4, RoundingMode.HALF_EVEN);
         //累计充值
-        BigDecimal totalRecharge = data.calculateContinuousTotalRecharge();
+        BigDecimal totalRecharge = data.getContinuousTotalRecharge();
         //返利的价值(预算价值)
         return totalRecharge.multiply(rate).setScale(2, RoundingMode.HALF_EVEN);
     }
@@ -1149,6 +1174,9 @@ public class ContinuousRechargeController extends BaseActivityController impleme
     private void genTodayWefareCfgIds() {
         Map<Long, ActivityData> activityData = activityManager.getActivityData();
         long now = currentTimeMillis();
+
+        int groupSize = this.welfareDailyCfgMap.get(1).size();
+
         for (Map.Entry<Long, ActivityData> en : activityData.entrySet()) {
             ActivityData data = en.getValue();
             if (data.getType() != ActivityType.CONTINUOUS_RECHARGE) {
@@ -1161,8 +1189,9 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
             long startTime = phase.getSecond()[0];
             int diff = TimeHelper.getDateDifference(now, startTime);
+            int index = diff % groupSize;
 
-            Map<Integer, CumulativebenefitsCfg> cfgMap = cfgIds(0);
+            Map<Integer, CumulativebenefitsCfg> cfgMap = cfgIds(index);
             if (CollectionUtil.isEmpty(cfgMap)) {
                 cfgMap = cfgIds(0);
 //                this.wefareCfgIndexId = 0;
@@ -1277,8 +1306,15 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                 return new Pair<>(ActivityConstant.ContinuousRecharge.PHASE_WELFARE, null);
             }
         }
-        return new Pair<>(ActivityConstant.ContinuousRecharge.PHASE_OVER, null);
 
+        if (getTime) {
+            continuousRechargeEndTime += TimeHelper.ONE_HOUR_OF_MILLIS;
+            long startTime = TimeHelper.getDateZeroMilliTime(continuousRechargeEndTime);
+            long[] arr = {startTime, activityData.getTimeEnd()};
+            return new Pair<>(ActivityConstant.ContinuousRecharge.PHASE_OVER, arr);
+        } else {
+            return new Pair<>(ActivityConstant.ContinuousRecharge.PHASE_OVER, null);
+        }
     }
 
     private Map<Integer, CumulativebenefitsCfg> cfgIds(int index) {

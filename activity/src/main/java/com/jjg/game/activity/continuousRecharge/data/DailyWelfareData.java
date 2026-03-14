@@ -11,7 +11,7 @@ import java.util.Set;
  * @date 2026/3/5
  */
 public class DailyWelfareData {
-    //年月日 yyMMdd格式
+    //年月日 yyyyMMdd格式
     private int date;
     //充值金额
     private BigDecimal rechargeNum;
