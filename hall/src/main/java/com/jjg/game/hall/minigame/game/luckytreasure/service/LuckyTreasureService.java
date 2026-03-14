@@ -11,6 +11,7 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.config.bean.LuckyTreasureConfig;
 import com.jjg.game.core.constant.*;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
@@ -20,6 +21,7 @@ import com.jjg.game.core.manager.SubscriptionManager;
 import com.jjg.game.core.pb.LuckyTreasureUpdateBroadcast;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.TipUtils;
+import com.jjg.game.hall.minigame.game.luckytreasure.LuckyTreasureManager;
 import com.jjg.game.hall.minigame.game.luckytreasure.bean.LuckyTreasureConsumeInfo;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureHistory;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureInfo;
@@ -28,7 +30,6 @@ import com.jjg.game.hall.minigame.game.luckytreasure.message.res.*;
 import com.jjg.game.hall.minigame.game.luckytreasure.util.LuckyTreasureStatusUtil;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.MailCfg;
 import org.redisson.api.RLock;
@@ -202,6 +203,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
     public void handleUpdateMessage(long issueNumber) {
         //添加到待更新列表
         if (issueNumber > 0) {
+            tryHandleSoldOutRound(issueNumber);
             issueNumberSet.add(issueNumber);
             if (updateTimer == null) {
                 //定时任务，每500ms执行一次，如果发送成功了，就不会再执行了
@@ -211,6 +213,15 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             }
 
 //            log.info("收到更新通知,需要同步更新期号[{}]数据", issueNumber);
+        }
+    }
+
+    private void tryHandleSoldOutRound(long issueNumber) {
+        try {
+            LuckyTreasureManager manager = CommonUtil.getContext().getBean(LuckyTreasureManager.class);
+            manager.tryHandleSoldOutRound(issueNumber);
+        } catch (Exception e) {
+            log.error("检查按售罄结算活动失败 issueNumber = {}", issueNumber, e);
         }
     }
 
@@ -471,7 +482,6 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
 
             // 购买成功，更新数据库
             luckyTreasureDao.save(latestTreasure);
-
             log.info("夺宝奇兵购买成功, 玩家ID:{}, 期号:{}, 购买数量:{}", player.getId(), latestTreasure.getIssueNumber(), count);
 
             return Code.SUCCESS;
@@ -753,6 +763,9 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         if (treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
             // 已售完但未到结束时间，等待开奖
             if (soldCount >= total) {
+                if (treasure.getConfig().getTime() == 0) {
+                    return LuckyTreasureStatusUtil.STATUS_WAIT_DRAW;
+                }
                 return LuckyTreasureStatusUtil.STATUS_CAN_BUY;
             }
             if (endTime < currentTime) {
@@ -783,11 +796,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
 
         // 已开奖的情况
         // 检查领奖是否过期
-        long rewardTime = 0L;
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
-        if (globalConfigCfg != null && globalConfigCfg.getIntValue() > 1) {
-            rewardTime = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
-        }
+        long rewardTime = LuckyTreasureStatusUtil.getRewardDelayMillis();
 
         long receiveDeadline = endTime + rewardTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
 

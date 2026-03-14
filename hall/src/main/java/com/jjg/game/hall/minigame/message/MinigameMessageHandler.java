@@ -5,17 +5,13 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.hall.minigame.MinigameManager;
 import com.jjg.game.hall.minigame.constant.MinigameConstant;
-import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.req.*;
-import com.jjg.game.hall.minigame.game.luckytreasure.message.res.ResBuyLuckyTreasure;
-import com.jjg.game.hall.minigame.game.luckytreasure.message.res.ResLuckyTreasureInfo;
-import com.jjg.game.hall.minigame.game.luckytreasure.message.res.ResReceiveLuckyTreasure;
-import com.jjg.game.hall.minigame.game.luckytreasure.message.res.ResLuckyTreasureRecord;
-import com.jjg.game.hall.minigame.game.luckytreasure.message.res.ResLuckyTreasureHistory;
+import com.jjg.game.hall.minigame.game.luckytreasure.message.res.*;
 import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureService;
 import com.jjg.game.hall.minigame.message.req.ReqMinigameList;
 import com.jjg.game.hall.minigame.message.res.ResMinigameList;
@@ -72,7 +68,7 @@ public class MinigameMessageHandler {
         CommonResult<ResBuyLuckyTreasure> result = luckyTreasureService.buyLuckyTreasure(playerController, msg.getIssueNumber(), msg.getCount());
         if (result.code != Code.SUCCESS) {
 //            playerController.send(new ResBuyLuckyTreasure(result.code));
-            log.debug("购买夺宝奇兵道具失败 playerId = {},code = {}",playerController.playerId(), result.code);
+            log.debug("购买夺宝奇兵道具失败 playerId = {},code = {}", playerController.playerId(), result.code);
         } else {
             playerController.send(result.data);
             log.debug("返回购买夺宝奇兵道具 res = {}", JSON.toJSONString(result.data));

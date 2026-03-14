@@ -5,15 +5,14 @@ import com.jjg.game.core.data.LuckyTreasure;
 import com.jjg.game.core.data.LuckyTreasureBuyRecord;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
-import org.redisson.api.*;
-import org.redisson.api.options.KeysScanParams;
+import org.redisson.api.RAtomicLong;
+import org.redisson.api.RBucket;
+import org.redisson.api.RMapCache;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * 夺宝奇兵redis操作类
@@ -145,13 +144,12 @@ public class LuckyTreasureRedisDao {
                 buyRecord.setBuyTime(System.currentTimeMillis());
                 treasure.getBuyRecordList().add(buyRecord);
 
-                long rewardTime = 0L;
-                GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
-                if (globalConfigCfg != null && globalConfigCfg.getIntValue() > 1) {
-                    rewardTime = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+                int expireMinutes = 0;
+                if (treasure.getEndTime() > 0) {
+                    expireMinutes = treasure.getConfig().getTime()
+                            + calculateRewardDelayExpireMinutes()
+                            + treasure.getConfig().getCollectTime();
                 }
-
-                int expireMinutes = Math.toIntExact(treasure.getConfig().getTime() + rewardTime + treasure.getConfig().getCollectTime());
                 // 保存回Redis
                 updateActiveRound(treasure, expireMinutes);
                 return treasure;
@@ -165,6 +163,16 @@ public class LuckyTreasureRedisDao {
      */
     private String buildDailyCounterKey(int configId, String date) {
         return LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_DAILY_COUNTER + configId + ":" + date;
+    }
+
+    private int calculateRewardDelayExpireMinutes() {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
+        if (globalConfigCfg == null || globalConfigCfg.getIntValue() <= 0) {
+            return 0;
+        }
+        long rewardDelayMillis = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+        //毫秒转分钟并向上取整
+        return (int) ((rewardDelayMillis + TimeUnit.MINUTES.toMillis(1) - 1) / TimeUnit.MINUTES.toMillis(1));
     }
 
 }

@@ -60,12 +60,10 @@ public class LuckyTreasureStatusUtil {
         // 比如开奖后24小时内可以领奖
         long currentTime = System.currentTimeMillis();
         long endTime = treasure.getEndTime();
-        // 领奖时间
-        long rewardTime = 0L;
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
-        if (globalConfigCfg != null && globalConfigCfg.getIntValue() > 1) {
-            rewardTime = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+        if (endTime <= 0) {
+            return 0;
         }
+        long rewardTime = getRewardDelayMillis();
 
         long receiveDeadline = endTime + rewardTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
 
@@ -80,18 +78,35 @@ public class LuckyTreasureStatusUtil {
      * 计算活动实际开奖时间（毫秒）
      */
     public static long calculateRewardTimeMillis(LuckyTreasure luckyTreasure) {
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
-        if (globalConfigCfg != null && globalConfigCfg.getIntValue() > 1) {
-            return luckyTreasure.getEndTime();
+        if (luckyTreasure.getEndTime() <= 0) {
+            return 0;
         }
-
-        return luckyTreasure.getEndTime() + TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+        return luckyTreasure.getEndTime() + getRewardDelayMillis();
     }
 
     public static int calculateRewardTimeSecond(LuckyTreasure luckyTreasure) {
         long currentTime = System.currentTimeMillis();
         long time = calculateRewardTimeMillis(luckyTreasure);
+        if (time <= currentTime) {
+            return 0;
+        }
         return (int) ((time - currentTime) / 1000);
+    }
+
+    public static long getRewardDelayMillis() {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
+        if (globalConfigCfg == null || globalConfigCfg.getIntValue() <= 0) {
+            return 0L;
+        }
+        return TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+    }
+
+    public static int getRewardDelayExpireMinutes() {
+        long rewardDelayMillis = getRewardDelayMillis();
+        if (rewardDelayMillis <= 0) {
+            return 0;
+        }
+        return (int) ((rewardDelayMillis + TimeUnit.MINUTES.toMillis(1) - 1) / TimeUnit.MINUTES.toMillis(1));
     }
 
 }
