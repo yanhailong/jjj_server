@@ -25,13 +25,14 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.dao.NewGameExpectDao;
+import com.jjg.game.hall.data.LikeGame;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.pb.res.NotifyGameList;
 import com.jjg.game.hall.pb.res.ResAllNewGames;
-import com.jjg.game.hall.pb.res.ResLikeGame;
 import com.jjg.game.hall.pb.res.ResLikeNewGame;
 import com.jjg.game.hall.pb.struct.GameListConfig;
+import com.jjg.game.hall.pb.struct.LikeNewGameInfo;
 import com.jjg.game.hall.pb.struct.WarePoolInfo;
 import com.jjg.game.hall.utils.HallTool;
 import com.jjg.game.sampledata.GameDataManager;
@@ -1134,27 +1135,32 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      *
      * @return
      */
-    public ResAllNewGames allNewGames() {
+    public ResAllNewGames allNewGames(long playerId) {
         ResAllNewGames res = new ResAllNewGames(Code.SUCCESS);
         try {
             Map<Object, Object> map = newGameExpectDao.queryAll();
-            List<KVInfo> list = new ArrayList<>();
+            LikeGame likeNewGame = newGameExpectDao.getLikeNewGame(playerId);
+            List<LikeNewGameInfo> list = new ArrayList<>();
             for (UpcomingMobileGameCfg cfg : GameDataManager.getUpcomingMobileGameCfgList()) {
                 if (!cfg.getOpen()) {
                     continue;
                 }
 
-                KVInfo kvInfo = new KVInfo();
-                kvInfo.key = cfg.getId();
+                LikeNewGameInfo info = new LikeNewGameInfo();
+                info.gameType = cfg.getId();
                 if (map != null) {
                     Object o = map.get(cfg.getId());
                     if (o != null) {
                         Integer likeNum = Integer.parseInt(o.toString());
-                        kvInfo.value = likeNum;
+                        info.nums = likeNum;
                     }
                 }
 
-                list.add(kvInfo);
+                if (likeNewGame != null) {
+                    info.like = likeNewGame.containsGameType(info.gameType);
+                }
+
+                list.add(info);
             }
 
             res.list = list;

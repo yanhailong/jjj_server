@@ -4,10 +4,10 @@ import com.jjg.game.core.base.gameevent.ClockEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
+import com.jjg.game.hall.data.LikeGame;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -26,11 +26,7 @@ public class NewGameExpectDao implements GameEventListener {
     //游戏的点赞数
     private final String TABLE_NAME = "newGameExpect:data";
     //玩家点赞相关数据
-    private final String PLAYER_DATA_TABLE_NAME = "newGameExpect:player:";
-
-    private String playerDataTableName(int gameType) {
-        return PLAYER_DATA_TABLE_NAME + gameType;
-    }
+    private final String PLAYER_DATA_TABLE_NAME = "newGameExpect:player";
 
     /**
      * 点赞
@@ -39,12 +35,24 @@ public class NewGameExpectDao implements GameEventListener {
      * @param gameType
      */
     public boolean add(long playerId, int gameType) {
-        long add = redisTemplate.opsForSet().add(playerDataTableName(gameType), playerId);
-        if (add > 0) {
-            redisTemplate.opsForHash().increment(TABLE_NAME, gameType, 1);
-            return true;
+        LikeGame likeGame = getLikeNewGame(playerId);
+        if (likeGame == null) {
+            likeGame = new LikeGame();
+            likeGame.setPlayerId(playerId);
         }
-        return false;
+
+        boolean add = likeGame.addLikeGame(gameType);
+        if (!add) {
+            return false;
+        }
+        redisTemplate.opsForHash().put(PLAYER_DATA_TABLE_NAME, playerId, likeGame);
+        redisTemplate.opsForHash().increment(TABLE_NAME, gameType, 1);
+        return true;
+    }
+
+    public LikeGame getLikeNewGame(long playerId) {
+        HashOperations<String, String, LikeGame> operations = redisTemplate.opsForHash();
+        return operations.get(PLAYER_DATA_TABLE_NAME, playerId);
     }
 
     /**
@@ -60,18 +68,7 @@ public class NewGameExpectDao implements GameEventListener {
      * 清除玩家点赞数据
      */
     public void clearPlayerData() {
-        Set<String> keys = new HashSet<>();
-        Cursor<byte[]> cursor = redisTemplate.getConnectionFactory()
-                .getConnection()
-                .scan(ScanOptions.scanOptions().match(PLAYER_DATA_TABLE_NAME + "*").count(1000).build());
-
-        while (cursor.hasNext()) {
-            keys.add(new String(cursor.next()));
-        }
-
-        if (!keys.isEmpty()) {
-            redisTemplate.delete(keys);
-        }
+        redisTemplate.delete(PLAYER_DATA_TABLE_NAME);
     }
 
     @Override

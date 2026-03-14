@@ -1142,7 +1142,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
      */
     @Command(HallConstant.MsgBean.REQ_ALL_NEW_GAMES)
     public void reqAllNewGames(PlayerController playerController, ReqAllNewGames req) {
-        ResAllNewGames res = hallService.allNewGames();
+        ResAllNewGames res = hallService.allNewGames(playerController.playerId());
         playerController.send(res);
         log.info("返回所有的新游期待榜数据 res = {}",JSONObject.toJSONString(res));
     }
@@ -1168,7 +1168,15 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
             } else if ("addAvatar".equalsIgnoreCase(gmOrders[0])) {
                 int id = Integer.parseInt(gmOrders[1]);
                 hallService.addPlayerAvatar(playerController.playerId(), id);
-            } else {
+            } else if ("reqAllNewGames".equalsIgnoreCase(gmOrders[0])) {
+                reqAllNewGames(playerController, null);
+            } else if ("reqLikeNewGame".equalsIgnoreCase(gmOrders[0])) {
+                ReqLikeNewGame req = new ReqLikeNewGame();
+                req.gameType = Integer.parseInt(gmOrders[1]);
+                reqLikeNewGame(playerController, req);
+            } else if("clearNewGameS".equalsIgnoreCase(gmOrders[0])) {
+                hallService.newGameExpectDao.clearPlayerData();
+            }else {
                 res.code = Code.NOT_FOUND;
             }
         } catch (Exception e) {
