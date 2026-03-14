@@ -21,19 +21,9 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.cert.CertificateFactory;
-import java.security.cert.CertPath;
-import java.security.cert.PKIXParameters;
-import java.security.cert.TrustAnchor;
-import java.security.cert.CertPathValidator;
-import java.security.cert.X509Certificate;
+import java.security.cert.*;
 import java.security.interfaces.ECPublicKey;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author 11
@@ -46,11 +36,15 @@ public class AppleCallbackController extends AbstractCallbackController {
     private static final long CLOCK_SKEW_SECOND = 3600; // 1小时时钟偏差
     private static final long CLOCK_SKEW_MILLS = CLOCK_SKEW_SECOND * 1000;
 
-    /** Apple 受信任的根证书集合 */
+    /**
+     * Apple 受信任的根证书集合
+     */
     private static final Set<TrustAnchor> APPLE_TRUST_ANCHORS;
     private static final Set<X509Certificate> APPLE_ROOT_CERTS;
 
-    /** 根证书文件路径列表（相对于工作目录） */
+    /**
+     * 根证书文件路径列表（相对于工作目录）
+     */
     private static final String[] APPLE_ROOT_CA_FILES = {
             "config/AppleRootCA-G3.cer",
             "config/AppleRootCA-G2.cer"
@@ -143,14 +137,19 @@ public class AppleCallbackController extends AbstractCallbackController {
 
             String transactionId = transactionInfo.get("transactionId").asText();
             order.setChannelOrderId(transactionId);
-            order = checkOrder(order);
+            String money = transactionInfo.get("price").asText();
+            String currency = transactionInfo.get("currency").asText();
+            String channelProductId = transactionInfo.get("productId").asText();
+            order = checkOrder(order, money, currency, channelProductId);
             if (order == null) {
                 log.warn("检查订单失败 uuid = {}", appAccountTokenNode.asText());
                 return ResponseEntity.status(400).body("check order failed");
             }
-            String money = transactionInfo.get("price").asText();
-            String currency = transactionInfo.get("currency").asText();
-            String channelProductId = transactionInfo.get("productId").asText();
+            if (order.getOrderStatus().isProcessingOrder()) {
+                log.info("Apple订单已处理，忽略重复回调 orderId = {}", order.getId());
+                return ResponseEntity.ok("Recharge processed");
+            }
+
 
             payCallback(order, money, currency, channelProductId);
         } catch (Exception e) {

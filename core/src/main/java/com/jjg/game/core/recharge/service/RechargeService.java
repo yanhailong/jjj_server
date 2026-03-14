@@ -14,9 +14,13 @@ import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.dao.PlayerRechargeFlowDao;
 import com.jjg.game.core.data.Order;
+import com.jjg.game.core.data.OrderStatus;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.listener.OrderGenerate;
+import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.pb.NotifyPayInfo;
 import com.jjg.game.core.pb.NotifyRechargeServer;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.recharge.dao.OfflineRechargeDao;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.OrderService;
@@ -29,7 +33,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * @author lm
@@ -47,6 +53,8 @@ public class RechargeService {
     private final TaskManager taskManager;
     private final ClusterSystem clusterSystem;
     private final TodayDepositCondition todayDepositCondition;
+    private final CoreLogger coreLogger;
+    private final Map<RechargeType, OrderGenerate> orderGenerateMap;
 
     public RechargeService(OfflineRechargeDao offlineRechargeDao,
                            CorePlayerService playerService,
@@ -56,7 +64,8 @@ public class RechargeService {
                            PlayerRechargeFlowDao playerRechargeFlowDao,
                            TaskManager taskManager,
                            ClusterSystem clusterSystem,
-                           TodayDepositCondition conditionManager) {
+                           TodayDepositCondition conditionManager, CoreLogger coreLogger,
+                           List<OrderGenerate> orderGenerateList) {
         this.offlineRechargeDao = offlineRechargeDao;
         this.playerService = playerService;
         this.orderService = orderService;
@@ -66,6 +75,8 @@ public class RechargeService {
         this.taskManager = taskManager;
         this.clusterSystem = clusterSystem;
         this.todayDepositCondition = conditionManager;
+        this.coreLogger = coreLogger;
+        this.orderGenerateMap = orderGenerateList.stream().collect(Collectors.toMap(OrderGenerate::getRechargeType, Function.identity()));
     }
 
     public void loadOfflineRecharge(long playerId) {
@@ -86,7 +97,7 @@ public class RechargeService {
                 if (notifyRechargeServer == null) {
                     continue;
                 }
-                log.info("离线充值成功 playerId = {},orderId = {}", playerId, notifyRechargeServer.orderId);
+                log.info("开始处理离线充值 playerId = {},orderId = {}", playerId, notifyRechargeServer.orderId);
                 notifyRecharge(notifyRechargeServer, false);
             } catch (Exception e) {
                 log.error("处理离线充值记录异常 playerId = {},json = {}", playerId, json, e);
@@ -141,52 +152,111 @@ public class RechargeService {
                         notify.playerId, notify.orderId, player == null, order == null);
                 return;
             }
+            OrderStatus orderStatus = order.getOrderStatus();
+            if (orderStatus == null) {
+                log.error("处理充值时订单状态为空 playerId:{} orderId:{}", notify.playerId, notify.orderId);
+                return;
+            }
+            if (orderStatus == OrderStatus.FAIL || orderStatus == OrderStatus.CANCEL) {
+                log.warn("处理充值时订单已关闭，停止重试 playerId:{} orderId:{} orderStatus:{}", notify.playerId, notify.orderId, orderStatus);
+                return;
+            }
+            if (orderStatus.isProcessingOrder()) {
+                log.info("处理充值时订单已经在处理中 playerId:{} orderId:{}", notify.playerId, notify.orderId);
+                return;
+            }
+            if (orderStatus != OrderStatus.CALLBACK) {
+                log.warn("处理充值时订单状态不允许继续执行 playerId:{} orderId:{} orderStatus:{}", notify.playerId, notify.orderId, orderStatus);
+                return;
+            }
         } catch (Exception e) {
             log.error("处理充值读取玩家或订单异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
             addOfflineRecharge(notify, "处理充值读取玩家或订单异常");
             return;
         }
-        addRechargeFlowWithCompensate(order, notify.playerId);
+        Order newOlder;
         try {
-            todayDepositCondition.addBaseProgress(player.getId(), order.getPrice());
+            newOlder = orderService.orderProcessing(order.getId(), order.getChannelOrderId());
+            if (newOlder == null) {
+                log.error("修改订单状态为处理中失败 playerId = {},orderId = {}", notify.playerId, notify.orderId);
+                logRechargeOrder(player, order, notify, "修改订单状态为处理中失败");
+                return;
+            }
         } catch (Exception e) {
-            log.error("充值增加今日充值进度异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+            log.error("修改订单状态为处理中异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+            logRechargeOrder(player, order, notify, "修改订单状态为处理中异常");
+            return;
         }
-        try {
-            gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order, notify.money, notify.regionCode, notify.channelProductId));
-        } catch (Exception e) {
-            log.error("充值触发事件异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
-        }
+        BigDecimal orderPrice = newOlder.getPrice();
+        long orderPlayerId = newOlder.getPlayerId();
         Map<String, Object> resMap = null;
         try {
-            resMap = countDao.incrRechargeInfo(player.getId(), String.valueOf(player.getId()), order.getPrice());
+            OrderGenerate orderGenerate = orderGenerateMap.get(newOlder.getRechargeType());
+            if (orderGenerate != null) {
+                try {
+                    if (!orderGenerate.onReceivedRecharge(player, newOlder)) {
+                        log.error("处理订单逻辑失败 playerId = {},orderId = {}", notify.playerId, notify.orderId);
+                        logRechargeOrder(player, newOlder, notify, "处理订单逻辑失败");
+                        return;
+                    }
+                } catch (Exception e) {
+                    log.error("处理订单逻辑中出现异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+                    logRechargeOrder(player, newOlder, notify, "处理订单逻辑中出现异常");
+                    return;
+                }
+            }
+            gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, newOlder, notify.money, notify.regionCode, notify.channelProductId));
+            try {
+                playerRechargeFlowDao.addRechargeFlow(newOlder);
+            } catch (Exception e) {
+                log.error("记录玩家充值流水失败 playerId = {},orderId = {}", orderPlayerId, newOlder.getId(), e);
+            }
+            try {
+                todayDepositCondition.addBaseProgress(player.getId(), orderPrice);
+            } catch (Exception e) {
+                log.error("充值增加今日充值进度异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+            }
+            try {
+                resMap = countDao.incrRechargeInfo(player.getId(), String.valueOf(player.getId()), orderPrice);
+            } catch (Exception e) {
+                log.error("充值累计统计异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+            }
+            Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
+                DefaultTaskConditionParam param = new DefaultTaskConditionParam();
+                param.setAddValue(orderPrice.multiply(BigDecimal.valueOf(100)).longValue());
+                return param;
+            };
+            taskManager.trigger(orderPlayerId, TaskConstant.ConditionType.PLAYER_PAY, paramSupplier, true);
+            taskManager.trigger(orderPlayerId, TaskConstant.ConditionType.PLAYER_SUM_PAY, paramSupplier, true);
+
+            Order successOrder = orderService.orderSuccess(newOlder.getId(), newOlder.getChannelOrderId());
+            if (successOrder == null) {
+                log.error("修改订单状态为成功失败 playerId = {},orderId = {}", notify.playerId, notify.orderId);
+                newOlder.setOrderStatus(OrderStatus.SUCCESS);
+                notifyPayInfo(notify, newOlder, resMap, player);
+                logRechargeOrder(player, newOlder, notify, "充值奖励已发放，订单状态回写失败");
+                return;
+            }
+            newOlder = successOrder;
         } catch (Exception e) {
-            log.error("充值累计统计异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+            log.error("dealRecharge执行异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+            logRechargeOrder(player, newOlder, notify, "dealRecharge执行异常");
+            return;
         }
-        Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
-            DefaultTaskConditionParam param = new DefaultTaskConditionParam();
-            param.setAddValue(order.getPrice().multiply(BigDecimal.valueOf(100)).longValue());
-            return param;
-        };
-        try {
-            taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
-        } catch (Exception e) {
-            log.error("充值触发单笔任务异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
-        }
-        try {
-            taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_SUM_PAY, paramSupplier);
-        } catch (Exception e) {
-            log.error("充值触发累计任务异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
-        }
+        logRechargeOrder(player, newOlder, notify, newOlder.getProductId());
+        notifyPayInfo(notify, newOlder, resMap, player);
+
+    }
+
+    private void notifyPayInfo(NotifyRechargeServer notify, Order newOlder, Map<String, Object> resMap, Player player) {
         try {
             NotifyPayInfo notifyPayInfo = new NotifyPayInfo();
-            notifyPayInfo.orderId = order.getId();
+            notifyPayInfo.orderId = newOlder.getId();
             Object rechargeCount = resMap == null ? null : resMap.get(CountDao.CountType.RECHARGE_COUNT.getParam());
             notifyPayInfo.allRechargeCount = rechargeCount instanceof Number number ? number.intValue() : 0;
             clusterSystem.sendToPlayer(notifyPayInfo, player.getId());
-            log.info("充值成功，通知到玩家所在的当前节点 playerId = {},orderId = {}", player.getId(), order.getId());
         } catch (Exception e) {
-            log.error("充值通知玩家异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
+            log.error("充值处理完成给玩家发送信息时异常playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
         }
     }
 
@@ -200,12 +270,14 @@ public class RechargeService {
         }
     }
 
-
-    private void addRechargeFlowWithCompensate(Order order, long playerId) {
+    private void logRechargeOrder(Player player, Order order, NotifyRechargeServer notify, String desc) {
+        if (order == null) {
+            return;
+        }
         try {
-            playerRechargeFlowDao.addRechargeFlow(order);
+            coreLogger.order(player, order, order.getMoney(), order.getChannelProductId(), order.getRegionCode(), desc);
         } catch (Exception e) {
-            log.error("记录玩家充值流水失败 playerId = {},orderId = {}", playerId, order.getId(), e);
+            log.error("记录充值订单日志异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
         }
     }
 

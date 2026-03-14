@@ -16,10 +16,6 @@ import com.jjg.game.activity.dailyrecharge.message.res.ResDailyRechargeTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
-import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
@@ -50,7 +46,7 @@ import java.util.stream.Collectors;
  * @date 2025/9/3
  */
 @Component
-public class DailyRechargeController extends BaseActivityController implements GameEventListener, OrderGenerate {
+public class DailyRechargeController extends BaseActivityController implements OrderGenerate {
 
     public final int MAIL_CFG_ID = 42;
     private final Logger log = LoggerFactory.getLogger(DailyRechargeController.class);
@@ -196,46 +192,6 @@ public class DailyRechargeController extends BaseActivityController implements G
         return arrayList;
     }
 
-    @Override
-    public void buyActivityGift(Player player, ActivityData activityData, int giftId) {
-        //获取配置信息
-        long activityId = activityData.getId();
-        Map<Integer, DailyRechargeCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
-        if (CollectionUtil.isEmpty(baseCfgBeanMap)) {
-            return;
-        }
-        //发送礼包奖励
-        long playerId = player.getId();
-        DailyRechargeCfg dailyRechargeCfg = baseCfgBeanMap.get(giftId);
-        if (dailyRechargeCfg == null || dailyRechargeCfg.getType() != ActivityConstant.DailyRecharge.GIFT ||
-                CollectionUtil.isEmpty(dailyRechargeCfg.getAwardItem())) {
-            log.error("每日充值礼包配置错误 playerId:{} activityId:{} giftId:{}", playerId, activityId, giftId);
-            return;
-        }
-        CommonResult<ItemOperationResult> added = playerPackService.addItems(playerId, dailyRechargeCfg.getAwardItem(), AddType.ACTIVITY_DAILY_RECHARGE_GIFT);
-        if (!added.success()) {
-            log.error("每日充值添加礼包道具失败 playerId:{} activityId:{} giftId:{}", playerId, activityId, giftId);
-        }
-        ResDailyRechargeGiftBuy res = new ResDailyRechargeGiftBuy(Code.SUCCESS);
-
-        BigDecimal progress = countDao.incrementWithoutExpireRefresh(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted("dailyrecharge"),
-                String.valueOf(playerId), dailyRechargeCfg.getCost(), TimeHelper.DAY_SECOND);
-        dailyRechargeDao.addBuyTimes(playerId, activityId, giftId);
-        res.currentRecharge = progress.toPlainString();
-        res.detailInfo = new ArrayList<>();
-        res.detailInfo.add(buildPlayerActivityDetail(player, activityData, dailyRechargeCfg, null));
-        List<DailyRechargeCfg> list = baseCfgBeanMap.values()
-                .stream().filter(cfg ->
-                        cfg.getType() == ActivityConstant.DailyRecharge.PROGRESS && cfg.getCost().compareTo(progress) <= 0)
-                .toList();
-        List<Pair<PlayerActivityData, DailyRechargeCfg>> pairList = getCanTargetDetailInfo(playerId, activityData, list);
-        if (!pairList.isEmpty()) {
-            for (Pair<PlayerActivityData, DailyRechargeCfg> cfgPair : pairList) {
-                res.detailInfo.add(buildPlayerActivityDetail(player, activityData, cfgPair.getSecond(), cfgPair.getFirst()));
-            }
-        }
-        activityManager.sendToPlayer(playerId, res);
-    }
 
     /**
      * 购买礼包后出发进度奖励
@@ -306,23 +262,6 @@ public class DailyRechargeController extends BaseActivityController implements G
     }
 
     @Override
-    public <T extends GameEvent> void handleEvent(T gameEvent) {
-        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
-            Order order = event.getOrder();
-            Player player = event.getPlayer();
-            if (order.getRechargeType() != getRechargeType()) {
-                return;
-            }
-            dealActivityRecharge(player, order, 2);
-        }
-    }
-
-    @Override
-    public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.RECHARGE);
-    }
-
-    @Override
     public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
         BaseCfgBean cfgBean = getOrderGenerateBean(player, req.productId);
         if (cfgBean instanceof DailyRechargeCfg cfg && cfg.getType() == ActivityConstant.DailyRecharge.GIFT) {
@@ -338,5 +277,56 @@ public class DailyRechargeController extends BaseActivityController implements G
     @Override
     public RechargeType getRechargeType() {
         return RechargeType.DAILY_RECHARGE;
+    }
+
+    @Override
+    public boolean onReceivedRecharge(Player player, Order order) {
+        if (order.getRechargeType() != getRechargeType()) {
+            return true;
+        }
+        return dealActivityRecharge(player, order, 2);
+    }
+
+    @Override
+    public AbstractResponse buyActivityGiftForRecharge(Player player, ActivityData activityData, int giftId) {
+        long activityId = activityData.getId();
+        Map<Integer, DailyRechargeCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        if (CollectionUtil.isEmpty(baseCfgBeanMap)) {
+            log.error("每日充值活动配置为空 activityId = {}", activityId);
+            return new ResDailyRechargeGiftBuy(Code.FAIL);
+        }
+        long playerId = player.getId();
+        DailyRechargeCfg dailyRechargeCfg = baseCfgBeanMap.get(giftId);
+        if (dailyRechargeCfg == null || dailyRechargeCfg.getType() != ActivityConstant.DailyRecharge.GIFT
+                || CollectionUtil.isEmpty(dailyRechargeCfg.getAwardItem())) {
+            log.error("每日充值礼包配置错误 playerId:{} activityId:{} giftId:{}", playerId, activityId, giftId);
+            return new ResDailyRechargeGiftBuy(Code.PARAM_ERROR);
+        }
+        ResDailyRechargeGiftBuy res = new ResDailyRechargeGiftBuy(Code.SUCCESS);
+        BigDecimal progress = countDao.incrementWithoutExpireRefresh(
+                CountDao.CountType.ACTIVITY_COUNT.getParam().formatted("dailyrecharge"),
+                String.valueOf(playerId), dailyRechargeCfg.getCost(), TimeHelper.DAY_SECOND);
+        dailyRechargeDao.addBuyTimes(playerId, activityId, giftId);
+        CommonResult<ItemOperationResult> added =
+                playerPackService.addItems(playerId, dailyRechargeCfg.getAwardItem(), AddType.ACTIVITY_DAILY_RECHARGE_GIFT);
+        if (!added.success()) {
+            log.error("每日充值添加礼包道具失败 playerId:{} activityId:{} giftId:{} code:{}",
+                    playerId, activityId, giftId, added.code);
+            return new ResDailyRechargeGiftBuy(added.code);
+        }
+        res.currentRecharge = progress.toPlainString();
+        res.detailInfo = new ArrayList<>();
+        res.detailInfo.add(buildPlayerActivityDetail(player, activityData, dailyRechargeCfg, null));
+        List<DailyRechargeCfg> list = baseCfgBeanMap.values()
+                .stream().filter(cfg ->
+                        cfg.getType() == ActivityConstant.DailyRecharge.PROGRESS && cfg.getCost().compareTo(progress) <= 0)
+                .toList();
+        List<Pair<PlayerActivityData, DailyRechargeCfg>> pairList = getCanTargetDetailInfo(playerId, activityData, list);
+        if (!pairList.isEmpty()) {
+            for (Pair<PlayerActivityData, DailyRechargeCfg> cfgPair : pairList) {
+                res.detailInfo.add(buildPlayerActivityDetail(player, activityData, cfgPair.getSecond(), cfgPair.getFirst()));
+            }
+        }
+        return res;
     }
 }

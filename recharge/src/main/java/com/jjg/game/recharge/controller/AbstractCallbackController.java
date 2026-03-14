@@ -49,22 +49,43 @@ public abstract class AbstractCallbackController {
      * 检查订单
      *
      * @param order
+     * @param money
+     * @param currency
+     * @param channelProductId
      * @return
      */
-    protected Order checkOrder(Order order) {
-        if (order.getOrderStatus() == OrderStatus.SUCCESS) {
-            log.debug("该订单重复回调 orderId = {}", order.getId());
-            return null;
-        }
+    protected Order checkOrder(Order order, String money, String currency, String channelProductId) {
+        order.setMoney(money);
+        order.setRegionCode(currency);
+        order.setChannelProductId(channelProductId);
 
-        //修改订单状态
-        Order successOrder = orderService.orderSuccess(order.getId(), order.getChannelOrderId());
-        if (successOrder == null) {
-            log.warn("修改订单状态失败 orderId = {}", order.getId());
-            //TODO 记录下来，检查该订单，这里不能再次修改订单状态，因为可能是多线程问题没有修改成功
+        OrderStatus status = order.getOrderStatus();
+        if (status == null) {
+            log.warn("订单状态为空 orderId = {}", order.getId());
             return null;
         }
-        return successOrder;
+        if (status == OrderStatus.ORDER) {
+            Order callbackOrder = orderService.orderCallback(order);
+            if (callbackOrder != null) {
+                return callbackOrder;
+            }
+            Order latestOrder = orderService.getOrder(order.getId());
+            if (latestOrder != null) {
+                OrderStatus latestStatus = latestOrder.getOrderStatus();
+                if (latestStatus == OrderStatus.CALLBACK || latestStatus.isProcessingOrder()) {
+                    log.debug("订单状态已变化，按最新状态处理 orderId = {},status = {}", order.getId(), latestStatus);
+                    return latestOrder;
+                }
+            }
+            log.warn("修改订单状态失败 orderId = {}", order.getId());
+            return null;
+        }
+        if (status == OrderStatus.CALLBACK || status.isProcessingOrder()) {
+            log.debug("该订单重复回调 orderId = {},status = {}", order.getId(), status);
+            return order;
+        }
+        log.warn("订单状态不允许继续处理回调 orderId = {},status = {}", order.getId(), status);
+        return null;
     }
 
     /**
@@ -74,16 +95,16 @@ public abstract class AbstractCallbackController {
      * @return
      */
     protected void payCallback(Order order, String money, String regionCode, String channelProductId) {
+        NotifyRechargeServer notify = buildRechargeNotify(order, money, regionCode, channelProductId);
         try {
-            Player player = playerService.get(order.getPlayerId());
             //获取玩家session信息
             PlayerSessionInfo info = playerSessionService.getInfo(order.getPlayerId());
-            coreLogger.order(player, order, money, channelProductId, regionCode, order.getProductId());
-            log.info("玩家充值成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
-            //将充值成功消息通知玩家所在节点
-            notifyPlayerCurrentNode(info, order, money, regionCode, channelProductId);
+            log.info("收到充值回调，开始通知处理 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
+            //将充值回调消息通知玩家所在节点
+            notifyPlayerCurrentNode(info, order, notify);
         } catch (Exception e) {
-            log.error("", e);
+            log.error("通知充值处理异常，回退到离线充值 playerId = {},orderId = {}", order.getPlayerId(), order.getId(), e);
+            addOfflineRecharge(notify, "通知充值处理异常");
         }
     }
 
@@ -93,37 +114,48 @@ public abstract class AbstractCallbackController {
      *
      * @param info
      * @param order
-     * @param money
-     * @param regionCode
      * @throws Exception
      */
-    protected void notifyPlayerCurrentNode(PlayerSessionInfo info, Order order, String money, String regionCode, String channelProductId) throws Exception {
+    protected void notifyPlayerCurrentNode(PlayerSessionInfo info, Order order, NotifyRechargeServer notify) throws Exception {
+        ClusterClient clusterClient;
+        if (info != null && !StringUtils.isEmpty(info.getNodeName())) {
+            //可能会出现玩家已经不在当前节点需要自行处理
+            clusterClient = clusterSystem.getClusterByPath(info.getCurrentNode());
+        } else {
+            log.info("因玩家不在线，已将充值回调添加到离线充值 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
+            //离线玩家登陆时处理,离线充值
+            addOfflineRecharge(notify, "玩家不在线");
+            return;
+        }
+        if (clusterClient == null) {
+            log.info("因未找到玩家所在节点信息，已将充值回调添加到离线充值 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
+            //离线玩家登陆时处理,离线充值
+            addOfflineRecharge(notify, "未找到玩家所在节点");
+            return;
+        }
+        PFMessage pfMessage = MessageUtil.getPFMessage(notify);
+        ClusterMessage msg = new ClusterMessage(pfMessage);
+        clusterClient.write(msg);
+        log.info("已将充值回调消息通知玩家所在节点 playerId = {},orderId = {},toNodePath = {}", order.getPlayerId(), order.getId(), clusterClient.nodeConfig.getName());
+    }
+
+    protected NotifyRechargeServer buildRechargeNotify(Order order, String money, String regionCode, String channelProductId) {
         NotifyRechargeServer notify = new NotifyRechargeServer();
         notify.playerId = order.getPlayerId();
         notify.orderId = order.getId();
         notify.regionCode = regionCode;
         notify.channelProductId = channelProductId;
         notify.money = money;
-        ClusterClient clusterClient;
-        if (info != null && !StringUtils.isEmpty(info.getNodeName())) {
-            //可能会出现玩家已经不在当前节点需要自行处理
-            clusterClient = clusterSystem.getClusterByPath(info.getCurrentNode());
-        } else {
-            log.info("因玩家不在线，已将充值成功添加到离线充值 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
-            //离线玩家登陆时处理,离线充值
-            offlineRechargeDao.addRecharge(order.getPlayerId(), ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(notify));
-            return;
+        return notify;
+    }
+
+    protected void addOfflineRecharge(NotifyRechargeServer notify, String reason) {
+        try {
+            offlineRechargeDao.addRecharge(notify.playerId, ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(notify));
+            log.info("{}，已将充值回调添加到离线充值 playerId = {},orderId = {}", reason, notify.playerId, notify.orderId);
+        } catch (Exception e) {
+            log.error("{}，写入离线充值失败 playerId = {},orderId = {}", reason, notify.playerId, notify.orderId, e);
         }
-        if (clusterClient == null) {
-            log.info("因未找到玩家所在节点信息，已将充值成功添加到离线充值 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
-            //离线玩家登陆时处理,离线充值
-            offlineRechargeDao.addRecharge(order.getPlayerId(), ObjectMapperUtil.getDefualtConfigObjectMapper().writeValueAsString(notify));
-            return;
-        }
-        PFMessage pfMessage = MessageUtil.getPFMessage(notify);
-        ClusterMessage msg = new ClusterMessage(pfMessage);
-        clusterClient.write(msg);
-        log.info("已将充值成功消息通知玩家所在节点 playerId = {},orderId = {},toNodePath = {}", order.getPlayerId(), order.getId(), clusterClient.nodeConfig.getName());
     }
 
     /**

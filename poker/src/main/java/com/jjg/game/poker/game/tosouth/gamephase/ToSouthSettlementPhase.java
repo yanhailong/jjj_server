@@ -201,10 +201,13 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                         loser.getPlayerId(), doubleMulti, countTwo, countBomb);
 
                 int twoMulti = 0;
+                int blackTwoMulti = 0;
+                int redTwoMulti = 0;
                 int bombMulti = 0;
 
                 if (countTwo > 0) {
-                    twoMulti = moneyCfg.getRemain2();
+                    // TODO  @昊操  改一下这个地方，现在2的翻倍需要区分红黑了
+                    twoMulti = moneyCfg.getRemainred2();
                 }
                 if (countBomb > 0) {
                     bombMulti = moneyCfg.getRemainBoom();

@@ -455,6 +455,7 @@ public class BaseLogger {
                 order.getOrderStatus(), 0, regionCode, desc);
     }
 
+
     /**
      * 商城法币购买
      *
@@ -472,7 +473,7 @@ public class BaseLogger {
         }
 
         shop(player, order.getId(), order.getChannelOrderId(), shopProduct.getType(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), price, channelProductId, order.getCreateTime(), order.getUpdateTime(),
-                order.getOrderStatus(), shopProduct.getPayType(), region);
+                OrderStatus.SUCCESS, shopProduct.getPayType(), region);
     }
 
     /**

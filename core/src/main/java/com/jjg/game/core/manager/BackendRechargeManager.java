@@ -1,50 +1,64 @@
 package com.jjg.game.core.manager;
 
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
-import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.pb.RechargeType;
+import com.jjg.game.core.pb.ReqGenerateOrder;
 import com.jjg.game.core.service.PlayerPackService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import java.math.BigDecimal;
 
 @Component
-public class BackendRechargeManager implements GameEventListener {
+public class BackendRechargeManager implements OrderGenerate {
+    private static final Logger log = LoggerFactory.getLogger(BackendRechargeManager.class);
+
     @Autowired
     private PlayerPackService playerPackService;
 
-    @Override
-    public <T extends GameEvent> void handleEvent(T gameEvent) {
-        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
-            Order order = event.getOrder();
-            Player player = event.getPlayer();
-            if (order.getRechargeType() != RechargeType.BACKEND && order.getRechargeType() != RechargeType.BACKEND_CALLBACK) {
-                return;
-            }
-            dealBackendRecharge(player, order);
-        }
-    }
-
     /**
      * 处理后台充值任务
+     *
      * @param player
      * @param order
      */
-    private void dealBackendRecharge(Player player, Order order) {
-        if(order.getItems() == null || order.getItems().isEmpty()) {
-            return;
+    protected boolean dealBackendRecharge(Player player, Order order) {
+        if (order.getItems() == null || order.getItems().isEmpty()) {
+            log.error("后台充值奖励为空 playerId:{} orderId:{}", player.getId(), order.getId());
+            return false;
         }
-        playerPackService.addItems(player.getId(),order.getItems(), AddType.BACKEND_OPERATOR,order.getId());
+        CommonResult<ItemOperationResult> addItemsResult =
+                playerPackService.addItems(player.getId(), order.getItems(), AddType.BACKEND_OPERATOR, order.getId());
+        if (!addItemsResult.success()) {
+            log.error("后台充值发奖失败 playerId:{} orderId:{} code:{}",
+                    player.getId(), order.getId(), addItemsResult.code);
+            return false;
+        }
+        return true;
     }
 
     @Override
-    public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.RECHARGE);
+    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        return BigDecimal.ZERO;
+    }
+
+    @Override
+    public RechargeType getRechargeType() {
+        return RechargeType.BACKEND;
+    }
+
+    @Override
+    public boolean onReceivedRecharge(Player player, Order order) {
+        if (order.getRechargeType() != getRechargeType()) {
+            return true;
+        }
+        return dealBackendRecharge(player, order);
     }
 }

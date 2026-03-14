@@ -13,10 +13,6 @@ import com.jjg.game.activity.firstpayment.message.res.ResFirstPaymentDetailInfo;
 import com.jjg.game.activity.firstpayment.message.res.ResFirstPaymentTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.core.base.condition.handler.RemainingAttemptsCondition;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
-import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -46,7 +42,7 @@ import java.util.stream.Collectors;
  * @date 2025/9/3
  */
 @Component
-public class FirstPaymentController extends BaseActivityController implements GameEventListener, OrderGenerate {
+public class FirstPaymentController extends BaseActivityController implements OrderGenerate {
 
     private final Logger log = LoggerFactory.getLogger(FirstPaymentController.class);
     private final RemainingAttemptsCondition remainingAttemptsCondition;
@@ -86,38 +82,42 @@ public class FirstPaymentController extends BaseActivityController implements Ga
             // 判断玩家是否已购买首充
             if (data.getClaimStatus() != ActivityConstant.ClaimStatus.NOT_CLAIM) {
                 log.error("玩家购买过 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
+                res.code = Code.REPEAT_OP;
                 return res;
             }
-            // 设置购买时间
-            data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
             // 购买奖励发放
             rewards = new HashMap<>(cfg.getGetAvatarFrame());
             rewards.putAll(cfg.getGetitem());
             rewards.putAll(cfg.getGetgold());
+            // 设置购买时间
+            data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
+            // 保存玩家活动数据
+            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
             if (CollectionUtil.isNotEmpty(rewards)) {
-                //在游戏节点
+                // 状态先落库，避免奖励已发但活动状态未记录导致后续重复补发
                 addedItems = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_FIRST_PAYMENT);
                 if (!addedItems.success()) {
                     log.error("发放购买奖励失败 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
+                    res.code = addedItems.code;
+                    return res;
                 }
             }
-            // 保存玩家活动数据
-            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
         } catch (Exception e) {
             log.error("玩家加入首充活动异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
+            res.code = Code.FAIL;
+            return res;
         }
         if (addedItems != null && addedItems.success()) {
             activityLogger.sendFirstPaymentJoinLog(player, activityData, cfg, addedItems.data, rewards);
         }
         // 发送日志
-        if (rewards != null) {
-            res.infoList = ItemUtils.buildItemInfo(rewards);
+        res.infoList = ItemUtils.buildItemInfo(rewards);
+        try {
+            remainingAttemptsCondition.addBaseProgress(playerId, BigDecimal.ONE);
+        } catch (Exception e) {
+            log.error("玩家加入首充活动增加活动进度异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
         }
-            try {
-                remainingAttemptsCondition.addBaseProgress(playerId, BigDecimal.ONE);
-            } catch (Exception e) {
-                log.error("玩家加入首充活动增加活动进度异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
-        }
+        res.code = Code.SUCCESS;
         res.activityId = activityData.getId();
         res.detailId = detailId;
         return res;
@@ -246,23 +246,6 @@ public class FirstPaymentController extends BaseActivityController implements Ga
     }
 
     @Override
-    public <T extends GameEvent> void handleEvent(T gameEvent) {
-        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
-            Order order = event.getOrder();
-            Player player = event.getPlayer();
-            if (order.getRechargeType() != getRechargeType()) {
-                return;
-            }
-            dealActivityRecharge(player, order, 1);
-        }
-    }
-
-    @Override
-    public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.RECHARGE);
-    }
-
-    @Override
     public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
         BaseCfgBean cfgBean = getOrderGenerateBean(player, req.productId);
         if (cfgBean instanceof FirstpaymentCfg cfg) {
@@ -278,5 +261,13 @@ public class FirstPaymentController extends BaseActivityController implements Ga
     @Override
     public RechargeType getRechargeType() {
         return RechargeType.FIRST_PAYMENT;
+    }
+
+    @Override
+    public boolean onReceivedRecharge(Player player, Order order) {
+        if (order.getRechargeType() != getRechargeType()) {
+            return true;
+        }
+        return dealActivityRecharge(player, order, 1);
     }
 }

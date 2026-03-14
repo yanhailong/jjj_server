@@ -10,6 +10,7 @@ import java.util.List;
 
 /**
  * 订单
+ *
  * @author 11
  * @date 2025/9/18 13:37
  */
@@ -45,6 +46,26 @@ public class Order {
     private String channelProductId;
     //附加的道具
     private List<Item> items;
+    //平台支付的金额
+    private String money;
+    //支付的地区
+    private String regionCode;
+
+    public String getMoney() {
+        return money;
+    }
+
+    public void setMoney(String money) {
+        this.money = money;
+    }
+
+    public String getRegionCode() {
+        return regionCode;
+    }
+
+    public void setRegionCode(String regionCode) {
+        this.regionCode = regionCode;
+    }
 
     public String getId() {
         return id;

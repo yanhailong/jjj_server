@@ -11,7 +11,7 @@ public class RPCController extends AbstractCallbackController implements GmToRec
     @Override
     public int recharge(String selfOrderId, String channelOrderId) {
         try {
-            log.info("收到后台充值的请求 selfOrderId = {},channelOrderId = {}",selfOrderId, channelOrderId);
+            log.info("收到后台充值的请求 selfOrderId = {},channelOrderId = {}", selfOrderId, channelOrderId);
 
             Order order = orderService.getOrder(selfOrderId);
             if (order == null) {
@@ -19,12 +19,15 @@ public class RPCController extends AbstractCallbackController implements GmToRec
                 return Code.NOT_FOUND;
             }
             order.setChannelOrderId(channelOrderId);
-            order = checkOrder(order);
+            order = checkOrder(order, order.getPrice().toPlainString(), "backend", "");
             if (order == null) {
                 return Code.FAIL;
             }
+            if (order.getOrderStatus().isProcessingOrder()) {
+                return Code.SUCCESS;
+            }
             //调用充值
-            payCallback(order, order.getPrice().toPlainString(), "backend","");
+            payCallback(order, order.getPrice().toPlainString(), "backend", "");
             return Code.SUCCESS;
         } catch (Exception e) {
             log.error("", e);

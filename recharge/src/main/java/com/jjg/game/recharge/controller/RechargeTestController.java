@@ -2,8 +2,6 @@ package com.jjg.game.recharge.controller;
 
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.core.data.Order;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerSessionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,9 +42,12 @@ public class RechargeTestController extends AbstractCallbackController {
             }
             order.setChannelOrderId("test");
 
-            order = checkOrder(order);
+            order = checkOrder(order, order.getPrice().toPlainString(), "test","");
             if (order == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+            if (order.getOrderStatus().isProcessingOrder()) {
+                return ResponseEntity.ok("common.success");
             }
             //调用充值
             payCallback(order, order.getPrice().toPlainString(), "test","");
