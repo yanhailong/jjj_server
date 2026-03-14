@@ -76,8 +76,6 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
                 }
             }
             WealthBankPlayerGameData data = gameRunInfo.getData();
-            //火车 数据
-            res.totalDollars = data.getTotalDollars();
             //投资可选区域，只有当触发投资游戏后才会有值
             gameManager.checkInvers(data, gameRunInfo);
             res.choosableAreas = gameRunInfo.getChoosableAreas();

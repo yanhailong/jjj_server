@@ -158,7 +158,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     public long getDefaultBetValue(G gameRunInfo,BaseRoomCfg config){
-       return gameRunInfo.getData() != null && gameRunInfo.getData().getAllBetScore() > 0 ? gameRunInfo.getData().getAllBetScore() : oneLineToAllStake(config.getDefaultBet().getFirst());
+        return gameRunInfo.getData() != null && gameRunInfo.getData().getAllBetScore() > 0 ? gameRunInfo.getData().getAllBetScore() : oneLineToAllStake(config.getDefaultBet().getFirst());
     }
 
     /**
@@ -1045,7 +1045,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
-     * 从奖池扣除，并给玩家加钱
+     * 从奖池扣除，并给玩家加钱(普通中奖)
      *
      * @param gameRunInfo
      * @param playerGameData
@@ -1108,7 +1108,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
-     * 从奖池扣除钱
+     * 从奖池扣除钱(jackpot用)
+     *
      *
      * @param gameRunInfo
      * @param playerGameData

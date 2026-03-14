@@ -105,6 +105,7 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
     @Override
     public LuckyMouseGameRunInfo normal(LuckyMouseGameRunInfo gameRunInfo, LuckyMousePlayerGameData playerGameData, long betValue, LuckyMouseResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
+        long addTimes = resultLib.getTimes();
         if (resultLib.getLibTypeSet().contains(LuckyMouseConstant.SpecialMode.FREE)) {  //是否会触发二选一
             if (CollUtil.isNotEmpty(resultLib.getSpecialAuxiliaryInfoList())) {
                 playerGameData.setRemainFreeCount(new AtomicInteger(resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames().size()));
@@ -115,6 +116,8 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
                 log.warn("福鼠的免费模式没有免费次数 gameType = {}, libId = {}，检查配置！", this.gameType, resultLib.getId());
                 gameRunInfo.setStatus(LuckyMouseConstant.Status.FAKE_FU_SHU);
             }
+            //触发局不能将所有的钱加到玩家身上
+            addTimes = 0;
             log.debug("触发真福鼠  playerId = {},libId = {},status = {}, freeGamesList = {}"
                     , playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(), resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames());
         } else {
@@ -129,7 +132,7 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
         gameRunInfo.setIconArr(resultLib.getIconArr());
         if (gameRunInfo.getBigPoolTimes() < 1) {
-            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+            gameRunInfo.addBigPoolTimes(addTimes);
         }
 
         // 检查是否中大奖

@@ -1,8 +1,9 @@
 package com.jjg.game.sampledata.bean;
 
+import java.util.*;
+
+
 import javax.annotation.processing.Generated;
-import java.util.List;
-import java.util.Map;
 /**
  * 配置bean
  *
@@ -29,10 +30,8 @@ public class SpecialResultLibCfg extends BaseCfgBean {
   /** 倍数区间及权重 */
   protected Map<Integer,List<String>> sectionProp;
   /** 类型权重 */
-  protected Map<Integer, Integer> typeProp;
-  /**
-   * 模式ID对应的倍数权重修改
-   */
+  protected Map<Integer,Integer> typeProp;
+  /** 模式ID对应的倍数权重修改 */
   protected List<List<List<String>>> weightChange;
 
   /** 返回进入条件上限 */
@@ -61,7 +60,7 @@ public class SpecialResultLibCfg extends BaseCfgBean {
   }
 
   /** 返回类型权重 */
-  public Map<Integer, Integer> getTypeProp() {
+  public Map<Integer,Integer> getTypeProp() {
     return typeProp;
   }
 
