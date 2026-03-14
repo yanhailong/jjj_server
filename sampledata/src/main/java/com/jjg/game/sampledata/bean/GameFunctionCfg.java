@@ -1,7 +1,9 @@
 package com.jjg.game.sampledata.bean;
 
+import java.util.*;
+
+
 import javax.annotation.processing.Generated;
-import java.util.List;
 /**
  * 配置bean
  *
@@ -33,9 +35,7 @@ public class GameFunctionCfg extends BaseCfgBean {
   protected List<Integer> position;
   /** 显示顺序 */
   protected int serialNumber;
-  /**
-   * 可看见的解锁条件
-   */
+  /** 可看见的解锁条件 */
   protected String showCondition;
   /** 提示文本ID */
   protected int tips;

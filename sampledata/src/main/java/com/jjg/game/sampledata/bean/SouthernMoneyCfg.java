@@ -21,29 +21,24 @@ public class SouthernMoneyCfg extends BaseCfgBean {
 
   /** 押分列表 */
   protected int betList;
-  /** 牌局中炸弹倍数 */
-  protected List<Integer> boomMultiple;
   /** 游戏ID */
   protected int gameId;
   /** 牌池ID */
   protected int poolId;
-  /** 结算剩余手牌2的倍数 */
-  protected int remain2;
-  /** 结算剩余炸弹的倍数 */
+  /** 被管炸弹的倍数（三连对） */
   protected int remainBoom;
   /** 结算剩余普通牌的倍数 */
   protected int remainNormal;
+  /** 结算剩余手牌黑2的倍数 */
+  protected int remainblack2;
+  /** 结算剩余手牌红2的倍数 */
+  protected int remainred2;
   /** 房间类型 */
   protected int roomId;
 
   /** 返回押分列表 */
   public int getBetList() {
     return betList;
-  }
-
-  /** 返回牌局中炸弹倍数 */
-  public List<Integer> getBoomMultiple() {
-    return boomMultiple;
   }
 
   /** 返回游戏ID */
@@ -56,12 +51,7 @@ public class SouthernMoneyCfg extends BaseCfgBean {
     return poolId;
   }
 
-  /** 返回结算剩余手牌2的倍数 */
-  public int getRemain2() {
-    return remain2;
-  }
-
-  /** 返回结算剩余炸弹的倍数 */
+  /** 返回被管炸弹的倍数（三连对） */
   public int getRemainBoom() {
     return remainBoom;
   }
@@ -69,6 +59,16 @@ public class SouthernMoneyCfg extends BaseCfgBean {
   /** 返回结算剩余普通牌的倍数 */
   public int getRemainNormal() {
     return remainNormal;
+  }
+
+  /** 返回结算剩余手牌黑2的倍数 */
+  public int getRemainblack2() {
+    return remainblack2;
+  }
+
+  /** 返回结算剩余手牌红2的倍数 */
+  public int getRemainred2() {
+    return remainred2;
   }
 
   /** 返回房间类型 */
