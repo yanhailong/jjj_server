@@ -84,6 +84,8 @@ public class RussianLetteDrawPhase extends BaseDiceSettlementPhase<RussianLetteG
      */
     @Override
     public void phaseDoAction() {
+        long startTime = System.currentTimeMillis();
+
         super.phaseDoAction();
         log.info("执行RussianLetteDrawPhase（开奖阶段）中phaseDoAction");
         // ── 1. 生成 0-36（数据库37-》0） 随机骰子点数 ─────────────────────────
@@ -176,6 +178,9 @@ public class RussianLetteDrawPhase extends BaseDiceSettlementPhase<RussianLetteG
         // 通知所有观察者（房间列表页玩家）
         RussianLetteMessageBuilder.notifyObserversOnPhaseChange(
                 (BaseTableGameController<RussianLetteGameDataVo>) gameController);
+
+        long endTime = System.currentTimeMillis();
+        log.info("开奖阶段  执行时间：{}   距离下个阶段时间：{}",endTime-startTime,gameDataVo.getPhaseEndTime()-endTime);
     }
 
     /**

@@ -49,6 +49,8 @@ public class RussianLetteBetPhase extends BaseTableBetPhase<RussianLetteGameData
      */
     @Override
     public void phaseDoAction() {
+        long startTime = System.currentTimeMillis();
+
         super.phaseDoAction();
         log.info("执行RussianLetteBetPhase（下注阶段）中phaseDoAction");
         // 根据历史记录计算近 12 局的红/黑/奇/偶概率
@@ -63,6 +65,9 @@ public class RussianLetteBetPhase extends BaseTableBetPhase<RussianLetteGameData
         // 通知所有观察者（房间列表页玩家）
         RussianLetteMessageBuilder.notifyObserversOnPhaseChange(
                 (BaseTableGameController<RussianLetteGameDataVo>) gameController);
+
+        long endTime = System.currentTimeMillis();
+        log.info("下注阶段  执行时间：{}   距离下个阶段时间：{}",endTime-startTime,gameDataVo.getPhaseEndTime()-endTime);
     }
 
     @Override

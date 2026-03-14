@@ -37,7 +37,7 @@ public class RussianLetteGMHandler implements GmListener {
         try {
             if ("lotteryDraw".equalsIgnoreCase(gmOrders[0])) {
                 int diceData = Integer.parseInt(gmOrders[1]);
-                if (diceData < 0 || diceData > 36) {
+                if (diceData < 0 || diceData > 37) {
                     log.warn("lotteryDraw: 参数越界 diceData={}, 合法范围 [0,36]", diceData);
                     res.code = Code.PARAM_ERROR;
                     return res;

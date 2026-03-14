@@ -142,11 +142,12 @@ public class RussianLetteMessageBuilder {
             RussianLetteHistoryBean historyBean) {
         RussianLetteSettlementInfo info = new RussianLetteSettlementInfo();
         info.rewardAreaIdx = historyBean.betIdxId;
-        if (historyBean.diceData == 37) {
-            info.diceData = 0;
-        } else {
-            info.diceData = historyBean.diceData;
-        }// diceSettlementInfo 留 null，由结算阶段 settlementDice 填充
+//        if (historyBean.diceData == 37) {
+//            info.diceData = 0;
+//        } else {
+//            info.diceData = historyBean.diceData;
+//        }// diceSettlementInfo 留 null，由结算阶段 settlementDice 填充
+        info.diceData = historyBean.diceData;
         return info;
     }
 
@@ -286,8 +287,10 @@ public class RussianLetteMessageBuilder {
         stageInfo.endTime = dataVo.getPhaseEndTime();
         RussianLetteHistoryBean drawBean = dataVo.getDrawPhaseHistoryBean();
         if (drawBean != null) {
-            stageInfo.diceData = drawBean.diceData == 37 ? 0 : drawBean.diceData;
+//            stageInfo.diceData = drawBean.diceData == 37 ? 0 : drawBean.diceData;
+        stageInfo.diceData = drawBean.diceData;
         }
+
         summary.stageInfo = stageInfo;
 
         // 基础阶段信息
@@ -374,8 +377,10 @@ public class RussianLetteMessageBuilder {
         // 开奖/结算阶段：将当前开奖结果写入 stageInfo（37→0 映射）
         RussianLetteHistoryBean drawBean = dataVo.getDrawPhaseHistoryBean();
         if (drawBean != null) {
-            stageInfo.diceData = drawBean.diceData == 37 ? 0 : drawBean.diceData;
+//            stageInfo.diceData = drawBean.diceData == 37 ? 0 : drawBean.diceData;
+            stageInfo.diceData = drawBean.diceData;
         }
+
         resp.stageInfo = stageInfo;
 
         // ── 2. 历史转盘结果（37→0 映射，最多 recordsNum 条）───────────────────
@@ -478,7 +483,8 @@ public class RussianLetteMessageBuilder {
         }
         List<Integer> result = new ArrayList<>(history.size());
         for (RussianLetteHistoryBean bean : history) {
-            int value = (bean.diceData == 37) ? 0 : bean.diceData;
+//            int value = (bean.diceData == 37) ? 0 : bean.diceData;
+            int value = bean.diceData;
             result.add(value);
         }
         Collections.reverse(result);

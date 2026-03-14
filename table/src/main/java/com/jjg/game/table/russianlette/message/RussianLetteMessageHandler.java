@@ -370,7 +370,10 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
 
     /**
      * 请求退出当前俄罗斯转盘房间
-     * <p>玩家主动离开房间时调用。</p>
+     * <p>
+     * 玩家主动离开房间时调用。退出成功后将玩家加入临时房间（观察者），
+     * 并主动推送当前场次的所有房间摘要，供客户端选房界面展示。
+     * </p>
      */
     @Command(value = RussianLetteMessageConstant.ReqMsgBean.REQ_EXIT_ROOM_IN_GAME)
     public void exitRoomInGame(PlayerController playerController, ReqRussianLetteExitRoomInGame req) {
@@ -386,10 +389,36 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
             playerController.send(new RespRussianLetteExitRoomInGame(Code.PARAM_ERROR));
             return;
         }
+
+        // 记录场次 ID，退出后用于加入临时房间和发送摘要
+        int roomCfgId = gameController.getRoom().getRoomCfgId();
+
         gameController.getGamePlayer(playerController.playerId()).getTableGameData().setPlayNum(0);
         int code = roomManager.exitRoom(playerController, false);
         playerController.send(new RespRussianLetteExitRoomInGame(code));
         log.info("exitRoomInGame: 玩家 {} 退出俄罗斯转盘房间 code={}", playerController.playerId(), code);
+
+        if (code == Code.SUCCESS) {
+            // 加入临时房间（观察者），后续阶段变化时会收到 NotifyRussianLetteTableSummary 推送
+            PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
+            playerSessionInfo.setRoomCfgId(roomCfgId);
+            russianLetteTempRoom.enter(playerController.getSession(), playerController, playerSessionInfo);
+
+            // 主动推送当前场次所有房间的摘要列表，供选房界面立即展示
+            CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> result =
+                    getRussianLetteGameControllers(roomCfgId);
+            if (result.code == Code.SUCCESS) {
+                RespRussianLetteSummaryList respList = new RespRussianLetteSummaryList(Code.SUCCESS);
+                respList.tableSummaryList = new ArrayList<>();
+                for (AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gc : result.data) {
+                    if (gc instanceof RussianLetteGameController russianLetteGc) {
+                        respList.tableSummaryList.add(
+                                RussianLetteMessageBuilder.buildRussianLetteSummaryInfo(russianLetteGc));
+                    }
+                }
+                playerController.send(respList);
+            }
+        }
     }
 
     // =========================================================================

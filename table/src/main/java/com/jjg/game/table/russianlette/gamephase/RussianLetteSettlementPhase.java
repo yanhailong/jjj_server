@@ -1,6 +1,7 @@
 package com.jjg.game.table.russianlette.gamephase;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
@@ -77,6 +78,7 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
      */
     @Override
     public void phaseDoAction() {
+        long startTime = System.currentTimeMillis();
         super.phaseDoAction();
         log.info("执行RussianLetteSettlementPhase（结算阶段）中phaseDoAction");
 
@@ -189,6 +191,9 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
         // ── 7. 通知所有观察者（房间列表页玩家）──────────────────────────────────
         RussianLetteMessageBuilder.notifyObserversOnPhaseChange(
                 (BaseTableGameController<RussianLetteGameDataVo>) gameController);
+
+        long endTime = System.currentTimeMillis();
+        log.info("结算阶段  执行时间：{}   距离下个阶段时间：{}",endTime-startTime,gameDataVo.getPhaseEndTime()-endTime);
     }
 
     @Override
