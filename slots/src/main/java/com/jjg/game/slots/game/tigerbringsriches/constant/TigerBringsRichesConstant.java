@@ -26,8 +26,8 @@ public interface TigerBringsRichesConstant {
 
     interface ElementId {
         int BASE_ELEMENT_ID = 1;
-        int BLANK = 2;
-        int WILD = 3;
+        int BLANK = 9;
+        int WILD = 7;
     }
 
     interface Status {
