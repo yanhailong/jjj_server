@@ -14,7 +14,9 @@ import java.util.List;
 @ProtobufMessage
 @ProtoDesc("响应连续充值活动数据详情")
 public class ContinuousRechargeDetailInfo extends BaseActivityDetailInfo {
-    @ProtoDesc("当前活动阶段  0.未参与  1.七日连充  2.累计福利")
+    @ProtoDesc("参与的活动  0.未参与  1.七日连充  2.累计福利")
+    public int join;
+    @ProtoDesc("当前活动阶段  0.未开启  1.七日连充  2.累计福利")
     public int phase;
     @ProtoDesc("每天总的返利比例,万分比")
     public List<KVInfo> dailyAllRebateList;

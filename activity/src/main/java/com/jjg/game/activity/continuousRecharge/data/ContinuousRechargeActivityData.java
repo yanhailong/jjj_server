@@ -27,7 +27,7 @@ public class ContinuousRechargeActivityData extends PlayerActivityData {
     //福利活动当月累计充值数量
     private BigDecimal welfarMonthRechargeNum;
     //参与时间
-    private long joinTime;
+    private int joinType;
     //当前连充天数索引（0-6）
     private int currentDayIndex;
     //累计返利比例（万分比）
@@ -77,12 +77,12 @@ public class ContinuousRechargeActivityData extends PlayerActivityData {
         this.welfarMonthRechargeNum = welfarMonthRechargeNum;
     }
 
-    public long getJoinTime() {
-        return joinTime;
+    public int getJoinType() {
+        return joinType;
     }
 
-    public void setJoinTime(long joinTime) {
-        this.joinTime = joinTime;
+    public void setJoinType(int joinType) {
+        this.joinType = joinType;
     }
 
     public int getCurrentDayIndex() {
@@ -176,6 +176,14 @@ public class ContinuousRechargeActivityData extends PlayerActivityData {
         } else {
             this.welfarMonthRechargeNum = this.welfarMonthRechargeNum.add(rechargeNum);
         }
+    }
+
+    public boolean checkReceWefarDailyRewards(int cfgId){
+        if(this.dailyWelfareData == null){
+            return false;
+        }
+
+        return this.dailyWelfareData.rece(cfgId);
     }
 
     /**
