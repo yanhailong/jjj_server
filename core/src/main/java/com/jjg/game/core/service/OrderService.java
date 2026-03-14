@@ -157,19 +157,17 @@ public class OrderService {
     }
 
     /**
-     * 清除创建时间早于指定时间戳的订单
-     *
-     * @return 删除的订单数量
+     * 清除过期订单，保留已回调但未完成发货的订单
      */
     public void clean() {
         int now = TimeHelper.nowInt();
         int expire = now - (int) TimeUnit.DAYS.toSeconds(60);
 
-        long mongoDelCount = orderDao.deleteOrdersBeforeTimestamp(expire);
+        long mongoDelCount = orderDao.deleteOrdersBeforeTimestampExceptShipping(expire);
         long mongoDelFlowCount = playerRechargeFlowDao.deleteOrdersBeforeTimestamp(expire);
         int channelOrderExpire = now - (int) TimeUnit.DAYS.toSeconds(7);
 
         Long removeChannelOrderCount = removeChannelOrderSet(channelOrderExpire);
-        log.info("删除过期订单数量 mongoDelCount = {},mongoDelFlowCount={},removeChannelOrderCount = {}", mongoDelCount, mongoDelFlowCount, removeChannelOrderCount);
+        log.info("删除过期非发货中订单数量 mongoDelCount = {},mongoDelFlowCount={},removeChannelOrderCount = {}", mongoDelCount, mongoDelFlowCount, removeChannelOrderCount);
     }
 }
