@@ -108,7 +108,6 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_ACTIVITY_CLAIM_REWARDS)
     public void reqActivityClaimRewards(PlayerController playerController, ReqActivityClaimRewards req) {
-        log.info("reqActivityClaimRewards playerId={}, req={}", playerController.playerId(), JSONObject.toJSONString(req));
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data == null || !data.getValue().contains(req.detailId)) {
             return;

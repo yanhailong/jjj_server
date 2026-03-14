@@ -1,7 +1,6 @@
 package com.jjg.game.activity.continuousRecharge;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
@@ -13,7 +12,6 @@ import com.jjg.game.activity.continuousRecharge.data.ContinuousRechargeActivityD
 import com.jjg.game.activity.continuousRecharge.data.DailyContinuousData;
 import com.jjg.game.activity.continuousRecharge.message.*;
 import com.jjg.game.common.pb.AbstractResponse;
-import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.*;
@@ -508,8 +506,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
      * @param dataMap      玩家活动数据Map
      * @param order        充值订单
      */
-    private void handleContinuousRecharge(Player player, ActivityData activityData, int dayIndex, ContinuousRechargeActivityData data,
-                                          Map<Integer, PlayerActivityData> dataMap, Order order, Pair<Integer, long[]> phase) {
+    private void handleContinuousRecharge(Player player, ActivityData activityData, int dayIndex, ContinuousRechargeActivityData data, Map<Integer, PlayerActivityData> dataMap, Order order, Pair<Integer, long[]> phase) {
         long now = currentTimeMillis();
         if (now < phase.getSecond()[0] || now > phase.getSecond()[1]) {
             log.warn("当前连充活动不在时间范围内 playerId = {},now = {},begin = {},end = {}", player.getId(), now, phase.getSecond()[0], phase.getSecond()[1]);
@@ -653,8 +650,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
      * @param dataMap      玩家活动数据Map
      * @return 领取结果响应
      */
-    private CommonResult<List<Item>> claimContinuousReward(long playerId, ActivityData activityData, ContinuousRechargeActivityData data,
-                                                           Map<Integer, PlayerActivityData> dataMap, Pair<Integer, long[]> phase) {
+    private CommonResult<List<Item>> claimContinuousReward(long playerId, ActivityData activityData, ContinuousRechargeActivityData data, Map<Integer, PlayerActivityData> dataMap, Pair<Integer, long[]> phase) {
         CommonResult<List<Item>> result = new CommonResult<>(Code.SUCCESS);
         // 已经结算过
         if (data.getRebateGoldNum() > 0) {
@@ -729,6 +725,12 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         int date = getToday();
 
         if (taskType == ActivityConstant.ContinuousRecharge.WELFARE_DAILY_TYPE) {
+            if (!this.todayWelfareCfgMap.containsKey(cfg.getId())) {
+                result.code = Code.FORBID;
+                log.warn("该配置id不在今天随机配置中 playerId = {}", playerId);
+                return result;
+            }
+
             if (data.getDailyWelfareData() == null) {
                 return result;
             }
@@ -766,12 +768,6 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             result.data = ItemUtils.buildItems(rewards);
             log.info("玩家成功领取七日福利的每日奖励 playerId = {}", playerId);
         } else if (taskType == ActivityConstant.ContinuousRecharge.WELFARE_MONTHLY_TYPE) {
-//            System.out.println(todayWelfareCfgMap);
-//            if (!this.todayWelfareCfgMap.containsKey(cfg.getId())) {
-//                result.code = Code.FORBID;
-//                log.warn("该配置id不在今天随机配置中 playerId = {}", playerId);
-//                return result;
-//            }
             // 本月累计任务：检查月累计充值是否达标
             if (data.getWelfarMonthRechargeNum() == null) {
                 result.code = Code.PARAM_ERROR;
@@ -830,7 +826,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             return info;
         }
 
-        if(info.phase >= ActivityConstant.ContinuousRecharge.PHASE_OVER) {
+        if (info.phase >= ActivityConstant.ContinuousRecharge.PHASE_OVER) {
             return info;
         }
 
@@ -932,7 +928,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         if (info.phase < ActivityConstant.ContinuousRecharge.PHASE_WELFARE) {
             return info;
         }
-        if(info.phase >= ActivityConstant.ContinuousRecharge.PHASE_OVER) {
+        if (info.phase >= ActivityConstant.ContinuousRecharge.PHASE_OVER) {
             return info;
         }
 
@@ -1254,9 +1250,10 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         }
 
         //连充活动的结束时间
-        long tmpTime = 7 * TimeHelper.ONE_DAY_OF_MILLIS + activityData.getTimeStart();
+        long tmpTime = 6 * TimeHelper.ONE_DAY_OF_MILLIS + activityData.getTimeStart();
         //获取当前的23:59
         long continuousRechargeEndTime = TimeHelper.getEndOfDayTimestamp(tmpTime);
+
         if (continuousRechargeEndTime >= activityData.getTimeEnd()) {
             throw new IllegalArgumentException("连充活动时间不能小于7天 startTime = " + activityData.getTimeStart() + ", endTime = " + activityData.getTimeEnd());
         }
@@ -1291,7 +1288,8 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
         Map<Integer, CumulativebenefitsCfg> map = new HashMap<>();
         for (Map.Entry<Integer, List<CumulativebenefitsCfg>> en : this.welfareDailyCfgMap.entrySet()) {
-            map.put(en.getKey(), en.getValue().get(index));
+            CumulativebenefitsCfg cfg = en.getValue().get(index);
+            map.put(cfg.getId(), cfg);
         }
         return map;
     }
