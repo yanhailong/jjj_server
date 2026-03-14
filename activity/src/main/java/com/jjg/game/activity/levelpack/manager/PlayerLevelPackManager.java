@@ -16,7 +16,10 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.gameevent.*;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
+import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -234,23 +237,13 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
 
     @Override
     public <T extends GameEvent> void handleEvent(T gameEvent) {
-        switch (gameEvent) {
-            case PlayerEventCategory.PlayerRechargeEvent event -> {
-                Player player = event.getPlayer();
-                if (event.getOrder().getRechargeType() == getRechargeType()) {
-                    dealRecharge(player, event.getOrder());
+        if (gameEvent instanceof PlayerEvent event) {
+            if (event.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
+                targetGift(event.getPlayer());
+                if (event.getNewlyValue() instanceof Integer newLevel &&
+                        event.getEventChangeValue() instanceof Integer oldLevel) {
+                    levelUp(event.getPlayer(), oldLevel, newLevel);
                 }
-            }
-            case PlayerEvent event -> {
-                if (event.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
-                    targetGift(event.getPlayer());
-                    if (event.getNewlyValue() instanceof Integer newLevel &&
-                            event.getEventChangeValue() instanceof Integer oldLevel) {
-                        levelUp(event.getPlayer(), oldLevel, newLevel);
-                    }
-                }
-            }
-            default -> {
             }
         }
 
@@ -261,69 +254,66 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
      *
      * @param player 玩家信息
      */
-    private void dealRecharge(Player player, Order order) {
+    private boolean dealRecharge(Player player, Order order) {
         long playerId = player.getId();
+        PlayerLevelPackCfg playerLevelPackCfg;
+        CommonResult<ItemOperationResult> added;
         try {
             String productId = order.getProductId();
             int id = Integer.parseInt(productId);
-            PlayerLevelPackCfg playerLevelPackCfg = GameDataManager.getPlayerLevelPackCfg(id);
+            playerLevelPackCfg = GameDataManager.getPlayerLevelPackCfg(id);
             if (playerLevelPackCfg == null) {
-                log.error("玩家购买等级礼包失败 配置不存在 playerId:{} order:{} ", playerId, JSONObject.toJSONString(order));
-                return;
+                log.error("玩家购买等级礼包失败 配置不存在 playerId:{} order:{}", playerId, JSONObject.toJSONString(order));
+                return false;
             }
             String lockKey = playerLevelDao.getLockKey(playerId);
             Map<Integer, PlayerLevelPackData> playerLevelPackDataMap;
-            PlayerLevelPackData playerLevelPackData = null;
-            CommonResult<ItemOperationResult> added = null;
+            PlayerLevelPackData playerLevelPackData;
             boolean lock = false;
             try {
                 lock = redisLock.tryLockWithDefaultTime(lockKey);
                 if (!lock) {
                     log.error("获取锁失败 lockKey:{} playerId:{} orderId:{}", lockKey, playerId, order.getId());
-                    return;
+                    return false;
                 }
                 playerLevelPackDataMap = playerLevelDao.getPlayerLevelPackData(playerId);
                 if (CollectionUtil.isEmpty(playerLevelPackDataMap)) {
-                    log.error("玩家购买等级礼包失败 没有任何等级礼包数据 playerId:{} id:{} ", playerId, id);
-                    return;
+                    log.error("玩家购买等级礼包失败 没有任何等级礼包数据 playerId:{} id:{}", playerId, id);
+                    return false;
                 }
                 playerLevelPackData = playerLevelPackDataMap.get(id);
                 //购买条件判断
                 if (playerLevelPackData == null || playerLevelPackData.getClaimStatus() != ActivityConstant.ClaimStatus.NOT_CLAIM) {
-                    log.error("玩家购买等级礼包失败 数据不存在 playerLevelPackData：{} playerId:{} id:{} ", playerLevelPackData, playerId, id);
-                    return;
+                    log.error("玩家购买等级礼包失败 数据不存在 playerLevelPackData:{} playerId:{} id:{}", playerLevelPackData, playerId, id);
+                    return false;
                 }
                 added = playerPackService.addItems(playerId, playerLevelPackCfg.getLevelRewards(), AddType.LEVEL_CLAIM);
                 if (!added.success()) {
-                    added = null;
-                    log.error("等级礼包领取道具失败 playerId:{} id:{} ", playerId, id);
+                    log.error("等级礼包领取道具失败 playerId:{} id:{} code:{}", playerId, id, added.code);
+                    return false;
                 }
                 playerLevelPackData.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
                 playerLevelDao.savePackData(playerId, id, playerLevelPackData);
-            } catch (Exception e) {
-                log.error("等级礼包修改数据异常 playerId:{} id:{} ", playerId, id, e);
             } finally {
                 if (lock) {
                     redisLock.tryUnlock(lockKey);
                 }
             }
-            if (playerLevelPackData == null) {
-                return;
-            }
-            //发送日志
-            if (added != null) {
-                activityLogger.sendLevelPackClaimLog(player, added.data, playerLevelPackCfg);
-            }
+            activityLogger.sendLevelPackClaimLog(player, added.data, playerLevelPackCfg);
             activityLogger.sendLevelPackBuyLog(player, playerLevelPackCfg);
             ResPlayerLevelClaimRewards res = new ResPlayerLevelClaimRewards(Code.SUCCESS);
             res.id = id;
             res.itemInfos = ItemUtils.buildItemInfo(playerLevelPackCfg.getLevelRewards());
-            clusterSystem.sendToPlayer(res, playerId);
-
+            try {
+                clusterSystem.sendToPlayer(res, playerId);
+            } catch (Exception e) {
+                log.error("等级礼包充值后通知玩家异常 playerId:{} order:{} ", playerId, JSONObject.toJSONString(order), e);
+            }
+            return true;
         } catch (Exception e) {
-            log.error("等级礼包购买 异常playerId:{} order:{} ", playerId, JSONObject.toJSONString(order), e);
+            log.error("等级礼包购买异常 playerId:{} order:{}", playerId, JSONObject.toJSONString(order), e);
+            return false;
         }
-
     }
 
     @Override
@@ -408,6 +398,14 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
     @Override
     public RechargeType getRechargeType() {
         return RechargeType.PLAYER_LEVEL_GIFT;
+    }
+
+    @Override
+    public boolean onReceivedRecharge(Player player, Order order) {
+        if (order.getRechargeType() == getRechargeType()) {
+            return dealRecharge(player, order);
+        }
+        return true;
     }
 
     /**

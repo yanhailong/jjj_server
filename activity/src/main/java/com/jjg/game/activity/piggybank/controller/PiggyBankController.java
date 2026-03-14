@@ -16,10 +16,6 @@ import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
-import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -52,7 +48,7 @@ import java.util.stream.Collectors;
  * 继承自 BaseActivityController，实现储钱罐相关活动逻辑
  */
 @Component
-public class PiggyBankController extends BaseActivityController implements GameEventListener, OrderGenerate {
+public class PiggyBankController extends BaseActivityController implements  OrderGenerate {
 
     // 日志记录
     private final Logger log = LoggerFactory.getLogger(PiggyBankController.class);
@@ -76,7 +72,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
      */
     @Override
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
-        ResPiggyBankDetailInfo res = null;
+        ResPiggyBankDetailInfo res = new ResPiggyBankDetailInfo(Code.FAIL);
         long playerId = player.getId();
 
         // 获取活动详细配置
@@ -96,6 +92,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
                 // 玩家已参加过，直接返回错误
                 if (piggyBankData.getBuyTime() > 0) {
                     log.error("玩家参加活动失败 玩家已经参加过 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
+                    res.code = Code.REPEAT_OP;
                     return res;
                 }
 
@@ -106,12 +103,11 @@ public class PiggyBankController extends BaseActivityController implements GameE
                 // 保存玩家活动数据
                 playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
             } catch (Exception e) {
-                log.error("玩家参加活动失败 出现异常,playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
+                log.error("玩家参加活动失败 出现异常,playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
+                return res;
             }
             // 日志记录玩家参加活动
-            if (piggyBankData != null) {
-                activityLogger.sendPiggyBankJoin(player, activityData, piggyBankData, cfg.getType(), detailId);
-            }
+            activityLogger.sendPiggyBankJoin(player, activityData, piggyBankData, cfg.getType(), detailId);
 
             // 构建响应
             res = new ResPiggyBankDetailInfo(Code.SUCCESS);
@@ -120,6 +116,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
         } else {
             // 配置错误
             log.error("玩家参加活动失败 活动配置为空playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
+            res.code = Code.PARAM_ERROR;
         }
 
         return res;
@@ -421,23 +418,6 @@ public class PiggyBankController extends BaseActivityController implements GameE
     }
 
     @Override
-    public <T extends GameEvent> void handleEvent(T gameEvent) {
-        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
-            Order order = event.getOrder();
-            Player player = event.getPlayer();
-            if (order.getRechargeType() != RechargeType.PIGGY_BANK) {
-                return;
-            }
-            dealActivityRecharge(player, order, 1);
-        }
-    }
-
-    @Override
-    public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.RECHARGE);
-    }
-
-    @Override
     public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
         BaseCfgBean cfgBean = getOrderGenerateBean(player, req.productId);
         if (cfgBean instanceof PiggyBankCfg cfg) {
@@ -453,5 +433,13 @@ public class PiggyBankController extends BaseActivityController implements GameE
     @Override
     public RechargeType getRechargeType() {
         return RechargeType.PIGGY_BANK;
+    }
+
+    @Override
+    public boolean onReceivedRecharge(Player player, Order order) {
+        if (order.getRechargeType() != RechargeType.PIGGY_BANK) {
+            return true;
+        }
+        return dealActivityRecharge(player, order, 1);
     }
 }

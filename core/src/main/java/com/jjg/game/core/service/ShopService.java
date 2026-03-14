@@ -5,10 +5,6 @@ import cn.hutool.core.util.NumberUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
-import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
@@ -40,7 +36,7 @@ import java.util.stream.Collectors;
  * @date 2025/9/18 14:15
  */
 @Component
-public class ShopService implements OrderGenerate, GameEventListener {
+public class ShopService implements OrderGenerate {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -248,17 +244,19 @@ public class ShopService implements OrderGenerate, GameEventListener {
      * @param money      实际支付金额
      * @param regionCode 地区代码
      */
-    private void handleShopOrder(Player player, Order order, String money, String regionCode, String channelProductId) {
+    private boolean handleShopOrder(Player player, Order order, String money, String regionCode, String channelProductId) {
         ShopProduct shopProduct = getShopProduct(Long.parseLong(order.getProductId()));
         if (shopProduct == null) {
-            log.error("未找到该商品 orderId = {},productId = {}", order.getId(), order.getProductId());
-            return;
+            log.error("未找到商品配置 orderId = {},productId = {}", order.getId(), order.getProductId());
+            return false;
         }
         List<ItemInfo> itemInfoList = null;
         if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
             CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(order.getPlayerId(), shopProduct.getRewardItems(), AddType.SHOP_RECHARGE, order.getId());
             if (!addItemsResult.success()) {
-                log.warn("支付成功，但是添加道具失败 playerId = {},orderId = {},productId = {},code = {}", order.getPlayerId(), order.getId(), shopProduct.getId(), addItemsResult.code);
+                log.error("商城发奖失败 playerId = {},orderId = {},productId = {},code = {}",
+                        order.getPlayerId(), order.getId(), shopProduct.getId(), addItemsResult.code);
+                return false;
             } else {
                 itemInfoList = new ArrayList<>();
                 for (Map.Entry<Integer, Long> en : shopProduct.getRewardItems().entrySet()) {
@@ -270,11 +268,23 @@ public class ShopService implements OrderGenerate, GameEventListener {
                 log.debug("商城充值后添加道具成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
             }
         }
-        coreLogger.shop(player, order, shopProduct, money, channelProductId, regionCode);
-        //通知玩家充值成功
-        notifyPlayerRechargeCallBack(player, order, itemInfoList);
-        //vip特权
-        dealVipPrivileged(player, shopProduct);
+        try {
+            coreLogger.shop(player, order, shopProduct, money, channelProductId, regionCode);
+        } catch (Exception e) {
+            log.error("记录商城充值日志失败 playerId = {},orderId = {}", order.getPlayerId(), order.getId(), e);
+        }
+        try {
+            // 通知和扩展奖励不影响订单主成功链路
+            notifyPlayerRechargeCallBack(player, order, itemInfoList);
+        } catch (Exception e) {
+            log.error("通知玩家商城充值成功失败 playerId = {},orderId = {}", order.getPlayerId(), order.getId(), e);
+        }
+        try {
+            dealVipPrivileged(player, shopProduct);
+        } catch (Exception e) {
+            log.error("处理商城充值vip特权失败 playerId = {},orderId = {}", order.getPlayerId(), order.getId(), e);
+        }
+        return true;
     }
 
     /**
@@ -353,20 +363,12 @@ public class ShopService implements OrderGenerate, GameEventListener {
     }
 
     @Override
-    public <T extends GameEvent> void handleEvent(T gameEvent) {
-        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
-            Order order = event.getOrder();
-            Player player = event.getPlayer();
-            if (order.getRechargeType() == RechargeType.SHOP) {
-                //获取商品
-                handleShopOrder(player, order, event.getMoney(), event.getRegionCode(), event.getChannelProductId());
-            }
+    public boolean onReceivedRecharge(Player player, Order order) {
+        if (order.getRechargeType() != RechargeType.SHOP) {
+            return true;
         }
-    }
-
-    @Override
-    public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.RECHARGE);
+        //获取商品
+        return handleShopOrder(player, order, order.getMoney(), order.getRegionCode(), order.getChannelProductId());
     }
 
 

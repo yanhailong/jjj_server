@@ -122,6 +122,14 @@ public class OrderService {
         return orderDao.changeOrderSuccess(orderId, channelOrderId);
     }
 
+    public Order orderCallback(Order order) {
+        return orderDao.changeOrderCallback(order);
+    }
+
+
+    public Order orderProcessing(String orderId, String channelOrderId) {
+        return orderDao.changeOrderProcessing(orderId, channelOrderId);
+    }
     public Order orderFail(String orderId) {
         return orderDao.changeOrderFail(orderId);
     }

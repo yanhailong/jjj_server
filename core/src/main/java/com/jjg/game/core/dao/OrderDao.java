@@ -40,7 +40,43 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
      * @return
      */
     public Order changeOrderSuccess(String orderId, String channelOrderId) {
-        return changeOrderStatus(orderId, OrderStatus.ORDER, OrderStatus.SUCCESS, channelOrderId);
+        return changeOrderStatus(orderId, OrderStatus.PROCESSING, OrderStatus.SUCCESS, channelOrderId);
+    }
+
+
+    /**
+     * 订单置为失败状态
+     *
+     * @param order 订单数据
+     * @return
+     */
+    public Order changeOrderCallback(Order order) {
+
+        Query query = new Query(Criteria.where("id").is(order.getId()).and("orderStatus").is(OrderStatus.ORDER));
+        Update update = new Update();
+        update.set("orderStatus", OrderStatus.CALLBACK);
+        update.set("updateTime", (int) (System.currentTimeMillis() / 1000));
+        update.set("channelOrderId", order.getChannelOrderId());
+        update.set("money", order.getMoney());
+        update.set("regionCode", order.getRegionCode());
+        update.set("channelProductId", order.getChannelProductId());
+
+        return mongoTemplate.findAndModify(
+                query,
+                update,
+                new FindAndModifyOptions().returnNew(true), // 返回更新后的文档
+                Order.class
+        );
+    }
+
+    /**
+     * 订单置为收到处理订单状态
+     *
+     * @param orderId
+     * @return
+     */
+    public Order changeOrderProcessing(String orderId, String channelOrderId) {
+        return changeOrderStatus(orderId, OrderStatus.CALLBACK, OrderStatus.PROCESSING, channelOrderId);
     }
 
     /**
@@ -50,7 +86,16 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
      * @return
      */
     public Order changeOrderFail(String orderId) {
-        return changeOrderStatusNeExcept(orderId, OrderStatus.SUCCESS, OrderStatus.FAIL);
+        Query query = new Query(Criteria.where("id").is(orderId).and("orderStatus").in(OrderStatus.ORDER, OrderStatus.CALLBACK));
+        Update update = new Update();
+        update.set("orderStatus", OrderStatus.FAIL);
+        update.set("updateTime", (int) (System.currentTimeMillis() / 1000));
+        return mongoTemplate.findAndModify(
+                query,
+                update,
+                new FindAndModifyOptions().returnNew(true),
+                Order.class
+        );
     }
 
     /**
@@ -65,26 +110,6 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
         update.set("orderStatus", newStatus);
         update.set("updateTime", (int) (System.currentTimeMillis() / 1000));
         update.set("channelOrderId", channelOrderId);
-        return mongoTemplate.findAndModify(
-                query,
-                update,
-                new FindAndModifyOptions().returnNew(true), // 返回更新后的文档
-                Order.class
-        );
-    }
-
-    /**
-     * 修改订单状态
-     *
-     * @param orderId
-     * @param exceptStatus
-     * @param newStatus
-     * @return
-     */
-    private Order changeOrderStatusNeExcept(String orderId, OrderStatus exceptStatus, OrderStatus newStatus) {
-        Query query = new Query(Criteria.where("id").is(orderId).and("orderStatus").ne(exceptStatus));
-        Update update = new Update();
-        update.set("orderStatus", newStatus);
         return mongoTemplate.findAndModify(
                 query,
                 update,

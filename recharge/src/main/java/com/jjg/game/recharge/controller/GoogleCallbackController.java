@@ -9,7 +9,9 @@ import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.auth0.jwk.*;
+import com.auth0.jwk.Jwk;
+import com.auth0.jwk.JwkProvider;
+import com.auth0.jwk.JwkProviderBuilder;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -27,7 +29,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -182,13 +183,17 @@ public class GoogleCallbackController extends AbstractCallbackController {
 
         String channelOrderId = productInfoJson.getString("orderId");
         order.setChannelOrderId(channelOrderId);
-        order = checkOrder(order);
+        String regionCode = productInfoJson.getString("regionCode");
+        order = checkOrder(order, null, regionCode, sku);
         if (order == null) {
             log.debug("检查订单失败 orderId = {}", orderId);
             return ResponseEntity.ok("check order fail");
         }
+        if (order.getOrderStatus().isProcessingOrder()) {
+            log.info("Google订单已处理，忽略重复回调 orderId = {}", order.getId());
+            return ResponseEntity.ok("Recharge processed");
+        }
 
-        String regionCode = productInfoJson.getString("regionCode");
         payCallback(order, null, regionCode, sku);
         return ResponseEntity.ok("Recharge processed");
     }

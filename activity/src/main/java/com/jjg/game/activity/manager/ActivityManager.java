@@ -438,7 +438,11 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * @param msg      消息
      */
     public void sendToPlayer(long playerId, AbstractMessage msg) {
-        clusterSystem.sendToPlayer(msg, playerId);
+        try {
+            clusterSystem.sendToPlayer(msg, playerId);
+        } catch (Exception e) {
+            log.error("发送消息给玩家出现异常 playerId:{}", playerId, e);
+        }
     }
 
     @Override
@@ -645,8 +649,12 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             if (data == null) {
                 return new CommonResult<>(Code.NOT_FOUND);
             }
-            data.getType().getController().buyActivityGift(playerController.getPlayer(), data, detailId);
-            return new CommonResult<>(Code.SUCCESS);
+            AbstractResponse recharge = data.getType().getController().buyActivityGiftForRecharge(playerController.getPlayer(), data, detailId);
+            if (recharge != null && recharge.code == Code.SUCCESS) {
+                sendToPlayer(playerController.playerId(), recharge);
+                data.getType().getController().updateRodDot(playerController.playerId(), data, false);
+            }
+            return new CommonResult<>(recharge == null ? Code.FAIL : recharge.code);
         }
 
         return null;

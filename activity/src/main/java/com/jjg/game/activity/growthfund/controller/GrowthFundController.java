@@ -17,10 +17,6 @@ import com.jjg.game.activity.growthfund.message.res.ResGrowthFundDetailInfo;
 import com.jjg.game.activity.growthfund.message.res.ResGrowthFundTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
-import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
@@ -49,7 +45,7 @@ import java.util.stream.Collectors;
  * @date 2025/9/3
  */
 @Component
-public class GrowthFundController extends BaseActivityController implements GameEventListener, OrderGenerate {
+public class GrowthFundController extends BaseActivityController implements OrderGenerate {
 
     private final Logger log = LoggerFactory.getLogger(GrowthFundController.class);
 
@@ -66,8 +62,8 @@ public class GrowthFundController extends BaseActivityController implements Game
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         long playerId = player.getId();
         long activityId = activityData.getId();
-        BigDecimal decimal = countDao.incr(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(activityId), String.valueOf(playerId));
-        if (decimal.intValue() > 1) {
+        String countKey = CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(activityId);
+        if (countDao.getCount(countKey, String.valueOf(playerId)).intValue() > 0) {
             log.error("玩家已经购买过成长基金 playerId:{} activityId:{}", playerId, activityId);
             return new ResGrowthFundBuyResultInfo(Code.REPEAT_OP);
         }
@@ -100,35 +96,36 @@ public class GrowthFundController extends BaseActivityController implements Game
             }
             if (!updateDetailId.isEmpty()) {
                 playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, playerActivityData);
-            }
-            //道具奖励
-            boolean addItemsSuccess = false;
-            if (CollectionUtil.isNotEmpty(rewards)) {
-                addItems = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_GROWTH_FUND_BUY);
-                if (!addItems.success()) {
-                    log.error("成长基金购买增加发奖失败 playerId:{} activityId:{}", playerId, activityId);
-                } else {
-                    addItemsSuccess = true;
+                countDao.incr(playerId, countKey, String.valueOf(playerId));
+                if (CollectionUtil.isNotEmpty(rewards)) {
+                    // 购买状态先落库，发奖失败时保留人工修复入口，避免重复购买发奖
+                    addItems = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_GROWTH_FUND_BUY);
+                    if (!addItems.success()) {
+                        log.error("成长基金购买增加发奖失败 playerId:{} activityId:{} code:{}", playerId, activityId, addItems.code);
+                        return new ResGrowthFundBuyResultInfo(addItems.code);
+                    }
                 }
+            } else {
+                log.error("成长基金购买后没有可更新的数据 playerId:{} activityId:{}", playerId, activityId);
+                return new ResGrowthFundBuyResultInfo(Code.FAIL);
             }
-            activityLogger.sendGrowthFundBuyLog(player, activityData, activityData.getBigDecimalParam().getLast(),
-                    addItemsSuccess ? rewards : null, addItemsSuccess ? addItems.data : null);
         } catch (Exception e) {
             log.error("成长基金购买增加进度异常 playerId:{} activityId:{}", playerId, activityId, e);
+            return new ResGrowthFundBuyResultInfo(Code.FAIL);
         }
-        if (!updateDetailId.isEmpty()) {
-            ResGrowthFundBuyResultInfo info = new ResGrowthFundBuyResultInfo(Code.SUCCESS);
-            info.detailInfo = new ArrayList<>(updateDetailId.size());
-            for (GrowthFundCfg cfg : updateDetailId) {
-                info.detailInfo.add(buildPlayerActivityDetail(player, activityData, cfg, playerActivityData.get(cfg.getId())));
-            }
-            if (CollectionUtil.isNotEmpty(rewards)) {
-                info.rewards = ItemUtils.buildItemInfo(rewards);
-            }
-            info.isBuy = true;
-            return info;
+        ResGrowthFundBuyResultInfo info = new ResGrowthFundBuyResultInfo(Code.SUCCESS);
+        info.detailInfo = new ArrayList<>(updateDetailId.size());
+        for (GrowthFundCfg cfg : updateDetailId) {
+            info.detailInfo.add(buildPlayerActivityDetail(player, activityData, cfg, playerActivityData.get(cfg.getId())));
         }
-        return null;
+        if (CollectionUtil.isNotEmpty(rewards)) {
+            info.rewards = ItemUtils.buildItemInfo(rewards);
+        }
+
+        info.isBuy = true;
+        activityLogger.sendGrowthFundBuyLog(player, activityData, activityData.getBigDecimalParam().getLast(),
+                rewards, addItems == null ? null : addItems.data);
+        return info;
     }
 
     /**
@@ -427,37 +424,6 @@ public class GrowthFundController extends BaseActivityController implements Game
     }
 
     @Override
-    public <T extends GameEvent> void handleEvent(T gameEvent) {
-        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
-            Order order = event.getOrder();
-            Player player = event.getPlayer();
-            if (order.getRechargeType() != RechargeType.GROWTH_FUND) {
-                return;
-            }
-            Map<Long, ActivityData> map = activityManager.getActivityTypeData().get(ActivityType.GROWTH_FUND);
-            if (CollectionUtil.isEmpty(map)) {
-                log.error("充值事件 所有活动数据为空 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
-                return;
-            }
-            ActivityData data = map.get(Long.parseLong(order.getProductId()));
-            if (data == null) {
-                log.error("充值事件 没有活动数据 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
-                return;
-            }
-            log.info("充值事件 参加活动 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
-            AbstractResponse res = joinActivity(player, data, 1, 1);
-            if (res != null) {
-                activityManager.sendToPlayer(player.getId(), res);
-            }
-        }
-    }
-
-    @Override
-    public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.RECHARGE);
-    }
-
-    @Override
     public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
         long activityId = Long.parseLong(req.productId);
         ActivityData activityData = activityManager.getActivityData().get(activityId);
@@ -474,5 +440,37 @@ public class GrowthFundController extends BaseActivityController implements Game
     @Override
     public RechargeType getRechargeType() {
         return RechargeType.GROWTH_FUND;
+    }
+
+    @Override
+    public boolean onReceivedRecharge(Player player, Order order) {
+        if (order.getRechargeType() != RechargeType.GROWTH_FUND) {
+            return true;
+        }
+        Map<Long, ActivityData> map = activityManager.getActivityTypeData().get(ActivityType.GROWTH_FUND);
+        if (CollectionUtil.isEmpty(map)) {
+            log.error("充值事件 所有活动数据为空 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
+            return false;
+        }
+        ActivityData data = map.get(Long.parseLong(order.getProductId()));
+        if (data == null) {
+            log.error("充值事件 没有活动数据 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
+            return false;
+        }
+        log.info("充值事件 参加活动 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+        AbstractResponse res = joinActivity(player, data, 1, 1);
+        if (res == null || res.code != Code.SUCCESS) {
+            log.error("成长基金充值处理失败 playerId:{} order:{} code:{}",
+                    player.getId(), JSONObject.toJSONString(order), res == null ? Code.FAIL : res.code);
+            return false;
+        }
+        // 红点刷新不影响充值主成功链路
+        try {
+            updateRodDot(player.getId(), data, false);
+        } catch (Exception e) {
+            log.error("充值事件刷新活动红点失败 playerId:{} activityId:{}", player.getId(), data.getId(), e);
+        }
+        activityManager.sendToPlayer(player.getId(), res);
+        return true;
     }
 }

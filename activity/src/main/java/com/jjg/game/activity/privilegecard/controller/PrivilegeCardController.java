@@ -14,10 +14,6 @@ import com.jjg.game.activity.privilegecard.message.res.ResPrivilegeCardDetailInf
 import com.jjg.game.activity.privilegecard.message.res.ResPrivilegeCardTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
-import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -59,7 +55,7 @@ import java.util.stream.Collectors;
  * @date 2025/9/3
  */
 @Component
-public class PrivilegeCardController extends BaseActivityController implements GameEventListener, OrderGenerate {
+public class PrivilegeCardController extends BaseActivityController implements OrderGenerate {
 
     private final Logger log = LoggerFactory.getLogger(PrivilegeCardController.class);
 
@@ -109,61 +105,64 @@ public class PrivilegeCardController extends BaseActivityController implements G
      */
     @Override
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
-        ResPrivilegeCardDetailInfo res = null;
+        ResPrivilegeCardDetailInfo res = new ResPrivilegeCardDetailInfo(Code.FAIL);
         long playerId = player.getId();
         Map<Integer, PrivilegeCardCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         PrivilegeCardCfg cfg = baseCfgBeanMap.get(detailId);
 
         if (cfg != null) {
-        LocalDateTime nowMidnight = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
-        long timeMillis = TimeHelper.getTimestamp(nowMidnight);
+            LocalDateTime nowMidnight = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
+            long timeMillis = TimeHelper.getTimestamp(nowMidnight);
             PlayerPrivilegeCard privilegeCard = null;
-        CommonResult<ItemOperationResult> addedItems = null;
-        try {
-            Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-            // 获取玩家特权卡数据，若不存在则创建
-            privilegeCard = playerActivityData.computeIfAbsent(detailId, key -> new PlayerPrivilegeCard(activityData.getId(), activityData.getRound()));
+            CommonResult<ItemOperationResult> addedItems = null;
+            try {
+                Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+                // 获取玩家特权卡数据，若不存在则创建
+                privilegeCard = playerActivityData.computeIfAbsent(detailId, key -> new PlayerPrivilegeCard(activityData.getId(), activityData.getRound()));
 
-            // 判断玩家是否已购买特权卡
-            if (privilegeCard.getEndTime() > timeMillis) {
-                log.error("玩家已参加活动 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
+                // 判断玩家是否已购买特权卡
+                if (privilegeCard.getEndTime() > timeMillis) {
+                    log.error("玩家已参加活动 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
+                    res.code = Code.REPEAT_OP;
                     return res;
                 }
 
                 // 设置购买时间
-            privilegeCard.setBuyTime(timeMillis);
+                privilegeCard.setBuyTime(timeMillis);
 
                 // 设置结束时间
-            if (cfg.getDays() == -1) {
-                privilegeCard.setEndTime(-1); // 永久有效
-            } else {
-                privilegeCard.setEndTime(TimeHelper.getTimestamp(nowMidnight.plusDays(cfg.getDays())));
-            }
+                if (cfg.getDays() == -1) {
+                    privilegeCard.setEndTime(-1); // 永久有效
+                } else {
+                    privilegeCard.setEndTime(TimeHelper.getTimestamp(nowMidnight.plusDays(cfg.getDays())));
+                }
 
-                // 购买奖励发放
+                // 保存玩家活动数据
+                playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
                 if (CollectionUtil.isNotEmpty(cfg.getGetItem())) {
+                    // 先记录购买状态，避免奖励到账但活动状态缺失导致重复处理
                     addedItems = playerPackService.addItems(playerId, cfg.getGetItem(), AddType.ACTIVITY_PRIVILEGE_CARD_BUY);
                     if (!addedItems.success()) {
                         log.error("发放购买奖励失败 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
+                        res.code = addedItems.code;
+                        return res;
                     }
                 }
 
-            // 保存玩家活动数据
-            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
-
-        } catch (Exception e) {
-            log.error("玩家加入特权卡活动异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
-        }
-        // 发送日志
-        activityLogger.sendPrivilegeCardJoinLog(player, activityData, cfg, addedItems == null ? null : addedItems.data, cfg.getGetItem());
-
-        // 构建响应数据
+            } catch (Exception e) {
+                log.error("玩家加入特权卡活动异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
+                return res;
+            }
+            // 发送日志
+            activityLogger.sendPrivilegeCardJoinLog(player, activityData, cfg, addedItems == null ? null : addedItems.data, cfg.getGetItem());
+            // 构建响应数据
             res = new ResPrivilegeCardDetailInfo(Code.SUCCESS);
-        res.detailInfo = new ArrayList<>();
-        res.detailInfo.add(buildPlayerActivityDetail(player, activityData, cfg, privilegeCard));
+            res.detailInfo = new ArrayList<>();
+            res.detailInfo.add(buildPlayerActivityDetail(player, activityData, cfg, privilegeCard));
 
         } else {
             log.error("活动配置为空 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
+            res.code = Code.PARAM_ERROR;
         }
 
         return res;
@@ -335,22 +334,6 @@ public class PrivilegeCardController extends BaseActivityController implements G
                 .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
-    @Override
-    public <T extends GameEvent> void handleEvent(T gameEvent) {
-        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
-            Order order = event.getOrder();
-            Player player = event.getPlayer();
-            if (order.getRechargeType() != getRechargeType()) {
-                return;
-            }
-            dealActivityRecharge(player, order, 1);
-        }
-    }
-
-    @Override
-    public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.RECHARGE);
-    }
 
     @Override
     public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
@@ -368,5 +351,13 @@ public class PrivilegeCardController extends BaseActivityController implements G
     @Override
     public RechargeType getRechargeType() {
         return RechargeType.PRIVILEGE_CARD;
+    }
+
+    @Override
+    public boolean onReceivedRecharge(Player player, Order order) {
+        if (order.getRechargeType() != getRechargeType()) {
+            return true;
+        }
+        return dealActivityRecharge(player, order, 1);
     }
 }

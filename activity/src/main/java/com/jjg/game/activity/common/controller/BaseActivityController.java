@@ -215,13 +215,15 @@ public abstract class BaseActivityController {
     }
 
     /**
-     * 玩家购买活动礼包
+     * 充值回调购买活动礼包
      *
      * @param player       玩家对象
      * @param activityData 活动数据
      * @param giftId       礼包ID
+     * @return 处理结果
      */
-    public void buyActivityGift(Player player, ActivityData activityData, int giftId) {
+    public AbstractResponse buyActivityGiftForRecharge(Player player, ActivityData activityData, int giftId) {
+        return null;
     }
 
     /**
@@ -475,32 +477,48 @@ public abstract class BaseActivityController {
      * @param order    订单
      * @param dealType 处理类型1加入活动 2购买礼包
      */
-    public final void dealActivityRecharge(Player player, Order order, int dealType) {
+    public final boolean dealActivityRecharge(Player player, Order order, int dealType) {
         log.info("充值事件 参加活动 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
         String[] idCfg = StringUtils.split(order.getProductId(), "_");
         if (idCfg.length != 2) {
-            log.error("活动充值回调 productId错误 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
-            return;
+            log.error("活动充值回调 productId错误 playerId:{} order:{}", player.getId(), JSONObject.toJSONString(order));
+            return false;
         }
         long activityId = Long.parseLong(idCfg[0]);
         int detailId = Integer.parseInt(idCfg[1]);
         ActivityData data = activityManager.getActivityData().get(activityId);
         if (data == null || !data.getValue().contains(detailId) || !checkPlayerCanJoinActivity(player, data)) {
-            log.error("充值事件 不能参加活动 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
-            return;
+            log.error("充值事件 不能参加活动 playerId:{} order:{}", player.getId(), JSONObject.toJSONString(order));
+            return false;
         }
         if (dealType == 1) {
             AbstractResponse res = joinActivity(player, data, detailId, 1);
-            if (res != null) {
-                log.info("充值事件 参加活动成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
-                activityManager.sendToPlayer(player.getId(), res);
+            if (res == null || res.code != Code.SUCCESS) {
+                log.error("充值事件参加活动失败 playerId:{} order:{} code:{}", player.getId(), JSONObject.toJSONString(order), res == null ? Code.FAIL : res.code);
+                return false;
             }
+            log.info("充值事件 参加活动成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+            activityManager.sendToPlayer(player.getId(), res);
         } else if (dealType == 2) {
-            buyActivityGift(player, data, detailId);
+            AbstractResponse res = buyActivityGiftForRecharge(player, data, detailId);
+            if (res == null || res.code != Code.SUCCESS) {
+                log.error("充值事件购买活动礼包失败 playerId:{} order:{} code:{}",
+                        player.getId(), JSONObject.toJSONString(order), res == null ? Code.FAIL : res.code);
+                return false;
+            }
             log.info("充值事件 购买活动礼包成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+            activityManager.sendToPlayer(player.getId(), res);
+        } else {
+            log.error("不支持的活动充值处理类型 dealType = {}", dealType);
+            return false;
         }
-        //更新红点
-        updateRodDot(player.getId(), data, false);
+        // 红点刷新不影响充值主成功链路
+        try {
+            updateRodDot(player.getId(), data, false);
+        } catch (Exception e) {
+            log.error("充值事件刷新活动红点失败 playerId:{} activityId:{}", player.getId(), data.getId(), e);
+        }
+        return true;
     }
 
     /**
