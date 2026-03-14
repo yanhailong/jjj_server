@@ -264,20 +264,13 @@ public class PanJinLianGenerateManager extends AbstractSlotsGenerateManager<PanJ
             }
 
             // 增加免费次数配置
-            if (cfg.getPlayType() == PanJinLianConstant.SpecialPlay.TYPE_ADD_FREE_COUNT) {
+            if (cfg.getPlayType() == 1) {
                 PanJinLianAddFreeInfo tmpInfo = new PanJinLianAddFreeInfo();
-                String[] arr0 = cfg.getValue().split(",");
+                String[] arr0 = cfg.getValue().split("_");
                 tmpInfo.setLibType(Integer.parseInt(arr0[0]));
                 tmpInfo.setTargetIcon(Integer.parseInt(arr0[1]));
 
-                String[] arr1 = arr0[2].split("\\|");
-                for (String addFreeInfoStr : arr1) {
-                    String[] arr2 = addFreeInfoStr.split("_");
-                    int times = Integer.parseInt(arr2[0]);
-                    int addFreeCount = Integer.parseInt(arr2[1]);
-                    int prop = Integer.parseInt(arr2[2]);
-                    tmpInfo.addTimesInfo(times, addFreeCount, prop);
-                }
+                tmpInfo.addTimesInfo(3, Integer.parseInt(arr0[2]), Integer.parseInt(arr0[3]));
                 this.panJinLianAddFreeInfo = tmpInfo;
             }
         }

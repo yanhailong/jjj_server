@@ -2217,6 +2217,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             log.warn("gm修改贡献值失败 playerId = {}", playerController.playerId());
             return false;
         }
+        playerGameData.setRewardPoolGold(0);
         playerGameData.setContribtPoolGold(value);
         log.debug("玩家修改贡献金额 playerId = {},value = {}", playerController.playerId(), value);
         return true;
