@@ -1,9 +1,9 @@
 package com.jjg.game.slots.game.dollarexpress.pb;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 
 import java.util.List;
@@ -31,7 +31,10 @@ public class ResConfigInfo extends AbstractResponse {
     public int freeCount;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
-
+    @ProtoDesc("状态")
+    public int status;
+    @ProtoDesc("投资可选区域，只有当触发投资游戏后才会有值")
+    public List<Integer> choosableAreas;
     public ResConfigInfo(int code) {
         super(code);
     }

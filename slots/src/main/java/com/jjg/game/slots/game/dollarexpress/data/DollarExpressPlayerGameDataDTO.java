@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author 11
@@ -25,6 +26,36 @@ public class DollarExpressPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDT
     private Set<Integer> selectedAreaSet;
     //全地图解锁
     private boolean allUnLock;
+    //免费结果库
+    protected DollarExpressResultLib freeLib;
+    //剩余的免费次数
+    private int remainFreeCount;
+    //当前的免费游戏数组中的下标值
+    private int freeIndex;
+
+    public DollarExpressResultLib getFreeLib() {
+        return freeLib;
+    }
+
+    public void setFreeLib(DollarExpressResultLib freeLib) {
+        this.freeLib = freeLib;
+    }
+
+    public int getRemainFreeCount() {
+        return remainFreeCount;
+    }
+
+    public void setRemainFreeCount(int remainFreeCount) {
+        this.remainFreeCount = remainFreeCount;
+    }
+
+    public int getFreeIndex() {
+        return freeIndex;
+    }
+
+    public void setFreeIndex(int freeIndex) {
+        this.freeIndex = freeIndex;
+    }
 
     public int getTotalDollars() {
         return totalDollars;
@@ -80,6 +111,9 @@ public class DollarExpressPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDT
         DollarExpressPlayerGameData dollarGameData = (DollarExpressPlayerGameData) data;
         dollarGameData.setInvers(new AtomicBoolean(this.invers));
         dollarGameData.setAllUnLock(new AtomicBoolean(this.allUnLock));
+        dollarGameData.setFreeIndex(new AtomicInteger(this.freeIndex));
+        dollarGameData.setRemainFreeCount(new AtomicInteger(this.remainFreeCount));
+        dollarGameData.setFreeLib(this.freeLib);
         return data;
     }
 }

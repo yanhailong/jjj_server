@@ -78,7 +78,9 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
             WealthBankPlayerGameData data = gameRunInfo.getData();
             //投资可选区域，只有当触发投资游戏后才会有值
             gameManager.checkInvers(data, gameRunInfo);
-            res.choosableAreas = gameRunInfo.getChoosableAreas();
+            if (data.getInvers().get()) {
+                res.choosableAreas = gameManager.getChoosableAreas(data);
+            }
             res.status = data.getStatus();
             res.dollarTargetCount = gameManager.getDollarExpressCollectDollarConfig().getMax();
             res.collectMinStake = gameManager.getDollarExpressCollectDollarConfig().getStakeAllBetScoreMin();

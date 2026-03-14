@@ -11,6 +11,7 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
 import com.jjg.game.slots.game.dollarexpress.pb.*;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,7 +75,13 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
                     res.poolList.add(poolInfo);
                 }
             }
-
+            DollarExpressPlayerGameData data = gameRunInfo.getData();
+            //投资可选区域，只有当触发投资游戏后才会有值
+            gameManager.checkInvers(data, gameRunInfo);
+            if (data.getInvers().get()) {
+                res.choosableAreas = gameManager.getChoosableAreas(data);
+            }
+            res.status = data.getStatus();
             res.dollarTargetCount = gameManager.getDollarExpressCollectDollarConfig().getMax();
             res.collectMinStake = gameManager.getDollarExpressCollectDollarConfig().getStakeAllBetScoreMin();
             res.dollarCollectedCount = gameRunInfo.getTotalDollars();
