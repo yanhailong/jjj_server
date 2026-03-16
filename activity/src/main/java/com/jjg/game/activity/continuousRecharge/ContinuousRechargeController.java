@@ -328,13 +328,12 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
             // 按天分组获取当天的配置
             List<ContinuouschargingCfg> todayCfgList = this.continuouschargingCfgMap.get(data.getCurrentDayIndex());
-            DailyContinuousData dailyContinuousData = data.queryDailyContinuousByDay(data.getCurrentDayIndex());
-            if (todayCfgList != null && dailyContinuousData != null) {
+            if (todayCfgList != null) {
                 List<Integer> taskList = new ArrayList<>();
                 for (ContinuouschargingCfg cfg : todayCfgList) {
                     taskList.add(cfg.getTask());
                 }
-                activityLogger.sendContinuousLog(player, BigDecimal.ZERO, activityData, data, taskList);
+                activityLogger.sendContinuousLog(player, BigDecimal.ZERO, activityData, data, taskList, goldAmount);
             }
             log.info("七日连充邮件补发成功 playerId={}, goldAmount={}", player.getId(), goldAmount);
         } catch (Exception e) {
@@ -584,7 +583,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         // 保存数据
         dataMap.put(DETAIL_ID, data);
         playerActivityDao.savePlayerActivityData(player.getId(), activityData.getType(), activityData.getId(), dataMap);
-        activityLogger.sendContinuousLog(player, order.getPrice(), activityData, data, taskList);
+        activityLogger.sendContinuousLog(player, order.getPrice(), activityData, data, taskList, data.getRebateGoldNum());
     }
 
     /**
@@ -743,13 +742,12 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
         // 按天分组获取当天的配置
         List<ContinuouschargingCfg> todayCfgList = this.continuouschargingCfgMap.get(data.getCurrentDayIndex());
-        DailyContinuousData dailyContinuousData = data.queryDailyContinuousByDay(data.getCurrentDayIndex());
-        if (todayCfgList != null && dailyContinuousData != null) {
+        if (todayCfgList != null) {
             List<Integer> taskList = new ArrayList<>();
             for (ContinuouschargingCfg cfg : todayCfgList) {
                 taskList.add(cfg.getTask());
             }
-            activityLogger.sendContinuousLog(player, BigDecimal.ZERO, activityData, data, taskList);
+            activityLogger.sendContinuousLog(player, BigDecimal.ZERO, activityData, data, taskList, data.getRebateGoldNum());
         }
         return result;
     }

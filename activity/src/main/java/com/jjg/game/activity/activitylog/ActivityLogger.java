@@ -556,7 +556,7 @@ public class ActivityLogger extends BaseLogger {
      * @param player
      * @param data
      */
-    public void sendContinuousLog(Player player, BigDecimal currentRecharge, ActivityData activityData, ContinuousRechargeActivityData data, List<Integer> taskList) {
+    public void sendContinuousLog(Player player, BigDecimal currentRecharge, ActivityData activityData, ContinuousRechargeActivityData data, List<Integer> taskList, long rebetGoldNum) {
         try {
             JSONObject json = new JSONObject();
             json.put("activityId", activityData.getId());
@@ -583,7 +583,7 @@ public class ActivityLogger extends BaseLogger {
             //返利比例，万分比
             json.put("rebate", data.getTotalRebateRate());
             //实际已领取的金币数量
-            json.put("rewardGold", data.getRebateGoldNum());
+            json.put("rewardGold", rebetGoldNum);
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendCashCowJoinLog error:", e);
