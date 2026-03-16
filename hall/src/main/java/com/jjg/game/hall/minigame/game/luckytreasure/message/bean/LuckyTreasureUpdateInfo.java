@@ -67,6 +67,20 @@ public class LuckyTreasureUpdateInfo {
     @ProtoDesc("结束购买倒计时")
     private int endBuyCountDown;
 
+    /**
+     * 领奖倒计时
+     */
+    @ProtoDesc("领奖倒计时")
+    private int receiveCountdown;
+
+
+    public int getReceiveCountdown() {
+        return receiveCountdown;
+    }
+
+    public void setReceiveCountdown(int receiveCountdown) {
+        this.receiveCountdown = receiveCountdown;
+    }
 
     public String getRewardCode() {
         return rewardCode;

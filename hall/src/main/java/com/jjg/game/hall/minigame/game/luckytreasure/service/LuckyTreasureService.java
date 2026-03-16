@@ -156,6 +156,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                     afterInfo.setSoldCount(treasure.getSoldCount());
                     afterInfo.setCountDown(LuckyTreasureStatusUtil.calculateRewardTimeSecond(treasure));
                     afterInfo.setEndBuyCountDown(LuckyTreasureStatusUtil.calculateCountDown(treasure));
+                    afterInfo.setReceiveCountdown(LuckyTreasureStatusUtil.calculateReceiveCountdown(treasure));
                     afterInfo.setConfigId(treasure.getConfig().getId());
                     afterInfo.setBuyCount(treasure.getBuyMap().size());
                     afterInfo.setRewardCode(treasure.getRewardCode());
@@ -181,6 +182,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                     afterInfo.setSoldCount(treasure.getSoldCount());
                     afterInfo.setCountDown(LuckyTreasureStatusUtil.calculateRewardTimeSecond(treasure));
                     afterInfo.setEndBuyCountDown(LuckyTreasureStatusUtil.calculateCountDown(treasure));
+                    afterInfo.setReceiveCountdown(LuckyTreasureStatusUtil.calculateReceiveCountdown(treasure));
                     afterInfo.setConfigId(treasure.getConfig().getId());
                     afterInfo.setBuyCount(treasure.getBuyMap().size());
                     afterInfo.setRewardCode(treasure.getRewardCode());
