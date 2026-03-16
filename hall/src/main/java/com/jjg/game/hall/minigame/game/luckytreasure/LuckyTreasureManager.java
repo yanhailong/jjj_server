@@ -837,27 +837,23 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             } else {
                 log.warn("夺宝奇兵[{}]开奖后未查询到中奖玩家信息, winnerPlayerId={}", luckyTreasure.getIssueNumber(), winnerPlayerId);
             }
-
-            //标记未领取
-            List<Item> items = List.of();
             // 根据type类型处理奖励
             if (config.getType() == 1) {
                 String rewardCode = awardCodeManager.generateCode(winnerPlayerId, AwardCodeType.LUCK_TREASURE);
                 log.info("夺宝奇兵[{}]结束,玩家[{}]中奖,生成领奖码[{}]", luckyTreasure.getIssueNumber(), winnerPlayerId, rewardCode);
                 luckyTreasure.setRewardCode(rewardCode);
             } else {
-                items = ItemUtils.buildItemList(config.getItemId(), config.getItemNum());
+                List<Item> items = ItemUtils.buildItemList(config.getItemId(), config.getItemNum());
+                //获取奖励邮件配置
+                MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
+                if (mailCfg != null) {
+                    //发送邮件奖励
+                    mailService.addCfgMail(winnerPlayerId, mailCfg.getTitle(), mailCfg.getText(), items, Collections.emptyList(), AddType.LUCKY_TREASURE_REWARDS, null);
+                    luckyTreasure.setReceived(true);
+                } else {
+                    log.warn("夺宝奇兵[{}]开奖后未找到奖励邮件配置, winnerPlayerId={}", luckyTreasure.getIssueNumber(), winnerPlayerId);
+                }
             }
-            //获取奖励邮件配置
-            MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
-            if (mailCfg != null) {
-                //发送邮件奖励
-                mailService.addCfgMail(winnerPlayerId, mailCfg.getTitle(), mailCfg.getText(), items, Collections.emptyList(), AddType.LUCKY_TREASURE_REWARDS, null);
-                luckyTreasure.setReceived(config.getType() == 2);
-            } else {
-                log.warn("夺宝奇兵[{}]开奖后未找到奖励邮件配置, winnerPlayerId={}", luckyTreasure.getIssueNumber(), winnerPlayerId);
-            }
-
         }
         //更新状态
         luckyTreasure.setStatus(LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE);
