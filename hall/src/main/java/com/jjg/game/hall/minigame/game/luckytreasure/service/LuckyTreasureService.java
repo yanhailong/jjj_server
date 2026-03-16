@@ -768,7 +768,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                 }
                 return LuckyTreasureStatusUtil.STATUS_CAN_BUY;
             }
-            if (endTime < currentTime) {
+            if (endTime > 0 && endTime < currentTime) {
                 return LuckyTreasureStatusUtil.STATUS_WAIT_DRAW;
             }
             // 可继续购买
