@@ -31,7 +31,17 @@ public class LuckyTreasureRedisDao {
      * 检查指定配置ID是否已有活跃的活动
      */
     public boolean hasActiveRound(int configId) {
-        return getActiveConfigMap().containsKey(configId);
+        RMapCache<Integer, Long> activeConfigMap = getActiveConfigMap();
+        Long issueNumber = activeConfigMap.get(configId);
+        if (issueNumber == null) {
+            return false;
+        }
+        if (getActiveTreasures().containsKey(issueNumber)) {
+            return true;
+        }
+        // 仅当映射仍然指向这期活动时才清理，避免误删并发创建的新轮次。
+        activeConfigMap.remove(configId, issueNumber);
+        return false;
     }
 
     public RMapCache<Long, LuckyTreasure> getActiveTreasures() {
@@ -47,12 +57,17 @@ public class LuckyTreasureRedisDao {
      */
     public void saveActiveRound(LuckyTreasure luckyTreasure, int expireMinutes) {
         RMapCache<Long, LuckyTreasure> cacheMap = getActiveTreasures();
-        //保存并且设置过期
-        cacheMap.put(luckyTreasure.getIssueNumber(), luckyTreasure, expireMinutes, TimeUnit.MINUTES);
-
-        // 同时维护configId到期号的映射，用于按配置ID查询
         RMapCache<Integer, Long> configMap = getActiveConfigMap();
-        configMap.put(luckyTreasure.getConfig().getId(), luckyTreasure.getIssueNumber(), expireMinutes, TimeUnit.MINUTES);
+        if (expireMinutes > 0) {
+            // 保存并设置过期
+            cacheMap.put(luckyTreasure.getIssueNumber(), luckyTreasure, expireMinutes, TimeUnit.MINUTES);
+            // 同时维护configId到期号的映射，用于按配置ID查询
+            configMap.put(luckyTreasure.getConfig().getId(), luckyTreasure.getIssueNumber(), expireMinutes, TimeUnit.MINUTES);
+        } else {
+            // 按售罄结算时没有结束时间，活跃轮次不应带 TTL。
+            cacheMap.put(luckyTreasure.getIssueNumber(), luckyTreasure);
+            configMap.put(luckyTreasure.getConfig().getId(), luckyTreasure.getIssueNumber());
+        }
 
         // 直接按期号存储活动数据，实现一次查询
 //        String issueKey = buildIssueMappingKey(luckyTreasure.getIssueNumber());
@@ -87,13 +102,12 @@ public class LuckyTreasureRedisDao {
      */
     public void removeActiveRoundByIssueNumber(long issueNumber) {
         RMapCache<Long, LuckyTreasure> activeTreasuresMap = getActiveTreasures();
-        LuckyTreasure treasure = activeTreasuresMap.get(issueNumber);
+        LuckyTreasure treasure = activeTreasuresMap.remove(issueNumber);
+        RMapCache<Integer, Long> activeConfigMap = getActiveConfigMap();
 
-        if (treasure != null) {
-            // 删除期号Key
-            activeTreasuresMap.remove(issueNumber);
-            // 删除配置映射
-            getActiveConfigMap().remove(treasure.getConfig().getId());
+        if (treasure != null && treasure.getConfig() != null) {
+            // 仅删除当前期号对应的配置映射，避免误删并发创建的新轮次。
+            activeConfigMap.remove(treasure.getConfig().getId(), issueNumber);
         }
     }
 

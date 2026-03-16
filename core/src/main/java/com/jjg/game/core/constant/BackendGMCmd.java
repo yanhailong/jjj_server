@@ -67,6 +67,8 @@ public interface BackendGMCmd {
 
     //分享连接地址
     String SHARE_URL_PREFIX = "shareUrlPrefix";
+    //获取当前分享连接地址
+    String GET_SHARE_URL_PREFIX = "getShareUrlPrefix";
     //批量获取玩家信息
     String BATCH_GET_PLAYERS_INFO = "batchGetPlayersInfo";
     //后台充值

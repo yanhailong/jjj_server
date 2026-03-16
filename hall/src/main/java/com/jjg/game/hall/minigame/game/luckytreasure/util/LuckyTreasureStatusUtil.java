@@ -42,14 +42,7 @@ public class LuckyTreasureStatusUtil {
      * 计算开奖倒计时（秒）
      */
     public static int calculateCountDown(LuckyTreasure treasure) {
-        long currentTime = System.currentTimeMillis();
-        long endTime = treasure.getEndTime();
-
-        if (currentTime >= endTime) {
-            return 0;
-        }
-
-        return (int) ((endTime - currentTime) / 1000);
+        return (int) (treasure.getEndTime() / 1000);
     }
 
     /**
@@ -58,7 +51,6 @@ public class LuckyTreasureStatusUtil {
     public static int calculateReceiveCountdown(LuckyTreasure treasure) {
         // 这里可以根据实际业务逻辑计算领奖倒计时
         // 比如开奖后24小时内可以领奖
-        long currentTime = System.currentTimeMillis();
         long endTime = treasure.getEndTime();
         if (endTime <= 0) {
             return 0;
@@ -66,12 +58,7 @@ public class LuckyTreasureStatusUtil {
         long rewardTime = getRewardDelayMillis();
 
         long receiveDeadline = endTime + rewardTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
-
-        if (currentTime >= receiveDeadline) {
-            return 0;
-        }
-
-        return (int) ((receiveDeadline - currentTime) / 1000);
+        return (int) ((receiveDeadline / 1000));
     }
 
     /**
@@ -85,12 +72,8 @@ public class LuckyTreasureStatusUtil {
     }
 
     public static int calculateRewardTimeSecond(LuckyTreasure luckyTreasure) {
-        long currentTime = System.currentTimeMillis();
-        long time = calculateRewardTimeMillis(luckyTreasure);
-        if (time <= currentTime) {
-            return 0;
-        }
-        return (int) ((time - currentTime) / 1000);
+        return (int) (calculateRewardTimeMillis(luckyTreasure) / 1000);
+
     }
 
     public static long getRewardDelayMillis() {

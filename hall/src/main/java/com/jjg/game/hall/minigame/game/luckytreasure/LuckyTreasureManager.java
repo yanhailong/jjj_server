@@ -18,6 +18,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
+import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.LuckyTreasure;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.manager.AwardCodeManager;
@@ -48,6 +49,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -824,6 +826,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         long winnerPlayerId = randomKey(buyMap, config.getTotal());
         //有玩家中奖
         if (winnerPlayerId > 0) {
+            luckyTreasure.setAwardPlayerId(winnerPlayerId);
             Player player = hallPlayerService.getFromAllDB(winnerPlayerId);
             if (player != null) {
                 luckyTreasure.setAwardPlayerHeadFrameId(player.getHeadFrameId());
@@ -831,23 +834,26 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 luckyTreasure.setAwardPlayerHeadImgId(player.getHeadImgId());
                 luckyTreasure.setAwardPlayerNationalId(player.getNationalId());
                 luckyTreasure.setAwardPlayerLevel(player.getLevel());
-
-                luckyTreasure.setAwardPlayerId(winnerPlayerId);
-                // 根据type类型处理奖励
-                if (config.getType() == 1) {
-                    String rewardCode = awardCodeManager.generateCode(winnerPlayerId, AwardCodeType.LUCK_TREASURE);
-                    log.info("夺宝奇兵[{}]结束,玩家[{}]中奖,生成领奖码[{}]", luckyTreasure.getIssueNumber(), winnerPlayerId, rewardCode);
-                    luckyTreasure.setRewardCode(rewardCode);
-                }
-                //标记未领取
-                luckyTreasure.setReceived(false);
-
+            } else {
+                log.warn("夺宝奇兵[{}]开奖后未查询到中奖玩家信息, winnerPlayerId={}", luckyTreasure.getIssueNumber(), winnerPlayerId);
+            }
+            // 根据type类型处理奖励
+            if (config.getType() == 1) {
+                String rewardCode = awardCodeManager.generateCode(winnerPlayerId, AwardCodeType.LUCK_TREASURE);
+                log.info("夺宝奇兵[{}]结束,玩家[{}]中奖,生成领奖码[{}]", luckyTreasure.getIssueNumber(), winnerPlayerId, rewardCode);
+                luckyTreasure.setRewardCode(rewardCode);
+            } else {
+                List<Item> items = ItemUtils.buildItemList(config.getItemId(), config.getItemNum());
                 //获取奖励邮件配置
                 MailCfg mailCfg = GameDataManager.getMailCfg(LuckyTreasureConstant.MailId.REWARD_MAIL_ID);
-                //发送邮件奖励
-                mailService.addCfgMail(player.getId(), mailCfg.getTitle(), mailCfg.getText(), ItemUtils.buildItemList(config.getItemId(), config.getItemNum()), Collections.emptyList(), AddType.LUCKY_TREASURE_REWARDS, null);
+                if (mailCfg != null) {
+                    //发送邮件奖励
+                    mailService.addCfgMail(winnerPlayerId, mailCfg.getTitle(), mailCfg.getText(), items, Collections.emptyList(), AddType.LUCKY_TREASURE_REWARDS, null);
+                    luckyTreasure.setReceived(true);
+                } else {
+                    log.warn("夺宝奇兵[{}]开奖后未找到奖励邮件配置, winnerPlayerId={}", luckyTreasure.getIssueNumber(), winnerPlayerId);
+                }
             }
-
         }
         //更新状态
         luckyTreasure.setStatus(LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE);
@@ -874,8 +880,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         if (mapValueSum <= 0) {
             return 0;
         }
-        // 生成随机数，范围是[0, totalCount)
-        long randomValue = RandomUtils.randomLongMinMax(0L, totalCount);
+        // 生成随机数，范围是[0, totalCount)，满额售罄时不能再抽到“无中奖”。
+        long randomValue = ThreadLocalRandom.current().nextLong(totalCount);
         // 如果随机数大于等于map的value总和，说明没有选中任何key（按既有业务语义：可能不开奖）
         if (randomValue >= mapValueSum) {
             return 0;
