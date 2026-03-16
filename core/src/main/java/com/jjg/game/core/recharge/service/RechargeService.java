@@ -13,6 +13,7 @@ import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.dao.PlayerRechargeFlowDao;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.listener.TmpRechargeListener;
 import com.jjg.game.core.pb.NotifyPayInfo;
 import com.jjg.game.core.pb.NotifyRechargeServer;
 import com.jjg.game.core.recharge.dao.OfflineRechargeDao;
@@ -20,6 +21,7 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.DefaultTaskConditionParam;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -45,6 +47,7 @@ public class RechargeService {
     private final TaskManager taskManager;
     private final ClusterSystem clusterSystem;
     private final TodayDepositCondition todayDepositCondition;
+    private final List<TmpRechargeListener> tmpRechargeListeners;
 
     public RechargeService(OfflineRechargeDao offlineRechargeDao,
                            CorePlayerService playerService,
@@ -54,7 +57,7 @@ public class RechargeService {
                            PlayerRechargeFlowDao playerRechargeFlowDao,
                            TaskManager taskManager,
                            ClusterSystem clusterSystem,
-                           TodayDepositCondition conditionManager) {
+                           TodayDepositCondition conditionManager, List<TmpRechargeListener> tmpRechargeListeners) {
         this.offlineRechargeDao = offlineRechargeDao;
         this.playerService = playerService;
         this.orderService = orderService;
@@ -64,6 +67,7 @@ public class RechargeService {
         this.taskManager = taskManager;
         this.clusterSystem = clusterSystem;
         this.todayDepositCondition = conditionManager;
+        this.tmpRechargeListeners = tmpRechargeListeners;
     }
 
     public void loadOfflineRecharge(long playerId) {
@@ -109,24 +113,41 @@ public class RechargeService {
             }
             addRechargeFlowWithCompensate(order, notify.playerId);
 
-            todayDepositCondition.addBaseProgress(player.getId(), order.getPrice());
-            //充值事件
-            gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order, notify.money, notify.regionCode, notify.channelProductId));
-            //任务条件参数
-            Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
-                DefaultTaskConditionParam param = new DefaultTaskConditionParam();
-                param.setAddValue(order.getPrice().multiply(BigDecimal.valueOf(100)).longValue());
-                return param;
-            };
-            Map<String, Object> resMap = countDao.incrRechargeInfo(String.valueOf(player.getId()), order.getPrice());
-            //单笔充值任务
-            taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
-            //累计充值任务
-            taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_SUM_PAY, paramSupplier);
+            //todo 因为3.0版本的充值事件有改动，避免合代码麻烦，所以这里做临时修改
+            int allRechargeCount = 0;
+
+            if (StringUtils.isEmpty(order.getDesc())) {
+                todayDepositCondition.addBaseProgress(player.getId(), order.getPrice());
+                //充值事件
+                gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order, notify.money, notify.regionCode, notify.channelProductId));
+                //任务条件参数
+                Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
+                    DefaultTaskConditionParam param = new DefaultTaskConditionParam();
+                    param.setAddValue(order.getPrice().multiply(BigDecimal.valueOf(100)).longValue());
+                    return param;
+                };
+                Map<String, Object> resMap = countDao.incrRechargeInfo(String.valueOf(player.getId()), order.getPrice());
+                //单笔充值任务
+                taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
+                //累计充值任务
+                taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_SUM_PAY, paramSupplier);
+
+                allRechargeCount = resMap == null ? 0 : ((Long) resMap.get(CountDao.CountType.RECHARGE_COUNT.getParam())).intValue();
+            } else {
+                if (CollectionUtil.isNotEmpty(this.tmpRechargeListeners)) {
+                    this.tmpRechargeListeners.forEach(bean -> bean.recharge(player, order));
+                }
+
+                Long countLong = countDao.getCountLong(CountDao.CountType.RECHARGE_COUNT.getParam(), String.valueOf(player.getId()));
+                if (countLong != null) {
+                    allRechargeCount = countLong.intValue();
+                }
+            }
+
             NotifyPayInfo notifyPayInfo = new NotifyPayInfo();
             notifyPayInfo.orderId = order.getId();
 
-            notifyPayInfo.allRechargeCount = resMap == null ? 0 : ((Long) resMap.get(CountDao.CountType.RECHARGE_COUNT.getParam())).intValue();
+            notifyPayInfo.allRechargeCount = allRechargeCount;
             clusterSystem.sendToPlayer(notifyPayInfo, player.getId());
             log.info("充值成功，通知到玩家所在的当前节点 playerId = {},orderId = {}", player.getId(), order.getId());
         } catch (Exception e) {

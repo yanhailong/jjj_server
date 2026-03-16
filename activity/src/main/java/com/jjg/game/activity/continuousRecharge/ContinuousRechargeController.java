@@ -20,6 +20,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.core.listener.TmpRechargeListener;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
@@ -51,7 +52,7 @@ import java.util.*;
  * @date 2026/3/5
  */
 @Component
-public class ContinuousRechargeController extends BaseActivityController implements GameEventListener, ConfigExcelChangeListener, GmListener {
+public class ContinuousRechargeController extends BaseActivityController implements GameEventListener, ConfigExcelChangeListener, GmListener, TmpRechargeListener {
 
     @Autowired
     private MailService mailService;
@@ -454,6 +455,67 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         }
     }
 
+    @Override
+    public void recharge(Player player, Order order) {
+        long playerId = player.getId();
+
+        try {
+            if (StringUtils.isEmpty(order.getDesc())) {
+                log.debug("该订单没有备注字段，不参与七日连充活动 orderId = {},playerId = {}", order.getId(), playerId);
+                return;
+            }
+
+            JSONObject json = JSONObject.parseObject(order.getDesc());
+            Integer subType = json.getIntValue("subType");
+
+            if (subType != ActivityType.CONTINUOUS_RECHARGE.getType()) {
+                return;
+            }
+            Integer cid = json.getInteger("cid");
+            if (cid == null || (cid != ActivityConstant.ContinuousRecharge.PHASE_CONTINUOUS && cid != ActivityConstant.ContinuousRecharge.PHASE_WELFARE)) {
+                log.warn("订单备注信息中的cid错误 cid = {}", cid);
+                return;
+            }
+
+            // 获取 CONTINUOUS_RECHARGE 类型的所有活动数据
+            Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(ActivityType.CONTINUOUS_RECHARGE);
+            if (CollectionUtil.isEmpty(activityDataMap)) {
+                log.warn("未获取到连续充值活动的数据 playerId={}", playerId);
+                return;
+            }
+
+            // 遍历所有连续充值活动
+            for (ActivityData activityData : activityDataMap.values()) {
+                if (!activityData.canRun()) {
+                    log.warn("该活动没有开启 playerId={},activityId = {}", playerId, activityData.getId());
+                    continue;
+                }
+
+                // 获取玩家的活动数据
+                Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+                dataMap = resetCheck(player, activityData, dataMap);
+                if (CollectionUtil.isEmpty(dataMap)) {
+                    continue;
+                }
+
+                ContinuousRechargeActivityData data = (ContinuousRechargeActivityData) dataMap.get(DETAIL_ID);
+                if (data == null) {
+                    continue;
+                }
+
+                Pair<Integer, long[]> phase = getPhase(activityData, true);
+                if (phase.getFirst() == ActivityConstant.ContinuousRecharge.PHASE_CONTINUOUS) {
+                    // Phase 1: 七日连充充值处理
+                    handleContinuousRecharge(player, activityData, data.getCurrentDayIndex(), data, dataMap, order, phase);
+                } else if (phase.getFirst() == ActivityConstant.ContinuousRecharge.PHASE_WELFARE) {
+                    // Phase 2: 累计福利充值处理
+                    handleWelfareRecharge(player, activityData, data, dataMap, order, phase);
+                }
+            }
+        } catch (Exception e) {
+            log.error("连续充值活动处理充值事件异常 playerId={}", playerId, e);
+        }
+    }
 
     /**
      * 处理游戏事件（充值事件）
@@ -465,68 +527,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
      */
     @Override
     public <T extends GameEvent> void handleEvent(T gameEvent) {
-        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
-            Player player = event.getPlayer();
-            Order order = event.getOrder();
-            long playerId = player.getId();
-
-            try {
-                if (StringUtils.isEmpty(order.getDesc())) {
-                    log.debug("该订单没有备注字段，不参与七日连充活动 orderId = {},playerId = {}", order.getId(), playerId);
-                    return;
-                }
-
-                JSONObject json = JSONObject.parseObject(order.getDesc());
-                Integer subType = json.getIntValue("subType");
-
-                if (subType != ActivityType.CONTINUOUS_RECHARGE.getType()) {
-                    return;
-                }
-                Integer cid = json.getInteger("cid");
-                if (cid == null || (cid != ActivityConstant.ContinuousRecharge.PHASE_CONTINUOUS && cid != ActivityConstant.ContinuousRecharge.PHASE_WELFARE)) {
-                    log.warn("订单备注信息中的cid错误 cid = {}", cid);
-                    return;
-                }
-
-                // 获取 CONTINUOUS_RECHARGE 类型的所有活动数据
-                Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(ActivityType.CONTINUOUS_RECHARGE);
-                if (CollectionUtil.isEmpty(activityDataMap)) {
-                    log.warn("未获取到连续充值活动的数据 playerId={}", playerId);
-                    return;
-                }
-
-                // 遍历所有连续充值活动
-                for (ActivityData activityData : activityDataMap.values()) {
-                    if (!activityData.canRun()) {
-                        log.warn("该活动没有开启 playerId={},activityId = {}", playerId, activityData.getId());
-                        continue;
-                    }
-
-                    // 获取玩家的活动数据
-                    Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-                    dataMap = resetCheck(player, activityData, dataMap);
-                    if (CollectionUtil.isEmpty(dataMap)) {
-                        continue;
-                    }
-
-                    ContinuousRechargeActivityData data = (ContinuousRechargeActivityData) dataMap.get(DETAIL_ID);
-                    if (data == null) {
-                        continue;
-                    }
-
-                    Pair<Integer, long[]> phase = getPhase(activityData, true);
-                    if (phase.getFirst() == ActivityConstant.ContinuousRecharge.PHASE_CONTINUOUS) {
-                        // Phase 1: 七日连充充值处理
-                        handleContinuousRecharge(player, activityData, data.getCurrentDayIndex(), data, dataMap, order, phase);
-                    } else if (phase.getFirst() == ActivityConstant.ContinuousRecharge.PHASE_WELFARE) {
-                        // Phase 2: 累计福利充值处理
-                        handleWelfareRecharge(player, activityData, data, dataMap, order, phase);
-                    }
-                }
-            } catch (Exception e) {
-                log.error("连续充值活动处理充值事件异常 playerId={}", playerId, e);
-            }
-        } else if (gameEvent instanceof ClockEvent event) {
+        if (gameEvent instanceof ClockEvent event) {
             if (event.getHour() == 0) {
                 genTodayWefareCfgIds();
             }
@@ -615,7 +616,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.RECHARGE, EGameEventType.CLOCK_EVENT);
+        return List.of(EGameEventType.CLOCK_EVENT);
     }
 
     /**

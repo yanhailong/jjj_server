@@ -202,11 +202,6 @@ public class CountDao {
         return RedisUtils.fromLong(l);
     }
 
-    public Long getLongCount(String featureId, String customId) {
-        String key = getKey(featureId, customId);
-        return redissonClient.getAtomicLong(key).get();
-    }
-
     /**
      * 原子自增（两位小数）
      *
