@@ -53,6 +53,12 @@ public class LuckyTreasureUpdateInfo {
     private int countDown;
 
     /**
+     * 第三方领奖码
+     */
+    @ProtoDesc("第三方领奖码")
+    private String rewardCode;
+
+    /**
      * 当前状态 1=可购买,2=等待开奖,3=待领取,4=已领取,5=领奖结束(中奖未领取),6=未中奖
      */
     @ProtoDesc("当前状态 1=可购买,2=等待开奖,3=待领取,4=已领取,5=领奖结束(中奖未领取),6=未中奖")
@@ -60,6 +66,15 @@ public class LuckyTreasureUpdateInfo {
 
     @ProtoDesc("结束购买倒计时")
     private int endBuyCountDown;
+
+
+    public String getRewardCode() {
+        return rewardCode;
+    }
+
+    public void setRewardCode(String rewardCode) {
+        this.rewardCode = rewardCode;
+    }
 
     public long getIssueNumber() {
         return issueNumber;
