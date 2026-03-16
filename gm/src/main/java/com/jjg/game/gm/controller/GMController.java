@@ -1309,6 +1309,23 @@ public class GMController extends AbstractController {
     }
 
     /**
+     * 获取当前分享连接
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.GET_SHARE_URL_PREFIX)
+    public WebResult<String> getShareUrlPrefix() {
+        log.info("收到获取分享连接请求");
+        try {
+            String url = sharePromoteDao.getShareUrlPrefix();
+            return success("common.success", url);
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
      * 批量获取玩家信息
      *
      * @param dto
