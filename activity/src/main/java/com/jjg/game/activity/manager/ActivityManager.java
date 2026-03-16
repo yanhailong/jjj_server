@@ -461,7 +461,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
             //玩家首次登录执行
             if (firstLogin && Boolean.TRUE.equals(checked)) {
-                controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
+                controller.checkPlayerDataAndResetOnLogin(player, data);
             }
             //登录初始化进度
             controller.initProgress(player, data);
@@ -836,7 +836,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                             continue;
                         }
                         //重置活动数据
-                        controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
+                        controller.checkPlayerDataAndResetOnLogin(player, data);
                     }
                     //触发登录活动
                     addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);

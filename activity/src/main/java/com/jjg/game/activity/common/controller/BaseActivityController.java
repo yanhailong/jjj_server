@@ -334,16 +334,16 @@ public abstract class BaseActivityController {
     /**
      * 首次登录检查玩家的活动数据是否需要重置
      *
-     * @param playerId     玩家ID
+     * @param player     玩家
      * @param activityData 活动数据
      */
-    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
+    public void checkPlayerDataAndResetOnLogin(Player player, ActivityData activityData) {
         // 限时活动（openType=2）不需要重置
         if (activityData.getOpenType() == ActivityConstant.Common.LIMIT_TYPE) {
             return;
         }
         // 获取玩家该活动的历史数据
-        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
         if (CollectionUtil.isNotEmpty(playerActivityData)) {
             boolean needRest = false;
             for (PlayerActivityData data : playerActivityData.values()) {
@@ -354,7 +354,7 @@ public abstract class BaseActivityController {
                 }
             }
             if (needRest) {
-                playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
+                playerActivityDao.deletePlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
             }
         }
     }

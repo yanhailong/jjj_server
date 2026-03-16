@@ -194,7 +194,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         if (CollectionUtil.isEmpty(dataMap)) {
             return Collections.emptyMap();
         }
-        return resetCheck(player.getId(), activityData, dataMap);
+        return resetCheck(player, activityData, dataMap);
     }
 
     @Override
@@ -285,16 +285,16 @@ public class ContinuousRechargeController extends BaseActivityController impleme
     }
 
     /**
-     * @param playerId     玩家ID
+     * @param player       玩家
      * @param activityData 活动数据
      */
     @Override
-    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
-        Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+    public void checkPlayerDataAndResetOnLogin(Player player, ActivityData activityData) {
+        Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
         if (CollectionUtil.isEmpty(dataMap)) {
             return;
         }
-        resetCheck(playerId, activityData, dataMap);
+        resetCheck(player, activityData, dataMap);
     }
 
     /**
@@ -304,10 +304,10 @@ public class ContinuousRechargeController extends BaseActivityController impleme
      * 累计充值 * 返利比例 / 10000 * global#123配置的兑换比例
      * 通过邮件发放金币奖励。
      *
-     * @param playerId 玩家ID
-     * @param data     活动数据
+     * @param player 玩家
+     * @param data   活动数据
      */
-    private void sendContinuousRewardByMail(long playerId, ContinuousRechargeActivityData data) {
+    private void sendContinuousRewardByMail(Player player, ActivityData activityData, ContinuousRechargeActivityData data) {
         try {
             if (data.getRebateGoldNum() > 0) {
                 return;
@@ -315,7 +315,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             BigDecimal rebateMoney = calRebateMoney(data);
             long goldAmount = calRebateGoldNum(rebateMoney);
             if (goldAmount <= 0) {
-                log.info("七日连充邮件补发：奖励金额为0，跳过 playerId={}", playerId);
+                log.info("七日连充邮件补发：奖励金额为0，跳过 playerId={}", player.getId());
                 return;
             }
             data.setRebateGoldNum(goldAmount);
@@ -324,10 +324,21 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             List<Item> items = new ArrayList<>();
             items.add(new Item(ItemUtils.getGoldItemId(), goldAmount));
             // 通过邮件发放
-            mailService.addCfgMail(playerId, ActivityConstant.ContinuousRecharge.CONTINUOUS_MAIL_ID, items, AddType.ACTIVITY_CONTINUOUS_RECHARGE_REWARD);
-            log.info("七日连充邮件补发成功 playerId={}, goldAmount={}", playerId, goldAmount);
+            mailService.addCfgMail(player.getId(), ActivityConstant.ContinuousRecharge.CONTINUOUS_MAIL_ID, items, AddType.ACTIVITY_CONTINUOUS_RECHARGE_REWARD);
+
+            // 按天分组获取当天的配置
+            List<ContinuouschargingCfg> todayCfgList = this.continuouschargingCfgMap.get(data.getCurrentDayIndex());
+            DailyContinuousData dailyContinuousData = data.queryDailyContinuousByDay(data.getCurrentDayIndex());
+            if (todayCfgList != null && dailyContinuousData != null) {
+                List<Integer> taskList = new ArrayList<>();
+                for (ContinuouschargingCfg cfg : todayCfgList) {
+                    taskList.add(cfg.getTask());
+                }
+                activityLogger.sendContinuousLog(player, BigDecimal.ZERO, activityData, data, taskList);
+            }
+            log.info("七日连充邮件补发成功 playerId={}, goldAmount={}", player.getId(), goldAmount);
         } catch (Exception e) {
-            log.error("七日连充邮件补发异常 playerId={}", playerId, e);
+            log.error("七日连充邮件补发异常 playerId={}", player.getId(), e);
         }
     }
 
@@ -338,10 +349,10 @@ public class ContinuousRechargeController extends BaseActivityController impleme
      * 检查每个 CumulativebenefitsCfg（type=WELFARE_DAILY_TYPE）的达标条件，
      * 如果玩家充值额已达标，则通过邮件补发奖励道具。
      *
-     * @param playerId 玩家ID
-     * @param data     活动数据
+     * @param player 玩家
+     * @param data   活动数据
      */
-    private void sendWelfareDailyRewardsByMail(long playerId, ContinuousRechargeActivityData data, Pair<Integer, long[]> phase) {
+    private void sendWelfareDailyRewardsByMail(Player player, ActivityData activityData, ContinuousRechargeActivityData data, Pair<Integer, long[]> phase) {
         try {
             if (data.getDailyWelfareData() == null) {
                 return;
@@ -374,6 +385,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                 tmpTodayCfgMap = this.todayWelfareCfgMap;
             }
 
+            boolean send = false;
             for (CumulativebenefitsCfg cfg : tmpTodayCfgMap.values()) {
                 if (cfg.getType() != ActivityConstant.ContinuousRecharge.WELFARE_DAILY_TYPE) {
                     continue;
@@ -386,26 +398,31 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
                 long target = cfg.getCondition();
                 if (data.getDailyWelfareData().getRechargeNum().longValue() >= target) {
+                    send = true;
                     // 达标但未领取，通过邮件补发
-                    mailService.addCfgMail(playerId, ActivityConstant.ContinuousRecharge.WELFARE_DAILY_MAIL_ID, ItemUtils.buildItems(cfg.getRewards()), AddType.ACTIVITY_WELFARE_DAILY_REWARD);
+                    mailService.addCfgMail(player.getId(), ActivityConstant.ContinuousRecharge.WELFARE_DAILY_MAIL_ID, ItemUtils.buildItems(cfg.getRewards()), AddType.ACTIVITY_WELFARE_DAILY_REWARD);
 
                     // 标记已补发，避免重复补发
                     data.getDailyWelfareData().receReward(cfg.getId());
-                    log.info("累计福利每日任务邮件补发 playerId={}, day={}, cfgId={}, rechargeNum={}", playerId, data.getDailyWelfareData().getDate(), cfg.getId(), data.getDailyWelfareData().getRechargeNum());
+                    log.info("累计福利每日任务邮件补发 playerId={}, day={}, cfgId={}, rechargeNum={}", player.getId(), data.getDailyWelfareData().getDate(), cfg.getId(), data.getDailyWelfareData().getRechargeNum());
                 }
             }
+
+            if (send) {
+                activityLogger.sendWelfarLog(player, BigDecimal.ZERO, activityData, data, tmpTodayCfgMap);
+            }
         } catch (Exception e) {
-            log.error("累计福利未领取奖励邮件补发异常 playerId={}", playerId, e);
+            log.error("累计福利未领取奖励邮件补发异常 playerId={}", player.getId(), e);
         }
     }
 
     /**
      * 累计福利未领取任务奖励邮件补发
      *
-     * @param playerId
+     * @param player
      * @param data
      */
-    private void sendWelfareMonthRewardsByMail(long playerId, ContinuousRechargeActivityData data) {
+    private void sendWelfareMonthRewardsByMail(Player player, ContinuousRechargeActivityData data) {
         try {
             //获取月累计充值
             if (data.getWelfarMonthRechargeNum() == null) {
@@ -428,13 +445,13 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                     continue;
                 }
                 // 发送邮件
-                mailService.addCfgMail(playerId, ActivityConstant.ContinuousRecharge.WELFARE_MONTH_MAIL_ID, ItemUtils.buildItems(cfg.getRewards()), AddType.ACTIVITY_WELFARE_MONTHLY_REWARD);
+                mailService.addCfgMail(player.getId(), ActivityConstant.ContinuousRecharge.WELFARE_MONTH_MAIL_ID, ItemUtils.buildItems(cfg.getRewards()), AddType.ACTIVITY_WELFARE_MONTHLY_REWARD);
                 // 标记已补发，避免重复补发
                 data.welfareReward(cfg.getId());
-                log.info("福利月奖励邮件补发 playerId={}, cfgId={}, rechargeNum={}", playerId, cfg.getId(), monthRecharge);
+                log.info("福利月奖励邮件补发 playerId={}, cfgId={}, rechargeNum={}", player.getId(), cfg.getId(), monthRecharge);
             }
         } catch (Exception e) {
-            log.error("福利月奖励邮件补发异常 playerId={}", playerId, e);
+            log.error("福利月奖励邮件补发异常 playerId={}", player.getId(), e);
         }
     }
 
@@ -488,7 +505,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
                     // 获取玩家的活动数据
                     Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-                    dataMap = resetCheck(playerId, activityData, dataMap);
+                    dataMap = resetCheck(player, activityData, dataMap);
                     if (CollectionUtil.isEmpty(dataMap)) {
                         continue;
                     }
@@ -643,9 +660,9 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
             CommonResult<List<Item>> rewardResult;
             if (phase.getFirst() == ActivityConstant.ContinuousRecharge.PHASE_CONTINUOUS) {
-                rewardResult = claimContinuousReward(playerId, activityData, data, dataMap, phase);
+                rewardResult = claimContinuousReward(player, activityData, data, dataMap, phase);
             } else {
-                rewardResult = claimWelfareReward(playerId, activityData, data, dataMap, detailId);
+                rewardResult = claimWelfareReward(player, activityData, data, dataMap, detailId);
             }
 
             if (!rewardResult.success()) {
@@ -675,18 +692,18 @@ public class ContinuousRechargeController extends BaseActivityController impleme
      * <p>
      * 领取后标记已结算，切换到Phase 2（累计福利）。
      *
-     * @param playerId     玩家ID
+     * @param player       玩家ID
      * @param activityData 活动配置
      * @param data         活动数据
      * @param dataMap      玩家活动数据Map
      * @return 领取结果响应
      */
-    private CommonResult<List<Item>> claimContinuousReward(long playerId, ActivityData activityData, ContinuousRechargeActivityData data, Map<Integer, PlayerActivityData> dataMap, Pair<Integer, long[]> phase) {
+    private CommonResult<List<Item>> claimContinuousReward(Player player, ActivityData activityData, ContinuousRechargeActivityData data, Map<Integer, PlayerActivityData> dataMap, Pair<Integer, long[]> phase) {
         CommonResult<List<Item>> result = new CommonResult<>(Code.SUCCESS);
         // 已经结算过
         if (data.getRebateGoldNum() > 0) {
             result.code = Code.REPEAT_OP;
-            log.warn("该奖励已经领取过 playerId = {}", playerId);
+            log.warn("该奖励已经领取过 playerId = {}", player.getId());
             return result;
         }
 
@@ -694,7 +711,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         long entTime = phase.getSecond()[1];
         long now = currentTimeMillis();
         if (!TimeHelper.inSameDay(entTime, now)) {
-            log.warn("未到阶段1活动的结算时间 playerId = {},endTime = {}", playerId, entTime);
+            log.warn("未到阶段1活动的结算时间 playerId = {},endTime = {}", player.getId(), entTime);
             result.code = Code.FORBID;
             return result;
         }
@@ -707,7 +724,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             // 发放金币
             Map<Integer, Long> rewardItems = new HashMap<>();
             rewardItems.put(ItemUtils.getGoldItemId(), goldAmount);
-            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, rewardItems, AddType.ACTIVITY_CONTINUOUS_RECHARGE_REWARD);
+            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(player.getId(), rewardItems, AddType.ACTIVITY_CONTINUOUS_RECHARGE_REWARD);
             if (!addResult.success()) {
                 result.code = addResult.code;
                 return result;
@@ -719,10 +736,21 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
         // 保存数据
         dataMap.put(DETAIL_ID, data);
-        playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
+        playerActivityDao.savePlayerActivityData(player.getId(), activityData.getType(), activityData.getId(), dataMap);
 
         result.data = ItemUtils.buildItemList(ItemUtils.getGoldItemId(), goldAmount);
-        log.info("七日连充领取奖励 playerId={}, totalRecharge={}, rebateRate={}, goldAmount={}", playerId, data.getContinuousTotalRecharge(), data.getTotalRebateRate(), goldAmount);
+        log.info("七日连充领取奖励 playerId={}, totalRecharge={}, rebateRate={}, goldAmount={}", player.getId(), data.getContinuousTotalRecharge(), data.getTotalRebateRate(), goldAmount);
+
+        // 按天分组获取当天的配置
+        List<ContinuouschargingCfg> todayCfgList = this.continuouschargingCfgMap.get(data.getCurrentDayIndex());
+        DailyContinuousData dailyContinuousData = data.queryDailyContinuousByDay(data.getCurrentDayIndex());
+        if (todayCfgList != null && dailyContinuousData != null) {
+            List<Integer> taskList = new ArrayList<>();
+            for (ContinuouschargingCfg cfg : todayCfgList) {
+                taskList.add(cfg.getTask());
+            }
+            activityLogger.sendContinuousLog(player, BigDecimal.ZERO, activityData, data, taskList);
+        }
         return result;
     }
 
@@ -733,21 +761,21 @@ public class ContinuousRechargeController extends BaseActivityController impleme
      * - 每日任务（type=1）：检查今日充值是否达标，发放 CumulativebenefitsCfg.rewards
      * - 本月累计任务（type=2）：检查月累计充值是否达标，发放奖励
      *
-     * @param playerId     玩家ID
+     * @param player       玩家ID
      * @param activityData 活动配置
      * @param data         活动数据
      * @param dataMap      玩家活动数据Map
      * @param detailId     配置ID（CumulativebenefitsCfg的id）
      * @return 领取结果响应
      */
-    private CommonResult<List<Item>> claimWelfareReward(long playerId, ActivityData activityData, ContinuousRechargeActivityData data, Map<Integer, PlayerActivityData> dataMap, int detailId) {
+    private CommonResult<List<Item>> claimWelfareReward(Player player, ActivityData activityData, ContinuousRechargeActivityData data, Map<Integer, PlayerActivityData> dataMap, int detailId) {
         CommonResult<List<Item>> result = new CommonResult<>(Code.SUCCESS);
 
         // 获取配置
         CumulativebenefitsCfg cfg = GameDataManager.getCumulativebenefitsCfgMap().get(detailId);
         if (cfg == null) {
             result.code = Code.SAMPLE_ERROR;
-            log.warn("未获取到配置 playerId = {}，cfgId = {}", playerId, detailId);
+            log.warn("未获取到配置 playerId = {}，cfgId = {}", player.getId(), detailId);
             return result;
         }
 
@@ -759,38 +787,38 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         if (taskType == ActivityConstant.ContinuousRecharge.WELFARE_DAILY_TYPE) {
             if (!this.todayWelfareCfgMap.containsKey(cfg.getId())) {
                 result.code = Code.FORBID;
-                log.warn("该配置id不在今天随机配置中 playerId = {}", playerId);
+                log.warn("该配置id不在今天随机配置中 playerId = {}", player.getId());
                 return result;
             }
 
             if (data.getDailyWelfareData() == null) {
                 result.code = Code.FAIL;
-                log.warn("玩家福利活动每日充值数据为空 playerId = {}", playerId);
+                log.warn("玩家福利活动每日充值数据为空 playerId = {}", player.getId());
                 return result;
             }
 
             if (data.getDailyWelfareData().getDate() != date) {
                 result.code = Code.PARAM_ERROR;
-                log.warn("福利奖励只能领取当天的 playerId = {}，dataDate = {},date = {}", playerId, data.getDailyWelfareData().getDate(), date);
+                log.warn("福利奖励只能领取当天的 playerId = {}，dataDate = {},date = {}", player.getId(), data.getDailyWelfareData().getDate(), date);
                 return result;
             }
 
             if (data.getDailyWelfareData().getRechargeNum() == null || data.getDailyWelfareData().getRechargeNum().longValue() < target) {
                 result.code = Code.PARAM_ERROR;
-                log.warn("获取福利数据失败 playerId = {}", playerId);
+                log.warn("获取福利数据失败 playerId = {}", player.getId());
                 return result;
             }
 
             // 检查是否已领取（以配置ID为key检查当日是否已领取）
             if (data.getDailyWelfareData().rece(cfg.getId())) {
                 result.code = Code.REPEAT_OP;
-                log.warn("该奖励已经领取过 playerId = {},cfgId = {}", playerId, detailId);
+                log.warn("该奖励已经领取过 playerId = {},cfgId = {}", player.getId(), detailId);
                 return result;
             }
 
             // 发放奖励
             if (CollectionUtil.isNotEmpty(rewards)) {
-                CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_WELFARE_DAILY_REWARD);
+                CommonResult<ItemOperationResult> addResult = playerPackService.addItems(player.getId(), rewards, AddType.ACTIVITY_WELFARE_DAILY_REWARD);
                 if (!addResult.success()) {
                     result.code = addResult.code;
                     return result;
@@ -800,31 +828,31 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             // 标记已领取
             data.getDailyWelfareData().receReward(cfg.getId());
             result.data = ItemUtils.buildItems(rewards);
-            log.info("玩家成功领取七日福利的每日奖励 playerId = {}", playerId);
+            log.info("玩家成功领取七日福利的每日奖励 playerId = {}", player.getId());
         } else if (taskType == ActivityConstant.ContinuousRecharge.WELFARE_MONTHLY_TYPE) {
             // 本月累计任务：检查月累计充值是否达标
             if (data.getWelfarMonthRechargeNum() == null) {
                 result.code = Code.PARAM_ERROR;
-                log.warn("未达到领取条件 playerId = {}，target = {}", playerId, target);
+                log.warn("未达到领取条件 playerId = {}，target = {}", player.getId(), target);
                 return result;
             }
             long monthlyTotal = data.getWelfarMonthRechargeNum().longValue();
             if (monthlyTotal < target) {
                 result.code = Code.PARAM_ERROR;
-                log.warn("未达到领取条件2 playerId = {}，monthlyTotal = {},target = {}", playerId, monthlyTotal, target);
+                log.warn("未达到领取条件2 playerId = {}，monthlyTotal = {},target = {}", player.getId(), monthlyTotal, target);
                 return result;
             }
 
             // 检查是否已领取
             if (data.welfarRece(detailId)) {
                 result.code = Code.REPEAT_OP;
-                log.warn("玩家已领取过该活动 playerId = {}，detailId = {}", playerId, detailId);
+                log.warn("玩家已领取过该活动 playerId = {}，detailId = {}", player.getId(), detailId);
                 return result;
             }
 
             // 发放奖励
             if (CollectionUtil.isNotEmpty(rewards)) {
-                CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_WELFARE_MONTHLY_REWARD);
+                CommonResult<ItemOperationResult> addResult = playerPackService.addItems(player.getId(), rewards, AddType.ACTIVITY_WELFARE_MONTHLY_REWARD);
                 if (!addResult.success()) {
                     result.code = addResult.code;
                     return result;
@@ -834,7 +862,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             // 标记已领取
             data.welfareReward(cfg.getId());
             result.data = ItemUtils.buildItems(rewards);
-            log.info("玩家成功领取七日福利的月奖励 playerId = {}", playerId);
+            log.info("玩家成功领取七日福利的月奖励 playerId = {}", player.getId());
         } else {
             result.code = Code.PARAM_ERROR;
             return result;
@@ -842,9 +870,9 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
         // 保存数据
         dataMap.put(DETAIL_ID, data);
-        playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
-
-        log.info("累计福利领取奖励 playerId={}, cfgId={}, taskType={}", playerId, detailId, taskType);
+        playerActivityDao.savePlayerActivityData(player.getId(), activityData.getType(), activityData.getId(), dataMap);
+        activityLogger.sendWelfarLog(player, BigDecimal.ZERO, activityData, data, this.todayWelfareCfgMap);
+        log.info("累计福利领取奖励 playerId={}, cfgId={}, taskType={}", player.getId(), detailId, taskType);
         return result;
     }
 
@@ -927,13 +955,18 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
         //获取领奖状态
         if (data.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
-            //判断是不是最后一天
-            long endTime = phase.getSecond()[1];
-            long now = currentTimeMillis();
-            if (TimeHelper.inSameDay(endTime, now)) {
-                info.claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
-            } else {
+            //先判断是不是有充值
+            if (data.getTotalRebateRate() < 1) {
                 info.claimStatus = data.getClaimStatus();
+            } else {
+                //判断是不是最后一天
+                long endTime = phase.getSecond()[1];
+                long now = currentTimeMillis();
+                if (TimeHelper.inSameDay(endTime, now)) {
+                    info.claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
+                } else {
+                    info.claimStatus = data.getClaimStatus();
+                }
             }
         } else {
             info.claimStatus = data.getClaimStatus();
@@ -1048,10 +1081,10 @@ public class ContinuousRechargeController extends BaseActivityController impleme
     /**
      * 重置检查
      *
-     * @param playerId
+     * @param player
      * @param activityData
      */
-    private Map<Integer, PlayerActivityData> resetCheck(long playerId, ActivityData activityData, Map<Integer, PlayerActivityData> dataMap) {
+    private Map<Integer, PlayerActivityData> resetCheck(Player player, ActivityData activityData, Map<Integer, PlayerActivityData> dataMap) {
         try {
             ContinuousRechargeActivityData data = (ContinuousRechargeActivityData) dataMap.get(DETAIL_ID);
             if (data == null) {
@@ -1069,30 +1102,30 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             Pair<Integer, long[]> phase = getPhase(activityData, true);
             if (phase.getFirst() == ActivityConstant.ContinuousRecharge.PHASE_CONTINUOUS) {
                 //天数检查切换
-                handleContinuousDaySwitch(playerId, data, lastCheckDate, today);
+                handleContinuousDaySwitch(player.getId(), data, lastCheckDate, today);
             } else if (phase.getFirst() == ActivityConstant.ContinuousRecharge.PHASE_WELFARE) {  //如果是第二阶段，则要检查第一阶段的奖励是否发放
                 data.setJoinType(2);
                 //补发第一阶段的奖励邮件
-                sendContinuousRewardByMail(playerId, data);
+                sendContinuousRewardByMail(player, activityData, data);
                 // 检查昨日未领取的每日任务奖励 → 邮件补发
-                sendWelfareDailyRewardsByMail(playerId, data, phase);
+                sendWelfareDailyRewardsByMail(player, activityData, data, phase);
                 //跨天重置福利活动的数据
-                handleWelfareDaySwitch(playerId, data, lastCheckDate, today);
+                handleWelfareDaySwitch(player.getId(), data, lastCheckDate, today);
                 data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
             } else { //如果已结束，则要检查第二阶段的奖励是否发放
-                sendWelfareDailyRewardsByMail(playerId, data, phase);
-                sendWelfareMonthRewardsByMail(playerId, data);
-                playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
+                sendWelfareDailyRewardsByMail(player, activityData, data, phase);
+                sendWelfareMonthRewardsByMail(player, data);
+                playerActivityDao.deletePlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
                 return Collections.emptyMap();
             }
 
             // 更新最后检查日期并保存
             data.setLastCheckDate(today);
             dataMap.put(DETAIL_ID, data);
-            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
+            playerActivityDao.savePlayerActivityData(player.getId(), activityData.getType(), activityData.getId(), dataMap);
             return dataMap;
         } catch (Exception e) {
-            log.error("连续充值活动检查异常 playerId={}", playerId, e);
+            log.error("连续充值活动检查异常 playerId={}", player.getId(), e);
         }
         return null;
     }

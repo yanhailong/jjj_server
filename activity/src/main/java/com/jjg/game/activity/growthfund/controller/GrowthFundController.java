@@ -449,12 +449,12 @@ public class GrowthFundController extends BaseActivityController implements Game
     }
 
     @Override
-    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
+    public void checkPlayerDataAndResetOnLogin(Player player, ActivityData activityData) {
         if (activityData.getOpenType() == ActivityConstant.Common.LIMIT_TYPE) {
             return;
         }
         // 获取玩家该活动的历史数据
-        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
         if (CollectionUtil.isNotEmpty(playerActivityData)) {
             boolean needRest = false;
             for (PlayerActivityData data : playerActivityData.values()) {
@@ -465,8 +465,8 @@ public class GrowthFundController extends BaseActivityController implements Game
                 }
             }
             if (needRest) {
-                playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
-                clearInitProgress(playerId, activityData);
+                playerActivityDao.deletePlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
+                clearInitProgress(player.getId(), activityData);
             }
         }
     }

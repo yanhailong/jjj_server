@@ -281,11 +281,11 @@ public class DailyRechargeController extends BaseActivityController implements G
     }
 
     @Override
-    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
+    public void checkPlayerDataAndResetOnLogin(Player player, ActivityData activityData) {
         //清除数据
-        countDao.reset(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(DAILY_RECHARGE), String.valueOf(playerId));
-        dailyRechargeDao.delete(playerId, activityData.getId());
-        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        countDao.reset(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(DAILY_RECHARGE), String.valueOf(player.getId()));
+        dailyRechargeDao.delete(player.getId(), activityData.getId());
+        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
         if (CollectionUtil.isEmpty(playerActivityData)) {
             return;
         }
@@ -298,12 +298,12 @@ public class DailyRechargeController extends BaseActivityController implements G
                         CollectionUtil.isEmpty(dailyRechargeCfg.getAwardItem())) {
                     continue;
                 }
-                mailService.addCfgMail(playerId, MAIL_CFG_ID, ItemUtils.buildItems(dailyRechargeCfg.getAwardItem()),AddType.ACTIVITY_DAILY_RECHARGE_PROGRESS);
+                mailService.addCfgMail(player.getId(), MAIL_CFG_ID, ItemUtils.buildItems(dailyRechargeCfg.getAwardItem()),AddType.ACTIVITY_DAILY_RECHARGE_PROGRESS);
             } catch (Exception e) {
-                log.error("每日充值未领取奖励发送邮件异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), entry.getKey(), e);
+                log.error("每日充值未领取奖励发送邮件异常 playerId:{} activityId:{} detailId:{}", player.getId(), activityData.getId(), entry.getKey(), e);
             }
         }
-        playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        playerActivityDao.deletePlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
     }
 
     @Override

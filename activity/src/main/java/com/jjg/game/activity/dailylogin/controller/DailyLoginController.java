@@ -296,9 +296,9 @@ public class DailyLoginController extends BaseActivityController {
 
 
     @Override
-    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
-        super.checkPlayerDataAndResetOnLogin(playerId, activityData);
-        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+    public void checkPlayerDataAndResetOnLogin(Player player, ActivityData activityData) {
+        super.checkPlayerDataAndResetOnLogin(player, activityData);
+        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
         if (CollectionUtil.isEmpty(playerActivityData)) {
             return;
         }
@@ -327,7 +327,7 @@ public class DailyLoginController extends BaseActivityController {
             }
         }
         //获取上次领取时间
-        long claimTime = dailyLoginDao.getClaimTime(activityData.getId(), playerId);
+        long claimTime = dailyLoginDao.getClaimTime(activityData.getId(), player.getId());
         long currentTimeMillis = TimeHelper.getCurrentDateZeroMilliTime();
         long calculated = TimeHelper.calculateDifference(ChronoUnit.DAYS, claimTime, currentTimeMillis);
         //3.未连续登陆清除连续登录数据
@@ -345,12 +345,12 @@ public class DailyLoginController extends BaseActivityController {
             }
         }
         if (clearContinuousDays) {
-            dailyLoginDao.delContinuousLoginDay(activityData.getId(), playerId);
+            dailyLoginDao.delContinuousLoginDay(activityData.getId(), player.getId());
         }
         if (clearCumulativeDays) {
-            dailyLoginDao.delCumulativeLoginDay(activityData.getId(), playerId);
+            dailyLoginDao.delCumulativeLoginDay(activityData.getId(), player.getId());
         }
-        playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
+        playerActivityDao.savePlayerActivityData(player.getId(), activityData.getType(), activityData.getId(), playerActivityData);
     }
 
     @Override

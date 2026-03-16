@@ -1,5 +1,6 @@
 package com.jjg.game.activity.activitylog;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.activitylog.data.ScratchCardsResult;
@@ -617,17 +618,19 @@ public class ActivityLogger extends BaseLogger {
             //累计充值
             json.put("allRecharge", data.getWelfarMonthRechargeNum() == null ? "0" : data.getWelfarMonthRechargeNum());
 
-            JSONArray jsonArray = new JSONArray();
             //当日数据
-            for (CumulativebenefitsCfg cfg : todayWelfareCfgMap.values()) {
-                JSONObject tmpJson = new JSONObject();
-                //条件
-                tmpJson.put("condition", cfg.getCondition());
-                //是否已领取
-                tmpJson.put("rece", data.checkReceWefarDailyRewards(cfg.getId()));
-                jsonArray.add(tmpJson);
+            if (CollectionUtil.isNotEmpty(todayWelfareCfgMap)) {
+                JSONArray jsonArray = new JSONArray();
+                for (CumulativebenefitsCfg cfg : todayWelfareCfgMap.values()) {
+                    JSONObject tmpJson = new JSONObject();
+                    //条件
+                    tmpJson.put("condition", cfg.getCondition());
+                    //是否已领取
+                    tmpJson.put("rece", data.checkReceWefarDailyRewards(cfg.getId()));
+                    jsonArray.add(tmpJson);
+                }
+                json.put("todayDataArray", jsonArray);
             }
-            json.put("todayDataArray", jsonArray);
 
             //已领取累计奖励的任务id
             json.put("claimedIds", data.getWelfarReceSet());
