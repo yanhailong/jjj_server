@@ -82,12 +82,8 @@ public class MinigameMessageHandler {
     @Command(LuckyTreasureConstant.Message.REQ_RECEIVE_LUCKY_TREASURE)
     public void receive(PlayerController playerController, ReqReceiveLuckyTreasure msg) {
         ResReceiveLuckyTreasure response = new ResReceiveLuckyTreasure(Code.SUCCESS);
-        boolean reward = luckyTreasureService.receiveReward(playerController, msg.getIssueNumber());
-        if (!reward) {
-            response.code = Code.FAIL;
-        }
+        response.code = Code.FAIL;
         playerController.send(response);
-        log.debug("返回领取夺宝奇兵道具 res = {}", JSON.toJSONString(response));
     }
 
     /**
