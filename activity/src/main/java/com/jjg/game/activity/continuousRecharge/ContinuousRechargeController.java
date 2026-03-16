@@ -925,7 +925,19 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             }
         }
 
-        info.claimStatus = data.getClaimStatus();
+        //获取领奖状态
+        if (data.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
+            //判断是不是最后一天
+            long endTime = phase.getSecond()[1];
+            long now = currentTimeMillis();
+            if (TimeHelper.inSameDay(endTime, now)) {
+                info.claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
+            } else {
+                info.claimStatus = data.getClaimStatus();
+            }
+        } else {
+            info.claimStatus = data.getClaimStatus();
+        }
 
         //额外信息
         info.continuousTotalInfo = new ContinuousTotalInfo();
@@ -1183,7 +1195,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                 continue;
             }
             Pair<Integer, long[]> phase = getPhase(en.getValue(), true);
-            if (phase == null || phase.getFirst() != ActivityConstant.ContinuousRecharge.PHASE_WELFARE) {
+            if (phase.getFirst() != ActivityConstant.ContinuousRecharge.PHASE_WELFARE) {
                 continue;
             }
 
