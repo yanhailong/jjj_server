@@ -1142,7 +1142,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             LikeGame likeNewGame = newGameExpectDao.getLikeNewGame(playerId);
             List<LikeNewGameInfo> list = new ArrayList<>();
             for (UpcomingMobileGameCfg cfg : GameDataManager.getUpcomingMobileGameCfgList()) {
-                if (!cfg.getOpen()) {
+                if (!cfg.getDisplay()) {
                     continue;
                 }
 
@@ -1187,7 +1187,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return res;
             }
 
-            if (!cfg.getOpen()) {
+            if (!cfg.getDisplay()) {
                 log.warn("给新游点赞失败，该游戏未开启 playerId = {},gameType = {}", player.getId(), gameType);
                 res.code = Code.PARAM_ERROR;
                 return res;
