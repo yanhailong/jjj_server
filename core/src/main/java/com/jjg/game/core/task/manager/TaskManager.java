@@ -323,7 +323,14 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
             long minProgress = 100;
             if (taskDetail.getStatus() != TaskConstant.TaskStatus.STATUS_COMPLETED) {
                 for (TaskCondition condition : task.getConditions()) {
-                    long progress = condition.getProgress() * 100 / condition.getConfigParam();
+                    long configParam = condition.getConfigParam();
+                    if (configParam <= 0) {
+                        // 这里是列表排序逻辑，不能让异常配置把整个接口打挂；非法参数按最低进度处理并打告警。
+                        log.warn("任务[{}]条件[{}]配置参数非法:{}", taskDetail.getConfigId(), condition.getConfigId(), configParam);
+                        minProgress = 0;
+                        continue;
+                    }
+                    long progress = Math.min(100L, condition.getProgress() * 100 / configParam);
                     minProgress = Math.min(minProgress, progress);
                 }
             }
@@ -436,6 +443,10 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
             log.error("玩家[{}]任务数据taskData为空", playerId);
             return false;
         }
+        //检查是否需要重置所有任务
+        if (!TimeHelper.inSameDay(taskData.getLastCheckTime(), System.currentTimeMillis())) {
+            taskService.checkTask(playerId, taskData, this);
+        }
         try {
             TaskDetail taskDetail = taskData.getTaskDetail(taskId);
             //状态不对
@@ -460,6 +471,8 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
             //记录日志
             taskLogger.receiveTaskAward(playerId, taskId, itemList, integralNum, TaskConstant.TaskStatus.STATUS_REWARDED);
             log.info("玩家[{}]成功领取任务[{}]奖励", playerId, taskId);
+            //领取任务奖励时回存一次
+            taskService.saveTask(playerId, taskData);
             updateRedDot(playerId);
             return true;
         } catch (Exception e) {
@@ -537,14 +550,13 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
                 pointAwardTasks = tasks.stream()
                         .filter(detail -> {
                             TaskCfg taskCfg = GameDataManager.getTaskCfg(detail.getConfigId());
-                            if (taskCfg == null) {
-                                return false;
-                            }
-                            return taskCfg.getTaskType() == submodule;
+                            // 配置热更时可能临时取不到 cfg，这里直接跳过，避免红点初始化抛空指针。
+                            return taskCfg != null && taskCfg.getTaskType() == submodule;
                         })
                         .toList();
             }
             if (!pointAwardTasks.isEmpty()) {
+                // 红点数量和 extra.taskIds 必须基于过滤后的结果，不能回退到全量 completed 任务。
                 List<Integer> taskIds = pointAwardTasks.stream().map(TaskDetail::getConfigId).toList();
                 redDotDetails.setCount(taskIds.size());
                 JSONObject extra = new JSONObject();

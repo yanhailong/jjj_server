@@ -22,7 +22,7 @@ public class ToSouthPlayerSettlementInfo {
     public boolean isInstantWin;
     @ProtoDesc("通杀手牌 (仅在通杀时有效)")
     public List<Integer> instantWinCards;
-    @ProtoDesc("通杀类型 (0:无, 1:4个2, 2:一条龙, 3:同色, 4:6个对, 5:5连对  6:6连对 7:3连三张  8: 4连三张 9:2个四张 10:3个四张 11:1个四张+3连对)")
+    @ProtoDesc("通杀类型 (0:无, 1:4个2, 2:一条龙, 3:同色, 4:6个对, 5:5连对  6:6连对 7:3连三张  8: 4连三张 )")
     public int instantWinType;
 
     public ToSouthPlayerSettlementInfo() {

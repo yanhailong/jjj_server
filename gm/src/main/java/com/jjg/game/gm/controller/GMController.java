@@ -1,5 +1,6 @@
 package com.jjg.game.gm.controller;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.activity.sharepromote.dao.SharePromoteDao;
@@ -9,7 +10,6 @@ import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
-import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.pb.NotifyKickout;
@@ -936,7 +936,19 @@ public class GMController extends AbstractController {
                 log.debug("商品的id不能小于1");
                 return fail("common.fail");
             }
-
+            for (ShopProductDto product : dto.products()) {
+                Map<Integer, Long> rewardItems = product.rewardItems();
+                if (CollectionUtil.isEmpty(rewardItems)) {
+                    continue;
+                }
+                for (Integer itemId : rewardItems.keySet()) {
+                    ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
+                    if (itemCfg == null) {
+                        log.debug("商品的奖励的道具不存在 itemId:{}", itemId);
+                        return fail("common.fail");
+                    }
+                }
+            }
             List<ShopProduct> list = new ArrayList<>();
             dto.products().forEach(p -> {
                 ShopProduct shopProduct = new ShopProduct();
@@ -1885,7 +1897,7 @@ public class GMController extends AbstractController {
      */
     @RequestMapping(BackendGMCmd.GET_GENERATE_LIB_LAST_TIME)
     public WebResult<Map<Integer, Long>> getGenerateLibLastTime() {
-        return success("common.success",slotsLibDao.getGenerateTime());
+        return success("common.success", slotsLibDao.getGenerateTime());
     }
 
 

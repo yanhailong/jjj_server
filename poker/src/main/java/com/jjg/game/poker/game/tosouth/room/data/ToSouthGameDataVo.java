@@ -30,6 +30,12 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
 
     private Map<Long, List<Integer>> playerHighlightCards = new HashMap<>(); // playerId -> highlightCardIds
 
+    // ========== 跨局保留字段（不在resetData中清除） ==========
+    // 上一局的赢家ID（最先出完牌的人），0表示没有上一局
+    private long lastGameWinnerPlayerId;
+    // 上一局的玩家ID集合，用于判断是否同桌续局
+    private Set<Long> lastGamePlayerIds = new HashSet<>();
+
     /**
      * 必须初始化的参数是房间配置RoomCfg，如果后续子类添加数据需要在自己的构造函数中添加
      *
@@ -117,6 +123,22 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
 
     public void setPlayerHighlightCards(Map<Long, List<Integer>> playerHighlightCards) {
         this.playerHighlightCards = playerHighlightCards;
+    }
+
+    public long getLastGameWinnerPlayerId() {
+        return lastGameWinnerPlayerId;
+    }
+
+    public void setLastGameWinnerPlayerId(long lastGameWinnerPlayerId) {
+        this.lastGameWinnerPlayerId = lastGameWinnerPlayerId;
+    }
+
+    public Set<Long> getLastGamePlayerIds() {
+        return lastGamePlayerIds;
+    }
+
+    public void setLastGamePlayerIds(Set<Long> lastGamePlayerIds) {
+        this.lastGamePlayerIds = lastGamePlayerIds;
     }
 
     @Override

@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_3;
-import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUITS;
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUIT;
 
 /**
  * 南方前进统一自动操作处理器
@@ -87,7 +87,7 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
                 // 必须包含黑桃3
                 // 找到手牌中的黑桃3
                 Card spade3 = handCards.stream()
-                        .filter(c -> c.getRank() == RANK_3 && c.getSuit() == SPADE_SUITS)
+                        .filter(c -> c.getRank() == RANK_3 && c.getSuit() == SPADE_SUIT)
                         .findFirst()
                         .orElse(null);
                         

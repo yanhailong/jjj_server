@@ -55,7 +55,7 @@ import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.DIAMOND_S
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.HEART_SUIT;
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_2;
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_3;
-import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUITS;
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUIT;
 
 @GameController(gameType = EGameType.TO_SOUTH, roomType = RoomType.POKER_ROOM)
 public class ToSouthGameController extends BasePokerGameController<ToSouthGameDataVo> {
@@ -205,7 +205,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
         // 1. 第一轮黑桃3检测
         if (gameDataVo.isFirstRound() && gameDataVo.getLastPlayCards() == null) {
-            boolean hasSpade3 = playCards.stream().anyMatch(c -> c.getRank() == RANK_3 && c.getSuit() == SPADE_SUITS);
+            boolean hasSpade3 = playCards.stream().anyMatch(c -> c.getRank() == RANK_3 && c.getSuit() == SPADE_SUIT);
             if (!hasSpade3) {
                 log.warn("首局首出必须包含黑桃3");
                 return;
@@ -230,6 +230,28 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         }
 
         info.getCurrentCards().removeAll(realPlayCardIds);
+
+        // 出牌后重新排序剩余手牌并更新高亮牌
+        if (!info.getCurrentCards().isEmpty()) {
+            List<Card> remainingCards = info.getCurrentCards().stream()
+                    .map(cardMap::get)
+                    .collect(Collectors.toList());
+            List<Integer> highlightIds = ToSouthHandUtils.sortAndGetHighlightCards(remainingCards);
+
+            // 更新手牌顺序为排序后的pokerPoolId
+            List<Integer> sortedPoolIds = new ArrayList<>();
+            for (Card c : remainingCards) {
+                if (c instanceof PokerCard pc) {
+                    sortedPoolIds.add(pc.getPokerPoolId());
+                }
+            }
+            info.getCurrentCards().clear();
+            info.getCurrentCards().addAll(sortedPoolIds);
+
+            // 更新高亮牌
+            gameDataVo.getPlayerHighlightCards().put(playerId, highlightIds);
+        }
+
         gameDataVo.setLastPlayCards(realPlayCardIds);
         gameDataVo.setLastPlayCardsType(type.getType());
         gameDataVo.setLastPlaySeatId(info.getSeatId());
@@ -511,7 +533,8 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             // 但为了绝对安全，这里使用 clone
             ToSouthActionInfo playerActionInfo = cloneActionInfo(actionInfo);
             playerActionInfo.selfHandCards = PokerDataHelper.getClientId(gameDataVo, info.getCurrentCards());
-            
+            playerActionInfo.selfHighlightCards = gameDataVo.getPlayerHighlightCards().get(info.getPlayerId());
+
             notify.actionInfo = playerActionInfo;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), notify));
         }
@@ -522,7 +545,8 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         
         ToSouthActionInfo waitPlayerActionInfo = cloneActionInfo(actionInfo);
         waitPlayerActionInfo.selfHandCards = PokerDataHelper.getClientId(gameDataVo, waitPlayer.getCurrentCards());
-        
+        waitPlayerActionInfo.selfHighlightCards = gameDataVo.getPlayerHighlightCards().get(waitPlayerId);
+
         notify.actionInfo = waitPlayerActionInfo;
 
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(waitPlayerId, notify));
@@ -603,7 +627,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             if (gameDataVo.isFirstRound()) {
                 // 首局首出 (找含黑桃3的)
                 List<Card> best = handCards.stream()
-                        .filter(c -> c.getRank() == RANK_3 && c.getSuit() == SPADE_SUITS)
+                        .filter(c -> c.getRank() == RANK_3 && c.getSuit() == SPADE_SUIT)
                         .findFirst()
                         .map(spade3 -> ToSouthHandUtils.findBestPlayWithFirstCard(rankMap, spade3))
                         .orElse(null);
@@ -654,6 +678,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         target.roundLeaderSeatId = source.roundLeaderSeatId;
         target.isFirstRound = source.isFirstRound;
         target.selfHandCards = source.selfHandCards;
+        target.selfHighlightCards = source.selfHighlightCards;
         target.lastpassUserId = source.lastpassUserId;
         return target;
     }
@@ -697,6 +722,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             // 重连玩家自己的手牌及高亮牌
             if (selfPlayerInfo != null && !selfPlayerInfo.isDelState()) {
                 actionInfo.selfHandCards = PokerDataHelper.getClientId(gameDataVo, selfPlayerInfo.getCurrentCards());
+                actionInfo.selfHighlightCards = gameDataVo.getPlayerHighlightCards().get(playerController.playerId());
             }
 
             // 默认不可出牌；仅当重连玩家正是当前等待出牌方时才可出牌

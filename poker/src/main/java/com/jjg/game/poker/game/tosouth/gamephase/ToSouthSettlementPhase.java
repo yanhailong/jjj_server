@@ -79,6 +79,11 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
 
             calSettlement(gameDataVo,settlementMap, baseBet, moneyCfg);
 
+            // 记录本局赢家，供下局判断首出玩家
+            if (!winners.isEmpty()) {
+                gameDataVo.setLastGameWinnerPlayerId(winners.getFirst().getPlayerId());
+            }
+
             // 应用结算结果
             long totalTax = 0;
             List<ToSouthPlayerSettlementInfo> playerSettlementInfos = new ArrayList<>();
@@ -186,35 +191,42 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             log.debug("计算输家 {} 分数 - 剩余手牌: {}", loser.getPlayerId(), ToSouthHandUtils.cardListToString(handCards));
             long loseScore = 0;
 
-            // 规则 2a: 剩13张翻倍 如果是通杀，则不翻倍、不计算炸弹、2的额外扣分
+            // 统计手牌中的特殊牌型
+            int countTwo = ToSouthHandUtils.countTwo(handCards);
+            int countRedTwo = ToSouthHandUtils.countRedTwo(handCards);
+            int countBlackTwo = countTwo - countRedTwo;
+            int countBomb = ToSouthHandUtils.countBomb(handCards);
+            int countConsecPairBomb = ToSouthHandUtils.countConsecutivePairBombs(handCards);
+
+            int redTwoMulti = countRedTwo > 0 ? moneyCfg.getRemainred2() : 0;
+            int blackTwoMulti = countBlackTwo > 0 ? moneyCfg.getRemainblack2() : 0;
+            int fourKindBombMulti = countBomb > 0 ? moneyCfg.getFourkindboom() : 0;
+            int fourPairsBombMulti = countConsecPairBomb > 0 ? moneyCfg.getFourpairsboom() : 0;
+
             int totalMulti = 0;
             if (context.isInstantWin()) {
-                totalMulti = cardCount;
-                log.debug("被通杀的输家 {} 计算结果总倍数: {}, 输分: {}",
-                        loser.getPlayerId(), totalMulti, loseScore);
+                // 通杀：不翻倍(doubleMulti=1)，但仍计算特殊牌型赔率
+                totalMulti = cardCount
+                        + countRedTwo * redTwoMulti
+                        + countBlackTwo * blackTwoMulti
+                        + countBomb * fourKindBombMulti
+                        + countConsecPairBomb * fourPairsBombMulti;
+                log.debug("被通杀的输家 {} - 红2: {}x{}, 黑2: {}x{}, 四条: {}x{}, 连对炸: {}x{}, 总倍数: {}",
+                        loser.getPlayerId(), countRedTwo, redTwoMulti, countBlackTwo, blackTwoMulti,
+                        countBomb, fourKindBombMulti, countConsecPairBomb, fourPairsBombMulti, totalMulti);
 
             } else {
                 int doubleMulti = (cardCount == 13) ? 2 : 1;
-                int countTwo = ToSouthHandUtils.countTwo(handCards);
-                int countBomb = ToSouthHandUtils.countBomb(handCards);
-                log.debug("输家 {} 手牌构成 - 13张翻倍: {}, 2的数量: {}, 炸弹数量: {}",
-                        loser.getPlayerId(), doubleMulti, countTwo, countBomb);
+                log.debug("输家 {} 手牌构成 - 13张翻倍: {}, 红2数量: {}, 黑2数量: {}, 四条炸弹数量: {}, 连对炸弹数量: {}",
+                        loser.getPlayerId(), doubleMulti, countRedTwo, countBlackTwo, countBomb, countConsecPairBomb);
 
-                int twoMulti = 0;
-                int blackTwoMulti = 0;
-                int redTwoMulti = 0;
-                int bombMulti = 0;
-
-                if (countTwo > 0) {
-                    // TODO  @昊操  改一下这个地方，现在2的翻倍需要区分红黑了
-                    twoMulti = moneyCfg.getRemainred2();
-                }
-                if (countBomb > 0) {
-                    bombMulti = moneyCfg.getRemainBoom();
-                }
-                totalMulti = doubleMulti * cardCount + countTwo * twoMulti + countBomb * bombMulti;
-                log.debug("输家 {} 计算结果 - 2倍数: {}, 炸弹倍数: {}, 总倍数: {}, 输分: {}",
-                        loser.getPlayerId(), twoMulti, bombMulti, totalMulti, loseScore);
+                totalMulti = doubleMulti * cardCount
+                        + countRedTwo * redTwoMulti
+                        + countBlackTwo * blackTwoMulti
+                        + countBomb * fourKindBombMulti
+                        + countConsecPairBomb * fourPairsBombMulti;
+                log.debug("输家 {} 计算结果 - 红2倍数: {}, 黑2倍数: {}, 四条炸弹倍数: {}, 连对炸弹倍数: {}, 总倍数: {}",
+                        loser.getPlayerId(), redTwoMulti, blackTwoMulti, fourKindBombMulti, fourPairsBombMulti, totalMulti);
 
             }
             loseScore = (long)totalMulti * baseBet;

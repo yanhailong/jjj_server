@@ -25,10 +25,11 @@ public class ToSouthConstant {
     public static final int RANK_3 = 3;
     public static final int RANK_A = 14;
     public static final int RANK_2 = 15;
-    public static final int HEART_SUIT = 1;
+    /** 花色值（与PokerPool数据库/EPokerSuit一致）: ♦=1, ♣=2, ♥=3, ♠=4 */
     public static final int DIAMOND_SUIT = 2;
-    public static final int ClUB_SUIT = 3;
-    public static final int SPADE_SUITS = 4;
+    public static final int CLUB_SUIT = 3;
+    public static final int HEART_SUIT = 1;
+    public static final int SPADE_SUIT = 4;
 
     public interface InstantWinType {
         int NONE = 0;
