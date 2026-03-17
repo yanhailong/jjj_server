@@ -1,7 +1,6 @@
 package com.jjg.game.core.task.service;
 
 import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.ClusterRpcReference;
@@ -136,7 +135,7 @@ public class TaskService {
                 //有配置才处理
                 if (taskCfg != null) {
                     //检测任务是否需要删除
-                    return shouldDelete(detail, taskCfg, taskManager);
+                    return shouldDelete(playerId, detail, taskCfg, taskManager);
                 } else {
                     //配置不存在则删除任务
                     log.warn("任务配置不存在，将删除任务 playerId={}, taskId={}", playerId, taskId);
@@ -154,33 +153,22 @@ public class TaskService {
      *
      * @return true 需要删除
      */
-    public boolean shouldDelete(TaskDetail taskDetail, TaskCfg taskCfg, TaskManager taskManager) {
+    public boolean shouldDelete(long playerId, TaskDetail taskDetail, TaskCfg taskCfg, TaskManager taskManager) {
         List<TaskCfg> taskGroupCfgs = taskManager.getTaskGroupMap().get(taskCfg.getGroup());
         if (CollectionUtil.isEmpty(taskGroupCfgs)) {
             return true;
         }
-        // 获取同组的激活任务
-        List<TaskCfg> activeGroupTasks = taskGroupCfgs.stream().filter(this::checkTaskActive).toList();
-        // 任务已经过期（不在激活任务列表中）
-        if (activeGroupTasks.stream().noneMatch(cfg -> cfg.getId() == taskCfg.getId())) {
-            return true;
-        }
-
-        // 获取当前应该激活的任务
-        TaskCfg currentActiveCfg = getCurrentActiveTaskInGroup(activeGroupTasks, taskCfg);
+        // 删除旧任务和新增任务必须共用同一套选择规则，否则同组任务会出现“旧的不删、新的又发”的累积问题。
+        TaskCfg currentActiveCfg = selectTaskFromGroup(taskGroupCfgs, LocalDate.now(), playerId);
 
         // 如果当前任务不是应该激活的任务，则删除
-        if (currentActiveCfg.getId() != taskCfg.getId()) {
+        if (currentActiveCfg == null || currentActiveCfg.getId() != taskCfg.getId()) {
             return true;
         }
 
-        // 积分大奖任务需要检查时间刷新
-        if (taskCfg.getTaskType() == TaskConstant.TaskType.POINTS_AWARD) {
-            LocalDateTime createTime = getLocalDateTimeFromTimestamp(taskDetail.getCreateTime());
-            return shouldRefreshTask(createTime);
-        }
-
-        return false;
+        // 即使今天再次命中了同一条配置，也要按天重建任务，避免沿用昨天的进度/状态。
+        LocalDateTime createTime = getLocalDateTimeFromTimestamp(taskDetail.getCreateTime());
+        return shouldRefreshTask(createTime);
     }
 
     /**
@@ -272,7 +260,7 @@ public class TaskService {
      */
     private boolean addNewTasks(long playerId, TaskData tmpData, TaskManager taskManager) {
         // 获取当前可接取的任务配置列表
-        List<TaskCfg> availableTaskConfigs = getAvailableTaskConfigs(taskManager.getTaskGroupMap());
+        List<TaskCfg> availableTaskConfigs = getAvailableTaskConfigs(taskManager.getTaskGroupMap(), playerId);
         // 筛选出需要新增的任务
         Map<Integer, TaskDetail> newTasks = createNewTasksForPlayer(playerId, tmpData, availableTaskConfigs, taskManager);
         //有任务才更新
@@ -293,13 +281,13 @@ public class TaskService {
      *
      * @return 可接取的任务配置列表
      */
-    private List<TaskCfg> getAvailableTaskConfigs(Map<Integer, List<TaskCfg>> taskCfgMap) {
+    private List<TaskCfg> getAvailableTaskConfigs(Map<Integer, List<TaskCfg>> taskCfgMap, long playerId) {
         List<TaskCfg> taskCfgList = new ArrayList<>();
         LocalDate currentDate = LocalDate.now();
 
         //筛选出每个组中可以接取的任务
         taskCfgMap.forEach((groupId, list) -> {
-            TaskCfg selectedTask = selectTaskFromGroup(list, currentDate);
+            TaskCfg selectedTask = selectTaskFromGroup(list, currentDate, playerId);
             if (selectedTask != null) {
                 taskCfgList.add(selectedTask);
             }
@@ -316,37 +304,42 @@ public class TaskService {
      * @param currentDate 当前日期
      * @return 选中的任务配置，如果没有合适的任务则返回null
      */
-    private TaskCfg selectTaskFromGroup(List<TaskCfg> taskList, LocalDate currentDate) {
-        // 筛选出有时间配置且与当前年月匹配的任务
-        List<TaskCfg> currentMonthTasks = taskList.stream()
+    private TaskCfg selectTaskFromGroup(List<TaskCfg> taskList, LocalDate currentDate, long playerId) {
+        List<TaskCfg> activeTasks = taskList.stream()
+                .filter(this::checkTaskActive)
+                .toList();
+        if (activeTasks.isEmpty()) {
+            return null;
+        }
+
+        int dailySeed = buildDailySelectionSeed(playerId, activeTasks.getFirst().getGroup(), currentDate);
+        // 当月任务组固定在“当前月已激活的配置”里，同一天内稳定、跨天重新随机。
+        List<TaskCfg> currentMonthTasks = activeTasks.stream()
                 .filter(cfg -> isTaskMatchCurrentMonth(cfg, currentDate))
                 .toList();
 
-        //只有一个就直接返回
-        if (currentMonthTasks.size() == 1) {
-            return currentMonthTasks.getFirst();
-        }
-
-        // 如果有匹配当前年月的任务，随机一个
         if (!currentMonthTasks.isEmpty()) {
-            return RandomUtil.randomEle(currentMonthTasks);
+            return selectStableTask(currentMonthTasks, dailySeed);
         }
 
-        // 如果没有匹配当前年月的任务，选择没有时间配置的常驻任务
-        List<TaskCfg> permanentTasks = taskList.stream()
-                .filter(cfg -> cfg.getTime() == null || cfg.getTime().isEmpty())
+        // 如果没有匹配当前年月的任务，则在当前已激活的常驻任务里按天稳定随机。
+        List<TaskCfg> permanentTasks = activeTasks.stream()
+                .filter(this::isPermanentTask)
                 .toList();
 
-        //只有一个就直接返回
-        if (permanentTasks.size() == 1) {
-            return permanentTasks.getFirst();
-        }
-        //随机一个
         if (!permanentTasks.isEmpty()) {
-            return RandomUtil.randomEle(permanentTasks);
+            return selectStableTask(permanentTasks, dailySeed);
         }
 
         return null;
+    }
+
+    private int buildDailySelectionSeed(long playerId, int groupId, LocalDate currentDate) {
+        return Objects.hash(playerId, groupId, currentDate.toEpochDay());
+    }
+
+    private boolean isPermanentTask(TaskCfg taskCfg) {
+        return taskCfg.getTime() == null || taskCfg.getTime().isEmpty();
     }
 
     /**
@@ -488,36 +481,15 @@ public class TaskService {
     }
 
 
-    /**
-     * 获取组中当前应该激活的任务
-     *
-     * @param activeGroupTasks 组中的激活任务列表
-     * @param taskCfg          当前任务
-     * @return 当前应该激活的任务
-     */
-    private TaskCfg getCurrentActiveTaskInGroup(List<TaskCfg> activeGroupTasks, TaskCfg taskCfg) {
-        LocalDate currentDate = LocalDate.now();
-
-        // 筛选出与当前年月匹配的任务
-        List<TaskCfg> currentMonthTasks = activeGroupTasks.stream()
-                .filter(cfg -> isTaskMatchCurrentMonth(cfg, currentDate))
+    private TaskCfg selectStableTask(List<TaskCfg> taskList, int seed) {
+        List<TaskCfg> sortedTasks = taskList.stream()
+                .sorted(Comparator.comparingInt(TaskCfg::getId))
                 .toList();
-        if (CollectionUtil.isEmpty(currentMonthTasks) || currentMonthTasks.contains(taskCfg)) {
-            return taskCfg;
+        // 先按配置 id 固定顺序，再用稳定 seed 取模，保证同一天重复计算结果一致。
+        if (sortedTasks.size() == 1) {
+            return sortedTasks.getFirst();
         }
-        if (currentMonthTasks.size() == 1) {
-            return currentMonthTasks.getFirst();
-        }
-
-        // 如果没有匹配当前年月的任务，选择没有时间配置的常驻任务中ID最小的
-        List<TaskCfg> permanentTasks = activeGroupTasks.stream()
-                .filter(cfg -> cfg.getTime() == null || cfg.getTime().isEmpty())
-                .toList();
-
-        if (permanentTasks.size() == 1) {
-            return permanentTasks.getFirst();
-        }
-        return taskCfg;
+        return sortedTasks.get(Math.floorMod(seed, sortedTasks.size()));
     }
 
     /**
