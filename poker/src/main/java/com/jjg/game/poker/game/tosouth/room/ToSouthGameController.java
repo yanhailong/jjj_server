@@ -10,6 +10,7 @@ import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.PokerBuilder;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
@@ -18,6 +19,7 @@ import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.tosouth.data.ToSouthSettlementContext;
+import com.jjg.game.poker.game.tosouth.gamephase.ToSouthPlayCardPhase;
 import com.jjg.game.poker.game.tosouth.gamephase.ToSouthSettlementPhase;
 import com.jjg.game.poker.game.tosouth.gamephase.ToSouthStartGamePhase;
 import com.jjg.game.poker.game.tosouth.message.bean.*;
@@ -35,6 +37,7 @@ import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthBombSettlement;
+import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthPlayerReady;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthRoundRecord;
 
 import java.util.*;
@@ -522,12 +525,12 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         actionInfo.waitEndTime = currentTime + duration;
         // 1. 发给其他人,不携带推荐牌组（非等待玩家不能出牌）
         actionInfo.recommendCardsList = null;
-        actionInfo.canPlay = false;
+//        actionInfo.canPlay = false;
         notify.actionInfo = actionInfo;
 
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
             if (info.getPlayerId() == waitPlayerId) continue;
-            
+            actionInfo.canPlay = false;
             // 为每个接收者设置其自己的手牌
             // 在 Netty/Protobuf 场景下，通常在 write 时会序列化，如果是同步序列化，那么可以复用对象。
             // 但为了绝对安全，这里使用 clone
@@ -747,7 +750,10 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         }
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), baseInfo));
 
-        // START_GAME 阶段：已发牌但出牌阶段尚未开始，重连时需补发手牌数据
+        // START_GAME 阶段：已发牌但出牌阶段尚未开始，重连时需补发手牌数据及准备状态
+        if (baseInfo.phase == EGamePhase.START_GAME) {
+            baseInfo.readyPlayerIds = gameDataVo.getReadyPlayerIds();
+        }
         if (baseInfo.phase == EGamePhase.START_GAME && selfPlayerInfo != null && !selfPlayerInfo.isDelState()) {
             List<Integer> sortedHandCards = PokerDataHelper.getClientId(gameDataVo, selfPlayerInfo.getCurrentCards());
             List<Integer> highlightCards = gameDataVo.getPlayerHighlightCards().get(playerController.playerId());
@@ -757,6 +763,74 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             Collections.shuffle(sendCardsInfo.originalHandCards);
             sendCardsInfo.highlightCards = highlightCards;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), sendCardsInfo));
+        }
+    }
+
+    /**
+     * 南方前进请求准备
+     *
+     * @param playerId 玩家id
+     */
+    public void reqToSouthGoReady(long playerId) {
+        NotifyToSouthPlayerReady notify = new NotifyToSouthPlayerReady();
+        // 校验玩家是否在座位上
+        TreeMap<Integer, SeatInfo> seatInfo = gameDataVo.getSeatInfo();
+        SeatInfo playerSeatInfo = null;
+        for (SeatInfo info : seatInfo.values()) {
+            if (info.getPlayerId() == playerId) {
+                playerSeatInfo = info;
+                break;
+            }
+        }
+        if (playerSeatInfo == null || !playerSeatInfo.isSeatDown() || getCurrentGamePhase() != EGamePhase.START_GAME) {
+            notify.code = Code.ERROR_REQ;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+            return;
+        }
+        // 重复准备检查
+        if (gameDataVo.getReadyPlayerIds().contains(playerId)) {
+            notify.code = Code.REPEAT_OP;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+            return;
+        }
+        gameDataVo.getReadyPlayerIds().add(playerId);
+        log.info("玩家 {} 准备完成，当前准备人数: {}", playerId, gameDataVo.getReadyPlayerIds().size());
+        notify.playerId = playerId;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
+        // 检查是否全部准备，提前进入下个阶段
+        canStartNextPhase();
+    }
+
+    /**
+     * 检查是否所有玩家已准备，如果全部准备则提前进入下一阶段
+     */
+    private void canStartNextPhase() {
+        if (getCurrentGamePhase() != EGamePhase.START_GAME) {
+            return;
+        }
+        // 统计在座活跃玩家数
+        int activeCount = 0;
+        for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+            if (!info.isDelState()) {
+                activeCount++;
+            }
+        }
+        int readyCount = gameDataVo.getReadyPlayerIds().size();
+        if (readyCount >= activeCount && activeCount > 0) {
+            log.info("全部玩家已准备 ({}/{}), 提前进入下一阶段", readyCount, activeCount);
+            // 取消 START_GAME 阶段定时器，防止 phaseFinish 重复触发
+            removePokerPhaseTimer();
+            ToSouthSettlementContext instantWinCtx = gameDataVo.getInstantWinContext();
+            if (instantWinCtx != null && !instantWinCtx.getWinners().isEmpty()) {
+                // 通杀，进入结算阶段
+                addPokerPhaseTimer(new ToSouthSettlementPhase(this, instantWinCtx));
+            } else {
+                // 正常进入打牌阶段
+                addPokerPhase(new ToSouthPlayCardPhase(this));
+            }
+            // 通知阶段变更
+            NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(getCurrentGamePhase(), gameDataVo.getPhaseEndTime());
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyPokerPhaseChange));
         }
     }
 

@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.tosouth.room.data;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
+import com.jjg.game.poker.game.tosouth.data.ToSouthSettlementContext;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.*;
@@ -29,6 +30,11 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
     private final Map<Long, Long> bombSettlementMap = new HashMap<>();
 
     private Map<Long, List<Integer>> playerHighlightCards = new HashMap<>(); // playerId -> highlightCardIds
+
+    // 准备阶段：已准备的玩家ID集合
+    private Set<Long> readyPlayerIds = new HashSet<>();
+    // 通杀结算上下文（开局阶段检测通杀后保存，供准备完成后判断走结算还是打牌）
+    private ToSouthSettlementContext instantWinContext;
 
     // ========== 跨局保留字段（不在resetData中清除） ==========
     // 上一局的赢家ID（最先出完牌的人），0表示没有上一局
@@ -125,6 +131,18 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
         this.playerHighlightCards = playerHighlightCards;
     }
 
+    public Set<Long> getReadyPlayerIds() {
+        return readyPlayerIds;
+    }
+
+    public ToSouthSettlementContext getInstantWinContext() {
+        return instantWinContext;
+    }
+
+    public void setInstantWinContext(ToSouthSettlementContext instantWinContext) {
+        this.instantWinContext = instantWinContext;
+    }
+
     public long getLastGameWinnerPlayerId() {
         return lastGameWinnerPlayerId;
     }
@@ -156,5 +174,7 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
         this.currentRoundPlays.clear();
         this.bombSettlementMap.clear();
         this.playerHighlightCards.clear();
+        this.readyPlayerIds = new HashSet<>();
+        this.instantWinContext = null;
     }
 }

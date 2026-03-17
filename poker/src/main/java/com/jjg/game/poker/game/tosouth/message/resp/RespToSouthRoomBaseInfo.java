@@ -10,6 +10,7 @@ import com.jjg.game.poker.game.tosouth.message.bean.ToSouthActionInfo;
 import com.jjg.game.room.constant.EGamePhase;
 
 import java.util.List;
+import java.util.Set;
 
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthConstant.MsgBean.RESP_ROOM_BASE_INFO, resp = true)
 @ProtoDesc("响应南方前进房间基本信息")
@@ -22,6 +23,8 @@ public class RespToSouthRoomBaseInfo extends AbstractResponse {
     public ToSouthActionInfo actionInfo;
     @ProtoDesc("当前房间下注金额(底注)")
     public long roomBet;
+    @ProtoDesc("已准备的玩家ID列表 (仅在开始游戏阶段有效)")
+    public Set<Long> readyPlayerIds;
 
     public RespToSouthRoomBaseInfo(int code) {
         super(code);

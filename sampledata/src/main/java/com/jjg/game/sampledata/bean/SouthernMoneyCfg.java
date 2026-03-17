@@ -35,6 +35,10 @@ public class SouthernMoneyCfg extends BaseCfgBean {
   protected int remainNormal;
   /** 结算剩余手牌黑2的倍数 */
   protected int remainblack2;
+  /** 结算剩余炸弹的倍数（三连对） */
+  protected int remainBoom1;
+  /** 结算剩余炸弹的倍数（四条） */
+  protected int fourkindboom1;
   /** 结算剩余手牌红2的倍数 */
   protected int remainred2;
   /** 房间类型 */
@@ -78,6 +82,16 @@ public class SouthernMoneyCfg extends BaseCfgBean {
   /** 返回结算剩余手牌黑2的倍数 */
   public int getRemainblack2() {
     return remainblack2;
+  }
+
+  /** 返回结算剩余炸弹的倍数（三连对） */
+  public int getRemainBoom1() {
+    return remainBoom1;
+  }
+
+  /** 返回结算剩余炸弹的倍数（四条） */
+  public int getFourkindboom1() {
+    return fourkindboom1;
   }
 
   /** 返回结算剩余手牌红2的倍数 */

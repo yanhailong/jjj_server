@@ -8,6 +8,7 @@ public class ToSouthConstant {
         int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.TO_SOUTH << MessageConst.MessageCommon.RIGHT_MOVE;
         int REQ_TURN_ACTION = BASE_MSG_PREFIX | 0x1;
         int REQ_CHANGE_TABLE = BASE_MSG_PREFIX | 0x2;
+        int REQ_GO_READY = BASE_MSG_PREFIX | 0x3;
         //响应房间基础信息
         int RESP_ROOM_BASE_INFO = BASE_MSG_PREFIX | 0xA;
         int RESP_SEND_CARDS_INFO = BASE_MSG_PREFIX | 0xB;
@@ -17,6 +18,7 @@ public class ToSouthConstant {
         int NOTIFY_SETTLEMENT_INFO = BASE_MSG_PREFIX | 0x12;
         int NOTIFY_TURN_ACTION_INFO = BASE_MSG_PREFIX | 0x13;
         int NOTIFY_BOMB_SETTLEMENT = BASE_MSG_PREFIX | 0x14;
+        int NOTIFY_PLAYER_READY = BASE_MSG_PREFIX | 0x15;
     }
 
     /**

@@ -22,6 +22,8 @@ import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
 import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -149,6 +151,19 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             // 3. 检查通杀（炸弹测试模式下跳过，否则人人有炸弹把把触发通杀）
             if (!BOMB_TEST_MODE) {
                 checkInstantWin(controller);
+            }
+
+            // 4. 将通杀上下文保存到 gameDataVo，供 canStartNextPhase 使用
+            gameDataVo.setInstantWinContext(instantWinContext);
+
+            // 5. 自动标记机器人玩家为准备状态
+            for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+                if (info.isDelState()) continue;
+                GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
+                if (gamePlayer instanceof GameRobotPlayer) {
+                    gameDataVo.getReadyPlayerIds().add(info.getPlayerId());
+                    log.debug("机器人 {} 自动准备", info.getPlayerId());
+                }
             }
         }
     }

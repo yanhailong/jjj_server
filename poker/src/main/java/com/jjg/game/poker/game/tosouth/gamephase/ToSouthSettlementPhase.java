@@ -200,8 +200,8 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
 
             int redTwoMulti = countRedTwo > 0 ? moneyCfg.getRemainred2() : 0;
             int blackTwoMulti = countBlackTwo > 0 ? moneyCfg.getRemainblack2() : 0;
-            int fourKindBombMulti = countBomb > 0 ? moneyCfg.getFourkindboom() : 0;
-            int fourPairsBombMulti = countConsecPairBomb > 0 ? moneyCfg.getFourpairsboom() : 0;
+            int fourKindBombMulti = countBomb > 0 ? moneyCfg.getFourkindboom1() : 0;           // 结算剩余四条炸弹倍数
+            int fourPairsBombMulti = countConsecPairBomb > 0 ? moneyCfg.getRemainBoom1() : 0;  // 结算剩余三连对炸弹倍数
 
             int totalMulti = 0;
             if (context.isInstantWin()) {
