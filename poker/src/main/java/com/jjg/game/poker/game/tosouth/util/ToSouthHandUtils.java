@@ -20,7 +20,8 @@ public class ToSouthHandUtils {
 
     /**
      * 牌点数排序：2 > A > K > ... > 3
-     * 花色排序：红心 > 方块 > 梅花 > 黑桃
+     * 花色排序：♥(红心) > ♦(方块) > ♣(梅花) > ♠(黑桃)
+     * 注意：数据库花色值 ♦=1,♣=2,♥=3,♠=4，不是游戏大小顺序，需通过 suitGameOrder() 转换
      */
     public static final Comparator<Card> CARD_COMPARATOR = (c1, c2) -> {
         if (c1 == null && c2 == null) return 0;
@@ -29,10 +30,28 @@ public class ToSouthHandUtils {
         int rank1 = c1.getRank();
         int rank2 = c2.getRank();
         if (rank1 != rank2) {
-            return Integer.compare(rank2, rank1); // 降序
+            return Integer.compare(rank2, rank1); // 点数降序
         }
-        return Integer.compare(c1.getSuit(), c2.getSuit()); // 花色：♥(1)>♦(2)>♣(3)>♠(4)，数值小=花色大
+        // 花色：通过 suitGameOrder 转换为游戏优先级，数值小=花色大
+        return Integer.compare(suitGameOrder(c1.getSuit()), suitGameOrder(c2.getSuit()));
     };
+
+    /**
+     * 将数据库花色值转换为游戏中的花色大小优先级
+     * 游戏规则: ♥(红心) > ♦(方块) > ♣(梅花) > ♠(黑桃)
+     * 数据库值: ♦=1, ♣=2, ♥=3, ♠=4 (EPokerSuit)
+     * 返回值越小=花色越大
+     */
+    public static int suitGameOrder(int suit) {
+        return switch (suit) {
+            case HEART_SUIT -> 1;    // ♥ 红心 - 最大
+            case DIAMOND_SUIT -> 2;  // ♦ 方块
+            case CLUB_SUIT -> 3;     // ♣ 梅花
+            case SPADE_SUIT -> 4;    // ♠ 黑桃 - 最小
+            default -> 5;
+        };
+    }
+
     private static final Logger log = LoggerFactory.getLogger(ToSouthHandUtils.class);
 
     public static String cardListToString(List<Card> cards) {
@@ -377,7 +396,7 @@ public class ToSouthHandUtils {
     }
 
     private static boolean isRed(Card c) {
-        return c.getSuit() == HEART_SUIT || c.getSuit() == DIAMOND_SUIT; // 1:♥, 2:♦
+        return c.getSuit() == HEART_SUIT || c.getSuit() == DIAMOND_SUIT; // ♥=3, ♦=1
     }
 
     public static Map<Integer, List<Card>> convertCardListToRankMap(List<Card> cards) {
@@ -1250,9 +1269,9 @@ public class ToSouthHandUtils {
 
     private static String cardToString(Card c) {
         String suitStr = switch (c.getSuit()) {
-            case SPADE_SUITS -> "♠";
+            case SPADE_SUIT -> "♠";
             case HEART_SUIT -> "♥";
-            case ClUB_SUIT -> "♣";
+            case CLUB_SUIT -> "♣";
             case DIAMOND_SUIT -> "♦";
             default -> "?";
         };

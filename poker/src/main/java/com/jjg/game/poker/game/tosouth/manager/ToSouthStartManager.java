@@ -136,10 +136,10 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
         char suitChar = cardStr.charAt(0);
         int suit;
         switch (suitChar) {
-            case '♠' -> suit = SPADE_SUITS;
+            case '♠' -> suit = SPADE_SUIT;
             case '♥' -> suit = HEART_SUIT;
             case '♦' -> suit = DIAMOND_SUIT;
-            case '♣' -> suit = ClUB_SUIT;
+            case '♣' -> suit = CLUB_SUIT;
             default -> { return null; }
         }
 

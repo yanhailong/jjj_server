@@ -55,7 +55,7 @@ import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.DIAMOND_S
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.HEART_SUIT;
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_2;
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_3;
-import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUITS;
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUIT;
 
 @GameController(gameType = EGameType.TO_SOUTH, roomType = RoomType.POKER_ROOM)
 public class ToSouthGameController extends BasePokerGameController<ToSouthGameDataVo> {
@@ -205,7 +205,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
         // 1. 第一轮黑桃3检测
         if (gameDataVo.isFirstRound() && gameDataVo.getLastPlayCards() == null) {
-            boolean hasSpade3 = playCards.stream().anyMatch(c -> c.getRank() == RANK_3 && c.getSuit() == SPADE_SUITS);
+            boolean hasSpade3 = playCards.stream().anyMatch(c -> c.getRank() == RANK_3 && c.getSuit() == SPADE_SUIT);
             if (!hasSpade3) {
                 log.warn("首局首出必须包含黑桃3");
                 return;
@@ -627,7 +627,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             if (gameDataVo.isFirstRound()) {
                 // 首局首出 (找含黑桃3的)
                 List<Card> best = handCards.stream()
-                        .filter(c -> c.getRank() == RANK_3 && c.getSuit() == SPADE_SUITS)
+                        .filter(c -> c.getRank() == RANK_3 && c.getSuit() == SPADE_SUIT)
                         .findFirst()
                         .map(spade3 -> ToSouthHandUtils.findBestPlayWithFirstCard(rankMap, spade3))
                         .orElse(null);

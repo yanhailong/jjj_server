@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_2;
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_3;
-import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUITS;
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUIT;
 
 /**
  * 南方前进开始游戏阶段 (洗牌发牌动画)
@@ -124,7 +124,7 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                     log.info("同桌续局，上局赢家 {} 先出", lastWinner);
                 } else {
                     // 赢家异常，回退到黑桃3
-                    firstPlayer = findSeatWithSpecifyCard(gameDataVo, cardListMap, RANK_3, SPADE_SUITS);
+                    firstPlayer = findSeatWithSpecifyCard(gameDataVo, cardListMap, RANK_3, SPADE_SUIT);
                     if (firstPlayer == null) {
                         log.warn("南方前进牌组中没有黑桃3，请检查配置");
                         return;
@@ -134,7 +134,7 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                 }
             } else {
                 // 新桌或有人变动，黑桃3先出
-                firstPlayer = findSeatWithSpecifyCard(gameDataVo, cardListMap, RANK_3, SPADE_SUITS);
+                firstPlayer = findSeatWithSpecifyCard(gameDataVo, cardListMap, RANK_3, SPADE_SUIT);
                 if (firstPlayer == null) {
                     log.warn("南方前进牌组中没有黑桃3，请检查配置");
                     return;
