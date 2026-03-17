@@ -500,7 +500,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         BigDecimal add = getConversionValue(playerId, count.longValue(), true);
         if (add.compareTo(BigDecimal.ZERO) >= 0) {
             countDao.setCount(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId), add);
-            log.info("财富转盘 今日积分 playerOd:{} addPoint:{}", playerId, add.longValue());
+            log.info("财富转盘 今日积分 playerId:{} addPoint:{}", playerId, add.longValue());
         }
     }
 
