@@ -41,8 +41,12 @@ public class PanJinLianGenerateManager extends AbstractSlotsGenerateManager<PanJ
     @Override
     protected PanJinLianAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
         PanJinLianAwardLineInfo awardLineInfo = new PanJinLianAwardLineInfo();
-        Set<Integer> icons = new HashSet<>(baseLineCfg.getPosLocation());
-        awardLineInfo.setSameIconSet(icons);
+
+        if(sameCount > 0){
+            Set<Integer> icons = new HashSet<>(baseLineCfg.getPosLocation().subList(0,sameCount));
+            awardLineInfo.setSameIconSet(icons);
+        }
+
         awardLineInfo.setSameIcon(rewardCfg.getElementId().getFirst() % 10);
         awardLineInfo.setLineId(baseLineCfg.getLineId());
         awardLineInfo.setBaseTimes(rewardCfg.getBet());
