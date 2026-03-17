@@ -698,6 +698,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         log.debug("响应南方前进房间信息 - 玩家: {}", playerController.playerId());
         RespToSouthRoomBaseInfo baseInfo = new RespToSouthRoomBaseInfo(Code.SUCCESS);
         baseInfo.phase = getCurrentGamePhase();
+        baseInfo.roomBet = gameDataVo.getRoomBet();
         baseInfo.playerInfos = new ArrayList<>();
         Map<Long, PlayerSeatInfo> playerSeatInfoMap = gameDataVo.getPlayerSeatInfoMap();
         for (Map.Entry<Integer, SeatInfo> entry : gameDataVo.getSeatInfo().entrySet()) {

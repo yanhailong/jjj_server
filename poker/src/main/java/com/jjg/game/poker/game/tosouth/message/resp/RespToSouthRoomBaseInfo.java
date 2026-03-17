@@ -20,6 +20,8 @@ public class RespToSouthRoomBaseInfo extends AbstractResponse {
     public List<PokerPlayerInfo> playerInfos;
     @ProtoDesc("牌桌操作信息 (仅在出牌阶段有效)")
     public ToSouthActionInfo actionInfo;
+    @ProtoDesc("当前房间下注金额(底注)")
+    public long roomBet;
 
     public RespToSouthRoomBaseInfo(int code) {
         super(code);
