@@ -74,14 +74,13 @@ public class PiggyBankController extends BaseActivityController implements  Orde
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         ResPiggyBankDetailInfo res = new ResPiggyBankDetailInfo(Code.FAIL);
         long playerId = player.getId();
-
         // 获取活动详细配置
         Map<Integer, PiggyBankCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         PiggyBankCfg cfg = baseCfgBeanMap.get(detailId);
         // 判断配置是否有储钱罐活动配置
         if (cfg != null) {
             long timeMillis = System.currentTimeMillis();
-            PiggyBankData piggyBankData = null;
+            PiggyBankData piggyBankData;
             try {
                 // 获取玩家活动数据
                 Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());

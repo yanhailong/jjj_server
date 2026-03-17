@@ -10,7 +10,10 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.data.*;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
+import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
+import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.wealthbank.WealthBankConstant;
 import com.jjg.game.slots.game.wealthbank.dao.WealthBankGameDataDao;
@@ -42,11 +45,6 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
     public void init() {
         log.info("[Wealth Bank] 启动财富银行游戏管理器...");
         super.init();
-    }
-
-    @Override
-    public boolean canExit(SlotsPlayerGameData playerGameData) {
-        return getRoomType() != null || playerGameData.getStatus() == SlotsConst.Status.NORMAL;
     }
 
     @Override
@@ -935,7 +933,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
      * @param playerGameData
      * @return
      */
-    private List<Integer> getChoosableAreas(WealthBankPlayerGameData playerGameData) {
+    protected List<Integer> getChoosableAreas(WealthBankPlayerGameData playerGameData) {
         Set<Integer> set = playerGameData.getSelectedAreaSet();
         if (set == null || set.isEmpty()) {
             return List.of(1, 2, 3, 4, 5, 6, 7, 8);
