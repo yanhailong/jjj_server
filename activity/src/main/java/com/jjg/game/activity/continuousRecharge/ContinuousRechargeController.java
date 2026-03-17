@@ -22,7 +22,9 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.listener.TmpRechargeListener;
 import com.jjg.game.core.pb.KVInfo;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.service.MailService;
+import com.jjg.game.core.service.ShopService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -56,6 +58,8 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
     @Autowired
     private MailService mailService;
+    @Autowired
+    private ShopService shopService;
 
     private final int DETAIL_ID = 1;
 
@@ -456,10 +460,16 @@ public class ContinuousRechargeController extends BaseActivityController impleme
     }
 
     @Override
-    public void recharge(Player player, Order order) {
+    public void recharge(Player player, Order order, String money, String regionCode, String channelProductId) {
         long playerId = player.getId();
 
         try {
+            //特殊处理商城的添加道具
+            if (order.getRechargeType() == RechargeType.SHOP) {
+                //获取商品
+                shopService.handleShopOrder(player, order, money, regionCode, channelProductId);
+            }
+
             if (StringUtils.isEmpty(order.getDesc())) {
                 log.debug("该订单没有备注字段，不参与七日连充活动 orderId = {},playerId = {}", order.getId(), playerId);
                 return;
@@ -1372,5 +1382,11 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             map.put(cfg.getId(), cfg);
         }
         return map;
+    }
+
+    @Override
+    public void onActivityEnd(ActivityData activityData) {
+        playerActivityDao.clearActivityData(ActivityType.CONTINUOUS_RECHARGE, activityData.getId());
+        log.info("执行批量删除连充活动的数据 activityId = {}", activityData.getId());
     }
 }

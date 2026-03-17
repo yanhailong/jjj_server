@@ -135,7 +135,7 @@ public class RechargeService {
                 allRechargeCount = resMap == null ? 0 : ((Long) resMap.get(CountDao.CountType.RECHARGE_COUNT.getParam())).intValue();
             } else {
                 if (CollectionUtil.isNotEmpty(this.tmpRechargeListeners)) {
-                    this.tmpRechargeListeners.forEach(bean -> bean.recharge(player, order));
+                    this.tmpRechargeListeners.forEach(bean -> bean.recharge(player, order, notify.money, notify.regionCode, notify.channelProductId));
                 }
 
                 Long countLong = countDao.getCountLong(CountDao.CountType.RECHARGE_COUNT.getParam(), String.valueOf(player.getId()));

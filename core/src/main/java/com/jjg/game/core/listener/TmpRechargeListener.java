@@ -8,5 +8,5 @@ import com.jjg.game.core.data.Player;
  * @date 2026/3/16
  */
 public interface TmpRechargeListener {
-    void recharge(Player player, Order order);
+    void recharge(Player player, Order order, String money, String regionCode, String channelProductId);
 }
