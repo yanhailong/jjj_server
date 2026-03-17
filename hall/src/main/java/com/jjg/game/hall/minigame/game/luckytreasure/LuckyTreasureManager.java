@@ -794,8 +794,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             List<LuckyTreasureConfig> configs = configManager.getConfigs(LuckyTreasureConfig.class);
             if (configs == null || configs.isEmpty()) {
                 log.debug("配置为空 ");
+                return;
             }
-
             configs.stream()
                     .filter(c -> c.getId() == configId && c.isRepeated())
                     .findFirst().ifPresent(this::startNewActivityForConfig);
