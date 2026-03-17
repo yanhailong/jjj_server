@@ -9,10 +9,7 @@ import com.jjg.game.core.data.Item;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 道具工具类
@@ -21,8 +18,8 @@ import java.util.Map;
  */
 public class ItemUtils {
 
-    public static int GOLD_ITEM_ID = 0;
-    public static int DIAMOND_ITEM_ID = 0;
+    private static int GOLD_ITEM_ID = 0;
+    private static int DIAMOND_ITEM_ID = 0;
 
     /**
      * 获取金币道具ID
@@ -54,6 +51,21 @@ public class ItemUtils {
             ItemInfo info = new ItemInfo();
             info.itemId = longEntry.getKey();
             info.count = longEntry.getValue();
+            itemInfos.add(info);
+        }
+        return itemInfos;
+    }
+
+    public static List<ItemInfo> buildItemInfosByItem(List<Item> items) {
+        if (CollectionUtil.isEmpty(items)) {
+            return Collections.emptyList();
+        }
+
+        List<ItemInfo> itemInfos = new ArrayList<>();
+        for (Item item : items) {
+            ItemInfo info = new ItemInfo();
+            info.itemId = item.getId();
+            info.count = item.getItemCount();
             itemInfos.add(info);
         }
         return itemInfos;
@@ -256,7 +268,7 @@ public class ItemUtils {
     }
 
     public static JSONArray itemListToJson(List<Item> items) {
-        if(items == null || items.isEmpty()) {
+        if (items == null || items.isEmpty()) {
             return null;
         }
         JSONArray jsonArray = new JSONArray();

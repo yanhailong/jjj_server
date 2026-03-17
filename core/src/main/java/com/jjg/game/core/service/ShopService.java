@@ -240,7 +240,7 @@ public class ShopService implements OrderGenerate, GameEventListener {
      * @param money      实际支付金额
      * @param regionCode 地区代码
      */
-    private void handleShopOrder(Player player, Order order, String money, String regionCode, String channelProductId) {
+    public void handleShopOrder(Player player, Order order, String money, String regionCode, String channelProductId) {
         ShopProduct shopProduct = getShopProduct(Long.parseLong(order.getProductId()));
         if (shopProduct == null) {
             log.error("未找到该商品 orderId = {},productId = {}", order.getId(), order.getProductId());

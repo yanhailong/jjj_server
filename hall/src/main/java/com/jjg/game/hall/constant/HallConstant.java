@@ -185,5 +185,17 @@ public interface HallConstant {
         //分享推广信息开始
         int REQ_SHARE_PROMOTE_START = BASE_MSG_PREFIX | 0x4F;
         int RES_SHARE_PROMOTE_START = BASE_MSG_PREFIX | 0x50;
+
+        //请求礼包码兑换
+        int REQ_REDEEM_CODE = BASE_MSG_PREFIX | 0x51;
+        int RES_REDEEM_CODE = BASE_MSG_PREFIX | 0x52;
+
+        //请求所有的新游期待榜数据
+        int REQ_ALL_NEW_GAMES = BASE_MSG_PREFIX | 0x53;
+        int RES_ALL_NEW_GAMES = BASE_MSG_PREFIX | 0x54;
+
+        //请求给新游期待榜点赞
+        int REQ_LIKE_NEW_GAME = BASE_MSG_PREFIX | 0x55;
+        int RES_LIKE_NEW_GAME = BASE_MSG_PREFIX | 0x56;
     }
 }

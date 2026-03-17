@@ -24,4 +24,11 @@ public interface MatchDataRedisKey {
     static String getWaitJoinRoomsKey(int gameType, int roomConfigId) {
         return WAIT_ROOMS_KEY + StrConstant.COLON + gameType + StrConstant.COLON + roomConfigId;
     }
+
+    static String getWaitJoinRoomsKey(int gameType, int roomConfigId, String nodePath) {
+        if (nodePath == null || nodePath.isBlank()) {
+            return getWaitJoinRoomsKey(gameType, roomConfigId);
+        }
+        return getWaitJoinRoomsKey(gameType, roomConfigId) + StrConstant.COLON + nodePath;
+    }
 }

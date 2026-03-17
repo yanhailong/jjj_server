@@ -297,6 +297,14 @@ public final class TimeHelper {
     }
 
     /**
+     * 获取当天的数字表示, 260310
+     */
+    public static int getDayNumerical2() {
+        String dayStr = getDate(System.currentTimeMillis(), "yyMMdd");
+        return Integer.parseInt(dayStr);
+    }
+
+    /**
      * 获取当月的数字表示, 202012
      */
     public static int getMonthNumerical() {
@@ -406,11 +414,11 @@ public final class TimeHelper {
      * @param currentTime
      * @return
      */
-    public static int getTomorrowZeroSecondTime(int currentTime) {
+    public static long getTomorrowZeroSecondTime(long currentTime) {
         GregorianCalendar cd = new GregorianCalendar();
         cd.setFirstDayOfWeek(Calendar.MONDAY);
         cd.setTimeZone(TimeZone.getTimeZone(timeZone));
-        cd.setTimeInMillis((currentTime + 3600 * 24) * 1000l);
+        cd.setTimeInMillis(currentTime +  3600 * 24 * 1000l);
         cd.set(Calendar.HOUR_OF_DAY, 0);
         cd.set(Calendar.MINUTE, 0);
         cd.set(Calendar.SECOND, 0);
@@ -483,17 +491,17 @@ public final class TimeHelper {
      * @param secondTime2
      * @return
      */
-    public static int getDateDifference(int secondTime1, int secondTime2) {
+    public static int getDateDifference(long secondTime1, long secondTime2) {
         if (secondTime1 <= 0)
             return 0;
         GregorianCalendar cd1 = new GregorianCalendar();
         cd1.setTimeZone(TimeZone.getTimeZone(timeZone));
-        cd1.setTimeInMillis((long) secondTime1 * 1000L);
+        cd1.setTimeInMillis(secondTime1);
         int day1 = cd1.get(Calendar.DAY_OF_YEAR);
 
         GregorianCalendar cd2 = new GregorianCalendar();
         cd2.setTimeZone(TimeZone.getTimeZone(timeZone));
-        cd2.setTimeInMillis((long) secondTime2 * 1000L);
+        cd2.setTimeInMillis(secondTime2);
         int day2 = cd2.get(Calendar.DAY_OF_YEAR);
         return Math.abs(day2 - day1);
     }
@@ -797,5 +805,19 @@ public final class TimeHelper {
     public static LocalDateTime getLocalDateTime(long epochMilli) {
         return LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMilli), DEFAULT_ZONE);
     }
+
+    /**
+     * 将给定时间戳转换为当天 23:59:59.999 的时间戳
+     * @param timestamp
+     * @return
+     */
+    public static long getEndOfDayTimestamp(long timestamp) {
+          return Instant.ofEpochMilli(timestamp)
+                  .atZone(ZoneId.systemDefault())
+                  .with(LocalTime.MAX)  // 23:59:59.999999999
+                  .truncatedTo(ChronoUnit.MILLIS)  // 截断到毫秒
+                  .toInstant()
+                  .toEpochMilli();
+      }
 
 }

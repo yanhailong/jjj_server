@@ -189,7 +189,7 @@ public class CoreMessageHandler {
                 int type = Integer.parseInt(arr[1]);
                 //1等级礼包 测试用
                 RechargeType rechargeType = EnumUtil.getBy(RechargeType.class, e -> e.getType() == type);
-                Order order = orderService.generateOrder(playerController.getPlayer(), PayType.GOOGLE, arr[2], BigDecimal.valueOf(100.99), rechargeType);
+                Order order = orderService.generateOrder(playerController.getPlayer(), PayType.GOOGLE, arr[2], BigDecimal.valueOf(100.99), rechargeType, null);
                 gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(playerController.getPlayer(), order));
                 //任务条件参数
                 Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
@@ -491,7 +491,7 @@ public class CoreMessageHandler {
                 playerController.send(res);
                 return;
             }
-            Order order = orderService.generateOrder(playerController.getPlayer(), payType, req.productId, price, rechargeType);
+            Order order = orderService.generateOrder(playerController.getPlayer(), payType, req.productId, price, rechargeType, req.desc);
             if (order == null) {
                 log.debug("预下单失败11 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
                 res.code = Code.FAIL;

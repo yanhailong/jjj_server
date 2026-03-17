@@ -2,6 +2,7 @@ package com.jjg.game.activity.common.data;
 
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.common.controller.BaseActivityController;
+import com.jjg.game.activity.continuousRecharge.ContinuousRechargeController;
 import com.jjg.game.activity.dailylogin.controller.DailyLoginController;
 import com.jjg.game.activity.dailyrecharge.controller.DailyRechargeController;
 import com.jjg.game.activity.firstpayment.controller.FirstPaymentController;
@@ -47,7 +48,11 @@ public enum ActivityType {
             ActivityTargetType.NONE.getTargetKey(), false, false),
     //成长基金
     GROWTH_FUND(15, GrowthFundController.class, true, false,
-            ActivityTargetType.LEVEL.getTargetKey(), false, false);
+            ActivityTargetType.LEVEL.getTargetKey(), false, false),
+
+    //连续充值
+    CONTINUOUS_RECHARGE(21, ContinuousRechargeController.class, false, false,
+            ActivityTargetType.NONE.getTargetKey(), true, false);
     //活动类型
     private final int type;
     //活动控制器的class

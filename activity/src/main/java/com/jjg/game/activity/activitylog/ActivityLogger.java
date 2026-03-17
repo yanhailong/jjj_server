@@ -1,9 +1,14 @@
 package com.jjg.game.activity.activitylog;
 
+import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.activitylog.data.ScratchCardsResult;
 import com.jjg.game.activity.activitylog.data.SharePromoteWeekRank;
 import com.jjg.game.activity.common.data.ActivityData;
+import com.jjg.game.activity.continuousRecharge.data.ContinuousRechargeActivityData;
+import com.jjg.game.activity.continuousRecharge.data.DailyContinuousData;
+import com.jjg.game.activity.continuousRecharge.data.DailyWelfareData;
 import com.jjg.game.activity.piggybank.data.PiggyBankData;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
@@ -11,6 +16,7 @@ import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
 import com.jjg.game.core.utils.RobotUtil;
+import com.jjg.game.sampledata.bean.CumulativebenefitsCfg;
 import com.jjg.game.sampledata.bean.FirstpaymentCfg;
 import com.jjg.game.sampledata.bean.PlayerLevelPackCfg;
 import com.jjg.game.sampledata.bean.PrivilegeCardCfg;
@@ -541,6 +547,96 @@ public class ActivityLogger extends BaseLogger {
             sendLog("function", player, json);
         } catch (Exception e) {
             log.error("sendWealthRouletteLog error:", e);
+        }
+    }
+
+    /**
+     * 发送七日连充日志
+     *
+     * @param player
+     * @param data
+     */
+    public void sendContinuousLog(Player player, BigDecimal currentRecharge, ActivityData activityData, ContinuousRechargeActivityData data, List<Integer> taskList, long rebetGoldNum) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("activityId", activityData.getId());
+            json.put("type", activityData.getType().getType());
+            //七日连充为第一阶段
+            json.put("phase", 1);
+            //当前充值
+            json.put("currentRecharge", currentRecharge.toPlainString());
+
+            DailyContinuousData dailyContinuousData = data.queryDailyContinuousByDay(data.getCurrentDayIndex());
+            if (dailyContinuousData == null) {
+                //今日充值
+                json.put("todayRecharge", "0");
+            } else {
+                //今日充值
+                json.put("todayRecharge", dailyContinuousData.getRechargeNum() == null ? "0" : dailyContinuousData.getRechargeNum());
+            }
+            //累计充值
+            json.put("allRecharge", data.getContinuousTotalRecharge() == null ? "0" : data.getContinuousTotalRecharge());
+            //关卡
+            json.put("day", data.getCurrentDayIndex() + 1);
+            //关卡配置
+            json.put("taskCfgs", taskList);
+            //返利比例，万分比
+            json.put("rebate", data.getTotalRebateRate());
+            //实际已领取的金币数量
+            json.put("rewardGold", rebetGoldNum);
+            sendLog(TOPIC, player, json);
+        } catch (Exception e) {
+            log.error("sendCashCowJoinLog error:", e);
+        }
+    }
+
+    /**
+     * 发送累计福利日志
+     *
+     * @param player
+     * @param data
+     */
+    public void sendWelfarLog(Player player, BigDecimal currentRecharge, ActivityData activityData, ContinuousRechargeActivityData data, Map<Integer, CumulativebenefitsCfg> todayWelfareCfgMap) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("activityId", activityData.getId());
+            json.put("type", activityData.getType().getType());
+            //累计福利为第一阶段
+            json.put("phase", 2);
+            //当前充值
+            json.put("currentRecharge", currentRecharge.toPlainString());
+
+            DailyWelfareData dailyData = data.getDailyWelfareData();
+            if (dailyData == null) {
+                //今日充值
+                json.put("todayRecharge", "0");
+            } else {
+                //今日充值
+                json.put("todayRecharge", dailyData.getRechargeNum() == null ? "0" : dailyData.getRechargeNum());
+            }
+
+            //累计充值
+            json.put("allRecharge", data.getWelfarMonthRechargeNum() == null ? "0" : data.getWelfarMonthRechargeNum());
+
+            //当日数据
+            if (CollectionUtil.isNotEmpty(todayWelfareCfgMap)) {
+                JSONArray jsonArray = new JSONArray();
+                for (CumulativebenefitsCfg cfg : todayWelfareCfgMap.values()) {
+                    JSONObject tmpJson = new JSONObject();
+                    //条件
+                    tmpJson.put("condition", cfg.getCondition());
+                    //是否已领取
+                    tmpJson.put("rece", data.checkReceWefarDailyRewards(cfg.getId()));
+                    jsonArray.add(tmpJson);
+                }
+                json.put("todayDataArray", jsonArray);
+            }
+
+            //已领取累计奖励的任务id
+            json.put("claimedIds", data.getWelfarReceSet());
+            sendLog(TOPIC, player, json);
+        } catch (Exception e) {
+            log.error("sendCashCowJoinLog error:", e);
         }
     }
 }

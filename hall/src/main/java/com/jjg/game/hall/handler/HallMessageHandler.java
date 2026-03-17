@@ -40,6 +40,7 @@ import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.hall.service.NoticeService;
+import com.jjg.game.hall.service.RedeemCodeService;
 import com.jjg.game.hall.sharepromote.SharePromoteRewardService;
 import com.jjg.game.hall.utils.HallTool;
 import com.jjg.game.hall.vip.VipManager;
@@ -100,6 +101,8 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
     private LoginConfigService loginConfigService;
     @Autowired
     private SharePromoteRewardService sharePromoteService;
+    @Autowired
+    private RedeemCodeService redeemCodeService;
 
     /**
      * 进入游戏
@@ -808,7 +811,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
             return new CommonResult<>(Code.LEVEL_NOT_ENOUGH);
         }
 
-        MarsNode node = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(), playerController.getPlayer().getIp());
+        MarsNode node = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(), playerController.ipAddress());
         if (node == null) {
             log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return new CommonResult<>(Code.NOT_FOUND);
@@ -1125,6 +1128,33 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
         playerController.send(res);
     }
 
+    /**
+     * 请求兑换礼包码
+     */
+    @Command(HallConstant.MsgBean.REQ_REDEEM_CODE)
+    public void reqRedeemCode(PlayerController playerController, ReqRedeemCode req) {
+        ResRedeemCode res = redeemCodeService.redeem(playerController, req);
+        playerController.send(res);
+    }
+
+    /**
+     * 请求所有的新游期待榜数据
+     */
+    @Command(HallConstant.MsgBean.REQ_ALL_NEW_GAMES)
+    public void reqAllNewGames(PlayerController playerController, ReqAllNewGames req) {
+        ResAllNewGames res = hallService.allNewGames(playerController.playerId());
+        playerController.send(res);
+    }
+
+    /**
+     * 请求给新游期待榜点赞
+     */
+    @Command(HallConstant.MsgBean.REQ_LIKE_NEW_GAME)
+    public void reqLikeNewGame(PlayerController playerController, ReqLikeNewGame req) {
+        ResLikeNewGame res = hallService.likeNewGame(playerController.getPlayer(), req.gameType);
+        playerController.send(res);
+    }
+
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
         CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
@@ -1137,6 +1167,8 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
             } else if ("addAvatar".equalsIgnoreCase(gmOrders[0])) {
                 int id = Integer.parseInt(gmOrders[1]);
                 hallService.addPlayerAvatar(playerController.playerId(), id);
+            } else if ("newGameNextDay".equalsIgnoreCase(gmOrders[0])) {
+                hallService.newGameExpectDao.clearPlayerData();
             } else {
                 res.code = Code.NOT_FOUND;
             }

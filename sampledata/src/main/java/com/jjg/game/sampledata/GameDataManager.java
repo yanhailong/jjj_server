@@ -141,6 +141,8 @@ public class GameDataManager {
     containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
     containerMap.put(ChessTexasStrategyCfg.class, new ChessTexasStrategyCfgContainer());
     containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
+    containerMap.put(ContinuouschargingCfg.class, new ContinuouschargingCfgContainer());
+    containerMap.put(CumulativebenefitsCfg.class, new CumulativebenefitsCfgContainer());
     containerMap.put(DailyRechargeCfg.class, new DailyRechargeCfgContainer());
     containerMap.put(DailyRewardsCfg.class, new DailyRewardsCfgContainer());
     containerMap.put(DealerFunctionCfg.class, new DealerFunctionCfgContainer());
@@ -192,6 +194,7 @@ public class GameDataManager {
     containerMap.put(TaskCfg.class, new TaskCfgContainer());
     containerMap.put(TexasCfg.class, new TexasCfgContainer());
     containerMap.put(UndergarmentCfg.class, new UndergarmentCfgContainer());
+    containerMap.put(UpcomingMobileGameCfg.class, new UpcomingMobileGameCfgContainer());
     containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
     containerMap.put(WealthRouletteRewardCfg.class, new WealthRouletteRewardCfgContainer());
@@ -873,6 +876,30 @@ public class GameDataManager {
     return getInstance().getCfgContainer(ConditionCfg.class).getCfgBeanList();
   }
 
+  public static ContinuouschargingCfg getContinuouschargingCfg(int key) {
+    return getInstance().getCfgContainer(ContinuouschargingCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ContinuouschargingCfg> getContinuouschargingCfgMap() {
+    return getInstance().getCfgContainer(ContinuouschargingCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ContinuouschargingCfg> getContinuouschargingCfgList() {
+    return getInstance().getCfgContainer(ContinuouschargingCfg.class).getCfgBeanList();
+  }
+
+  public static CumulativebenefitsCfg getCumulativebenefitsCfg(int key) {
+    return getInstance().getCfgContainer(CumulativebenefitsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, CumulativebenefitsCfg> getCumulativebenefitsCfgMap() {
+    return getInstance().getCfgContainer(CumulativebenefitsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<CumulativebenefitsCfg> getCumulativebenefitsCfgList() {
+    return getInstance().getCfgContainer(CumulativebenefitsCfg.class).getCfgBeanList();
+  }
+
   public static DailyRechargeCfg getDailyRechargeCfg(int key) {
     return getInstance().getCfgContainer(DailyRechargeCfg.class).getCfgBeanMap().get(key);
   }
@@ -1483,6 +1510,18 @@ public class GameDataManager {
 
   public static List<UndergarmentCfg> getUndergarmentCfgList() {
     return getInstance().getCfgContainer(UndergarmentCfg.class).getCfgBeanList();
+  }
+
+  public static UpcomingMobileGameCfg getUpcomingMobileGameCfg(int key) {
+    return getInstance().getCfgContainer(UpcomingMobileGameCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, UpcomingMobileGameCfg> getUpcomingMobileGameCfgMap() {
+    return getInstance().getCfgContainer(UpcomingMobileGameCfg.class).getCfgBeanMap();
+  }
+
+  public static List<UpcomingMobileGameCfg> getUpcomingMobileGameCfgList() {
+    return getInstance().getCfgContainer(UpcomingMobileGameCfg.class).getCfgBeanList();
   }
 
   public static ViplevelCfg getViplevelCfg(int key) {

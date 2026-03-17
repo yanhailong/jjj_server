@@ -161,8 +161,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 // 当玩家加入时尝试开启游戏
                 tryStartGameOnPlayerJoinIn(playerController);
                 if (!(playerController.getPlayer() instanceof RobotPlayer) && !(room instanceof FriendRoom)) {
-                    boolean deduction = roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId()
-                            , room.getMaxLimit(), 0, -1);
+                    boolean deduction = roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(), room.getMaxLimit(), 0,
+                            -1, room.getPath());
                     if (!deduction) {
                         log.error("房间减少等待人数失败 roomId = {},playerId = {}", room.getId(), playerController.playerId());
                     }
@@ -478,8 +478,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                     // 返回
                     return;
                 }
-                boolean incremented = roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(),
-                        room.getId(), room.getMaxLimit(), 1, 0);
+                boolean incremented = roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(),
+                        room.getRoomCfgId(), room.getId(), room.getMaxLimit(), 1, 0, room.getPath());
                 if (!incremented) {
                     //释放机器人
                     robotService.recycleRobotPlayers(List.of(robotPlayerController.getPlayer().getId()));
@@ -570,8 +570,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             result.data = room;
             this.room = room;
             // 退出房间时删除人数
-            roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(),
-                    room.getMaxLimit(), -playerControllers.size(), 0);
+            roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(), room.getMaxLimit(),
+                    -playerControllers.size(), 0, room.getPath());
         } catch (Exception e) {
             log.error("机器人退出房间时异常", e);
             result.code = Code.EXCEPTION;

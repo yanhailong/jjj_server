@@ -73,7 +73,7 @@ public class SharePromoteRewardService implements GameEventListener {
         String[] split1 = split[1].split("_");
         long playId = playerController.getPlayer().getId();
         MatchResultData match = conditionManager.isAchievementAndGetResult(playerController.getPlayer(), "", split[0]);
-        String ip = playerController.getPlayer().getIp();
+        String ip = playerController.ipAddress();
         if (match.result() == MatchResult.MATCH) {
             boolean canReceive = true;
             if (split.length >= 4) {

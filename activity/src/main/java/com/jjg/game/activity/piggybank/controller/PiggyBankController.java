@@ -157,7 +157,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
             return false;
         }
         long playerId = player.getId();
-        // 获取全局配置，计算每万元金币进度
+        // 获取全局配置，计算每万单位货币金币进度
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.PiggyBank.INCOME_PER_TEN_THOUSAND);
         BigDecimal baseAdd = BigDecimal.valueOf(progress)
                 .multiply(BigDecimal.valueOf(globalConfigCfg.getIntValue()))
@@ -395,9 +395,9 @@ public class PiggyBankController extends BaseActivityController implements GameE
      * 检查玩家数据并在条件满足时重置
      */
     @Override
-    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
-        super.checkPlayerDataAndResetOnLogin(playerId, activityData);
-        resetData(playerId, activityData);
+    public void checkPlayerDataAndResetOnLogin(Player player, ActivityData activityData) {
+        super.checkPlayerDataAndResetOnLogin(player, activityData);
+        resetData(player.getId(), activityData);
     }
 
     /**
