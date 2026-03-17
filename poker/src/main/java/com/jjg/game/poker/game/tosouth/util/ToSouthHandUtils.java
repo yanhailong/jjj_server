@@ -782,12 +782,17 @@ public class ToSouthHandUtils {
      * @param cards 手牌列表 (会被修改为排序后的顺序)
      * @return 高亮牌 ID 列表
      */
+    /**
+     * 排序手牌并获取高亮牌ID（2、炸弹、连对）
+     * 排序优先级: 炸弹（4连对炸弹 > 4张炸弹 > 3连对炸弹）> 顺子 > 3张 > 对子 > 单张
+     */
     public static List<Integer> sortAndGetHighlightCards(List<Card> cards) {
         List<Integer> highlightIds = new ArrayList<>();
         if (cards == null || cards.isEmpty()) return highlightIds;
 
         Map<ToSouthCardType, List<List<Card>>> integrated = integrateHandCards(cards);
 
+        // 收集高亮牌: 炸弹(四条) + 连对炸弹 + 2
         List<List<Card>> bombs = integrated.get(ToSouthCardType.BOMB_QUAD);
         if (CollUtil.isNotEmpty(bombs)) {
             for (List<Card> bomb : bombs) {
@@ -814,14 +819,28 @@ public class ToSouthHandUtils {
             }
         }
 
-        List<Card> sorted = new ArrayList<>();
+        // 排序优先级: 炸弹（4连对炸弹 > 4张炸弹 > 3连对炸弹）> 顺子 > 3张 > 对子 > 单张
+        // 将连对炸弹按长度分为: 4连对(8张)及以上 和 3连对(6张)
+        List<List<Card>> fourPlusCPs = new ArrayList<>();  // 4连对及以上
+        List<List<Card>> threeCPs = new ArrayList<>();     // 3连对
+        if (CollUtil.isNotEmpty(cps)) {
+            for (List<Card> cp : cps) {
+                if (cp.size() >= 8) {
+                    fourPlusCPs.add(cp);
+                } else {
+                    threeCPs.add(cp);
+                }
+            }
+        }
 
-        addGroups(sorted, integrated.get(ToSouthCardType.CONSECUTIVE_PAIRS));
-        addGroups(sorted, integrated.get(ToSouthCardType.BOMB_QUAD));
-        addGroups(sorted, integrated.get(ToSouthCardType.STRAIGHT));
-        addGroups(sorted, integrated.get(ToSouthCardType.TRIPLE));
-        addGroups(sorted, integrated.get(ToSouthCardType.PAIR));
-        addGroups(sorted, integrated.get(ToSouthCardType.SINGLE));
+        List<Card> sorted = new ArrayList<>();
+        addGroups(sorted, fourPlusCPs);                                   // 1. 4连对炸弹(及以上)
+        addGroups(sorted, integrated.get(ToSouthCardType.BOMB_QUAD));     // 2. 4张炸弹
+        addGroups(sorted, threeCPs);                                      // 3. 3连对炸弹
+        addGroups(sorted, integrated.get(ToSouthCardType.STRAIGHT));      // 4. 顺子
+        addGroups(sorted, integrated.get(ToSouthCardType.TRIPLE));        // 5. 3张
+        addGroups(sorted, integrated.get(ToSouthCardType.PAIR));          // 6. 对子
+        addGroups(sorted, integrated.get(ToSouthCardType.SINGLE));        // 7. 单张
 
         cards.clear();
         cards.addAll(sorted);
@@ -840,8 +859,9 @@ public class ToSouthHandUtils {
 
     /**
      * 整合手牌：将散乱的手牌按规则整理成具体的牌型集合
-     * 整理顺序：连对炸弹 > 四条炸弹 > 三张 > 顺子 > 对子 > 单张
+     * 提取顺序：连对炸弹 > 四条炸弹 > 三张 > 顺子 > 对子 > 单张
      * 连对炸弹优先于四条炸弹提取，保证4张同点数的牌可以拆对参与连对链
+     * 排序优先级: 炸弹（4连对炸弹 > 4张炸弹 > 3连对炸弹）> 顺子 > 3张 > 对子 > 单张
      */
     public static Map<ToSouthCardType, List<List<Card>>> integrateHandCards(List<Card> handCards) {
         Map<ToSouthCardType, List<List<Card>>> result = new HashMap<>();
