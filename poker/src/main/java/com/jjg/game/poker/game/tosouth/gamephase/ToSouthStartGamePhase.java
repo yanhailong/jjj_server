@@ -19,6 +19,7 @@ import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthSendCardsInfo;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
+import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.message.RoomMessageBuilder;
@@ -26,13 +27,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_2;
@@ -67,6 +62,34 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(controller.getRoom().getRoomCfgId());
             gameDataVo.setRoomBet(warehouseCfg.getEnterLimit());
             log.debug("南方前进开始游戏，房间底注为：{}", warehouseCfg.getEnterLimit());
+
+            // 0. 资金检查：每位玩家需持有倍场50倍资金，不足则踢出房间
+            long minBalance = warehouseCfg.getEnterLimit() * 50L;
+            List<PlayerSeatInfo> insufficientPlayers = new ArrayList<>();
+            for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+                if (info.isDelState()) continue;
+                long playerBalance = controller.getTransactionItemNum(info.getPlayerId());
+                if (playerBalance < minBalance) {
+                    log.info("玩家 {} 资金不足，当前: {}, 需要: {}, 踢出房间", info.getPlayerId(), playerBalance, minBalance);
+                    insufficientPlayers.add(info);
+                }
+            }
+            if (!insufficientPlayers.isEmpty()) {
+                for (PlayerSeatInfo info : insufficientPlayers) {
+                    // 通知客户端金额不足并退出
+                    NotifyExitRoom exitNotify = new NotifyExitRoom();
+                    exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
+                    controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), exitNotify));
+                    controller.getRoomController().getRoomManager().exitRoom(info.getPlayerId());
+                }
+                // 踢人后人数不足，终止本局，由 phaseFinish 回退到等待阶段
+                int remaining = gameDataVo.getSeatDownNum();
+                if (remaining < gameDataVo.getRoomCfg().getMinPlayer()) {
+                    log.info("资金检查后人数不足 ({}/{}), 无法开局", remaining, gameDataVo.getRoomCfg().getMinPlayer());
+                    return;
+                }
+            }
+
             // 1. 洗牌发牌
             Map<Integer, PokerCard> cardListMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
             if (BOMB_TEST_MODE) {
@@ -76,15 +99,52 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                 sendCards(cardListMap, gameDataVo);
             }
 
-            // 2. 确定首出玩家 (黑桃3)
-            PlayerSeatInfo playerSeatInfo = findSeatWithSpecifyCard(gameDataVo, cardListMap, RANK_3, SPADE_SUITS);
-            if (playerSeatInfo == null) {
-                log.warn("南方前进牌组中没有黑桃3，请检查配置");
-                return;
+            // 2. 确定首出玩家
+            // 规则：同桌4人续局 → 上局赢家先出；有人变动或首局 → 黑桃3先出
+            Set<Long> currentPlayerIds = gameDataVo.getPlayerSeatInfoList().stream()
+                    .filter(s -> !s.isDelState())
+                    .map(PlayerSeatInfo::getPlayerId)
+                    .collect(Collectors.toSet());
+
+            long lastWinner = gameDataVo.getLastGameWinnerPlayerId();
+            Set<Long> lastPlayerIds = gameDataVo.getLastGamePlayerIds();
+
+            boolean samePlayers = lastWinner > 0
+                    && !lastPlayerIds.isEmpty()
+                    && currentPlayerIds.equals(lastPlayerIds);
+
+            PlayerSeatInfo firstPlayer;
+            if (samePlayers) {
+                // 同桌续局，上局赢家先出
+                firstPlayer = gameDataVo.getPlayerSeatInfoMap().get(lastWinner);
+                if (firstPlayer != null && !firstPlayer.isDelState()) {
+                    gameDataVo.setIndex(firstPlayer.getSeatId());
+                    gameDataVo.setRoundLeaderSeatId(firstPlayer.getSeatId());
+                    gameDataVo.setFirstRound(false); // 非首局，无需出黑桃3
+                    log.info("同桌续局，上局赢家 {} 先出", lastWinner);
+                } else {
+                    // 赢家异常，回退到黑桃3
+                    firstPlayer = findSeatWithSpecifyCard(gameDataVo, cardListMap, RANK_3, SPADE_SUITS);
+                    if (firstPlayer == null) {
+                        log.warn("南方前进牌组中没有黑桃3，请检查配置");
+                        return;
+                    }
+                    gameDataVo.setIndex(firstPlayer.getSeatId());
+                    gameDataVo.setRoundLeaderSeatId(firstPlayer.getSeatId());
+                }
+            } else {
+                // 新桌或有人变动，黑桃3先出
+                firstPlayer = findSeatWithSpecifyCard(gameDataVo, cardListMap, RANK_3, SPADE_SUITS);
+                if (firstPlayer == null) {
+                    log.warn("南方前进牌组中没有黑桃3，请检查配置");
+                    return;
+                }
+                gameDataVo.setIndex(firstPlayer.getSeatId());
+                gameDataVo.setRoundLeaderSeatId(firstPlayer.getSeatId());
             }
 
-            gameDataVo.setIndex(playerSeatInfo.getSeatId());
-            gameDataVo.setRoundLeaderSeatId(playerSeatInfo.getSeatId());
+            // 记录本局玩家集合，供下局判断是否同桌续局
+            gameDataVo.setLastGamePlayerIds(currentPlayerIds);
 
             // 3. 检查通杀（炸弹测试模式下跳过，否则人人有炸弹把把触发通杀）
             if (!BOMB_TEST_MODE) {

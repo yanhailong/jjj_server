@@ -28,14 +28,14 @@ public interface ZeusVsHadesConstant {
         int RES_POOL_INFO = BASE_MSG_PREFIX | 0x8;
     }
 
-    interface Common{
+    interface Common {
         int MINI_POOL_ID = 102000101;
         int MINOR_POOL_ID = 102000102;
         int MAJOR_POOL_ID = 102000103;
         int GRAND_POOL_ID = 102000104;
     }
 
-    interface Status{
+    interface Status {
         int NORMAL = 0;
         //免费选择触发局
         int CHOOSE_ONE = 1;
@@ -45,7 +45,7 @@ public interface ZeusVsHadesConstant {
         int HADES = 3;
     }
 
-    interface WildStatus{
+    interface WildStatus {
         int NONE = 0;
         //宙斯赢
         int ZEUS = 1;
@@ -54,7 +54,7 @@ public interface ZeusVsHadesConstant {
     }
 
 
-    interface BaseElement{
+    interface BaseElement {
         int TYPE0_SMALL = 1;//蓝10 类型为0 最小的id
         int TYPE0_BIG = 20;//哈迪斯 类型为0 最大的id
 
@@ -68,7 +68,7 @@ public interface ZeusVsHadesConstant {
         int ID_HADES_WILD = 42;
     }
 
-    interface SpecialMode{
+    interface SpecialMode {
         //普通旋转
         int NORMAL = 1;
         //免费触发局
@@ -83,14 +83,14 @@ public interface ZeusVsHadesConstant {
 //        int ZEUSWILDFREE = 6;
     }
 
-    interface SpecialPlay{
+    interface SpecialPlay {
         //用户 选择哈里斯还是宙斯
         int FREE_CHOOSE_ZEUS_OR_HADES = 1;
         //普通转 选择哈里斯还是宙斯
         int NORMAL_CHOOSE_ZEUS_OR_HADES = 2;
     }
 
-    interface SpecialAuxiliary{
+    interface SpecialAuxiliary {
         //普通转 宙斯
         int NORMAL_ZEUS = 30200007;
         //普通转 哈里斯
@@ -128,4 +128,32 @@ public interface ZeusVsHadesConstant {
         int FREE_HADES_4 = 30200018;
     }
 
+    interface MiniGameId {
+        int NORMAL_1_MINI_GAMEID = 10200011;
+
+        int NORMAL_2_MINI_GAMEID = 10200012;
+
+        int NORMAL_3_MINI_GAMEID = 10200013;
+
+        int NORMAL_4_MINI_GAMEID = 10200014;
+
+
+        int FREE_ZEUS_1_MINI_GAMEID = 10200120;
+
+        int FREE_ZEUS_2_MINI_GAMEID = 10200220;
+
+        int FREE_ZEUS_3_MINI_GAMEID = 10200320;
+
+        int FREE_ZEUS_4_MINI_GAMEID = 10200420;
+
+
+        int FREE_HADES_1_MINI_GAMEID = 10200125;
+
+        int FREE_HADES_2_MINI_GAMEID = 10200225;
+
+        int FREE_HADES_3_MINI_GAMEID = 10200325;
+
+        int FREE_HADES_4_MINI_GAMEID = 10200425;
+
+    }
 }

@@ -27,6 +27,10 @@ public class SouthernMoneyCfg extends BaseCfgBean {
   protected int poolId;
   /** 被管炸弹的倍数（三连对） */
   protected int remainBoom;
+  /** 被管炸弹的倍数（四条） */
+  protected int fourkindboom;
+  /** 被管炸弹的倍数（四连对） */
+  protected int fourpairsboom;
   /** 结算剩余普通牌的倍数 */
   protected int remainNormal;
   /** 结算剩余手牌黑2的倍数 */
@@ -54,6 +58,16 @@ public class SouthernMoneyCfg extends BaseCfgBean {
   /** 返回被管炸弹的倍数（三连对） */
   public int getRemainBoom() {
     return remainBoom;
+  }
+
+  /** 返回被管炸弹的倍数（四条） */
+  public int getFourkindboom() {
+    return fourkindboom;
+  }
+
+  /** 返回被管炸弹的倍数（四连对） */
+  public int getFourpairsboom() {
+    return fourpairsboom;
   }
 
   /** 返回结算剩余普通牌的倍数 */

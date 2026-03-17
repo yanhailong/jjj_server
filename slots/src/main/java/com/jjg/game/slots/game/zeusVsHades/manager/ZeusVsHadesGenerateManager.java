@@ -142,12 +142,25 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
             //是否触发小游戏
             if (cfg.getFeatureTriggerId() != null && !cfg.getFeatureTriggerId().isEmpty()) {
                 cfg.getFeatureTriggerId().forEach(miniGameId -> {
+
                     if (!showAuxiliaryIdSet.contains(miniGameId)) { //如果没出现过的小游戏可以触发
+//                        log.error("miniGameId:{}", miniGameId);
+//                        if (miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_HADES_1_MINI_GAMEID &&
+//                                miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_HADES_2_MINI_GAMEID &&
+//                                miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_HADES_3_MINI_GAMEID &&
+//                                miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_HADES_4_MINI_GAMEID &&
+//
+//                                miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_ZEUS_1_MINI_GAMEID &&
+//                                miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_ZEUS_2_MINI_GAMEID &&
+//                                miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_ZEUS_3_MINI_GAMEID &&
+//                                miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_ZEUS_4_MINI_GAMEID
+//                        ) {
                         SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(winStatus, isAdd, specialModeType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
                         if (specialAuxiliaryInfo != null) {
                             showAuxiliaryIdSet.add(miniGameId);
                             specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
                         }
+//                        }
                     }
                 });
             }
@@ -202,12 +215,23 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                 cfg.getFeatureTriggerId().forEach(miniGameId -> {
                     if (!showAuxiliaryIdSet.contains(miniGameId)) { //如果没出现过的小游戏可以触发
                         lib.getLibTypeSet().forEach(libType -> {
-
+//                            log.error("miniGameId:{}", miniGameId);
+//                            if (miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_HADES_1_MINI_GAMEID &&
+//                                    miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_HADES_2_MINI_GAMEID &&
+//                                    miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_HADES_3_MINI_GAMEID &&
+//                                    miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_HADES_4_MINI_GAMEID &&
+//
+//                                    miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_ZEUS_1_MINI_GAMEID &&
+//                                    miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_ZEUS_2_MINI_GAMEID &&
+//                                    miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_ZEUS_3_MINI_GAMEID &&
+//                                    miniGameId != ZeusVsHadesConstant.MiniGameId.FREE_ZEUS_4_MINI_GAMEID
+//                            ) {
                             SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(winStatus, isAdd, libType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
                             if (specialAuxiliaryInfo != null) {
                                 showAuxiliaryIdSet.add(miniGameId);
                                 specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
                             }
+//                            }
                         });
                     }
                 });
@@ -1009,6 +1033,24 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
      */
     public SpecialGirdInfo gridUpdate(int cfgId, int[] arr) {
         log.debug("开始修改格子 specialGirdCfgId = {}", cfgId);
+
+        if (cfgId == ZeusVsHadesConstant.MiniGameId.NORMAL_1_MINI_GAMEID ||
+                cfgId == ZeusVsHadesConstant.MiniGameId.NORMAL_2_MINI_GAMEID ||
+                cfgId == ZeusVsHadesConstant.MiniGameId.NORMAL_3_MINI_GAMEID ||
+                cfgId == ZeusVsHadesConstant.MiniGameId.NORMAL_4_MINI_GAMEID ||
+
+                cfgId == ZeusVsHadesConstant.MiniGameId.FREE_HADES_1_MINI_GAMEID ||
+                cfgId == ZeusVsHadesConstant.MiniGameId.FREE_HADES_2_MINI_GAMEID ||
+                cfgId == ZeusVsHadesConstant.MiniGameId.FREE_HADES_3_MINI_GAMEID ||
+                cfgId == ZeusVsHadesConstant.MiniGameId.FREE_HADES_4_MINI_GAMEID ||
+
+                cfgId == ZeusVsHadesConstant.MiniGameId.FREE_ZEUS_1_MINI_GAMEID ||
+                cfgId == ZeusVsHadesConstant.MiniGameId.FREE_ZEUS_2_MINI_GAMEID ||
+                cfgId == ZeusVsHadesConstant.MiniGameId.FREE_ZEUS_3_MINI_GAMEID ||
+                cfgId == ZeusVsHadesConstant.MiniGameId.FREE_ZEUS_4_MINI_GAMEID) {
+            log.debug("该配置不用修改格子 cfgId = {}", cfgId);
+            return null;
+        }
         SpecialGirdCfg specialGirdCfg = GameDataManager.getSpecialGirdCfg(cfgId);
         if (specialGirdCfg == null) {
             log.debug("修改格子未找到对应的配置 cfgId = {}", cfgId);

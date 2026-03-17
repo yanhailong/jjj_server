@@ -13,13 +13,11 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.service.CorePlayerService;
-import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.dao.RoomDao;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.manager.RoomManager;
 import com.jjg.game.sampledata.bean.RoomCfg;
-import com.jjg.game.table.baccarat.BaccaratTempRoom;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.russianlette.RussianLetteGameController;
 import com.jjg.game.table.russianlette.RussianLetteTempRoom;
@@ -46,6 +44,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 俄罗斯轮盘消息处理器
@@ -305,8 +304,12 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
 
         if (currentGc != null && currentGc.gameControlType() == EGameType.RUSSIAN_ROULETTE) {
             if(currentGc instanceof RussianLetteGameController rgc) {
-                if(rgc.getCurrentGamePhase() != EGamePhase.BET){
-                    playerController.send(new RespRussianLetteSwitchRoomInGame(Code.FORBID));
+                // 只有已经下注的玩家不能切换房间，没下注的玩家任何阶段都可以切换
+                Map<Integer, List<Integer>> playerBetInfo =
+                        rgc.getGameDataVo().getPlayerBetInfo(playerController.playerId());
+                if(playerBetInfo != null && !playerBetInfo.isEmpty()){
+                    log.warn("switchRoomInGame: 玩家 {} 已下注，不能切换房间", playerController.playerId());
+                    playerController.send(new RespRussianLetteSwitchRoomInGame(Code.BET_TO_LIMIT));
                     return;
                 }
             }

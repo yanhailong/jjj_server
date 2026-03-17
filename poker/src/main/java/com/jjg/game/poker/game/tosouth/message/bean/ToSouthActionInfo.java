@@ -36,6 +36,8 @@ public class ToSouthActionInfo {
     public boolean isFirstRound;
     @ProtoDesc("当前玩家的手牌")
     public List<Integer> selfHandCards;
+    @ProtoDesc("当前玩家手牌中需要高亮的牌(2、炸弹、连对)")
+    public List<Integer> selfHighlightCards;
     @ProtoDesc("刚刚过牌的玩家座位ID，0表示本次通知不是由过牌触发")
     public long  lastpassUserId;
 }
