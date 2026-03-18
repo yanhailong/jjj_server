@@ -131,6 +131,7 @@ public class OrderService {
     public Order orderProcessing(String orderId, String channelOrderId) {
         return orderDao.changeOrderProcessing(orderId, channelOrderId);
     }
+
     public Order orderFail(String orderId) {
         return orderDao.changeOrderFail(orderId);
     }
@@ -165,7 +166,7 @@ public class OrderService {
         int expire = now - (int) TimeUnit.DAYS.toSeconds(60);
 
         long mongoDelCount = orderDao.deleteOrdersBeforeTimestampExceptShipping(expire);
-        long mongoDelFlowCount = playerRechargeFlowDao.deleteOrdersBeforeTimestamp(expire);
+        long mongoDelFlowCount = playerRechargeFlowDao.deleteOrdersBeforeTimestamp(expire * 1000);
         int channelOrderExpire = now - (int) TimeUnit.DAYS.toSeconds(7);
 
         Long removeChannelOrderCount = removeChannelOrderSet(channelOrderExpire);
