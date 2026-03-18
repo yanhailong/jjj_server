@@ -9,4 +9,6 @@ import com.jjg.game.poker.game.tosouth.constant.ToSouthConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthConstant.MsgBean.REQ_GO_READY)
 @ProtoDesc("南方前进玩家请求进行准备")
 public class ReqToSouthGoReady extends AbstractMessage {
+    @ProtoDesc("1准备 2取消")
+    public int status;
 }

@@ -19,11 +19,8 @@ import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthSendCardsInfo;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
-import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
-import com.jjg.game.room.data.robot.GameRobotPlayer;
-import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -64,33 +61,6 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(controller.getRoom().getRoomCfgId());
             gameDataVo.setRoomBet(warehouseCfg.getEnterLimit());
             log.debug("南方前进开始游戏，房间底注为：{}", warehouseCfg.getEnterLimit());
-
-            // 0. 资金检查：每位玩家需持有倍场50倍资金，不足则踢出房间
-            long minBalance = warehouseCfg.getEnterLimit() * 50L;
-            List<PlayerSeatInfo> insufficientPlayers = new ArrayList<>();
-            for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
-                if (info.isDelState()) continue;
-                long playerBalance = controller.getTransactionItemNum(info.getPlayerId());
-                if (playerBalance < minBalance) {
-                    log.info("玩家 {} 资金不足，当前: {}, 需要: {}, 踢出房间", info.getPlayerId(), playerBalance, minBalance);
-                    insufficientPlayers.add(info);
-                }
-            }
-            if (!insufficientPlayers.isEmpty()) {
-                for (PlayerSeatInfo info : insufficientPlayers) {
-                    // 通知客户端金额不足并退出
-                    NotifyExitRoom exitNotify = new NotifyExitRoom();
-                    exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
-                    controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), exitNotify));
-                    controller.getRoomController().getRoomManager().exitRoom(info.getPlayerId());
-                }
-                // 踢人后人数不足，终止本局，由 phaseFinish 回退到等待阶段
-                int remaining = gameDataVo.getSeatDownNum();
-                if (remaining < gameDataVo.getRoomCfg().getMinPlayer()) {
-                    log.info("资金检查后人数不足 ({}/{}), 无法开局", remaining, gameDataVo.getRoomCfg().getMinPlayer());
-                    return;
-                }
-            }
 
             // 1. 洗牌发牌
             Map<Integer, PokerCard> cardListMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
@@ -153,18 +123,8 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                 checkInstantWin(controller);
             }
 
-            // 4. 将通杀上下文保存到 gameDataVo，供 canStartNextPhase 使用
+            // 4. 将通杀上下文保存到 gameDataVo，供外部访问（如重连、日志等）
             gameDataVo.setInstantWinContext(instantWinContext);
-
-            // 5. 自动标记机器人玩家为准备状态
-            for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
-                if (info.isDelState()) continue;
-                GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
-                if (gamePlayer instanceof GameRobotPlayer) {
-                    gameDataVo.getReadyPlayerIds().add(info.getPlayerId());
-                    log.debug("机器人 {} 自动准备", info.getPlayerId());
-                }
-            }
         }
     }
 
