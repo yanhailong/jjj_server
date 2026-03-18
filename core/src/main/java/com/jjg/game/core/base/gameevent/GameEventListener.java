@@ -39,7 +39,7 @@ public interface GameEventListener {
      *
      * @return true 终止事件传播
      */
-    default boolean stopEventPropagation(EGameEventType eGameEventType) {
+    default <T extends GameEvent> boolean stopEventPropagation(T gameEvent) {
         return false;
     }
 }

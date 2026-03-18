@@ -540,16 +540,19 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
             Order order = event.getOrder();
             Player player = event.getPlayer();
-            if (order.getRechargeType() != RechargeType.SHOP) {
-                return;
+            if (order.getRechargeType() == RechargeType.SHOP || order.getRechargeType() == RechargeType.BACKEND_CALLBACK || order.getRechargeType() == RechargeType.BACKEND) {
+                recharge(player, order);
             }
-            recharge(player, order);
         }
     }
 
     @Override
-    public boolean stopEventPropagation(EGameEventType eGameEventType) {
-        return eGameEventType == EGameEventType.RECHARGE;
+    public <T extends GameEvent> boolean stopEventPropagation(T gameEvent) {
+        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
+            Order order = event.getOrder();
+            return order != null && StringUtils.isNotEmpty(order.getDesc());
+        }
+        return false;
     }
 
     @Override
