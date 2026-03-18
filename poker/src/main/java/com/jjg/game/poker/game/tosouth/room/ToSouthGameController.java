@@ -885,11 +885,16 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         if (!insufficientPlayerIds.isEmpty()) {
             for (Long pid : insufficientPlayerIds) {
                 gameDataVo.getReadyPlayerIds().remove(pid);
-                NotifyExitRoom exitNotify = new NotifyExitRoom();
-                exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
-                broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(pid, exitNotify));
-                getRoomController().getRoomManager().exitRoom(pid);
-                log.info("玩家 {} 因资金不足被踢出房间", pid);
+                RoomPlayer roomPlayer = getRoomController().getRoomPlayer(pid);
+                if (roomPlayer == null || roomPlayer.isOnline()) {
+                    NotifyExitRoom exitNotify = new NotifyExitRoom();
+                    exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
+                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(pid, exitNotify));
+                    log.info("玩家 {} 资金不足，通知客户端退出房间", pid);
+                } else {
+                    getRoomController().getRoomManager().exitRoom(pid);
+                    log.info("玩家 {} 离线且资金不足，服务端直接退出房间", pid);
+                }
             }
             // 踢人后重新检查人数是否足够
             int remaining = gameDataVo.getSeatDownNum();
@@ -918,14 +923,21 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     }
 
     /**
-     * 踢出未准备的玩家，通知客户端并移出房间
+     * 踢出未准备的玩家（对齐德州扑克退出房间逻辑）
+     * 在线玩家：发送 NotifyExitRoom 通知，由客户端处理退出
+     * 离线玩家：服务端直接调用 exitRoom 清理房间信息
      */
     public void kickUnreadyPlayer(long playerId) {
-        NotifyExitRoom exitNotify = new NotifyExitRoom();
-        exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
-        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
-        getRoomController().getRoomManager().exitRoom(playerId);
-        log.info("玩家 {} 因未准备被踢出房间", playerId);
+        RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
+        if (roomPlayer == null || roomPlayer.isOnline()) {
+            NotifyExitRoom exitNotify = new NotifyExitRoom();
+            exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
+            log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
+        } else {
+            getRoomController().getRoomManager().exitRoom(playerId);
+            log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
+        }
     }
 
     @Override
