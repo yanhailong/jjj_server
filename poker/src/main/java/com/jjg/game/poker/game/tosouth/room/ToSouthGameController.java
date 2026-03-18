@@ -51,6 +51,7 @@ import com.jjg.game.poker.game.tosouth.util.ToSouthCardType;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
 import java.util.stream.Collectors;
 
+import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.poker.game.tosouth.autohandler.ToSouthAutoPlayHandler;
 
@@ -92,7 +93,8 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         for (int i = 1; i < playerSeatInfoList.size(); i++) {
             int newIndex = (currentListIdx + i) % playerSeatInfoList.size();
             PlayerSeatInfo info = playerSeatInfoList.get(newIndex);
-            if (!info.isOver() && !info.isDelState()) {
+            if (!info.isOver() && !info.isDelState()
+                    && !gameDataVo.getCurRoundPassedPlayerSeats().contains(info.getSeatId())) {
                 return info;
             }
         }
@@ -454,14 +456,12 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     }
 
     private void checkNextTurn(long passerPlayerId) {
-        // 规则：只要有 (人数 - 1) 个人连续 Pass，则一轮结束
-        int totalPlayers = gameDataVo.getPlayerSeatInfoList().size();
-        int passLimit = totalPlayers - 1;
-        log.debug("检查下家 - 连续过牌: {}/{}, 当前索引: {}", gameDataVo.getPassCount(), passLimit, gameDataVo.getIndex());
+        log.debug("检查下家 - 当前索引: {}", gameDataVo.getIndex());
 
-        if (gameDataVo.getPassCount() >= passLimit) {
-            // 新的一轮
-            // 下一个出牌的人应该是最后一次出牌的人
+        PlayerSeatInfo nextPlayer = getNextExePlayer();
+
+        // 如果没有下家，或者下家就是上一个出牌的人（说明其他人都过了/出局），一轮结束
+        if (nextPlayer == null || nextPlayer.getSeatId() == gameDataVo.getLastPlaySeatId()) {
             int winnerSeatId = gameDataVo.getLastPlaySeatId();
             PlayerSeatInfo nextLeader = getPlayerBySeatId(winnerSeatId);
 
@@ -471,7 +471,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 gameDataVo.setLastPlayCards(null);
                 gameDataVo.setFirstRound(false);
                 gameDataVo.setPassCount(0);
-                gameDataVo.getCurRoundPassedPlayerSeats().clear(); // 新回合清空过牌列表
+                gameDataVo.getCurRoundPassedPlayerSeats().clear();
 
                 // 处理炸弹结算 (如果有的话)
                 processBombSettlement(winnerSeatId);
@@ -484,13 +484,10 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             }
         } else {
             // 继续当前轮，找下家
-            PlayerSeatInfo nextPlayer = getNextExePlayer();
-            if (nextPlayer != null) {
-                log.debug("当前轮继续，下家 {} 出牌", nextPlayer.getPlayerId());
-                broadcastNextTurn(nextPlayer.getPlayerId(), true, passerPlayerId);
-                gameDataVo.setIndex(nextPlayer.getSeatId());
-                addNextTimer(nextPlayer, 0);
-            }
+            log.debug("当前轮继续，下家 {} 出牌", nextPlayer.getPlayerId());
+            broadcastNextTurn(nextPlayer.getPlayerId(), true, passerPlayerId);
+            gameDataVo.setIndex(nextPlayer.getSeatId());
+            addNextTimer(nextPlayer, 0);
         }
     }
     
@@ -844,6 +841,12 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             return true;
         }
         return false;
+    }
+
+    @Override
+    public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
+        // 玩家退出房间时清除续局状态，避免重新进入后误判为同桌续局
+        gameDataVo.setLastGameWinnerPlayerId(0);
     }
 
     @Override
