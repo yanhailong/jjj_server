@@ -19,7 +19,7 @@ public class RussianLetteStageInfo {
     @ProtoDesc("结束时间戳(ms)")
     public long endTime;
 
-    /** 开奖结果 0-36 37-》0 */
+    /** 开奖结果 1-37（37 代表绿色 0） */
     @ProtoDesc("开奖结果")
     public int diceData;
 }

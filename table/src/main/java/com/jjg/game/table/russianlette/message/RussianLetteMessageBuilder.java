@@ -64,7 +64,7 @@ public class RussianLetteMessageBuilder {
         RussianLetteStageInfo stageInfo = new RussianLetteStageInfo();
         stageInfo.gamePhase = gamePhase;
         stageInfo.endTime = endTime;
-        // 开奖/结算阶段：将开奖结果写入 stageInfo（settlementInfo.diceData 已做 37→0 映射）
+        // 开奖/结算阶段：将开奖结果写入 stageInfo（37 代表绿色 0）
         if (settlementInfo != null) {
             stageInfo.diceData = settlementInfo.diceData;
         }
@@ -183,7 +183,7 @@ public class RussianLetteMessageBuilder {
         RussianLetteStageInfo stageInfo = new RussianLetteStageInfo();
         stageInfo.gamePhase = EGamePhase.GAME_ROUND_OVER_SETTLEMENT;
         stageInfo.endTime = gameDataVo.getPhaseEndTime();
-        stageInfo.diceData = settlement.settlementInfo.diceData; // 已做 37→0 映射
+        stageInfo.diceData = settlement.settlementInfo.diceData; // 37 代表绿色 0
         settlement.stageInfo = stageInfo;
 
         // 概率信息
@@ -382,7 +382,7 @@ public class RussianLetteMessageBuilder {
         RussianLetteStageInfo stageInfo = new RussianLetteStageInfo();
         stageInfo.gamePhase = currentPhase;
         stageInfo.endTime = dataVo.getPhaseEndTime();
-        // 开奖/结算阶段：将当前开奖结果写入 stageInfo（37→0 映射）
+        // 开奖/结算阶段：将当前开奖结果写入 stageInfo（37 代表绿色 0）
         RussianLetteHistoryBean drawBean = dataVo.getDrawPhaseHistoryBean();
         if (drawBean != null) {
 //            stageInfo.diceData = drawBean.diceData == 37 ? 0 : drawBean.diceData;
@@ -391,7 +391,7 @@ public class RussianLetteMessageBuilder {
 
         resp.stageInfo = stageInfo;
 
-        // ── 2. 历史转盘结果（37→0 映射，最多 recordsNum 条）───────────────────
+        // ── 2. 历史转盘结果（37 代表绿色 0，最多 recordsNum 条）───────────────────
 //        resp.cardStateList = dataVo.getWinAreaCfgIdHistory().stream()
 //                .map(b -> b.diceData == 37 ? 0 : b.diceData)
 //                .toList();

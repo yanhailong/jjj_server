@@ -88,7 +88,7 @@ public class RussianLetteDrawPhase extends BaseDiceSettlementPhase<RussianLetteG
 
         super.phaseDoAction();
         log.info("执行RussianLetteDrawPhase（开奖阶段）中phaseDoAction");
-        // ── 1. 生成 0-36（数据库37-》0） 随机骰子点数 ─────────────────────────
+        // ── 1. 生成 1-37（37 代表绿色 0）随机骰子点数 ─────────────────────────
         //      优先级：GM 指定 > 回收干预 > 随机
         List<Integer> randomNumDice = null;
 
@@ -116,9 +116,9 @@ public class RussianLetteDrawPhase extends BaseDiceSettlementPhase<RussianLetteG
             }
         }
 
-        // 随机生成
+        // 随机生成（数据库 1-37，其中 37 代表绿色 0）
         if (randomNumDice == null) {
-            randomNumDice = DiceUtils.randomDice(1, 0, 37);
+            randomNumDice = DiceUtils.randomDice(1, 1, 37);
         }
 
         int diceData = randomNumDice.getFirst();
