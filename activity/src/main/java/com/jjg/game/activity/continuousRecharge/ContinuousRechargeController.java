@@ -21,6 +21,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.listener.TmpRechargeListener;
+import com.jjg.game.core.manager.BackendRechargeManager;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.service.MailService;
@@ -60,6 +61,8 @@ public class ContinuousRechargeController extends BaseActivityController impleme
     private MailService mailService;
     @Autowired
     private ShopService shopService;
+    @Autowired
+    private BackendRechargeManager backendRechargeManager;
 
     private final int DETAIL_ID = 1;
 
@@ -468,6 +471,8 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             if (order.getRechargeType() == RechargeType.SHOP) {
                 //获取商品
                 shopService.handleShopOrder(player, order, money, regionCode, channelProductId);
+            } else if (order.getRechargeType() == RechargeType.BACKEND || order.getRechargeType() == RechargeType.BACKEND_CALLBACK) {
+                backendRechargeManager.dealBackendRecharge(player, order);
             }
 
             if (StringUtils.isEmpty(order.getDesc())) {
