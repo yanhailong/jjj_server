@@ -331,8 +331,8 @@ public class RussianLetteMessageBuilder {
     }
 
     /**
-     * 通知所有观察者（正在浏览房间列表但未进入房间的玩家）
-     * <p>在 BET 和 SETTLEMENT 阶段调用，向观察者推送房间摘要更新。</p>
+     * 通知所有观察者（正在浏览房间列表但未进入房间的玩家 + 请求了 OtherSummaryList 的玩家）
+     * <p>在 BET、DRAW_ON 和 SETTLEMENT 阶段调用，向观察者推送房间摘要更新。</p>
      *
      * @param gameController 当前房间的游戏控制器
      */
@@ -342,9 +342,17 @@ public class RussianLetteMessageBuilder {
         RussianLetteTempRoom tempRoom = CommonUtil.getContext().getBean(RussianLetteTempRoom.class);
         NotifyRussianLetteTableSummary notify = buildRussianLetteSingleSummaryInfo(gameController);
         int roomCfgId = gameController.getGameDataVo().getRoomCfg().getId();
-        Set<Long> playerIds = tempRoom.getObserverPlayers(roomCfgId);
         ClusterSystem system = getClusterSystem();
+
+        // 通知选房界面的观察者
+        Set<Long> playerIds = tempRoom.getObserverPlayers(roomCfgId);
         for (Long playerId : playerIds) {
+            system.sendToPlayer(notify, playerId);
+        }
+
+        // 通知请求了 OtherSummaryList 的观察者（游戏中查看同场次其他房间的玩家）
+        Set<Long> otherObserverIds = tempRoom.getOtherSummaryObservers(roomCfgId);
+        for (Long playerId : otherObserverIds) {
             system.sendToPlayer(notify, playerId);
         }
     }

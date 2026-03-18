@@ -174,7 +174,7 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
         resp.tableSummaryList = new ArrayList<>();
         if (gameControllers != null && !gameControllers.isEmpty()) {
             for (AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gc : gameControllers) {
-                // 只返回其他场次（roomCfgId 不同）的房间
+                // 只返回其他场次（roomCfgId 想同 房间不同）的房间
                 if (gc instanceof RussianLetteGameController rgc
                         && gc.getRoom().getRoomCfgId() == currentRoomCfgId) {
                     resp.tableSummaryList.add(RussianLetteMessageBuilder.buildRussianLetteSummaryInfo(rgc));
@@ -182,6 +182,9 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
             }
         }
         playerController.send(resp);
+
+        // 注册为 OtherSummary 观察者，后续同场次房间状态变化时推送 NotifyRussianLetteTableSummary
+        russianLetteTempRoom.addOtherSummaryObserver(currentRoomCfgId, playerController.playerId());
     }
 
     /**
@@ -282,6 +285,9 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
             playerController.send(new RespRussianLetteSwitchRoomInGame(Code.ROOM_NOT_FOUND));
             return;
         }
+        // 切换房间时移除 OtherSummary 观察者
+        russianLetteTempRoom.removeOtherSummaryObserver(playerController.playerId());
+
         // 先退出当前房间（若当前在俄罗斯转盘中）
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> currentGc =
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
@@ -376,6 +382,9 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
             playerController.send(new RespRussianLetteExitRoomInGame(Code.PARAM_ERROR));
             return;
         }
+
+        // 退出房间时移除 OtherSummary 观察者
+        russianLetteTempRoom.removeOtherSummaryObserver(playerController.playerId());
 
         // 记录场次 ID，退出后用于加入临时房间和发送摘要
         int roomCfgId = gameController.getRoom().getRoomCfgId();
