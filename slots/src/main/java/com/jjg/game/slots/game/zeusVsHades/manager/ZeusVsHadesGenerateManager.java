@@ -165,8 +165,8 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                 });
             }
             //jackpot
-            if (lib.getJackpotId() < 1) {
-                lib.setJackpotId(cfg.getJackpotID());
+            if (lib.jackpotEmpty()) {
+                lib.addJackpotId(cfg.getJackpotID());
             }
         }
         return specialAuxiliaryInfoList;
@@ -241,8 +241,8 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                 });
             }
             //jackpot
-            if (lib.getJackpotId() < 1) {
-                lib.setJackpotId(cfg.getJackpotID());
+            if (lib.jackpotEmpty()) {
+                lib.addJackpotId(cfg.getJackpotID());
             }
         }
         return specialAuxiliaryInfoList;
@@ -842,7 +842,7 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
      * @return
      */
     private boolean checkJackpool(ZeusVsHadesResultLib lib) {
-        if (lib.getJackpotId() < 1) {
+        if (lib.jackpotEmpty()) {
             return false;
         }
 
