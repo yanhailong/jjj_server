@@ -134,6 +134,12 @@ public enum AddType {
     ACTIVITY_DAILY_SHARE_REWARD(625),
     //储钱罐-未领奖励
     ACTIVITY_PIGGY_BANK_EXPIRE_REWARDS(626),
+    //连续充值七日连充奖励
+    ACTIVITY_CONTINUOUS_RECHARGE_REWARD(627),
+    //累计福利每日任务奖励
+    ACTIVITY_WELFARE_DAILY_REWARD(628),
+    //累计福利本月累计奖励
+    ACTIVITY_WELFARE_MONTHLY_REWARD(629),
 
 
     //好友房申请庄家扣除准备金
@@ -252,6 +258,8 @@ public enum AddType {
     PLAYER_REGISTER(1602),
     //购买头像框
     BUY_AVATAR_FRAME(1603),
+    //礼包码兑换奖励
+    REDEEM_CODE_REWARDS(1604),
     ;
 
 

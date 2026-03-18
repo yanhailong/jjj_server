@@ -11,6 +11,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class GoldRoomDao extends AbstractGoldRoomDao<GoldRoom, RoomPlayer> {
     public GoldRoomDao() {
-        super(GoldRoom.class, RoomPlayer.class);
+        super(GoldRoom.class);
     }
 }

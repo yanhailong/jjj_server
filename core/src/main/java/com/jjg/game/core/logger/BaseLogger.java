@@ -437,9 +437,8 @@ public class BaseLogger {
         if (RobotUtil.isRobot(player.getId())) {
             return;
         }
-        order(player, order, money, channelProductId, regionCode, null);
+        order(player, order, money, channelProductId, regionCode, order.getDesc());
     }
-
 
     public void order(Player player, Order order, String money, String channelProductId, String regionCode, String desc) {
         if (RobotUtil.isRobot(player.getId())) {
@@ -701,7 +700,7 @@ public class BaseLogger {
     public void addMail(Mail mail) {
         try {
             //根据需求，附件为空的邮件，不发送日志
-            if(mail.getItems() == null || mail.getItems().isEmpty()){
+            if (mail.getItems() == null || mail.getItems().isEmpty()) {
                 return;
             }
 

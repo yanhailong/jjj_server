@@ -67,6 +67,8 @@ public interface BackendGMCmd {
 
     //分享连接地址
     String SHARE_URL_PREFIX = "shareUrlPrefix";
+    //获取当前分享连接地址
+    String GET_SHARE_URL_PREFIX = "getShareUrlPrefix";
     //批量获取玩家信息
     String BATCH_GET_PLAYERS_INFO = "batchGetPlayersInfo";
     //后台充值
@@ -97,6 +99,11 @@ public interface BackendGMCmd {
 
     //获取最后一次生成结果库的时间
     String GET_GENERATE_LIB_LAST_TIME = "getGenerateLibLastTime";
+
+    //修改礼包码
+    String MODIFY_REDEEM_CODE = "modifyRedeemCode";
+    //启用/禁用礼包码
+    String CHANGE_REDEEM_CODE_STATUS = "changeRedeemCodeStatus";
 
     /**
      * 配置相关q

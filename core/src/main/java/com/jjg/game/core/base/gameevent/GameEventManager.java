@@ -104,7 +104,7 @@ public class GameEventManager {
             //避免其中某个服务在处理事件耗时太久导致事件触发出现延迟
             Thread.ofVirtual().start(() -> {
                 try {
-                    log.debug("listener: {} 响应事件：{}", eventListener.getClass().getName(), gameEventType);
+//                    log.debug("listener: {} 响应事件：{}", eventListener.getClass().getName(), gameEventType);
                     eventListener.handleEvent(gameEvent);
                 } catch (Exception exception) {
                     log.error("listener: {} 触发事件：{} 时出现异常：{}",

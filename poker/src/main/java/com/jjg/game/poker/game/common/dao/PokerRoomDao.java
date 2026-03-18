@@ -15,7 +15,7 @@ public class PokerRoomDao extends AbstractGoldRoomDao<PokerRoom, RoomPlayer> {
     private final String KEY_NAME = "pool:%s";
 
     public PokerRoomDao() {
-        super(PokerRoom.class, RoomPlayer.class);
+        super(PokerRoom.class);
     }
 
     /**

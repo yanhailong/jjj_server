@@ -42,14 +42,7 @@ public class LuckyTreasureStatusUtil {
      * 计算开奖倒计时（秒）
      */
     public static int calculateCountDown(LuckyTreasure treasure) {
-        long currentTime = System.currentTimeMillis();
-        long endTime = treasure.getEndTime();
-
-        if (currentTime >= endTime) {
-            return 0;
-        }
-
-        return (int) ((endTime - currentTime) / 1000);
+        return (int) (treasure.getEndTime() / 1000);
     }
 
     /**
@@ -58,40 +51,45 @@ public class LuckyTreasureStatusUtil {
     public static int calculateReceiveCountdown(LuckyTreasure treasure) {
         // 这里可以根据实际业务逻辑计算领奖倒计时
         // 比如开奖后24小时内可以领奖
-        long currentTime = System.currentTimeMillis();
         long endTime = treasure.getEndTime();
-        // 领奖时间
-        long rewardTime = 0L;
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
-        if (globalConfigCfg != null && globalConfigCfg.getIntValue() > 1) {
-            rewardTime = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
-        }
-
-        long receiveDeadline = endTime + rewardTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
-
-        if (currentTime >= receiveDeadline) {
+        if (endTime <= 0) {
             return 0;
         }
+        long rewardTime = getRewardDelayMillis();
 
-        return (int) ((receiveDeadline - currentTime) / 1000);
+        long receiveDeadline = endTime + rewardTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
+        return (int) ((receiveDeadline / 1000));
     }
 
     /**
      * 计算活动实际开奖时间（毫秒）
      */
     public static long calculateRewardTimeMillis(LuckyTreasure luckyTreasure) {
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
-        if (globalConfigCfg == null || globalConfigCfg.getIntValue() < 1) {
-            return luckyTreasure.getEndTime();
+        if (luckyTreasure.getEndTime() <= 0) {
+            return 0;
         }
-
-        return luckyTreasure.getEndTime() + TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+        return luckyTreasure.getEndTime() + getRewardDelayMillis();
     }
 
     public static int calculateRewardTimeSecond(LuckyTreasure luckyTreasure) {
-        long currentTime = System.currentTimeMillis();
-        long time = calculateRewardTimeMillis(luckyTreasure);
-        return (int) ((time - currentTime) / 1000);
+        return (int) (calculateRewardTimeMillis(luckyTreasure) / 1000);
+
+    }
+
+    public static long getRewardDelayMillis() {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
+        if (globalConfigCfg == null || globalConfigCfg.getIntValue() <= 0) {
+            return 0L;
+        }
+        return TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+    }
+
+    public static int getRewardDelayExpireMinutes() {
+        long rewardDelayMillis = getRewardDelayMillis();
+        if (rewardDelayMillis <= 0) {
+            return 0;
+        }
+        return (int) ((rewardDelayMillis + TimeUnit.MINUTES.toMillis(1) - 1) / TimeUnit.MINUTES.toMillis(1));
     }
 
 }

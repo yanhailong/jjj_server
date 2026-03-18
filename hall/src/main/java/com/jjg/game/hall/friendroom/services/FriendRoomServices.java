@@ -141,7 +141,7 @@ public class FriendRoomServices {
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         // 获取一个游戏类型的随机节点
         MarsNode targetNode =
-                nodeManager.getGameNodeByWeight(warehouseCfg.getGameID(), player.getId(), player.getIp());
+                nodeManager.getGameNodeByWeight(warehouseCfg.getGameID(), player.getId(), playerController.ipAddress());
         if (targetNode == null) {
             return Code.FAIL;
         }
@@ -1466,7 +1466,7 @@ public class FriendRoomServices {
 
     private ClusterClient randomNode(PlayerController playerController, FriendRoom friendRoom, long playerId) {
         String path;
-        MarsNode targetNode = nodeManager.getGameNodeByWeight(friendRoom.getGameType(), playerId, playerController.getPlayer().getIp());
+        MarsNode targetNode = nodeManager.getGameNodeByWeight(friendRoom.getGameType(), playerId, playerController.ipAddress());
         if (targetNode != null) {
             path = targetNode.getNodePath();
             String finalPath = path;

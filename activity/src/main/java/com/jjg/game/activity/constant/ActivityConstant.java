@@ -115,6 +115,34 @@ public interface ActivityConstant {
         int PROGRESS = 2;
     }
 
+    /**
+     * 连续充值活动常量
+     */
+    interface ContinuousRecharge {
+        //未开始
+        int PHASE_NO_BEGIN = 0;
+        //七日连充阶段
+        int PHASE_CONTINUOUS = 1;
+        //累计福利阶段
+        int PHASE_WELFARE = 2;
+        //整个活动结束
+        int PHASE_OVER = 3;
+        //连充天数
+        int CONTINUOUS_DAYS = 7;
+        //每日任务类型
+        int WELFARE_DAILY_TYPE = 1;
+        //本月累计任务类型
+        int WELFARE_MONTHLY_TYPE = 2;
+        //金币兑换比例配置ID
+        int GOLD_EXCHANGE_RATE_CFG_ID = 123;
+        //七日连充奖励邮件ID
+        int CONTINUOUS_MAIL_ID = 46;
+        //累计福利每日奖励邮件ID
+        int WELFARE_DAILY_MAIL_ID = 47;
+        //累计福利累计奖励邮件ID
+        int WELFARE_MONTH_MAIL_ID = 48;
+    }
+
 
     interface MsgBean {
         int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.ACTIVITY << MessageConst.MessageCommon.RIGHT_MOVE;
@@ -286,5 +314,10 @@ public interface ActivityConstant {
         //财富转盘 请求历史记录
         int REQ_WEALTH_ROULETTE_HISTORY = BASE_MSG_PREFIX | 0x75;
         int RES_WEALTH_ROULETTE_HISTORY = BASE_MSG_PREFIX | 0x76;
+
+        //连续充值
+        int RES_CONTINUOUS_RECHARGE = BASE_MSG_PREFIX | 0x77;
+        //领取连续充值，福利奖励
+        int RES_CONTINUOUS_RECHARGE_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x78;
     }
 }

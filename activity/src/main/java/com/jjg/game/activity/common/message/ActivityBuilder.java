@@ -14,7 +14,9 @@ public class ActivityBuilder {
         ActivityInfo activityInfo = new ActivityInfo();
         activityInfo.activityId = data.getId();
         activityInfo.activityType = data.getType().getType();
-        activityInfo.status = data.getStatus();
+        if (data.isOpen()) {
+            activityInfo.status = data.getStatus();
+        }
         return activityInfo;
     }
 }

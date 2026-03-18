@@ -5,15 +5,14 @@ import com.jjg.game.core.data.LuckyTreasure;
 import com.jjg.game.core.data.LuckyTreasureBuyRecord;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
-import org.redisson.api.*;
-import org.redisson.api.options.KeysScanParams;
+import org.redisson.api.RAtomicLong;
+import org.redisson.api.RBucket;
+import org.redisson.api.RMapCache;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * 夺宝奇兵redis操作类
@@ -32,7 +31,17 @@ public class LuckyTreasureRedisDao {
      * 检查指定配置ID是否已有活跃的活动
      */
     public boolean hasActiveRound(int configId) {
-        return getActiveConfigMap().containsKey(configId);
+        RMapCache<Integer, Long> activeConfigMap = getActiveConfigMap();
+        Long issueNumber = activeConfigMap.get(configId);
+        if (issueNumber == null) {
+            return false;
+        }
+        if (getActiveTreasures().containsKey(issueNumber)) {
+            return true;
+        }
+        // 仅当映射仍然指向这期活动时才清理，避免误删并发创建的新轮次。
+        activeConfigMap.remove(configId, issueNumber);
+        return false;
     }
 
     public RMapCache<Long, LuckyTreasure> getActiveTreasures() {
@@ -48,12 +57,17 @@ public class LuckyTreasureRedisDao {
      */
     public void saveActiveRound(LuckyTreasure luckyTreasure, int expireMinutes) {
         RMapCache<Long, LuckyTreasure> cacheMap = getActiveTreasures();
-        //保存并且设置过期
-        cacheMap.put(luckyTreasure.getIssueNumber(), luckyTreasure, expireMinutes, TimeUnit.MINUTES);
-
-        // 同时维护configId到期号的映射，用于按配置ID查询
         RMapCache<Integer, Long> configMap = getActiveConfigMap();
-        configMap.put(luckyTreasure.getConfig().getId(), luckyTreasure.getIssueNumber(), expireMinutes, TimeUnit.MINUTES);
+        if (expireMinutes > 0) {
+            // 保存并设置过期
+            cacheMap.put(luckyTreasure.getIssueNumber(), luckyTreasure, expireMinutes, TimeUnit.MINUTES);
+            // 同时维护configId到期号的映射，用于按配置ID查询
+            configMap.put(luckyTreasure.getConfig().getId(), luckyTreasure.getIssueNumber(), expireMinutes, TimeUnit.MINUTES);
+        } else {
+            // 按售罄结算时没有结束时间，活跃轮次不应带 TTL。
+            cacheMap.put(luckyTreasure.getIssueNumber(), luckyTreasure);
+            configMap.put(luckyTreasure.getConfig().getId(), luckyTreasure.getIssueNumber());
+        }
 
         // 直接按期号存储活动数据，实现一次查询
 //        String issueKey = buildIssueMappingKey(luckyTreasure.getIssueNumber());
@@ -88,13 +102,12 @@ public class LuckyTreasureRedisDao {
      */
     public void removeActiveRoundByIssueNumber(long issueNumber) {
         RMapCache<Long, LuckyTreasure> activeTreasuresMap = getActiveTreasures();
-        LuckyTreasure treasure = activeTreasuresMap.get(issueNumber);
+        LuckyTreasure treasure = activeTreasuresMap.remove(issueNumber);
+        RMapCache<Integer, Long> activeConfigMap = getActiveConfigMap();
 
-        if (treasure != null) {
-            // 删除期号Key
-            activeTreasuresMap.remove(issueNumber);
-            // 删除配置映射
-            getActiveConfigMap().remove(treasure.getConfig().getId());
+        if (treasure != null && treasure.getConfig() != null) {
+            // 仅删除当前期号对应的配置映射，避免误删并发创建的新轮次。
+            activeConfigMap.remove(treasure.getConfig().getId(), issueNumber);
         }
     }
 
@@ -145,13 +158,12 @@ public class LuckyTreasureRedisDao {
                 buyRecord.setBuyTime(System.currentTimeMillis());
                 treasure.getBuyRecordList().add(buyRecord);
 
-                long rewardTime = 0L;
-                GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
-                if (globalConfigCfg != null && globalConfigCfg.getIntValue() > 1) {
-                    rewardTime =  TimeUnit.SECONDS.toMinutes(globalConfigCfg.getIntValue());
+                int expireMinutes = 0;
+                if (treasure.getEndTime() > 0) {
+                    expireMinutes = treasure.getConfig().getTime()
+                            + calculateRewardDelayExpireMinutes()
+                            + treasure.getConfig().getCollectTime();
                 }
-
-                int expireMinutes = Math.toIntExact(treasure.getConfig().getTime() + rewardTime + treasure.getConfig().getCollectTime());
                 // 保存回Redis
                 updateActiveRound(treasure, expireMinutes);
                 return treasure;
@@ -165,6 +177,16 @@ public class LuckyTreasureRedisDao {
      */
     private String buildDailyCounterKey(int configId, String date) {
         return LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_DAILY_COUNTER + configId + ":" + date;
+    }
+
+    private int calculateRewardDelayExpireMinutes() {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
+        if (globalConfigCfg == null || globalConfigCfg.getIntValue() <= 0) {
+            return 0;
+        }
+        long rewardDelayMillis = TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+        //毫秒转分钟并向上取整
+        return (int) ((rewardDelayMillis + TimeUnit.MINUTES.toMillis(1) - 1) / TimeUnit.MINUTES.toMillis(1));
     }
 
 }

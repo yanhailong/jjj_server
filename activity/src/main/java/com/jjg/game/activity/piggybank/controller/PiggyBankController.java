@@ -106,6 +106,7 @@ public class PiggyBankController extends BaseActivityController implements  Orde
                 return res;
             }
             // 日志记录玩家参加活动
+                activityLogger.sendPiggyBankJoin(player, activityData, piggyBankData, cfg.getType(), detailId);
             activityLogger.sendPiggyBankJoin(player, activityData, piggyBankData, cfg.getType(), detailId);
 
             // 构建响应
@@ -138,7 +139,7 @@ public class PiggyBankController extends BaseActivityController implements  Orde
             return false;
         }
         long playerId = player.getId();
-        // 获取全局配置，计算每万元金币进度
+        // 获取全局配置，计算每万单位货币金币进度
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.PiggyBank.INCOME_PER_TEN_THOUSAND);
         BigDecimal baseAdd = BigDecimal.valueOf(progress)
                 .multiply(BigDecimal.valueOf(globalConfigCfg.getIntValue()))
@@ -352,8 +353,8 @@ public class PiggyBankController extends BaseActivityController implements  Orde
      * 检查玩家数据并在条件满足时重置
      */
     @Override
-    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
-        resetData(playerId, activityData);
+    public void checkPlayerDataAndResetOnLogin(Player player, ActivityData activityData) {
+        resetData(player.getId(), activityData);
     }
 
     /**

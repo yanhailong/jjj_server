@@ -1,6 +1,5 @@
 package com.jjg.game.room.manager;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.activity.wealthroulette.controller.WealthRouletteController;
@@ -15,12 +14,12 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
-import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.ReflectUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.data.*;
@@ -34,6 +33,7 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
@@ -228,45 +228,25 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     }
 
     /**
-     * 初始化当前节点已经存在的房间，此为兼容逻辑，按道理在服务器关闭时会清除当前节点所有的房间数据
+     * 删除当前节点已经存在的房间，此为兼容逻辑，按道理在服务器关闭时会清除当前节点所有的房间数据
      */
-    public <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> initNodeExistRoom(
-            int gameType, int roomCfgId, int maxLimit) throws Exception {
-        RoomType roomType = RoomType.getRoomType(roomCfgId);
+    public <R extends Room> void clearNodeExistRoom(
+            int gameType, int roomCfgId) {
         // 获取roomDao
         AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(roomCfgId);
-        // TODO 每个游戏类型都会有对应的Room去处理相应的数据，现在没有先退出
         if (roomDao == null) {
-            return null;
+            return;
         }
         // 获取当前节点的所有房间
         List<R> nodeRoom = roomDao.getCurrentNodeRoom(gameType, roomCfgId);
         if (nodeRoom == null || nodeRoom.isEmpty()) {
             log.info("当前节点：{} 游戏类型：{} 的房间为空", nodeManager.getNodePath(), roomCfgId);
-            return null;
-        }
-        R randomRoom = RandomUtils.randCollection(
-                nodeRoom.stream().filter(r -> !(r instanceof BetFriendRoom)).collect(Collectors.toList()));
-        if (randomRoom == null) {
-            return null;
-        }
-        if (CollectionUtil.isNotEmpty(randomRoom.getRoomPlayers())) {
-            List<Long> removeIds = new ArrayList<>();
-            for (Map.Entry<Long, RoomPlayer> entry : randomRoom.getRoomPlayers().entrySet()) {
-                //roomDao.removePlayers 时 randomRoom会为空，判断下
-                if (randomRoom == null) {
-                    return null;
-                }
-                RoomPlayer roomPlayer = entry.getValue();
-                if (roomPlayer.isRobot()) {
-                    removeIds.add(entry.getKey());
-                }
-                randomRoom = roomDao.removePlayers(randomRoom.getGameType(), randomRoom.getId(), removeIds);
+        } else {
+            //不要系统创建房间的老数据直接删除相关数据
+            for (R r : nodeRoom) {
+                deleteRoomFromRedis(r);
             }
-            log.info("从redis加载房间数据时 移除异常的机器人 ids:{}", removeIds);
         }
-
-        return initWithRoom(gameType, roomCfgId, maxLimit, roomType, randomRoom);
     }
 
     /**
@@ -308,7 +288,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         RoomType roomType = RoomType.getRoomType(roomCfgId);
         // 获取roomDao
         AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(roomCfgId);
-        // TODO 每个游戏类型都会有对应的Room去处理相应的数据，现在没有先退出
         if (roomDao == null) {
             return null;
         }
@@ -531,7 +510,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             }
             if (!(room instanceof FriendRoom)) {
                 // 退出房间时删除人数
-                matchDataDao.changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, 0);
+                matchDataDao.changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(), room.getMaxLimit(),
+                        -1, 0, room.getPath());
             }
             // TODO 需要检查房间内玩家是否为空，如果为空则需要检查是否需要删除房间，如果房间不能删除则需要添加机器人进入房间
             // 退出房间将当前场景置为空
@@ -572,7 +552,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 }
             }
         }
-        return matchDataDao.getNewWaitJoinRoomId(gameType, roomConfigId, maxLimit, oldRoomId);
+        return matchDataDao.getNewWaitJoinRoomId(gameType, roomConfigId, maxLimit, oldRoomId, nodeManager.getNodePath());
     }
 
     /**
@@ -720,7 +700,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             log.info("删除房间：{}, 删除：{} ", room.logStr(), removedRes > 0 ? "成功" : "失败");
         }
         // 需要从房间等待列表中删除
-        matchDataDao.removeWaitJoinRoomId(room.getGameType(), room.getRoomCfgId(), room.getId());
+        matchDataDao.removeWaitJoinRoomId(room.getGameType(), room.getRoomCfgId(), room.getId(), room.getPath());
     }
 
     /**
@@ -822,6 +802,51 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         // 调用房间管理器的初始化方法
         roomController.initial(room);
         return roomController;
+    }
+
+    public void createAndStartDefaultRoom(
+            WarehouseCfg warehouseCfg, String source) throws Exception {
+        int gameType = warehouseCfg.getGameID();
+        int maxLimit = SampleDataUtils.getRoomMaxLimit(warehouseCfg).getT2();
+        AbstractRoomController<? extends RoomCfg, ? extends Room> roomController =
+                createGameDefaultRoom(gameType, warehouseCfg.getId(), maxLimit);
+        if (roomController == null) {
+            log.error("{}创建房间失败 gameType:{} roomCfgId:{}", source, gameType, warehouseCfg.getId());
+            return;
+        }
+        EGameType eGameType = EGameType.getGameByTypeId(gameType);
+        log.info("{}创建游戏类型：{} 的房间成功！ID：{} RoomCfgId: {}",
+                source,
+                eGameType == null ? String.valueOf(gameType) : eGameType.getGameDesc(),
+                roomController.getRoom().getId(),
+                roomController.getRoom().getRoomCfgId());
+        try {
+            if (roomController.checkRoomCanContinue() && roomController.getGameController().checkRoomCanStart()) {
+                roomController.startGame();
+                matchDataDao.addWaitJoinRoomId(gameType,
+                        roomController.getRoom().getRoomCfgId(),
+                        roomController.getRoom().getId(),
+                        System.currentTimeMillis(),
+                        roomController.getRoom().getPath());
+                log.info("{}游戏启动成功 roomInfo: {}", source, roomController.getRoom().logStr());
+                return;
+            }
+            log.error("{}游戏启动失败 roomInfo: {}", source, roomController.getRoom().logStr());
+        } catch (Exception e) {
+            log.error("{}启动系统房异常 roomInfo: {}", source, roomController.getRoom().logStr(), e);
+        }
+
+        rollbackCreatedDefaultRoom(roomController, source);
+    }
+
+    private void rollbackCreatedDefaultRoom(
+            AbstractRoomController<? extends RoomCfg, ? extends Room> roomController, String source) {
+        try {
+            log.info("{}回滚未成功启动的系统房 roomInfo: {}", source, roomController.getRoom().logStr());
+            disbandRoom(roomController.getRoom(), false, false);
+        } catch (Exception e) {
+            log.error("{}回滚未成功启动的系统房异常 roomInfo: {}", source, roomController.getRoom().logStr(), e);
+        }
     }
 
     /**
@@ -1012,7 +1037,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 空房间检测, 5s 检测一次
      */
     protected void emptyRoomCheck() {
-        if (this.roomControllerMap.isEmpty()) {
+        if (!GameDataManager.getInstance().isLoadAllFinished()) {
             return;
         }
         // 房间配置 <=> Pair<此类房间至少保存的数量，房间删除时间>
@@ -1091,6 +1116,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             // 销毁过期房间
             destroyRoomNow(needDestroyRooms);
         }
+        // 当前节点系统房间不足时补齐
+        checkAndCreateMissingRooms(roomCfgIdPlayerLimitMap, roomNumMap);
     }
 
     /**
@@ -1110,6 +1137,75 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 }
             });
         }
+    }
+
+    /**
+     * 检查当前节点系统房间是否低于保底数量，低于则补房
+     */
+    private void checkAndCreateMissingRooms(
+            Map<Integer, Pair<Integer, Integer>> roomCfgIdPlayerLimitMap,
+            Map<Integer, List<Pair<Integer, AbstractRoomController<? extends RoomCfg, ? extends Room>>>> roomNumMap) {
+        if (isRoomStopping || nodeManager.nodeConfig.waitClose()) {
+            return;
+        }
+        Set<Integer> availableGameTypeIds = getEnabledGameTypeIds();
+        for (WarehouseCfg warehouseCfg : GameDataManager.getWarehouseCfgList()) {
+            if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
+                continue;
+            }
+            if (!availableGameTypeIds.contains(warehouseCfg.getGameID())) {
+                continue;
+            }
+            Pair<Integer, Integer> configPair = roomCfgIdPlayerLimitMap.get(warehouseCfg.getId());
+            if (configPair == null) {
+                continue;
+            }
+            int keepNum = configPair.getFirst();
+            if (keepNum <= 0) {
+                continue;
+            }
+            int currentRoomNum = roomNumMap.getOrDefault(warehouseCfg.getId(), Collections.emptyList()).size();
+            if (currentRoomNum < keepNum) {
+                AbstractRoomDao<? extends Room, ? extends RoomPlayer> roomDao = getRoomDao(warehouseCfg.getId());
+                if (roomDao == null) {
+                    continue;
+                }
+                currentRoomNum = roomDao.getCurrentNodeRoom(warehouseCfg.getGameID(), warehouseCfg.getId()).size();
+            }
+            if (currentRoomNum >= keepNum) {
+                continue;
+            }
+            int needCreateNum = keepNum - currentRoomNum;
+            log.info("空房间检测发现房间不足，开始补房 gameType:{} roomCfgId:{} current:{} keep:{}",
+                    warehouseCfg.getGameID(), warehouseCfg.getId(), currentRoomNum, keepNum);
+            for (int i = 0; i < needCreateNum; i++) {
+                try {
+                    createAndStartDefaultRoom(warehouseCfg, "空房间检测");
+                } catch (Exception e) {
+                    log.error("空房间检测补房异常 gameType:{} roomCfgId:{} index:{}",
+                            warehouseCfg.getGameID(), warehouseCfg.getId(), i, e);
+                }
+            }
+        }
+    }
+
+    private Set<Integer> getEnabledGameTypeIds() {
+        if (gameControllerClazz == null || gameControllerClazz.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<Integer> enabledGameTypeIds = gameControllerClazz.stream()
+                .map(clazz -> clazz.getAnnotation(GameController.class))
+                .filter(Objects::nonNull)
+                .map(GameController::gameType)
+                .map(EGameType::getGameTypeId)
+                .collect(Collectors.toSet());
+        int[] needBootGameIds = nodeManager.nodeConfig.getNeedBootGameId();
+        if (needBootGameIds == null) {
+            return enabledGameTypeIds;
+        }
+        Set<Integer> needBootGameIdSet = Arrays.stream(needBootGameIds).boxed().collect(Collectors.toSet());
+        enabledGameTypeIds.removeIf(gameTypeId -> !needBootGameIdSet.contains(gameTypeId));
+        return enabledGameTypeIds;
     }
 
     /**
@@ -1149,7 +1245,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                     oldRoomId, roomOtherId, gameType, roomCfgId);
             return false;
         }
-        boolean join = matchDataDao.changeRoomJoinNum(gameType, roomCfgId, roomOtherId, maxLimit, 1, 1);
+        boolean join = matchDataDao.changeRoomJoinNum(gameType, roomCfgId, roomOtherId,
+                maxLimit, 1, 1, nodeManager.getNodePath());
         if (!join) {
             return false;
         }

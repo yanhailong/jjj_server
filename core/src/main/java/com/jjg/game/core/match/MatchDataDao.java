@@ -97,7 +97,6 @@ public class MatchDataDao {
             
             return 0
             """;
-
     private static final String CHECK_PLAYER_EXPIRED_SCRIPT = """
             local score = redis.call('ZSCORE', KEYS[1], ARGV[1])
             if not score then
@@ -149,13 +148,17 @@ public class MatchDataDao {
         return MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
     }
 
+    public String getMatchRedisKey(int gameType, int roomConfigId, String nodePath) {
+        return MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId, nodePath);
+    }
+
     /**
      * 获取正在等待加入的房间ID(排除老的房间id)
      *
      * @return 获取到的等待房间ID
      */
-    public long getNewWaitJoinRoomId(int gameType, int roomConfigId, int maxLimit, long oldRoomId) {
-        String matchRedisKey = getMatchRedisKey(gameType, roomConfigId);
+    public long getNewWaitJoinRoomId(int gameType, int roomConfigId, int maxLimit, long oldRoomId, String nodePath) {
+        String matchRedisKey = getMatchRedisKey(gameType, roomConfigId, nodePath);
         // 使用 Lua 脚本查找，移除分布式锁 @RedissonLock
         // 使用 LongCodec 确保返回值为 Long 类型
         return redissonClient.getScript(LongCodec.INSTANCE)
@@ -169,16 +172,16 @@ public class MatchDataDao {
     /**
      * 将房间ID从房间中移除
      */
-    public void removeWaitJoinRoomId(int gameType, int roomConfigId, long roomId) {
-        String redisKey = getMatchRedisKey(gameType, roomConfigId);
+    public void removeWaitJoinRoomId(int gameType, int roomConfigId, long roomId, String nodePath) {
+        String redisKey = getMatchRedisKey(gameType, roomConfigId, nodePath);
         redissonClient.getScoredSortedSet(redisKey, LongCodec.INSTANCE).remove(roomId);
     }
 
     /**
      * 添加房间等待ID
      */
-    public void addWaitJoinRoomId(int gameType, int roomConfigId, long roomId, long roomCreateTime) {
-        String redisKey = getMatchRedisKey(gameType, roomConfigId);
+    public void addWaitJoinRoomId(int gameType, int roomConfigId, long roomId, long roomCreateTime, String nodePath) {
+        String redisKey = getMatchRedisKey(gameType, roomConfigId, nodePath);
         RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(redisKey, LongCodec.INSTANCE);
         double score = RoomScoreUtil.computeScore(0, 0, (int) (roomCreateTime / 1000));
         scoredSortedSet.add(score, roomId);
@@ -196,8 +199,9 @@ public class MatchDataDao {
      * @param waitNum      改变的等待人数
      * @return 是否改变成功
      */
-    public boolean changeRoomJoinNum(int gameType, int roomConfigId, long roomId, int maxPlayerNum, int totalNum, int waitNum) {
-        String redisKey = getMatchRedisKey(gameType, roomConfigId);
+    public boolean changeRoomJoinNum(int gameType, int roomConfigId, long roomId, int maxPlayerNum, int totalNum,
+                                     int waitNum, String nodePath) {
+        String redisKey = getMatchRedisKey(gameType, roomConfigId, nodePath);
         // 使用 Lua 脚本原子执行，无需再使用 redisLock
         // 使用 LongCodec 确保 roomId 作为 ARGV[1] 传递时与 ZSet 中的 member 格式兼容
         return redissonClient.getScript(LongCodec.INSTANCE)
@@ -240,7 +244,7 @@ public class MatchDataDao {
      * @param room         房间信息
      */
     public int checkPlayerExpiredWaitingNum(int diffCount, int gameType, int roomConfigId, Room room) {
-        String matchRedisKey = getMatchRedisKey(gameType, roomConfigId);
+        String matchRedisKey = getMatchRedisKey(gameType, roomConfigId, room.getPath());
         long roomId = room.getId();
 
         // 获取过期等待人数 (RMapCache 的操作本身是原子的，直接在 Java 层获取)

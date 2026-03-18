@@ -207,6 +207,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             loadActivityConditionCache();
             gameEventManager.registerEventListener(this);
         }
+
+        for(ActivityType activityType : ActivityType.values()){
+            activityType.getController().init();
+        }
     }
 
     /**
@@ -451,8 +455,11 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         info.activityInfos = new ArrayList<>();
         Boolean checked = playerActivityDao.checkCanTargetFirstLogin(player.getId());
         for (ActivityData data : activityData.values()) {
+            if (!data.isOpen()) {
+                continue;
+            }
             BaseActivityController controller = data.getType().getController();
-            if (!data.canRun()) {
+            if (!data.getType().isShowInNotOpen() && !data.canRun()) {
                 continue;
             }
             info.activityInfos.add(controller.buildActivityInfo(data));
@@ -461,7 +468,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
             //玩家首次登录执行
             if (firstLogin && Boolean.TRUE.equals(checked)) {
-                controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
+                controller.checkPlayerDataAndResetOnLogin(player, data);
             }
             //登录初始化进度
             controller.initProgress(player, data);
@@ -587,6 +594,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 //同步一次活动状态
                 clusterSystem.sendToPlayer(res, playerId);
             }
+            log.debug("joinActivityResp = {}",JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("玩家参加活动失败 playerId:{} activityId:{} ", playerId, activityId, e);
         }
@@ -655,6 +663,48 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 data.getType().getController().updateRodDot(playerController.playerId(), data, false);
             }
             return new CommonResult<>(recharge == null ? Code.FAIL : recharge.code);
+        }
+
+        if ("claimActivityReward".equalsIgnoreCase(cmd)) {
+            Long activityId = Long.parseLong(gmOrders[1]);
+            int detailId = Integer.parseInt(gmOrders[2]);
+            ActivityData data = getActivityData().get(activityId);
+            if (data == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+            int times = 1;
+            if (gmOrders.length == 4) {
+                times = Integer.parseInt(gmOrders[3]);
+            }
+            if (times < 1) {
+                return new CommonResult<>(Code.PARAM_ERROR);
+            }
+
+            AbstractResponse res = data.getType().getController().claimActivityRewards(playerController.getPlayer(), data, detailId);
+            if (res != null) {
+                //同步一次活动状态
+                clusterSystem.sendToPlayer(res, playerController.playerId());
+            }
+            return new CommonResult<>(Code.SUCCESS);
+        }
+
+        if ("getPlayerActivityInfoByType".equalsIgnoreCase(cmd)) {
+            int typeId = Integer.parseInt(gmOrders[1]);
+            Long activityId = Long.parseLong(gmOrders[2]);
+            ActivityData data = getActivityData().get(activityId);
+            if (data == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+
+            ActivityType activityType = ActivityType.fromType(typeId);
+
+            AbstractResponse res = data.getType().getController().getPlayerActivityInfoByType(playerController.getPlayer(), activityType);
+            if (res != null) {
+                //同步一次活动状态
+                clusterSystem.sendToPlayer(res, playerController.playerId());
+            }
+            log.debug("res = {}",JSON.toJSONString(res));
+            return new CommonResult<>(Code.SUCCESS);
         }
 
         return null;
@@ -737,11 +787,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                         openActivityData.add(data);
                     }
                     if (CollectionUtil.isNotEmpty(openActivityData)) {
-                        NotifyActivityChange change = new NotifyActivityChange();
-                        change.activityInfos = new ArrayList<>();
-                        for (ActivityData data : openActivityData) {
-                            change.activityInfos.add(ActivityBuilder.buildActivityInfo(data));
-                        }
+                        NotifyActivityChange change = buildNotifyActivityChange(openActivityData);
                         sendToPlayer(player.getId(), change);
                     }
                 }
@@ -756,6 +802,23 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
         }
 
+    }
+
+    /**
+     * 构建活动变化信息
+     *
+     * @param openActivityData 活动数据
+     * @return 活动变化数据
+     */
+    private NotifyActivityChange buildNotifyActivityChange(List<ActivityData> openActivityData) {
+        NotifyActivityChange change = new NotifyActivityChange();
+        if (CollectionUtil.isNotEmpty(openActivityData)) {
+            change.activityInfos = new ArrayList<>();
+            for (ActivityData data : openActivityData) {
+                change.activityInfos.add(ActivityBuilder.buildActivityInfo(data));
+            }
+        }
+        return change;
     }
 
     /**
@@ -794,7 +857,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                             continue;
                         }
                         //重置活动数据
-                        controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
+                        controller.checkPlayerDataAndResetOnLogin(player, data);
                     }
                     //触发登录活动
                     addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
@@ -828,6 +891,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     private void reloadConfig() {
         List<ActivityConfigCfg> activityConfigCfgList = GameDataManager.getActivityConfigCfgList();
         long currentTime = System.currentTimeMillis();
+        List<ActivityData> changeData = new ArrayList<>();
         for (ActivityConfigCfg activityConfigCfg : activityConfigCfgList) {
             ActivityType activityType = ActivityType.fromType(activityConfigCfg.getType());
             if (activityType == null) {
@@ -837,6 +901,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             ActivityData oldData = activityData.get(activityInfoId);
             //非未开始的只能修改开启关闭状态
             if (oldData != null && oldData.getStatus() != ActivityConstant.ActivityStatus.NOT_START) {
+                if (oldData.isOpen() != activityConfigCfg.getOpen()) {
+                    //推送给前端
+                    changeData.add(oldData);
+                }
                 oldData.setOpen(activityConfigCfg.getOpen());
                 log.info("活动更新 正在进行中的活动只更新开关 activityId:{}", activityInfoId);
                 continue;
@@ -859,7 +927,12 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             //更新类型活动数据
             Map<Long, ActivityData> dataMap = activityTypeData.computeIfAbsent(data.getType(), key -> new ConcurrentHashMap<>());
             dataMap.put(activityInfoId, data);
+            changeData.add(data);
             log.info("活动更新成功 activityId:{} activityData:{}", activityInfoId, JSON.toJSONString(activityData));
+        }
+        if (CollectionUtil.isNotEmpty(changeData)) {
+            NotifyActivityChange notifyActivityChange = buildNotifyActivityChange(changeData);
+            clusterSystem.broadcastToOnlinePlayer(notifyActivityChange);
         }
         loadActivityConditionCache();
         gameEventManager.registerEventListener(this);

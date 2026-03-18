@@ -442,17 +442,6 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         return null;
     }
 
-    public int getCanJoinRoomId(int gameType, int roomCfgId) {
-        return 0;
-    }
-
-    /**
-     * 已存在的房间个数
-     */
-    public long existRoomCount(int gameType, int roomCfgId) {
-        return redisTemplate.opsForHash().size(getTableName(gameType));
-    }
-
     public RoomPlayer createRoomPlayer(PlayerController playerController) {
         long playerId = playerController.playerId();
         //创建roomPlayer对象

@@ -66,6 +66,8 @@ public class Order {
     public void setRegionCode(String regionCode) {
         this.regionCode = regionCode;
     }
+    //备注
+    private String desc;
 
     public String getId() {
         return id;
@@ -177,5 +179,13 @@ public class Order {
 
     public void setItems(List<Item> items) {
         this.items = items;
+    }
+
+    public String getDesc() {
+        return desc;
+    }
+
+    public void setDesc(String desc) {
+        this.desc = desc;
     }
 }

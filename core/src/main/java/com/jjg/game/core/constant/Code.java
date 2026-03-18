@@ -139,6 +139,14 @@ public interface Code {
     int MAIL_ITEM_ALL_GET = 11010;
     //房间续费已达上线
     int ROOM_RENEW_TIME_LIMIT = 49147;
+    //无效礼包码
+    int REDEEM_CODE_INVALID = 43005;
+    //玩家礼包码重复使用
+    int REDEEM_CODE_PLAYER_REPEAT_USE = 43007;
+    //礼包码重复使用
+    int REDEEM_CODE_REPEAT_USE = 43006;
+    //礼包码错误输入提示
+    int REDEEM_CODE_ERROR_USE = 16016;
     // 服务器错误
     int EXCEPTION = 500;
 

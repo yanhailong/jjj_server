@@ -953,13 +953,13 @@ public class CashCowController extends BaseActivityController implements TimerLi
     }
 
     @Override
-    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
+    public void checkPlayerDataAndResetOnLogin(Player player, ActivityData activityData) {
         // 获取玩家该活动的历史数据
-        Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
         if (CollectionUtil.isNotEmpty(playerActivityData)) {
-            playerActivityDao.clearPlayerActivityData(playerId, activityData.getType());
+            playerActivityDao.clearPlayerActivityData(player.getId(), activityData.getType());
         }
-        cashCowDao.delPlayerActivityProgress(playerId, activityData.getId());
+        cashCowDao.delPlayerActivityProgress(player.getId(), activityData.getId());
     }
 
 }

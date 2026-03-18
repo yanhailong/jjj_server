@@ -1,11 +1,6 @@
 package com.jjg.game.room.services;
 
-import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.config.NodeConfig;
-import com.jjg.game.common.timer.TimerCenter;
-import com.jjg.game.common.timer.TimerEvent;
-import com.jjg.game.common.timer.TimerListener;
-import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
@@ -13,19 +8,15 @@ import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.exception.GameSampleException;
 import com.jjg.game.core.task.manager.TaskManager;
-import com.jjg.game.core.utils.SampleDataUtils;
-import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.room.manager.RoomManager;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.RoomCfg;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import reactor.util.function.Tuple2;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -36,15 +27,11 @@ import java.util.stream.Collectors;
  * @author 2CL
  */
 @Service
-public class RoomService implements IRoomStartListener, TimerListener<IProcessorHandler> {
+public class RoomService implements IRoomStartListener {
 
     private static final Logger log = LoggerFactory.getLogger(RoomService.class);
     @Autowired
     private RoomManager roomManager;
-    @Autowired
-    private RobotService robotService;
-    @Autowired
-    private TimerCenter timerCenter;
     private boolean isInitialed = false;
     @Autowired
     private NodeConfig nodeConfig;
@@ -61,8 +48,6 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         }
         // 检查房间配置是否有错误
         checkRoomSampleData();
-        timerCenter = new TimerCenter("room-start-timer");
-        timerCenter.start();
         // 检查房间的创建和初始化
         try {
             checkCreateRoomAndInit();
@@ -75,7 +60,7 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
     }
 
     /**
-     * 服务器启动时检查房间创建房间并初始化
+     * 服务器启动时同步检查房间并初始化系统房
      */
     private void checkCreateRoomAndInit() {
         Map<Integer, EGameType> availableGames = getAvailableGames();
@@ -107,6 +92,9 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
             if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
                 continue;
             }
+            //清除老的数据的房间信息
+            int gameType = warehouseCfg.getGameID();
+            roomManager.clearNodeExistRoom(gameType, warehouseCfg.getId());
             List<Integer> deletionSolution = warehouseCfg.getRoomDeletion_Solution();
             // 每个游戏最小存在的房间数量
             int minRoomNum = deletionSolution.getFirst();
@@ -116,19 +104,14 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
                     log.warn("warehouseCfg表中游戏ID：{} 在EGameType中找不到定义", warehouseCfg.getGameID());
                     continue;
                 }
-                // 初始化房间的逻辑需要分散运行，让房间的所有逻辑分散执行
-                addRandomTimeEvent(() -> checkRoomInit(warehouseCfg, minRoomNum));
+                try {
+                    checkRoomInit(warehouseCfg, minRoomNum);
+                } catch (Exception e) {
+                    log.error("创建房间异常 gameType:{} wareId:{} ", warehouseCfg.getGameID(), warehouseCfg.getId());
+                }
             }
         }
         isInitialed = true;
-    }
-
-    /**
-     * 添加随机定时任务
-     */
-    public void addRandomTimeEvent(IProcessorHandler processorHandler) {
-        int initTime = RandomUtils.getRandomNumInt10000();
-        timerCenter.add(new TimerEvent<>(this, initTime, processorHandler));
     }
 
     /**
@@ -154,18 +137,10 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
             return;
         }
         try {
-            // 先将已存在的房间启动起来
-            boolean initRes = initRoom(warehouseCfg);
-            // 再判断是否还缺房间，如果缺房间则创建新的房间
-            int count = (int) roomDao.existRoomCount(gameType, warehouseCfg.getId());
-            // 如果初始化失败需要重新创建一个房间
-            if (!initRes || count < minRoomNum) {
-                count = !initRes ? 0 : count;
-                // 循环执行创建房间
-                for (int i = count; i < minRoomNum; i++) {
-                    // 如果房间不足需要创建房间, 分散创建避免同一时刻出现大量IO请求
-                    addRandomTimeEvent(() -> createRoom(warehouseCfg));
-                }
+            // 按保底数量同步创建系统房
+            for (int i = 0; i < minRoomNum; i++) {
+                // 逐个创建，避免初始化逻辑分散到多条路径
+                createRoom(warehouseCfg);
             }
         } catch (Exception exception) {
             log.error("房间类型：{} 启动时 创建或者初始化房间失败", warehouseCfg.getGameID(), exception);
@@ -173,56 +148,12 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         }
     }
 
-    /**
-     * 初始化房间
-     */
-    private boolean initRoom(WarehouseCfg warehouseCfg) throws Exception {
-        int maxLimit = getRoomMaxLimit(warehouseCfg);
-        int gameType = warehouseCfg.getGameID();
-        //如果之前没有，就要创建一个房间
-        AbstractRoomController<? extends RoomCfg, ? extends Room> roomController =
-                roomManager.initNodeExistRoom(gameType, warehouseCfg.getId(), maxLimit);
-        if (roomController == null) {
-            return false;
-        }
-        EGameType eGameType = EGameType.getGameByTypeId(gameType);
-        log.info("初始化游戏类型：{} 已存在的房间成功！ID：{} RoomCfgId: {}",
-                eGameType.getGameDesc(), roomController.getRoom().getId(), roomController.getRoom().getRoomCfgId());
-        return true;
-    }
 
     /**
      * 创建房间
      */
     private void createRoom(WarehouseCfg warehouseCfg) throws Exception {
-        int gameType = warehouseCfg.getGameID();
-        int maxLimit = getRoomMaxLimit(warehouseCfg);
-        //如果之前没有，就要创建一个房间
-        AbstractRoomController<? extends RoomCfg, ? extends Room> roomController =
-                roomManager.createGameDefaultRoom(gameType, warehouseCfg.getId(), maxLimit);
-        if (roomController == null) {
-            return;
-        }
-        EGameType eGameType = EGameType.getGameByTypeId(gameType);
-        log.info("创建游戏类型：{} 的房间成功！ID：{} RoomCfgId: {}",
-                eGameType.getGameDesc(), roomController.getRoom().getId(), roomController.getRoom().getRoomCfgId());
-        if (roomController.checkRoomCanContinue() && roomController.getGameController().checkRoomCanStart()) {
-            roomController.startGame();
-            roomManager.getMatchDataDao().addWaitJoinRoomId(gameType, roomController.getRoom().getRoomCfgId(), roomController.getRoom().getId()
-                    , System.currentTimeMillis());
-            log.info("游戏启动成功  roomInfo: {}", roomController.getRoom().logStr());
-        } else {
-            log.error("游戏启动失败  roomInfo: {}", roomController.getRoom().logStr());
-        }
-    }
-
-
-    /**
-     * 获取房间的最大限制值
-     */
-    private int getRoomMaxLimit(WarehouseCfg warehouseCfg) {
-        Tuple2<Integer, Integer> tuple2 = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
-        return tuple2.getT2();
+        roomManager.createAndStartDefaultRoom(warehouseCfg, "启动初始化");
     }
 
     @Override
@@ -238,18 +169,6 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         }
     }
 
-    @Override
-    public void onTimer(TimerEvent<IProcessorHandler> event) {
-        if (event == null || event.getParameter() == null) {
-            return;
-        }
-        try {
-            // 执行定时任务
-            event.getParameter().action();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     public void checkRoomSampleData() {
         List<Room_BetCfg> roomBetCfgs = GameDataManager.getRoom_BetCfgList();
