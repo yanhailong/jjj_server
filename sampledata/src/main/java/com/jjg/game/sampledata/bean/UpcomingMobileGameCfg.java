@@ -20,25 +20,19 @@ public class UpcomingMobileGameCfg extends BaseCfgBean {
    * 是否显示
    */
   protected boolean display;
-  /**
-   * 游戏名称多语言
-   */
+  /** 游戏名称多语言 */
   protected int name;
   /** 游戏图片资源名 */
   protected String picture;
   /** 描述多语言ID */
   protected int text;
 
-  /**
-   * 返回是否显示
-   */
+  /** 返回是否显示 */
   public boolean getDisplay() {
     return display;
   }
 
-  /**
-   * 返回游戏名称多语言
-   */
+  /** 返回游戏名称多语言 */
   public int getName() {
     return name;
   }

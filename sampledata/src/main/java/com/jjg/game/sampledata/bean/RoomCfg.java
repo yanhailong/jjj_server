@@ -18,9 +18,9 @@ public class RoomCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Room";
 
-  /**
-   * 系统赢抽水
-   */
+    /**
+     * 系统赢抽水
+     */
   protected int EffectiveRatio;
   /** 请离房间（毫秒） */
   protected int EscTime;

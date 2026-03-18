@@ -1,9 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
-
 import javax.annotation.processing.Generated;
+import java.util.List;
 /**
  * 配置bean
  *
@@ -29,10 +27,18 @@ public class PopUpConfigCfg extends BaseCfgBean {
   protected String endTime;
   /** 活动或功能界面名称 */
   protected List<List<String>> functionUiName;
+  /**
+   * 帮助文本
+   */
+  protected int help;
   /** 宣传弹窗界面名称 */
   protected List<String> imgName;
   /** 是否开启 */
   protected boolean isOpen;
+  /**
+   * URL
+   */
+  protected String link;
   /** 打开界面需要导入的脚本 */
   protected List<String> requires;
   /** 弹窗顺序 */
@@ -67,6 +73,13 @@ public class PopUpConfigCfg extends BaseCfgBean {
     return functionUiName;
   }
 
+  /**
+   * 返回帮助文本
+   */
+  public int getHelp() {
+    return help;
+  }
+
   /** 返回宣传弹窗界面名称 */
   public List<String> getImgName() {
     return imgName;
@@ -75,6 +88,13 @@ public class PopUpConfigCfg extends BaseCfgBean {
   /** 返回是否开启 */
   public boolean getIsOpen() {
     return isOpen;
+  }
+
+  /**
+   * 返回URL
+   */
+  public String getLink() {
+    return link;
   }
 
   /** 返回打开界面需要导入的脚本 */
