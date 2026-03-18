@@ -9,6 +9,7 @@ import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.ReqGenerateOrder;
 import com.jjg.game.core.service.PlayerPackService;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,5 +61,10 @@ public class BackendRechargeManager implements OrderGenerate {
             return true;
         }
         return dealBackendRecharge(player, order);
+    }
+
+    @Override
+    public boolean isContinue(Order order) {
+        return StringUtils.isBlank(order.getDesc());
     }
 }

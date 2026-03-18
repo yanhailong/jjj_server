@@ -139,7 +139,8 @@ public class GameEventManager {
             } catch (Exception exception) {
                 log.error("listener: {} 触发事件：{} 时出现异常：{}", eventListener.getClass().getName(), gameEventType, exception.getMessage(), exception);
             }
-            if (eventListener.stopEventPropagation(gameEventType)) {
+            if (eventListener.stopEventPropagation(gameEvent)) {
+                log.info("终止事件传播 当前执行类 :{}", eventListener.getClass());
                 break;
             }
         }

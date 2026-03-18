@@ -43,7 +43,7 @@ public class OrderService {
 
     public Order generateOrder(Player player, PayType payType, String productId, RechargeType rechargeType, String desc) {
         Account account = accountDao.queryAccountByPlayerId(player.getId());
-        return generateOrder(player.getId(), account.getChannel(), payType, productId, BigDecimal.ZERO, rechargeType, null);
+        return generateOrder(player.getId(), account.getChannel(), payType, productId, BigDecimal.ZERO, rechargeType, desc);
     }
 
     public Order generateOrder(Player player, PayType payType, String productId, BigDecimal price, RechargeType rechargeType, String desc) {
