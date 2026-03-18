@@ -9,10 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -111,6 +108,40 @@ public class GameEventManager {
                             eventListener.getClass().getName(), gameEventType, exception.getMessage(), exception);
                 }
             });
+        }
+    }
+
+
+    /**
+     * 触发事件
+     *
+     * @param gameEvent 游戏事件
+     */
+    public <T extends GameEvent> void syncTriggerEvent(T gameEvent) {
+        EGameEventType gameEventType = gameEvent.getGameEventType();
+        Set<GameEventListener> eventListeners = eventListMap.get(gameEventType);
+        if (eventListeners == null || eventListeners.isEmpty()) {
+            return;
+        }
+        List<GameEventListener> gameEventListeners = new ArrayList<>(eventListeners);
+        gameEventListeners.sort((o1, o2) -> {
+            Map<EGameEventType, Integer> order1 = o1.evetOrder();
+            Map<EGameEventType, Integer> order2 = o2.evetOrder();
+            Integer o1Order = order1.getOrDefault(gameEventType, 0);
+            Integer o2Order = order2.getOrDefault(gameEventType, 0);
+            return Integer.compare(o1Order, o2Order);
+        });
+        // 处理事件
+        for (GameEventListener eventListener : gameEventListeners) {
+            //避免其中某个服务在处理事件耗时太久导致事件触发出现延迟
+            try {
+                eventListener.handleEvent(gameEvent);
+            } catch (Exception exception) {
+                log.error("listener: {} 触发事件：{} 时出现异常：{}", eventListener.getClass().getName(), gameEventType, exception.getMessage(), exception);
+            }
+            if (eventListener.stopEventPropagation(gameEventType)) {
+                break;
+            }
         }
     }
 

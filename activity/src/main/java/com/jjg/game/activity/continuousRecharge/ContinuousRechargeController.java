@@ -20,14 +20,16 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.core.listener.TmpRechargeListener;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.ShopService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.bean.BaseCfgBean;
+import com.jjg.game.sampledata.bean.ContinuouschargingCfg;
+import com.jjg.game.sampledata.bean.CumulativebenefitsCfg;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -54,7 +56,7 @@ import java.util.*;
  * @date 2026/3/5
  */
 @Component
-public class ContinuousRechargeController extends BaseActivityController implements GameEventListener, ConfigExcelChangeListener, GmListener, TmpRechargeListener {
+public class ContinuousRechargeController extends BaseActivityController implements GameEventListener, ConfigExcelChangeListener, GmListener {
 
     @Autowired
     private MailService mailService;
@@ -459,17 +461,10 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         }
     }
 
-    @Override
-    public void recharge(Player player, Order order, String money, String regionCode, String channelProductId) {
+    public void recharge(Player player, Order order) {
         long playerId = player.getId();
 
         try {
-            //特殊处理商城的添加道具
-            if (order.getRechargeType() == RechargeType.SHOP) {
-                //获取商品
-                shopService.handleShopOrder(player, order, money, regionCode, channelProductId);
-            }
-
             if (StringUtils.isEmpty(order.getDesc())) {
                 log.debug("该订单没有备注字段，不参与七日连充活动 orderId = {},playerId = {}", order.getId(), playerId);
                 return;
@@ -542,6 +537,24 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                 genTodayWefareCfgIds();
             }
         }
+        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
+            Order order = event.getOrder();
+            Player player = event.getPlayer();
+            if (order.getRechargeType() != RechargeType.SHOP) {
+                return;
+            }
+            recharge(player, order);
+        }
+    }
+
+    @Override
+    public boolean stopEventPropagation(EGameEventType eGameEventType) {
+        return eGameEventType == EGameEventType.RECHARGE;
+    }
+
+    @Override
+    public Map<EGameEventType, Integer> evetOrder() {
+        return Map.of(EGameEventType.RECHARGE, 9999);
     }
 
     /**
@@ -626,7 +639,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.CLOCK_EVENT);
+        return List.of(EGameEventType.CLOCK_EVENT, EGameEventType.RECHARGE);
     }
 
     /**
@@ -1389,4 +1402,5 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         playerActivityDao.clearActivityData(ActivityType.CONTINUOUS_RECHARGE, activityData.getId());
         log.info("执行批量删除连充活动的数据 activityId = {}", activityData.getId());
     }
+
 }

@@ -21,23 +21,8 @@ import com.jjg.game.sampledata.bean.RoomCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.russianlette.RussianLetteGameController;
 import com.jjg.game.table.russianlette.RussianLetteTempRoom;
-import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
-import com.jjg.game.table.russianlette.message.req.ReqRussianLetteExitRoomInGame;
-import com.jjg.game.table.russianlette.message.req.ReqRussianLetteInfo;
-import com.jjg.game.table.russianlette.message.req.ReqRussianLetteJoinRoomInGame;
-import com.jjg.game.table.russianlette.message.req.ReqRussianLetteOtherSummaryList;
-import com.jjg.game.table.russianlette.message.req.ReqRussianLetteSummary;
-import com.jjg.game.table.russianlette.message.req.ReqRussianLetteSummaryList;
-import com.jjg.game.table.russianlette.message.req.ReqRussianLetteSwitchRoomInGame;
-import com.jjg.game.table.russianlette.message.resp.RespRussianLetteExitRoomInGame;
-import com.jjg.game.table.russianlette.message.resp.RespRussianLetteInfo;
-import com.jjg.game.table.russianlette.message.resp.RespRussianLetteJoinRoomInGame;
-import com.jjg.game.table.russianlette.message.resp.RespRussianLetteOtherSummaryList;
-import com.jjg.game.table.russianlette.message.resp.RespRussianLetteSummary;
-import com.jjg.game.table.russianlette.message.resp.RespRussianLetteSummaryList;
-import com.jjg.game.table.russianlette.message.resp.RespRussianLetteSwitchRoomInGame;
-import com.jjg.game.table.russianlette.message.resp.RussianLetteSummary;
-
+import com.jjg.game.table.russianlette.message.req.*;
+import com.jjg.game.table.russianlette.message.resp.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -223,8 +208,7 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
         RespRussianLetteJoinRoomInGame resp = new RespRussianLetteJoinRoomInGame(Code.SUCCESS);
         resp.roomCfgId = room.getRoomCfgId();
         // 等待进入人数 +1（含满员检测）
-        boolean joinOk = matchDataDao.changeRoomJoinNum(
-                req.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), 1, 1);
+        boolean joinOk = matchDataDao.changeRoomJoinNum(req.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), 1, 1, room.getPath());
         if (!joinOk) {
             resp.code = Code.ROOM_FULL;
             playerController.send(resp);
@@ -248,7 +232,7 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
             if (result != Code.SUCCESS) {
                 // 入房失败，回滚等待人数
                 boolean rollback = matchDataDao.changeRoomJoinNum(
-                        req.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, -1);
+                        req.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, -1, room.getPath());
                 if (!rollback) {
                     log.error("joinRoomInGame 回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
                             playerController.playerId(), room.getRoomCfgId(), room.getId());
@@ -264,7 +248,7 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
             MarsNode marsNode = nodeManager.getMarNode(room.getPath());
             if (marsNode == null) {
                 boolean rollback = matchDataDao.changeRoomJoinNum(
-                        req.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, -1);
+                        req.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, -1, room.getPath());
                 if (!rollback) {
                     log.error("joinRoomInGame 跨节点回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
                             playerController.playerId(), room.getRoomCfgId(), room.getId());
@@ -303,11 +287,11 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
 
         if (currentGc != null && currentGc.gameControlType() == EGameType.RUSSIAN_ROULETTE) {
-            if(currentGc instanceof RussianLetteGameController rgc) {
+            if (currentGc instanceof RussianLetteGameController rgc) {
                 // 只有已经下注的玩家不能切换房间，没下注的玩家任何阶段都可以切换
                 Map<Integer, List<Integer>> playerBetInfo =
                         rgc.getGameDataVo().getPlayerBetInfo(playerController.playerId());
-                if(playerBetInfo != null && !playerBetInfo.isEmpty()){
+                if (playerBetInfo != null && !playerBetInfo.isEmpty()) {
                     log.warn("switchRoomInGame: 玩家 {} 已下注，不能切换房间", playerController.playerId());
                     playerController.send(new RespRussianLetteSwitchRoomInGame(Code.BET_TO_LIMIT));
                     return;
@@ -322,7 +306,7 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
         resp.roomCfgId = room.getRoomCfgId();
         // 等待进入人数 +1
         boolean joinOk = matchDataDao.changeRoomJoinNum(
-                gameTypeId, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), 1, 1);
+                gameTypeId, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), 1, 1, room.getPath());
         if (!joinOk) {
             resp.code = Code.ROOM_FULL;
             playerController.send(resp);
@@ -339,7 +323,7 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
                     playerController.playerId(), req.roomId, result);
             if (result != Code.SUCCESS) {
                 boolean rollback = matchDataDao.changeRoomJoinNum(
-                        gameTypeId, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, -1);
+                        gameTypeId, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, -1, room.getPath());
                 if (!rollback) {
                     log.error("switchRoomInGame 回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
                             playerController.playerId(), room.getRoomCfgId(), room.getId());
@@ -354,7 +338,7 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
             MarsNode marsNode = nodeManager.getMarNode(room.getPath());
             if (marsNode == null) {
                 boolean rollback = matchDataDao.changeRoomJoinNum(
-                        gameTypeId, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, -1);
+                        gameTypeId, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, -1, room.getPath());
                 if (!rollback) {
                     log.error("switchRoomInGame 跨节点回滚等待人数失败 playerId:{} roomCfgId:{} roomId:{}",
                             playerController.playerId(), room.getRoomCfgId(), room.getId());

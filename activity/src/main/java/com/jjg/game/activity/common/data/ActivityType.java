@@ -48,11 +48,10 @@ public enum ActivityType {
             ActivityTargetType.NONE.getTargetKey(), false, false, false),
     //成长基金
     GROWTH_FUND(15, GrowthFundController.class, true, false,
-            ActivityTargetType.LEVEL.getTargetKey(), false, false),
-
+            ActivityTargetType.LEVEL.getTargetKey(), false, false, false),
     //连续充值
     CONTINUOUS_RECHARGE(21, ContinuousRechargeController.class, false, false,
-            ActivityTargetType.NONE.getTargetKey(), true, false);
+            ActivityTargetType.NONE.getTargetKey(), true, false, true);
     //活动类型
     private final int type;
     //活动控制器的class
@@ -71,6 +70,7 @@ public enum ActivityType {
     private final boolean showInNotOpen;
     //活动结束是否清除数据
     private final boolean isClearDataOnEnd;
+
     ActivityType(int type, Class<? extends BaseActivityController> className, boolean canAddPlayerProgress, boolean canAddActivityProgress,
                  long targetKey, boolean canInitiativeJoin, boolean showInNotOpen, boolean isClearDataOnEnd) {
         this.type = type;

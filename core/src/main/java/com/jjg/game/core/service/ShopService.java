@@ -20,6 +20,7 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ViplevelCfg;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -244,7 +245,7 @@ public class ShopService implements OrderGenerate {
      * @param money      实际支付金额
      * @param regionCode 地区代码
      */
-    private boolean handleShopOrder(Player player, Order order, String money, String regionCode, String channelProductId) {
+    public boolean handleShopOrder(Player player, Order order, String money, String regionCode, String channelProductId) {
         ShopProduct shopProduct = getShopProduct(Long.parseLong(order.getProductId()));
         if (shopProduct == null) {
             log.error("未找到商品配置 orderId = {},productId = {}", order.getId(), order.getProductId());
@@ -371,5 +372,8 @@ public class ShopService implements OrderGenerate {
         return handleShopOrder(player, order, order.getMoney(), order.getRegionCode(), order.getChannelProductId());
     }
 
-
+    @Override
+    public boolean isContinue(Order order) {
+        return StringUtils.isBlank(order.getDesc());
+    }
 }

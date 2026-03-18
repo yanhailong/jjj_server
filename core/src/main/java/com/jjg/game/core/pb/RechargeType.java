@@ -51,14 +51,6 @@ public enum RechargeType {
      * 后台充值回调
      */
     BACKEND_CALLBACK(10),
-    /**
-     * 连续充值
-     */
-    CONTINOUS_RECHARGE(11),
-    /**
-     * 连续充值之福利活动
-     */
-    CONTINOUS_WELFARE(12),
     ;
     private final int type;
 

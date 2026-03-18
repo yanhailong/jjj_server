@@ -229,6 +229,7 @@ public class DailyRechargeController extends BaseActivityController implements O
 
     @Override
     public void checkPlayerDataAndResetOnLogin(Player player, ActivityData activityData) {
+        long playerId = player.getId();
         //清除数据
         countDao.reset(player.getId(), CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(DAILY_RECHARGE), String.valueOf(playerId));
         dailyRechargeDao.delete(player.getId(), activityData.getId());
@@ -245,7 +246,7 @@ public class DailyRechargeController extends BaseActivityController implements O
                         CollectionUtil.isEmpty(dailyRechargeCfg.getAwardItem())) {
                     continue;
                 }
-                mailService.addCfgMail(player.getId(), MAIL_CFG_ID, ItemUtils.buildItems(dailyRechargeCfg.getAwardItem()),AddType.ACTIVITY_DAILY_RECHARGE_PROGRESS);
+                mailService.addCfgMail(player.getId(), MAIL_CFG_ID, ItemUtils.buildItems(dailyRechargeCfg.getAwardItem()), AddType.ACTIVITY_DAILY_RECHARGE_PROGRESS);
             } catch (Exception e) {
                 log.error("每日充值未领取奖励发送邮件异常 playerId:{} activityId:{} detailId:{}", player.getId(), activityData.getId(), entry.getKey(), e);
             }

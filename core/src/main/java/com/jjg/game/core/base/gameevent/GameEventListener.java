@@ -1,6 +1,7 @@
 package com.jjg.game.core.base.gameevent;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 游戏事件监听
@@ -24,4 +25,21 @@ public interface GameEventListener {
      */
     List<EGameEventType> needMonitorEvents();
 
+    /**
+     * 事件执行顺序
+     *
+     * @return 值越大执行顺序越考前
+     */
+    default Map<EGameEventType, Integer> evetOrder() {
+        return Map.of();
+    }
+
+    /**
+     * 执行后是否终止事件传播
+     *
+     * @return true 终止事件传播
+     */
+    default boolean stopEventPropagation(EGameEventType eGameEventType) {
+        return false;
+    }
 }
