@@ -123,7 +123,6 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
             playerChangedGold.playerId = playerId;
             playerChangedGold.playerWinGold = playerSettlementData.getTotalWin();
             playerChangedGold.playerBetGold = playerTotalBetGold;
-            playerChangedGolds.add(playerChangedGold);
 
             // 赢了才加金币
             long totalWin = playerSettlementData.getTotalWin();
@@ -136,6 +135,11 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
                 }
             }
             playerChangedGold.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
+
+            // playerWinGold = 0 的不同步到结算消息
+            if (playerChangedGold.playerWinGold != 0) {
+                playerChangedGolds.add(playerChangedGold);
+            }
 
             // 添加下注记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());

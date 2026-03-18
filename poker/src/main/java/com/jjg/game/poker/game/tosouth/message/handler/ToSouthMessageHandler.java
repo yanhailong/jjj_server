@@ -51,7 +51,7 @@ public class ToSouthMessageHandler {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
         if (gameController instanceof ToSouthGameController controller) {
-            controller.reqToSouthGoReady(playerController.playerId());
+            controller.reqToSouthGoReady(playerController.playerId(), req);
         }
     }
 }

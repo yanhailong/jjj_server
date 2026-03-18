@@ -10,7 +10,6 @@ import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.PokerBuilder;
-import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
@@ -19,10 +18,10 @@ import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.tosouth.data.ToSouthSettlementContext;
-import com.jjg.game.poker.game.tosouth.gamephase.ToSouthPlayCardPhase;
 import com.jjg.game.poker.game.tosouth.gamephase.ToSouthSettlementPhase;
 import com.jjg.game.poker.game.tosouth.gamephase.ToSouthStartGamePhase;
 import com.jjg.game.poker.game.tosouth.message.bean.*;
+import com.jjg.game.poker.game.tosouth.message.req.ReqToSouthGoReady;
 import com.jjg.game.poker.game.tosouth.message.req.ReqTurnAction;
 import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthChangTable;
 import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthRoomBaseInfo;
@@ -34,7 +33,9 @@ import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 
 import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthBombSettlement;
 import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthPlayerReady;
@@ -53,7 +54,12 @@ import java.util.stream.Collectors;
 
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
+import com.jjg.game.room.timer.RoomEventType;
+import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.poker.game.tosouth.autohandler.ToSouthAutoPlayHandler;
+import com.jjg.game.poker.game.tosouth.autohandler.ToSouthReadyTimeoutHandler;
 
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.DIAMOND_SUIT;
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.HEART_SUIT;
@@ -745,12 +751,12 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
             baseInfo.actionInfo = actionInfo;
         }
-        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), baseInfo));
-
-        // START_GAME 阶段：已发牌但出牌阶段尚未开始，重连时需补发手牌数据及准备状态
-        if (baseInfo.phase == EGamePhase.START_GAME) {
+        // WAIT_READY 阶段：重连时需补发当前已准备的玩家列表
+        if (baseInfo.phase == EGamePhase.WAIT_READY) {
             baseInfo.readyPlayerIds = gameDataVo.getReadyPlayerIds();
         }
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), baseInfo));
+        // START_GAME 阶段：已发牌但出牌阶段尚未开始，重连时需补发手牌数据
         if (baseInfo.phase == EGamePhase.START_GAME && selfPlayerInfo != null && !selfPlayerInfo.isDelState()) {
             List<Integer> sortedHandCards = PokerDataHelper.getClientId(gameDataVo, selfPlayerInfo.getCurrentCards());
             List<Integer> highlightCards = gameDataVo.getPlayerHighlightCards().get(playerController.playerId());
@@ -764,13 +770,14 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     }
 
     /**
-     * 南方前进请求准备
+     * 南方前进请求准备/取消准备（在 WAIT_READY 阶段，四人全部准备后才开始发牌）
      *
      * @param playerId 玩家id
+     * @param req      请求（status: 1=准备, 2=取消）
      */
-    public void reqToSouthGoReady(long playerId) {
+    public void reqToSouthGoReady(long playerId, ReqToSouthGoReady req) {
         NotifyToSouthPlayerReady notify = new NotifyToSouthPlayerReady();
-        // 校验玩家是否在座位上
+        // 校验玩家是否在座位上，且当前处于等待准备阶段
         TreeMap<Integer, SeatInfo> seatInfo = gameDataVo.getSeatInfo();
         SeatInfo playerSeatInfo = null;
         for (SeatInfo info : seatInfo.values()) {
@@ -779,74 +786,170 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 break;
             }
         }
-        if (playerSeatInfo == null || !playerSeatInfo.isSeatDown() || getCurrentGamePhase() != EGamePhase.START_GAME) {
+        if (playerSeatInfo == null || !playerSeatInfo.isSeatDown() || getCurrentGamePhase() != EGamePhase.WAIT_READY) {
             notify.code = Code.ERROR_REQ;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
             return;
         }
-        // 重复准备检查
-        if (gameDataVo.getReadyPlayerIds().contains(playerId)) {
-            notify.code = Code.REPEAT_OP;
-            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
-            return;
-        }
-        gameDataVo.getReadyPlayerIds().add(playerId);
-        log.info("玩家 {} 准备完成，当前准备人数: {}", playerId, gameDataVo.getReadyPlayerIds().size());
-        notify.playerId = playerId;
-        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
-        // 检查是否全部准备，提前进入下个阶段
-        canStartNextPhase();
-    }
 
-    /**
-     * 检查是否所有玩家已准备，如果全部准备则提前进入下一阶段
-     */
-    private void canStartNextPhase() {
-        if (getCurrentGamePhase() != EGamePhase.START_GAME) {
-            return;
-        }
-        // 统计在座活跃玩家数
-        int activeCount = 0;
-        for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
-            if (!info.isDelState()) {
-                activeCount++;
+        int status = req.status; // 1=准备, 2=取消
+
+        if (status == 2) {
+            // 取消准备
+            if (!gameDataVo.getReadyPlayerIds().contains(playerId)) {
+                notify.code = Code.REPEAT_OP;
+                broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+                return;
             }
-        }
-        int readyCount = gameDataVo.getReadyPlayerIds().size();
-        if (readyCount >= activeCount && activeCount > 0) {
-            log.info("全部玩家已准备 ({}/{}), 提前进入下一阶段", readyCount, activeCount);
-            // 取消 START_GAME 阶段定时器，防止 phaseFinish 重复触发
-            removePokerPhaseTimer();
-            ToSouthSettlementContext instantWinCtx = gameDataVo.getInstantWinContext();
-            if (instantWinCtx != null && !instantWinCtx.getWinners().isEmpty()) {
-                // 通杀，进入结算阶段
-                addPokerPhaseTimer(new ToSouthSettlementPhase(this, instantWinCtx));
-            } else {
-                // 正常进入打牌阶段
-                addPokerPhase(new ToSouthPlayCardPhase(this));
+            gameDataVo.getReadyPlayerIds().remove(playerId);
+            log.info("玩家 {} 取消准备，当前准备人数: {}", playerId, gameDataVo.getReadyPlayerIds().size());
+            notify.playerId = playerId;
+            notify.status = 2;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
+        } else {
+            // 准备（status == 1 或默认）
+            if (gameDataVo.getReadyPlayerIds().contains(playerId)) {
+                notify.code = Code.REPEAT_OP;
+                broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+                return;
             }
-            // 通知阶段变更
-            NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(getCurrentGamePhase(), gameDataVo.getPhaseEndTime());
-            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyPokerPhaseChange));
+            gameDataVo.getReadyPlayerIds().add(playerId);
+            log.info("玩家 {} 准备完成，当前准备人数: {}", playerId, gameDataVo.getReadyPlayerIds().size());
+            notify.playerId = playerId;
+            notify.status = 1;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
+            // 检查是否满足开局条件（人数足够 + 全部准备）
+            tryStartGame();
         }
     }
 
     @Override
     public boolean tryStartGame() {
+        if (getCurrentGamePhase() != EGamePhase.WAIT_READY) {
+            return false;
+        }
+        // 机器人入座后自动准备并广播通知（只有玩家才需要手动点击准备）
+        for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
+            if (!info.isSeatDown()) continue;
+            long pid = info.getPlayerId();
+            if (gameDataVo.getReadyPlayerIds().contains(pid)) continue; // 已准备，跳过
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(pid);
+            if (gamePlayer instanceof GameRobotPlayer) {
+                gameDataVo.getReadyPlayerIds().add(pid);
+                NotifyToSouthPlayerReady notify = new NotifyToSouthPlayerReady();
+                notify.playerId = pid;
+                notify.status = 1;
+                broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
+                log.info("机器人 {} 自动准备", pid);
+            }
+        }
+        // 为未准备的真实玩家启动10秒准备倒计时（每个玩家只调度一次）
+        for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
+            if (!info.isSeatDown()) continue;
+            long pid = info.getPlayerId();
+            if (gameDataVo.getReadyPlayerIds().contains(pid)) continue;
+            if (gameDataVo.getReadyTimerScheduled().contains(pid)) continue;
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(pid);
+            if (!(gamePlayer instanceof GameRobotPlayer)) {
+                scheduleReadyTimeout(pid);
+            }
+        }
+        // 人数不够，等待
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         int total = gameDataVo.getSeatDownNum();
-        if (getCurrentGamePhase() == EGamePhase.WAIT_READY && total == roomCfg.getMinPlayer()) {
-            addPokerPhaseTimer(new ToSouthStartGamePhase(this, gameDataVo.getId()));
-            log.info("尝试开启下一局 当前id{} roomId:{}", gameDataVo.getId(), roomController.getRoom().getId());
-            return true;
+        if (total < roomCfg.getMinPlayer()) {
+            return false;
         }
-        return false;
+        // 检查所有在座玩家是否已准备
+        for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
+            if (!info.isSeatDown()) continue;
+            if (!gameDataVo.getReadyPlayerIds().contains(info.getPlayerId())) {
+                // 还有玩家未准备，等待
+                return false;
+            }
+        }
+        // 全部准备完成，开始游戏前先检查资金
+        // 资金检查：每位玩家需持有倍场50倍资金，不足则踢出房间（在 WAIT_READY 阶段踢人，exitRoom 可正常生效）
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(getRoom().getRoomCfgId());
+        long minBalance = warehouseCfg.getEnterLimit() * 50L;
+        List<Long> insufficientPlayerIds = new ArrayList<>();
+        for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
+            if (!info.isSeatDown()) continue;
+            long pid = info.getPlayerId();
+            long playerBalance = getTransactionItemNum(pid);
+            if (playerBalance < minBalance) {
+                log.info("玩家 {} 资金不足，当前: {}, 需要: {}, 踢出房间", pid, playerBalance, minBalance);
+                insufficientPlayerIds.add(pid);
+            }
+        }
+        if (!insufficientPlayerIds.isEmpty()) {
+            for (Long pid : insufficientPlayerIds) {
+                gameDataVo.getReadyPlayerIds().remove(pid);
+                RoomPlayer roomPlayer = getRoomController().getRoomPlayer(pid);
+                if (roomPlayer == null || roomPlayer.isOnline()) {
+                    NotifyExitRoom exitNotify = new NotifyExitRoom();
+                    exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
+                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(pid, exitNotify));
+                    log.info("玩家 {} 资金不足，通知客户端退出房间", pid);
+                } else {
+                    getRoomController().getRoomManager().exitRoom(pid);
+                    log.info("玩家 {} 离线且资金不足，服务端直接退出房间", pid);
+                }
+            }
+            // 踢人后重新检查人数是否足够
+            int remaining = gameDataVo.getSeatDownNum();
+            if (remaining < roomCfg.getMinPlayer()) {
+                log.info("资金检查后人数不足 ({}/{}), 无法开局", remaining, roomCfg.getMinPlayer());
+                return false;
+            }
+        }
+
+        addPokerPhaseTimer(new ToSouthStartGamePhase(this, gameDataVo.getId()));
+        log.info("全部玩家已准备，开始游戏 当前id{} roomId:{}", gameDataVo.getId(), roomController.getRoom().getId());
+        return true;
+    }
+
+    /**
+     * 为真实玩家启动10秒准备倒计时，超时未准备则踢出房间
+     */
+    private void scheduleReadyTimeout(long playerId) {
+        gameDataVo.getReadyTimerScheduled().add(playerId);
+        int timeout = 10000; // 10秒
+        ToSouthReadyTimeoutHandler handler = new ToSouthReadyTimeoutHandler(playerId, gameDataVo.getId(), this);
+        long exeTime = System.currentTimeMillis() + timeout;
+        TimerEvent<IProcessorHandler> timerEvent = new TimerEvent<>(this, exeTime, handler);
+        addGameTimeEvent(timerEvent, RoomEventType.ROOM_PHASE_RUN_EVENT);
+        log.info("玩家 {} 准备倒计时开始 (10秒)", playerId);
+    }
+
+    /**
+     * 踢出未准备的玩家（对齐德州扑克退出房间逻辑）
+     * 在线玩家：发送 NotifyExitRoom 通知，由客户端处理退出
+     * 离线玩家：服务端直接调用 exitRoom 清理房间信息
+     */
+    public void kickUnreadyPlayer(long playerId) {
+        RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
+        if (roomPlayer == null || roomPlayer.isOnline()) {
+            NotifyExitRoom exitNotify = new NotifyExitRoom();
+            exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
+            log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
+        } else {
+            getRoomController().getRoomManager().exitRoom(playerId);
+            log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
+        }
     }
 
     @Override
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
-        // 玩家退出房间时清除续局状态，避免重新进入后误判为同桌续局
+        long playerId = roomPlayer.getPlayerId();
+        // 清除该玩家的准备状态
+        gameDataVo.getReadyPlayerIds().remove(playerId);
+        gameDataVo.getReadyTimerScheduled().remove(playerId);
+        // 清除续局状态，有人退出后下一局视为首局（黑桃3先出）
         gameDataVo.setLastGameWinnerPlayerId(0);
+        gameDataVo.getLastGamePlayerIds().clear();
+        log.info("玩家 {} 离开房间，已清除准备状态和续局状态", playerId);
     }
 
     @Override

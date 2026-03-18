@@ -11,4 +11,6 @@ import com.jjg.game.poker.game.tosouth.constant.ToSouthConstant;
 public class NotifyToSouthPlayerReady extends AbstractNotice {
     @ProtoDesc("玩家id")
     public long playerId;
+    @ProtoDesc("1准备 2取消")
+    public int status;
 }
