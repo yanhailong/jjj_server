@@ -118,7 +118,7 @@ public abstract class AbstractCallbackController {
      */
     protected void notifyPlayerCurrentNode(PlayerSessionInfo info, Order order, NotifyRechargeServer notify) throws Exception {
         ClusterClient clusterClient;
-        if (info != null && !StringUtils.isEmpty(info.getNodeName())) {
+        if (info != null && !StringUtils.isEmpty(info.getCurrentNode())) {
             //可能会出现玩家已经不在当前节点需要自行处理
             clusterClient = clusterSystem.getClusterByPath(info.getCurrentNode());
         } else {

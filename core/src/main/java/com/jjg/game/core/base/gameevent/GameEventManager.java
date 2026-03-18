@@ -129,7 +129,7 @@ public class GameEventManager {
             Map<EGameEventType, Integer> order2 = o2.evetOrder();
             Integer o1Order = order1.getOrDefault(gameEventType, 0);
             Integer o2Order = order2.getOrDefault(gameEventType, 0);
-            return Integer.compare(o1Order, o2Order);
+            return -Integer.compare(o1Order, o2Order);
         });
         // 处理事件
         for (GameEventListener eventListener : gameEventListeners) {
