@@ -14,6 +14,7 @@ import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
@@ -827,6 +828,12 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     public boolean tryStartGame() {
         if (getCurrentGamePhase() != EGamePhase.WAIT_READY) {
             return false;
+        }
+        // 结算后/首次进入 WAIT_READY 时，同步阶段变化给客户端（readyPlayerIds 为空说明是刚 resetData 后的首次调用）
+        if (gameDataVo.getReadyPlayerIds().isEmpty()) {
+            NotifyPokerPhaseChange phaseChange = PokerBuilder.buildNotifyPhaseChange(EGamePhase.WAIT_READY, -1);
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(phaseChange));
+            log.info("广播阶段变化：WAIT_READY，等待玩家准备");
         }
         // 机器人入座后自动准备并广播通知（只有玩家才需要手动点击准备）
         for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
