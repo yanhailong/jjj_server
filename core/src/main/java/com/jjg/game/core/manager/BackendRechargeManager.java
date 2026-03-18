@@ -36,7 +36,7 @@ public class BackendRechargeManager implements GameEventListener {
      * @param player
      * @param order
      */
-    private void dealBackendRecharge(Player player, Order order) {
+    public void dealBackendRecharge(Player player, Order order) {
         if(order.getItems() == null || order.getItems().isEmpty()) {
             return;
         }
