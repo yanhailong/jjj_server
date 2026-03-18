@@ -164,6 +164,10 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                     }
                 });
             }
+            //jackpot
+            if (lib.getJackpotId() < 1) {
+                lib.setJackpotId(cfg.getJackpotID());
+            }
         }
         return specialAuxiliaryInfoList;
     }
@@ -687,13 +691,9 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                 rowsSet = new HashSet<>();
             }
             BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-            for (int i = 0; i < lib.getIconArr().length; i++) {
-                if (i != 0 && i / baseInitCfg.getRows() == key) {
-                    if (i % baseInitCfg.getRows() == 0) {
-                        rowsSet.add(i + baseInitCfg.getRows());
-                    } else {
-                        rowsSet.add(i);
-                    }
+            for (int i = 1; i < lib.getIconArr().length; i++) {
+                if ((i - 1) / baseInitCfg.getRows() == key) {
+                    rowsSet.add(i);
                 }
             }
             wildMap.put(0, rowsSet);
