@@ -190,7 +190,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
         gameRunInfo.setScrollType(resultLib.getRollerMode());
         gameRunInfo.setSpecialModeIcon(resultLib.getSpecialModeIcon());
         if (currentRandomIndex == randomResult.size() - 1) {
-            PoolCfg poolCfg = GameDataManager.getPoolCfg(specialLib.firstJackpotId());
+            PoolCfg poolCfg = GameDataManager.getPoolCfg(resultLib.firstJackpotId());
             if (poolCfg != null) {
                 //检查是否中大奖
                 CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(),
