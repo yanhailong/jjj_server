@@ -6,7 +6,7 @@
 
     <groupId>com.jjg.game</groupId>
     <artifactId>activity</artifactId>
-    <version>2.0.0-JJG-RELEASES</version>
+    <version>3.0.0-JJG-RELEASES</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -24,7 +24,7 @@
         <dependency>
             <groupId>com.jjg.game</groupId>
             <artifactId>core</artifactId>
-            <version>2.0.0-JJG-RELEASES</version>
+            <version>3.0.0-JJG-RELEASES</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.google.guava</groupId>
@@ -35,7 +35,7 @@
         <dependency>
             <groupId>com.jjg.game</groupId>
             <artifactId>sampledata</artifactId>
-            <version>2.0.0-JJG-RELEASES</version>
+            <version>3.0.0-JJG-RELEASES</version>
         </dependency>
     </dependencies>
     <build>
