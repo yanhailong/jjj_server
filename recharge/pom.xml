@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.jjg.game</groupId>
     <artifactId>recharge</artifactId>
-    <version>2.0.0-JJG-RELEASES</version>
+    <version>3.0.0-JJG-RELEASES</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -28,12 +28,12 @@
         <dependency>
             <groupId>com.jjg.game</groupId>
             <artifactId>core</artifactId>
-            <version>2.0.0-JJG-RELEASES</version>
+            <version>3.0.0-JJG-RELEASES</version>
         </dependency>
         <dependency>
             <groupId>com.jjg.game</groupId>
             <artifactId>activity</artifactId>
-            <version>2.0.0-JJG-RELEASES</version>
+            <version>3.0.0-JJG-RELEASES</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
