@@ -303,6 +303,29 @@ public class ToSouthHandUtils {
      * 先排除四张炸弹和三张牌型，再从剩余的对子中寻找连续序列
      */
     public static int countConsecutivePairBombs(List<Card> cards) {
+        int[] counts = countConsecutivePairBombsByType(cards);
+        return counts[0] + counts[1];
+    }
+
+    /**
+     * 统计手牌中三连对炸弹的数量（恰好3连对）
+     */
+    public static int countThreePairBombs(List<Card> cards) {
+        return countConsecutivePairBombsByType(cards)[0];
+    }
+
+    /**
+     * 统计手牌中四连对炸弹的数量（4连对及以上）
+     */
+    public static int countFourPairBombs(List<Card> cards) {
+        return countConsecutivePairBombsByType(cards)[1];
+    }
+
+    /**
+     * 统计连对炸弹，按类型拆分
+     * @return int[0] = 三连对数量, int[1] = 四连对及以上数量
+     */
+    private static int[] countConsecutivePairBombsByType(List<Card> cards) {
         Map<Integer, Integer> rankCountMap = new HashMap<>();
         for (Card c : cards) {
             rankCountMap.merge(c.getRank(), 1, Integer::sum);
@@ -320,20 +343,23 @@ public class ToSouthHandUtils {
         }
         pairRanks.sort(Comparator.reverseOrder());
 
-        int bombCount = 0;
+        int threePairCount = 0; // 三连对（恰好3连对）
+        int fourPairCount = 0;  // 四连对及以上
         int chainLen = 0;
         int prevRank = -1;
         for (int r : pairRanks) {
             if (prevRank == -1 || prevRank == r + 1) {
                 chainLen++;
             } else {
-                if (chainLen >= 3) bombCount++;
+                if (chainLen == 3) threePairCount++;
+                else if (chainLen >= 4) fourPairCount++;
                 chainLen = 1;
             }
             prevRank = r;
         }
-        if (chainLen >= 3) bombCount++;
-        return bombCount;
+        if (chainLen == 3) threePairCount++;
+        else if (chainLen >= 4) fourPairCount++;
+        return new int[]{threePairCount, fourPairCount};
     }
 
     private static int countRank(List<Card> cards, int rank) {
