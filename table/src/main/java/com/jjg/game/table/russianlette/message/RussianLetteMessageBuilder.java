@@ -319,6 +319,11 @@ public class RussianLetteMessageBuilder {
     /**
      * 构建单条房间摘要通知（{@link NotifyRussianLetteTableSummary}）
      * <p>用于阶段变化时向观察者推送最新房间状态。</p>
+     * <p>
+     * 特殊处理：DRAW_ON（开奖）阶段不同步最新开奖数字，等 SETTLEMENT（结算）阶段再同步。
+     * 例如：已开奖 3,0,27，当前 DRAW_ON 开出 35 → 推送时 cardStateList 仍为 3,0,27，diceData 不发送；
+     * 进入 SETTLEMENT 阶段 → 推送时 cardStateList 变为 3,0,27,35，diceData = 35。
+     * </p>
      *
      * @param gameController 目标房间的游戏控制器
      * @return 包含 {@link RussianLetteSummary} 的通知对象
@@ -327,6 +332,18 @@ public class RussianLetteMessageBuilder {
             BaseTableGameController<RussianLetteGameDataVo> gameController) {
         NotifyRussianLetteTableSummary notify = new NotifyRussianLetteTableSummary();
         notify.tableSummary = buildRussianLetteSummaryInfo(gameController);
+
+        // DRAW_ON 阶段：不同步最新开奖数字，等结算阶段再同步
+        if (gameController.getCurrentGamePhase() == EGamePhase.DRAW_ON) {
+            // 清除当前开奖数字（int 默认 0 表示无数据）
+            notify.tableSummary.stageInfo.diceData = 0;
+            // cardStateList 是倒序的（最新在前），移除第一个即本局最新开奖数字
+            if (notify.tableSummary.cardStateList != null && !notify.tableSummary.cardStateList.isEmpty()) {
+                notify.tableSummary.cardStateList = new ArrayList<>(notify.tableSummary.cardStateList);
+                notify.tableSummary.cardStateList.remove(0);
+            }
+        }
+
         return notify;
     }
 
