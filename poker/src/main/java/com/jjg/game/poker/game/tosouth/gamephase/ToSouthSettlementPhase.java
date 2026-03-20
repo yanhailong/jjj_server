@@ -197,37 +197,34 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 log.debug("被通杀的输家 {} - 张数: {}, 翻倍后总倍数: {}", loser.getPlayerId(), cardCount, totalMulti);
 
             } else {
-                // 正常结算：张数 + 特殊牌型加成（读配置倍数）
-                // 统计手牌中的特殊牌型
+                // 正常结算：张数 + 红2/黑2 + 最优炸弹倍数（四条与连对共用牌时取最大方案）
                 int countTwo = ToSouthHandUtils.countTwo(handCards);
                 int countRedTwo = ToSouthHandUtils.countRedTwo(handCards);
                 int countBlackTwo = countTwo - countRedTwo;
-                int countFourKindBomb = ToSouthHandUtils.countBomb(handCards);          // 四条炸弹数量
-                int countThreePairBomb = ToSouthHandUtils.countThreePairBombs(handCards); // 三连对炸弹数量
-                int countFourPairBomb = ToSouthHandUtils.countFourPairBombs(handCards);   // 四连对炸弹数量
 
                 // 张数基础倍数：13张（一张没出）翻倍，否则不翻倍
                 int cardMulti = (cardCount == 13) ? cardCount * 2 : cardCount;
 
-                // 各特殊牌型倍数（读配置）
-                int redTwoMulti = moneyCfg.getRemainred2();             // 红2倍数（每张）
-                int blackTwoMulti = moneyCfg.getRemainblack2();         // 黑2倍数（每张）
-                int fourKindBombMulti = moneyCfg.getFourkindboom1();     // 四条炸弹倍数（每个）
-                int threePairBombMulti = moneyCfg.getRemainBoom1();      // 三连对炸弹倍数（每个）
-                int fourPairBombMulti = moneyCfg.getFourpairsboom1();    // 四连对炸弹倍数（每个）
+                // 红2/黑2 倍数（读配置，独立计算）
+                int redTwoMulti = moneyCfg.getRemainred2();
+                int blackTwoMulti = moneyCfg.getRemainblack2();
+
+                // 炸弹倍数：四条和连对共用牌时，选总倍数最大的方案
+                int fourKindBombMulti = moneyCfg.getFourkindboom1();
+                int threePairBombMulti = moneyCfg.getRemainBoom1();
+                int fourPairBombMulti = moneyCfg.getFourpairsboom1();
+                int optimalBombMulti = ToSouthHandUtils.calcOptimalBombMultiplier(
+                        handCards, fourKindBombMulti, threePairBombMulti, fourPairBombMulti);
 
                 totalMulti = cardMulti
                         + countRedTwo * redTwoMulti
                         + countBlackTwo * blackTwoMulti
-                        + countFourKindBomb * fourKindBombMulti
-                        + countThreePairBomb * threePairBombMulti
-                        + countFourPairBomb * fourPairBombMulti;
+                        + optimalBombMulti;
 
-                log.debug("输家 {} - 张数: {}({}倍), 红2: {}x{}, 黑2: {}x{}, 四条炸: {}x{}, 三连对炸: {}x{}, 四连对炸: {}x{}, 总倍数: {}",
+                log.debug("输家 {} - 张数: {}({}倍), 红2: {}x{}, 黑2: {}x{}, 最优炸弹倍数: {}, 总倍数: {}",
                         loser.getPlayerId(), cardCount, cardMulti,
                         countRedTwo, redTwoMulti, countBlackTwo, blackTwoMulti,
-                        countFourKindBomb, fourKindBombMulti, countThreePairBomb, threePairBombMulti,
-                        countFourPairBomb, fourPairBombMulti, totalMulti);
+                        optimalBombMulti, totalMulti);
             }
             long loseScore = (long) totalMulti * baseBet;
             // 记录输分 (负数)
