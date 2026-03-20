@@ -157,8 +157,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         checkPlayerStatusTimeout = WheelTimerUtil.scheduleAtFixedRate(this::checkPlayerStatus, 1, 2, TimeUnit.SECONDS);
     }
 
-    public long getDefaultBetValue(G gameRunInfo,BaseRoomCfg config){
-        return gameRunInfo.getData() != null && gameRunInfo.getData().getAllBetScore() > 0 ? gameRunInfo.getData().getAllBetScore() : oneLineToAllStake(config.getDefaultBet().getFirst());
+    public long getDefaultBetValue(G gameRunInfo, BaseRoomCfg config) {
+        if (gameRunInfo.getData() == null || gameRunInfo.getData().getAllBetScore() < 1) {
+            return oneLineToAllStake(config.getDefaultBet().getFirst());
+        }
+
+        //校验该押分是否存在配置表中
+        long[] betScoreArr = this.allStakeMap.get(gameRunInfo.getData().getRoomCfgId()).stream().filter(arr -> arr[1] == gameRunInfo.getData().getAllBetScore()).findFirst().orElse(null);
+        if(betScoreArr == null) {
+            return oneLineToAllStake(config.getDefaultBet().getFirst());
+        }
+        return gameRunInfo.getData().getAllBetScore();
     }
 
     /**
@@ -1110,7 +1119,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 从奖池扣除钱(jackpot用)
      *
-     *
      * @param gameRunInfo
      * @param playerGameData
      */
@@ -1326,7 +1334,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     protected void onAutoExitAction(T gameData, int eventId) {
     }
-
 
 
     protected abstract <D extends AbstractResultLibDao> D getResultLibDao();
