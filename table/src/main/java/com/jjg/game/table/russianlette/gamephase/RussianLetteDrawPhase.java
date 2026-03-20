@@ -180,7 +180,7 @@ public class RussianLetteDrawPhase extends BaseDiceSettlementPhase<RussianLetteG
                 (BaseTableGameController<RussianLetteGameDataVo>) gameController);
 
         long endTime = System.currentTimeMillis();
-        log.info("开奖阶段  执行时间：{}   距离下个阶段时间：{}",endTime-startTime,gameDataVo.getPhaseEndTime()-endTime);
+//        log.info("开奖阶段  执行时间：{}   距离下个阶段时间：{}",endTime-startTime,gameDataVo.getPhaseEndTime()-endTime);
     }
 
     /**
