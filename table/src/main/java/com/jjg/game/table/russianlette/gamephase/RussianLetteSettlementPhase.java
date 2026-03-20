@@ -197,7 +197,7 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
                 (BaseTableGameController<RussianLetteGameDataVo>) gameController);
 
         long endTime = System.currentTimeMillis();
-        log.info("结算阶段  执行时间：{}   距离下个阶段时间：{}",endTime-startTime,gameDataVo.getPhaseEndTime()-endTime);
+//        log.info("结算阶段  执行时间：{}   距离下个阶段时间：{}",endTime-startTime,gameDataVo.getPhaseEndTime()-endTime);
     }
 
     @Override
