@@ -21,15 +21,10 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.pb.KVInfo;
-import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.service.MailService;
-import com.jjg.game.core.service.ShopService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseCfgBean;
-import com.jjg.game.sampledata.bean.ContinuouschargingCfg;
-import com.jjg.game.sampledata.bean.CumulativebenefitsCfg;
-import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import com.jjg.game.sampledata.bean.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -60,8 +55,6 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
     @Autowired
     private MailService mailService;
-    @Autowired
-    private ShopService shopService;
 
     private final int DETAIL_ID = 1;
 
@@ -537,27 +530,6 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                 genTodayWefareCfgIds();
             }
         }
-        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
-            Order order = event.getOrder();
-            Player player = event.getPlayer();
-            if (order.getRechargeType() == RechargeType.SHOP || order.getRechargeType() == RechargeType.BACKEND_CALLBACK || order.getRechargeType() == RechargeType.BACKEND) {
-                recharge(player, order);
-            }
-        }
-    }
-
-    @Override
-    public <T extends GameEvent> boolean stopEventPropagation(T gameEvent) {
-        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
-            Order order = event.getOrder();
-            return order != null && StringUtils.isNotEmpty(order.getDesc());
-        }
-        return false;
-    }
-
-    @Override
-    public Map<EGameEventType, Integer> evetOrder() {
-        return Map.of(EGameEventType.RECHARGE, 9999);
     }
 
     /**
@@ -642,7 +614,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.CLOCK_EVENT, EGameEventType.RECHARGE);
+        return List.of(EGameEventType.CLOCK_EVENT);
     }
 
     /**

@@ -1264,6 +1264,7 @@ public class GMController extends AbstractController {
             notice.setEndTime(dto.end_time());
             notice.setScence(dto.scene());
             notice.setJumpUrl(dto.jump_url());
+            notice.setBigType(dto.big_type());
             noticeDao.save(notice);
 
             PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyLoadNoticeConfig());
