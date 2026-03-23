@@ -693,7 +693,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         TimerEvent<LuckyTreasureTimerEvent> timer = activityTimers.remove(issueNumber);
         if (timer != null) {
             timerCenter.remove(timer);
-            log.debug("移除夺宝奇兵活动 {} 的定时器", issueNumber);
+//            log.debug("移除夺宝奇兵活动 {} 的定时器", issueNumber);
         }
     }
 
@@ -701,7 +701,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         TimerEvent<LuckyTreasureTimerEvent> timer = activityBuyTimers.remove(issueNumber);
         if (timer != null) {
             timerCenter.remove(timer);
-            log.debug("移除夺宝奇兵活动 {} 的机器人购买定时器", issueNumber);
+//            log.debug("移除夺宝奇兵活动 {} 的机器人购买定时器", issueNumber);
         }
     }
 
