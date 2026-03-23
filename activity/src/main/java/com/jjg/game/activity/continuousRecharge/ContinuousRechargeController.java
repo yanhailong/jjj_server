@@ -21,6 +21,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.pb.KVInfo;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -530,6 +531,27 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                 genTodayWefareCfgIds();
             }
         }
+        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
+            Order order = event.getOrder();
+            Player player = event.getPlayer();
+            if (order.getRechargeType() == RechargeType.SHOP || order.getRechargeType() == RechargeType.BACKEND_CALLBACK || order.getRechargeType() == RechargeType.BACKEND) {
+                recharge(player, order);
+            }
+        }
+    }
+
+    @Override
+    public <T extends GameEvent> boolean stopEventPropagation(T gameEvent) {
+        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
+            Order order = event.getOrder();
+            return order != null && StringUtils.isNotEmpty(order.getDesc());
+        }
+        return false;
+    }
+
+    @Override
+    public Map<EGameEventType, Integer> evetOrder() {
+        return Map.of(EGameEventType.RECHARGE, 9999);
     }
 
     /**
