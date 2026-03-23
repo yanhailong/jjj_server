@@ -57,6 +57,8 @@ public class RoomService implements IRoomStartListener {
         }
         //初始化任务
         taskManager.init();
+        isInitialed = true;
+        roomManager.setRoomInit(true);
     }
 
     /**
@@ -111,7 +113,6 @@ public class RoomService implements IRoomStartListener {
                 }
             }
         }
-        isInitialed = true;
     }
 
     /**
@@ -158,6 +159,7 @@ public class RoomService implements IRoomStartListener {
 
     @Override
     public void shutdown() {
+        roomManager.setRoomInit(false);
         // 需要执行房间中的关闭逻辑
         if (!roomManager.isRoomStopping()) {
             roomManager.setRoomStopping(true);
