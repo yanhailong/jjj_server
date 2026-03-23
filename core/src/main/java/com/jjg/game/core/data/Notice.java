@@ -38,6 +38,8 @@ public class Notice {
     private int scence;
     // 跳转地址
     private String jumpUrl;
+    //大类型  0.公告  1.活动
+    private int bigType;
 
     public long getId() {
         return id;
@@ -149,5 +151,13 @@ public class Notice {
 
     public void setJumpUrl(String jumpUrl) {
         this.jumpUrl = jumpUrl;
+    }
+
+    public int getBigType() {
+        return bigType;
+    }
+
+    public void setBigType(int bigType) {
+        this.bigType = bigType;
     }
 }

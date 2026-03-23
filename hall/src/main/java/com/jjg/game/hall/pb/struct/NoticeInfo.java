@@ -37,6 +37,8 @@ public class NoticeInfo {
     private String jumpUrl;
     @ProtoDesc("是否阅读")
     private boolean read;
+    @ProtoDesc("大类型  0.公告  1.活动")
+    private int bigType;
 
     public long getId() {
         return id;
@@ -148,5 +150,13 @@ public class NoticeInfo {
 
     public void setRead(boolean read) {
         this.read = read;
+    }
+
+    public int getBigType() {
+        return bigType;
+    }
+
+    public void setBigType(int bigType) {
+        this.bigType = bigType;
     }
 }
