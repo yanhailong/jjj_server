@@ -52,7 +52,7 @@ public class RussianLetteBetPhase extends BaseTableBetPhase<RussianLetteGameData
         long startTime = System.currentTimeMillis();
 
         super.phaseDoAction();
-        log.info("执行RussianLetteBetPhase（下注阶段）中phaseDoAction");
+//        log.info("执行RussianLetteBetPhase（下注阶段）中phaseDoAction");
         // 根据历史记录计算近 12 局的红/黑/奇/偶概率
         RussianLetteProb prob = RussianLetteMessageBuilder.buildProb(gameDataVo.getWinAreaCfgIdHistory());
         // 广播下注阶段变化通知（settlementInfo 在下注阶段为 null）

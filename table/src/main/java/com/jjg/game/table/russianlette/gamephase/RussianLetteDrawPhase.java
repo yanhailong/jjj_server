@@ -87,7 +87,7 @@ public class RussianLetteDrawPhase extends BaseDiceSettlementPhase<RussianLetteG
         long startTime = System.currentTimeMillis();
 
         super.phaseDoAction();
-        log.info("执行RussianLetteDrawPhase（开奖阶段）中phaseDoAction");
+//        log.info("执行RussianLetteDrawPhase（开奖阶段）中phaseDoAction");
         // ── 1. 生成 1-37（37 代表绿色 0）随机骰子点数 ─────────────────────────
         //      优先级：GM 指定 > 回收干预 > 随机
         List<Integer> randomNumDice = null;

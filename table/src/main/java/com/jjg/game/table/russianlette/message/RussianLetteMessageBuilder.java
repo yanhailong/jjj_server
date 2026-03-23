@@ -480,7 +480,7 @@ public class RussianLetteMessageBuilder {
 
         // 当前阶段总时长（秒）
         int calcPhaseTotalTime = calcPhaseTotalTime(currentPhase, dataVo.getRoomCfg().getStageTime());
-        log.info("currentPhase:{},phaseTotalTime:{}",currentPhase.getPhaseName(), calcPhaseTotalTime);
+//        log.info("currentPhase:{},phaseTotalTime:{}",currentPhase.getPhaseName(), calcPhaseTotalTime);
         baseInfo.phaseTotalTime = calcPhaseTotalTime(currentPhase, dataVo.getRoomCfg().getStageTime());
         return baseInfo;
     }
