@@ -164,7 +164,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         //校验该押分是否存在配置表中
         long[] betScoreArr = this.allStakeMap.get(gameRunInfo.getData().getRoomCfgId()).stream().filter(arr -> arr[1] == gameRunInfo.getData().getAllBetScore()).findFirst().orElse(null);
-        if(betScoreArr == null) {
+        if (betScoreArr == null) {
             return oneLineToAllStake(config.getDefaultBet().getFirst());
         }
         return gameRunInfo.getData().getAllBetScore();
@@ -1173,6 +1173,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     public long calPoolValue(long stake, List<Integer> growthRate, int initTimes, int maxTimes, int delayTime) {
+        log.warn("stake = {},init = {},max = {},delay = {}", stake, initTimes, maxTimes, delayTime);
         //押注
         BigDecimal stakeBigDecimal = BigDecimal.valueOf(stake);
         //奖池初始金额
