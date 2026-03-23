@@ -72,7 +72,7 @@ import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUI
 public class ToSouthGameController extends BasePokerGameController<ToSouthGameDataVo> {
 
     /** 准备倒计时（毫秒） */
-    private static final int READY_TIMEOUT = 10000;
+    private static final int READY_TIMEOUT = 11000;
 
     public ToSouthGameController(AbstractRoomController<Room_ChessCfg, ? extends Room> roomController) {
         super(roomController);
@@ -958,7 +958,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 RoomPlayer roomPlayer = getRoomController().getRoomPlayer(pid);
                 if (roomPlayer == null || roomPlayer.isOnline()) {
                     NotifyExitRoom exitNotify = new NotifyExitRoom();
-                    exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
+                    exitNotify.langId = Code.USER_NOT_GOLD;
                     broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(pid, exitNotify));
                     log.info("玩家 {} 资金不足，通知客户端退出房间", pid);
                 } else {

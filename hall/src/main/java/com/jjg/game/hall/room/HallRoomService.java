@@ -98,6 +98,11 @@ public class HallRoomService implements IConsoleReceiver {
             handleRussianRouletteJoinGame(playerController, roomCfgId);
             // 直接返回成功
             return Code.SUCCESS;
+        }else if ( gameType == EGameType.TO_SOUTH.getGameTypeId()) {
+            //如果是南方前进，就判断金额是否超过50倍倍场，否则发送错误码
+            if(playerController.getPlayer().getGold() < (warehouseCfg.getBetShow() * 50)){
+                return Code.USER_NOT_GOLD;
+            }
         }
         Pair<MarsNode, Boolean> marsNodeBooleanPair = nodeManager.getGameNodePairByWeight(gameType, playerController.playerId(),
                 playerController.ipAddress());

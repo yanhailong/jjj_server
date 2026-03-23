@@ -189,4 +189,6 @@ public interface Code {
     int PHONE_HAS_BIND = 461;
     //未检测到角色信息,请进入游戏绑定登录方式后重试
     int THIRD_NOT_BIND_FORBID_LOGIN = 462;
+    //南方前进 用户金额不足
+    int USER_NOT_GOLD  =  300401040;
 }

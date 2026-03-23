@@ -15,6 +15,7 @@ import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.poker.game.tosouth.constant.ToSouthConstant;
 import com.jjg.game.poker.game.tosouth.data.ToSouthSettlementContext;
 import com.jjg.game.poker.game.tosouth.manager.ToSouthStartManager;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthSendCardsInfo;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
@@ -133,29 +134,52 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
 
         // ====== GM发牌处理：预分配GM指定的手牌，并从牌池中移除 ======
         Map<Long, List<Integer>> gmPreAssigned = new HashMap<>();
+
+        // 收集同桌的机器人列表（按座位顺序），用于解析机器人编号
+        List<PlayerSeatInfo> robotSeats = new ArrayList<>();
+        for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+            if (!info.isDelState() && RobotUtil.isRobot(info.getPlayerId())) {
+                robotSeats.add(info);
+            }
+        }
+
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
             if (info.isDelState()) {
                 continue;
             }
+
+            // 处理玩家自身的GM手牌
             List<int[]> gmCards = ToSouthStartManager.consumeGmCards(info.getPlayerId());
-            if (gmCards == null || gmCards.isEmpty()) {
-                continue;
-            }
-            List<Integer> preAssignedIds = new ArrayList<>();
-            for (int[] spec : gmCards) {
-                int suit = spec[0];
-                int rank = spec[1];
-                Integer matchedId = findCardIdBySuitRank(cardListMap, suit, rank, list);
-                if (matchedId != null) {
-                    preAssignedIds.add(matchedId);
-                    list.remove(matchedId);
-                } else {
-                    log.warn("GM发牌 - 玩家: {}, 未找到匹配的牌: suit={}, rank={}", info.getPlayerId(), suit, rank);
+            if (gmCards != null && !gmCards.isEmpty()) {
+                List<Integer> preAssignedIds = resolveGmCards(cardListMap, gmCards, list, info.getPlayerId());
+                if (!preAssignedIds.isEmpty()) {
+                    gmPreAssigned.put(info.getPlayerId(), preAssignedIds);
+                    log.info("GM发牌 - 玩家: {}, 预分配手牌数: {}", info.getPlayerId(), preAssignedIds.size());
                 }
             }
-            if (!preAssignedIds.isEmpty()) {
-                gmPreAssigned.put(info.getPlayerId(), preAssignedIds);
-                log.info("GM发牌 - 玩家: {}, 预分配手牌数: {}", info.getPlayerId(), preAssignedIds.size());
+
+            // 处理该玩家发起的机器人GM手牌
+            Map<Integer, List<int[]>> robotCardsMap = ToSouthStartManager.consumeGmRobotCards(info.getPlayerId());
+            if (robotCardsMap != null && !robotCardsMap.isEmpty()) {
+                for (Map.Entry<Integer, List<int[]>> entry : robotCardsMap.entrySet()) {
+                    int robotIndex = entry.getKey(); // 1-based
+                    List<int[]> robotCards = entry.getValue();
+                    if (robotIndex < 1 || robotIndex > robotSeats.size()) {
+                        log.warn("GM机器人发牌 - 无效的机器人编号: {}, 当前机器人数量: {}", robotIndex, robotSeats.size());
+                        continue;
+                    }
+                    PlayerSeatInfo robotSeat = robotSeats.get(robotIndex - 1);
+                    List<Integer> preAssignedIds = resolveGmCards(cardListMap, robotCards, list, robotSeat.getPlayerId());
+                    if (!preAssignedIds.isEmpty()) {
+                        // 合并到已有的预分配（同一个机器人可能被多次指定）
+                        gmPreAssigned.merge(robotSeat.getPlayerId(), preAssignedIds, (old, add) -> {
+                            old.addAll(add);
+                            return old;
+                        });
+                        log.info("GM机器人发牌 - 机器人编号: {}, 玩家: {}, 预分配手牌数: {}",
+                                robotIndex, robotSeat.getPlayerId(), preAssignedIds.size());
+                    }
+                }
             }
         }
         // ====== GM发牌处理结束 ======
@@ -225,6 +249,32 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             sendCardsInfo.highlightCards = highlightIds;
             gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), sendCardsInfo));
         }
+    }
+
+    /**
+     * 将GM指定的手牌(suit+rank)解析为实际的pokerPoolId列表，并从可用牌池中移除
+     *
+     * @param cardListMap  牌池映射
+     * @param gmCards      GM指定的手牌列表 int[]{suit, rank}
+     * @param availableIds 当前可用的牌ID列表（会被修改）
+     * @param playerId     目标玩家ID（用于日志）
+     * @return 匹配到的pokerPoolId列表
+     */
+    private List<Integer> resolveGmCards(Map<Integer, PokerCard> cardListMap, List<int[]> gmCards,
+                                         List<Integer> availableIds, long playerId) {
+        List<Integer> preAssignedIds = new ArrayList<>();
+        for (int[] spec : gmCards) {
+            int suit = spec[0];
+            int rank = spec[1];
+            Integer matchedId = findCardIdBySuitRank(cardListMap, suit, rank, availableIds);
+            if (matchedId != null) {
+                preAssignedIds.add(matchedId);
+                availableIds.remove(matchedId);
+            } else {
+                log.warn("GM发牌 - 玩家: {}, 未找到匹配的牌: suit={}, rank={}", playerId, suit, rank);
+            }
+        }
+        return preAssignedIds;
     }
 
     /**
