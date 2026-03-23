@@ -145,13 +145,17 @@ public class ToSouthHandUtils {
                 // 都是四张，比大小
                 return compareMaxCard(prev, current);
             }
-            // 规则2: 炸弹不能通杀，只能炸2的牌型和三连对牌型
-            // 2-1: 炸单张2
-            if (type1 == ToSouthCardType.SINGLE && prev.getFirst().getRank() == RANK_2) return true;
-            // 2-2: 炸对子2
-            if (type1 == ToSouthCardType.PAIR && prev.getFirst().getRank() == RANK_2) return true;
-            // 2-3: 炸三连对 其他牌型 (如顺子、单张/对子3-A、三张等) 不能炸
+            // 规则: 炸弹不能通杀，只能炸2的牌型和三连对牌型
+            // 普通单张/对子（非2）不能被炸，直接返回 false
+            if (type1 == ToSouthCardType.SINGLE) {
+                return prev.getFirst().getRank() == RANK_2; // 只有单张2才能被炸
+            }
+            if (type1 == ToSouthCardType.PAIR) {
+                return prev.getFirst().getRank() == RANK_2; // 只有对子2才能被炸
+            }
+            // 炸三连对；四连对及以上不能被炸
             if (type1 == ToSouthCardType.CONSECUTIVE_PAIRS) return prev.size() < 8;
+            // 顺子、三张等其他牌型不能被炸
             return false;
         }
 

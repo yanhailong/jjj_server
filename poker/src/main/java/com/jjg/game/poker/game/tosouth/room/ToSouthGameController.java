@@ -50,6 +50,7 @@ import com.jjg.game.core.data.Card;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.poker.game.tosouth.util.ToSouthCardType;
+import com.jjg.game.sampledata.bean.SouthernMoneyCfg;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
 import java.util.stream.Collectors;
 
@@ -358,8 +359,28 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         long winnerId = Objects.requireNonNull(getPlayerBySeatId(winnerRecord.seatId)).getPlayerId();
         long baseBet = gameDataVo.getRoomBet();
         Map<Integer, PokerCard> cardMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
+        SouthernMoneyCfg moneyCfg = ToSouthDataHelper.getSouthernMoneyCfg(gameDataVo);
+        if (moneyCfg == null) {
+            log.error("缺少SouthernMoneyCfg配置，跳过炸弹结算");
+            return;
+        }
 
         List<ToSouthBombDetail> details = new ArrayList<>();
+
+        // 守卫：如果被炸的牌不是可炸牌型（非2单张/对子、非炸弹、非连对），不触发结算
+        // 普通单张（非2）、对子（非2）、三张、顺子等均不能被炸
+        if (victimIndex != -1) {
+            ToSouthRoundRecord victimRecord = plays.get(victimIndex);
+            List<Card> victimCards = playCardsIdsToCards(victimRecord.cards, cardMap);
+            victimCards.sort(ToSouthHandUtils.CARD_COMPARATOR);
+            boolean allRank2 = !victimCards.isEmpty() && victimCards.stream().allMatch(c -> c.getRank() == RANK_2);
+            boolean bombable = isBomb(victimRecord.cardType) || allRank2;
+            if (!bombable) {
+                log.warn("被炸的牌型不可被炸，跳过结算 seatId={}, cardType={}, cards={}",
+                        victimRecord.seatId, victimRecord.cardType, victimRecord.cards);
+                return;
+            }
+        }
 
         List<ToSouthRoundRecord> settledRecords = new ArrayList<>();
         if (victimIndex != -1) {
@@ -369,11 +390,11 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             // 累计最后一手炸弹之前所有已被炸过的炸弹牌型
             settledRecords.addAll(bombChain.subList(0, bombChain.size() - 1));
         }
-        
+
         if (CollUtil.isNotEmpty(settledRecords)) {
             long totalMultiplier = 0;
             for (ToSouthRoundRecord settledRecord : settledRecords) {
-                long multiplier = getBombSettlementMultiplier(settledRecord, cardMap);
+                long multiplier = getBombSettlementMultiplier(settledRecord, cardMap, moneyCfg);
                 if (multiplier <= 0) {
                     log.warn("炸弹结算未命中赔付规则 seatId={}, cardType={}, cards={}",
                             settledRecord.seatId, settledRecord.cardType, settledRecord.cards);
@@ -425,20 +446,41 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         details.add(new ToSouthBombDetail(winnerId, loserId, finalWinScore, type));
     }
 
-    private long getBombSettlementMultiplier(ToSouthRoundRecord victimRecord, Map<Integer, PokerCard> cardMap) {
+    /**
+     * 计算被炸牌型的赔付倍数（中局赔付，读 被管炸弹 配置而非结算剩余配置）
+     * 2的牌型按每张单独计算：红2 = remainred2 倍，黑2 = remainblack2 倍，累加
+     * 炸弹牌型读配置：四条=fourkindboom，三连对=remainBoom，四连对=fourpairsboom
+     */
+    private long getBombSettlementMultiplier(ToSouthRoundRecord victimRecord,
+                                              Map<Integer, PokerCard> cardMap,
+                                              SouthernMoneyCfg moneyCfg) {
         List<Card> victimCards = playCardsIdsToCards(victimRecord.cards, cardMap);
         if (CollUtil.isEmpty(victimCards)) return 0;
 
         victimCards.sort(ToSouthHandUtils.CARD_COMPARATOR);
-        if ((victimRecord.cardType == ToSouthCardType.SINGLE || victimRecord.cardType == ToSouthCardType.PAIR)
-                && victimCards.getFirst().getRank() == RANK_2) {
-            return containsRedTwo(victimCards) ? 4 : 2;
+
+        // 2的牌型：每张单独计算（红2 * remainred2 + 黑2 * remainblack2）
+        // 适用 SINGLE / PAIR / TRIPLE 中全为2的情况
+        boolean allRank2 = victimCards.stream().allMatch(c -> c.getRank() == RANK_2);
+        if (allRank2 && (victimRecord.cardType == ToSouthCardType.SINGLE
+                || victimRecord.cardType == ToSouthCardType.PAIR
+                || victimRecord.cardType == ToSouthCardType.TRIPLE)) {
+            long multi = 0;
+            for (Card c : victimCards) {
+                boolean isRed = c.getSuit() == HEART_SUIT || c.getSuit() == DIAMOND_SUIT;
+                multi += isRed ? moneyCfg.getRemainred2() : moneyCfg.getRemainblack2();
+            }
+            return multi;
         }
+
+        // 被炸的炸弹：读被管炸弹配置（非结算剩余配置）
         if (victimRecord.cardType == ToSouthCardType.BOMB_QUAD) {
-            return 8;
+            return moneyCfg.getFourkindboom();
         }
         if (victimRecord.cardType == ToSouthCardType.CONSECUTIVE_PAIRS) {
-            return victimCards.size() >= 8 ? 10 : 8;
+            return victimCards.size() >= 8
+                    ? moneyCfg.getFourpairsboom()   // 四连对
+                    : moneyCfg.getRemainBoom();     // 三连对
         }
         return 0;
     }
