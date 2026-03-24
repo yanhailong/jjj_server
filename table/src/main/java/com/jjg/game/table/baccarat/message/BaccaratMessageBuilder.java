@@ -107,24 +107,6 @@ public class BaccaratMessageBuilder {
         return baccaratBaseInfo;
     }
 
-    /**
-     * 断线重连进入时
-     */
-    public static NotifyBaccaratTableInfo buildNotifyBaccaratTableInfo(
-            AbstractGameController<?, ?> gameController,
-            BaccaratGameDataVo gameDataVo,
-            EGamePhase eGamePhase,
-            NotifyBaccaratSettlementInfo settlementInfo) {
-        NotifyBaccaratTableInfo notifyBaccaratTableInfo = new NotifyBaccaratTableInfo();
-        if (eGamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
-            notifyBaccaratTableInfo.baccaratSettlementInfo = settlementInfo.baccaratSettlementInfo;
-            notifyBaccaratTableInfo.playerChangedGolds = settlementInfo.playerChangedGolds;
-        }
-        notifyBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
-        notifyBaccaratTableInfo.gamePhase = eGamePhase;
-        notifyBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameController, gameDataVo, true, true);
-        return notifyBaccaratTableInfo;
-    }
 
     /**
      * 玩家中途加入，结算和每局开始时发送此数据
@@ -132,7 +114,7 @@ public class BaccaratMessageBuilder {
      * 构建百家乐面板数据
      */
     public static RespBaccaratTableInfo buildRespBaccaratTableInfo(
-            AbstractGameController<?, ?> gameController, BaccaratGameDataVo gameDataVo, EGamePhase eGamePhase) {
+            long playerId, AbstractGameController<?, ?> gameController, BaccaratGameDataVo gameDataVo, EGamePhase eGamePhase) {
         // 如果刚好处于等待阶段则直接设置为下注阶段
         if (eGamePhase == EGamePhase.WAIT_READY) {
             eGamePhase = EGamePhase.BET;
@@ -145,7 +127,7 @@ public class BaccaratMessageBuilder {
         }
         respBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
         respBaccaratTableInfo.gamePhase = eGamePhase;
-        respBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameController, gameDataVo, true, true);
+        respBaccaratTableInfo.baccaratTableInfo = buildTableInfo(playerId, gameController, gameDataVo, true, true);
         respBaccaratTableInfo.betInfoList = gameDataVo.getRoomCfg().getBetList();
         respBaccaratTableInfo.playerTotalNum = gameDataVo.getPlayerNum();
         GlobalConfigCfg globalConfigCfg =
@@ -161,7 +143,7 @@ public class BaccaratMessageBuilder {
     public static NotifyBaccaratBetStart buildNotifyBaccaratBetStart(
             AbstractGameController<?, ?> gameController, BaccaratGameDataVo gameDataVo) {
         NotifyBaccaratBetStart notifyInfo = new NotifyBaccaratBetStart();
-        notifyInfo.baccaratTableInfo = buildTableInfo(gameController, gameDataVo, false, true);
+        notifyInfo.baccaratTableInfo = buildTableInfo(0, gameController, gameDataVo, false, true);
         return notifyInfo;
     }
 
@@ -175,7 +157,7 @@ public class BaccaratMessageBuilder {
             BaccaratSettlementInfo settlementInfo) {
         NotifyBaccaratSettlementInfo notifyInfo = new NotifyBaccaratSettlementInfo();
         notifyInfo.baccaratSettlementInfo = settlementInfo;
-        notifyInfo.baccaratTableInfo = buildTableInfo(gameController, gameDataVo, false, false);
+        notifyInfo.baccaratTableInfo = buildTableInfo(0, gameController, gameDataVo, false, false);
         notifyInfo.playerChangedGolds = changedGolds;
         notifyInfo.needClearRoad = gameDataVo.getCardList().size() < 6;
         log.debug("{} 场上庄家牌：{} 庄家补牌：{} 庄家点数：{} 闲家牌：{} 闲家补牌：{} 闲家点数：{} 输赢结果：{} 牌型结果：{}",
@@ -196,12 +178,12 @@ public class BaccaratMessageBuilder {
      * 构建百家乐场上基础信息
      */
     public static BaccaratTableInfo buildTableInfo(
-            AbstractGameController<?, ?> gameController,
+            long playerId, AbstractGameController<?, ?> gameController,
             BaccaratGameDataVo gameDataVo,
             boolean needPlayerBetGold,
             boolean needTablePlayer) {
         BaccaratTableInfo tableInfo = new BaccaratTableInfo();
-        tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(gameDataVo, needPlayerBetGold);
+        tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(playerId, gameDataVo, needPlayerBetGold);
         tableInfo.tableCountDownTime = gameDataVo.getPhaseEndTime();
         tableInfo.totalTime = (int) (gameDataVo.getPhaseRunTime());
         if (needTablePlayer) {

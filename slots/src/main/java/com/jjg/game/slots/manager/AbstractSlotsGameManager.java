@@ -939,11 +939,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setLastActiveTime(System.currentTimeMillis());
         playerGameData.setPlayerController(playerController);
         playerGameData.setOfflineEventMap(initOffLineEvent());
-        return putGameData(playerController, playerGameData);
-    }
 
-    protected T putGameData(PlayerController playerController, T gameData) {
-        return this.gameDataMap.computeIfAbsent(playerController.getPlayer().getRoomCfgId(), k -> new ConcurrentHashMap<>()).put(playerController.playerId(), gameData);
+        this.gameDataMap.computeIfAbsent(playerController.getPlayer().getRoomCfgId(), k -> new ConcurrentHashMap<>()).put(playerController.playerId(), playerGameData);
+        return playerGameData;
     }
 
     /**
