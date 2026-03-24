@@ -10,14 +10,18 @@ public class ToSouthBombDetail {
     public long winnerId;
     @ProtoDesc("输家 ID")
     public long loserId;
-    @ProtoDesc("输赢金额")
+    @ProtoDesc("赢金额 排除扣税")
     public long score;
+    @ProtoDesc("输金额 包含扣税")
+    public long loseScore;
     @ProtoDesc("类型: 1=首炸受害者, 2=倒数第二炸弹手")
     public int type;
-    
-    public ToSouthBombDetail() {}
-    
-    public ToSouthBombDetail(long winnerId, long loserId, long score, int type) {
+
+    public ToSouthBombDetail() {
+    }
+
+    public ToSouthBombDetail(long winnerId, long loserId, long score, long loseScore, int type) {
+        this.loseScore = loseScore;
         this.winnerId = winnerId;
         this.loserId = loserId;
         this.score = score;
