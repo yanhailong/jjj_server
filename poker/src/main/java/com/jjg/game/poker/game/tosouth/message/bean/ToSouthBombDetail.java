@@ -8,7 +8,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 public class ToSouthBombDetail {
     @ProtoDesc("玩家 ID")
     public long playerId;
-    @ProtoDesc("赢金额")
+    @ProtoDesc("赢或输金额")
     public long score;
     @ProtoDesc("类型: 1=赢, 2=输")
     public int type;
