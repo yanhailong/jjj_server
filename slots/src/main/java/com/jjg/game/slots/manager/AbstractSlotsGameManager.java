@@ -1173,7 +1173,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     public long calPoolValue(long stake, List<Integer> growthRate, int initTimes, int maxTimes, int delayTime) {
-        log.warn("stake = {},init = {},max = {},delay = {}", stake, initTimes, maxTimes, delayTime);
         //押注
         BigDecimal stakeBigDecimal = BigDecimal.valueOf(stake);
         //奖池初始金额
@@ -1199,11 +1198,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         BigDecimal step1 = BigDecimal.valueOf(y).divide(intervalTime, 4, RoundingMode.HALF_UP);
         BigDecimal step2 = step1.multiply(prop);
         BigDecimal step3 = step2.multiply(maxPoolBigDecimal.subtract(initPoolBigDecimal));
-        long addGold = initPoolBigDecimal.add(step3).longValue();
-
-//        log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},intervalTime = {},y = {},addGold = {}", playerGameData.playerId(), rand, propV, intervalTime, y, addGold);
-//        log.debug("计算火车奖池金额 stake = {},timeValue = {},propValue = {},y = {},addGold = {}", stake, timeValue, propValue, y, addGold);
-        return addGold;
+        return initPoolBigDecimal.add(step3).longValue();
     }
 
 
