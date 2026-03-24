@@ -1,12 +1,11 @@
 package com.jjg.game.table.russianlette.message;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -20,11 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 俄罗斯转盘消息构建工具类
@@ -288,7 +283,7 @@ public class RussianLetteMessageBuilder {
         RussianLetteHistoryBean drawBean = dataVo.getDrawPhaseHistoryBean();
         if (drawBean != null) {
 //            stageInfo.diceData = drawBean.diceData == 37 ? 0 : drawBean.diceData;
-        stageInfo.diceData = drawBean.diceData;
+            stageInfo.diceData = drawBean.diceData;
         }
 
         summary.stageInfo = stageInfo;
@@ -308,7 +303,7 @@ public class RussianLetteMessageBuilder {
         summary.cardStateList = buildReversedCardStateList(dataVo.getWinAreaCfgIdHistory());
         // 近 12 局概率信息
         summary.prob = buildProb(dataVo.getWinAreaCfgIdHistory());
-        summary.roomType =  dataVo.getRoomCfg().getRoomID();
+        summary.roomType = dataVo.getRoomCfg().getRoomID();
         return summary;
     }
 
@@ -419,8 +414,18 @@ public class RussianLetteMessageBuilder {
                 gameController, playerId, dataVo, TableConstant.ON_TABLE_PLAYER_NUM);
         tableInfo.tableCountDownTime = dataVo.getPhaseEndTime();
 //        tableInfo.totalTime = calcPhaseTotalTime(currentPhase, dataVo.getRoomCfg().getStageTime());
-        List<BetTableInfo> areaInfos = TableMessageBuilder.buildBetTableInfos(dataVo, true);
-        tableInfo.tableAreaInfos = TableMessageBuilder.buildPlayerBetInfo(areaInfos, dataVo, playerId);
+        List<BetTableInfo> betTableInfos = TableMessageBuilder.buildBetTableInfos(playerId, dataVo, true);
+        //将玩家最后一次下注值放入到betValue
+        Map<Integer, List<Integer>> betInfo = gameController.getGameDataVo().getPlayerBetInfo(playerId);
+        if (CollectionUtil.isNotEmpty(betInfo)) {
+            for (BetTableInfo betTableInfo : betTableInfos) {
+                List<Integer> betValueList = betInfo.get(betTableInfo.betIdx);
+                if (betValueList != null) {
+                    betTableInfo.betValue = betValueList.getLast();
+                }
+            }
+        }
+        tableInfo.tableAreaInfos = betTableInfos;
         resp.russianletteTableInfo = tableInfo;
 
         // ── 4. 结算阶段的玩家金币变化（非结算阶段为 null）─────────────────────

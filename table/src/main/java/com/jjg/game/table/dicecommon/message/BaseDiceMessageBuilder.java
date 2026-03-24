@@ -30,21 +30,20 @@ public class BaseDiceMessageBuilder {
      * 构建骰子类牌桌信息
      */
     public static BaseDiceTableInfo buildDiceTableInfo(
-        long playerId, AbstractPhaseGameController<?, ?> gameController, TableGameDataVo gameDataVo,
-        boolean isInitial) {
+            long playerId, AbstractPhaseGameController<?, ?> gameController, TableGameDataVo gameDataVo,
+            boolean isInitial) {
         BaseDiceTableInfo diceTableInfo = new BaseDiceTableInfo();
         diceTableInfo.gamePhase = gameController.getCurrentGamePhase();
         diceTableInfo.tableCountDownTime = gameDataVo.getPhaseEndTime();
         diceTableInfo.playerInfo =
-            TableMessageBuilder.buildTablePlayerInfo(
-                gameController, playerId, gameDataVo, TableConstant.ON_TABLE_PLAYER_NUM);
+                TableMessageBuilder.buildTablePlayerInfo(
+                        gameController, playerId, gameDataVo, TableConstant.ON_TABLE_PLAYER_NUM);
         if (isInitial) {
             diceTableInfo.betPointList = gameDataVo.getRoomCfg().getBetList();
         }
         diceTableInfo.totalPlayerNum = gameDataVo.getPlayerNum();
-        diceTableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(gameDataVo, isInitial);
-        diceTableInfo.maxChipOnTable =
-            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
+        diceTableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(playerId, gameDataVo, isInitial);
+        diceTableInfo.maxChipOnTable = GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
         return diceTableInfo;
     }
 }
