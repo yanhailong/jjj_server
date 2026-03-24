@@ -18,6 +18,7 @@ import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
+import com.jjg.game.poker.game.tosouth.constant.ToSouthConstant;
 import com.jjg.game.poker.game.tosouth.data.ToSouthSettlementContext;
 import com.jjg.game.poker.game.tosouth.gamephase.ToSouthSettlementPhase;
 import com.jjg.game.poker.game.tosouth.gamephase.ToSouthStartGamePhase;
@@ -384,10 +385,12 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
         List<ToSouthRoundRecord> settledRecords = new ArrayList<>();
         if (victimIndex != -1) {
-            settledRecords.add(plays.get(victimIndex));
+            settledRecords.add(plays.get(victimIndex));  // 被炸的非炸弹牌（如对2）
         }
         if (bombChain.size() > 1) {
-            // 累计最后一手炸弹之前所有已被炸过的炸弹牌型
+            // 连炸链：累计所有被炸的炸弹牌型（不含赢家自身出的炸弹）
+            // 输家（倒数第二个出炸弹的玩家）赔付：被炸非炸弹牌 + 中间所有被炸的炸弹
+            // 例：A对红2 → B四条 → C四条 → D四连对 全pass，C赔 (对红2+四条+四条) 给D，D的四连对不计入
             settledRecords.addAll(bombChain.subList(0, bombChain.size() - 1));
         }
 
@@ -433,6 +436,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     private void addBombScore(List<ToSouthBombDetail> details, long loserId, long winnerId, long score, int type) {
         // 直接扣除输家积分
         deductItem(loserId, score, AddType.GAME_SETTLEMENT, "南方前进炸弹扣分", false);
+        details.add(new ToSouthBombDetail(loserId, score , ToSouthConstant.BOMB_LOSE_TYPE));
 
         // 计算赢家税后积分并添加
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
@@ -441,8 +445,9 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
         gameDataTracker.addGameLogData("tax", tax);
         long finalWinScore = score - tax;
+
         addItem(winnerId, finalWinScore, AddType.GAME_SETTLEMENT);
-        details.add(new ToSouthBombDetail(winnerId, loserId, finalWinScore,score ,type));
+        details.add(new ToSouthBombDetail(winnerId, finalWinScore ,ToSouthConstant.BOMB_WIN_TYPE));
     }
 
     /**

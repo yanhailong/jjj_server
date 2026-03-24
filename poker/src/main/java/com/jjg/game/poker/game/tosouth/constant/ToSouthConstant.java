@@ -42,4 +42,7 @@ public class ToSouthConstant {
         int FIVE_CONSEC_PAIRS = 5; // 5连对
         int SIX_CONSEC_PAIRS = 6; // 6连对
     }
+
+    public static final int BOMB_WIN_TYPE = 1;
+    public static final int BOMB_LOSE_TYPE = 2;
 }
