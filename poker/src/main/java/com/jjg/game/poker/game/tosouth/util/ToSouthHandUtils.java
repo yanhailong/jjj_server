@@ -234,26 +234,29 @@ public class ToSouthHandUtils {
             }
             return new Pair<>(SAME_COLOR, cardClientIds);
         }
-        // 6对
+        // 6对（4张同点算2对，3张同点算1对，2张同点算1对）
         if (countPairs(cards) >= 6) {
-            // 找出所有对子
-            List<Integer> pairRanks = new ArrayList<>();
-            for (int i = 0; i < cards.size() - 1; i++) {
-                if (cards.get(i).getRank() == cards.get(i+1).getRank()) {
-                    pairRanks.add(cards.get(i).getRank());
-                    i++;
-                }
+            // 按rank统计张数，保持遍历顺序（cards已排序）
+            Map<Integer, Integer> rankCount = new LinkedHashMap<>();
+            for (Card c : cards) {
+                rankCount.merge(c.getRank(), 1, Integer::sum);
             }
-            // 复用 countPairs 逻辑
-            int pairsFound = 0;
-            for (int i = 0; i < cards.size() - 1; i++) {
-                if (cards.get(i).getRank() == cards.get(i+1).getRank()) {
-                    if (cards.get(i) instanceof PokerCard pc1) cardClientIds.add(pc1.getClientId());
-                    if (cards.get(i+1) instanceof PokerCard pc2) cardClientIds.add(pc2.getClientId());
-                    pairsFound++;
-                    i++; 
-                    if (pairsFound == 6) break;
+            int pairsCollected = 0;
+            for (Map.Entry<Integer, Integer> entry : rankCount.entrySet()) {
+                int pairsFromRank = entry.getValue() / 2;
+                if (pairsFromRank == 0) continue;
+                // 本rank最多取够凑满6对所需的对数
+                int pairsToTake = Math.min(pairsFromRank, 6 - pairsCollected);
+                int cardsToTake = pairsToTake * 2;
+                int taken = 0;
+                for (Card c : cards) {
+                    if (c.getRank() == entry.getKey() && taken < cardsToTake) {
+                        if (c instanceof PokerCard pc) cardClientIds.add(pc.getClientId());
+                        taken++;
+                    }
                 }
+                pairsCollected += pairsToTake;
+                if (pairsCollected >= 6) break;
             }
             return new Pair<>(SIX_PAIRS, cardClientIds);
         }
@@ -502,22 +505,12 @@ public class ToSouthHandUtils {
     }
 
     private static int countPairs(List<Card> cards) {
-        int pairs = 0;
-        int i = 0;
-        while (i < cards.size() - 1) {
-            if (cards.get(i).getRank() == cards.get(i + 1).getRank()) {
-                // 四张同点是炸弹，不计入对子，整组跳过
-                if (i + 3 < cards.size() && cards.get(i).getRank() == cards.get(i + 3).getRank()) {
-                    i += 4;
-                } else {
-                    pairs++;
-                    i += 2;
-                }
-            } else {
-                i++;
-            }
+        // 每个rank贡献 count/2 对（4张=2对，3张=1对，2张=1对，1张=0对）
+        Map<Integer, Integer> rankCount = new HashMap<>();
+        for (Card c : cards) {
+            rankCount.merge(c.getRank(), 1, Integer::sum);
         }
-        return pairs;
+        return rankCount.values().stream().mapToInt(cnt -> cnt / 2).sum();
     }
 
     private static int countQuads(List<Card> cards) {
