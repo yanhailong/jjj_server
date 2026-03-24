@@ -149,7 +149,7 @@ public class TexasMessageHandler {
                 return;
             }
         }
-        TipUtils.sendToastTip(playerId, Code.FAIL);
+        TipUtils.sendTip(playerId, Code.FAIL);
     }
 
     public NotifyTexasSeatStateChange swapSeat(TexasGameController controller, SeatInfo seatInfo, GamePlayer gamePlayer, int srcSeatId) {
