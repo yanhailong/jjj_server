@@ -23,7 +23,7 @@ public class SlotsPlayerGameData {
     @Id
     protected String id;
     @Transient
-    protected transient PlayerController playerController;
+        protected transient PlayerController playerController;
     @Transient
     protected transient boolean fromOldData;
     protected long playerId;

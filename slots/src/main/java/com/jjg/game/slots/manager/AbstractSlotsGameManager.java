@@ -1408,28 +1408,30 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * 玩家离线保存gameDataDto
      */
     protected void offlineSaveGameDataDto(T gameData) {
-        try {
-            playerGameDataDao.savePlayerGameData(gameData);
-            if (gameData.isFromOldData()) {
-                AbstractGameDataDao<?> gameDataDao = getGameDataDao();
-                if (gameDataDao == null) {
-                    return;
-                }
-                SlotsPlayerGameDataDTO dto = gameData.converToDto(getSlotsPlayerGameDataDTOCla());
-                long deleteCount;
-                if (isRoomGame() && dto instanceof SlotsPlayerGameDataRoomDTO roomDto) {
-                    roomDto.setRoomId(gameData.getRoomId());
-                    roomDto.buildRoomKey();
-                    deleteCount = getGameDataDao().deleteGameDataByPlayerId(roomDto);
-                } else {
-                    deleteCount = getGameDataDao().deleteGameDataByPlayerId(dto.getPlayerId(), dto.getRoomCfgId());
-                }
-                log.info("删除slots老数据  deleteCount = {} data:{}", deleteCount, JSON.toJSONString(dto));
+        playerGameDataDao.savePlayerGameData(gameData);
+        if (gameData.isFromOldData()) {
+            AbstractGameDataDao<?> gameDataDao = getGameDataDao();
+            if (gameDataDao == null) {
+                return;
             }
-
-        } catch (
-                Exception e) {
-            log.error("", e);
+            //放在虚拟线程中执行,避免卡在这儿
+            Thread.ofVirtual().start(() -> {
+                try {
+                    SlotsPlayerGameDataDTO dto = gameData.converToDto(getSlotsPlayerGameDataDTOCla());
+                    long deleteCount;
+                    if (isRoomGame() && dto instanceof SlotsPlayerGameDataRoomDTO roomDto) {
+                        roomDto.setRoomId(gameData.getRoomId());
+                        roomDto.buildRoomKey();
+                        deleteCount = getGameDataDao().deleteGameDataByPlayerId(roomDto);
+                    } else {
+                        deleteCount = getGameDataDao().deleteGameDataByPlayerId(dto.getPlayerId(), dto.getRoomCfgId());
+                    }
+                    log.info("删除slots老数据  deleteCount = {} data:{}", deleteCount, JSON.toJSONString(dto));
+                } catch (
+                        Exception e) {
+                    log.error("", e);
+                }
+            });
         }
     }
 
