@@ -273,7 +273,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                             warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START;
                 }
                 session.send(res);
-                hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice(), playerSessionToken.getMac());
+                hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice(), playerSessionToken.getMac(), playerSessionToken.getFcm());
                 // 调用登录接口类
                 PlayerController playerController = new PlayerController(session, player);
                 session.setReference(playerController);
@@ -287,7 +287,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             //返回登录消息
             session.send(res);
-            hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice(), playerSessionToken.getMac());
+            hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice(), playerSessionToken.getMac(), playerSessionToken.getFcm());
 
             //创建 playerController
             PlayerController playerController = new PlayerController(session, player);

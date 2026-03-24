@@ -25,6 +25,8 @@ public class LoginDto {
     private int westeId;
     //手机名称
     private String phoneName;
+    //fcm
+    private String fcm;
 
     public int getLoginType() {
         return loginType;
@@ -104,5 +106,13 @@ public class LoginDto {
 
     public void setPhoneName(String phoneName) {
         this.phoneName = phoneName;
+    }
+
+    public String getFcm() {
+        return fcm;
+    }
+
+    public void setFcm(String fcm) {
+        this.fcm = fcm;
     }
 }
