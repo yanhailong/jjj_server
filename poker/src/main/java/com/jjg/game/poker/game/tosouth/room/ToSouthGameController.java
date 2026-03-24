@@ -289,6 +289,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         gameDataVo.setLastPlayCards(realPlayCardIds);
         gameDataVo.setLastPlayCardsType(type.getType());
         gameDataVo.setLastPlaySeatId(info.getSeatId());
+        gameDataVo.setRoundLeaderSeatId(info.getSeatId()); // 每次出牌成功，更新轮次领打人为当前出牌者
         gameDataVo.setPassCount(0); // 重置过牌计数
 
         // 记录出牌
