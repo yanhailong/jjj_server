@@ -220,10 +220,12 @@ public class TableMessageBuilder {
         return buildBetTableInfos(0, gameDataVo, needPlayerBetGold);
     }
 
+
     /**
      * 构建桌面押注信息
      */
-    public static List<BetTableInfo> buildBetTableInfos(long initPlayerId, TableGameDataVo gameDataVo, boolean needPlayerBetGold) {
+    public static List<BetTableInfo> buildBetTableInfos(long initPlayerId, TableGameDataVo gameDataVo, boolean needPlayerBetGold
+            , boolean justPlayerBet) {
         Map<Long, Map<Integer, List<Integer>>> areaTotalBet = gameDataVo.getPlayerBetInfo();
         Map<Integer, BetTableInfo> baccaratTableInfoMap = new HashMap<>();
         for (Map.Entry<Long, Map<Integer, List<Integer>>> betEntry : areaTotalBet.entrySet()) {
@@ -238,12 +240,16 @@ public class TableMessageBuilder {
                 BetTableInfo betTableInfo = baccaratTableInfoMap.get(entry.getKey());
                 int playerTotalBet = entry.getValue().stream().mapToInt(Integer::intValue).sum();
                 betTableInfo.betIdxTotal += playerTotalBet;
-                if (initPlayerId > 0 && playerId == initPlayerId) {
+                boolean isSelectPlayer = initPlayerId > 0 && playerId == initPlayerId;
+                if (isSelectPlayer) {
                     //玩家总下注
                     betTableInfo.playerBetTotal = playerTotalBet;
                 }
                 // 刚进入和断线重连时需要金币列表
                 if (needPlayerBetGold) {
+                    if (justPlayerBet && !isSelectPlayer) {
+                        continue;
+                    }
                     if (betTableInfo.betGoldList == null) {
                         betTableInfo.betGoldList = new ArrayList<>();
                     }
@@ -260,5 +266,12 @@ public class TableMessageBuilder {
             }
         }
         return new ArrayList<>(baccaratTableInfoMap.values());
+    }
+
+    /**
+     * 构建桌面押注信息
+     */
+    public static List<BetTableInfo> buildBetTableInfos(long initPlayerId, TableGameDataVo gameDataVo, boolean needPlayerBetGold) {
+        return buildBetTableInfos(initPlayerId, gameDataVo, needPlayerBetGold, false);
     }
 }

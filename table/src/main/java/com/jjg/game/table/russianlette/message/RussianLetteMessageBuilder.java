@@ -1,6 +1,5 @@
 package com.jjg.game.table.russianlette.message;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
@@ -9,7 +8,6 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.message.TableMessageBuilder;
-import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
 import com.jjg.game.table.russianlette.RussianLetteTempRoom;
 import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
@@ -414,18 +412,8 @@ public class RussianLetteMessageBuilder {
                 gameController, playerId, dataVo, TableConstant.ON_TABLE_PLAYER_NUM);
         tableInfo.tableCountDownTime = dataVo.getPhaseEndTime();
 //        tableInfo.totalTime = calcPhaseTotalTime(currentPhase, dataVo.getRoomCfg().getStageTime());
-        List<BetTableInfo> betTableInfos = TableMessageBuilder.buildBetTableInfos(playerId, dataVo, true);
-        //将玩家最后一次下注值放入到betValue
-        Map<Integer, List<Integer>> betInfo = gameController.getGameDataVo().getPlayerBetInfo(playerId);
-        if (CollectionUtil.isNotEmpty(betInfo)) {
-            for (BetTableInfo betTableInfo : betTableInfos) {
-                List<Integer> betValueList = betInfo.get(betTableInfo.betIdx);
-                if (betValueList != null) {
-                    betTableInfo.betValue = betValueList.getLast();
-                }
-            }
-        }
-        tableInfo.tableAreaInfos = betTableInfos;
+        tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(playerId, dataVo, true, true);
+
         resp.russianletteTableInfo = tableInfo;
 
         // ── 4. 结算阶段的玩家金币变化（非结算阶段为 null）─────────────────────

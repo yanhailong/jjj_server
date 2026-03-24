@@ -276,6 +276,11 @@ public interface MessageConst {
         //请求背包数据
         int REQ_GET_PACK = BASE_MSG_PREFIX | 0x20;
         int RES_GET_PACK = BASE_MSG_PREFIX | 0x21;
+
+
+        //请求检测功能状态
+        int REQ_CHECK_FUNCTION_STATE = BASE_MSG_PREFIX | 0x22;
+        int RES_CHECK_FUNCTION_STATE = BASE_MSG_PREFIX | 0x23;
     }
 
     interface RoomMessage {

@@ -87,7 +87,7 @@ public class ConditionManager {
             if (resultData.need() != null) {
                 param = Map.of(2, resultData.need().toPlainString());
             }
-            TipUtils.sendToastTip(player.getId(), resultData.errorCode(), param);
+            TipUtils.sendTip(player.getId(), TipUtils.TipType.GAME_FUNCTION, resultData.errorCode(), param);
         }
         return false;
     }

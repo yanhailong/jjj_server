@@ -28,14 +28,19 @@ import com.jjg.game.core.manager.SubscriptionManager;
 import com.jjg.game.core.pb.*;
 import com.jjg.game.core.pb.excel.ReqExcelInfos;
 import com.jjg.game.core.pb.excel.ResExcelInfos;
+import com.jjg.game.core.pb.function.ReqCheckFunctionState;
+import com.jjg.game.core.pb.function.ResCheckFunctionState;
 import com.jjg.game.core.pb.reddot.ReqRedDot;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.DefaultTaskConditionParam;
+import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
+import com.jjg.game.sampledata.bean.GameFunctionCfg;
 import com.jjg.game.sampledata.container.BaseCfgContainer;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -85,7 +90,8 @@ public class CoreMessageHandler {
     private CountDao countDao;
     @Autowired
     private AccountDao accountDao;
-
+    @Autowired
+    private GameFunctionService gameFunctionService;
     public Map<String, ChooseWareListener> chooseWareListenerMap;
     //奖池本地缓存
     private final Cache<String, Class<? extends BaseCfgBean>> configCache = Caffeine.newBuilder()
@@ -647,4 +653,25 @@ public class CoreMessageHandler {
         return baseCfgClass;
     }
 
+    /**
+     * 收到其他节点推送的停止跑马灯信息
+     */
+    @Command(MessageConst.CoreMessage.REQ_CHECK_FUNCTION_STATE)
+    public void reqCheckFunctionState(PlayerController playerController, ReqCheckFunctionState notify) {
+        try {
+            Player player = playerController.getPlayer();
+            GameFunctionCfg gameFunctionCfg = GameDataManager.getGameFunctionCfg(notify.gameFunctionId);
+            if (gameFunctionCfg == null) {
+                TipUtils.sendTip(player.getId(), TipUtils.TipType.GAME_FUNCTION, Code.ERROR_REQ);
+                return;
+            }
+            boolean functionOpen = gameFunctionService.checkGameFunctionOpen(player, gameFunctionCfg, true, true);
+            if (functionOpen) {
+                ResCheckFunctionState resCheckFunctionState = new ResCheckFunctionState();
+                playerController.send(resCheckFunctionState);
+            }
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
 }
