@@ -6,9 +6,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage
 @ProtoDesc("炸弹赔付明细")
 public class ToSouthBombDetail {
-    @ProtoDesc("赢家 ID")
-    public long winnerId;
-    @ProtoDesc("输家 ID")
+    @ProtoDesc("玩家 ID")
     public long playerId;
     @ProtoDesc("赢金额")
     public long score;
