@@ -166,14 +166,12 @@ public class GameDataManager {
     containerMap.put(PiggyBankCfg.class, new PiggyBankCfgContainer());
     containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
     containerMap.put(PlayerLevelPackCfg.class, new PlayerLevelPackCfgContainer());
-    containerMap.put(PloygameRoomCfg.class, new PloygameRoomCfgContainer());
     containerMap.put(PointsAwardRankingCfg.class, new PointsAwardRankingCfgContainer());
     containerMap.put(PointsAwardRobotCfg.class, new PointsAwardRobotCfgContainer());
     containerMap.put(PointsAwardSigninCfg.class, new PointsAwardSigninCfgContainer());
     containerMap.put(PointsAwardTurntableCfg.class, new PointsAwardTurntableCfgContainer());
     containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
     containerMap.put(PoolCfg.class, new PoolCfgContainer());
-    containerMap.put(PoolResultLibCfg.class, new PoolResultLibCfgContainer());
     containerMap.put(PopUpConfigCfg.class, new PopUpConfigCfgContainer());
     containerMap.put(PopUpGetWayCfg.class, new PopUpGetWayCfgContainer());
     containerMap.put(PrivilegeCardCfg.class, new PrivilegeCardCfgContainer());
@@ -1178,18 +1176,6 @@ public class GameDataManager {
     return getInstance().getCfgContainer(PlayerLevelPackCfg.class).getCfgBeanList();
   }
 
-  public static PloygameRoomCfg getPloygameRoomCfg(int key) {
-    return getInstance().getCfgContainer(PloygameRoomCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, PloygameRoomCfg> getPloygameRoomCfgMap() {
-    return getInstance().getCfgContainer(PloygameRoomCfg.class).getCfgBeanMap();
-  }
-
-  public static List<PloygameRoomCfg> getPloygameRoomCfgList() {
-    return getInstance().getCfgContainer(PloygameRoomCfg.class).getCfgBeanList();
-  }
-
   public static PointsAwardRankingCfg getPointsAwardRankingCfg(int key) {
     return getInstance().getCfgContainer(PointsAwardRankingCfg.class).getCfgBeanMap().get(key);
   }
@@ -1260,18 +1246,6 @@ public class GameDataManager {
 
   public static List<PoolCfg> getPoolCfgList() {
     return getInstance().getCfgContainer(PoolCfg.class).getCfgBeanList();
-  }
-
-  public static PoolResultLibCfg getPoolResultLibCfg(int key) {
-    return getInstance().getCfgContainer(PoolResultLibCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, PoolResultLibCfg> getPoolResultLibCfgMap() {
-    return getInstance().getCfgContainer(PoolResultLibCfg.class).getCfgBeanMap();
-  }
-
-  public static List<PoolResultLibCfg> getPoolResultLibCfgList() {
-    return getInstance().getCfgContainer(PoolResultLibCfg.class).getCfgBeanList();
   }
 
   public static PopUpConfigCfg getPopUpConfigCfg(int key) {
@@ -1626,6 +1600,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\lhc\\p\\gamedoc\\游戏配置表");
+    loadAllData("D:\\workspace\\number\\gamedoc-3.0\\gamedoc\\游戏配置表");
   }
 }
