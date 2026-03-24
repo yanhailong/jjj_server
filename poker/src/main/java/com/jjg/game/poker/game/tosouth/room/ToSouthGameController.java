@@ -232,18 +232,35 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         // 2. 牌型检查
         ToSouthCardType type = ToSouthHandUtils.getCardType(playCards);
         if (type == ToSouthCardType.NONE) {
-            log.warn("非法牌型");
+            log.warn("[南方前进][出牌] 非法牌型 - 玩家: {}, 座位: {}, 牌: {}",
+                    playerId, info.getSeatId(), ToSouthHandUtils.cardListToString(playCards));
             return;
         }
+        log.info("[南方前进][出牌] 玩家: {}, 座位: {}, 牌型: {}, 牌: {}",
+                playerId, info.getSeatId(), type, ToSouthHandUtils.cardListToString(playCards));
 
         // 3. 牌型比较
         if (gameDataVo.getRoundLeaderSeatId() != info.getSeatId()) {
             List<Integer> lastCardIds = gameDataVo.getLastPlayCards();
             List<Card> lastCards = playCardsIdsToCards(lastCardIds, cardMap);
+            ToSouthCardType lastType = ToSouthHandUtils.getCardType(lastCards);
+            log.info("[南方前进][比牌] 上家牌型: {}, 上家牌: {} | 当前牌型: {}, 当前牌: {}",
+                    lastType, ToSouthHandUtils.cardListToString(lastCards),
+                    type, ToSouthHandUtils.cardListToString(playCards));
             if (!ToSouthHandUtils.compare(lastCards, playCards)) {
-                log.warn("牌型太小，管不上");
+                log.warn("[南方前进][比牌] 管不上 - 玩家: {}, {} [{}] 无法压过 {} [{}]",
+                        playerId,
+                        ToSouthHandUtils.cardListToString(playCards), type,
+                        ToSouthHandUtils.cardListToString(lastCards), lastType);
                 return;
             }
+            log.info("[南方前进][比牌] 管牌成功 - 玩家: {}, {} [{}] 压过 {} [{}]",
+                    playerId,
+                    ToSouthHandUtils.cardListToString(playCards), type,
+                    ToSouthHandUtils.cardListToString(lastCards), lastType);
+        } else {
+            log.info("[南方前进][首出] 玩家: {}, 座位: {}, 牌型: {}, 牌: {}",
+                    playerId, info.getSeatId(), type, ToSouthHandUtils.cardListToString(playCards));
         }
 
         info.getCurrentCards().removeAll(realPlayCardIds);
