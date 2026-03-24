@@ -1,9 +1,7 @@
 package com.jjg.game.slots.game.hulk.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.hulk.data.HulkPlayerGameData;
-import com.jjg.game.slots.game.hulk.data.HulkPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.hulk.data.HulkResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -32,8 +30,4 @@ public class HulkRoomGameManager extends AbstractHulkGameManager {
         return Collections.emptyList();
     }
 
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return HulkPlayerGameDataRoomDTO.class;
-    }
 }

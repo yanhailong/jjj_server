@@ -1,9 +1,6 @@
 package com.jjg.game.slots.game.tenfoldgoldenbull.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.game.tenfoldgoldenbull.dao.TenFoldGoldenBullGameDataDao;
-import com.jjg.game.slots.game.tenfoldgoldenbull.dao.TenFoldGoldenBullPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.tenfoldgoldenbull.dao.TenFoldGoldenBullResultLibDao;
 import com.jjg.game.slots.game.tenfoldgoldenbull.data.TenFoldGoldenBullPlayerGameData;
 import com.jjg.game.slots.game.tenfoldgoldenbull.data.TenFoldGoldenBullResultLib;
@@ -18,8 +15,8 @@ import java.util.List;
  */
 @Component
 public class TenFoldGoldenBullRoomGameManager extends AbstractTenFoldGoldenBullGameManager {
-    public TenFoldGoldenBullRoomGameManager(TenFoldGoldenBullGameGenerateManager gameGenerateManager, TenFoldGoldenBullGameDataDao gameDataDao, TenFoldGoldenBullResultLibDao TenFoldGoldenBullResultLibDao) {
-        super(gameGenerateManager, gameDataDao, TenFoldGoldenBullResultLibDao);
+    public TenFoldGoldenBullRoomGameManager(TenFoldGoldenBullGameGenerateManager gameGenerateManager, TenFoldGoldenBullResultLibDao TenFoldGoldenBullResultLibDao) {
+        super(gameGenerateManager, TenFoldGoldenBullResultLibDao);
         this.log = LoggerFactory.getLogger(getClass());
     }
 
@@ -33,8 +30,4 @@ public class TenFoldGoldenBullRoomGameManager extends AbstractTenFoldGoldenBullG
         return List.of();
     }
 
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return TenFoldGoldenBullPlayerGameDataRoomDTO.class;
-    }
 }

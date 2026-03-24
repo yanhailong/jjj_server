@@ -7,11 +7,12 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.hulk.HulkConstant;
-import com.jjg.game.slots.game.hulk.dao.HulkGameDataDao;
 import com.jjg.game.slots.game.hulk.dao.HulkResultLibDao;
-import com.jjg.game.slots.game.hulk.data.*;
+import com.jjg.game.slots.game.hulk.data.HulkAwardLineInfo;
+import com.jjg.game.slots.game.hulk.data.HulkGameRunInfo;
+import com.jjg.game.slots.game.hulk.data.HulkPlayerGameData;
+import com.jjg.game.slots.game.hulk.data.HulkResultLib;
 import com.jjg.game.slots.game.hulk.pb.HulkWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,8 +30,6 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
     protected HulkResultLibDao libDao;
     @Autowired
     protected HulkGenerateManager generateManager;
-    @Autowired
-    protected HulkGameDataDao gameDataDao;
 
     public AbstractHulkGameManager() {
         super(HulkPlayerGameData.class, HulkResultLib.class, HulkGameRunInfo.class);
@@ -38,7 +37,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
 
     @Override
     public void init() {
-//        super.init();
+        super.init();
     }
 
     @Override
@@ -248,19 +247,10 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
     }
 
     @Override
-    protected HulkGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
     protected HulkGenerateManager getGenerateManager() {
         return this.generateManager;
     }
 
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return HulkPlayerGameDataDTO.class;
-    }
 
     @Override
     public int getGameType() {

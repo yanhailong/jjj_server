@@ -7,32 +7,27 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.elephantgod.ElephantGodConstant;
-import com.jjg.game.slots.game.elephantgod.dao.ElephantGodGameDataDao;
 import com.jjg.game.slots.game.elephantgod.dao.ElephantGodResultLibDao;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodGameRunInfo;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodPlayerGameData;
-import com.jjg.game.slots.game.elephantgod.data.ElephantGodPlayerGameDataDTO;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 
 public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameManager<ElephantGodPlayerGameData, ElephantGodResultLib, ElephantGodGameRunInfo> {
     private final ElephantGodResultLibDao libDao;
     private final ElephantGodGenerateManager generateManager;
-    private final ElephantGodGameDataDao gameDataDao;
 
-    public AbstractElephantGodGameManager(ElephantGodResultLibDao libDao, ElephantGodGenerateManager generateManager, ElephantGodGameDataDao gameDataDao) {
+    public AbstractElephantGodGameManager(ElephantGodResultLibDao libDao, ElephantGodGenerateManager generateManager) {
         super(ElephantGodPlayerGameData.class, ElephantGodResultLib.class, ElephantGodGameRunInfo.class);
         this.libDao = libDao;
         this.generateManager = generateManager;
-        this.gameDataDao = gameDataDao;
     }
 
     @Override
     public void init() {
-//        log.info("启动象财神游戏管理器...");
-//        super.init();
+        log.info("启动象财神游戏管理器...");
+        super.init();
     }
 
     @Override
@@ -135,19 +130,10 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
     }
 
     @Override
-    protected ElephantGodGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
     protected ElephantGodGenerateManager getGenerateManager() {
         return this.generateManager;
     }
 
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return ElephantGodPlayerGameDataDTO.class;
-    }
 
     @Override
     public int getGameType() {

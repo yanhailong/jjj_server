@@ -13,10 +13,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.tenfoldgoldenbull.constant.TenFoldGoldenBullConstant;
-import com.jjg.game.slots.game.tenfoldgoldenbull.dao.TenFoldGoldenBullGameDataDao;
-import com.jjg.game.slots.game.tenfoldgoldenbull.dao.TenFoldGoldenBullPlayerGameDataDTO;
 import com.jjg.game.slots.game.tenfoldgoldenbull.dao.TenFoldGoldenBullResultLibDao;
 import com.jjg.game.slots.game.tenfoldgoldenbull.data.TenFoldGoldenBullAwardLineInfo;
 import com.jjg.game.slots.game.tenfoldgoldenbull.data.TenFoldGoldenBullGameRunInfo;
@@ -36,25 +33,22 @@ import java.util.Set;
  */
 public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlotsGameManager<TenFoldGoldenBullPlayerGameData, TenFoldGoldenBullResultLib, TenFoldGoldenBullGameRunInfo> {
     private final TenFoldGoldenBullGameGenerateManager gameGenerateManager;
-    private final TenFoldGoldenBullGameDataDao gameDataDao;
     private final TenFoldGoldenBullResultLibDao TenFoldGoldenBullResultLibDao;
     @Autowired
     protected SlotsPoolDao slotsPoolDao;
 
-    public AbstractTenFoldGoldenBullGameManager(TenFoldGoldenBullGameGenerateManager gameGenerateManager,
-                                                TenFoldGoldenBullGameDataDao gameDataDao, TenFoldGoldenBullResultLibDao TenFoldGoldenBullResultLibDao) {
+    public AbstractTenFoldGoldenBullGameManager(TenFoldGoldenBullGameGenerateManager gameGenerateManager,TenFoldGoldenBullResultLibDao TenFoldGoldenBullResultLibDao) {
         super(TenFoldGoldenBullPlayerGameData.class, TenFoldGoldenBullResultLib.class, TenFoldGoldenBullGameRunInfo.class);
         this.gameGenerateManager = gameGenerateManager;
-        this.gameDataDao = gameDataDao;
         this.TenFoldGoldenBullResultLibDao = TenFoldGoldenBullResultLibDao;
     }
 
 
     @Override
     public void init() {
-//        log.info("启动十倍金牛游戏管理器...");
-//        super.init();
-//        addUpdatePoolEvent();
+        log.info("启动十倍金牛游戏管理器...");
+        super.init();
+        addUpdatePoolEvent();
     }
 
     @Override
@@ -281,16 +275,6 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
     @Override
     protected TenFoldGoldenBullGameGenerateManager getGenerateManager() {
         return this.gameGenerateManager;
-    }
-
-    @Override
-    protected TenFoldGoldenBullGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return TenFoldGoldenBullPlayerGameDataDTO.class;
     }
 
     @Override

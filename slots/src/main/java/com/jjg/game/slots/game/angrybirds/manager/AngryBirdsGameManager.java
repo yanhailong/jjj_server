@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.angrybirds.manager;
 
 
-import com.jjg.game.slots.game.angrybirds.dao.AngryBirdsGameDataDao;
 import com.jjg.game.slots.game.angrybirds.dao.AngryBirdsResultLibDao;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -12,9 +11,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class AngryBirdsGameManager extends AbstractAngryBirdsGameManager {
-    public AngryBirdsGameManager(AngryBirdsGenerateManager gameGenerateManager,
-                                 AngryBirdsGameDataDao gameDataDao, AngryBirdsResultLibDao angryBirdsResultLibDao) {
-        super(gameGenerateManager, gameDataDao, angryBirdsResultLibDao);
+    public AngryBirdsGameManager(AngryBirdsGenerateManager gameGenerateManager,AngryBirdsResultLibDao angryBirdsResultLibDao) {
+        super(gameGenerateManager, angryBirdsResultLibDao);
         this.log = LoggerFactory.getLogger(getClass());
     }
 }

@@ -1,9 +1,6 @@
 package com.jjg.game.slots.game.tenfoldgoldenbull.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.game.tenfoldgoldenbull.dao.TenFoldGoldenBullPlayerGameDataDTO;
-import com.jjg.game.slots.game.tenfoldgoldenbull.dao.TenFoldGoldenBullPlayerGameDataRoomDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
@@ -29,19 +26,5 @@ public class TenFoldGoldenBullPlayerGameData extends SlotsPlayerGameData {
 
     public void setCurrentRandomIndex(int currentRandomIndex) {
         this.currentRandomIndex = currentRandomIndex;
-    }
-
-    @Override
-    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
-        T dto = super.converToDto(cla);
-        if (dto instanceof TenFoldGoldenBullPlayerGameDataDTO gameDataDTO) {
-            gameDataDTO.setCurrentRandomIndex(this.currentRandomIndex);
-            gameDataDTO.setLuckyBull(this.luckyBull);
-        }
-        if (dto instanceof TenFoldGoldenBullPlayerGameDataRoomDTO gameDataDTO) {
-            gameDataDTO.setCurrentRandomIndex(this.currentRandomIndex);
-            gameDataDTO.setLuckyBull(this.luckyBull);
-        }
-        return dto;
     }
 }

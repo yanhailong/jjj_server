@@ -8,11 +8,8 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.angrybirds.constant.AngryBirdsConstant;
-import com.jjg.game.slots.game.angrybirds.dao.AngryBirdsGameDataDao;
-import com.jjg.game.slots.game.angrybirds.dao.AngryBirdsPlayerGameDataDTO;
 import com.jjg.game.slots.game.angrybirds.dao.AngryBirdsResultLibDao;
 import com.jjg.game.slots.game.angrybirds.data.AngryBirdsAwardLineInfo;
 import com.jjg.game.slots.game.angrybirds.data.AngryBirdsGameRunInfo;
@@ -27,22 +24,19 @@ import java.util.List;
 
 public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameManager<AngryBirdsPlayerGameData, AngryBirdsResultLib, AngryBirdsGameRunInfo> {
     protected final AngryBirdsGenerateManager gameGenerateManager;
-    protected final AngryBirdsGameDataDao gameDataDao;
     protected final AngryBirdsResultLibDao angryBirdsResultLibDao;
 
-    public AbstractAngryBirdsGameManager(AngryBirdsGenerateManager gameGenerateManager,
-                                         AngryBirdsGameDataDao gameDataDao, AngryBirdsResultLibDao angryBirdsResultLibDao) {
+    public AbstractAngryBirdsGameManager(AngryBirdsGenerateManager gameGenerateManager,AngryBirdsResultLibDao angryBirdsResultLibDao) {
         super(AngryBirdsPlayerGameData.class, AngryBirdsResultLib.class, AngryBirdsGameRunInfo.class);
         this.gameGenerateManager = gameGenerateManager;
-        this.gameDataDao = gameDataDao;
         this.angryBirdsResultLibDao = angryBirdsResultLibDao;
     }
 
 
     @Override
     public void init() {
-//        log.info("启动愤怒的小鸟游戏管理器...");
-//        super.init();
+        log.info("启动愤怒的小鸟游戏管理器...");
+        super.init();
 
     }
 
@@ -223,16 +217,6 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
     @Override
     protected AngryBirdsGenerateManager getGenerateManager() {
         return this.gameGenerateManager;
-    }
-
-    @Override
-    protected AngryBirdsGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return AngryBirdsPlayerGameDataDTO.class;
     }
 
     @Override
