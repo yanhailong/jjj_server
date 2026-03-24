@@ -442,8 +442,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         gameDataTracker.addGameLogData("tax", tax);
         long finalWinScore = score - tax;
         addItem(winnerId, finalWinScore, AddType.GAME_SETTLEMENT);
-
-        details.add(new ToSouthBombDetail(winnerId, loserId, finalWinScore, type));
+        details.add(new ToSouthBombDetail(winnerId, loserId, finalWinScore,score ,type));
     }
 
     /**

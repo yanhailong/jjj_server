@@ -78,7 +78,7 @@ public class AnimalsMessageBuilder {
         }
         tableInfo.totalPlayerNum = gameDataVo.getPlayerNum();
         tableInfo.settlementHistory = gameDataVo.getWinAreaCfgIdHistory();
-        tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(gameDataVo, isInitial);
+        tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(playerId, gameDataVo, isInitial);
         tableInfo.maxChipOnTable =
                 GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
         return tableInfo;
