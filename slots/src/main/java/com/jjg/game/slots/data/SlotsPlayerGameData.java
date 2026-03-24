@@ -5,6 +5,8 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
@@ -18,7 +20,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2025/7/11 10:51
  */
 public class SlotsPlayerGameData {
-    protected PlayerController playerController;
+    @Id
+    protected String id;
+    @Transient
+    protected transient PlayerController playerController;
+    @Transient
+    protected transient boolean fromOldData;
+    protected long playerId;
+    //房间id
+    protected long roomId;
     //游戏类型
     protected int gameType;
     //场次配置id
@@ -30,9 +40,11 @@ public class SlotsPlayerGameData {
     //当前所处状态(美元快递) 0.正常  1.二选一  2.正在免费旋转
     protected int status;
     //最后一次活跃时间
-    protected long lastActiveTime;
+    @Transient
+    protected transient long lastActiveTime;
     //是否在线
-    protected boolean online;
+    @Transient
+    protected transient boolean online;
     //最近一次的押注(单线押分)
     protected long oneBetScore;
     //最近一次的押注(总押分)
@@ -53,15 +65,30 @@ public class SlotsPlayerGameData {
     //比如总共中奖8次免费， 第一次应该取这8次结果中的的第一个，以此类推
     protected AtomicInteger freeIndex = new AtomicInteger(0);
     //缓存免费的结果库
-    protected Object freeLib;
+    protected SlotsResultLib<?> freeLib;
     //用于测试
-    protected LinkedList<TestLibData> testLibDataList;
+    @Transient
+    protected transient LinkedList<TestLibData> testLibDataList;
     //创建该对象的时间(及进入游戏的时间)
-    protected int createTime;
+    @Transient
+    protected transient int createTime;
     //离线时间
-    protected long offlineTime;
+    @Transient
+    protected transient long offlineTime;
     //离线事件
-    protected Map<Integer,OffLineEventData> offlineEventMap;
+    @Transient
+    protected transient Map<Integer, OffLineEventData> offlineEventMap;
+
+    public long getPlayerId() {
+        if (playerId == 0) {
+            return playerController == null ? 0 : playerController.playerId();
+        }
+        return playerId;
+    }
+
+    public void setPlayerId(long playerId) {
+        this.playerId = playerId;
+    }
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -93,10 +120,6 @@ public class SlotsPlayerGameData {
 
     public void setHasPlaySlots(AtomicBoolean hasPlaySlots) {
         this.hasPlaySlots = hasPlaySlots;
-    }
-
-    public long playerId() {
-        return playerController.playerId();
     }
 
     public int getStatus() {
@@ -209,11 +232,11 @@ public class SlotsPlayerGameData {
         this.freeIndex = freeIndex;
     }
 
-    public Object getFreeLib() {
+    public SlotsResultLib<?> getFreeLib() {
         return freeLib;
     }
 
-    public void setFreeLib(Object freeLib) {
+    public void setFreeLib(SlotsResultLib<?> freeLib) {
         this.freeLib = freeLib;
     }
 
@@ -275,10 +298,7 @@ public class SlotsPlayerGameData {
     }
 
     public long getRoomId() {
-        if (this.playerController != null) {
-            return this.playerController.roomId();
-        }
-        return 0;
+        return roomId;
     }
 
     public long getOfflineTime() {
@@ -289,37 +309,34 @@ public class SlotsPlayerGameData {
         this.offlineTime = offlineTime;
     }
 
+    public void setRoomId(long roomId) {
+        this.roomId = roomId;
+    }
+
     public SlotsRoomController getSlotsRoomController() {
-        if(this.playerController == null || this.playerController.getScene() == null){
+        if (this.playerController == null || this.playerController.getScene() == null) {
             return null;
         }
 
-        if(this.playerController.getScene() instanceof SlotsRoomController){
-            return (SlotsRoomController)this.playerController.getScene();
+        if (this.playerController.getScene() instanceof SlotsRoomController) {
+            return (SlotsRoomController) this.playerController.getScene();
         }
         return null;
     }
 
     public RoomType getRoomType() {
         SlotsRoomController slotsRoomController = getSlotsRoomController();
-        if(slotsRoomController == null){
+        if (slotsRoomController == null) {
             return null;
         }
         return slotsRoomController.getRoom().getType();
     }
 
     public Player getPlayer() {
-        if(this.playerController == null){
+        if (this.playerController == null) {
             return null;
         }
         return this.playerController.getPlayer();
-    }
-
-    public void setPlayer(Player player) {
-        if(this.playerController == null){
-            return;
-        }
-        this.playerController.setPlayer(player);
     }
 
     public Map<Integer, OffLineEventData> getOfflineEventMap() {
@@ -330,25 +347,52 @@ public class SlotsPlayerGameData {
         this.offlineEventMap = offlineEventMap;
     }
 
+    public void setPlayer(Player player) {
+        if (this.playerController == null) {
+            return;
+        }
+        this.playerController.setPlayer(player);
+    }
+
     public void actionOffLineEvent(int eventId) {
-        if(this.offlineEventMap == null || this.offlineEventMap.isEmpty()) {
+        if (this.offlineEventMap == null || this.offlineEventMap.isEmpty()) {
             return;
         }
         this.offlineEventMap.get(eventId).setAction(true);
     }
 
     public void addOffLineEvent(OffLineEventData offLineEventData) {
-        if(this.offlineEventMap == null) {
+        if (this.offlineEventMap == null) {
             this.offlineEventMap = new HashMap<>();
         }
         this.offlineEventMap.put(offLineEventData.getId(), offLineEventData);
+    }
+
+    public void buildRoomKey() {
+        this.id = this.playerId + ":" + this.roomCfgId + ":" + this.roomId;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public boolean isFromOldData() {
+        return fromOldData;
+    }
+
+    public void setFromOldData(boolean fromOldData) {
+        this.fromOldData = fromOldData;
     }
 
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
         Constructor<T> constructor = cla.getConstructor();
         T t = constructor.newInstance();
         BeanUtils.copyProperties(this, t);
-        t.setPlayerId(this.playerId());
+        t.setPlayerId(this.getPlayerId());
         t.setRoomCfgId(this.getRoomCfgId());
         return t;
     }

@@ -2,11 +2,13 @@ package com.jjg.game.slots.game.mahjiongwin.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * @author 11
  * @date 2025/8/1 17:27
  */
+@Document
 public class MahjiongWinPlayerGameData extends SlotsPlayerGameData {
     @Override
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {

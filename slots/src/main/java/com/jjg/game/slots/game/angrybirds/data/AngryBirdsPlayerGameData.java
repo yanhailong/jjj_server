@@ -4,11 +4,13 @@ import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.angrybirds.dao.AngryBirdsPlayerGameDataDTO;
 import com.jjg.game.slots.game.angrybirds.dao.AngryBirdsPlayerGameDataRoomDTO;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * @author lm
  * @date 2025/12/2 17:27
  */
+@Document
 public class AngryBirdsPlayerGameData extends SlotsPlayerGameData {
 
     @Override

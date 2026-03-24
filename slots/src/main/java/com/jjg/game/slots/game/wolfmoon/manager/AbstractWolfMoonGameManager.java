@@ -6,10 +6,12 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.game.wolfmoon.WolfMoonConstant;
 import com.jjg.game.slots.game.wolfmoon.dao.WolfMoonGameDataDao;
 import com.jjg.game.slots.game.wolfmoon.dao.WolfMoonResultLibDao;
-import com.jjg.game.slots.game.wolfmoon.data.*;
+import com.jjg.game.slots.game.wolfmoon.data.WolfMoonGameRunInfo;
+import com.jjg.game.slots.game.wolfmoon.data.WolfMoonPlayerGameData;
+import com.jjg.game.slots.game.wolfmoon.data.WolfMoonPlayerGameDataDTO;
+import com.jjg.game.slots.game.wolfmoon.data.WolfMoonResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -78,7 +80,7 @@ public abstract class AbstractWolfMoonGameManager extends AbstractSlotsGameManag
 
     @Override
     public WolfMoonGameRunInfo startGame(PlayerController playerController, WolfMoonPlayerGameData playerGameData, long betValue, boolean auto) {
-        WolfMoonGameRunInfo gameRunInfo = new WolfMoonGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        WolfMoonGameRunInfo gameRunInfo = new WolfMoonGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());

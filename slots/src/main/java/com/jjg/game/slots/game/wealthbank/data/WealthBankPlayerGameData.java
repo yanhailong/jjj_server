@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.wealthbank.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -13,6 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author 11
  * @date 2025/6/10 18:07
  */
+@Document
 public class WealthBankPlayerGameData extends SlotsPlayerGameData {
     //累计的美钞数量
     private int totalDollars;

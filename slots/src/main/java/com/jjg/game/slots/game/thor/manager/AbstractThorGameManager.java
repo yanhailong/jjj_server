@@ -46,7 +46,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         }
         resetFreeStateIfInvalid(playerGameData, ThorConstant.Status.ICE, ThorConstant.Status.NORMAL, "雷神");
         resetFreeStateIfInvalid(playerGameData, ThorConstant.Status.FIRE, ThorConstant.Status.NORMAL, "雷神");
-        ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
     }
@@ -58,7 +58,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
                 && (gameData.getFreeLib() == null || remainFreeCount == null || remainFreeCount.get() <= 0)) {
             gameData.setStatus(normalStatus);
             resetFreeState(gameData);
-            log.info("{}玩家状态异常，重置为正常状态,状态为{}, playerId = {}", gameName, gameData.getStatus(), gameData.playerId());
+            log.info("{}玩家状态异常，重置为正常状态,状态为{}, playerId = {}", gameName, gameData.getStatus(), gameData.getPlayerId());
         }
     }
 
@@ -100,13 +100,13 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
      */
     @Override
     protected ThorGameRunInfo startGame(PlayerController playerController, ThorPlayerGameData playerGameData, long stake, boolean auto) {
-        ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        ThorGameRunInfo gameRunInfo = new ThorGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
 
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getPlayer().getRoomCfgId());
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
@@ -117,7 +117,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
                 gameRunInfo = normal(gameRunInfo, playerGameData, stake);
             } else if (status == ThorConstant.Status.CHOOSE_ONE) {  //二选一
                 gameRunInfo.setCode(Code.FORBID);
-                log.debug("当前正处于二选一状态，禁止开始游戏操作 playerId = {},gameType = {},roomCfgId = {}, status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
+                log.debug("当前正处于二选一状态，禁止开始游戏操作 playerId = {},gameType = {},roomCfgId = {}, status = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
                 return gameRunInfo;
             } else if (status == ThorConstant.Status.FIRE) {  //火焰免费
                 gameRunInfo = free(gameRunInfo, playerGameData, ThorConstant.SpecialMode.FIRE);
@@ -125,7 +125,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
                 gameRunInfo = free(gameRunInfo, playerGameData, ThorConstant.SpecialMode.ICE);
             } else {
                 gameRunInfo.setCode(Code.FAIL);
-                log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
+                log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
                 return gameRunInfo;
             }
 
@@ -142,7 +142,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
             triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
@@ -170,7 +170,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(ThorConstant.SpecialMode.FREE)) {  //是否会触发二选一
             playerGameData.setStatus(ThorConstant.Status.CHOOSE_ONE);
-            log.debug("触发二选一  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
+            log.debug("触发二选一  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         }
 
         log.debug("id = {}", resultLib.getId());
@@ -223,7 +223,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
             playerGameData.setFreeAllWin(0);
             gameRunInfo.setFreeEnd(true);
 
-            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.getPlayerId(), playerGameData.getRoomCfgId());
         }
 
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore(), true));
@@ -238,7 +238,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
     @Override
     protected CommonResult<ThorResultLib> freeGetLib(ThorPlayerGameData playerGameData, int specialModeFreeLibType, int specialAuxiliary) {
         CommonResult<ThorResultLib> result = new CommonResult<>(Code.SUCCESS);
-        log.debug("开始获取免费结果库 playerId = {}", playerGameData.playerId());
+        log.debug("开始获取免费结果库 playerId = {}", playerGameData.getPlayerId());
 
         ThorResultLib freeLib = (ThorResultLib) playerGameData.getFreeLib();
         if (freeLib == null) {

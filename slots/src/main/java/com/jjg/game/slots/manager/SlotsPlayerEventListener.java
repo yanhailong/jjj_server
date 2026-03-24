@@ -66,7 +66,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             }
 
             if (info.getGameType() < 1) {
-                log.warn("sessionEnter时 PlayerSessionInfo中gameType小于1 playerId = {}", playerId);
+                log.warn("sessionEnter时 PlayerSessionInfo中gameType小于1 getPlayerId = {}", playerId);
                 return;
             }
 

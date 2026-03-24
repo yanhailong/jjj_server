@@ -95,6 +95,8 @@ public class CoreConst {
         public static final int ANGRY_BIRDS = 103900;
         // 热血足球
         public static final int HOT_FOOTBALL = 101600;
+        //寻找黄金城
+        public static final int FIND_GOLD_CITY = 102600;
         //红黑大战
         public static final int RED_BLACK_WAR = 200100;
         //龙虎斗

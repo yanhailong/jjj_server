@@ -9,8 +9,6 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.data.BetDivideInfo;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.hotfootball.HotFootballConstant;
 import com.jjg.game.slots.game.hotfootball.dao.HotFootballGameDataDao;
@@ -52,7 +50,7 @@ public abstract class AbstractHotFootballGameManager extends AbstractSlotsGameMa
         }
         resetFreeStateIfInvalid(playerGameData, HotFootballConstant.Status.FREE, HotFootballConstant.Status.NORMAL, "火热足球");
 
-        HotFootballGameRunInfo gameRunInfo = new HotFootballGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        HotFootballGameRunInfo gameRunInfo = new HotFootballGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
     }
@@ -67,12 +65,12 @@ public abstract class AbstractHotFootballGameManager extends AbstractSlotsGameMa
      */
     @Override
     public HotFootballGameRunInfo startGame(PlayerController playerController, HotFootballPlayerGameData playerGameData, long betValue, boolean auto) {
-        HotFootballGameRunInfo gameRunInfo = new HotFootballGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        HotFootballGameRunInfo gameRunInfo = new HotFootballGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
 
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
@@ -104,7 +102,7 @@ public abstract class AbstractHotFootballGameManager extends AbstractSlotsGameMa
             triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
@@ -151,7 +149,7 @@ public abstract class AbstractHotFootballGameManager extends AbstractSlotsGameMa
             playerGameData.setFreeLib(resultLib);
 
             gameRunInfo.addBigPoolTimes(times);
-            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(), addCount, times);
+            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(), addCount, times);
         } else {
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
@@ -199,7 +197,7 @@ public abstract class AbstractHotFootballGameManager extends AbstractSlotsGameMa
 
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
-            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.getPlayerId(), playerGameData.getRoomCfgId());
         }
 
         gameRunInfo.setIconArr(freeGame.getIconArr());

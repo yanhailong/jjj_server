@@ -99,6 +99,9 @@ public class SlotsConst {
         //不可变固定元素
         public static final int IMMUTABLE_ELEMENTS = 99999;
 
+        //占位符号
+        public static final int PLACEHOLDER_ELEMENTS = 0;
+
     }
 
     //结果库变更类型

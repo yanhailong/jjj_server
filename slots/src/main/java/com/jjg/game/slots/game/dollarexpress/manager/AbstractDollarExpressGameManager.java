@@ -105,10 +105,10 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
      * 投资游戏选择地区
      */
     public DollarExpressGameRunInfo invest(PlayerController playerController, DollarExpressPlayerGameData playerGameData, int areaId) {
-        DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             if (!this.dollarExpressCollectDollarConfig.getTriggerTarMap().containsKey(areaId)) {
-                log.debug("区域id参数错误，投资游戏失败 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), areaId);
+                log.debug("区域id参数错误，投资游戏失败 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), areaId);
                 gameRunInfo.setCode(Code.PARAM_ERROR);
                 return gameRunInfo;
             }
@@ -116,14 +116,14 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             //检查是否被选择
             boolean select = playerGameData.areaSelected(areaId);
             if (select) {
-                log.debug("该地区已被选择 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), areaId);
+                log.debug("该地区已被选择 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), areaId);
                 gameRunInfo.setCode(Code.FORBID);
                 return gameRunInfo;
             }
 
             boolean flag = playerGameData.getInvers().compareAndSet(true, false);
             if (!flag) {
-                log.debug("当前不处于投资游戏 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), areaId);
+                log.debug("当前不处于投资游戏 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), areaId);
                 gameRunInfo.setCode(Code.NOT_FOUND);
                 return gameRunInfo;
             }
@@ -131,7 +131,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(this.dollarExpressCollectDollarConfig.getAuxiliaryId());
             List<Integer> timesList = generateManager.inversTimes(specialAuxiliaryCfg);
             if (timesList == null || timesList.isEmpty()) {
-                log.debug("获取投资游戏奖励倍数失败 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), areaId);
+                log.debug("获取投资游戏奖励倍数失败 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), areaId);
                 gameRunInfo.setCode(Code.FAIL);
                 return gameRunInfo;
             }
@@ -171,7 +171,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             Player player = null;
             //3次中奖金币
             if (allAddGold > 0) {
-                CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), allAddGold, AddType.SLOTS_INVEST_REWARD);
+                CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), allAddGold, AddType.SLOTS_INVEST_REWARD);
                 if (!result.success()) {
                     gameRunInfo.setCode(result.code);
                     return gameRunInfo;
@@ -190,7 +190,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                     int goldTrainCount = generateManager.inversAllWinGoldTrainCount(allWinSpecialAuxiliaryCfg);
                     if (goldTrainCount > 0) {
                         long addGold = allAddGold * goldTrainCount;
-                        CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_INVEST_REWARD);
+                        CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_INVEST_REWARD);
                         if (!result.success()) {
                             log.warn("投资游戏金火车给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
                             gameRunInfo.setCode(result.code);
@@ -263,10 +263,10 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
 //
 //            int code = chooseFreeGameType(playerGameData, chooseStatus);
 //            if (code != Code.SUCCESS) {
-//                log.debug("系统自动二选一失败 playerId = {},chooseStatus = {}", playerGameData.playerId(), chooseStatus);
+//                log.debug("系统自动二选一失败 playerId = {},chooseStatus = {}", playerGameData.getPlayerId(), chooseStatus);
 //                return;
 //            }
-//            log.info("系统自动进行二选一 playerId = {},chooseStatus = {}", playerGameData.playerId(), chooseStatus);
+//            log.info("系统自动进行二选一 playerId = {},chooseStatus = {}", playerGameData.getPlayerId(), chooseStatus);
 //        } catch (Exception e) {
 //            log.error("", e);
 //        }
@@ -281,12 +281,12 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
 //        try {
 //            List<Integer> choosableAreas = getChoosableAreas(playerGameData);
 //            if (choosableAreas.isEmpty()) {
-//                log.debug("系统自动投资游戏选择小地区失败，获取的可选区域为空 playerId = {}", playerGameData.playerId());
+//                log.debug("系统自动投资游戏选择小地区失败，获取的可选区域为空 getPlayerId = {}", playerGameData.getPlayerId());
 //                return;
 //            }
 //            int areaId = choosableAreas.get(RandomUtils.randomInt(choosableAreas.size()));
 //            invest(null, playerGameData, areaId);
-//            log.info("系统自动投资游戏选择小地区结束 playerId = {},areaId = {}", playerGameData.playerId(), areaId);
+//            log.info("系统自动投资游戏选择小地区结束 playerId = {},areaId = {}", playerGameData.getPlayerId(), areaId);
 //        } catch (Exception e) {
 //            log.error("", e);
 //        }
@@ -314,7 +314,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 playerGameData.getRemainFreeCount().set(8);
             }
         } else {
-            log.debug("当前不处于二选一状态，禁止二选一操作 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), playerGameData.getStatus());
+            log.debug("当前不处于二选一状态，禁止二选一操作 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), playerGameData.getStatus());
             return Code.FORBID;
         }
         return Code.SUCCESS;
@@ -327,7 +327,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
 //     * @return
 //     */
 //    public DollarExpressGameRunInfo autoStartGame(DollarExpressPlayerGameData playerGameData, long betValue) {
-//        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
+//        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.getPlayerId());
 //
 //        return startGame(null, playerGameData, betValue, true);
 //    }
@@ -341,13 +341,13 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     @Override
     public DollarExpressGameRunInfo
     startGame(PlayerController playerController, DollarExpressPlayerGameData playerGameData, long betValue, boolean auto) {
-        DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
 
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getRoomCfgId());
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerGameData.setPlayer(player);
 
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
@@ -362,7 +362,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                     gameRunInfo = normal(gameRunInfo, playerGameData, betValue);
                 } else if (status == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || status == DollarExpressConstant.Status.GOLD_ALL_BOARD) {  //二选一
                     gameRunInfo.setCode(Code.FORBID);
-                    log.debug("当前正处于二选一状态，禁止开始游戏操作 playerId = {},gameType = {},roomCfgId = {}, status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
+                    log.debug("当前正处于二选一状态，禁止开始游戏操作 playerId = {},gameType = {},roomCfgId = {}, status = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
                     return gameRunInfo;
                 } else if (status == DollarExpressConstant.Status.ALL_BOARD_TRAIN) {  //二选一之拉火车
                     gameRunInfo = allBoardTrain(gameRunInfo, playerGameData);
@@ -372,7 +372,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                     gameRunInfo = allBoardFree(gameRunInfo, playerGameData);
                 } else {
                     gameRunInfo.setCode(Code.FAIL);
-                    log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
+                    log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
                     return gameRunInfo;
                 }
             }
@@ -398,7 +398,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             }
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerGameData.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
@@ -431,7 +431,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             } else {
                 playerGameData.setStatus(DollarExpressConstant.Status.NOTMAL_ALL_BOARD);
             }
-            log.debug("触发二选一  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
+            log.debug("触发二选一  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         }
 
         log.debug("id = {}", resultLib.getId());
@@ -464,7 +464,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
      * @return
      */
     protected DollarExpressGameRunInfo allBoardTrain(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData) {
-        log.debug("进入二选一之拉火车流程 playerId = {}", playerGameData.playerId());
+        log.debug("进入二选一之拉火车流程 playerId = {}", playerGameData.getPlayerId());
 
         CommonResult<DollarExpressResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
         if (!libResult.success()) {
@@ -478,7 +478,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             return gameRunInfo;
         }
 
-        log.debug("获取到拉火车的结果库 playerId = {},libId = {}", playerGameData.playerId(), trainLib.getId());
+        log.debug("获取到拉火车的结果库 playerId = {},libId = {}", playerGameData.getPlayerId(), trainLib.getId());
 
         gameRunInfo.setStatus(playerGameData.getStatus());
         playerGameData.setStatus(DollarExpressConstant.Status.NORMAL);
@@ -506,7 +506,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
      * @return
      */
     protected DollarExpressGameRunInfo allBoardGoldTrain(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData) {
-        log.debug("进入二选一之拉黄金火车流程 playerId = {}", playerGameData.playerId());
+        log.debug("进入二选一之拉黄金火车流程 playerId = {}", playerGameData.getPlayerId());
 
         CommonResult<DollarExpressResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
         if (!libResult.success()) {
@@ -520,7 +520,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             return gameRunInfo;
         }
 
-        log.debug("成功获取黄金列车结果库 playerId = {},libId = {}", playerGameData.playerId(), goldTrainLib.getId());
+        log.debug("成功获取黄金列车结果库 playerId = {},libId = {}", playerGameData.getPlayerId(), goldTrainLib.getId());
 
         gameRunInfo.setStatus(playerGameData.getStatus());
         playerGameData.setStatus(DollarExpressConstant.Status.NORMAL);
@@ -583,7 +583,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
      * @return
      */
     protected DollarExpressGameRunInfo areaAllUnlockGoldTrain(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData) {
-        log.debug("进入地图全部解锁，奖励黄金火车流程 playerId = {}", playerGameData.playerId());
+        log.debug("进入地图全部解锁，奖励黄金火车流程 playerId = {}", playerGameData.getPlayerId());
 
         CommonResult<DollarExpressResultLib> libResult = getLibFromDB(playerGameData, DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
         if (!libResult.success()) {
@@ -618,7 +618,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             return gameRunInfo;
         }
 
-        log.debug("设置美元倍数信息 playerId = {},oneBetScore = {},allBetScore = {}", gameData.playerId(), gameData.getOneBetScore(), gameData.getAllBetScore());
+        log.debug("设置美元倍数信息 playerId = {},oneBetScore = {},allBetScore = {}", gameData.getPlayerId(), gameData.getOneBetScore(), gameData.getAllBetScore());
 
         //美元坐标
         List<Integer> dollarIndexIds = null;
@@ -695,7 +695,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                     dollarsInfo.collectDollarIndexIds.add(index);
 
                     gameData.addDollasCount(1);
-                    log.debug("收集美元 playerId = {},girdId = {},currentCollectCount = {},totalCount = {}", gameData.playerId(), index, dollarsInfo.dollarValueList.size(), gameData.getTotalDollars());
+                    log.debug("收集美元 playerId = {},girdId = {},currentCollectCount = {},totalCount = {}", gameData.getPlayerId(), index, dollarsInfo.dollarValueList.size(), gameData.getTotalDollars());
                 }
             }
 
@@ -721,7 +721,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
 
                         TrainInfo goldTrainInfo = goldTrainPbInfo(awardInfo.getRandCount(), gameRunInfo.getDollarsGoldTimes() * gameData.getOneBetScore());
                         gameRunInfo.addTrainInfo(goldTrainInfo);
-                        log.debug("触发黄金列车 playerId = {},times = {},oneBetScore = {}", gameData.playerId(), times, gameData.getOneBetScore());
+                        log.debug("触发黄金列车 playerId = {},times = {},oneBetScore = {}", gameData.getPlayerId(), times, gameData.getOneBetScore());
                     }
                     break;
                 }
@@ -733,7 +733,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
         //设置保险箱倍数
         if (dollarsInfo.coinIndexId > 0) {
 //            gameRunInfo.addBigPoolTimes(gameRunInfo.getDollarsGoldTimes());
-            log.debug("[Dollar Express] 触发保险箱 playerId = {},times = {}", gameData.playerId(), gameRunInfo.getDollarsGoldTimes());
+            log.debug("[Dollar Express] 触发保险箱 playerId = {},times = {}", gameData.getPlayerId(), gameRunInfo.getDollarsGoldTimes());
         }
 
         gameRunInfo.setDollarsInfo(dollarsInfo);
@@ -754,7 +754,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
 
                         TrainInfo goldWealthBankTrainInfo = goldTrainPbInfo(awardInfo.getRandCount(), gameRunInfo.getDollarsGoldTimes() * gameData.getOneBetScore());
                         gameRunInfo.addTrainInfo(goldWealthBankTrainInfo);
-                        log.debug("[Dollar Express] 触发黄金列车 playerId = {},times = {},oneBetScore = {}", gameData.playerId(), times, gameData.getOneBetScore());
+                        log.debug("[Dollar Express] 触发黄金列车 playerId = {},times = {},oneBetScore = {}", gameData.getPlayerId(), times, gameData.getOneBetScore());
                     }
                     break;
                 }
@@ -907,7 +907,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             long addGold = calPoolValue(playerGameData.getAllBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), allDelayTime);
 
             //给玩家加钱
-            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_TRAIN, poolId + "");
+            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_TRAIN, poolId + "");
             if (!result.success()) {
                 log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
                 break;
@@ -919,7 +919,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
 
             trainInfo.goldList.add(addGold);
             trainInfo.poolId = poolId;
-            log.debug("该火车中奖，并且加钱成功 playerId = {},addGold = {}", playerGameData.playerId(), addGold);
+            log.debug("该火车中奖，并且加钱成功 playerId = {},addGold = {}", playerGameData.getPlayerId(), addGold);
         }
         return gameRunInfo;
     }
@@ -939,7 +939,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
         if (flag) {
             gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
             playerGameData.setTotalDollars(0);
-            log.debug("美金累计到 {} 个，触发条件 {} 个，触发投资小游戏后清零 playerId = {}", gameRunInfo.getTotalDollars(), this.dollarExpressCollectDollarConfig.getMax(), playerGameData.playerId());
+            log.debug("美金累计到 {} 个，触发条件 {} 个，触发投资小游戏后清零 playerId = {}", gameRunInfo.getTotalDollars(), this.dollarExpressCollectDollarConfig.getMax(), playerGameData.getPlayerId());
         }
         return gameRunInfo;
     }
@@ -1027,11 +1027,11 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     protected void onAutoExitAction(DollarExpressPlayerGameData playerGameData, int eventId) {
 //        if (playerGameData.getInvers().get()) {
 //            autoInvest(playerGameData);
-//            log.debug("自动投资游戏事件 playerId = {}", playerGameData.playerId());
+//            log.debug("自动投资游戏事件 playerId = {}", playerGameData.getPlayerId());
 //        }
 //
 //        if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD) {
-//            log.debug("自动二选一事件 playerId = {}", playerGameData.playerId());
+//            log.debug("自动二选一事件 playerId = {}", playerGameData.getPlayerId());
 //            autoChooseFreeModelType(playerGameData);
 //            //检查当前是否处于特殊模式
 //            if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_FREE) {

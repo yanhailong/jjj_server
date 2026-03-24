@@ -173,6 +173,9 @@ public interface MessageConst {
 
         // pan jin lian
         int PAN_JIN_LIAN = 0x46;
+
+        //寻找黄金城
+        int FIND_GOLD_CITY = 0x47;
     }
 
     interface ToClientConst {

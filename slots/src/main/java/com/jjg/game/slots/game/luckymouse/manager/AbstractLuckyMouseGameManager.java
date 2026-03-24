@@ -54,12 +54,12 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
 
     @Override
     protected LuckyMouseGameRunInfo startGame(PlayerController playerController, LuckyMousePlayerGameData playerGameData, long stake, boolean auto) {
-        LuckyMouseGameRunInfo gameRunInfo = new LuckyMouseGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        LuckyMouseGameRunInfo gameRunInfo = new LuckyMouseGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
             int status = playerGameData.getStatus();
@@ -69,7 +69,7 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
                 free(gameRunInfo, playerGameData, LuckyMouseConstant.SpecialMode.FREE);
             } else {
                 gameRunInfo.setCode(Code.FAIL);
-                log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
+                log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
                 return gameRunInfo;
             }
             if (!gameRunInfo.success()) {
@@ -81,7 +81,7 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
             //触发实际赢钱的task
             triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
@@ -119,12 +119,12 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
             //触发局不能将所有的钱加到玩家身上
             addTimes = 0;
             log.debug("触发真福鼠  playerId = {},libId = {},status = {}, freeGamesList = {}"
-                    , playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(), resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames());
+                    , playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(), resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames());
         } else {
             // 随机触发假福鼠
             if (SlotsUtil.calProp(this.fake_fu_shu_prop)) {
                 gameRunInfo.setStatus(LuckyMouseConstant.Status.FAKE_FU_SHU);
-                log.debug("触发假福鼠  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
+                log.debug("触发假福鼠  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
             } else {
                 gameRunInfo.setStatus(playerGameData.getStatus());
             }
@@ -139,7 +139,7 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
         if (resultLib.getJackpotId() > 0) {
             PoolCfg poolCfg = GameDataManager.getPoolCfg(resultLib.getJackpotId());
             //检查是否中大奖
-            CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(),
+            CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
                     poolCfg.getTruePool(), AddType.SLOTS_JACKPOT_REWARD);
             if (result.success()) {
                 gameRunInfo.addSmallPoolGold(result.data);
@@ -175,7 +175,7 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
             playerGameData.getFreeIndex().set(0);
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
-            log.debug("福鼠游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+            log.debug("福鼠游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.getPlayerId(), playerGameData.getRoomCfgId());
         }
         gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));

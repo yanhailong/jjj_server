@@ -70,7 +70,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
             playerGameData.setStatus(TenFoldGoldenBullConstant.Status.NORMAL);
             log.info("十倍金牛玩家状态重置为正常状态 playerId = {}", playerController.playerId());
         }
-        TenFoldGoldenBullGameRunInfo gameRunInfo = new TenFoldGoldenBullGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        TenFoldGoldenBullGameRunInfo gameRunInfo = new TenFoldGoldenBullGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
     }
@@ -81,7 +81,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
 //        if (gameData.getStatus() == TenFoldGoldenBullConstant.Status.REAL_LUCKY_BULL) {
 //            TenFoldGoldenBullResultLib resultLib = gameData.getLuckyBull();
 //            for (int i = gameData.getCurrentRandomIndex(); i < resultLib.getRandomResult().size(); i++) {
-//                log.info("福牛模式自动旋转 playerId = {},currentRandomIndex = {}", gameData.playerId(), gameData.getCurrentRandomIndex());
+//                log.info("福牛模式自动旋转 playerId = {},currentRandomIndex = {}", gameData.getPlayerId(), gameData.getCurrentRandomIndex());
 //                startGame(new PlayerController(null, null), gameData, gameData.getOneBetScore(), true);
 //            }
 //        }
@@ -115,12 +115,12 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
      */
     @Override
     public TenFoldGoldenBullGameRunInfo startGame(PlayerController playerController, TenFoldGoldenBullPlayerGameData playerGameData, long betValue, boolean auto) {
-        TenFoldGoldenBullGameRunInfo gameRunInfo = new TenFoldGoldenBullGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        TenFoldGoldenBullGameRunInfo gameRunInfo = new TenFoldGoldenBullGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
 
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
@@ -149,7 +149,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
             triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
@@ -192,7 +192,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
             PoolCfg poolCfg = GameDataManager.getPoolCfg(resultLib.getJackpotId());
             if (poolCfg != null) {
                 //检查是否中大奖
-                CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(),
+                CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
                         poolCfg.getTruePool(), AddType.SLOTS_JACKPOT_REWARD);
                 if (result.success()) {
                     gameRunInfo.addSmallPoolGold(result.data);

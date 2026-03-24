@@ -36,6 +36,17 @@ public abstract class AbstractGameDataDao<T extends SlotsPlayerGameDataDTO> exte
         return mongoTemplate.findOne(query, roomClazz, getRoomCollectionName(roomClazz));
     }
 
+    public long deleteGameDataByPlayerId(long playerId, int roomCfgId) {
+        Query query = new Query(Criteria.where("playerId").is(playerId).and("roomCfgId").is(roomCfgId));
+        return mongoTemplate.remove(query, clazz).getDeletedCount();
+    }
+
+    public long deleteGameDataByPlayerId(SlotsPlayerGameDataRoomDTO dataDTO) {
+        Query query = Query.query(Criteria.where("_id").is(dataDTO.getId()));
+        return mongoTemplate.remove(query, clazz).getDeletedCount();
+    }
+
+
     public T saveGameData(T playerGameData) {
         Query query = Query.query(Criteria.where("playerId").is(playerGameData.getPlayerId()).and("roomCfgId").is(playerGameData.getRoomCfgId()));
         Update update = buildUpdate(playerGameData);

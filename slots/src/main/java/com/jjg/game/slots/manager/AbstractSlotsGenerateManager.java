@@ -141,6 +141,61 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         }
     }
 
+    /**
+     * 合并免费结果库
+     *
+     * @param lib       结果库
+     * @param freeGames 最后的免费结果库
+     */
+    @SuppressWarnings("unchecked")
+    public void mergeFreeResults(T lib, List<JSONObject> freeGames, boolean init) {
+        if (lib == null) {
+            return;
+        }
+        if (CollectionUtil.isEmpty(lib.getSpecialAuxiliaryInfoList())) {
+            return;
+        }
+        for (SpecialAuxiliaryInfo auxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+            if (CollectionUtil.isEmpty(auxiliaryInfo.getFreeGames())) {
+                continue;
+            }
+            onMergeFreeResults(lib, auxiliaryInfo.getFreeGames().size());
+            //将免费结果库添加到最开始的lib中 通用自动addFreeCount
+            for (JSONObject freeGame : auxiliaryInfo.getFreeGames()) {
+                T freeLib = (T) freeGame.toJavaObject(lib.getClass());
+                if (CollectionUtil.isNotEmpty(freeLib.getSpecialAuxiliaryInfoList())) {
+                    boolean hasNestedFree = false;
+                    for (SpecialAuxiliaryInfo info : freeLib.getSpecialAuxiliaryInfoList()) {
+                        if (CollectionUtil.isNotEmpty(info.getFreeGames())) {
+                            hasNestedFree = true;
+                            break;
+                        }
+                    }
+                    if (hasNestedFree) {
+                        List<JSONObject> nestedFreeGames = new ArrayList<>();
+                        mergeFreeResults(freeLib, nestedFreeGames, false);
+                        freeGames.add((JSONObject) JSON.toJSON(freeLib));
+                        freeGames.addAll(nestedFreeGames);
+                        continue;
+                    }
+                }
+                freeGames.add((JSONObject) JSON.toJSON(freeLib));
+            }
+            if (init) {
+                auxiliaryInfo.setFreeGames(freeGames);
+            }
+        }
+    }
+
+    /**
+     * 用于设置增加的免费次数
+     *
+     * @param lib      结果库
+     * @param addCount 增加的次数
+     */
+    public void onMergeFreeResults(T lib, int addCount) {
+
+    }
 
     /**
      * 生成一个免费结果
@@ -626,10 +681,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                         int index = beginIndex + i;
                         int tmpIcon = arr[index];
 
-                        boolean wild = false;
-                        if (wildIconSet != null && wildIconSet.contains(tmpIcon)) {
-                            wild = true;
-                        }
+                        boolean wild = wildIconSet.contains(tmpIcon);
 
                         if (wild && firstNormal) {
                             flag = true;

@@ -4,11 +4,13 @@ import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.tenfoldgoldenbull.dao.TenFoldGoldenBullPlayerGameDataDTO;
 import com.jjg.game.slots.game.tenfoldgoldenbull.dao.TenFoldGoldenBullPlayerGameDataRoomDTO;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * @author lm
  * @date 2025/12/2 17:27
  */
+@Document
 public class TenFoldGoldenBullPlayerGameData extends SlotsPlayerGameData {
     private int currentRandomIndex;
     private TenFoldGoldenBullResultLib luckyBull;

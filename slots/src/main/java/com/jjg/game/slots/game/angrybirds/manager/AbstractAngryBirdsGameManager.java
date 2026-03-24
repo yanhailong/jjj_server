@@ -96,11 +96,11 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
      */
     @Override
     public AngryBirdsGameRunInfo startGame(PlayerController playerController, AngryBirdsPlayerGameData playerGameData, long betValue, boolean auto) {
-        AngryBirdsGameRunInfo gameRunInfo = new AngryBirdsGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        AngryBirdsGameRunInfo gameRunInfo = new AngryBirdsGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
@@ -126,7 +126,7 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
             triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
@@ -160,7 +160,7 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
                     }
                 }
             }
-            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(),
+            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(),
                     playerGameData.getRemainFreeCount().get());
         }
         gameRunInfo.addBigPoolTimes(resultLib.getTimes());
@@ -202,7 +202,7 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
             playerGameData.getFreeIndex().set(0);
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
-            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.getPlayerId(), playerGameData.getRoomCfgId());
         }
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setResultLib(freeGame);
