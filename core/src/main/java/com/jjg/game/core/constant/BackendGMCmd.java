@@ -20,6 +20,7 @@ public interface BackendGMCmd {
     String SEND_EMAIL = "sendEmail";
     //踢玩家
     String KICK_ACCOUNT = "kickAccount";
+    String KICK_TO_HALL = "kickToHall";
     //封禁账号
     String BAN_ACCOUNT = "banAccount";
     //删除账号
