@@ -152,12 +152,18 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         if (lib == null) {
             return;
         }
-        if (CollectionUtil.isEmpty(lib.getSpecialAuxiliaryInfoList())) {
+        List<SpecialAuxiliaryInfo> auxiliaryInfos = lib.getSpecialAuxiliaryInfoList();
+        if (CollectionUtil.isEmpty(auxiliaryInfos)) {
             return;
         }
-        for (SpecialAuxiliaryInfo auxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+        for (int i = auxiliaryInfos.size() - 1; i >= 0; i--) {
+            SpecialAuxiliaryInfo auxiliaryInfo = auxiliaryInfos.get(i);
             if (CollectionUtil.isEmpty(auxiliaryInfo.getFreeGames())) {
                 continue;
+            }
+            //非触发局精简数据
+            if (!init) {
+                auxiliaryInfos.remove(i);
             }
             onMergeFreeResults(lib, auxiliaryInfo.getFreeGames().size());
             //将免费结果库添加到最开始的lib中 通用自动addFreeCount
@@ -184,6 +190,9 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             if (init) {
                 auxiliaryInfo.setFreeGames(freeGames);
             }
+        }
+        if (CollectionUtil.isEmpty(auxiliaryInfos)) {
+            lib.setSpecialAuxiliaryInfoList(null);
         }
     }
 
