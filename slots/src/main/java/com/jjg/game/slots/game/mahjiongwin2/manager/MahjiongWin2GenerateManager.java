@@ -8,12 +8,11 @@ import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.game.mahjiongwin2.MahjiongWin2Constant;
-import com.jjg.game.slots.game.mahjiongwin2.data.MahjiongWin2AddFreeInfo;
 import com.jjg.game.slots.game.mahjiongwin2.data.MahjiongWin2AddIconInfo;
 import com.jjg.game.slots.game.mahjiongwin2.data.MahjiongWin2AwardLineInfo;
 import com.jjg.game.slots.game.mahjiongwin2.data.MahjiongWin2ResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
-import com.jjg.game.slots.utils.SlotsUtil;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -25,18 +24,17 @@ import java.util.*;
 @Component
 public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<MahjiongWin2AwardLineInfo, MahjiongWin2ResultLib> {
     //连续中奖增加倍数  libType -> count -> times
-    private Map<Integer, Map<Integer, Integer>> addTimesMap;
+    private Map<Integer, Map<Integer, Integer>> addTimesMap = Map.of();
     //连续中奖增加倍数时，最大连续中奖次数
     private int maxWinCount;
-    //
-    private MahjiongWin2AddFreeInfo mahjiongWin2AddFreeInfo;
+
     public MahjiongWin2GenerateManager() {
         super(MahjiongWin2ResultLib.class);
     }
 
     @Override
     public MahjiongWin2ResultLib checkAward(int[] arr, MahjiongWin2ResultLib lib, boolean freeModel) throws Exception {
-        if(freeModel){
+        if (freeModel) {
             lib.setGameType(this.gameType);
             lib.setIconArr(arr);
 
@@ -64,7 +62,7 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
 
             calTimes(lib);
             return lib;
-        }else {
+        } else {
             lib.setGameType(this.gameType);
             lib.setIconArr(arr);
 
@@ -83,7 +81,7 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
             int[] newArr = new int[arr.length];
             System.arraycopy(arr, 0, newArr, 0, arr.length);
 
-            if(lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
+            if (lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
                 lib.getLibTypeSet().forEach(type -> {
                     //是否有消除
                     repairIcons(type, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
@@ -98,6 +96,7 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
             return lib;
         }
     }
+
     @Override
     protected MahjiongWin2AwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
         MahjiongWin2AwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg);
@@ -126,7 +125,7 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
         log.debug("增加免费游戏次数 addCount = {}", freeCount);
 
         int remainFreeCount = freeCount;
-
+        boolean add = false;
         while (remainFreeCount > 0) {
             //检查是否有修改图案策略组id
             int specialGroupGirdID = 0;
@@ -138,7 +137,11 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
             }
 
             MahjiongWin2ResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
-            int addCount = checkAddFreeCount(lib);
+            int addCount = 0;
+            if (!add) {
+                addCount = freeCount;
+                add = true;
+            }
             lib.setAddFreeCount(addCount);
             remainFreeCount += addCount;
             specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
@@ -146,31 +149,6 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
         }
     }
 
-    /**
-     * 检查是否增加免费次数
-     *
-     * @param lib
-     * @return
-     */
-    private int checkAddFreeCount(MahjiongWin2ResultLib lib) {
-        if (this.mahjiongWin2AddFreeInfo.getLibType() != MahjiongWin2Constant.SpecialMode.FREE) {
-            return 0;
-        }
-
-        int addCount = 0;
-        for (int i = 1; i < lib.getIconArr().length; i++) {
-            int icon = lib.getIconArr()[i];
-            //是否出现了目标图标
-            if (icon != this.mahjiongWin2AddFreeInfo.getTargetIcon()) {
-                continue;
-            }
-            boolean flag = SlotsUtil.calProp(this.mahjiongWin2AddFreeInfo.getProp());
-            if (flag) {
-                addCount += this.mahjiongWin2AddFreeInfo.getAddFreeCount();
-            }
-        }
-        return addCount;
-    }
 
     /**
      * 修补图标
@@ -276,9 +254,6 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
         int rows = baseInitCfg.getRows();
 
-//        System.out.println("需要消除的坐标 removedIndexes = " + removedIndexes);
-//        System.out.println("消除前打印 ");
-//        printResult(arr);
 
         //这一列开始坐标
         int beginIndex = (colIndex - 1) * rows + 1;
@@ -307,13 +282,10 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
 
         //将剩余的图标重新填充回去
         int curIndex = endIndex;
-        for (int i = 0; i < validIndexes.size(); i++) {
-            arr[curIndex] = validIndexes.get(i);
+        for (Integer validIndex : validIndexes) {
+            arr[curIndex] = validIndex;
             curIndex--;
         }
-
-//        System.out.println("消除后打印 ");
-//        printResult(arr);
 
         Map<Integer, BaseRollerCfg> rollerCfgMap = this.baseRollerCfgMap.entrySet().stream().findFirst().get().getValue();
         BaseRollerCfg baseRollerCfg = rollerCfgMap.get(colIndex);
@@ -341,18 +313,15 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
             scopeIndex++;
         }
 
-//        System.out.println("补充后打印 ");
-//        printResult(arr);
-//        System.out.println();
     }
 
 
     @Override
     public void calTimes(MahjiongWin2ResultLib lib) throws Exception {
-        if(triggerFreeLib(lib, MahjiongWin2Constant.SpecialMode.FREE)){
+        if (triggerFreeLib(lib, MahjiongWin2Constant.SpecialMode.FREE)) {
             //免费
             lib.addTimes(calFree(lib));
-        }else {
+        } else {
             //中奖线
             lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
             //消除后新增图标
@@ -404,75 +373,39 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
 
     @Override
     protected void specialPlayConfig() {
-        Map<Integer, Map<Integer, Integer>> tmpAddTimesMap = new HashMap<>();
-
-        int tmpMaxWinCount = 0;
-        for (Map.Entry<Integer, SpecialPlayCfg> en : GameDataManager.getSpecialPlayCfgMap().entrySet()) {
-            SpecialPlayCfg cfg = en.getValue();
-            if (cfg.getGameType() != this.gameType) {
-                continue;
-            }
-
-            //连续中奖
-            if (cfg.getPlayType() == MahjiongWin2Constant.SpecialPlay.TYPE_CONSECUTIVE_WINS) {
-                String[] arr = cfg.getValue().split(";");
-                for (String s : arr) {
-                    String[] arr1 = s.split(",");
-                    int libType = Integer.parseInt(arr1[0]);
-
-                    Map<Integer, Integer> temMap = tmpAddTimesMap.computeIfAbsent(libType, k -> new HashMap<>());
-
-                    String[] arr2 = arr1[1].split("\\|");
-                    for (String s2 : arr2) {
-                        String[] arr3 = s2.split("_");
-                        int count = Integer.parseInt(arr3[0]);
-                        int times = Integer.parseInt(arr3[1]);
-
-                        temMap.put(count, times);
-
-                        if (count > tmpMaxWinCount) {
-                            tmpMaxWinCount = count;
-                        }
-                    }
-                }
-            } else if (cfg.getPlayType() == MahjiongWin2Constant.SpecialPlay.TYPE_ADD_FREE_COUNT) {  //增加免费次数
-                MahjiongWin2AddFreeInfo tmpMahjiongWin2AddFreeInfo = new MahjiongWin2AddFreeInfo();
-                String[] arr = cfg.getValue().split("_");
-
-                tmpMahjiongWin2AddFreeInfo.setLibType(Integer.parseInt(arr[0]));
-                tmpMahjiongWin2AddFreeInfo.setTargetIcon(Integer.parseInt(arr[1]));
-                tmpMahjiongWin2AddFreeInfo.setAddFreeCount(Integer.parseInt(arr[2]));
-                tmpMahjiongWin2AddFreeInfo.setProp(Integer.parseInt(arr[3]));
-
-                this.mahjiongWin2AddFreeInfo = tmpMahjiongWin2AddFreeInfo;
-            }
-        }
-        this.addTimesMap = tmpAddTimesMap;
-        this.maxWinCount = tmpMaxWinCount;
+        loadConsecutiveWins();
     }
 
     public Map<Integer, Map<Integer, Integer>> getAddTimesMap() {
         return addTimesMap;
     }
 
-    protected void printResult(int[] arr) {
-        BaseInitCfg cfg = GameDataManager.getBaseInitCfg(this.gameType);
 
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = 1; i <= cfg.getRows(); i++) {
-            for (int j = 0; j < cfg.getCols(); j++) {
-                int index = cfg.getRows() * j + i;
-                int id = arr[index];
-                sb.append(id);
-                if (id < 10) {
-                    sb.append("   ");
-                } else {
-                    sb.append("  ");
+    private void loadConsecutiveWins() {
+        SpecialPlayCfg specialPlayCfg = GameDataManager.getSpecialPlayCfgMap().get(MahjiongWin2Constant.SpecialPlay.TYPE_CONSECUTIVE_WINS_ID);
+        if (specialPlayCfg == null || StringUtils.isEmpty(specialPlayCfg.getValue())) {
+            return;
+        }
+        Map<Integer, Map<Integer, Integer>> tmpAddTimesMap = new HashMap<>();
+        int tmpMaxWinCount = 0;
+        String[] arr = specialPlayCfg.getValue().split(";");
+        for (String s : arr) {
+            String[] arr1 = s.split(",");
+            int libType = Integer.parseInt(arr1[0]);
+            Map<Integer, Integer> temMap = tmpAddTimesMap.computeIfAbsent(libType, k -> new HashMap<>());
+            String[] arr2 = arr1[1].split("\\|");
+            for (String s2 : arr2) {
+                String[] arr3 = s2.split("_");
+                int count = Integer.parseInt(arr3[0]);
+                int times = Integer.parseInt(arr3[1]);
+                temMap.put(count, times);
+                if (count > tmpMaxWinCount) {
+                    tmpMaxWinCount = count;
                 }
             }
-            sb.append("\n");
         }
-        System.out.println(sb);
+        this.addTimesMap = tmpAddTimesMap;
+        this.maxWinCount = tmpMaxWinCount;
+
     }
 }
