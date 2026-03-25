@@ -35,6 +35,7 @@ import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.timer.RoomTimerEvent;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
@@ -1082,6 +1083,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         // 清除续局状态，有人退出后下一局视为首局（黑桃3先出）
         gameDataVo.setLastGameWinnerPlayerId(0);
         gameDataVo.getLastGamePlayerIds().clear();
+        removePlayerTimerEvent(gameDataVo.getPlayerTimerEvent());
         log.info("玩家 {} 离开房间，已清除准备状态和续局状态", playerId);
     }
 
