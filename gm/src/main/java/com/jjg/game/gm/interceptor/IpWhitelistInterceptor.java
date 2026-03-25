@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
@@ -39,17 +40,11 @@ public class IpWhitelistInterceptor implements HandlerInterceptor, Ordered {
      */
     private String[] whiteIpList;
 
-//    /**
-//     * 是否启用IP白名单
-//     */
-//    @Value("${cluster.ipWhitelist.enabled:true}")
-//    private boolean enabled;
-
-//    /**
-//     * 排除的路径模式（不需要IP校验的路径）
-//     */
-//    @Value("#{'${cluster.ipWhitelist.excludePatterns:/health,/public/**,/api-docs/**,/swagger-ui/**,/favicon.ico}'.split(',')}")
-//    private String[] excludePatterns;
+    /**
+     * 是否启用IP白名单
+     */
+    @Value("${gm.whiteIp.enabled:true}")
+    private boolean enabled;
 
     /**
      * 默认的白名单IP（本地访问）
@@ -78,9 +73,7 @@ public class IpWhitelistInterceptor implements HandlerInterceptor, Ordered {
             }
         }
 
-//        log.info("IP白名单拦截器初始化完成，启用状态: {}", enabled);
         log.info("白名单IP列表: {}", whitelistSet);
-//        log.info("排除路径模式: {}", Arrays.toString(excludePatterns));
     }
 
     @Override
@@ -88,9 +81,9 @@ public class IpWhitelistInterceptor implements HandlerInterceptor, Ordered {
                              Object handler) throws Exception {
 
         // 如果不启用，直接放行
-//        if (!enabled) {
-//            return true;
-//        }
+        if (!enabled) {
+            return true;
+        }
 
         // 检查请求路径是否在排除列表中
         String requestUri = request.getRequestURI();
@@ -101,14 +94,6 @@ public class IpWhitelistInterceptor implements HandlerInterceptor, Ordered {
                 && requestUri.startsWith(contextPath)) {
             requestUri = requestUri.substring(contextPath.length());
         }
-
-//        // 检查排除路径
-//        for (String pattern : excludePatterns) {
-//            if (pathMatcher.match(pattern.trim(), requestUri)) {
-//                log.debug("路径 {} 在排除列表中，跳过IP检查", requestUri);
-//                return true;
-//            }
-//        }
 
         // 获取客户端真实IP
         String clientIp = getRealClientIp(request);

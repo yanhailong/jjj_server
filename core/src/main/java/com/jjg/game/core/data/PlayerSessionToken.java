@@ -20,6 +20,7 @@ public class PlayerSessionToken {
     private String subChannel;
     //马甲id
     private int westeId;
+    private String fcm;
 
     public long getPlayerId() {
         return playerId;
@@ -115,5 +116,13 @@ public class PlayerSessionToken {
 
     public void setWesteId(int westeId) {
         this.westeId = westeId;
+    }
+
+    public String getFcm() {
+        return fcm;
+    }
+
+    public void setFcm(String fcm) {
+        this.fcm = fcm;
     }
 }

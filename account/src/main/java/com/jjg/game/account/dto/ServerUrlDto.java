@@ -19,6 +19,8 @@ public class ServerUrlDto {
     private int westeId;
     //adid
     private String adid;
+    //fcm
+    private String fcm;
 
     public long getPlayerId() {
         return playerId;
@@ -74,5 +76,13 @@ public class ServerUrlDto {
 
     public void setAdid(String adid) {
         this.adid = adid;
+    }
+
+    public String getFcm() {
+        return fcm;
+    }
+
+    public void setFcm(String fcm) {
+        this.fcm = fcm;
     }
 }

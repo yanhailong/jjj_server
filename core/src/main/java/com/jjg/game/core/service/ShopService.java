@@ -20,7 +20,6 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ViplevelCfg;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -370,10 +369,5 @@ public class ShopService implements OrderGenerate {
         }
         //获取商品
         return handleShopOrder(player, order, order.getMoney(), order.getRegionCode(), order.getChannelProductId());
-    }
-
-    @Override
-    public boolean isContinue(Order order) {
-        return StringUtils.isBlank(order.getDesc());
     }
 }

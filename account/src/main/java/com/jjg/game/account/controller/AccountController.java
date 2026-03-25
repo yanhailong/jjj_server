@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 
 /**
@@ -499,7 +500,8 @@ public class AccountController extends AbstractController {
         }
 
         //保存token，方便weboskcet连接时进行校验
-        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), dto.getChannel(), ip, deviceType.getValue(), dto.getMac(), account.getChannel().getValue(), dto.getShareId(), dto.getSubChannel(), dto.getWesteId());
+        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), dto.getChannel(), ip, deviceType.getValue(),
+                dto.getMac(), account.getChannel().getValue(), dto.getShareId(), dto.getSubChannel(), dto.getWesteId(), dto.getFcm());
 
         LoginVo vo = new LoginVo();
         vo.setToken(token);
@@ -543,6 +545,12 @@ public class AccountController extends AbstractController {
         //对比马甲包id
         if (dto.getWesteId() != playerSessionToken.getWesteId()) {
             playerSessionToken.setChannel(dto.getWesteId());
+            change = true;
+        }
+
+        //对比fcm
+        if (!Objects.equals(dto.getFcm(), playerSessionToken.getFcm())) {
+            playerSessionToken.setFcm(dto.getFcm());
             change = true;
         }
 
