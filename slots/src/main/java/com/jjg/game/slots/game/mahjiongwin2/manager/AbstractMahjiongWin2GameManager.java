@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.mahjiongwin2.manager;
 
-import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -8,7 +7,6 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.mahjiongwin2.MahjiongWin2Constant;
 import com.jjg.game.slots.game.mahjiongwin2.dao.MahjiongWin2ResultLibDao;
 import com.jjg.game.slots.game.mahjiongwin2.data.MahjiongWin2GameRunInfo;
@@ -114,28 +112,12 @@ public abstract class AbstractMahjiongWin2GameManager extends AbstractSlotsGameM
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(MahjiongWin2Constant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(MahjiongWin2Constant.Status.FREE);
-            int againFreeCount = 0;
-            int allCount = 0;
-            for (SpecialAuxiliaryInfo info : resultLib.getSpecialAuxiliaryInfoList()) {
-                for (JSONObject json : info.getFreeGames()) {
-                    Integer addFreeCount = json.getInteger("addFreeCount");
-                    if (addFreeCount != null && addFreeCount > 0) {
-                        againFreeCount += addFreeCount;
-                    }
-                }
-                allCount += info.getFreeGames().size();
-            }
-            //设置添加的免费次数
-            int addCount = allCount - againFreeCount;
-            playerGameData.setRemainFreeCount(new AtomicInteger(addCount));
-
+            playerGameData.setRemainFreeCount(new AtomicInteger(resultLib.getAddFreeCount()));
             long times = generateManager.calLineTimes(resultLib.getAwardLineInfoList());
             times += generateManager.calAfterAddIcons(resultLib.getAddIconInfos());
-
             playerGameData.setFreeLib(resultLib);
-
             gameRunInfo.addBigPoolTimes(times);
-            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(), addCount, times);
+            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(), resultLib.getAddFreeCount(), times);
         } else {
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
