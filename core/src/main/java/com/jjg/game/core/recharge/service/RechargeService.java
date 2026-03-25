@@ -7,11 +7,9 @@ import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.ObjectMapperUtil;
-import com.jjg.game.core.base.condition.handler.TodayDepositCondition;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.dao.CountDao;
-import com.jjg.game.core.dao.PlayerRechargeFlowDao;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.OrderStatus;
 import com.jjg.game.core.data.Player;
@@ -23,12 +21,10 @@ import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.recharge.dao.OfflineRechargeDao;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.OrderService;
-import com.jjg.game.core.task.manager.TaskManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -46,10 +42,7 @@ public class RechargeService {
     private final OrderService orderService;
     private final GameEventManager gameEventManager;
     private final CountDao countDao;
-    private final PlayerRechargeFlowDao playerRechargeFlowDao;
-    private final TaskManager taskManager;
     private final ClusterSystem clusterSystem;
-    private final TodayDepositCondition todayDepositCondition;
     private final CoreLogger coreLogger;
     private final Map<RechargeType, OrderGenerate> orderGenerateMap;
 
@@ -58,20 +51,14 @@ public class RechargeService {
                            OrderService orderService,
                            GameEventManager gameEventManager,
                            CountDao countDao,
-                           PlayerRechargeFlowDao playerRechargeFlowDao,
-                           TaskManager taskManager,
-                           ClusterSystem clusterSystem,
-                           TodayDepositCondition conditionManager, CoreLogger coreLogger,
+                           ClusterSystem clusterSystem, CoreLogger coreLogger,
                            List<OrderGenerate> orderGenerateList) {
         this.offlineRechargeDao = offlineRechargeDao;
         this.playerService = playerService;
         this.orderService = orderService;
         this.gameEventManager = gameEventManager;
         this.countDao = countDao;
-        this.playerRechargeFlowDao = playerRechargeFlowDao;
-        this.taskManager = taskManager;
         this.clusterSystem = clusterSystem;
-        this.todayDepositCondition = conditionManager;
         this.coreLogger = coreLogger;
         this.orderGenerateMap = orderGenerateList.stream().collect(Collectors.toMap(OrderGenerate::getRechargeType, Function.identity()));
     }
@@ -184,8 +171,6 @@ public class RechargeService {
             logRechargeOrder(player, order, notify, "修改订单状态为处理中异常");
             return;
         }
-        BigDecimal orderPrice = newOlder.getPrice();
-        long orderPlayerId = newOlder.getPlayerId();
         int allRechargeCount = 0;
         try {
             OrderGenerate orderGenerate = orderGenerateMap.get(newOlder.getRechargeType());

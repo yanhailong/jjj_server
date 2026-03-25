@@ -25,7 +25,10 @@ import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.bean.BaseCfgBean;
+import com.jjg.game.sampledata.bean.ContinuouschargingCfg;
+import com.jjg.game.sampledata.bean.CumulativebenefitsCfg;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -636,7 +639,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.CLOCK_EVENT);
+        return List.of(EGameEventType.CLOCK_EVENT, EGameEventType.RECHARGE);
     }
 
     /**
