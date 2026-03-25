@@ -36,7 +36,7 @@ public class DemonChildGameGenerateManager extends AbstractSlotsGenerateManager<
         int[] iconArr = lib.getIconArr();
         if (CollectionUtil.isNotEmpty(lib.getJackpotIds()) &&
                 iconArr.length <= DemonChildConstant.Common.MIND_INDEX || iconArr[DemonChildConstant.Common.MIND_INDEX] != DemonChildConstant.BaseElement.GOLD_GET) {
-            lib.getJackpotIds().clear();
+            lib.setJackpotIds(null);
         }
         lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
         //设置免费总次数
