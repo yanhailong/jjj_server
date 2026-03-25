@@ -3,7 +3,6 @@ package com.jjg.game.room.handler;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
@@ -17,7 +16,6 @@ import com.jjg.game.core.pb.ResExitGame;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GameDataVo;
-import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.friendroom.AbstractFriendRoomController;
 import com.jjg.game.room.listener.RoomEventListener;
 import com.jjg.game.room.manager.RoomManager;
@@ -62,9 +60,8 @@ public class RoomMessageHandler implements ChooseWareListener {
         try {
             long playerId = playerController.playerId();
             log.debug("退出游戏 playerId = {}", playerId);
-            GamePlayer gamePlayer = null;
-             if (playerController.getPlayer().getGameType() != EGameType.BACCARAT.getGameTypeId()
-                     && playerController.getPlayer().getGameType() != EGameType.RUSSIAN_ROULETTE.getGameTypeId() ) {
+            if (playerController.getPlayer().getGameType() != EGameType.BACCARAT.getGameTypeId()
+                    && playerController.getPlayer().getGameType() != EGameType.RUSSIAN_ROULETTE.getGameTypeId()) {
                 AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                         roomManager.getGameControllerByRoomId(playerController.getPlayer().getRoomId());
                 if (Objects.isNull(gameController)) {
@@ -76,7 +73,6 @@ public class RoomMessageHandler implements ChooseWareListener {
                     playerController.send(new ResExitGame(core));
                     return;
                 }
-                gamePlayer = gameController.getGamePlayer(playerId);
             }
             int code = playerEventListener.exitGame(playerController);
             playerController.send(new ResExitGame(code));

@@ -85,9 +85,6 @@ public class DailyLoginController extends BaseActivityController {
                         PlayerActivityData data = playerActivityData.computeIfAbsent(cfg.getId(), key -> new PlayerActivityData(activityId, activityData.getRound()));
                         //未领取的设置为领取
                         if (data.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
-                            if (conditionManager.isAchievement(player, "", createTimeEvent(activityData), cfg.getCondition())) {
-                                data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
-                            }
                             change = true;
                         }
                     }
