@@ -1,6 +1,5 @@
 package com.jjg.game.core.handler;
 
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CommonDao;
 import com.jjg.game.core.data.ReloadType;
@@ -21,8 +20,6 @@ public abstract class CoreRPCController implements GmToAllBridge {
     protected SmsService smsService;
     @Autowired
     protected CommonDao commonDao;
-    @Autowired
-    protected ClusterSystem clusterSystem;
 
     @Override
     public int reload(int reloadType) {
@@ -38,15 +35,5 @@ public abstract class CoreRPCController implements GmToAllBridge {
             log.error("", e);
             return Code.EXCEPTION;
         }
-    }
-
-    @Override
-    public int sessionNum() {
-        return clusterSystem.clusterSessionSize();
-    }
-
-    @Override
-    public int kickToHall(long playerId) {
-        return Code.FAIL;
     }
 }

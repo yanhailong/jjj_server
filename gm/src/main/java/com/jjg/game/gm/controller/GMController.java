@@ -618,47 +618,8 @@ public class GMController extends AbstractController {
     }
 
     /**
-     * Kick player to hall.
+     * 封禁
      */
-    @RequestMapping(BackendGMCmd.KICK_TO_HALL)
-    public WebResult<String> kickToHall(@RequestBody KickToHallDto dto) {
-        try {
-            log.info("receive kickToHall request, dto={}", dto);
-            if (dto == null || dto.playerId() < 1) {
-                log.warn("指定id踢人时，ids不能为空 dto = {}", dto);
-                return fail("common.paramerror");
-            }
-
-            ClusterClient clusterClient = null;
-            PlayerSessionInfo info = playerSessionService.getInfo(dto.playerId());
-            if (info != null && StringUtils.isNotEmpty(info.getCurrentNode())) {
-                clusterClient = clusterSystem.getClusterByPath(info.getCurrentNode());
-            }
-            if (!ClusterHelper.isNeedNode(clusterClient, NodeType.GAME)) {
-                Optional<PlayerLastGameInfo> op = playerLastGameInfoDao.findById(dto.playerId());
-                if (op.isPresent() && StringUtils.isNotEmpty(op.get().getNodePath())) {
-                    clusterClient = clusterSystem.getClusterByPath(op.get().getNodePath());
-                }
-            }
-
-            if (!ClusterHelper.isNeedNode(clusterClient, NodeType.GAME)) {
-                log.warn("kickToHall failed, game node not found. playerId={}", dto.playerId());
-                return fail("common.fail");
-            }
-
-            GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(clusterClient).setTryMillisPerClient(1000));
-            int code = gmToAllBridge.kickToHall(dto.playerId());
-            if (code != Code.SUCCESS) {
-                log.warn("kickToHall failed. playerId={}, code={}", dto.playerId(), code);
-                return fail("common.fail");
-            }
-            return success("common.success");
-        } catch (Exception e) {
-            log.error("", e);
-            return fail("common.exception");
-        }
-    }
-
     @RequestMapping(BackendGMCmd.BAN_ACCOUNT)
     public WebResult<List<BanAccountVo>> banAccount(@RequestBody BanAccountDto dto) {
         try {
