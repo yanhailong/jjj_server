@@ -47,6 +47,7 @@ public class SlotsConst {
         //免费触发局的类型id
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.DOLLAR_EXPRESS, Set.of(6));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.MAHJIONG_WIN, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.MAHJIONG_WIN2, Set.of(2));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.WEALTH_BANK, Set.of(6));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.CHRISTMAS_PARTY, Set.of(2));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.THOR, Set.of(2));

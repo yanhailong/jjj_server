@@ -176,6 +176,9 @@ public interface MessageConst {
 
         //寻找黄金城
         int FIND_GOLD_CITY = 0x47;
+
+        //麻将胡了
+        int MAHJIONG_WIN2_TYPE = 0x48;
     }
 
     interface ToClientConst {

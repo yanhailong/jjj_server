@@ -35,6 +35,8 @@ public class CoreConst {
         public static final int WOMAN_GOD = 100600;
         //麻将胡了
         public static final int MAHJIONG_WIN = 100700;
+        //麻将胡了2
+        public static final int MAHJIONG_WIN2 = 105300;
         //招财猫
         public static final int FORTUNE_CAT = 100800;
         //加勒比海盗
