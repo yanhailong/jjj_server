@@ -34,7 +34,8 @@ public class DemonChildGameGenerateManager extends AbstractSlotsGenerateManager<
         List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
         //如果中间不是wild图标去除奖池
         int[] iconArr = lib.getIconArr();
-        if (iconArr.length <= DemonChildConstant.Common.MIND_INDEX || iconArr[DemonChildConstant.Common.MIND_INDEX] != DemonChildConstant.BaseElement.GOLD_GET) {
+        if (CollectionUtil.isNotEmpty(lib.getJackpotIds()) &&
+                iconArr.length <= DemonChildConstant.Common.MIND_INDEX || iconArr[DemonChildConstant.Common.MIND_INDEX] != DemonChildConstant.BaseElement.GOLD_GET) {
             lib.getJackpotIds().clear();
         }
         lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
