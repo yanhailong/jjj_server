@@ -14,6 +14,7 @@ import com.jjg.game.core.recharge.service.RechargeService;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.ploy.controller.AbstractPloyController;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import org.slf4j.Logger;
@@ -195,6 +196,13 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             onlineTimeLen = TimeHelper.nowInt() - playerGameData.getCreateTime();
         }
         session.setReference(null);
+
+        //退出策略游戏
+        if (playerController.getSubScene() instanceof AbstractPloyController<?> ployController) {
+            ployController.exitGame(playerController.getPlayer(), ExitType.INITIATIVE);
+            playerController.setSubScene(null);
+        }
+
         logger.exitGame(playerController.getPlayer(), onlineTimeLen, playerController.getPlayer().getDeviceType());
         log.debug("玩家退出slots游戏 playerId = {}", playerController.playerId());
         return Code.SUCCESS;

@@ -26,11 +26,11 @@
     </properties>
 
     <dependencies>
-<!--        <dependency>
-            <groupId>com.jjg.game</groupId>
-            <artifactId>room</artifactId>
-            <version>1.0.0-JJG-RELEASES</version>
-        </dependency>-->
+        <!--        <dependency>
+                    <groupId>com.jjg.game</groupId>
+                    <artifactId>room</artifactId>
+                    <version>1.0.0-JJG-RELEASES</version>
+                </dependency>-->
 
         <dependency>
             <groupId>com.jjg.game</groupId>
@@ -40,6 +40,11 @@
         <dependency>
             <groupId>com.jjg.game</groupId>
             <artifactId>activity</artifactId>
+            <version>3.0.0-JJG-RELEASES</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jjg.game</groupId>
+            <artifactId>ploy</artifactId>
             <version>3.0.0-JJG-RELEASES</version>
         </dependency>
         <dependency>
@@ -128,7 +133,9 @@
                     <url>scp://192.168.3.31${update.patch}</url>
                     <commands>
                         <!-- 解压 -->
-                        <command>cd ${update.patch};unzip  -o ${project.artifactId}_${project.version}_${maven.build.timestamp}.zip -d .</command>
+                        <command>cd ${update.patch};unzip -o
+                            ${project.artifactId}_${project.version}_${maven.build.timestamp}.zip -d .
+                        </command>
                         <!-- 重启 -->
                         <!--<command>cd ${update.patch};sh ./restart.sh</command>-->
                     </commands>

@@ -335,7 +335,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (gameData.getStatus() == freeStatus && (gameData.getFreeLib() == null || remainFreeCount == null || remainFreeCount.get() <= 0)) {
             gameData.setStatus(normalStatus);
             resetFreeState(gameData);
-            log.info("{}玩家状态异常，重置为正常状态,状态为{}, playerId = {}", gameName, gameData.getStatus(), gameData.getPlayerId());
+            log.info("{}玩家状态异常，重置为正常状态,状态为{}, playerId = {}", gameName, gameData.getStatus(), gameData.playerId());
         }
     }
 
@@ -383,7 +383,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         L resultLib = libResult.data.getFirst();
         if (resultLib == null) {
-            log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.getPlayerId(), this.gameType, betValue);
+            log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.playerId(), this.gameType, betValue);
             gameRunInfo.setCode(Code.FAIL);
             return gameRunInfo;
         }
@@ -544,13 +544,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected CommonResult<Pair<Player, BetDivideInfo>> moneyToPool(T gameData, long betValue) {
         SlotsRoomController slotsRoomController = gameData.getSlotsRoomController();
         if (slotsRoomController == null) {
-            CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.getPlayerId(), betValue, true, AddType.SLOTS_BET);
+            CommonResult<Pair<Player, Long>> result = slotsPlayerService.betDeductGold(gameData.getPlayerId(), betValue, true, AddType.SLOTS_BET);
             if (!result.success()) {
                 log.warn("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.getPlayerId(), betValue, result.code);
                 return new CommonResult<>(result.code);
             }
 
-            Player player = result.data;
+            Player player = result.data.getFirst();
             PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(player.getId(), 0, new BaseHandler<String>() {
                 @Override
                 public void action() {
@@ -575,7 +575,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 return param;
             }, false);
             BigDecimal bet = BigDecimal.valueOf(betValue);
-            log.info("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.getPlayerId(), betValue, result.data.getGold());
+            log.info("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.getPlayerId(), betValue, result.data.getFirst().getGold());
 
             BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(gameData.getRoomCfgId());
             //给标准池子加钱
@@ -607,7 +607,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             if (tax < 1) {
                 log.warn("tax 小于1， gameType = {},roomCfgId = {},betValue = {},toBigPoolGold = {},toSmallPoolGold = {}", gameData.getGameType(), gameData.getRoomCfgId(), betValue, toBigPoolGold, toSmallPoolGold);
             }
-            commonResult.data = new Pair<>(result.data, betDivideInfo);
+            commonResult.data = new Pair<>(result.data.getFirst(), betDivideInfo);
             return commonResult;
         } else if (slotsRoomController.getRoom().getType() == RoomType.SLOTS_TEAM_UP_ROOM) { //slots好友房
             return roomMoneyToPool(gameData, betValue);

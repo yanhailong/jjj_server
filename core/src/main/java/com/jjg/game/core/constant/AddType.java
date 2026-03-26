@@ -260,6 +260,11 @@ public enum AddType {
     BUY_AVATAR_FRAME(1603),
     //礼包码兑换奖励
     REDEEM_CODE_REWARDS(1604),
+
+    //策略游戏下注
+    PLOY_BET(1701),
+    //策略游戏奖励
+    PLOY_REWARD(1702),
     ;
 
 

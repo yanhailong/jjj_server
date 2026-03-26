@@ -18,6 +18,8 @@ public class CoreConst {
         public static final int TABLE = 2;
         //扑克类游戏
         public static final int POKER = 3;
+        //策略类游戏
+        public static final int PLOY = 4;
     }
 
     public static class GameType {
@@ -137,6 +139,17 @@ public class CoreConst {
         public static final int VEGAS_THREE = 300300;
         //南方前进
         public static final int TO_SOUTH = 300400;
+
+        //幸运3d
+        public static final int LUCKY_3D = 400100;
+        //鸿运扑克
+        public static final int LUCKY_POKER = 400200;
+        //空袭
+        public static final int AIR_STRIKE = 400400;
+        //hillo
+        public static final int HILLO = 400500;
+        //高低扑克
+        public static final int HIGH_LOW_POKER = 400700;
     }
 
     public static class Common {

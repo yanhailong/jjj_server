@@ -38,7 +38,7 @@ public class GameDataManager {
   private static final IContainerEachLoadListener DEFAULT_LISTENER;
 
   /** 管理器是否加载所有配置成功 */
-  private boolean loadAllFinished = false;
+  private volatile boolean loadAllFinished = false;
 
   static {
     DEFAULT_LISTENER =
@@ -1625,6 +1625,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\java\\gamedoc\\游戏配置表");
+    loadAllData("D:\\workspace\\number\\gamedoc-master\\gamedoc\\游戏配置表");
   }
 }
