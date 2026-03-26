@@ -1,20 +1,24 @@
 package com.jjg.game.sampledata.container;
 
-import com.jjg.game.sampledata.bean.ComingSoonCfg;
+import com.jjg.game.sampledata.bean.AirRaidCfg;
 
 import javax.annotation.processing.Generated;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ComingSoon.xlsx配置管理容器
+ * AirRaid.xlsx配置管理容器
  *
- * @excelName ComingSoon.xlsx
- * @sheetName ComingSoon
  * @author auto_generator
+ * @excelName AirRaid.xlsx
+ * @sheetName AirRaid
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class ComingSoonCfgContainer extends BaseCfgContainer<ComingSoonCfg> {
+public class AirRaidCfgContainer extends BaseCfgContainer<AirRaidCfg> {
+
+    public AirRaidCfgContainer() {
+        super();
+    }
 
     @Override
     public boolean hasRelatedTable() {
@@ -27,23 +31,19 @@ public class ComingSoonCfgContainer extends BaseCfgContainer<ComingSoonCfg> {
     }
 
     @Override
-    public ComingSoonCfgContainer getNewContainer() {
-        return new ComingSoonCfgContainer();
-    }
-
-    public ComingSoonCfgContainer() {
-        super();
+    public AirRaidCfgContainer getNewContainer() {
+        return new AirRaidCfgContainer();
     }
 
     @Override
     public List<String> getExcelNameList() {
         List<String> excelNameList = new ArrayList<>();
-        excelNameList.add("ComingSoon.xlsx");
+        excelNameList.add("AirRaid.xlsx");
         return excelNameList;
     }
 
     @Override
-    protected ComingSoonCfg createNewBean() {
-        return new ComingSoonCfg();
+    protected AirRaidCfg createNewBean() {
+        return new AirRaidCfg();
     }
 }

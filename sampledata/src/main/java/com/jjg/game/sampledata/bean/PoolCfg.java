@@ -54,9 +54,7 @@ public class PoolCfg extends BaseCfgBean {
     return growthRate;
   }
 
-  /**
-   * 返回间隔时间
-   */
+  /** 返回间隔时间 */
   public int getMin() {
     return min;
   }
