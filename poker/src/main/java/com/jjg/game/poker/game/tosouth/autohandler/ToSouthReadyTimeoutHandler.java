@@ -16,11 +16,13 @@ public class ToSouthReadyTimeoutHandler implements IProcessorHandler {
 
     private final long playerId;
     private final long gameId;
+    private final long timerVersion;
     private final ToSouthGameController controller;
 
-    public ToSouthReadyTimeoutHandler(long playerId, long gameId, ToSouthGameController controller) {
+    public ToSouthReadyTimeoutHandler(long playerId, long gameId, long timerVersion, ToSouthGameController controller) {
         this.playerId = playerId;
         this.gameId = gameId;
+        this.timerVersion = timerVersion;
         this.controller = controller;
     }
 
@@ -33,6 +35,12 @@ public class ToSouthReadyTimeoutHandler implements IProcessorHandler {
         }
         // 阶段已切换（已开局），不再处理
         if (controller.getCurrentGamePhase() != EGamePhase.WAIT_READY) {
+            return;
+        }
+        // 验证定时器版本号（玩家退出后重进会递增版本号，使旧定时器失效）
+        Long currentVersion = gameDataVo.getReadyTimerVersion().get(playerId);
+        if (currentVersion == null || currentVersion != timerVersion) {
+            log.debug("玩家 {} 准备倒计时版本不匹配（当前:{}, 定时器:{}），跳过", playerId, currentVersion, timerVersion);
             return;
         }
         // 玩家已准备，不处理
