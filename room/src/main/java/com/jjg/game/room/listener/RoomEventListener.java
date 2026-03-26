@@ -24,6 +24,7 @@ import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.MessageBuildUtil;
+import com.jjg.game.ploy.controller.AbstractPloyController;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -63,8 +64,6 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
     private AbstractRoomManager roomManager;
 
     private final Map<Integer, IPlayerRoomEventListener> roomListenerMap = new HashMap<>();
-    @Autowired
-    private TaskManager taskManager;
 
     public void init() {
         Map<String, IPlayerRoomEventListener> listenerMap =
@@ -88,7 +87,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
     @Override
     public void sessionClose(PFSession session) {
-        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.workId,0, new BaseHandler<String>() {
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.workId, 0, new BaseHandler<String>() {
             @Override
             public void action() {
                 exitRoomAction(session, false);
@@ -108,14 +107,6 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             return;
         }
         log.info("玩家：{} 房间开始进入session关闭流程", playerController.playerId());
-        // hall会在sessionClose时删除PlayerSession的数据,虽然RoomEventListener的调用顺序在hallPlayerEventListener之前，
-        // 但是sessionClose消息不能保证到达顺序在hallPlayerEventListener之前，如果hallPlayerEventListener先调用则会出现找不到session的情况
-        // 或者考虑在所有sessionClose调用完成后再删除session信息
-        /*PlayerSessionInfo info = playerSessionService.getInfo(playerController.playerId());
-        if (info == null) {
-            log.warn("玩家退出游戏服务器时 PlayerSessionInfo 为空 playerId = {}", playerController.playerId());
-            return;
-        }*/
         int gameType = playerController.getPlayer().getGameType();
         if (gameType < 1) {
             log.warn("玩家退出游戏服务器时 PlayerSessionInfo 中的gameType小于1 playerId = {}", playerController.playerId());
@@ -153,6 +144,13 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             log.warn("玩家退出游戏服务器时未找到 playerRoomEventListener, playerId = {},gameType = {}",
                     playerController.playerId(), gameType);
         }
+
+        //退出策略游戏
+        if (playerController.getSubScene() instanceof AbstractPloyController<?> ployController) {
+            ployController.exitGame(playerController.getPlayer(), exit ? ExitType.INITIATIVE : ExitType.DROPPED);
+            playerController.setSubScene(null);
+        }
+
         log.info("房间 session close 成功 player: {}", playerController.playerId());
         session.setReference(null);
     }

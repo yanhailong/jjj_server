@@ -2,6 +2,7 @@ package com.jjg.game.core.service;
 
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.data.DataSaveCallback;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.gameevent.CurrencyChangeEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
@@ -338,7 +339,7 @@ public class AbstractPlayerService {
         boolean inMemoryNode = nodeManager.isPlayerDataInMemoryNode();
         if (inMemoryNode) {
             Player player = getFromAllDB(playerId);
-            if(player == null){
+            if (player == null) {
                 return false;
             }
             //游戏内修改内存中的数据并返回
@@ -547,11 +548,11 @@ public class AbstractPlayerService {
         return deductSafeBoxGold(playerId, addNum, addType, null);
     }
 
-    public CommonResult<Player> betDeductGold(long playerId, long addNum, boolean effective, AddType addType) {
+    public CommonResult<Pair<Player, Long>> betDeductGold(long playerId, long addNum, boolean effective, AddType addType) {
         return betDeductGold(playerId, addNum, addType, effective, false, null);
     }
 
-    public CommonResult<Player> betDeductGold(long playerId, long addNum, boolean effective, boolean notify, AddType addType) {
+    public CommonResult<Pair<Player, Long>> betDeductGold(long playerId, long addNum, boolean effective, boolean notify, AddType addType) {
         return betDeductGold(playerId, addNum, addType, effective, notify, null);
     }
 
@@ -901,9 +902,9 @@ public class AbstractPlayerService {
      * @param num       扣除数量
      * @return
      */
-    public CommonResult<Player> betDeductGold(
+    public CommonResult<Pair<Player, Long>> betDeductGold(
             long playerId, long num, AddType addType, boolean effective, boolean notify, String desc) {
-        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
+        CommonResult<Pair<Player, Long>> result = new CommonResult<>(Code.FAIL);
         if (num < 1) {
             log.warn("押注扣除金币错误 playerId={},num={}", playerId, num);
             result.code = Code.PARAM_ERROR;
@@ -944,7 +945,7 @@ public class AbstractPlayerService {
 
             coreLogger.useGold(p, beforeCoin.value, -num, addType, desc);
             result.code = Code.SUCCESS;
-            result.data = p;
+            result.data = new Pair<>(p, beforeCoin.value);
             //是否通知客户端
             if (notify) {
                 sendMessageManager.buildGoldChangeMessage(p, -num);

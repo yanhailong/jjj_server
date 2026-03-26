@@ -1234,11 +1234,14 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
             }
             //slots类游戏没有房间
             //是不是slots游戏
-            if (CommonUtil.getMajorTypeByGameType(req.gameType) == CoreConst.GameMajorType.SLOTS) {
+            int majorType = CommonUtil.getMajorTypeByGameType(req.gameType);
+            if (majorType == CoreConst.GameMajorType.SLOTS) {
                 res.code = hallRoomService.enterSlotsNode(playerController, req.wareId);
-            } else {
+            } else if (majorType == CoreConst.GameMajorType.TABLE || majorType == CoreConst.GameMajorType.POKER) {
                 // 进入大厅加入房间的逻辑
                 res.code = hallRoomService.hallJoinRoom(playerController, req.wareId);
+            }else {
+                res.code = Code.PARAM_ERROR;
             }
             log.info("玩家选择场次，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {

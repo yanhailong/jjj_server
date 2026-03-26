@@ -7,6 +7,7 @@ import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.handler.CoreMessageHandler;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
+import com.jjg.game.ploy.manager.PloyManager;
 import com.jjg.game.room.config.ExcludeServiceFilter;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.room.listener.RoomEventListener;
@@ -62,6 +63,8 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
     private CoreMarqueeManager coreMarqueeManager;
     @Autowired
     private CoreMessageHandler coreMessageHandler;
+    @Autowired
+    private PloyManager ployManager;
     private ApplicationContext context;
 
     private boolean running = false;
@@ -91,6 +94,7 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
         activityManager.initData();
         coreMarqueeManager.init();
         coreMessageHandler.init();
+        ployManager.init();
         //调用启动方法
         for (Map.Entry<String, IRoomStartListener> en : startListenerMap.entrySet()) {
             en.getValue().start();

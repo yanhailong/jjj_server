@@ -8,6 +8,7 @@ import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
@@ -173,7 +174,7 @@ public class CoreMessageHandler {
             if ("bet".equals(cmd)) {
                 log.debug("收到添加经验的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), arr);
                 long num = Long.parseLong(params);
-                CommonResult<Player> result =
+                CommonResult<Pair<Player, Long>> result =
                         playerService.betDeductGold(playerController.playerId(), num, true, true, AddType.GM_TEST);
                 res.code = result.code;
                 playerController.send(res);

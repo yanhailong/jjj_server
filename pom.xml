@@ -27,5 +27,6 @@
         <module>sampledata</module>
         <module>activity</module>
         <module>recharge</module>
+        <module>ploy</module>
     </modules>
 </project>

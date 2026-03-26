@@ -1,5 +1,8 @@
 package com.jjg.game.sampledata.bean;
 
+import java.util.*;
+
+
 import javax.annotation.processing.Generated;
 /**
  * 配置bean
@@ -16,9 +19,7 @@ public class UpcomingMobileGameCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "UpcomingMobileGame";
 
-  /**
-   * 是否显示
-   */
+  /** 是否显示 */
   protected boolean display;
   /** 游戏名称多语言 */
   protected int name;
