@@ -73,7 +73,7 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
             return new ZeusVsHadesGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
 
-        ZeusVsHadesGameRunInfo gameRunInfo = new ZeusVsHadesGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        ZeusVsHadesGameRunInfo gameRunInfo = new ZeusVsHadesGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
     }
@@ -88,11 +88,11 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
      */
     @Override
     public ZeusVsHadesGameRunInfo startGame(PlayerController playerController, ZeusVsHadesPlayerGameData playerGameData, long betValue, boolean auto) {
-        ZeusVsHadesGameRunInfo gameRunInfo = new ZeusVsHadesGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        ZeusVsHadesGameRunInfo gameRunInfo = new ZeusVsHadesGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(player.getRoomCfgId());
 
@@ -104,7 +104,7 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
                 gameRunInfo = normal(gameRunInfo, playerGameData, betValue);
             } else if (status == ZeusVsHadesConstant.Status.CHOOSE_ONE) {  //二选一
                 gameRunInfo.setCode(Code.FORBID);
-                log.debug("当前正处于二选一状态，禁止开始游戏操作 playerId = {},gameType = {},roomCfgId = {}, status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
+                log.debug("当前正处于二选一状态，禁止开始游戏操作 playerId = {},gameType = {},roomCfgId = {}, status = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
                 return gameRunInfo;
             } else if (status == ZeusVsHadesConstant.Status.ZEUS) {
                 gameRunInfo = free(gameRunInfo, playerGameData, ZeusVsHadesConstant.SpecialMode.ZEUS);
@@ -129,7 +129,7 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
             triggerWinTask(player, gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
@@ -162,7 +162,7 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(ZeusVsHadesConstant.SpecialMode.CHOOSE) && generateManager.checkFreeModel(resultLib)) {  //是否会触发免费
             playerGameData.setStatus(ZeusVsHadesConstant.Status.CHOOSE_ONE);
-            log.debug("触发二选一  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
+            log.debug("触发二选一  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         }
 
         if (gameRunInfo.getBigPoolTimes() < 1) {
@@ -231,7 +231,7 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
 
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
-            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.getPlayerId(), playerGameData.getRoomCfgId());
         }
 
         gameRunInfo.setIconArr(freeGame.getIconArr());
@@ -333,7 +333,7 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
      * @return
      */
     public ZeusVsHadesGameRunInfo autoStartGame(ZeusVsHadesPlayerGameData playerGameData, long betValue) {
-        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
+        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.getPlayerId());
         return startGame(new PlayerController(null, null), playerGameData, betValue, true);
     }
 
@@ -346,7 +346,7 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
     @Override
     protected CommonResult<ZeusVsHadesResultLib> freeGetLib(ZeusVsHadesPlayerGameData playerGameData, int specialModeFreeLibType, int specialAuxiliary) {
         CommonResult<ZeusVsHadesResultLib> result = new CommonResult<>(Code.SUCCESS);
-        log.debug("开始获取免费结果库 playerId = {}", playerGameData.playerId());
+        log.debug("开始获取免费结果库 playerId = {}", playerGameData.getPlayerId());
 
         ZeusVsHadesResultLib freeLib = (ZeusVsHadesResultLib) playerGameData.getFreeLib();
         if (freeLib == null) {
@@ -446,7 +446,7 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
         }
         ZeusVsHadesResultLib resultLib = libResult.data.getFirst();
         if (resultLib == null) {
-            log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.playerId(), this.gameType, betValue);
+            log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.getPlayerId(), this.gameType, betValue);
             gameRunInfo.setCode(Code.FAIL);
             return gameRunInfo;
         }

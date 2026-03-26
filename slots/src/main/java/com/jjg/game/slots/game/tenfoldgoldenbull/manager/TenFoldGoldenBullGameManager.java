@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.tenfoldgoldenbull.manager;
 
-import com.jjg.game.slots.game.tenfoldgoldenbull.dao.TenFoldGoldenBullGameDataDao;
 import com.jjg.game.slots.game.tenfoldgoldenbull.dao.TenFoldGoldenBullResultLibDao;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -11,8 +10,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class TenFoldGoldenBullGameManager extends AbstractTenFoldGoldenBullGameManager {
-    public TenFoldGoldenBullGameManager(TenFoldGoldenBullGameGenerateManager gameGenerateManager, TenFoldGoldenBullGameDataDao gameDataDao, TenFoldGoldenBullResultLibDao TenFoldGoldenBullResultLibDao) {
-        super(gameGenerateManager, gameDataDao, TenFoldGoldenBullResultLibDao);
+    public TenFoldGoldenBullGameManager(TenFoldGoldenBullGameGenerateManager gameGenerateManager, TenFoldGoldenBullResultLibDao TenFoldGoldenBullResultLibDao) {
+        super(gameGenerateManager, TenFoldGoldenBullResultLibDao);
         this.log = LoggerFactory.getLogger(getClass());
     }
 }

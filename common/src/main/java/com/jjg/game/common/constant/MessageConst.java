@@ -174,10 +174,16 @@ public interface MessageConst {
         // pan jin lian
         int PAN_JIN_LIAN = 0x46;
 
+        //寻找黄金城
+        int FIND_GOLD_CITY = 0x47;
+
+        //麻将胡了
+        int MAHJIONG_WIN2_TYPE = 0x48;
+
         //PLOY通用
-        int PLOY_COMMON = 0x47;
+        int PLOY_COMMON = 0x49;
         //鸿运扑克
-        int PLOY_LUCKY_POKER = 0x48;
+        int PLOY_LUCKY_POKER = 0x4A;
     }
 
     interface ToClientConst {

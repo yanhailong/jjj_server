@@ -44,7 +44,7 @@ public class PegasusUnbridleMessageHandler {
     @Command(PegasusUnbridleConstant.MsgBean.REQ_PEGASUS_UNBRIDLE_ENTER_GAME)
     public void reqPegasusUnbridleEnterGame(PlayerController playerController, ReqPegasusUnbridleEnterGame req) {
         try {
-            log.info("收到玩家请求配置 playerId={}", playerController.playerId());
+            log.info("收到玩家请求配置 getPlayerId={}", playerController.playerId());
             PegasusUnbridleGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
                 gameRunInfo = gameManager.enterGame(playerController);
@@ -67,7 +67,7 @@ public class PegasusUnbridleMessageHandler {
     @Command(PegasusUnbridleConstant.MsgBean.REQ_PEGASUS_UNBRIDLE_START_GAME)
     public void reqStartGame(PlayerController playerController, ReqPegasusUnbridleStartGame req) {
         try {
-            log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+            log.info("收到玩家开始游戏 getPlayerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             PegasusUnbridleGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
                 gameRunInfo = gameManager.playerStartGame(playerController, req.stakeValue);

@@ -7,11 +7,12 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.hulk.HulkConstant;
-import com.jjg.game.slots.game.hulk.dao.HulkGameDataDao;
 import com.jjg.game.slots.game.hulk.dao.HulkResultLibDao;
-import com.jjg.game.slots.game.hulk.data.*;
+import com.jjg.game.slots.game.hulk.data.HulkAwardLineInfo;
+import com.jjg.game.slots.game.hulk.data.HulkGameRunInfo;
+import com.jjg.game.slots.game.hulk.data.HulkPlayerGameData;
+import com.jjg.game.slots.game.hulk.data.HulkResultLib;
 import com.jjg.game.slots.game.hulk.pb.HulkWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,8 +30,6 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
     protected HulkResultLibDao libDao;
     @Autowired
     protected HulkGenerateManager generateManager;
-    @Autowired
-    protected HulkGameDataDao gameDataDao;
 
     public AbstractHulkGameManager() {
         super(HulkPlayerGameData.class, HulkResultLib.class, HulkGameRunInfo.class);
@@ -38,7 +37,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
 
     @Override
     public void init() {
-//        super.init();
+        super.init();
     }
 
     @Override
@@ -53,7 +52,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
         resetFreeStateIfInvalid(playerGameData, HulkConstant.Status.FREE, HulkConstant.Status.NORMAL, "hulk");
         resetFreeStateIfInvalid(playerGameData, HulkConstant.Status.ONE_WILD, HulkConstant.Status.NORMAL, "hulk");
         resetFreeStateIfInvalid(playerGameData, HulkConstant.Status.THREE_WILD, HulkConstant.Status.NORMAL, "hulk");
-        HulkGameRunInfo gameRunInfo = new HulkGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        HulkGameRunInfo gameRunInfo = new HulkGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
     }
@@ -69,13 +68,13 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
      */
     @Override
     protected HulkGameRunInfo startGame(PlayerController playerController, HulkPlayerGameData playerGameData, long stake, boolean auto) {
-        HulkGameRunInfo gameRunInfo = new HulkGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        HulkGameRunInfo gameRunInfo = new HulkGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
 
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getPlayer().getRoomCfgId());
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
@@ -92,7 +91,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
                 gameRunInfo = free(gameRunInfo, playerGameData, HulkConstant.SpecialMode.THREE_WILD);
             } else {
                 gameRunInfo.setCode(Code.FAIL);
-                log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
+                log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
                 return gameRunInfo;
             }
 
@@ -109,7 +108,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
             triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
@@ -160,7 +159,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
 
-            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {},toLibType = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), libType);
+            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {},toLibType = {}", playerGameData.getPlayerId(), playerGameData.getRoomCfgId(), libType);
         }
 
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore(), true));
@@ -185,22 +184,22 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
             playerGameData.setStatus(HulkConstant.Status.FREE);
             playerGameData.setFreeLib(resultLib);
             playerGameData.setRemainFreeCount(new AtomicInteger(resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames().size()));
-            log.debug("触发免费  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
+            log.debug("触发免费  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         } else if (libType == HulkConstant.SpecialMode.MINI) {
             clientShowStatus = HulkConstant.Status.MINI;
-            log.debug("触发小游戏  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
+            log.debug("触发小游戏  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         } else if (libType == HulkConstant.SpecialMode.ONT_WILD) {
             clientShowStatus = HulkConstant.Status.ONE_WILD;
             playerGameData.setStatus(HulkConstant.Status.ONE_WILD);
             playerGameData.setFreeLib(resultLib);
             playerGameData.setRemainFreeCount(new AtomicInteger(resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames().size()));
-            log.debug("第3列变成wild  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
+            log.debug("第3列变成wild  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         } else if (libType == HulkConstant.SpecialMode.THREE_WILD) {
             clientShowStatus = HulkConstant.Status.THREE_WILD;
             playerGameData.setStatus(HulkConstant.Status.THREE_WILD);
             playerGameData.setFreeLib(resultLib);
             playerGameData.setRemainFreeCount(new AtomicInteger(resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames().size()));
-            log.debug("第234列变成wild  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
+            log.debug("第234列变成wild  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         }
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
@@ -248,19 +247,10 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
     }
 
     @Override
-    protected HulkGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
     protected HulkGenerateManager getGenerateManager() {
         return this.generateManager;
     }
 
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return HulkPlayerGameDataDTO.class;
-    }
 
     @Override
     public int getGameType() {

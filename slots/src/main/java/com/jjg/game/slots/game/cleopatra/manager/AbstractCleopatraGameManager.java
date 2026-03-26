@@ -11,7 +11,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.TestLibData;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraGameDataDao;
@@ -71,13 +70,13 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
      */
     @Override
     public CleopatraGameRunInfo startGame(PlayerController playerController, CleopatraPlayerGameData playerGameData, long betValue, boolean auto) {
-        CleopatraGameRunInfo gameRunInfo = new CleopatraGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        CleopatraGameRunInfo gameRunInfo = new CleopatraGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
 
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
@@ -97,7 +96,7 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
             triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
@@ -139,7 +138,7 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
         if (poolCfg != null) {
             for (int poolId : resultLib.getJackpotIds()) {
                 if (poolCfg.getId() == poolId && poolCfg.getTruePool() > 0) {
-                    CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), poolCfg.getTruePool(), AddType.SLOTS_JACKPOT_REWARD);
+                    CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(), poolCfg.getTruePool(), AddType.SLOTS_JACKPOT_REWARD);
                     if (result.success()) {
                         gameRunInfo.addSmallPoolGold(result.data);
 

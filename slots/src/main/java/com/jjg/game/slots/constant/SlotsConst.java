@@ -47,6 +47,7 @@ public class SlotsConst {
         //免费触发局的类型id
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.DOLLAR_EXPRESS, Set.of(6));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.MAHJIONG_WIN, Set.of(2));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.MAHJIONG_WIN2, Set.of(2));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.WEALTH_BANK, Set.of(6));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.CHRISTMAS_PARTY, Set.of(2));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.THOR, Set.of(2));
@@ -70,7 +71,7 @@ public class SlotsConst {
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.WOLF_MOON, Set.of(3));
     }
 
-    public class Status {
+    public static class Status {
         public static final int NORMAL = 0;
         //免费
         public static final int FREE = 1;
@@ -98,6 +99,9 @@ public class SlotsConst {
 
         //不可变固定元素
         public static final int IMMUTABLE_ELEMENTS = 99999;
+
+        //占位符号
+        public static final int PLACEHOLDER_ELEMENTS = 0;
 
     }
 

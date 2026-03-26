@@ -53,13 +53,13 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
      */
     @Override
     protected MoneyRabbitGameRunInfo startGame(PlayerController playerController, MoneyRabbitPlayerGameData playerGameData, long stake, boolean auto) {
-        MoneyRabbitGameRunInfo gameRunInfo = new MoneyRabbitGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        MoneyRabbitGameRunInfo gameRunInfo = new MoneyRabbitGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
 
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getPlayer().getRoomCfgId());
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
@@ -72,7 +72,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
                 gameRunInfo = free(gameRunInfo, playerGameData, MoneyRabbitConstant.SpecialMode.FREE);
             } else {
                 gameRunInfo.setCode(Code.FAIL);
-                log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
+                log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
                 return gameRunInfo;
             }
 
@@ -89,7 +89,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
@@ -120,12 +120,12 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             playerGameData.setStatus(MoneyRabbitConstant.Status.FREE);
             playerGameData.setFreeLib(resultLib);
             gameRunInfo.setStatus(MoneyRabbitConstant.Status.REAL_FREE);
-            log.debug("触发真免费  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
+            log.debug("触发真免费  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         } else {
             //随机触发假免费
             if (SlotsUtil.calProp(this.fake_free_prop)) {
                 gameRunInfo.setStatus(MoneyRabbitConstant.Status.FAKE_FREE);
-                log.debug("触发假免费  playerId = {},libId = {},status = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus());
+                log.debug("触发假免费  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
             } else {
                 gameRunInfo.setStatus(playerGameData.getStatus());
             }
@@ -177,7 +177,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
             playerGameData.setFreeAllWin(0);
-            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.getPlayerId(), playerGameData.getRoomCfgId());
         }
 
         //设置金钱信息

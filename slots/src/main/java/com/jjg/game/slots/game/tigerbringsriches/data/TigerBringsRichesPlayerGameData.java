@@ -4,11 +4,13 @@ import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesPlayerGameDataDTO;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesPlayerGameDataRoomDTO;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * @author lm
  * @date 2025/12/2 17:27
  */
+@Document
 public class TigerBringsRichesPlayerGameData extends SlotsPlayerGameData {
     private int currentRandomIndex;
     private TigerBringsRichesResultLib specialLib;

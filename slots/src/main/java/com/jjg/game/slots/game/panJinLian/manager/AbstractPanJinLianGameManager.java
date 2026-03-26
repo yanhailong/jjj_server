@@ -45,12 +45,12 @@ public abstract class AbstractPanJinLianGameManager extends AbstractSlotsGameMan
      */
     @Override
     public PanJinLianGameRunInfo startGame(PlayerController playerController, PanJinLianPlayerGameData playerGameData, long betValue, boolean auto) {
-        PanJinLianGameRunInfo gameRunInfo = new PanJinLianGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        PanJinLianGameRunInfo gameRunInfo = new PanJinLianGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
 
             // 玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(player.getRoomCfgId());
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
@@ -77,7 +77,7 @@ public abstract class AbstractPanJinLianGameManager extends AbstractSlotsGameMan
             // 触发赢钱任务
             triggerWinTask(player, gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
             // 计算大赢展示
@@ -121,7 +121,7 @@ public abstract class AbstractPanJinLianGameManager extends AbstractSlotsGameMan
             gameRunInfo.addBigPoolTimes(times);
 
             log.debug("触发免费模式。playerId={}, libId={}, status={}, addFreeCount={}, times={}",
-                    playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(), addCount, times);
+                    playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(), addCount, times);
         } else {
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
@@ -167,7 +167,7 @@ public abstract class AbstractPanJinLianGameManager extends AbstractSlotsGameMan
 
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
-            log.debug("免费次数结束，回归普通状态。playerId={}, roomCfgId={}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+            log.debug("免费次数结束，回归普通状态。playerId={}, roomCfgId={}", playerGameData.getPlayerId(), playerGameData.getRoomCfgId());
         }
 
         gameRunInfo.setIconArr(freeGame.getIconArr());
@@ -228,7 +228,7 @@ public abstract class AbstractPanJinLianGameManager extends AbstractSlotsGameMan
      * 自动游戏
      */
     public PanJinLianGameRunInfo autoStartGame(PanJinLianPlayerGameData playerGameData, long betValue) {
-        log.debug("系统开始自动游戏 playerId={}", playerGameData.playerId());
+        log.debug("系统开始自动游戏 playerId={}", playerGameData.getPlayerId());
         return startGame(null, playerGameData, betValue, true);
     }
 }

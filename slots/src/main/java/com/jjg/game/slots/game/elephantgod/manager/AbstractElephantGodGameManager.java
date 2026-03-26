@@ -7,41 +7,36 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.elephantgod.ElephantGodConstant;
-import com.jjg.game.slots.game.elephantgod.dao.ElephantGodGameDataDao;
 import com.jjg.game.slots.game.elephantgod.dao.ElephantGodResultLibDao;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodGameRunInfo;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodPlayerGameData;
-import com.jjg.game.slots.game.elephantgod.data.ElephantGodPlayerGameDataDTO;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 
 public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameManager<ElephantGodPlayerGameData, ElephantGodResultLib, ElephantGodGameRunInfo> {
     private final ElephantGodResultLibDao libDao;
     private final ElephantGodGenerateManager generateManager;
-    private final ElephantGodGameDataDao gameDataDao;
 
-    public AbstractElephantGodGameManager(ElephantGodResultLibDao libDao, ElephantGodGenerateManager generateManager, ElephantGodGameDataDao gameDataDao) {
+    public AbstractElephantGodGameManager(ElephantGodResultLibDao libDao, ElephantGodGenerateManager generateManager) {
         super(ElephantGodPlayerGameData.class, ElephantGodResultLib.class, ElephantGodGameRunInfo.class);
         this.libDao = libDao;
         this.generateManager = generateManager;
-        this.gameDataDao = gameDataDao;
     }
 
     @Override
     public void init() {
-//        log.info("启动象财神游戏管理器...");
-//        super.init();
+        log.info("启动象财神游戏管理器...");
+        super.init();
     }
 
     @Override
     protected ElephantGodGameRunInfo startGame(PlayerController playerController, ElephantGodPlayerGameData playerGameData, long betValue, boolean auto) {
-        ElephantGodGameRunInfo gameRunInfo = new ElephantGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        ElephantGodGameRunInfo gameRunInfo = new ElephantGodGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
@@ -68,7 +63,7 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
             triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
@@ -106,6 +101,7 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
             afterCount = playerGameData.getRemainFreeCount().addAndGet(freeGame.getAddFreeCount());
             log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(), afterCount);
         }
+        gameRunInfo.setStatus(playerGameData.getStatus());
         playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
         //累计免费模式的中奖金额
         gameRunInfo.addBigPoolTimes(freeGame.getTimes());
@@ -115,12 +111,11 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
             playerGameData.getFreeIndex().set(0);
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
-            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.getPlayerId(), playerGameData.getRoomCfgId());
         }
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);
-        gameRunInfo.setStatus(playerGameData.getStatus());
     }
 
 
@@ -135,19 +130,10 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
     }
 
     @Override
-    protected ElephantGodGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
     protected ElephantGodGenerateManager getGenerateManager() {
         return this.generateManager;
     }
 
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return ElephantGodPlayerGameDataDTO.class;
-    }
 
     @Override
     public int getGameType() {

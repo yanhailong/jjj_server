@@ -11,10 +11,6 @@ import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
 import com.jjg.game.slots.game.steamAge.data.*;
-
-import com.jjg.game.slots.game.steamAge.data.SteamAgeAddFreeInfo;
-import com.jjg.game.slots.game.steamAge.data.SteamAgeAwardLineInfo;
-import com.jjg.game.slots.game.steamAge.data.SteamAgeResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
@@ -169,8 +165,8 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
     }
 
     @Override
-    protected SteamAgeAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
-        SteamAgeAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg);
+    protected SteamAgeAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg, int[] arr) {
+        SteamAgeAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg, arr);
         info.setContinuousTimes(1);
         info.setTotalTimes(info.getBaseTimes()*info.getContinuousTimes());
         return info;

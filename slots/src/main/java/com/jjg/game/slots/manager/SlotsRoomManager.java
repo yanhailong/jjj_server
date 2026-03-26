@@ -16,10 +16,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.RoomExpendCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.controller.SlotsRoomController;
-import com.jjg.game.slots.dao.AbstractGameDataDao;
-import com.jjg.game.slots.dao.FriendRoomSlotsBillHistoryDao;
-import com.jjg.game.slots.dao.RoomSlotsPoolDao;
-import com.jjg.game.slots.dao.SlotsFriendRoomDao;
+import com.jjg.game.slots.dao.*;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NotifySlotsStatus;
 import org.apache.commons.lang3.StringUtils;
@@ -28,7 +25,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 
@@ -52,6 +52,8 @@ public class SlotsRoomManager implements HallRoomBridge {
     private SlotsLogger slotsLogger;
     @Autowired
     private MarsCurator marsCurator;
+    @Autowired
+    private PlayerGameDataDao playerGameDataDao;
 
     private final Striped<Lock> roomLocks = Striped.lock(1024);
     private final ConcurrentHashMap<Long, SlotsRoomController> roomControllers = new ConcurrentHashMap<>();
@@ -377,8 +379,12 @@ public class SlotsRoomManager implements HallRoomBridge {
             return;
         }
         Class<?> dto = gameManager.getSlotsPlayerGameDataDTOCla();
+        playerGameDataDao.deletePlayerGameDataRoomOnDisband(room.getId(), gameManager.playerGameDataClass);
         AbstractGameDataDao<?> gameDataDao = gameManager.getGameDataDao();
-        gameDataDao.deletePlayerGameDataRoomOnDisband(dto, room.getId());
+        if (gameDataDao != null) {
+            gameDataDao.deletePlayerGameDataRoomOnDisband(dto, room.getId());
+        }
+
     }
 
     @Override

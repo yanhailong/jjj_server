@@ -10,7 +10,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
 import com.jjg.game.slots.game.frozenThrone.dao.FrozenThroneGameDataDao;
 import com.jjg.game.slots.game.frozenThrone.dao.FrozenThroneResultLibDao;
@@ -55,11 +54,11 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
      */
     @Override
     public FrozenThroneGameRunInfo startGame(PlayerController playerController, FrozenThronePlayerGameData playerGameData, long betValue, boolean auto) {
-        FrozenThroneGameRunInfo gameRunInfo = new FrozenThroneGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        FrozenThroneGameRunInfo gameRunInfo = new FrozenThroneGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(player.getRoomCfgId());
 
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
@@ -89,7 +88,7 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
             triggerWinTask(player, gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
@@ -136,7 +135,7 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
             gameRunInfo.addBigPoolTimes(times);
             //特殊 客户端开发要求推下次游戏状态 -》 赋值状态 免费转
 //            gameRunInfo.setStatus(FrozenThroneConstant.Status.FREE);
-            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(), addCount, times);
+            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(), addCount, times);
         } else {
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
 //            //特殊 客户端开发要求推下次游戏状态 -》 赋值状态 免费转
@@ -191,7 +190,7 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
 
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
-            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.getPlayerId(), playerGameData.getRoomCfgId());
         }
 
         gameRunInfo.setIconArr(freeGame.getIconArr());
@@ -257,7 +256,7 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
      * @return
      */
     public FrozenThroneGameRunInfo autoStartGame(FrozenThronePlayerGameData playerGameData, long betValue) {
-        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
+        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.getPlayerId());
         return startGame(null,playerGameData, betValue, true);
     }
 }

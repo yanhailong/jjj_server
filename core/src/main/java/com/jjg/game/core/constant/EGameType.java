@@ -18,6 +18,7 @@ public enum EGameType {
     FIRE_CAR(CoreConst.GameType.FIRE_CAR, RoomType.SLOTS, "消防车"),
     WOMAN_GOD(CoreConst.GameType.WOMAN_GOD, RoomType.SLOTS, "女武神"),
     MAHJIONG_WIN(CoreConst.GameType.MAHJIONG_WIN, RoomType.SLOTS, "麻将胡了"),
+    MAHJIONG_WIN2(CoreConst.GameType.MAHJIONG_WIN2, RoomType.SLOTS, "麻将胡了"),
     FORTUNE_CAT(CoreConst.GameType.FORTUNE_CAT, RoomType.SLOTS, "招财猫"),
     PIRATES_CARIBBEAN(CoreConst.GameType.PIRATES_CARIBBEAN, RoomType.SLOTS, "加勒比海盗"),
     GOLD_CITY(CoreConst.GameType.GOLD_CITY, RoomType.SLOTS, "夺宝黄金城"),

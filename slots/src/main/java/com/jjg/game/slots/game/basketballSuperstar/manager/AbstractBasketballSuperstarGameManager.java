@@ -50,11 +50,11 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
      */
     @Override
     public BasketballSuperstarGameRunInfo startGame(PlayerController playerController,BasketballSuperstarPlayerGameData playerGameData, long betValue, boolean auto) {
-        BasketballSuperstarGameRunInfo gameRunInfo = new BasketballSuperstarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        BasketballSuperstarGameRunInfo gameRunInfo = new BasketballSuperstarGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
 
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(player.getRoomCfgId());
 
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
@@ -84,7 +84,7 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
             triggerWinTask(player, gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
@@ -129,7 +129,7 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
             playerGameData.setFreeLib(resultLib);
 
             gameRunInfo.addBigPoolTimes(times);
-            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(), addCount, times);
+            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(), addCount, times);
         } else {
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
@@ -183,7 +183,7 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
 
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
             playerGameData.setFreeAllWin(0);
-            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.getPlayerId(), playerGameData.getRoomCfgId());
         }
 
         gameRunInfo.setIconArr(freeGame.getIconArr());
@@ -253,7 +253,7 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
      * @return
      */
     public BasketballSuperstarGameRunInfo autoStartGame(BasketballSuperstarPlayerGameData playerGameData, long betValue) {
-        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
+        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.getPlayerId());
         return startGame(null,playerGameData, betValue, true);
     }
 }

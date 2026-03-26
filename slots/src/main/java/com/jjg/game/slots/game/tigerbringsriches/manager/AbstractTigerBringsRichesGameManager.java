@@ -70,7 +70,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
             playerGameData.setStatus(TigerBringsRichesConstant.Status.NORMAL);
             log.info("虎虎生财玩家状态重置为正常状态 playerId = {}", playerController.playerId());
         }
-        TigerBringsRichesGameRunInfo gameRunInfo = new TigerBringsRichesGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        TigerBringsRichesGameRunInfo gameRunInfo = new TigerBringsRichesGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
     }
@@ -81,7 +81,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
 //        if (gameData.getStatus() == TigerBringsRichesConstant.Status.REAL_TIGER_BRINGS_RICHES) {
 //            TigerBringsRichesResultLib resultLib = gameData.getSpecialLib();
 //            for (int i = gameData.getCurrentRandomIndex(); i < resultLib.getSpecialResult().size(); i++) {
-//                log.info("虎虎生财自动旋转 playerId = {},currentRandomIndex = {}", gameData.playerId(), gameData.getCurrentRandomIndex());
+//                log.info("虎虎生财自动旋转 playerId = {},currentRandomIndex = {}", gameData.getPlayerId(), gameData.getCurrentRandomIndex());
 //                startGame(new PlayerController(null, null), gameData, gameData.getOneBetScore(), true);
 //            }
 //        }
@@ -115,12 +115,12 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
      */
     @Override
     public TigerBringsRichesGameRunInfo startGame(PlayerController playerController, TigerBringsRichesPlayerGameData playerGameData, long betValue, boolean auto) {
-        TigerBringsRichesGameRunInfo gameRunInfo = new TigerBringsRichesGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        TigerBringsRichesGameRunInfo gameRunInfo = new TigerBringsRichesGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
 
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
@@ -149,7 +149,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
             triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
@@ -193,7 +193,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
             PoolCfg poolCfg = GameDataManager.getPoolCfg(specialLib.firstJackpotId());
             if (poolCfg != null) {
                 //检查是否中大奖
-                CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(),
+                CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
                         poolCfg.getTruePool(), AddType.SLOTS_JACKPOT_REWARD);
                 if (result.success()) {
                     gameRunInfo.addSmallPoolGold(result.data);

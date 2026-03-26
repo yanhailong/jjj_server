@@ -4,6 +4,7 @@ import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackPlayerGameDataDTO;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackPlayerGameDataRoomDTO;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -11,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author lm
  * @date 2025/12/2 17:27
  */
+@Document
 public class CaptainJackPlayerGameData extends SlotsPlayerGameData {
     //寻宝次数
     private AtomicInteger alreadyDigCount = new AtomicInteger(0);

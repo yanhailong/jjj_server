@@ -50,11 +50,11 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
      */
     @Override
     public DemonChildGameRunInfo startGame(PlayerController playerController, DemonChildPlayerGameData playerGameData, long betValue, boolean auto) {
-        DemonChildGameRunInfo gameRunInfo = new DemonChildGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        DemonChildGameRunInfo gameRunInfo = new DemonChildGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
@@ -82,7 +82,7 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
             triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
@@ -116,7 +116,7 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
             playerGameData.setFreeLib(resultLib);
             playerGameData.getRemainFreeCount().set(resultLib.getFreeTotalCount());
             gameRunInfo.setTotalFreeCount(resultLib.getFreeTotalCount());
-            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(),
+            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(),
                     playerGameData.getRemainFreeCount().get(), resultLib.getTimes());
         }
         gameRunInfo.addBigPoolTimes(resultLib.getTimes());
@@ -142,6 +142,7 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
             gameRunInfo.setCode(libResult.code);
             return;
         }
+        gameRunInfo.setStatus(playerGameData.getStatus());
         //扣除免费次数
         int afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
         DemonChildResultLib freeGame = libResult.data;
@@ -154,13 +155,12 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
             playerGameData.getFreeIndex().set(0);
             playerGameData.setFreeAllWin(0);
             gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
-            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.getPlayerId(), playerGameData.getRoomCfgId());
         }
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));
-        gameRunInfo.setStatus(playerGameData.getStatus());
     }
 
     private List<DemonChildLineInfo> transAwardLinePbInfo(List<DemonChildAwardLineInfo> infoList, long oneBetScore) {

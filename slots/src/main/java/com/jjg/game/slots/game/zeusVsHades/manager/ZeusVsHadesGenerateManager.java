@@ -51,8 +51,8 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
     }
 
     @Override
-    protected ZeusVsHadesAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
-        ZeusVsHadesAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg);
+    protected ZeusVsHadesAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg, int[] arr) {
+        ZeusVsHadesAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg, arr);
         info.setVsTime(1);
         info.setTotalTime(info.getBaseTimes() * info.getVsTime());
         return info;

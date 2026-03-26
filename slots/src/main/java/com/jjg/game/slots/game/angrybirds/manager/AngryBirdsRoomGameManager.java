@@ -1,8 +1,6 @@
 package com.jjg.game.slots.game.angrybirds.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.slots.game.angrybirds.dao.AngryBirdsGameDataDao;
-import com.jjg.game.slots.game.angrybirds.dao.AngryBirdsPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.angrybirds.dao.AngryBirdsResultLibDao;
 import com.jjg.game.slots.game.angrybirds.data.AngryBirdsPlayerGameData;
 import com.jjg.game.slots.game.angrybirds.data.AngryBirdsResultLib;
@@ -14,9 +12,8 @@ import java.util.List;
 
 @Component
 public class AngryBirdsRoomGameManager extends AbstractAngryBirdsGameManager {
-    public AngryBirdsRoomGameManager(AngryBirdsGenerateManager gameGenerateManager,
-                                     AngryBirdsGameDataDao gameDataDao, AngryBirdsResultLibDao angryBirdsResultLibDao) {
-        super(gameGenerateManager, gameDataDao, angryBirdsResultLibDao);
+    public AngryBirdsRoomGameManager(AngryBirdsGenerateManager gameGenerateManager, AngryBirdsResultLibDao angryBirdsResultLibDao) {
+        super(gameGenerateManager, angryBirdsResultLibDao);
         this.log = LoggerFactory.getLogger(getClass());
     }
 
@@ -30,8 +27,4 @@ public class AngryBirdsRoomGameManager extends AbstractAngryBirdsGameManager {
         return Collections.emptyList();
     }
 
-    @Override
-    protected Class<AngryBirdsPlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
-        return AngryBirdsPlayerGameDataRoomDTO.class;
-    }
 }

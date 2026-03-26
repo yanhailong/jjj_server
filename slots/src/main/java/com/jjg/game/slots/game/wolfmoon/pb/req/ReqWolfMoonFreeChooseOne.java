@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.wolfmoon.WolfMoonConstant;
  * @author 11
  * @date 2025/2/27 15:33
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.WOLF_MOON, cmd = WolfMoonConstant.MsgBean.REQ_FREE_CHOOSE_ONE)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.WOLF_MOON, cmd = WolfMoonConstant.MsgBean.REQ_WOLF_MOON_FREE_CHOOSE_ONE)
 @ProtoDesc("请求免费游戏选择")
 public class ReqWolfMoonFreeChooseOne extends AbstractMessage {
     /**

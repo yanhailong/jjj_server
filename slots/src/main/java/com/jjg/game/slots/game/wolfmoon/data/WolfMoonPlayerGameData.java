@@ -1,12 +1,13 @@
 package com.jjg.game.slots.game.wolfmoon.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import org.springframework.beans.BeanUtils;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * @author 11
  * @date 2025/2/27 15:33
  */
+@Document
 public class WolfMoonPlayerGameData extends SlotsPlayerGameData {
 
     /**
@@ -15,10 +16,6 @@ public class WolfMoonPlayerGameData extends SlotsPlayerGameData {
      */
     private int freeGameType;
 
-    /**
-     * 当前递增奖励倍数（仅在递增奖励倍数模式下使用）
-     */
-    private int currentMultiplier = 5;
 
     public int getFreeGameType() {
         return freeGameType;
@@ -28,12 +25,5 @@ public class WolfMoonPlayerGameData extends SlotsPlayerGameData {
         this.freeGameType = freeGameType;
     }
 
-    public int getCurrentMultiplier() {
-        return currentMultiplier;
-    }
-
-    public void setCurrentMultiplier(int currentMultiplier) {
-        this.currentMultiplier = currentMultiplier;
-    }
 
 }
