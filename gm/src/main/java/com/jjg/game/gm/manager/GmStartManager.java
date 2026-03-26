@@ -1,6 +1,5 @@
 package com.jjg.game.gm.manager;
 
-import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.manager.SampleDataManager;
@@ -27,8 +26,6 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
     @Autowired
     private MarsCoreStartService marsCoreStartService;
     @Autowired
-    private NodeConfig nodeConfig;
-    @Autowired
     private SampleDataManager sampleDataManager;
     @Autowired
     private ConfigManager configManager;
@@ -41,11 +38,6 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
 
     @Override
     public void start() {
-        //为了安全，必须配置齐全才能启动服务
-        if (nodeConfig.getWhiteIpList() == null || nodeConfig.getWhiteIpList().length < 1) {
-            throw new IllegalStateException("IP白名单检查失败，拒绝启动服务");
-        }
-
         marsCoreStartService.init(this.context, Collections.emptySet());
         sampleDataManager.init();
         //需要处理所有配置数据 默认加载所有

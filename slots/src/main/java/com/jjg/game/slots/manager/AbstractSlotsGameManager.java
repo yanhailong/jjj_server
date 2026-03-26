@@ -97,10 +97,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     //roomCfgId -> playerId ->gameData
     protected Map<Integer, Map<Long, T>> gameDataMap = new ConcurrentHashMap<>();
 
-
-    protected BigDecimal tenThousandBigDecimal = BigDecimal.valueOf(10000);
-    protected BigDecimal oneHundredMillionBigDecimal = BigDecimal.valueOf(100000000);
+    protected final int tenThousand = 10000;
+    protected BigDecimal tenThousandBigDecimal = BigDecimal.valueOf(tenThousand);
     protected int oneHundredMillion = 100000000;
+    protected BigDecimal oneHundredMillionBigDecimal = BigDecimal.valueOf(oneHundredMillion);
 
     protected Class<T> playerGameDataClass;
     protected Class<L> libClass;
@@ -1138,7 +1138,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
 
             //给玩家加钱
-            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), poolValue, AddType.SLOTS_TRAIN, poolId + "");
+            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), poolValue, poolId, AddType.SLOTS_TRAIN, poolId + "");
             if (!result.success()) {
                 log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
                 return;
@@ -2005,6 +2005,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
         log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.playerId(), contribt, resultLib.getJackpotIds());
 
+        //检查奖池是否已经冷却
+        if (!slotsPoolDao.checkPoolCD(playerGameData.getRoomCfgId())) {
+            System.out.println("冷却中");
+            return Collections.emptyList();
+        }
+
         //真奖池
         Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
         if (smallPoolNumber == null) {
@@ -2039,9 +2045,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 continue;
             }
 
-            //中奖概率,这里保留了8位，所以最后可以取int值
+            //中奖概率,这里保留了8位
+            // 按需求将原始概率放大 10000 倍，命中上限后再由奖池值和冷却控制实际放奖频率。
             int propV = BigDecimal.valueOf(contribt).divide(pool, 8, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(poolCfg.getPoolProp()), 8, BigDecimal.ROUND_HALF_UP).multiply(oneHundredMillionBigDecimal).intValue();
-            int rand = RandomUtils.randomInt(oneHundredMillion);
+            int rand = RandomUtils.randomInt(tenThousand);
             if (rand >= propV) {
                 log.debug("随机概率，未中奖 rand = {},propV = {}", rand, propV);
             } else {

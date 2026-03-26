@@ -193,7 +193,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
             if (poolCfg != null) {
                 //检查是否中大奖
                 CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(),
-                        poolCfg.getTruePool(), AddType.SLOTS_JACKPOT_REWARD);
+                        poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
                 if (result.success()) {
                     gameRunInfo.addSmallPoolGold(result.data);
                 }

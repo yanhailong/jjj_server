@@ -893,7 +893,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 continue;
             }
 
-            if(!lib.containsJackpotId(poolId)){
+            if (!lib.containsJackpotId(poolId)) {
                 continue;
             }
             PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
@@ -907,7 +907,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             long addGold = calPoolValue(playerGameData.getAllBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), allDelayTime);
 
             //给玩家加钱
-            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_TRAIN, poolId + "");
+            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, poolId, AddType.SLOTS_TRAIN, poolId + "");
             if (!result.success()) {
                 log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
                 break;

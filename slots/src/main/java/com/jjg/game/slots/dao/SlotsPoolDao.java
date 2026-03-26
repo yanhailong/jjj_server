@@ -1,5 +1,6 @@
 package com.jjg.game.slots.dao;
 
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -8,6 +9,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
+import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.service.SlotsPlayerService;
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +28,11 @@ public class SlotsPoolDao extends AbstractPoolDao {
 
     @Autowired
     private SlotsPlayerService slotsPlayerService;
+
     protected BigDecimal tenThousandBigDecimal = BigDecimal.valueOf(10000);
+
+    //奖池冷却时间
+    private final String POOL_CD_TABLE_NAME = "poolCD";
 
     /**
      * 初始化水池
@@ -137,7 +143,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
     /**
      * 从小池子扣钱，然后给玩家加钱
      */
-    public CommonResult<Player> rewardFromSmallPool(long playerId, int gameType, int roomCfgId, long value, AddType addType, String desc) {
+    public CommonResult<Player> rewardFromSmallPool(long playerId, int gameType, int roomCfgId, long value, int poolId, AddType addType, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
 
         Long poolValue = addToSmallPool(gameType, roomCfgId, -value);
@@ -151,6 +157,8 @@ public class SlotsPoolDao extends AbstractPoolDao {
             addToSmallPool(gameType, roomCfgId, value);
             return result;
         }
+        //更新奖池冷却时间
+        updatePoolCD(roomCfgId, poolId);
         log.info("从小池子扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId, value, poolValue, addType);
         return result;
     }
@@ -165,7 +173,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
      * @param addType
      * @return
      */
-    public CommonResult<Long> rewardByRatioFromSmallPool(long playerId, int gameType, int roomCfgId, int ratio, AddType addType) {
+    public CommonResult<Long> rewardByRatioFromSmallPool(long playerId, int gameType, int roomCfgId, int ratio, int poolId, AddType addType) {
         CommonResult<Long> result = new CommonResult<>(Code.SUCCESS);
 
         Number poolValue = getSmallPoolByRoomCfgId(gameType, roomCfgId);
@@ -192,6 +200,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
         }
 
         result.data = value;
+        updatePoolCD(roomCfgId, poolId);
         log.debug("从小池子按照百分比扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},beforeValue = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId, poolValue, value, afterPoolValue, addType);
         return result;
     }
@@ -227,5 +236,44 @@ public class SlotsPoolDao extends AbstractPoolDao {
             return;
         }
         this.redisTemplate.opsForHash().put(fakeSmallTableName(gameType), roomCfgId, value);
+    }
+
+    /**
+     * 更新奖池冷却时间
+     *
+     * @param roomCfgId
+     */
+    public void updatePoolCD(int roomCfgId, int poolId) {
+        PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+        if (poolCfg != null) {
+            long cdTime = (long) poolCfg.getMin() * TimeHelper.ONE_MINUTE_OF_MILLIS + System.currentTimeMillis();
+            this.redisTemplate.opsForHash().put(this.POOL_CD_TABLE_NAME, roomCfgId, cdTime);
+            log.info("更新奖池冷却时间 roomCfgId = {},poolId = {},cdTime = {}", roomCfgId, poolId, cdTime);
+        }
+    }
+
+    /**
+     * 清除奖池冷却时间
+     *
+     * @param roomCfgId
+     */
+    public void clearPoolCD(int roomCfgId) {
+        this.redisTemplate.opsForHash().delete(this.POOL_CD_TABLE_NAME, roomCfgId);
+        log.info("清除奖池冷却时间 roomCfgId = {}", roomCfgId);
+    }
+
+    /**
+     * 检查奖池是否已经冷却
+     *
+     * @param roomCfgId
+     * @return
+     */
+    public boolean checkPoolCD(int roomCfgId) {
+        Object o = this.redisTemplate.opsForHash().get(this.POOL_CD_TABLE_NAME, roomCfgId);
+        if(o == null){
+            return true;
+        }
+        long cdTime = Long.parseLong(o.toString());
+        return System.currentTimeMillis() >= cdTime;
     }
 }
