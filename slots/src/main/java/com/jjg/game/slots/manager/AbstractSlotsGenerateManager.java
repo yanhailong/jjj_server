@@ -1020,7 +1020,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 if (num == null || num < betTime.get(1)) {
                     continue;
                 }
-                addTimes += betTime.get(2);
+                return betTime.get(2);
             }
         }
         return addTimes;
