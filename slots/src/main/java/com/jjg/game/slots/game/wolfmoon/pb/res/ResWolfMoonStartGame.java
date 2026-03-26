@@ -25,6 +25,8 @@ public class ResWolfMoonStartGame extends AbstractResponse {
     public int status;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
+    @ProtoDesc("当前递增奖励倍数")
+    public int currentMultiplier;
     @ProtoDesc("玩家当前金币")
     public long allGold;
     @ProtoDesc("大奖展示  1.sweet   2.big   3.mega  4.epic  5.legendary")
