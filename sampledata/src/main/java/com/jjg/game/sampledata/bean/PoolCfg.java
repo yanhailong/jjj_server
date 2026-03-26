@@ -1,9 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
-
 import javax.annotation.processing.Generated;
+import java.util.List;
 /**
  * 配置bean
  *
@@ -27,6 +25,10 @@ public class PoolCfg extends BaseCfgBean {
   protected int fakePoolMax;
   /** 循环的假奖池增长速率 */
   protected List<Integer> growthRate;
+  /**
+   * 间隔时间
+   */
+  protected int min;
   /** 奖池系数 */
   protected int poolProp;
   /** 真奖池奖金万分比 */
@@ -50,6 +52,13 @@ public class PoolCfg extends BaseCfgBean {
   /** 返回循环的假奖池增长速率 */
   public List<Integer> getGrowthRate() {
     return growthRate;
+  }
+
+  /**
+   * 返回间隔时间
+   */
+  public int getMin() {
+    return min;
   }
 
   /** 返回奖池系数 */
