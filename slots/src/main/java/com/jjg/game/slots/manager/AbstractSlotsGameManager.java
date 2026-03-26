@@ -1496,6 +1496,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     @Override
     public void changeSampleCallbackCollector() {
+        if (gameType == 0) {
+            return;
+        }
         addChangeSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> {
             baseRoomConfig();
             calAllLineStake();
