@@ -240,7 +240,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         CommonResult<ThorResultLib> result = new CommonResult<>(Code.SUCCESS);
         log.debug("开始获取免费结果库 playerId = {}", playerGameData.getPlayerId());
 
-        ThorResultLib freeLib = (ThorResultLib) playerGameData.getFreeLib();
+        ThorResultLib freeLib = playerGameData.getFreeLib();
         if (freeLib == null) {
             //缓存中没有，就从数据库获取
             CommonResult<ThorResultLib> libResult = getLibFromDB(playerGameData, specialModeFreeLibType);
@@ -268,8 +268,7 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
 
         //找到结果库中免费游戏的结果
         SpecialAuxiliaryInfo specialAuxiliaryInfo = null;
-        for (Object obj : freeLib.getSpecialAuxiliaryInfoList()) {
-            SpecialAuxiliaryInfo tmpInfo = (SpecialAuxiliaryInfo) obj;
+        for (SpecialAuxiliaryInfo tmpInfo : freeLib.getSpecialAuxiliaryInfoList()) {
             SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(tmpInfo.getCfgId());
             if (specialAuxiliary > 0 && specialAuxiliaryCfg.getType() != specialAuxiliary) {
                 continue;

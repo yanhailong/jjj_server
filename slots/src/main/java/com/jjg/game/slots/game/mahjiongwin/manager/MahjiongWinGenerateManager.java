@@ -100,8 +100,8 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
         }
     }
     @Override
-    protected MahjiongWinAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
-        MahjiongWinAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg);
+    protected MahjiongWinAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg, int[] arr) {
+        MahjiongWinAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg, arr);
         info.setSameIcon(cfg.getElementId().getFirst() % 10);
         return info;
     }

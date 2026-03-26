@@ -16,10 +16,6 @@ public class WolfMoonPlayerGameData extends SlotsPlayerGameData {
      */
     private int freeGameType;
 
-    /**
-     * 当前递增奖励倍数（仅在递增奖励倍数模式下使用）
-     */
-    private int currentMultiplier = 5;
 
     public int getFreeGameType() {
         return freeGameType;
@@ -29,12 +25,5 @@ public class WolfMoonPlayerGameData extends SlotsPlayerGameData {
         this.freeGameType = freeGameType;
     }
 
-    public int getCurrentMultiplier() {
-        return currentMultiplier;
-    }
-
-    public void setCurrentMultiplier(int currentMultiplier) {
-        this.currentMultiplier = currentMultiplier;
-    }
 
 }

@@ -41,20 +41,20 @@ public class WolfMoonMessageHandler {
     /**
      * 请求配置信息
      */
-    @Command(WolfMoonConstant.MsgBean.REQ_ENTER_GAME)
-    public void reqConfigInfo(PlayerController playerController, ReqWolfMoonConfigInfo req) {
+    @Command(WolfMoonConstant.MsgBean.REQ_WOLF_MOON_ENTER_GAME)
+    public void reqWolfMoonConfigInfo(PlayerController playerController, ReqWolfMoonConfigInfo req) {
         try {
             log.info("收到玩家请求配置 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             WolfMoonGameRunInfo gameRunInfo;
-            if(playerController.getScene() == null){
+            if (playerController.getScene() == null) {
                 gameRunInfo = gameManager.enterGame(playerController);
-            }else if(playerController.getScene() instanceof SlotsRoomController){
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
                 gameRunInfo = roomGameManager.enterGame(playerController);
-            }else {
-                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
-            sendMessageManager.sendConfigMessage(playerController, gameRunInfo);
+            sendMessageManager.reqWolfMoonConfigInfo(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -63,20 +63,20 @@ public class WolfMoonMessageHandler {
     /**
      * 开始游戏
      */
-    @Command(WolfMoonConstant.MsgBean.REQ_START_GAME)
-    public void reqStartGame(PlayerController playerController, ReqWolfMoonStartGame req) {
+    @Command(WolfMoonConstant.MsgBean.REQ_WOLF_MOON_START_GAME)
+    public void reqWolfMoonStartGame(PlayerController playerController, ReqWolfMoonStartGame req) {
         try {
             WolfMoonGameRunInfo gameRunInfo;
-            if(playerController.getScene() == null){
+            if (playerController.getScene() == null) {
                 gameRunInfo = gameManager.playerStartGame(playerController, req.stakeValue);
-            }else if(playerController.getScene() instanceof SlotsRoomController){
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
                 gameRunInfo = roomGameManager.playerStartGame(playerController, req.stakeValue);
-            }else {
-                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
             log.info("收到玩家开始游戏 playerId={},req={}, gameRunInfo = {}", playerController.playerId(), JSONObject.toJSONString(req), JSONObject.toJSONString(gameRunInfo));
-            sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
+            sendMessageManager.sendWolfMoonStartGame(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -85,19 +85,19 @@ public class WolfMoonMessageHandler {
     /**
      * 奖池
      */
-    @Command(WolfMoonConstant.MsgBean.REQ_POOL_VALUE)
-    public void reqPoolValue(PlayerController playerController, ReqWolfMoonPoolValue req) {
+    @Command(WolfMoonConstant.MsgBean.REQ_WOLF_MOON_POOL_VALUE)
+    public void reqWolfMoonPoolValue(PlayerController playerController, ReqWolfMoonPoolValue req) {
         try {
             WolfMoonGameRunInfo gameRunInfo;
-            if(playerController.getScene() == null){
+            if (playerController.getScene() == null) {
                 gameRunInfo = gameManager.getPoolValue(playerController, req.stakeValue);
-            }else if(playerController.getScene() instanceof SlotsRoomController){
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
                 gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeValue);
-            }else {
-                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
-            sendMessageManager.sendPoolValue(playerController, gameRunInfo);
+            sendMessageManager.sendWolfMoonPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -106,20 +106,20 @@ public class WolfMoonMessageHandler {
     /**
      * 免费游戏选择
      */
-    @Command(WolfMoonConstant.MsgBean.REQ_FREE_CHOOSE_ONE)
+    @Command(WolfMoonConstant.MsgBean.REQ_WOLF_MOON_FREE_CHOOSE_ONE)
     public void reqFreeChooseOne(PlayerController playerController, ReqWolfMoonFreeChooseOne req) {
         try {
             log.info("收到玩家选择免费游戏类型 playerId={}, freeGameType={}", playerController.playerId(), req.freeGameType);
-//            WolfMoonGameRunInfo gameRunInfo;
-//            if(playerController.getScene() == null){
-//                gameRunInfo = gameManager.chooseFreeGameType(playerController, req.freeGameType);
-//            }else if(playerController.getScene() instanceof SlotsRoomController){
-//                gameRunInfo = roomGameManager.chooseFreeGameType(playerController, req.freeGameType);
-//            }else {
-//                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
-//                return;
-//            }
-//            sendMessageManager.sendFreeChooseOneMessage(playerController, gameRunInfo);
+            WolfMoonGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.freeChooseOne(playerController, req.freeGameType);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.freeChooseOne(playerController, req.freeGameType);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
+            sendMessageManager.sendFreeChooseOneMessage(playerController, gameRunInfo, req);
         } catch (Exception e) {
             log.error("", e);
         }

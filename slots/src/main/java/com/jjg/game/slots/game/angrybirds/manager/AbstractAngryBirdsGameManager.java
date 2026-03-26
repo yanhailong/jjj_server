@@ -201,7 +201,7 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);
-        gameRunInfo.setStatus(playerGameData.getStatus());
+        gameRunInfo.setStatus(AngryBirdsConstant.Status.FREE);
     }
 
     @Override

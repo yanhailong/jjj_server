@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.wolfmoon.WolfMoonConstant;
  * @author 11
  * @date 2025/2/27 15:33
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.WOLF_MOON, cmd = WolfMoonConstant.MsgBean.REQ_ENTER_GAME)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.WOLF_MOON, cmd = WolfMoonConstant.MsgBean.REQ_WOLF_MOON_ENTER_GAME)
 @ProtoDesc("请求配置信息")
 public class ReqWolfMoonConfigInfo extends AbstractMessage {
 }

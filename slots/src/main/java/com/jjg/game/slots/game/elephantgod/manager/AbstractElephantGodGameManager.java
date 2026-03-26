@@ -101,6 +101,7 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
             afterCount = playerGameData.getRemainFreeCount().addAndGet(freeGame.getAddFreeCount());
             log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(), afterCount);
         }
+        gameRunInfo.setStatus(playerGameData.getStatus());
         playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
         //累计免费模式的中奖金额
         gameRunInfo.addBigPoolTimes(freeGame.getTimes());
@@ -115,7 +116,6 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);
-        gameRunInfo.setStatus(playerGameData.getStatus());
     }
 
 

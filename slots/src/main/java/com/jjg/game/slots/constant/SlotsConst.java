@@ -71,7 +71,7 @@ public class SlotsConst {
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.WOLF_MOON, Set.of(3));
     }
 
-    public class Status {
+    public static class Status {
         public static final int NORMAL = 0;
         //免费
         public static final int FREE = 1;

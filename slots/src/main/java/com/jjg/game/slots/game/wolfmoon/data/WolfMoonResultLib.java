@@ -13,6 +13,16 @@ public class WolfMoonResultLib extends SlotsResultLib<WolfMoonAwardLineInfo> {
     private List<WolfMoonAddIconInfo> addIconInfos;
     //增加的免费次数
     private int addFreeCount;
+    //当前倍数
+    private int baseMultiple;
+
+    public int getBaseMultiple() {
+        return baseMultiple;
+    }
+
+    public void setBaseMultiple(int baseMultiple) {
+        this.baseMultiple = baseMultiple;
+    }
 
     public List<WolfMoonAddIconInfo> getAddIconInfos() {
         return addIconInfos;

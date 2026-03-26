@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.wolfmoon.WolfMoonConstant;
  * @author 11
  * @date 2025/2/27 15:33
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.WOLF_MOON, cmd = WolfMoonConstant.MsgBean.REQ_POOL_VALUE)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.WOLF_MOON, cmd = WolfMoonConstant.MsgBean.REQ_WOLF_MOON_POOL_VALUE)
 @ProtoDesc("请求奖池金额")
 public class ReqWolfMoonPoolValue extends AbstractMessage {
     @ProtoDesc("下注金额")

@@ -1,8 +1,8 @@
 package com.jjg.game.slots.game.wolfmoon.manager;
 
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.slots.game.wolfmoon.dao.WolfMoonResultLibDao;
 import com.jjg.game.slots.game.wolfmoon.data.WolfMoonPlayerGameData;
-import com.jjg.game.slots.game.wolfmoon.data.WolfMoonPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.wolfmoon.data.WolfMoonResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -16,8 +16,8 @@ import java.util.List;
  */
 @Component
 public class WolfMoonRoomGameManager extends AbstractWolfMoonGameManager {
-    public WolfMoonRoomGameManager() {
-        super();
+    public WolfMoonRoomGameManager(WolfMoonGenerateManager generateManager, WolfMoonResultLibDao wolfMoonResultLibDao) {
+        super(generateManager, wolfMoonResultLibDao);
         this.log = LoggerFactory.getLogger(getClass());
     }
 
@@ -29,10 +29,5 @@ public class WolfMoonRoomGameManager extends AbstractWolfMoonGameManager {
     @Override
     protected List<Integer> checkLibPool(WolfMoonResultLib resultLib, WolfMoonPlayerGameData playerGameData) {
         return Collections.emptyList();
-    }
-
-    @Override
-    protected Class<WolfMoonPlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
-        return WolfMoonPlayerGameDataRoomDTO.class;
     }
 }

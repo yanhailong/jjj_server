@@ -102,8 +102,8 @@ public class HotFootballGenerateManager extends AbstractSlotsGenerateManager<Hot
         }
     }
     @Override
-    protected HotFootballAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
-        HotFootballAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg);
+    protected HotFootballAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg, int[] arr) {
+        HotFootballAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg, arr);
         info.setSameIcon(cfg.getElementId().getFirst() % 10);
         return info;
     }

@@ -161,8 +161,8 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
     }
 
     @Override
-    protected ChristmasBashNightAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
-        ChristmasBashNightAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg);
+    protected ChristmasBashNightAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg, int[] arr) {
+        ChristmasBashNightAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg, arr);
         info.setSameIcon(cfg.getElementId().getFirst() % 10);
         return info;
     }

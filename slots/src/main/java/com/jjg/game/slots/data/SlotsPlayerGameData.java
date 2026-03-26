@@ -23,7 +23,7 @@ public class SlotsPlayerGameData {
     @Id
     protected String id;
     @Transient
-        protected transient PlayerController playerController;
+    protected transient PlayerController playerController;
     @Transient
     protected transient boolean fromOldData;
     protected long playerId;
@@ -232,8 +232,9 @@ public class SlotsPlayerGameData {
         this.freeIndex = freeIndex;
     }
 
-    public SlotsResultLib<?> getFreeLib() {
-        return freeLib;
+    @SuppressWarnings("unchecked")
+    public <T extends SlotsResultLib<?>> T getFreeLib() {
+        return (T) freeLib;
     }
 
     public void setFreeLib(SlotsResultLib<?> freeLib) {

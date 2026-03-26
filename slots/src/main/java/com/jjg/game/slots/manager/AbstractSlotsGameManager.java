@@ -469,7 +469,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         CommonResult<L> result = new CommonResult<>(Code.SUCCESS);
         log.debug("开始获取免费结果库 playerId = {}", playerGameData.getPlayerId());
 
-        L freeLib = (L) playerGameData.getFreeLib();
+        SlotsResultLib<?> freeLib = playerGameData.getFreeLib();
 
         if (freeLib == null) {
             //缓存中没有，就从数据库获取
@@ -498,8 +498,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         //找到结果库中免费游戏的结果
         SpecialAuxiliaryInfo specialAuxiliaryInfo = null;
-        for (Object obj : freeLib.getSpecialAuxiliaryInfoList()) {
-            SpecialAuxiliaryInfo tmpInfo = (SpecialAuxiliaryInfo) obj;
+        for (SpecialAuxiliaryInfo tmpInfo : freeLib.getSpecialAuxiliaryInfoList()) {
             SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(tmpInfo.getCfgId());
             if (specialAuxiliary > 0 && specialAuxiliaryCfg.getType() != specialAuxiliary) {
                 continue;

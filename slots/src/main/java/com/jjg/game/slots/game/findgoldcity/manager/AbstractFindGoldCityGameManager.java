@@ -74,7 +74,7 @@ public abstract class AbstractFindGoldCityGameManager extends AbstractSlotsGameM
             afterCount = playerGameData.getRemainFreeCount().addAndGet(freeGame.getAddFreeCount());
             log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(), afterCount);
         }
-
+        gameRunInfo.setStatus(playerGameData.getStatus());
         //累计免费模式的中奖金额
         playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
         gameRunInfo.addBigPoolTimes(freeGame.getTimes());
@@ -89,7 +89,6 @@ public abstract class AbstractFindGoldCityGameManager extends AbstractSlotsGameM
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);
-        gameRunInfo.setStatus(playerGameData.getStatus());
     }
 
     /**

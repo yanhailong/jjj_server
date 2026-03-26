@@ -142,6 +142,7 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
             gameRunInfo.setCode(libResult.code);
             return;
         }
+        gameRunInfo.setStatus(playerGameData.getStatus());
         //扣除免费次数
         int afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
         DemonChildResultLib freeGame = libResult.data;
@@ -160,7 +161,6 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));
-        gameRunInfo.setStatus(playerGameData.getStatus());
     }
 
     private List<DemonChildLineInfo> transAwardLinePbInfo(List<DemonChildAwardLineInfo> infoList, long oneBetScore) {

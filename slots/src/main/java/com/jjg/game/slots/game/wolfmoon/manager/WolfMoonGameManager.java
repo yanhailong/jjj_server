@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.wolfmoon.manager;
 
+import com.jjg.game.slots.game.wolfmoon.dao.WolfMoonResultLibDao;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -9,8 +10,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class WolfMoonGameManager extends AbstractWolfMoonGameManager {
-    public WolfMoonGameManager() {
-        super();
+
+    public WolfMoonGameManager(WolfMoonGenerateManager generateManager, WolfMoonResultLibDao wolfMoonResultLibDao) {
+        super(generateManager, wolfMoonResultLibDao);
         this.log = LoggerFactory.getLogger(getClass());
     }
 }

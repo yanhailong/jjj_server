@@ -233,6 +233,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
             afterCount = playerGameData.getRemainFreeCount().addAndGet(freeGame.getAddFreeCount());
             log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(), afterCount);
         }
+        gameRunInfo.setStatus(playerGameData.getStatus());
 
         //累计免费模式的中奖金额
         playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
@@ -248,12 +249,12 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         //免费触发挖宝
         if (freeGame.getDigTimes() > 0 && CollectionUtil.isNotEmpty(freeGame.getDigTimesMultiplier())) {
             playerGameData.setStatus(CaptainJackConstant.Status.TREASURE_CHEST);
+            gameRunInfo.setStatus(playerGameData.getStatus());
             playerGameData.setResultLib(freeGame);
         }
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setResultLib(freeGame);
         gameRunInfo.setRemainFreeCount(afterCount);
-        gameRunInfo.setStatus(playerGameData.getStatus());
     }
 
     @Override

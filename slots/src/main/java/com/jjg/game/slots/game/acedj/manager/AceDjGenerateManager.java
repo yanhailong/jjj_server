@@ -178,7 +178,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
     }
 
     @Override
-    protected AceDjAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
+    protected AceDjAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg, int[] arr) {
         AceDjAwardLineInfo info = new AceDjAwardLineInfo();
 
         info.setSameIconSet(sameIconIndexSet);
@@ -805,10 +805,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
                             continue;
                         }
 
-                        boolean wild = false;
-                        if (wildIconSet != null && wildIconSet.contains(tmpIcon)) {
-                            wild = true;
-                        }
+                        boolean wild = wildIconSet.contains(tmpIcon);
 
                         if (wild && firstNormal) {
                             flag = true;
@@ -829,7 +826,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
                 if (maxCol == cfg.getRewardNum()) {
                     sameIconIndexSet.addAll(iconIndexSet);
 
-                    AceDjAwardLineInfo rewardInfo = addFullLineAwardInfo(sameIconIndexSet, cfg);
+                    AceDjAwardLineInfo rewardInfo = addFullLineAwardInfo(sameIconIndexSet, cfg, arr);
                     awardInfoList.add(rewardInfo);
                 }
             }

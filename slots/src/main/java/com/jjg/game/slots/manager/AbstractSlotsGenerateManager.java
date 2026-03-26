@@ -207,6 +207,15 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     }
 
     /**
+     * 是否需要自动设置免费模式的libType
+     *
+     * @return true自动设置
+     */
+    public boolean autoSetFreeModelLibType() {
+        return false;
+    }
+
+    /**
      * 生成一个免费结果
      *
      * @param specialAuxiliaryCfg
@@ -225,7 +234,9 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             T lib = createResultLib();
             lib.setId(RandomUtils.getUUid());
             lib.setRollerMode(specialModeCfg.getRollerMode());
-
+            if (autoSetFreeModelLibType()) {
+                lib.addLibType(specialModeType);
+            }
             //获取rollerMode
             int rollerMode = specialAuxiliaryCfg.getRollerMode();
             if (rollerMode < 1) {
@@ -711,7 +722,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 if (maxCol == cfg.getRewardNum()) {
                     sameIconIndexSet.addAll(iconIndexSet);
 
-                    A rewardInfo = addFullLineAwardInfo(sameIconIndexSet, cfg);
+                    A rewardInfo = addFullLineAwardInfo(sameIconIndexSet, cfg, arr);
                     awardInfoList.add(rewardInfo);
                 }
             }
@@ -892,6 +903,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         return awardInfoList;
     }
 
+    protected A addFullLineCountAwardInfo(int icon, int count, BaseElementRewardCfg cfg) {
+        return null;
+    }
+
     /**
      * 检查连线_分散_数量
      *
@@ -952,7 +967,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         return awardLineInfo;
     }
 
-    protected A addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
+    protected A addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg, int[] arr) {
         A awardLineInfo = getAwardLineInfo();
         if (awardLineInfo instanceof FullAwardLineInfo info) {
             info.setSameIconSet(sameIconIndexSet);
@@ -960,7 +975,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             if (info.getSameIconSet() != null && !info.getSameIconSet().isEmpty()) {
                 //记录每一列中奖的个数
                 BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-
+                //计算是否需要翻倍
+                Map<Integer, Integer> iconNum = new HashMap<>();
                 Map<Integer, Integer> columIconCountMap = new HashMap<>();
                 for (int index : info.getSameIconSet()) {
                     //根据坐标，计算它在哪一列
@@ -969,13 +985,12 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                         colId++;
                     }
                     columIconCountMap.merge(colId, 1, Integer::sum);
+                    iconNum.merge(arr[index], 1, Integer::sum);
                 }
-
-                int addTimes = 1;
+                int addTimes = getAddTimes(cfg, iconNum);
                 for (Map.Entry<Integer, Integer> en : columIconCountMap.entrySet()) {
                     addTimes *= en.getValue();
                 }
-
                 info.setBaseTimes(cfg.getBet() * addTimes);
             } else {
                 info.setBaseTimes(cfg.getBet());
@@ -984,11 +999,34 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         return awardLineInfo;
     }
 
-    protected A getAwardLineInfo() {
-        return null;
+
+    /**
+     * 获取配置的乘倍数
+     *
+     * @param cfg     配置信息
+     * @param iconNum 拥有的图标数量
+     * @return 返回的添加倍数
+     */
+    private int getAddTimes(BaseElementRewardCfg cfg, Map<Integer, Integer> iconNum) {
+        int addTimes = 1;
+        if (CollectionUtil.isNotEmpty(cfg.getBetTimes())) {
+            List<List<Integer>> betTimes = cfg.getBetTimes();
+            for (List<Integer> betTime : betTimes) {
+                if (betTime.size() != 3) {
+                    continue;
+                }
+                Integer icon = betTime.get(0);
+                Integer num = iconNum.get(icon);
+                if (num == null || num < betTime.get(1)) {
+                    continue;
+                }
+                addTimes += betTime.get(2);
+            }
+        }
+        return addTimes;
     }
 
-    protected A addFullLineCountAwardInfo(int icon, int count, BaseElementRewardCfg cfg) {
+    protected A getAwardLineInfo() {
         return null;
     }
 
