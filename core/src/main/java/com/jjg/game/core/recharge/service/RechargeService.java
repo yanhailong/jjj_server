@@ -163,12 +163,12 @@ public class RechargeService {
             newOlder = orderService.orderProcessing(order.getId(), order.getChannelOrderId());
             if (newOlder == null) {
                 log.error("修改订单状态为处理中失败 playerId = {},orderId = {}", notify.playerId, notify.orderId);
-                logRechargeOrder(player, order, notify, "修改订单状态为处理中失败");
+                logRechargeOrder(player, order, notify);
                 return;
             }
         } catch (Exception e) {
             log.error("修改订单状态为处理中异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
-            logRechargeOrder(player, order, notify, "修改订单状态为处理中异常");
+            logRechargeOrder(player, order, notify);
             return;
         }
         int allRechargeCount = 0;
@@ -176,18 +176,18 @@ public class RechargeService {
             OrderGenerate orderGenerate = orderGenerateMap.get(newOlder.getRechargeType());
             if (orderGenerate == null) {
                 log.error("处理订单逻辑中orderGenerate为null playerId = {},orderId = {}", notify.playerId, notify.orderId);
-                logRechargeOrder(player, newOlder, notify, "处理订单逻辑中数据异常");
+                logRechargeOrder(player, newOlder, notify);
                 return;
             }
             try {
                 if (!orderGenerate.onReceivedRecharge(player, newOlder)) {
                     log.error("处理订单逻辑失败 playerId = {},orderId = {}", notify.playerId, notify.orderId);
-                    logRechargeOrder(player, newOlder, notify, "处理订单逻辑失败");
+                    logRechargeOrder(player, newOlder, notify);
                     return;
                 }
             } catch (Exception e) {
                 log.error("处理订单逻辑中出现异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
-                logRechargeOrder(player, newOlder, notify, "处理订单逻辑中出现异常");
+                logRechargeOrder(player, newOlder, notify);
                 return;
             }
             gameEventManager.syncTriggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, newOlder, notify.money, notify.regionCode, notify.channelProductId));
@@ -200,16 +200,16 @@ public class RechargeService {
                 log.error("修改订单状态为成功失败 playerId = {},orderId = {}", notify.playerId, notify.orderId);
                 newOlder.setOrderStatus(OrderStatus.SUCCESS);
                 notifyPayInfo(notify, newOlder, allRechargeCount, player);
-                logRechargeOrder(player, newOlder, notify, "充值奖励已发放，订单状态回写失败");
+                logRechargeOrder(player, newOlder, notify);
                 return;
             }
             newOlder = successOrder;
         } catch (Exception e) {
             log.error("dealRecharge执行异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
-            logRechargeOrder(player, newOlder, notify, "dealRecharge执行异常");
+            logRechargeOrder(player, newOlder, notify);
             return;
         }
-        logRechargeOrder(player, newOlder, notify, newOlder.getProductId());
+        logRechargeOrder(player, newOlder, notify);
         notifyPayInfo(notify, newOlder, allRechargeCount, player);
 
     }
@@ -235,12 +235,12 @@ public class RechargeService {
         }
     }
 
-    private void logRechargeOrder(Player player, Order order, NotifyRechargeServer notify, String desc) {
+    private void logRechargeOrder(Player player, Order order, NotifyRechargeServer notify) {
         if (order == null) {
             return;
         }
         try {
-            coreLogger.order(player, order, order.getMoney(), order.getChannelProductId(), order.getRegionCode(), desc);
+            coreLogger.order(player, order, order.getMoney(), order.getChannelProductId(), order.getRegionCode(), order.getDesc());
         } catch (Exception e) {
             log.error("记录充值订单日志异常 playerId = {},orderId = {}", notify.playerId, notify.orderId, e);
         }
