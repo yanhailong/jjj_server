@@ -5,9 +5,8 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.EGameType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.Room;
-import com.jjg.game.core.data.RoomType;
+
+import com.jjg.game.core.data.*;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
@@ -35,6 +34,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.message.BaseRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.timer.RoomTimerEvent;
 import com.jjg.game.sampledata.GameDataManager;
@@ -49,7 +49,6 @@ import java.util.*;
 
 import cn.hutool.core.collection.CollUtil;
 import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.core.data.Card;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.poker.game.tosouth.util.ToSouthCardType;
@@ -57,7 +56,6 @@ import com.jjg.game.sampledata.bean.SouthernMoneyCfg;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
 import java.util.stream.Collectors;
 
-import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.common.concurrent.IProcessorHandler;
@@ -1108,34 +1106,17 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
      * 3. 服务端调用 exitRoom 真正移除房间数据（必须执行，否则玩家会卡在房间）
      */
     public void kickUnreadyPlayer(long playerId) {
-        // 1. 踢出前先广播该玩家的离开状态给其他真人（exitRoom 后 GamePlayer/SeatInfo 可能被清理）
-        try {
-            RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
-            SeatInfo seatInfo = roomPlayer != null ? gameDataVo.getSeatInfo().get(roomPlayer.getSit()) : null;
-            broadcastPlayerLeaveChange(playerId, seatInfo);
-        } catch (Exception e) {
-            log.error("踢出玩家 {} 时广播状态异常", playerId, e);
-        }
-
-        // 2. 通知被踢玩家退出到大厅
-        try {
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        RoomPlayer roomPlayer = roomController.getRoomPlayer(playerId);
+        if (roomPlayer == null || roomPlayer.isOnline()) {
             NotifyExitRoom exitNotify = new NotifyExitRoom();
             exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
-            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
-        } catch (Exception e) {
-            log.error("踢出玩家 {} 时发送退出通知异常", playerId, e);
-        }
-
-        // 3. 服务端真正移除玩家（必须执行，清理房间+GamePlayer+SeatInfo+数据库roomId）
-        try {
-            int result = getRoomController().getRoomManager().exitRoom(playerId);
-            if (result == Code.SUCCESS) {
-                log.info("玩家 {} 因未准备，已踢出房间", playerId);
-            } else {
-                log.error("玩家 {} 踢出房间失败，exitRoom返回: {}", playerId, result);
-            }
-        } catch (Exception e) {
-            log.error("玩家 {} 踢出房间异常", playerId, e);
+            NotifyExitRoom notify = BaseRoomMessageBuilder.buildNotifyExitRoom(exitNotify.langId);
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+        } else {
+            roomController.getRoomManager().exitRoom(playerId);
+            //退出日志
+            gameDataTracker.sendExitGameLog(gamePlayer);
         }
     }
 

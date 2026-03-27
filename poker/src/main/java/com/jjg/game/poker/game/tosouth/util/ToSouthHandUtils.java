@@ -839,14 +839,21 @@ public class ToSouthHandUtils {
                     }
                 }
             } else if (lastType == ToSouthCardType.BOMB_QUAD) {
+                // 上家是四条，4连对及以上可以无条件压制（任何4连对都比最大四条大）
                 for (List<Card> cp : consecutivePairs) {
                     if (cp.size() >= 8) {
                         List<Card> sortedCp = new ArrayList<>(cp);
                         sortedCp.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
-                        List<Card> candidate = new ArrayList<>(sortedCp.subList(0, 8));
-                        if (compare(lastCards, candidate)) {
-                            result.add(candidate);
-                        }
+                        result.add(new ArrayList<>(sortedCp.subList(0, 8)));
+                    }
+                }
+            } else if (lastType == ToSouthCardType.CONSECUTIVE_PAIRS && lastCards.size() == 6) {
+                // 上家是3连对，4连对及以上可以作为炸弹压制（任何4连对都比最大3连对大）
+                for (List<Card> cp : consecutivePairs) {
+                    if (cp.size() >= 8) {
+                        List<Card> sortedCp = new ArrayList<>(cp);
+                        sortedCp.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
+                        result.add(new ArrayList<>(sortedCp.subList(0, 8)));
                     }
                 }
             }
@@ -863,20 +870,25 @@ public class ToSouthHandUtils {
              }
         }
         
-        // 对结果去重并排序 (从小到大)
+        // 对结果去重并排序 (从小到大：普通牌 < 四条炸弹 < 4连对炸弹)
         result.sort((list1, list2) -> {
-            // 先按牌型类型排序 (普通 < 连对压2 < 炸弹)
-             ToSouthCardType t1 = getCardType(list1);
-             ToSouthCardType t2 = getCardType(list2);
-             // 如果类型不同，炸弹排最后
-             boolean isBomb1 = isBombType(t1);
-             boolean isBomb2 = isBombType(t2);
-             if (isBomb1 != isBomb2) return isBomb1 ? 1 : -1;
-             
-             // 如果类型相同，按最大牌比较
+            ToSouthCardType t1 = getCardType(list1);
+            ToSouthCardType t2 = getCardType(list2);
+            boolean isBomb1 = isBombType(t1);
+            boolean isBomb2 = isBombType(t2);
+            // 炸弹排最后
+            if (isBomb1 != isBomb2) return isBomb1 ? 1 : -1;
+            if (isBomb1) {
+                // 炸弹内部：四条(BOMB_QUAD) < 4连对+(CONSECUTIVE_PAIRS)
+                // 因为4连对任何一个都比最大四条大，所以四条先推荐（更小的炸弹先出）
+                boolean isConsec1 = (t1 == ToSouthCardType.CONSECUTIVE_PAIRS);
+                boolean isConsec2 = (t2 == ToSouthCardType.CONSECUTIVE_PAIRS);
+                if (isConsec1 != isConsec2) return isConsec1 ? 1 : -1;
+            }
+            // 同类型：按最大牌升序（小在前）
             Card max1 = list1.getFirst();
             Card max2 = list2.getFirst();
-            return CARD_COMPARATOR.compare(max2, max1); // 升序 (小在前)
+            return CARD_COMPARATOR.compare(max2, max1);
         });
 
         return result;
