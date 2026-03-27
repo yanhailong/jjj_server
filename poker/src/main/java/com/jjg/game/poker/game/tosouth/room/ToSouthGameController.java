@@ -1102,25 +1102,40 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     }
 
     /**
-     * 踢出未准备的玩家（对齐德州扑克退出房间逻辑）
-     * 在线玩家：发送 NotifyExitRoom 通知，由客户端处理退出
-     * 离线玩家：服务端直接调用 exitRoom 清理房间信息
+     * 踢出未准备的玩家
+     * 1. 先广播离开状态给其他真人
+     * 2. 通知被踢玩家退出（在线才发）
+     * 3. 服务端调用 exitRoom 真正移除房间数据（必须执行，否则玩家会卡在房间）
      */
     public void kickUnreadyPlayer(long playerId) {
-        // 踢出前先广播该玩家的离开状态给其他真人玩家（exitRoom 后 GamePlayer/SeatInfo 可能被清理）
-        RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
-        SeatInfo seatInfo = roomPlayer != null ? gameDataVo.getSeatInfo().get(roomPlayer.getSit()) : null;
-        broadcastPlayerLeaveChange(playerId, seatInfo);
+        // 1. 踢出前先广播该玩家的离开状态给其他真人（exitRoom 后 GamePlayer/SeatInfo 可能被清理）
+        try {
+            RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
+            SeatInfo seatInfo = roomPlayer != null ? gameDataVo.getSeatInfo().get(roomPlayer.getSit()) : null;
+            broadcastPlayerLeaveChange(playerId, seatInfo);
+        } catch (Exception e) {
+            log.error("踢出玩家 {} 时广播状态异常", playerId, e);
+        }
 
-        if (roomPlayer == null || roomPlayer.isOnline()) {
+        // 2. 通知被踢玩家退出到大厅
+        try {
             NotifyExitRoom exitNotify = new NotifyExitRoom();
             exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
-            log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
-            getRoomController().getRoomManager().exitRoom(playerId);
-        } else {
-            getRoomController().getRoomManager().exitRoom(playerId);
-            log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
+        } catch (Exception e) {
+            log.error("踢出玩家 {} 时发送退出通知异常", playerId, e);
+        }
+
+        // 3. 服务端真正移除玩家（必须执行，清理房间+GamePlayer+SeatInfo+数据库roomId）
+        try {
+            int result = getRoomController().getRoomManager().exitRoom(playerId);
+            if (result == Code.SUCCESS) {
+                log.info("玩家 {} 因未准备，已踢出房间", playerId);
+            } else {
+                log.error("玩家 {} 踢出房间失败，exitRoom返回: {}", playerId, result);
+            }
+        } catch (Exception e) {
+            log.error("玩家 {} 踢出房间异常", playerId, e);
         }
     }
 
