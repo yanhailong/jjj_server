@@ -167,11 +167,11 @@ public class ToSouthHandUtils {
         if (type2 == ToSouthCardType.CONSECUTIVE_PAIRS) {
             // 3连对(6张) > 单张2
             if (current.size() == 6 && type1 == ToSouthCardType.SINGLE && prev.getFirst().getRank() == RANK_2) return true;
-            // 四连对可以炸掉：单个2、双22、3连对、4张、同类型
-            if (current.size() == 8) {
+            // 四连对及以上可以炸掉：单个2、双22、3连对、4张
+            if (current.size() >= 8) {
                 if ((type1 == ToSouthCardType.PAIR || type1 == ToSouthCardType.SINGLE) && prev.getFirst().getRank() == RANK_2) return true;
                 if (type1 == ToSouthCardType.BOMB_QUAD) return true;
-                // 4连对 > 3连对
+                // 4连对+ > 3连对(6张)
                 if (type1 == ToSouthCardType.CONSECUTIVE_PAIRS && prev.size() == 6) return true;
             }
 
