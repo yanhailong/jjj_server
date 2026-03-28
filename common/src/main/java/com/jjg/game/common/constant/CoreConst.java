@@ -85,6 +85,8 @@ public class CoreConst {
         public static final int GOLD_SNAKE_FORTUNE = 103500;
         //金钱兔
         public static final int MONEY_RABBIT = 103501;
+        //糖果派对
+        public static final int CANDY_PARTY = 105100;
         //鼠鼠福福
         public static final int LUCKY_MOUSE = 103600;
         //十倍金牛

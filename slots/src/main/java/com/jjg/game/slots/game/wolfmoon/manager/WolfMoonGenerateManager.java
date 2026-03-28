@@ -131,6 +131,15 @@ public class WolfMoonGenerateManager extends AbstractSlotsGenerateManager<WolfMo
             int addCount = checkAddFreeCount(lib);
             lib.setAddFreeCount(addCount);
             lib.setBaseMultiple(baseMultiple);
+            if (addMultiple) {
+                //重新计算倍数
+                lib.setTimes(0);
+                try {
+                    calTimes(lib);
+                } catch (Exception e) {
+                    log.error("狼月计算倍数异常", e);
+                }
+            }
             remainFreeCount += addCount;
             specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
             remainFreeCount--;

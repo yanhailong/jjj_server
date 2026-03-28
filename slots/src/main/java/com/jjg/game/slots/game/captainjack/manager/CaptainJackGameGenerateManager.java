@@ -9,12 +9,10 @@ import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
-import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackAddIconInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackAwardLineInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAwardLineInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import jodd.util.StringUtil;
 import org.apache.commons.lang.StringUtils;
@@ -523,7 +521,7 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
         if (specialPlayCfg == null || StringUtil.isEmpty(specialPlayCfg.getValue())) {
             return;
         }
-        String[] split = StringUtils.split(specialPlayCfg.getValue());
+        String[] split = StringUtils.split(specialPlayCfg.getValue(),"_");
         if (split.length != 2) {
             return;
         }
@@ -538,4 +536,6 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
     public int getAddTimes() {
         return addTimes;
     }
+
+
 }

@@ -40,6 +40,14 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     protected Map<Integer, Map<Integer, BaseLineCfg>> baseLineCfgMap = null;
     //普通图标 lineType -> sid -> cfg
     protected Map<Integer, Map<Integer, BaseElementRewardCfg>> baseElementRewardCfgMap = null;
+    //扩散相连规则：icon -> 同类图标集合
+    protected Map<Integer, Set<Integer>> assignPatternEquivalentIconsMap = Map.of();
+    //扩散相连规则：icon -> 目标数量集合
+    protected Map<Integer, Set<Integer>> assignPatternTargetCountMap = Map.of();
+    //扩散相连规则：icon -> rewardNum -> cfg
+    protected Map<Integer, Map<Integer, BaseElementRewardCfg>> assignPatternRewardCfgMap = Map.of();
+    //扩散相连规则：icon -> 展示图标
+    protected Map<Integer, Integer> assignPatternSameIconMap = Map.of();
 
     //特殊模式配置表
     protected Map<Integer, SpecialModeCfg> specialModeCfgMap = null;
@@ -139,6 +147,208 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 }
             }
         }
+    }
+
+    /**
+     * 检查指定图案：相邻格子图案相同且连续数量满足过关配置，则每个连续段触发一次中奖。
+     * 相邻规则只计算上下左右 4 个方向。
+     * `elementId` 列表里的图标会被视为同一类图标参与连通判定。
+     * 当前判定语义是“整个最大连通块的数量需要与配置完全匹配”，不会把一个大连通块再拆成多个小段。
+     *
+     * @param arr  一维图标数组，兼容 0 下标和当前项目常用的 1 下标数组
+     * @param rows 行数
+     * @param cols 列数
+     * @return 命中的连续段列表
+     */
+    public List<A> checkAssignPatternAward(int[] arr, int rows, int cols) {
+        if (arr == null || rows < 1 || cols < 1) {
+            return Collections.emptyList();
+        }
+
+        if (CollectionUtil.isEmpty(buildPassingCriteriaTargetCountMap())) {
+            return Collections.emptyList();
+        }
+
+        int startIndex = resolvePaddingOffset(arr.length, rows, cols);
+        int endExclusive = startIndex + rows * cols;
+
+        List<A> result = new ArrayList<>();
+        boolean[] visited = new boolean[arr.length];
+
+        for (int index = startIndex; index < endExclusive; index++) {
+            if (visited[index]) {
+                continue;
+            }
+
+            int icon = arr[index];
+            if (icon <= 0) {
+                visited[index] = true;
+                continue;
+            }
+
+            Set<Integer> equivalentIcons = resolveAssignPatternEquivalentIcons(icon);
+            Set<Integer> targetCounts = this.assignPatternTargetCountMap.get(icon);
+            if (CollectionUtil.isEmpty(targetCounts)) {
+                traverseConnectedIcons(arr, rows, cols, startIndex, index, visited, equivalentIcons, null);
+                continue;
+            }
+
+            LinkedHashSet<Integer> sameIconSet = new LinkedHashSet<>();
+            traverseConnectedIcons(arr, rows, cols, startIndex, index, visited, equivalentIcons, sameIconSet);
+            if (targetCounts.contains(sameIconSet.size())) {
+                result.add(buildAssignPatternAwardLineInfo(resolveAssignPatternSameIcon(icon), sameIconSet));
+            }
+        }
+        return result;
+    }
+
+    protected Map<Integer, Set<Integer>> buildPassingCriteriaTargetCountMap() {
+        return this.assignPatternTargetCountMap;
+    }
+
+    /**
+     * 重建扩散相连规则缓存。
+     * 初始化和 BaseElementRewardCfg 热更后各执行一次，避免每次判奖重复解析配置。
+     */
+    protected void reloadAssignPatternConfig() {
+        Map<Integer, BaseElementRewardCfg> rewardCfgMap =
+                this.baseElementRewardCfgMap == null ? null : this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISTRIBUTED_CONNECTION);
+        if (CollectionUtil.isEmpty(rewardCfgMap)) {
+            this.assignPatternTargetCountMap = Map.of();
+            this.assignPatternEquivalentIconsMap = Map.of();
+            this.assignPatternRewardCfgMap = Map.of();
+            this.assignPatternSameIconMap = Map.of();
+            return;
+        }
+
+        Map<Integer, Set<Integer>> targetCountMap = new HashMap<>(rewardCfgMap.size());
+        Map<Integer, Set<Integer>> tmpEquivalentIconsMap = new HashMap<>(rewardCfgMap.size());
+        Map<Integer, Map<Integer, BaseElementRewardCfg>> tmpRewardCfgMap = new HashMap<>(rewardCfgMap.size());
+        Map<Integer, Integer> tmpSameIconMap = new HashMap<>(rewardCfgMap.size());
+        for (BaseElementRewardCfg cfg : rewardCfgMap.values()) {
+            if (cfg == null || CollectionUtil.isEmpty(cfg.getElementId()) || cfg.getRewardNum() <= 0) {
+                continue;
+            }
+
+            LinkedHashSet<Integer> validElementIds = new LinkedHashSet<>();
+            for (Integer elementId : cfg.getElementId()) {
+                if (elementId != null && elementId > 0) {
+                    validElementIds.add(elementId);
+                }
+            }
+            if (validElementIds.isEmpty()) {
+                continue;
+            }
+
+            Set<Integer> equivalentIcons = Collections.unmodifiableSet(validElementIds);
+            int sameIcon = validElementIds.getFirst();
+            for (Integer elementId : validElementIds) {
+                targetCountMap.computeIfAbsent(elementId, k -> new HashSet<>()).add(cfg.getRewardNum());
+                tmpEquivalentIconsMap.put(elementId, equivalentIcons);
+                tmpRewardCfgMap.computeIfAbsent(elementId, k -> new HashMap<>()).putIfAbsent(cfg.getRewardNum(), cfg);
+                tmpSameIconMap.putIfAbsent(elementId, sameIcon);
+            }
+        }
+        this.assignPatternTargetCountMap = targetCountMap;
+        this.assignPatternEquivalentIconsMap = tmpEquivalentIconsMap;
+        this.assignPatternRewardCfgMap = tmpRewardCfgMap;
+        this.assignPatternSameIconMap = tmpSameIconMap;
+    }
+
+    /**
+     * 计算图标数组的下标偏移量。
+     * 项目内图标数组通常是 1 下标，这里也兼容普通 0 下标数组。
+     */
+    private int resolvePaddingOffset(int arrLength, int rows, int cols) {
+        int iconCount = rows * cols;
+        if (arrLength == iconCount) {
+            return 0;
+        }
+        if (arrLength == iconCount + 1) {
+            return 1;
+        }
+        throw new IllegalArgumentException("图标数组长度与行列数不匹配");
+    }
+
+    public A buildAssignPatternAwardLineInfo(int icon, Set<Integer> sameIconSet) {
+        A awardLineInfo = getAwardLineInfo();
+        if (awardLineInfo instanceof FullAwardLineInfo info) {
+            info.setSameIcon(icon);
+            info.setSameIconSet(sameIconSet);
+            info.setBaseTimes(resolveAssignPatternBet(icon, sameIconSet == null ? 0 : sameIconSet.size()));
+        }
+        return awardLineInfo;
+    }
+
+    /**
+     * 遍历一个同图标的 4 向连通块。
+     *
+     * @param sameIconSet 为 null 时只做 visited 标记，用于跳过不在目标配置里的图标，减少额外集合创建
+     */
+    private void traverseConnectedIcons(int[] arr, int rows, int cols, int paddingOffset,
+                                        int startIndex, boolean[] visited, Set<Integer> equivalentIcons, Set<Integer> sameIconSet) {
+        ArrayDeque<Integer> queue = new ArrayDeque<>();
+        queue.offer(startIndex);
+        visited[startIndex] = true;
+
+        while (!queue.isEmpty()) {
+            int currentIndex = queue.poll();
+            if (sameIconSet != null) {
+                sameIconSet.add(currentIndex);
+            }
+
+            int normalizedIndex = currentIndex - paddingOffset;
+            int row = normalizedIndex % rows;
+            int col = normalizedIndex / rows;
+
+            addNeighbor(arr, rows, cols, paddingOffset, row - 1, col, equivalentIcons, visited, queue);
+            addNeighbor(arr, rows, cols, paddingOffset, row + 1, col, equivalentIcons, visited, queue);
+            addNeighbor(arr, rows, cols, paddingOffset, row, col - 1, equivalentIcons, visited, queue);
+            addNeighbor(arr, rows, cols, paddingOffset, row, col + 1, equivalentIcons, visited, queue);
+        }
+    }
+
+    /**
+     * 邻居坐标符合条件时入队。
+     */
+    private void addNeighbor(int[] arr, int rows, int cols, int paddingOffset, int row, int col, Set<Integer> equivalentIcons,
+                             boolean[] visited, ArrayDeque<Integer> queue) {
+        if (row < 0 || row >= rows || col < 0 || col >= cols) {
+            return;
+        }
+
+        int neighborIndex = toIndex(row, col, rows, paddingOffset);
+        if (visited[neighborIndex] || !equivalentIcons.contains(arr[neighborIndex])) {
+            return;
+        }
+
+        visited[neighborIndex] = true;
+        queue.offer(neighborIndex);
+    }
+
+    /**
+     * 把二维坐标映射回一维数组下标。
+     */
+    private int toIndex(int row, int col, int rows, int paddingOffset) {
+        return col * rows + row + paddingOffset;
+    }
+
+    private Set<Integer> resolveAssignPatternEquivalentIcons(int icon) {
+        Set<Integer> equivalentIcons = this.assignPatternEquivalentIconsMap.get(icon);
+        return CollectionUtil.isEmpty(equivalentIcons) ? Set.of(icon) : equivalentIcons;
+    }
+
+    private int resolveAssignPatternSameIcon(int icon) {
+        return this.assignPatternSameIconMap.getOrDefault(icon, icon);
+    }
+
+    private int resolveAssignPatternBet(int icon, int count) {
+        Map<Integer, BaseElementRewardCfg> rewardCfgMap = this.assignPatternRewardCfgMap.get(icon);
+        if (CollectionUtil.isEmpty(rewardCfgMap)) {
+            return 1;
+        }
+        BaseElementRewardCfg rewardCfg = rewardCfgMap.get(count);
+        return rewardCfg == null ? 1 : rewardCfg.getBet();
     }
 
     /**
@@ -1020,7 +1230,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 if (num == null || num < betTime.get(1)) {
                     continue;
                 }
-                addTimes += betTime.get(2);
+                return betTime.get(2);
             }
         }
         return addTimes;
@@ -1357,6 +1567,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             return;
         }
         this.baseElementRewardCfgMap = tmpBaseElementRewardCfgMap;
+        reloadAssignPatternConfig();
     }
 
     /**

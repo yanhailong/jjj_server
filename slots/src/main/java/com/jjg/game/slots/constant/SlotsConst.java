@@ -156,6 +156,9 @@ public class SlotsConst {
         public static final int LINE_TYPE_FULL_COUNT = 5;
         //连线_分散 只统计这条线上的图标个数,不论是否相连
         public static final int LINE_TYPE_DISPERSE = 6;
+        //扩散相连
+        public static final int LINE_TYPE_DISTRIBUTED_CONNECTION = 7;
+
     }
 
     public class BaseInit {

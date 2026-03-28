@@ -138,7 +138,7 @@ public class WolfMoonSendMessageManager extends BaseSendMessageManager {
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
-
+            res.currentMultiplier = gameRunInfo.getCurrentMultiplier();
             WolfMoonResultLib lib = (WolfMoonResultLib) gameRunInfo.getResultLib();
 
             res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData());
