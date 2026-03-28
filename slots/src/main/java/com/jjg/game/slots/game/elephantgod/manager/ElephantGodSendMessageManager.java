@@ -125,6 +125,8 @@ public class ElephantGodSendMessageManager extends BaseSendMessageManager {
             res.allWinGold = gameRunInfo.getAllWinGold();
             //当前状态
             res.status = gameRunInfo.getStatus();
+            //免费游戏中累计获得金币
+            res.totalWinGold = gameRunInfo.getFreeModeTotalReward();
             //图标信息
             res.iconList = Arrays.stream(gameRunInfo.getIconArr(), 1, gameRunInfo.getIconArr().length).boxed().collect(Collectors.toList());
             //剩余免费次数

@@ -9,6 +9,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.ploy.constant.PloyConstant;
 import com.jjg.game.ploy.constant.PloyGameType;
+import com.jjg.game.ploy.controller.AbstractPloyController;
 import com.jjg.game.ploy.pb.ReqPloyBet;
 import com.jjg.game.ploy.pb.ReqPloyEnterGame;
 import org.slf4j.Logger;
@@ -34,7 +35,6 @@ public class PloyMessageHandler implements GmListener {
     public void reqPloyEnterGame(PlayerController playerController, ReqPloyEnterGame req) {
         try {
             PloyGameType ployGameType = PloyGameType.fromType(req.gameType);
-            System.out.println(ployGameType);
             if (ployGameType == null || ployGameType.getController() == null || req.roomCfgId < 1) {
                 log.warn("未找到对应的游戏类型，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
                 return;
@@ -54,12 +54,12 @@ public class PloyMessageHandler implements GmListener {
      */
     @Command(PloyConstant.MsgBean.REQ_PLOY_BET)
     public void reqPloyBet(PlayerController playerController, ReqPloyBet req) {
-        PloyGameType ployGameType = PloyGameType.fromType(playerController.getPlayer().getGameType());
-        if (ployGameType == null || ployGameType.getController() == null) {
-            log.warn("未找到对应的游戏类型，下注失败 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
-            return;
+        Object subScene = playerController.getSubScene();
+        if (subScene instanceof AbstractPloyController<?> ployController) {
+            ployController.bet(playerController, req.bet, req.value);
+        } else {
+            log.warn("未找到playerController的 subScene，下注失败 playerId = {},subScene = {}", playerController.playerId(), subScene);
         }
-        playerController.send(ployGameType.getController().bet(playerController, req.value));
     }
 
     @Override
@@ -84,7 +84,7 @@ public class PloyMessageHandler implements GmListener {
                 }
 
                 ReqPloyBet req = new ReqPloyBet();
-                req.value = betValue;
+                req.bet = betValue;
                 reqPloyBet(playerController, req);
                 res.code = Code.SUCCESS;
             } else {

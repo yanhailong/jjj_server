@@ -184,6 +184,11 @@ public interface MessageConst {
         int PLOY_COMMON = 0x49;
         //鸿运扑克
         int PLOY_LUCKY_POKER = 0x4A;
+
+        //糖果派对
+        int CANDY_PARTY = 0x4B;
+        //空袭
+        int PLOY_AIR_RAID = 0x4C;
     }
 
     interface ToClientConst {

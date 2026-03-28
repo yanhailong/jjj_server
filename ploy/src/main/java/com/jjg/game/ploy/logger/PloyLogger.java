@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
 import com.jjg.game.ploy.data.PlayerPloyGameData;
+import com.jjg.game.ploy.games.airraid.data.AirRaidPlayerPloyGameData;
 import com.jjg.game.ploy.games.luckypoker.data.LuckyPokerPlayerPloyGameData;
 import com.jjg.game.ploy.games.luckypoker.utils.LuckyPokerUtils;
 import org.springframework.stereotype.Component;
@@ -40,6 +41,25 @@ public class PloyLogger extends BaseLogger {
             json.put("firstCards", LuckyPokerUtils.card2Ids(gameData.getFirstCardList()));
             json.put("finalCards", LuckyPokerUtils.card2Ids(gameData.getFinalCardList()));
             json.put("winTimes", gameData.getWinTimes());
+            sendLog("ploygame", player, json);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 空袭
+     */
+    public void airRaid(Player player, AirRaidPlayerPloyGameData gameData,
+                        long betAmount, int crashMultiplier, int cashOutMultiplier,
+                        long winAmount, boolean cashedOut) {
+        try {
+            JSONObject json = buildBaseInfo(gameData);
+            json.put("betAmount", betAmount);
+            json.put("crashMultiplier", crashMultiplier);
+            json.put("cashOutMultiplier", cashOutMultiplier);
+            json.put("winAmount", winAmount);
+            json.put("cashedOut", cashedOut);
             sendLog("ploygame", player, json);
         } catch (Exception e) {
             log.error("", e);

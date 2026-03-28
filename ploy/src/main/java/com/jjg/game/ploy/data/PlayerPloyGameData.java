@@ -39,6 +39,10 @@ public class PlayerPloyGameData {
     protected int winTimes;
     //最近一次的poolResultLib表的id
     protected int poolResultLibCfgId;
+    //最近一次活跃时间
+    @Transient
+    @JsonIgnore
+    protected transient long lastActiveTime;
     //@Field(targetType = FieldType.DECIMAL128)
     //private BigDecimal amount;
 
@@ -120,6 +124,14 @@ public class PlayerPloyGameData {
 
     public void setWinTimes(int winTimes) {
         this.winTimes = winTimes;
+    }
+
+    public long getLastActiveTime() {
+        return lastActiveTime;
+    }
+
+    public void setLastActiveTime(long lastActiveTime) {
+        this.lastActiveTime = lastActiveTime;
     }
 
     public long playerId() {
