@@ -121,6 +121,7 @@ public class GameDataManager {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
     containerMap.put(ActivityConfigCfg.class, new ActivityConfigCfgContainer());
+    containerMap.put(AirRaidCfg.class, new AirRaidCfgContainer());
     containerMap.put(AlbumCfg.class, new AlbumCfgContainer());
     containerMap.put(AuxiliaryAwardCfg.class, new AuxiliaryAwardCfgContainer());
     containerMap.put(AvatarCfg.class, new AvatarCfgContainer());
@@ -140,6 +141,7 @@ public class GameDataManager {
     containerMap.put(ChessJackStrategyCfg.class, new ChessJackStrategyCfgContainer());
     containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
     containerMap.put(ChessTexasStrategyCfg.class, new ChessTexasStrategyCfgContainer());
+    containerMap.put(ComingSoonCfg.class, new ComingSoonCfgContainer());
     containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
     containerMap.put(ContinuouschargingCfg.class, new ContinuouschargingCfgContainer());
     containerMap.put(CumulativebenefitsCfg.class, new CumulativebenefitsCfgContainer());
@@ -638,6 +640,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(ActivityConfigCfg.class).getCfgBeanList();
   }
 
+  public static AirRaidCfg getAirRaidCfg(int key) {
+    return getInstance().getCfgContainer(AirRaidCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, AirRaidCfg> getAirRaidCfgMap() {
+    return getInstance().getCfgContainer(AirRaidCfg.class).getCfgBeanMap();
+  }
+
+  public static List<AirRaidCfg> getAirRaidCfgList() {
+    return getInstance().getCfgContainer(AirRaidCfg.class).getCfgBeanList();
+  }
+
   public static AlbumCfg getAlbumCfg(int key) {
     return getInstance().getCfgContainer(AlbumCfg.class).getCfgBeanMap().get(key);
   }
@@ -864,6 +878,18 @@ public class GameDataManager {
 
   public static List<ChessTexasStrategyCfg> getChessTexasStrategyCfgList() {
     return getInstance().getCfgContainer(ChessTexasStrategyCfg.class).getCfgBeanList();
+  }
+
+  public static ComingSoonCfg getComingSoonCfg(int key) {
+    return getInstance().getCfgContainer(ComingSoonCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ComingSoonCfg> getComingSoonCfgMap() {
+    return getInstance().getCfgContainer(ComingSoonCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ComingSoonCfg> getComingSoonCfgList() {
+    return getInstance().getCfgContainer(ComingSoonCfg.class).getCfgBeanList();
   }
 
   public static ConditionCfg getConditionCfg(int key) {

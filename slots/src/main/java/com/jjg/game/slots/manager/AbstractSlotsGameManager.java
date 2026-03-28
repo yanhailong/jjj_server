@@ -335,7 +335,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (gameData.getStatus() == freeStatus && (gameData.getFreeLib() == null || remainFreeCount == null || remainFreeCount.get() <= 0)) {
             gameData.setStatus(normalStatus);
             resetFreeState(gameData);
-            log.info("{}玩家状态异常，重置为正常状态,状态为{}, playerId = {}", gameName, gameData.getStatus(), gameData.playerId());
+            log.info("{}玩家状态异常，重置为正常状态,状态为{}, playerId = {}", gameName, gameData.getStatus(), gameData.getPlayerId());
         }
     }
 
@@ -383,7 +383,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         L resultLib = libResult.data.getFirst();
         if (resultLib == null) {
-            log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.playerId(), this.gameType, betValue);
+            log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.getPlayerId(), this.gameType, betValue);
             gameRunInfo.setCode(Code.FAIL);
             return gameRunInfo;
         }
