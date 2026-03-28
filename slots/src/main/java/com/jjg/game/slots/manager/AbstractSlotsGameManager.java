@@ -1205,7 +1205,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (this.gameUpdatePoolEvent == e) {
             gameUpdatePool();
         } else if (this.clearAllLibEvent == e) {
-            getResultLibDao().clearRedisLib(this.gameType);
+            getResultLibDao().clearOldRedisLib(this.gameType);
             this.clearAllLibEvent = null;
             getResultLibDao().removeGenerateLock(this.gameType);
         }
