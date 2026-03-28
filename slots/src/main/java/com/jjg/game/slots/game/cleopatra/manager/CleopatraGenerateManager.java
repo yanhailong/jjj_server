@@ -383,6 +383,7 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
         }
 
         this.baseElementRewardCfgMap = tmpBaseElementRewardCfgMap;
+        reloadAssignPatternConfig();
         this.iconBaseScoreMap = tmpIconBaseScoreMap;
     }
 

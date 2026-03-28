@@ -976,12 +976,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 获取 specialResultLib 中的type
      *
-     * @param gameType
+     * @param playerGameData
      * @param modelId
      * @return
      */
-    protected CommonResult<Integer> getResultLibType(int gameType, int modelId, RoomType roomType) {
+    protected CommonResult<Integer> getResultLibType(T playerGameData, int modelId, RoomType roomType) {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
+        int gameType = playerGameData.getGameType();
         PropInfo propInfo;
         if (roomType == null) {
             propInfo = getGenerateManager().getSpecialResultLibCacheData().getResultLibTypePropInfoMap().get(modelId);
@@ -1989,7 +1990,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //如果gm中没有设置 libType，则需要根据配置获取 libType
             if (!gmLibType && libType <= 1) {
                 //获取 specialResultLib 中的type
-                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId(), playerGameData.getRoomType());
+                CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData, libCfgResult.data.getModelId(), playerGameData.getRoomType());
                 if (!resultLibTypeResult.success()) {
                     result.code = resultLibTypeResult.code;
                     return result;
