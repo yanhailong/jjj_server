@@ -9,16 +9,12 @@ import java.util.List;
 /**
  * AirRaid.xlsx配置管理容器
  *
- * @author auto_generator
  * @excelName AirRaid.xlsx
  * @sheetName AirRaid
+ * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class AirRaidCfgContainer extends BaseCfgContainer<AirRaidCfg> {
-
-    public AirRaidCfgContainer() {
-        super();
-    }
 
     @Override
     public boolean hasRelatedTable() {
@@ -33,6 +29,10 @@ public class AirRaidCfgContainer extends BaseCfgContainer<AirRaidCfg> {
     @Override
     public AirRaidCfgContainer getNewContainer() {
         return new AirRaidCfgContainer();
+    }
+
+    public AirRaidCfgContainer() {
+        super();
     }
 
     @Override

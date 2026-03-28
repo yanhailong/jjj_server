@@ -11,56 +11,38 @@ import javax.annotation.processing.Generated;
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class ComingSoonCfg extends BaseCfgBean {
 
-  /**
-   * 配置表名
-   */
+    /**
+     * 配置表名
+     */
   public static final String EXCEL_NAME = "ComingSoon.xlsx";
-  /**
-   * 配置表工作薄名
-   */
+    /** 配置表工作薄名 */
   public static final String SHEET_NAME = "ComingSoon";
 
-  /**
-   * 是否显示
-   */
+    /** 是否显示 */
   protected boolean display;
-  /**
-   * 游戏名称多语言
-   */
+    /** 游戏名称多语言 */
   protected int name;
-  /**
-   * 游戏图片资源名
-   */
+    /** 游戏图片资源名 */
   protected String picture;
-  /**
-   * 描述多语言ID
-   */
+    /** 描述多语言ID */
   protected int text;
 
-  /**
-   * 返回是否显示
-   */
+    /** 返回是否显示 */
   public boolean getDisplay() {
     return display;
   }
 
-  /**
-   * 返回游戏名称多语言
-   */
+    /** 返回游戏名称多语言 */
   public int getName() {
     return name;
   }
 
-  /**
-   * 返回游戏图片资源名
-   */
+    /** 返回游戏图片资源名 */
   public String getPicture() {
     return picture;
   }
 
-  /**
-   * 返回描述多语言ID
-   */
+    /** 返回描述多语言ID */
   public int getText() {
     return text;
   }
