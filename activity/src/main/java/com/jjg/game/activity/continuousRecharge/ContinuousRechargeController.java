@@ -1390,10 +1390,10 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         }
 
         Map<Integer, CumulativebenefitsCfg> map = new HashMap<>();
-        for (Map.Entry<Integer, List<CumulativebenefitsCfg>> en : this.welfareDailyCfgMap.entrySet()) {
-            CumulativebenefitsCfg cfg = en.getValue().get(index);
-            map.put(cfg.getId(), cfg);
-        }
+//        for (Map.Entry<Integer, List<CumulativebenefitsCfg>> en : this.welfareDailyCfgMap.entrySet()) {
+//            CumulativebenefitsCfg cfg = en.getValue().get(index);
+//            map.put(cfg.getId(), cfg);
+//        }
         return map;
     }
 
