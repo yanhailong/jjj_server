@@ -1101,22 +1101,24 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
     /**
      * 踢出未准备的玩家
-     * 1. 先广播离开状态给其他真人
-     * 2. 通知被踢玩家退出（在线才发）
-     * 3. 服务端调用 exitRoom 真正移除房间数据（必须执行，否则玩家会卡在房间）
+     * 1. 通知被踢玩家退出到大厅（必须在 exitRoom 之前，exitRoom 会清理 GamePlayer 导致无法广播）
+     * 2. 调用 exitRoom(PlayerController) 退出 → 内部自动触发 onPlayerLeaveRoomAction
+     *    （清准备状态、递增版本号、清续局、广播 playerStatus=false 给其他真人）
      */
     public void kickUnreadyPlayer(long playerId) {
-        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-        RoomPlayer roomPlayer = roomController.getRoomPlayer(playerId);
-        if (roomPlayer == null || roomPlayer.isOnline()) {
-            NotifyExitRoom exitNotify = new NotifyExitRoom();
-            exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
-            NotifyExitRoom notify = BaseRoomMessageBuilder.buildNotifyExitRoom(exitNotify.langId);
-            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+        // 1. 通知被踢玩家退出到大厅
+        NotifyExitRoom notify = BaseRoomMessageBuilder.buildNotifyExitRoom(gameDataVo.getRoomCfg().getEscTipText());
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+        PlayerController pc = getRoomController().getPlayerController(playerId);
+        if (pc != null) {
+            int result = getRoomController().getRoomManager().exitRoom(pc);
+            if (result == Code.SUCCESS) {
+                log.info("玩家 {} 因未准备，已踢出房间", playerId);
+            } else {
+                log.error("玩家 {} 踢出房间失败 code:{}", playerId, result);
+            }
         } else {
-            roomController.getRoomManager().exitRoom(playerId);
-            //退出日志
-            gameDataTracker.sendExitGameLog(gamePlayer);
+            log.error("玩家 {} PlayerController为空，无法正常退出", playerId);
         }
     }
 
