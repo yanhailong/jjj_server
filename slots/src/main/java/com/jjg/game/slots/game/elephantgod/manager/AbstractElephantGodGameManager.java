@@ -124,7 +124,7 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
     @Override
     protected ElephantGodGameRunInfo normal(ElephantGodGameRunInfo gameRunInfo, ElephantGodPlayerGameData playerGameData, long betValue, ElephantGodResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
-        if (resultLib.getLibTypeSet().contains(ElephantGodConstant.Status.FREE)) {  //是否会触发免费
+        if (resultLib.getLibTypeSet().contains(ElephantGodConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(ElephantGodConstant.Status.FREE);
             playerGameData.setFreeLib(resultLib);
             if (CollectionUtil.isNotEmpty(resultLib.getSpecialAuxiliaryInfoList())) {
