@@ -38,9 +38,9 @@ public class RobotActionCfg extends BaseCfgBean {
   protected List<Integer> continueAfterFail;
   /** 胜利后行为概率,准备概率_展示牌型 */
   protected List<Integer> continueAfterVictory;
-    /**
-     * 每次延迟行为时间
-     */
+  /**
+   * 每次延迟行为时间
+   */
   protected List<List<Integer>> delayTime;
   /** 游戏ID */
   protected int gameID;
@@ -99,7 +99,7 @@ public class RobotActionCfg extends BaseCfgBean {
     return continueAfterVictory;
   }
 
-    /** 返回每次延迟行为时间 */
+  /** 返回每次延迟行为时间 */
   public List<List<Integer>> getDelayTime() {
     return delayTime;
   }
