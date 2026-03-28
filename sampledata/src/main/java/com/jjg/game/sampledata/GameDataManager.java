@@ -1,24 +1,38 @@
 package com.jjg.game.sampledata;
 
-import com.jjg.game.sampledata.bean.*;
-import com.jjg.game.sampledata.container.*;
-import com.jjg.game.sampledata.container.BaseCfgContainer.ContainerExceptionBlocker;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.processing.Generated;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.*;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+// =================== 模板开始 ===================
+import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.container.*;
+// =================== 模板结束 ===================
+import com.jjg.game.sampledata.container.BaseCfgContainer.ContainerExceptionBlocker;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import javax.annotation.processing.Generated;
 
 /**
  * 游戏数据管理器
@@ -38,7 +52,7 @@ public class GameDataManager {
   private static final IContainerEachLoadListener DEFAULT_LISTENER;
 
   /** 管理器是否加载所有配置成功 */
-  private boolean loadAllFinished = false;
+  private volatile boolean loadAllFinished = false;
 
   static {
     DEFAULT_LISTENER =
@@ -98,8 +112,99 @@ public class GameDataManager {
     return getInstance().loadDataByChangeFileList(resourcePath, changedFileList);
   }
 
-  public static AirRaidCfg getAirRaidCfg(int key) {
-    return getInstance().getCfgContainer(AirRaidCfg.class).getCfgBeanMap().get(key);
+  /**
+   * 初始化所有容器, 如果配置表过多时可考虑使用反射实现
+   *
+   * @return 容器map
+   */
+  public Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> initAllContainer() {
+    Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
+    // region===============cfg加载模板开始===================
+    containerMap.put(ActivityConfigCfg.class, new ActivityConfigCfgContainer());
+    containerMap.put(AirRaidCfg.class, new AirRaidCfgContainer());
+    containerMap.put(AlbumCfg.class, new AlbumCfgContainer());
+    containerMap.put(AuxiliaryAwardCfg.class, new AuxiliaryAwardCfgContainer());
+    containerMap.put(AvatarCfg.class, new AvatarCfgContainer());
+    containerMap.put(BaseElementCfg.class, new BaseElementCfgContainer());
+    containerMap.put(BaseElementRewardCfg.class, new BaseElementRewardCfgContainer());
+    containerMap.put(BaseInitCfg.class, new BaseInitCfgContainer());
+    containerMap.put(BaseLineCfg.class, new BaseLineCfgContainer());
+    containerMap.put(BaseRollerCfg.class, new BaseRollerCfgContainer());
+    containerMap.put(BaseRoomCfg.class, new BaseRoomCfgContainer());
+    containerMap.put(BetAreaCfg.class, new BetAreaCfgContainer());
+    containerMap.put(BetRobotCfg.class, new BetRobotCfgContainer());
+    containerMap.put(BlackjackCfg.class, new BlackjackCfgContainer());
+    containerMap.put(BuildingFloorCfg.class, new BuildingFloorCfgContainer());
+    containerMap.put(BuildingFunctionCfg.class, new BuildingFunctionCfgContainer());
+    containerMap.put(BuildingGainCfg.class, new BuildingGainCfgContainer());
+    containerMap.put(CashcowCfg.class, new CashcowCfgContainer());
+    containerMap.put(ChessJackStrategyCfg.class, new ChessJackStrategyCfgContainer());
+    containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
+    containerMap.put(ChessTexasStrategyCfg.class, new ChessTexasStrategyCfgContainer());
+    containerMap.put(ComingSoonCfg.class, new ComingSoonCfgContainer());
+    containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
+    containerMap.put(ContinuouschargingCfg.class, new ContinuouschargingCfgContainer());
+    containerMap.put(CumulativebenefitsCfg.class, new CumulativebenefitsCfgContainer());
+    containerMap.put(DailyRechargeCfg.class, new DailyRechargeCfgContainer());
+    containerMap.put(DailyRewardsCfg.class, new DailyRewardsCfgContainer());
+    containerMap.put(DealerFunctionCfg.class, new DealerFunctionCfgContainer());
+    containerMap.put(DropConfigCfg.class, new DropConfigCfgContainer());
+    containerMap.put(DropDetailedCfg.class, new DropDetailedCfgContainer());
+    containerMap.put(DropGroupCfg.class, new DropGroupCfgContainer());
+    containerMap.put(FirstpaymentCfg.class, new FirstpaymentCfgContainer());
+    containerMap.put(GameFunctionCfg.class, new GameFunctionCfgContainer());
+    containerMap.put(GameListCfg.class, new GameListCfgContainer());
+    containerMap.put(GiftPackCfg.class, new GiftPackCfgContainer());
+    containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
+    containerMap.put(GrowthFundCfg.class, new GrowthFundCfgContainer());
+    containerMap.put(IponeAreacodeConfigCfg.class, new IponeAreacodeConfigCfgContainer());
+    containerMap.put(ItemCfg.class, new ItemCfgContainer());
+    containerMap.put(LoginConfigCfg.class, new LoginConfigCfgContainer());
+    containerMap.put(MGLuckyTreasureCfg.class, new MGLuckyTreasureCfgContainer());
+    containerMap.put(MailCfg.class, new MailCfgContainer());
+    containerMap.put(MiniGameCfg.class, new MiniGameCfgContainer());
+    containerMap.put(MiniGameListCfg.class, new MiniGameListCfgContainer());
+    containerMap.put(OfficialAwardsCfg.class, new OfficialAwardsCfgContainer());
+    containerMap.put(PiggyBankCfg.class, new PiggyBankCfgContainer());
+    containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
+    containerMap.put(PlayerLevelPackCfg.class, new PlayerLevelPackCfgContainer());
+    containerMap.put(PloygameRoomCfg.class, new PloygameRoomCfgContainer());
+    containerMap.put(PointsAwardRankingCfg.class, new PointsAwardRankingCfgContainer());
+    containerMap.put(PointsAwardRobotCfg.class, new PointsAwardRobotCfgContainer());
+    containerMap.put(PointsAwardSigninCfg.class, new PointsAwardSigninCfgContainer());
+    containerMap.put(PointsAwardTurntableCfg.class, new PointsAwardTurntableCfgContainer());
+    containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
+    containerMap.put(PoolCfg.class, new PoolCfgContainer());
+    containerMap.put(PoolResultLibCfg.class, new PoolResultLibCfgContainer());
+    containerMap.put(PopUpConfigCfg.class, new PopUpConfigCfgContainer());
+    containerMap.put(PopUpGetWayCfg.class, new PopUpGetWayCfgContainer());
+    containerMap.put(PrivilegeCardCfg.class, new PrivilegeCardCfgContainer());
+    containerMap.put(RobotActionCfg.class, new RobotActionCfgContainer());
+    containerMap.put(RobotCfg.class, new RobotCfgContainer());
+    containerMap.put(RoomCfg.class, new RoomCfgContainer());
+    containerMap.put(RoomExpendCfg.class, new RoomExpendCfgContainer());
+    containerMap.put(Room_BetCfg.class, new Room_BetCfgContainer());
+    containerMap.put(Room_ChessCfg.class, new Room_ChessCfgContainer());
+    containerMap.put(RouletteShopCfg.class, new RouletteShopCfgContainer());
+    containerMap.put(ScratchCardsCfg.class, new ScratchCardsCfgContainer());
+    containerMap.put(SharePromoteCfg.class, new SharePromoteCfgContainer());
+    containerMap.put(SouthernMoneyCfg.class, new SouthernMoneyCfgContainer());
+    containerMap.put(SpecialAuxiliaryCfg.class, new SpecialAuxiliaryCfgContainer());
+    containerMap.put(SpecialGirdCfg.class, new SpecialGirdCfgContainer());
+    containerMap.put(SpecialModeCfg.class, new SpecialModeCfgContainer());
+    containerMap.put(SpecialPlayCfg.class, new SpecialPlayCfgContainer());
+    containerMap.put(SpecialResultLibCfg.class, new SpecialResultLibCfgContainer());
+    containerMap.put(StatusCfg.class, new StatusCfgContainer());
+    containerMap.put(TaskCfg.class, new TaskCfgContainer());
+    containerMap.put(TexasCfg.class, new TexasCfgContainer());
+    containerMap.put(UndergarmentCfg.class, new UndergarmentCfgContainer());
+    containerMap.put(UpcomingMobileGameCfg.class, new UpcomingMobileGameCfgContainer());
+    containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
+    containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
+    containerMap.put(WealthRouletteRewardCfg.class, new WealthRouletteRewardCfgContainer());
+    containerMap.put(WinPosWeightCfg.class, new WinPosWeightCfgContainer());
+    // endregion===============cfg加载模板结束===================
+    return containerMap;
   }
 
   /** 加载每个数据时的数据监听器 */
@@ -535,8 +640,8 @@ public class GameDataManager {
     return getInstance().getCfgContainer(ActivityConfigCfg.class).getCfgBeanList();
   }
 
-  public static ComingSoonCfg getComingSoonCfg(int key) {
-    return getInstance().getCfgContainer(ComingSoonCfg.class).getCfgBeanMap().get(key);
+  public static AirRaidCfg getAirRaidCfg(int key) {
+    return getInstance().getCfgContainer(AirRaidCfg.class).getCfgBeanMap().get(key);
   }
 
   public static Map<Integer, AirRaidCfg> getAirRaidCfgMap() {
@@ -775,8 +880,8 @@ public class GameDataManager {
     return getInstance().getCfgContainer(ChessTexasStrategyCfg.class).getCfgBeanList();
   }
 
-  public static void main(String[] args) throws Exception {
-    loadAllData("D:\\java\\gamedoc\\游戏配置表");
+  public static ComingSoonCfg getComingSoonCfg(int key) {
+    return getInstance().getCfgContainer(ComingSoonCfg.class).getCfgBeanMap().get(key);
   }
 
   public static Map<Integer, ComingSoonCfg> getComingSoonCfgMap() {
@@ -1546,98 +1651,7 @@ public class GameDataManager {
     }
   }
 
-  /**
-   * 初始化所有容器, 如果配置表过多时可考虑使用反射实现
-   *
-   * @return 容器map
-   */
-  public Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> initAllContainer() {
-    Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
-    // region===============cfg加载模板开始===================
-    containerMap.put(ActivityConfigCfg.class, new ActivityConfigCfgContainer());
-    containerMap.put(AirRaidCfg.class, new AirRaidCfgContainer());
-    containerMap.put(AlbumCfg.class, new AlbumCfgContainer());
-    containerMap.put(AuxiliaryAwardCfg.class, new AuxiliaryAwardCfgContainer());
-    containerMap.put(AvatarCfg.class, new AvatarCfgContainer());
-    containerMap.put(BaseElementCfg.class, new BaseElementCfgContainer());
-    containerMap.put(BaseElementRewardCfg.class, new BaseElementRewardCfgContainer());
-    containerMap.put(BaseInitCfg.class, new BaseInitCfgContainer());
-    containerMap.put(BaseLineCfg.class, new BaseLineCfgContainer());
-    containerMap.put(BaseRollerCfg.class, new BaseRollerCfgContainer());
-    containerMap.put(BaseRoomCfg.class, new BaseRoomCfgContainer());
-    containerMap.put(BetAreaCfg.class, new BetAreaCfgContainer());
-    containerMap.put(BetRobotCfg.class, new BetRobotCfgContainer());
-    containerMap.put(BlackjackCfg.class, new BlackjackCfgContainer());
-    containerMap.put(BuildingFloorCfg.class, new BuildingFloorCfgContainer());
-    containerMap.put(BuildingFunctionCfg.class, new BuildingFunctionCfgContainer());
-    containerMap.put(BuildingGainCfg.class, new BuildingGainCfgContainer());
-    containerMap.put(CashcowCfg.class, new CashcowCfgContainer());
-    containerMap.put(ChessJackStrategyCfg.class, new ChessJackStrategyCfgContainer());
-    containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
-    containerMap.put(ChessTexasStrategyCfg.class, new ChessTexasStrategyCfgContainer());
-    containerMap.put(ComingSoonCfg.class, new ComingSoonCfgContainer());
-    containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
-    containerMap.put(ContinuouschargingCfg.class, new ContinuouschargingCfgContainer());
-    containerMap.put(CumulativebenefitsCfg.class, new CumulativebenefitsCfgContainer());
-    containerMap.put(DailyRechargeCfg.class, new DailyRechargeCfgContainer());
-    containerMap.put(DailyRewardsCfg.class, new DailyRewardsCfgContainer());
-    containerMap.put(DealerFunctionCfg.class, new DealerFunctionCfgContainer());
-    containerMap.put(DropConfigCfg.class, new DropConfigCfgContainer());
-    containerMap.put(DropDetailedCfg.class, new DropDetailedCfgContainer());
-    containerMap.put(DropGroupCfg.class, new DropGroupCfgContainer());
-    containerMap.put(FirstpaymentCfg.class, new FirstpaymentCfgContainer());
-    containerMap.put(GameFunctionCfg.class, new GameFunctionCfgContainer());
-    containerMap.put(GameListCfg.class, new GameListCfgContainer());
-    containerMap.put(GiftPackCfg.class, new GiftPackCfgContainer());
-    containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
-    containerMap.put(GrowthFundCfg.class, new GrowthFundCfgContainer());
-    containerMap.put(IponeAreacodeConfigCfg.class, new IponeAreacodeConfigCfgContainer());
-    containerMap.put(ItemCfg.class, new ItemCfgContainer());
-    containerMap.put(LoginConfigCfg.class, new LoginConfigCfgContainer());
-    containerMap.put(MGLuckyTreasureCfg.class, new MGLuckyTreasureCfgContainer());
-    containerMap.put(MailCfg.class, new MailCfgContainer());
-    containerMap.put(MiniGameCfg.class, new MiniGameCfgContainer());
-    containerMap.put(MiniGameListCfg.class, new MiniGameListCfgContainer());
-    containerMap.put(OfficialAwardsCfg.class, new OfficialAwardsCfgContainer());
-    containerMap.put(PiggyBankCfg.class, new PiggyBankCfgContainer());
-    containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
-    containerMap.put(PlayerLevelPackCfg.class, new PlayerLevelPackCfgContainer());
-    containerMap.put(PloygameRoomCfg.class, new PloygameRoomCfgContainer());
-    containerMap.put(PointsAwardRankingCfg.class, new PointsAwardRankingCfgContainer());
-    containerMap.put(PointsAwardRobotCfg.class, new PointsAwardRobotCfgContainer());
-    containerMap.put(PointsAwardSigninCfg.class, new PointsAwardSigninCfgContainer());
-    containerMap.put(PointsAwardTurntableCfg.class, new PointsAwardTurntableCfgContainer());
-    containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
-    containerMap.put(PoolCfg.class, new PoolCfgContainer());
-    containerMap.put(PoolResultLibCfg.class, new PoolResultLibCfgContainer());
-    containerMap.put(PopUpConfigCfg.class, new PopUpConfigCfgContainer());
-    containerMap.put(PopUpGetWayCfg.class, new PopUpGetWayCfgContainer());
-    containerMap.put(PrivilegeCardCfg.class, new PrivilegeCardCfgContainer());
-    containerMap.put(RobotActionCfg.class, new RobotActionCfgContainer());
-    containerMap.put(RobotCfg.class, new RobotCfgContainer());
-    containerMap.put(RoomCfg.class, new RoomCfgContainer());
-    containerMap.put(RoomExpendCfg.class, new RoomExpendCfgContainer());
-    containerMap.put(Room_BetCfg.class, new Room_BetCfgContainer());
-    containerMap.put(Room_ChessCfg.class, new Room_ChessCfgContainer());
-    containerMap.put(RouletteShopCfg.class, new RouletteShopCfgContainer());
-    containerMap.put(ScratchCardsCfg.class, new ScratchCardsCfgContainer());
-    containerMap.put(SharePromoteCfg.class, new SharePromoteCfgContainer());
-    containerMap.put(SouthernMoneyCfg.class, new SouthernMoneyCfgContainer());
-    containerMap.put(SpecialAuxiliaryCfg.class, new SpecialAuxiliaryCfgContainer());
-    containerMap.put(SpecialGirdCfg.class, new SpecialGirdCfgContainer());
-    containerMap.put(SpecialModeCfg.class, new SpecialModeCfgContainer());
-    containerMap.put(SpecialPlayCfg.class, new SpecialPlayCfgContainer());
-    containerMap.put(SpecialResultLibCfg.class, new SpecialResultLibCfgContainer());
-    containerMap.put(StatusCfg.class, new StatusCfgContainer());
-    containerMap.put(TaskCfg.class, new TaskCfgContainer());
-    containerMap.put(TexasCfg.class, new TexasCfgContainer());
-    containerMap.put(UndergarmentCfg.class, new UndergarmentCfgContainer());
-    containerMap.put(UpcomingMobileGameCfg.class, new UpcomingMobileGameCfgContainer());
-    containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
-    containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
-    containerMap.put(WealthRouletteRewardCfg.class, new WealthRouletteRewardCfgContainer());
-    containerMap.put(WinPosWeightCfg.class, new WinPosWeightCfgContainer());
-    // endregion===============cfg加载模板结束===================
-    return containerMap;
+  public static void main(String[] args) throws Exception {
+    loadAllData("D:\\workspace\\number\\gamedoc-master\\gamedoc\\游戏配置表");
   }
 }
