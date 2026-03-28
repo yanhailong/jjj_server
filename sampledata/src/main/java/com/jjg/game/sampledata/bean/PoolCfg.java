@@ -25,9 +25,9 @@ public class PoolCfg extends BaseCfgBean {
   protected int fakePoolMax;
   /** 循环的假奖池增长速率 */
   protected List<Integer> growthRate;
-  /**
-   * 间隔时间
-   */
+    /**
+     * 间隔时间
+     */
   protected int min;
   /** 奖池系数 */
   protected int poolProp;

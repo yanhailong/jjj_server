@@ -535,16 +535,16 @@ public class GameDataManager {
     return getInstance().getCfgContainer(ActivityConfigCfg.class).getCfgBeanList();
   }
 
+  public static ComingSoonCfg getComingSoonCfg(int key) {
+    return getInstance().getCfgContainer(ComingSoonCfg.class).getCfgBeanMap().get(key);
+  }
+
   public static Map<Integer, AirRaidCfg> getAirRaidCfgMap() {
     return getInstance().getCfgContainer(AirRaidCfg.class).getCfgBeanMap();
   }
 
   public static List<AirRaidCfg> getAirRaidCfgList() {
     return getInstance().getCfgContainer(AirRaidCfg.class).getCfgBeanList();
-  }
-
-  public static ComingSoonCfg getComingSoonCfg(int key) {
-    return getInstance().getCfgContainer(ComingSoonCfg.class).getCfgBeanMap().get(key);
   }
 
   public static AlbumCfg getAlbumCfg(int key) {
