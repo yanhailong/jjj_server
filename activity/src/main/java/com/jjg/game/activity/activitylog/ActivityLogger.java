@@ -624,7 +624,7 @@ public class ActivityLogger extends BaseLogger {
                 for (CumulativebenefitsCfg cfg : todayWelfareCfgMap.values()) {
                     JSONObject tmpJson = new JSONObject();
                     //条件
-                    tmpJson.put("condition", cfg.getCondition());
+//                    tmpJson.put("condition", cfg.getCondition());
                     //是否已领取
                     tmpJson.put("rece", data.checkReceWefarDailyRewards(cfg.getId()));
                     jsonArray.add(tmpJson);

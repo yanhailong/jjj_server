@@ -402,16 +402,16 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                     continue;
                 }
 
-                long target = cfg.getCondition();
-                if (data.getDailyWelfareData().getRechargeNum().longValue() >= target) {
-                    send = true;
-                    // 达标但未领取，通过邮件补发
-                    mailService.addCfgMail(player.getId(), ActivityConstant.ContinuousRecharge.WELFARE_DAILY_MAIL_ID, ItemUtils.buildItems(cfg.getRewards()), AddType.ACTIVITY_WELFARE_DAILY_REWARD);
-
-                    // 标记已补发，避免重复补发
-                    data.getDailyWelfareData().receReward(cfg.getId());
-                    log.info("累计福利每日任务邮件补发 playerId={}, day={}, cfgId={}, rechargeNum={}", player.getId(), data.getDailyWelfareData().getDate(), cfg.getId(), data.getDailyWelfareData().getRechargeNum());
-                }
+//                long target = cfg.getCondition();
+//                if (data.getDailyWelfareData().getRechargeNum().longValue() >= target) {
+//                    send = true;
+//                    // 达标但未领取，通过邮件补发
+//                    mailService.addCfgMail(player.getId(), ActivityConstant.ContinuousRecharge.WELFARE_DAILY_MAIL_ID, ItemUtils.buildItems(cfg.getRewards()), AddType.ACTIVITY_WELFARE_DAILY_REWARD);
+//
+//                    // 标记已补发，避免重复补发
+//                    data.getDailyWelfareData().receReward(cfg.getId());
+//                    log.info("累计福利每日任务邮件补发 playerId={}, day={}, cfgId={}, rechargeNum={}", player.getId(), data.getDailyWelfareData().getDate(), cfg.getId(), data.getDailyWelfareData().getRechargeNum());
+//                }
             }
 
             if (send) {
@@ -442,16 +442,16 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                 }
 
                 //检查是否达成条件
-                if (monthRecharge < cfg.getCondition()) {
-                    continue;
-                }
+//                if (monthRecharge < cfg.getCondition()) {
+//                    continue;
+//                }
 
                 //检查是否领取
                 if (data.welfarRece(cfg.getId())) {
                     continue;
                 }
                 // 发送邮件
-                mailService.addCfgMail(player.getId(), ActivityConstant.ContinuousRecharge.WELFARE_MONTH_MAIL_ID, ItemUtils.buildItems(cfg.getRewards()), AddType.ACTIVITY_WELFARE_MONTHLY_REWARD);
+//                mailService.addCfgMail(player.getId(), ActivityConstant.ContinuousRecharge.WELFARE_MONTH_MAIL_ID, ItemUtils.buildItems(cfg.getRewards()), AddType.ACTIVITY_WELFARE_MONTHLY_REWARD);
                 // 标记已补发，避免重复补发
                 data.welfareReward(cfg.getId());
                 log.info("福利月奖励邮件补发 playerId={}, cfgId={}, rechargeNum={}", player.getId(), cfg.getId(), monthRecharge);
@@ -805,8 +805,8 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         }
 
         int taskType = cfg.getType();
-        long target = cfg.getCondition();
-        Map<Integer, Long> rewards = cfg.getRewards();
+        long target = 0;
+        Map<Integer, Long> rewards = null;
         int date = getToday();
 
         if (taskType == ActivityConstant.ContinuousRecharge.WELFARE_DAILY_TYPE) {
@@ -1036,8 +1036,8 @@ public class ContinuousRechargeController extends BaseActivityController impleme
             WelfareTaskInfo welfareTaskInfo = new WelfareTaskInfo();
             welfareTaskInfo.cfgId = cfg.getId();
 
-            welfareTaskInfo.target = cfg.getCondition();
-            welfareTaskInfo.rewardItems = ItemUtils.buildItemInfo(cfg.getRewards());
+            welfareTaskInfo.target = 0;
+            welfareTaskInfo.rewardItems = ItemUtils.buildItemInfo(null);
 
             //判断是否可领取
             if (data.getDailyWelfareData() == null) {
@@ -1057,8 +1057,8 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         for (CumulativebenefitsCfg cfg : this.welfareMonthCfgList) {
             WelfareTaskInfo welfareTaskInfo = new WelfareTaskInfo();
             welfareTaskInfo.cfgId = cfg.getId();
-            welfareTaskInfo.target = cfg.getCondition();
-            welfareTaskInfo.rewardItems = ItemUtils.buildItemInfo(cfg.getRewards());
+            welfareTaskInfo.target = 0;
+            welfareTaskInfo.rewardItems = ItemUtils.buildItemInfo(null);
 
             //判断是否可领取
             if (data.getWelfarMonthRechargeNum() != null && data.getWelfarMonthRechargeNum().longValue() >= welfareTaskInfo.target) {
@@ -1226,7 +1226,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         for (Map.Entry<Integer, CumulativebenefitsCfg> en : GameDataManager.getCumulativebenefitsCfgMap().entrySet()) {
             CumulativebenefitsCfg cfg = en.getValue();
             if (cfg.getType() == ActivityConstant.ContinuousRecharge.WELFARE_DAILY_TYPE) {
-                tmpWelfareDailyCfgMap.computeIfAbsent(cfg.getGroup(), k -> new ArrayList<>()).add(cfg);
+                tmpWelfareDailyCfgMap.computeIfAbsent(0, k -> new ArrayList<>()).add(cfg);
             } else if (cfg.getType() == ActivityConstant.ContinuousRecharge.WELFARE_MONTHLY_TYPE) {
                 tmpWelfareMonthCfgList.add(cfg);
             }
