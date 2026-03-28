@@ -22,6 +22,8 @@ public class ResTenFoldGoldenBullStartGame extends AbstractResponse {
     public long allWinGold;
     @ProtoDesc("当前状态 0.正常 1.假福牛模式 2福牛")
     public int status;
+    @ProtoDesc("从奖池获得的奖励")
+    public long rewardPoolValue;
     @ProtoDesc("玩家当前金币")
     public long allGold;
     @ProtoDesc("大奖展示  ")
@@ -36,6 +38,7 @@ public class ResTenFoldGoldenBullStartGame extends AbstractResponse {
     public int scrollType;
     @ProtoDesc("是否是福牛模式")
     public boolean isLuckyBullEnd;
+
     public ResTenFoldGoldenBullStartGame(int code) {
         super(code);
     }

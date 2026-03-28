@@ -119,7 +119,7 @@ public class TenFoldGoldenBullSendMessageManager extends BaseSendMessageManager 
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
-
+            res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
             res.winIconInfoList = gameRunInfo.getAwardLineInfos();
             res.scrollType = gameRunInfo.getScrollType();
             res.isLuckyBullEnd = gameRunInfo.isLuckyBullEnd();
