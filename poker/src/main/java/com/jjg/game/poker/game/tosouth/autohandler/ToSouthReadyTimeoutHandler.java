@@ -1,6 +1,7 @@
 package com.jjg.game.poker.game.tosouth.autohandler;
 
 import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.core.data.PokerRoom;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
 import com.jjg.game.room.constant.EGamePhase;
@@ -18,12 +19,14 @@ public class ToSouthReadyTimeoutHandler implements IProcessorHandler {
     private final long gameId;
     private final long timerVersion;
     private final ToSouthGameController controller;
+    private final ToSouthGameDataVo gameDataVo;
 
-    public ToSouthReadyTimeoutHandler(long playerId, long gameId, long timerVersion, ToSouthGameController controller) {
+    public ToSouthReadyTimeoutHandler(long playerId, long gameId, long timerVersion, ToSouthGameController controller,ToSouthGameDataVo gameDataVo) {
         this.playerId = playerId;
         this.gameId = gameId;
         this.timerVersion = timerVersion;
         this.controller = controller;
+        this.gameDataVo = gameDataVo;
     }
 
     @Override
