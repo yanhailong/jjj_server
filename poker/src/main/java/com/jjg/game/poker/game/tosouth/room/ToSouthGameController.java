@@ -1100,49 +1100,25 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     }
 
     /**
-     * 踢出未准备的玩家（参考俄罗斯轮盘 exitRoomInGame 退出方式）
-     * 1. 通知被踢玩家退出到大厅（必须在 exitRoom 前，exitRoom 会清理 GamePlayer 导致无法广播）
-     * 2. 服务端调用 exitRoom(PlayerController) 真正移除房间数据，直接传 PlayerController 避免查找失败
-     * 3. exitRoom 失败时兜底强制清理 roomId，防止玩家卡在房间
+     * 踢出未准备的玩家
+     * 1. 通知被踢玩家退出到大厅（必须在 exitRoom 之前，exitRoom 会清理 GamePlayer 导致无法广播）
+     * 2. 调用 exitRoom(PlayerController) 退出 → 内部自动触发 onPlayerLeaveRoomAction
+     *    （清准备状态、递增版本号、清续局、广播 playerStatus=false 给其他真人）
      */
     public void kickUnreadyPlayer(long playerId) {
-        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-
         // 1. 通知被踢玩家退出到大厅
-        try {
-            NotifyExitRoom notify = BaseRoomMessageBuilder.buildNotifyExitRoom(gameDataVo.getRoomCfg().getEscTipText());
-            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
-        } catch (Exception e) {
-            log.error("踢出玩家 {} 时发送退出通知异常", playerId, e);
-        }
-
-        // 2. 服务端退出房间：优先用 PlayerController 直接退出（和俄罗斯轮盘一样），避免 exitRoom(playerId) 查找失败
-        try {
-            PlayerController pc = getRoomController().getPlayerController(playerId);
-            int result;
-            if (pc != null) {
-                result = getRoomController().getRoomManager().exitRoom(pc);
-            } else {
-                result = getRoomController().getRoomManager().exitRoom(playerId);
-            }
+        NotifyExitRoom notify = BaseRoomMessageBuilder.buildNotifyExitRoom(gameDataVo.getRoomCfg().getEscTipText());
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+        PlayerController pc = getRoomController().getPlayerController(playerId);
+        if (pc != null) {
+            int result = getRoomController().getRoomManager().exitRoom(pc);
             if (result == Code.SUCCESS) {
                 log.info("玩家 {} 因未准备，已踢出房间", playerId);
             } else {
-                log.error("玩家 {} 踢出房间失败，exitRoom返回: {}，强制清理roomId", playerId, result);
-                getRoomController().getRoomManager().getPlayerService().doSave(playerId, p -> p.setRoomId(0));
+                log.error("玩家 {} 踢出房间失败 code:{}", playerId, result);
             }
-        } catch (Exception e) {
-            log.error("玩家 {} 踢出房间异常，强制清理roomId", playerId, e);
-            try {
-                getRoomController().getRoomManager().getPlayerService().doSave(playerId, p -> p.setRoomId(0));
-            } catch (Exception ex) {
-                log.error("强制清理玩家 {} roomId 失败", playerId, ex);
-            }
-        }
-
-        // 退出日志
-        if (gamePlayer != null) {
-            gameDataTracker.sendExitGameLog(gamePlayer);
+        } else {
+            log.error("玩家 {} PlayerController为空，无法正常退出", playerId);
         }
     }
 
