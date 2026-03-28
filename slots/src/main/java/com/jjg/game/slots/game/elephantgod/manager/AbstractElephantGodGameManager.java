@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.elephantgod.manager;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -7,6 +8,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
+import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.elephantgod.ElephantGodConstant;
 import com.jjg.game.slots.game.elephantgod.dao.ElephantGodResultLibDao;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodGameRunInfo;
@@ -121,7 +123,31 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
 
     @Override
     protected ElephantGodGameRunInfo normal(ElephantGodGameRunInfo gameRunInfo, ElephantGodPlayerGameData playerGameData, long betValue, ElephantGodResultLib resultLib) {
-        return null;
+        //根据结果库类型不同，从不同地方获取icon
+        if (resultLib.getLibTypeSet().contains(ElephantGodConstant.Status.FREE)) {  //是否会触发免费
+            playerGameData.setStatus(ElephantGodConstant.Status.FREE);
+            playerGameData.setFreeLib(resultLib);
+            if (CollectionUtil.isNotEmpty(resultLib.getSpecialAuxiliaryInfoList())) {
+                for (SpecialAuxiliaryInfo specialAuxiliaryInfo : resultLib.getSpecialAuxiliaryInfoList()) {
+                    if (CollectionUtil.isEmpty(specialAuxiliaryInfo.getFreeGames())) {
+                        continue;
+                    }
+                    playerGameData.getRemainFreeCount().set(specialAuxiliaryInfo.getFreeGames().size());
+                }
+            }
+            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(),
+                    playerGameData.getRemainFreeCount().get(), resultLib.getTimes());
+        }
+        gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+        //检查是否中大奖
+        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
+        log.debug("id = {}", resultLib.getId());
+        gameRunInfo.setIconArr(resultLib.getIconArr());
+        gameRunInfo.setResultLib(resultLib);
+        gameRunInfo.setStake(betValue);
+        gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
+        gameRunInfo.setStatus(playerGameData.getStatus());
+        return gameRunInfo;
     }
 
     @Override
