@@ -110,12 +110,15 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                     if (transactionItemId == goldCfgId) {
                         long gold = gamePlayer.getGold();
                         if (gold < loseAmount) {
+
                             long l = gold / positiveMap.size();
                             long l1 = l - loseAmount;
                             settlementMap2.put(playerId, -gold);
                             positiveMap.forEach((k, v) -> {
                                 settlementMap2.put(k, (v) - l1);
+                                log.info("111111111111111:{},{},{}",l,l1,(v) - l1);
                             });
+
                         }
                     } else if (transactionItemId == diamondCfgId) {
                         long diamond = gamePlayer.getDiamond();
