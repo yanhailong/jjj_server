@@ -1151,9 +1151,10 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
         }
         gameDataVo.getReadyTimerVersion().remove(playerId);
-        // 通知其他玩家该玩家已离开（在线踢出时 exitRoom 未同步调用，需立即广播；
-        // 离线踢出时 exitRoom 已移除 GamePlayer，broadcastPlayerLeaveChange 内部判空自动跳过）
-        broadcastPlayerLeaveChange(playerId);
+        // 不在此处广播 NotifyPokerPlayerChange：
+        // - 在线玩家：客户端收到 NotifyExitRoom 断连后，基类 onPlayerLeaveRoom 会自动广播
+        // - 离线玩家：上面 exitRoom 已触发基类 onPlayerLeaveRoom 广播
+        // 如果在这里再调用 broadcastPlayerLeaveChange，在线场景会导致重复发送两条消息
     }
 
     @Override
