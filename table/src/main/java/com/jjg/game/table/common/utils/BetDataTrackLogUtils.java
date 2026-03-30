@@ -8,14 +8,11 @@ import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.GameDataTracker;
 import com.jjg.game.room.datatrack.SaveLogUtil;
-import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BetAreaCfg;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * 押注类日志打点工具
@@ -55,13 +52,12 @@ public class BetDataTrackLogUtils {
             long effectiveWaterFlow = controller.calculationEffectiveWaterFlow(playerBetInfo);
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, effectiveWaterFlow);
             //添加活动进度
+            final long finalIncome = income;
             controller.getRoomController().getRoomProcessor().tryPublish(0, new BaseHandler<String>() {
                 @Override
                 public void action() {
                     SaveLogUtil.dealEffectiveWaterFlow(controller, gamePlayer, effectiveWaterFlow, settlementData.getBetTotal());
-                    if (settlementData.getTotalWin() <= 0) {
-                        controller.dealLose(gamePlayer, settlementData.getBetTotal());
-                    }
+                    controller.dealIncome(gamePlayer, finalIncome);
                 }
             }.setHandlerParamWithSelf("recordBetLog"));
             controller.triggerSettlementAction(gamePlayer.getId(), controller.getRoom().getGameType(), effectiveWaterFlow, income, controller.getGameTransactionItemId());

@@ -27,7 +27,10 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -78,7 +81,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             Map<Long, Long> settlementMap = new HashMap<>(); // playerId -> score change
             long baseBet = getBaseBet(gameDataVo); // 获取房间底注
 
-            calSettlement(gameDataVo,settlementMap, baseBet, moneyCfg);
+            calSettlement(gameDataVo, settlementMap, baseBet, moneyCfg);
 
             // 记录本局赢家，供下局判断首出玩家
             if (!winners.isEmpty()) {
@@ -107,11 +110,12 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
 
                     totalTax += tax;
                     finalWinScore = change - tax;
-
                     controller.addItem(playerId, finalWinScore, AddType.GAME_SETTLEMENT);
                     gameDataTracker.addGameLogData("tax", totalTax);
                     if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                         robotPlayer.setLastWin(1);
+                    } else {
+                        controller.dealIncome(gamePlayer, finalWinScore);
                     }
                 } else {
                     long loseAmount = -change;
@@ -122,16 +126,16 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                     if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                         robotPlayer.setLastWin(2);
                     } else {
-                        controller.dealLose(gamePlayer, change);
+                        controller.dealIncome(gamePlayer, change);
                     }
+
                 }
-                
                 // 构建玩家结算信息
                 ToSouthPlayerSettlementInfo info = new ToSouthPlayerSettlementInfo();
                 info.playerId = playerId;
                 info.winScore = finalWinScore;
                 info.currentScore = controller.getTransactionItemNum(playerId);
-                
+
                 PlayerSeatInfo seatInfo = gameDataVo.getPlayerSeatInfoMap().get(playerId);
                 if (seatInfo != null) {
                     info.handCards = PokerDataHelper.getClientId(gameDataVo, seatInfo.getCurrentCards());
