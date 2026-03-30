@@ -110,12 +110,12 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                     if (transactionItemId == goldCfgId) {
                         long gold = gamePlayer.getGold();
                         if (gold < loseAmount) {
-
+                            //只有三家的时候才会复现
                             long l = gold / positiveMap.size();
-                            long l1 = l - loseAmount;
+                            long l1 = loseAmount / positiveMap.size();
                             settlementMap2.put(playerId, -gold);
                             positiveMap.forEach((k, v) -> {
-                                settlementMap2.put(k, (v) - l1);
+                                settlementMap2.put(k,v-l1+l);
                                 log.info("111111111111111:{},{},{}",l,l1,(v) - l1);
                             });
 
@@ -129,7 +129,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                             settlementMap2.put(playerId, diamond);
                             positiveMap.forEach((k, v) -> {
 //                                26000 - 8000
-                                settlementMap2.put(k, (v) - l1);
+                                settlementMap2.put(k,v-l1+l);
                             });
                         }
                     }
