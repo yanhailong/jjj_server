@@ -1129,6 +1129,9 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
         }
         gameDataVo.getReadyTimerVersion().remove(playerId);
+        // 通知其他玩家该玩家已离开（在线踢出时 exitRoom 未同步调用，需立即广播；
+        // 离线踢出时 exitRoom 已移除 GamePlayer，broadcastPlayerLeaveChange 内部判空自动跳过）
+        broadcastPlayerLeaveChange(playerId);
     }
 
     @Override
@@ -1138,6 +1141,10 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         gameDataVo.getReadyPlayerIds().remove(playerId);
         gameDataVo.getReadyTimerScheduled().remove(playerId);
         gameDataVo.getReadyTimerVersion().remove(playerId);
+        // 真人玩家加入时，通知其他玩家
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            broadcastPlayerJoinChange(playerId);
+        }
     }
 
     @Override
@@ -1155,6 +1162,57 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         broadcastPlayerLeaveChange(playerId, remove);
 
         log.info("玩家 {} 离开房间，已清除准备状态和续局状态", playerId);
+    }
+
+    /**
+     * 广播玩家加入变化通知：将加入玩家的状态（playerStatus=true）同步给所有还在房间的其他玩家
+     */
+    private void broadcastPlayerJoinChange(long playerId) {
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        if (gamePlayer == null) {
+            return;
+        }
+        SeatInfo seatInfo = null;
+        for (SeatInfo si : gameDataVo.getSeatInfo().values()) {
+            if (si.getPlayerId() == playerId) {
+                seatInfo = si;
+                break;
+            }
+        }
+        if (seatInfo == null) {
+            return;
+        }
+        NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
+        PokerPlayerInfo info = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, this);
+        info.playerStatus = true;
+        info.status = true;
+        playerChange.pokerPlayerInfo = info;
+        playerChange.totalNum = gameDataVo.getGamePlayerMap().size();
+        broadcastToPlayers(RoomMessageBuilder.newBuilder()
+                .sendAllPlayer(playerChange).exceptPlayer(playerId));
+        log.info("已广播玩家 {} 加入状态变化给其他玩家", playerId);
+    }
+
+    /**
+     * 广播玩家离开变化通知（通过 playerId 查找 SeatInfo）
+     * 如果 GamePlayer 或 SeatInfo 已被 exitRoom 清理，则自动跳过避免重复广播
+     */
+    private void broadcastPlayerLeaveChange(long playerId) {
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        if (gamePlayer == null) {
+            return;
+        }
+        SeatInfo seatInfo = null;
+        for (SeatInfo si : gameDataVo.getSeatInfo().values()) {
+            if (si.getPlayerId() == playerId) {
+                seatInfo = si;
+                break;
+            }
+        }
+        if (seatInfo == null) {
+            return;
+        }
+        broadcastPlayerLeaveChange(playerId, seatInfo);
     }
 
     /**
