@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.elephantgod.manager;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -8,7 +7,6 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.elephantgod.ElephantGodConstant;
 import com.jjg.game.slots.game.elephantgod.dao.ElephantGodResultLibDao;
 import com.jjg.game.slots.game.elephantgod.data.ElephantGodGameRunInfo;
@@ -127,14 +125,7 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
         if (resultLib.getLibTypeSet().contains(ElephantGodConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(ElephantGodConstant.Status.FREE);
             playerGameData.setFreeLib(resultLib);
-            if (CollectionUtil.isNotEmpty(resultLib.getSpecialAuxiliaryInfoList())) {
-                for (SpecialAuxiliaryInfo specialAuxiliaryInfo : resultLib.getSpecialAuxiliaryInfoList()) {
-                    if (CollectionUtil.isEmpty(specialAuxiliaryInfo.getFreeGames())) {
-                        continue;
-                    }
-                    playerGameData.getRemainFreeCount().set(specialAuxiliaryInfo.getFreeGames().size());
-                }
-            }
+            playerGameData.getRemainFreeCount().set(resultLib.getAddFreeCount());
             log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(),
                     playerGameData.getRemainFreeCount().get(), resultLib.getTimes());
         }
