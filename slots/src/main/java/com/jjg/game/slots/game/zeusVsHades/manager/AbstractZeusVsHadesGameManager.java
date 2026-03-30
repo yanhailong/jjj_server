@@ -212,7 +212,7 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
 
         //累计免费模式的中奖金额
         playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
-
+        gameRunInfo.setAllWinGold(playerGameData.getOneBetScore() * freeGame.getTimes());
         if (specialModeFreeLibType == ZeusVsHadesConstant.SpecialMode.NORMAL) {
             gameRunInfo.setStatus(ZeusVsHadesConstant.Status.NORMAL);
         } else if (specialModeFreeLibType == ZeusVsHadesConstant.SpecialMode.ZEUS) {

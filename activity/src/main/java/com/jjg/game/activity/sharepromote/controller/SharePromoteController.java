@@ -320,7 +320,7 @@ public class SharePromoteController extends BaseActivityController {
         //多次输入错误邀请码判断
         int playerCodeErrorPrint = sharePromoteDao.getPlayerCodeErrorPrint(playerId);
         if (playerCodeErrorPrint >= ActivityConstant.SharePromote.MAX_ERROR_TIMES) {
-            TipUtils.sendToastTip(playerId, 62044);
+            TipUtils.sendTip(playerId, 62044);
             return null;
         }
         if (StringUtils.isEmpty(req.invitationCode)) {

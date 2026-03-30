@@ -17,7 +17,6 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.pb.NotifyOpenFunction;
-import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GameFunctionCfg;
 import org.slf4j.Logger;
@@ -144,12 +143,10 @@ public class GameFunctionService implements GameEventListener {
             return false;
         }
         String check = join ? functionCfg.getCondition() : functionCfg.getShowCondition();
-        boolean achievement = conditionManager.isAchievement(player, "", check);
-        // 检查是否触发成功
-        if (!achievement && notify) {
-            TipUtils.sendToastTip(player.getId(), 16030);
+        if (notify) {
+            return conditionManager.isAchievementAndNotify(player, "", check);
         }
-        return achievement;
+        return conditionManager.isAchievement(player, "", check);
     }
 
     @Override

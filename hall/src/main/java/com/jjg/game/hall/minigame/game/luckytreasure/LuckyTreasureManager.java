@@ -693,7 +693,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         TimerEvent<LuckyTreasureTimerEvent> timer = activityTimers.remove(issueNumber);
         if (timer != null) {
             timerCenter.remove(timer);
-            log.debug("移除夺宝奇兵活动 {} 的定时器", issueNumber);
+//            log.debug("移除夺宝奇兵活动 {} 的定时器", issueNumber);
         }
     }
 
@@ -701,7 +701,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         TimerEvent<LuckyTreasureTimerEvent> timer = activityBuyTimers.remove(issueNumber);
         if (timer != null) {
             timerCenter.remove(timer);
-            log.debug("移除夺宝奇兵活动 {} 的机器人购买定时器", issueNumber);
+//            log.debug("移除夺宝奇兵活动 {} 的机器人购买定时器", issueNumber);
         }
     }
 
@@ -725,7 +725,16 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         RMapCache<Long, LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
         // 从redis获取活动数据
         LuckyTreasure round = activeTreasures.get(issueNumber);
-        if (round == null || round.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
+        if (round == null) {
+            log.warn("幸运夺宝开奖时出错 issueNumber = {},round:Null,status:Null", issueNumber);
+            return;
+        }
+        // 已进入等待开奖阶段时，按原定开奖时间继续补定时器；如果时间已到会立即开奖。
+        if (round.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_DRAW) {
+            addActivityRewardTimer(round);
+            return;
+        }
+        if (round.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
             log.warn("幸运夺宝开奖时出错 issueNumber = {},roundNull = {},status = {}", issueNumber, round == null, round == null ? "null" : round.getStatus());
             return;
         }

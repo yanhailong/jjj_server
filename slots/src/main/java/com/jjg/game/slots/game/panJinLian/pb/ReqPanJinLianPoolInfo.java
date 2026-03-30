@@ -14,5 +14,5 @@ import com.jjg.game.slots.game.panJinLian.PanJinLianConstant;
 @ProtoDesc("请求奖池信息")
 public class ReqPanJinLianPoolInfo extends AbstractMessage {
     @ProtoDesc("下注金额")
-    public long stakeVlue;
+    public long stakeValue;
 }

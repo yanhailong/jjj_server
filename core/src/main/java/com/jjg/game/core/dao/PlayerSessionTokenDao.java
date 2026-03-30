@@ -38,7 +38,7 @@ public class PlayerSessionTokenDao {
      * @param playerId
      */
     public void save(String token, int loginType, long playerId, int channel, String ip, int device, String mac,
-                     int registerChannel, String sharId, String subChannel, int westeId) {
+                     int registerChannel, String sharId, String subChannel, int westeId, String fcm) {
         PlayerSessionToken playerSessionToken = new PlayerSessionToken();
         playerSessionToken.setPlayerId(playerId);
         playerSessionToken.setToken(token);
@@ -52,6 +52,7 @@ public class PlayerSessionTokenDao {
         playerSessionToken.setSharId(sharId);
         playerSessionToken.setSubChannel(subChannel);
         playerSessionToken.setWesteId(westeId);
+        playerSessionToken.setFcm(fcm);
         save(playerSessionToken);
     }
 

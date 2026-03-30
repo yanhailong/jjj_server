@@ -891,7 +891,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
             log.debug("[Wealth Bank] 概率计算可以中小奖池 playerId = {},addGold = {}", playerGameData.getPlayerId(), addGold);
 
             //给玩家加钱
-            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_TRAIN, poolId + "");
+            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, poolId, AddType.SLOTS_TRAIN, poolId + "");
             if (!result.success()) {
                 log.warn("[Wealth Bank] 从小池子扣除，并给玩家加钱失败 code = {}", result.code);
                 break;

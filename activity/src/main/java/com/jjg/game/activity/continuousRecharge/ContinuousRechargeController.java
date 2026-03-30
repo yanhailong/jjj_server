@@ -23,7 +23,6 @@ import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.service.MailService;
-import com.jjg.game.core.service.ShopService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
@@ -60,8 +59,6 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
     @Autowired
     private MailService mailService;
-    @Autowired
-    private ShopService shopService;
 
     private final int DETAIL_ID = 1;
 
@@ -1393,10 +1390,10 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         }
 
         Map<Integer, CumulativebenefitsCfg> map = new HashMap<>();
-        for (Map.Entry<Integer, List<CumulativebenefitsCfg>> en : this.welfareDailyCfgMap.entrySet()) {
-            CumulativebenefitsCfg cfg = en.getValue().get(index);
-            map.put(cfg.getId(), cfg);
-        }
+//        for (Map.Entry<Integer, List<CumulativebenefitsCfg>> en : this.welfareDailyCfgMap.entrySet()) {
+//            CumulativebenefitsCfg cfg = en.getValue().get(index);
+//            map.put(cfg.getId(), cfg);
+//        }
         return map;
     }
 

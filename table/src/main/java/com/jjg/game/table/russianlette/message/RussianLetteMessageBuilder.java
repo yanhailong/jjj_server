@@ -5,12 +5,9 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.message.TableMessageBuilder;
-import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
 import com.jjg.game.table.russianlette.RussianLetteTempRoom;
 import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
@@ -20,11 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 俄罗斯转盘消息构建工具类
@@ -288,7 +281,7 @@ public class RussianLetteMessageBuilder {
         RussianLetteHistoryBean drawBean = dataVo.getDrawPhaseHistoryBean();
         if (drawBean != null) {
 //            stageInfo.diceData = drawBean.diceData == 37 ? 0 : drawBean.diceData;
-        stageInfo.diceData = drawBean.diceData;
+            stageInfo.diceData = drawBean.diceData;
         }
 
         summary.stageInfo = stageInfo;
@@ -308,7 +301,7 @@ public class RussianLetteMessageBuilder {
         summary.cardStateList = buildReversedCardStateList(dataVo.getWinAreaCfgIdHistory());
         // 近 12 局概率信息
         summary.prob = buildProb(dataVo.getWinAreaCfgIdHistory());
-        summary.roomType =  dataVo.getRoomCfg().getRoomID();
+        summary.roomType = dataVo.getRoomCfg().getRoomID();
         return summary;
     }
 
@@ -319,6 +312,11 @@ public class RussianLetteMessageBuilder {
     /**
      * 构建单条房间摘要通知（{@link NotifyRussianLetteTableSummary}）
      * <p>用于阶段变化时向观察者推送最新房间状态。</p>
+     * <p>
+     * 特殊处理：DRAW_ON（开奖）阶段不同步最新开奖数字，等 SETTLEMENT（结算）阶段再同步。
+     * 例如：已开奖 3,0,27，当前 DRAW_ON 开出 35 → 推送时 cardStateList 仍为 3,0,27，diceData 不发送；
+     * 进入 SETTLEMENT 阶段 → 推送时 cardStateList 变为 3,0,27,35，diceData = 35。
+     * </p>
      *
      * @param gameController 目标房间的游戏控制器
      * @return 包含 {@link RussianLetteSummary} 的通知对象
@@ -327,6 +325,18 @@ public class RussianLetteMessageBuilder {
             BaseTableGameController<RussianLetteGameDataVo> gameController) {
         NotifyRussianLetteTableSummary notify = new NotifyRussianLetteTableSummary();
         notify.tableSummary = buildRussianLetteSummaryInfo(gameController);
+
+        // DRAW_ON 阶段：不同步最新开奖数字，等结算阶段再同步
+        if (gameController.getCurrentGamePhase() == EGamePhase.DRAW_ON) {
+            // 清除当前开奖数字（int 默认 0 表示无数据）
+            notify.tableSummary.stageInfo.diceData = 0;
+            // cardStateList 是倒序的（最新在前），移除第一个即本局最新开奖数字
+            if (notify.tableSummary.cardStateList != null && !notify.tableSummary.cardStateList.isEmpty()) {
+                notify.tableSummary.cardStateList = new ArrayList<>(notify.tableSummary.cardStateList);
+                notify.tableSummary.cardStateList.remove(0);
+            }
+        }
+
         return notify;
     }
 
@@ -402,8 +412,8 @@ public class RussianLetteMessageBuilder {
                 gameController, playerId, dataVo, TableConstant.ON_TABLE_PLAYER_NUM);
         tableInfo.tableCountDownTime = dataVo.getPhaseEndTime();
 //        tableInfo.totalTime = calcPhaseTotalTime(currentPhase, dataVo.getRoomCfg().getStageTime());
-        List<BetTableInfo> areaInfos = TableMessageBuilder.buildBetTableInfos(dataVo, true);
-        tableInfo.tableAreaInfos = TableMessageBuilder.buildPlayerBetInfo(areaInfos, dataVo, playerId);
+        tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(playerId, dataVo, true, true);
+
         resp.russianletteTableInfo = tableInfo;
 
         // ── 4. 结算阶段的玩家金币变化（非结算阶段为 null）─────────────────────
@@ -463,7 +473,7 @@ public class RussianLetteMessageBuilder {
 
         // 当前阶段总时长（秒）
         int calcPhaseTotalTime = calcPhaseTotalTime(currentPhase, dataVo.getRoomCfg().getStageTime());
-        log.info("currentPhase:{},phaseTotalTime:{}",currentPhase.getPhaseName(), calcPhaseTotalTime);
+//        log.info("currentPhase:{},phaseTotalTime:{}",currentPhase.getPhaseName(), calcPhaseTotalTime);
         baseInfo.phaseTotalTime = calcPhaseTotalTime(currentPhase, dataVo.getRoomCfg().getStageTime());
         return baseInfo;
     }

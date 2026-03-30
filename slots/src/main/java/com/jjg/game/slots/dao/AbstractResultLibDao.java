@@ -32,7 +32,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> {
     protected final String slotsResultLib2 = "slotsResultLib2:";
 
     //当前正在使用的结果库
-    protected String currentRedisLibName;
+    protected volatile String currentRedisLibName;
 
     //生成结果集的时候要加锁
     protected String generateLock = "generateLock:";
@@ -152,14 +152,23 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> {
     }
 
     /**
-     * 清除redis结果库
+     * 清除redis结果库(删除与传入库名相反的那个库，用于正常清理旧库)
      */
-    public void clearRedisLib(int gameType) {
-        clearRedisLib(this.currentRedisLibName, gameType);
+    public void clearOldRedisLib(int gameType) {
+        if (this.currentRedisLibName == null || this.currentRedisLibName.isEmpty()) {
+            log.debug("从redis删除结果库失败，redisLibName 为空");
+            return;
+        }
+
+        String removeName = this.slotsResultLib1.equals(this.currentRedisLibName)
+                ? this.slotsResultLib2
+                : this.slotsResultLib1;
+
+        clearRedisLib(removeName, gameType);
     }
 
     /**
-     * 清除redis结果库
+     * 直接删除指定库名的结果库数据
      */
     public void clearRedisLib(String redisLibName, int gameType) {
         if (redisLibName == null || redisLibName.isEmpty()) {
@@ -167,15 +176,11 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> {
             return;
         }
 
-        String removeName = this.slotsResultLib1.equals(redisLibName)
-                ? this.slotsResultLib2
-                : this.slotsResultLib1;
-
-        String gameTableName = removeName + gameType;
+        String gameTableName = redisLibName + gameType;
         RKeys keys = redisson.getKeys();
         long start = System.currentTimeMillis();
         long deleted = keys.deleteByPattern(gameTableName + "*");
-        log.debug("从redis移除旧的结果库 gameType = {},removeName = {}, 删除Key数量 = {},耗时 = {} ms", gameType, gameTableName, deleted, System.currentTimeMillis() - start);
+        log.debug("从redis清理结果库 gameType = {},removeName = {}, 删除Key数量 = {},耗时 = {} ms", gameType, gameTableName, deleted, System.currentTimeMillis() - start);
     }
 
     /**
@@ -257,9 +262,10 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> {
 
     /**
      * 修改最后一次生成结果库的时间
+     *
      * @param gameType
      */
     public void addGenerateTime(int gameType) {
-        this.redisTemplate.opsForHash().put(lastGenLibTime,gameType, System.currentTimeMillis());
+        this.redisTemplate.opsForHash().put(lastGenLibTime, gameType, System.currentTimeMillis());
     }
 }

@@ -54,8 +54,12 @@ public class CoreMarqueeManager implements TimerListener {
     private Map<Integer, Marquee> marqueeMap;
     //当前正在运行的跑马灯
     private volatile int nowRunMarqueeId;
+    //后台跑马灯下一次触发时间
+    private final Map<Integer, Integer> marqueeNextPlayTimeMap = new ConcurrentHashMap<>();
     //修改跑马灯添加的锁
     private final Object lock = new Object();
+    //当前跑马灯预计结束时间
+    private volatile int nowRunMarqueeEndTime;
 
     //每个队列中保存的跑马灯最大个数
     private final int MAX_MARQUEE_COUNT = 50;
@@ -67,14 +71,14 @@ public class CoreMarqueeManager implements TimerListener {
         addCheckEvent();
     }
 
-
     private void addCheckEvent() {
-        this.checkEvent = new TimerEvent<>(this, "checkEvent", 3).withTimeUnit(TimeUnit.SECONDS);
+        this.checkEvent = new TimerEvent<>(this, "checkEvent", 1).withTimeUnit(TimeUnit.SECONDS);
         this.timerCenter.add(this.checkEvent);
     }
 
     /**
      * 裁剪跑马灯队列
+     *
      * @param list
      * @param maxCount
      * @return
@@ -140,6 +144,7 @@ public class CoreMarqueeManager implements TimerListener {
         }
 
         this.marqueeMap.remove(marquee.getId());
+        initNextPlayTime(marquee);
 
         switch (marquee.getType()) {
             case GameConstant.Marquee.PLAYER_WIN -> {
@@ -177,6 +182,7 @@ public class CoreMarqueeManager implements TimerListener {
         this.marqueeMap.put(marquee.getId(), marquee);
 
         log.debug("添加跑马灯后打印 map.size = {}", this.marqueeMap.size());
+        check();
     }
 
     /**
@@ -187,6 +193,7 @@ public class CoreMarqueeManager implements TimerListener {
     public void removeMarquee(int id) {
         //保证该id的跑马灯一定会被删除
         Marquee remove = this.marqueeMap.remove(id);
+        this.marqueeNextPlayTimeMap.remove(id);
         removeFromRedis(id);
         addNotifyStopEvent(id);
         clean(id);
@@ -276,106 +283,30 @@ public class CoreMarqueeManager implements TimerListener {
      */
     public void check() {
         int now = TimeHelper.nowInt();
-        //标记是否找到有效的跑马灯
-        boolean findMarquee = false;
-
-        //先检查优先级高的跑马灯
-        if (this.sortedMarquees != null && !this.sortedMarquees.isEmpty()) {
-            // 获取从尾部开始的 ListIterator
-            ListIterator<Marquee> it = this.sortedMarquees.listIterator(this.sortedMarquees.size());
-            while (it.hasPrevious()) {
-                Marquee marquee = it.previous();
-                if (now > marquee.getEndTime()) {
-                    //删除过期的跑马灯
-                    it.remove();
-                    this.marqueeMap.remove(marquee.getId());
-                    removeFromRedis(marquee.getId());
-                    clean(marquee.getId());
-                    log.debug("移除过期跑马灯 id = {}", marquee.getId());
-                    continue;
-                }
-
-                if (now < marquee.getStartTime()) {
-                    continue;
-                }
-
-                if (update(marquee.getId())) {
-                    addNotifySendEvent(marquee.getId());
-                }
-                findMarquee = true;
-                break;
-            }
+        finishCurrentIfNeed(now);
+        if (isRunning(now)) {
+            return;
         }
 
-        //再检查玩家中奖的跑马灯
-        if (!findMarquee && this.playerWinSortedMarquees != null && !this.playerWinSortedMarquees.isEmpty()) {
-            // 获取从尾部开始的 ListIterator
-            ListIterator<Marquee> it = this.playerWinSortedMarquees.listIterator(this.playerWinSortedMarquees.size());
-            while (it.hasPrevious()) {
-                Marquee marquee = it.previous();
-                if (marquee.getStartTime() < 1) {  //表示这条中奖的跑马灯还没有推送
-                    if (update(marquee.getId())) {
-                        addNotifySendEvent(marquee.getId());
-                    }
-                    findMarquee = true;
-                    break;
-                } else {
-                    if (now > marquee.getEndTime()) {
-                        //删除过期的跑马灯
-                        it.remove();
-                        this.marqueeMap.remove(marquee.getId());
-                        removeFromRedis(marquee.getId());
-                        clean(marquee.getId());
-                        log.debug("移除过期中奖跑马灯 id = {}", marquee.getId());
-                        continue;
-                    }
-
-                    if (now < marquee.getStartTime()) {
-                        continue;
-                    }
-                    findMarquee = true;
-                    break;
-                }
-            }
+        // 先评估后台紧急跑马灯：如果当前就该播，立即接管；否则根据下一次触发时间决定是否允许低优先级穿插。
+        BackendSchedule backendSchedule = inspectBackendMarquees(now);
+        if (backendSchedule.readyMarquee() != null) {
+            playMarquee(backendSchedule.readyMarquee(), now);
+            return;
         }
-        checkActivityMarquee(findMarquee, now);
-    }
+        if (backendSchedule.blockOtherTypes()) {
+            return;
+        }
 
-    /**
-     * 检查活动跑马灯
-     *
-     * @param findMarquee
-     * @param now
-     */
-    private void checkActivityMarquee(boolean findMarquee, int now) {
-        //再检查玩家中奖的跑马灯
-        if (!findMarquee && this.activitySortedMarquees != null && !this.activitySortedMarquees.isEmpty()) {
-            // 获取从尾部开始的 ListIterator
-            ListIterator<Marquee> it = this.activitySortedMarquees.listIterator(this.activitySortedMarquees.size());
-            while (it.hasPrevious()) {
-                Marquee marquee = it.previous();
-                if (marquee.getStartTime() < 1) {  //表示这条中奖的跑马灯还没有推送
-                    if (update(marquee.getId())) {
-                        addNotifySendEvent(marquee.getId());
-                    }
-                    break;
-                } else {
-                    if (now > marquee.getEndTime()) {
-                        //删除过期的跑马灯
-                        it.remove();
-                        this.marqueeMap.remove(marquee.getId());
-                        removeFromRedis(marquee.getId());
-                        clean(marquee.getId());
-                        log.debug("移除过期中奖跑马灯 id = {}", marquee.getId());
-                        continue;
-                    }
+        Marquee playerWinMarquee = findPendingMarquee(this.playerWinSortedMarquees, now, backendSchedule.nextPlayTime(), "移除过期中奖跑马灯 id = {}");
+        if (playerWinMarquee != null) {
+            playMarquee(playerWinMarquee, now);
+            return;
+        }
 
-                    if (now < marquee.getStartTime()) {
-                        continue;
-                    }
-                    break;
-                }
-            }
+        Marquee activityMarquee = findPendingMarquee(this.activitySortedMarquees, now, backendSchedule.nextPlayTime(), "移除过期活动跑马灯 id = {}");
+        if (activityMarquee != null) {
+            playMarquee(activityMarquee, now);
         }
     }
 
@@ -386,27 +317,10 @@ public class CoreMarqueeManager implements TimerListener {
         } else {
             String[] arr = e.getParameter().toString().split("_");
             int id = Integer.parseInt(arr[1]);
-
-            if ("notifySendEvent".equals(arr[0])) {
-                Marquee marquee = this.marqueeMap.get(id);
-                if (marquee == null) {
-                    return;
-                }
-                notifyClientMarquee(marquee);
-            } else if ("notifyStopEvent".equals(arr[0])) {
+            if ("notifyStopEvent".equals(arr[0])) {
                 notifyClientStopMarquee(id);
             }
         }
-    }
-
-    /**
-     * 通知客户端开始跑马灯
-     *
-     * @param id
-     */
-    private void addNotifySendEvent(long id) {
-        TimerEvent<String> nodeEvent = new TimerEvent<>(this, 1, "notifySendEvent_" + id).withTimeUnit(TimeUnit.SECONDS);
-        this.timerCenter.add(nodeEvent);
     }
 
     /**
@@ -444,14 +358,6 @@ public class CoreMarqueeManager implements TimerListener {
      * @param marquee
      */
     private void notifyClientMarquee(Marquee marquee) {
-        if (marquee.getType() == GameConstant.Marquee.PLAYER_WIN || marquee.getType() == GameConstant.Marquee.ACTIVITY) {
-            if (marquee.getStartTime() < 1) {
-                int now = TimeHelper.nowInt();
-                marquee.setStartTime(now);
-                marquee.setEndTime(now + marquee.getInterval());
-            }
-        }
-
         NotifyMarquee notify = new NotifyMarquee();
         notify.marqueeInfo = transMarqueeInfo(marquee);
         log.debug("通知客户端跑马灯 marquee = {}", JSON.toJSONString(notify));
@@ -611,6 +517,7 @@ public class CoreMarqueeManager implements TimerListener {
 
     /**
      * 批量删除跑马灯
+     *
      * @param ids
      */
     private void removeFromRedisBatch(List<Integer> ids) {
@@ -627,17 +534,158 @@ public class CoreMarqueeManager implements TimerListener {
         synchronized (lock) {
             if (nowRunMarqueeId == id) {
                 nowRunMarqueeId = 0;
+                nowRunMarqueeEndTime = 0;
             }
         }
+        this.marqueeNextPlayTimeMap.remove(id);
     }
 
-    private boolean update(int id) {
+    private boolean update(int id, int endTime) {
         synchronized (lock) {
-            if (nowRunMarqueeId != id) {
+            if (nowRunMarqueeId == 0) {
                 nowRunMarqueeId = id;
+                nowRunMarqueeEndTime = endTime;
                 return true;
             }
         }
         return false;
+    }
+
+    private void initNextPlayTime(Marquee marquee) {
+        if (isBackendMarquee(marquee)) {
+            this.marqueeNextPlayTimeMap.put(marquee.getId(), marquee.getStartTime());
+        }
+    }
+
+    private boolean isBackendMarquee(Marquee marquee) {
+        return marquee.getType() != GameConstant.Marquee.PLAYER_WIN
+                && marquee.getType() != GameConstant.Marquee.ACTIVITY;
+    }
+
+    private int getPlayDuration(Marquee marquee) {
+        return Math.max(marquee.getShowTime(), 1);
+    }
+
+    private int getCycleDuration(Marquee marquee) {
+        return getPlayDuration(marquee) + Math.max(marquee.getInterval(), 0);
+    }
+
+    private int getNextPlayTime(Marquee marquee) {
+        return this.marqueeNextPlayTimeMap.getOrDefault(marquee.getId(), marquee.getStartTime());
+    }
+
+    private void finishCurrentIfNeed(int now) {
+        synchronized (lock) {
+            if (nowRunMarqueeId != 0 && now >= nowRunMarqueeEndTime) {
+                nowRunMarqueeId = 0;
+                nowRunMarqueeEndTime = 0;
+            }
+        }
+    }
+
+    private boolean isRunning(int now) {
+        synchronized (lock) {
+            return nowRunMarqueeId != 0 && now < nowRunMarqueeEndTime;
+        }
+    }
+
+    private Marquee findPendingMarquee(LinkedList<Marquee> marquees, int now, int nextBackendPlayTime, String logText) {
+        if (marquees == null || marquees.isEmpty()) {
+            return null;
+        }
+
+        ListIterator<Marquee> it = marquees.listIterator(marquees.size());
+        while (it.hasPrevious()) {
+            Marquee marquee = it.previous();
+            if (marquee.getStartTime() < 1) {
+                if (canFitBeforeBackend(marquee, now, nextBackendPlayTime)) {
+                    return marquee;
+                }
+                continue;
+            }
+
+            if (now > marquee.getEndTime()) {
+                removeExpiredMarquee(it, marquee, logText);
+            }
+        }
+        return null;
+    }
+
+    private void removeExpiredMarquee(ListIterator<Marquee> it, Marquee marquee, String logText) {
+        it.remove();
+        this.marqueeMap.remove(marquee.getId());
+        removeFromRedis(marquee.getId());
+        clean(marquee.getId());
+        log.debug(logText, marquee.getId());
+    }
+
+    private boolean isExclusiveBackend(Marquee marquee) {
+        return marquee.getInterval() < 60;
+    }
+
+    private boolean canFitBeforeBackend(Marquee marquee, int now, int nextBackendPlayTime) {
+        if (nextBackendPlayTime < 1) {
+            return true;
+        }
+        // 后台下一轮开始前剩余时间不够完整播完一条低优先级跑马灯时，不再插播。
+        return now + getPlayDuration(marquee) <= nextBackendPlayTime;
+    }
+
+    private void playMarquee(Marquee marquee, int now) {
+        int endTime = now + getPlayDuration(marquee);
+        if (!update(marquee.getId(), endTime)) {
+            return;
+        }
+
+        if (isBackendMarquee(marquee)) {
+            this.marqueeNextPlayTimeMap.put(marquee.getId(), now + getCycleDuration(marquee));
+        } else if (marquee.getStartTime() < 1) {
+            marquee.setStartTime(now);
+            marquee.setEndTime(endTime);
+        }
+
+        notifyClientMarquee(marquee);
+    }
+
+    private BackendSchedule inspectBackendMarquees(int now) {
+        if (this.sortedMarquees == null || this.sortedMarquees.isEmpty()) {
+            return BackendSchedule.EMPTY;
+        }
+
+        int nextPlayTime = 0;
+        boolean blockOtherTypes = false;
+        ListIterator<Marquee> it = this.sortedMarquees.listIterator(this.sortedMarquees.size());
+        while (it.hasPrevious()) {
+            Marquee marquee = it.previous();
+            if (now > marquee.getEndTime()) {
+                removeExpiredMarquee(it, marquee, "移除过期跑马灯 id = {}");
+                continue;
+            }
+
+            if (now < marquee.getStartTime()) {
+                continue;
+            }
+
+            int marqueeNextPlayTime = getNextPlayTime(marquee);
+            if (marqueeNextPlayTime <= now) {
+                // 排序靠后的后台跑马灯优先级更高，命中后直接播放。
+                return new BackendSchedule(marquee, nextPlayTime, blockOtherTypes);
+            }
+
+            nextPlayTime = nextPlayTime == 0 ? marqueeNextPlayTime : Math.min(nextPlayTime, marqueeNextPlayTime);
+            blockOtherTypes |= isExclusiveBackend(marquee);
+        }
+        return new BackendSchedule(null, nextPlayTime, blockOtherTypes);
+    }
+
+    /**
+     * 后台跑马灯调度快照。
+     *
+     * @param readyMarquee    当前应立即播放的后台跑马灯
+     * @param nextPlayTime    当前所有有效后台跑马灯中最早的下一次触发时间
+     * @param blockOtherTypes 存在短间隔后台跑马灯时，在等待窗口内也不允许其他类型穿插
+     */
+    private record BackendSchedule(Marquee readyMarquee, int nextPlayTime, boolean blockOtherTypes) {
+        private static final BackendSchedule EMPTY = new BackendSchedule(null, 0, false);
     }
 }

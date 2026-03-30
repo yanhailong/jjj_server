@@ -38,6 +38,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.utils.TipUtils;
+import com.jjg.game.sampledata.GameDataManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -306,7 +307,7 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_PACK_DETAIL_INFO)
     public void reqPlayerLevelPackDetailInfo(PlayerController playerController) {
-        if (!gameFunctionService.checkGameFunctionOpen(playerController, EFunctionType.LEVEL_GIFT)) {
+        if (!gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), GameDataManager.getGameFunctionCfg(EFunctionType.LEVEL_GIFT.getFunctionId()), true, false)) {
             return;
         }
         AbstractResponse res = playerLevelPackManager.reqPlayerLevelPackDetailInfo(playerController);

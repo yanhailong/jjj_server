@@ -1,6 +1,5 @@
 package com.jjg.game.core.handler;
 
-import cn.hutool.core.util.EnumUtil;
 import com.alibaba.fastjson.JSON;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -14,8 +13,10 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.HttpUtils;
 import com.jjg.game.core.base.gameevent.GameEventManager;
-import com.jjg.game.core.base.gameevent.PlayerEventCategory;
-import com.jjg.game.core.constant.*;
+import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.constant.SubscriptionTopic;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
@@ -29,14 +30,18 @@ import com.jjg.game.core.manager.SubscriptionManager;
 import com.jjg.game.core.pb.*;
 import com.jjg.game.core.pb.excel.ReqExcelInfos;
 import com.jjg.game.core.pb.excel.ResExcelInfos;
+import com.jjg.game.core.pb.function.ReqCheckFunctionState;
+import com.jjg.game.core.pb.function.ResCheckFunctionState;
 import com.jjg.game.core.pb.reddot.ReqRedDot;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.task.manager.TaskManager;
-import com.jjg.game.core.task.param.DefaultTaskConditionParam;
+import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
+import com.jjg.game.sampledata.bean.GameFunctionCfg;
 import com.jjg.game.sampledata.container.BaseCfgContainer;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -51,7 +56,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 
 /**
  * @author 11
@@ -86,7 +90,8 @@ public class CoreMessageHandler {
     private CountDao countDao;
     @Autowired
     private AccountDao accountDao;
-
+    @Autowired
+    private GameFunctionService gameFunctionService;
     public Map<String, ChooseWareListener> chooseWareListenerMap;
     //奖池本地缓存
     private final Cache<String, Class<? extends BaseCfgBean>> configCache = Caffeine.newBuilder()
@@ -181,30 +186,6 @@ public class CoreMessageHandler {
                 return;
             }
 
-            if ("recharge".equals(cmd)) {
-                log.debug("收到充值的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), arr);
-                int type = Integer.parseInt(arr[1]);
-                //1等级礼包 测试用
-                RechargeType rechargeType = EnumUtil.getBy(RechargeType.class, e -> e.getType() == type);
-                Order order = orderService.generateOrder(playerController.getPlayer(), PayType.GOOGLE, arr[2], BigDecimal.valueOf(100.99), rechargeType, null);
-                gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(playerController.getPlayer(), order));
-                //任务条件参数
-                Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
-                    DefaultTaskConditionParam param = new DefaultTaskConditionParam();
-                    param.setAddValue(1001);
-                    return param;
-                };
-
-                long playerId = playerController.getPlayer().getId();
-//                countDao.incrBy(CountDao.CountType.RECHARGE.getParam(), String.valueOf(playerId), order.getPrice());
-                countDao.incrRechargeInfo(playerId, String.valueOf(playerId), order.getPrice());
-
-                //单笔充值任务
-                taskManager.trigger(playerId, TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
-                //累计充值任务
-                taskManager.trigger(playerId, TaskConstant.ConditionType.PLAYER_SUM_PAY, paramSupplier);
-                return;
-            }
 
             if ("bindThird".equalsIgnoreCase(cmd)) {
                 bindThirdAccount(res, playerController, arr);
@@ -648,4 +629,25 @@ public class CoreMessageHandler {
         return baseCfgClass;
     }
 
+    /**
+     * 收到其他节点推送的停止跑马灯信息
+     */
+    @Command(MessageConst.CoreMessage.REQ_CHECK_FUNCTION_STATE)
+    public void reqCheckFunctionState(PlayerController playerController, ReqCheckFunctionState notify) {
+        try {
+            Player player = playerController.getPlayer();
+            GameFunctionCfg gameFunctionCfg = GameDataManager.getGameFunctionCfg(notify.gameFunctionId);
+            if (gameFunctionCfg == null) {
+                TipUtils.sendTip(player.getId(), TipUtils.TipType.GAME_FUNCTION, Code.ERROR_REQ);
+                return;
+            }
+            boolean functionOpen = gameFunctionService.checkGameFunctionOpen(player, gameFunctionCfg, true, true);
+            if (functionOpen) {
+                ResCheckFunctionState resCheckFunctionState = new ResCheckFunctionState();
+                playerController.send(resCheckFunctionState);
+            }
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
 }

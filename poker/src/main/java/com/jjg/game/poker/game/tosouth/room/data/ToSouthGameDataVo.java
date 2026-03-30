@@ -35,6 +35,8 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
     private Set<Long> readyPlayerIds = new HashSet<>();
     // 准备阶段：已启动准备倒计时的玩家ID集合（防止重复调度定时器）
     private Set<Long> readyTimerScheduled = new HashSet<>();
+    // 准备倒计时版本号（playerId -> version），用于退出房间后使旧定时器失效
+    private final Map<Long, Long> readyTimerVersion = new HashMap<>();
     // 通杀结算上下文（开局阶段检测通杀后保存，供准备完成后判断走结算还是打牌）
     private ToSouthSettlementContext instantWinContext;
 
@@ -141,6 +143,10 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
         return readyTimerScheduled;
     }
 
+    public Map<Long, Long> getReadyTimerVersion() {
+        return readyTimerVersion;
+    }
+
     public ToSouthSettlementContext getInstantWinContext() {
         return instantWinContext;
     }
@@ -182,6 +188,7 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
         this.playerHighlightCards.clear();
         this.readyPlayerIds = new HashSet<>();
         this.readyTimerScheduled = new HashSet<>();
+        this.readyTimerVersion.clear();
         this.instantWinContext = null;
     }
 }

@@ -22,7 +22,7 @@ public class HallLogger extends BaseLogger {
      * @param player
      * @return
      */
-    public void login(Player player, String token, int loginType, int channel, String ip, int device, String mac) {
+    public void login(Player player, String token, int loginType, int channel, String ip, int device, String mac, String fcm) {
         try {
             JSONObject json = new JSONObject();
 //            json.put("logType", "login");
@@ -33,6 +33,7 @@ public class HallLogger extends BaseLogger {
             json.put("device", device);
             json.put("mac", mac);
             json.put("subChannel", player.getSubChannel());
+            json.put("fcm", fcm);
             sendLog("login", player, json);
         } catch (Exception e) {
             log.error("记录login登录日志异常", e);

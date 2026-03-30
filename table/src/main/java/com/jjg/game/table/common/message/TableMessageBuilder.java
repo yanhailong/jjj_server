@@ -216,10 +216,16 @@ public class TableMessageBuilder {
         return settleInfoArrayList;
     }
 
+    public static List<BetTableInfo> buildBetTableInfos(TableGameDataVo gameDataVo, boolean needPlayerBetGold) {
+        return buildBetTableInfos(0, gameDataVo, needPlayerBetGold);
+    }
+
+
     /**
      * 构建桌面押注信息
      */
-    public static List<BetTableInfo> buildBetTableInfos(TableGameDataVo gameDataVo, boolean needPlayerBetGold) {
+    public static List<BetTableInfo> buildBetTableInfos(long initPlayerId, TableGameDataVo gameDataVo, boolean needPlayerBetGold
+            , boolean justPlayerBet) {
         Map<Long, Map<Integer, List<Integer>>> areaTotalBet = gameDataVo.getPlayerBetInfo();
         Map<Integer, BetTableInfo> baccaratTableInfoMap = new HashMap<>();
         for (Map.Entry<Long, Map<Integer, List<Integer>>> betEntry : areaTotalBet.entrySet()) {
@@ -232,9 +238,18 @@ public class TableMessageBuilder {
                     baccaratTableInfoMap.get(entry.getKey()).betIdx = entry.getKey();
                 }
                 BetTableInfo betTableInfo = baccaratTableInfoMap.get(entry.getKey());
-                betTableInfo.betIdxTotal += entry.getValue().stream().mapToInt(Integer::intValue).sum();
+                int playerTotalBet = entry.getValue().stream().mapToInt(Integer::intValue).sum();
+                betTableInfo.betIdxTotal += playerTotalBet;
+                boolean isSelectPlayer = initPlayerId > 0 && playerId == initPlayerId;
+                if (isSelectPlayer) {
+                    //玩家总下注
+                    betTableInfo.playerBetTotal = playerTotalBet;
+                }
                 // 刚进入和断线重连时需要金币列表
                 if (needPlayerBetGold) {
+                    if (justPlayerBet && !isSelectPlayer) {
+                        continue;
+                    }
                     if (betTableInfo.betGoldList == null) {
                         betTableInfo.betGoldList = new ArrayList<>();
                     }
@@ -253,32 +268,10 @@ public class TableMessageBuilder {
         return new ArrayList<>(baccaratTableInfoMap.values());
     }
 
-
     /**
-     * 添加玩家下注区域的数据
+     * 构建桌面押注信息
      */
-    public static List<BetTableInfo> buildPlayerBetInfo(
-            List<BetTableInfo> betTableInfos, TableGameDataVo gameDataVo, long playerId) {
-        Map<Integer, BetTableInfo> tableInfoMap =
-                betTableInfos.stream().collect(HashMap::new, (map, e) -> map.put(e.betIdx, e), HashMap::putAll);
-        Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
-        if (playerBetInfo == null) {
-            return betTableInfos;
-        }
-        // 玩家区域信息
-        for (Map.Entry<Integer, List<Integer>> entry : playerBetInfo.entrySet()) {
-            long areaTotal = entry.getValue().stream().mapToInt(Integer::intValue).sum();
-            if (!tableInfoMap.containsKey(entry.getKey())) {
-                BetTableInfo betTableInfo = new BetTableInfo();
-                betTableInfo.betIdx = entry.getKey();
-                betTableInfo.playerBetTotal = areaTotal;
-                tableInfoMap.put(entry.getKey(), betTableInfo);
-            } else {
-                tableInfoMap.get(entry.getKey()).playerBetTotal = areaTotal;
-            }
-        }
-        return tableInfoMap.values().stream().toList();
+    public static List<BetTableInfo> buildBetTableInfos(long initPlayerId, TableGameDataVo gameDataVo, boolean needPlayerBetGold) {
+        return buildBetTableInfos(initPlayerId, gameDataVo, needPlayerBetGold, false);
     }
-
-
 }

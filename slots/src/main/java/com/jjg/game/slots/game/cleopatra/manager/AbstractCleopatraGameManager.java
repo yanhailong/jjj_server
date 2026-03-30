@@ -138,7 +138,7 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
         if (poolCfg != null) {
             for (int poolId : resultLib.getJackpotIds()) {
                 if (poolCfg.getId() == poolId && poolCfg.getTruePool() > 0) {
-                    CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(), poolCfg.getTruePool(), AddType.SLOTS_JACKPOT_REWARD);
+                    CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(), poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
                     if (result.success()) {
                         gameRunInfo.addSmallPoolGold(result.data);
 

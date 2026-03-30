@@ -80,7 +80,7 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
     public void phaseDoAction() {
         long startTime = System.currentTimeMillis();
         super.phaseDoAction();
-        log.info("执行RussianLetteSettlementPhase（结算阶段）中phaseDoAction");
+//        log.info("执行RussianLetteSettlementPhase（结算阶段）中phaseDoAction");
 
         // ── 1. 读取开奖阶段缓存 ──────────────────────────────────────────────────
         RussianLetteHistoryBean historyBean = gameDataVo.getDrawPhaseHistoryBean();
@@ -197,7 +197,7 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
                 (BaseTableGameController<RussianLetteGameDataVo>) gameController);
 
         long endTime = System.currentTimeMillis();
-        log.info("结算阶段  执行时间：{}   距离下个阶段时间：{}",endTime-startTime,gameDataVo.getPhaseEndTime()-endTime);
+//        log.info("结算阶段  执行时间：{}   距离下个阶段时间：{}",endTime-startTime,gameDataVo.getPhaseEndTime()-endTime);
     }
 
     @Override

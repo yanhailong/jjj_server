@@ -675,16 +675,17 @@ public class ZeusVsHadesGenerateManager extends AbstractSlotsGenerateManager<Zeu
                     || auxiliaryInfo.getCfgId() == ZeusVsHadesConstant.SpecialAuxiliary.FREE_HADES_3
                     || auxiliaryInfo.getCfgId() == ZeusVsHadesConstant.SpecialAuxiliary.FREE_HADES_4
             ) {
-                vsTimes.put(auxiliaryInfo.getColumn(), auxiliaryInfo.getTime());
-                vsStatus.put(auxiliaryInfo.getColumn(), auxiliaryInfo.getWildStatus());
-                if (auxiliaryInfo.getHadesExchangeWildSet() != null && !auxiliaryInfo.getHadesExchangeWildSet().isEmpty()) {
-                    hadesExchangeWildSet = auxiliaryInfo.getHadesExchangeWildSet();
+                if (auxiliaryInfo.getColumn() != null && auxiliaryInfo.getTime() != null) {
+                    vsTimes.put(auxiliaryInfo.getColumn(), auxiliaryInfo.getTime());
+                    vsStatus.put(auxiliaryInfo.getColumn(), auxiliaryInfo.getWildStatus());
+                    if (auxiliaryInfo.getHadesExchangeWildSet() != null && !auxiliaryInfo.getHadesExchangeWildSet().isEmpty()) {
+                        hadesExchangeWildSet = auxiliaryInfo.getHadesExchangeWildSet();
+                    }
                 }
             }
         }
 
         lib.setVsTimes(vsTimes);
-
         vsTimes.forEach((key, value) -> {
             Set<Integer> rowsSet = wildMap.get(0);
             if (rowsSet == null) {

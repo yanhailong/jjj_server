@@ -39,12 +39,4 @@ public interface OrderGenerate extends IGameSysFuncInterface {
      */
     boolean onReceivedRecharge(Player player, Order order);
 
-    /**
-     * 执行本身逻辑后是否还需要继续执行
-     *
-     * @return
-     */
-    default boolean isContinue(Order order) {
-        return true;
-    }
 }

@@ -80,7 +80,9 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
             if (elementsCount != cfg.getRewardNum()) {
                 continue;
             }
-
+            if (cfg.getBet() > 0) {
+                lib.setTimes(lib.getTimes() + cfg.getBet());
+            }
             //是否触发小游戏
             if (cfg.getFeatureTriggerId() != null && !cfg.getFeatureTriggerId().isEmpty()) {
                 int count = checkAddFreeCount(lib);
@@ -103,7 +105,7 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
                 });
             }
 
-            if(lib.getJackpotIds() == null || lib.getJackpotIds().isEmpty()){
+            if (lib.getJackpotIds() == null || lib.getJackpotIds().isEmpty()) {
                 lib.addJackpotId(cfg.getJackpotID());
             }
         }
@@ -208,7 +210,7 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
 
             FrozenThroneResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
             int addCount = checkAddFreeCount(lib);
-            log.debug("免费转新加 {}",addCount);
+            log.debug("免费转新加 {}", addCount);
             lib.setAddFreeCount(addCount);
             remainFreeCount += addCount;
             specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
@@ -249,10 +251,10 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
             throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
         }
 
-        if(triggerFreeLib(lib,FrozenThroneConstant.SpecialMode.FREE)){
+        if (triggerFreeLib(lib, FrozenThroneConstant.SpecialMode.FREE)) {
             //免费
             lib.addTimes(calFree(lib));
-        }else {
+        } else {
             //中奖线
             lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
         }

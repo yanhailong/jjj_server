@@ -1,6 +1,8 @@
 package com.jjg.game.poker.game.tosouth.util;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.json.JSONObject;
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.poker.game.common.data.PokerCard;
@@ -95,8 +97,8 @@ public class ToSouthHandUtils {
 
     private static boolean isBombQuad(List<Card> cards) {
         return cards.get(0).getRank() == cards.get(1).getRank() &&
-               cards.get(1).getRank() == cards.get(2).getRank() &&
-               cards.get(2).getRank() == cards.get(3).getRank();
+                cards.get(1).getRank() == cards.get(2).getRank() &&
+                cards.get(2).getRank() == cards.get(3).getRank();
     }
 
     private static boolean isStraight(List<Card> cards) {
@@ -137,21 +139,27 @@ public class ToSouthHandUtils {
     public static boolean compare(List<Card> prev, List<Card> current) {
         ToSouthCardType type1 = getCardType(prev);
         ToSouthCardType type2 = getCardType(current);
-
+        log.info("开始牌型比较：prev:{}，current:{}", JSON.toJSONString(type1), JSON.toJSONString(type2));
         if (type2 == ToSouthCardType.NONE) return false;
         // 炸弹牌型，只能炸2的牌型和三连对，不能炸顺子、单张对子3-A等普通牌型
         if (type2 == ToSouthCardType.BOMB_QUAD) {
+            log.info("prev:{}", JSON.toJSONString(type1));
+            log.info("current:{}", JSON.toJSONString(type2));
             if (type1 == ToSouthCardType.BOMB_QUAD) {
                 // 都是四张，比大小
                 return compareMaxCard(prev, current);
             }
-            // 规则2: 炸弹不能通杀，只能炸2的牌型和三连对牌型
-            // 2-1: 炸单张2
-            if (type1 == ToSouthCardType.SINGLE && prev.getFirst().getRank() == RANK_2) return true;
-            // 2-2: 炸对子2
-            if (type1 == ToSouthCardType.PAIR && prev.getFirst().getRank() == RANK_2) return true;
-            // 2-3: 炸三连对 其他牌型 (如顺子、单张/对子3-A、三张等) 不能炸
+            // 规则: 炸弹不能通杀，只能炸2的牌型和三连对牌型
+            // 普通单张/对子（非2）不能被炸，直接返回 false
+            if (type1 == ToSouthCardType.SINGLE) {
+                return prev.getFirst().getRank() == RANK_2; // 只有单张2才能被炸
+            }
+            if (type1 == ToSouthCardType.PAIR) {
+                return prev.getFirst().getRank() == RANK_2; // 只有对子2才能被炸
+            }
+            // 炸三连对；四连对及以上不能被炸
             if (type1 == ToSouthCardType.CONSECUTIVE_PAIRS) return prev.size() < 8;
+            // 顺子、三张等其他牌型不能被炸
             return false;
         }
 
@@ -159,11 +167,11 @@ public class ToSouthHandUtils {
         if (type2 == ToSouthCardType.CONSECUTIVE_PAIRS) {
             // 3连对(6张) > 单张2
             if (current.size() == 6 && type1 == ToSouthCardType.SINGLE && prev.getFirst().getRank() == RANK_2) return true;
-            // 四连对可以炸掉：单个2、双22、3连对、4张、同类型
-            if (current.size() == 8) {
+            // 四连对及以上可以炸掉：单个2、双22、3连对、4张
+            if (current.size() >= 8) {
                 if ((type1 == ToSouthCardType.PAIR || type1 == ToSouthCardType.SINGLE) && prev.getFirst().getRank() == RANK_2) return true;
                 if (type1 == ToSouthCardType.BOMB_QUAD) return true;
-                // 4连对 > 3连对
+                // 4连对+ > 3连对(6张)
                 if (type1 == ToSouthCardType.CONSECUTIVE_PAIRS && prev.size() == 6) return true;
             }
 
@@ -171,7 +179,7 @@ public class ToSouthHandUtils {
             if (type1 == ToSouthCardType.CONSECUTIVE_PAIRS && prev.size() == current.size()) {
                 return compareMaxCard(prev, current);
             }
-            
+
             // 连对不能大过其他牌型(如三张、顺子等)
             return false;
         }
@@ -230,26 +238,29 @@ public class ToSouthHandUtils {
             }
             return new Pair<>(SAME_COLOR, cardClientIds);
         }
-        // 6对
+        // 6对（4张同点算2对，3张同点算1对，2张同点算1对）
         if (countPairs(cards) >= 6) {
-            // 找出所有对子
-            List<Integer> pairRanks = new ArrayList<>();
-            for (int i = 0; i < cards.size() - 1; i++) {
-                if (cards.get(i).getRank() == cards.get(i+1).getRank()) {
-                    pairRanks.add(cards.get(i).getRank());
-                    i++;
-                }
+            // 按rank统计张数，保持遍历顺序（cards已排序）
+            Map<Integer, Integer> rankCount = new LinkedHashMap<>();
+            for (Card c : cards) {
+                rankCount.merge(c.getRank(), 1, Integer::sum);
             }
-            // 复用 countPairs 逻辑
-            int pairsFound = 0;
-            for (int i = 0; i < cards.size() - 1; i++) {
-                if (cards.get(i).getRank() == cards.get(i+1).getRank()) {
-                    if (cards.get(i) instanceof PokerCard pc1) cardClientIds.add(pc1.getClientId());
-                    if (cards.get(i+1) instanceof PokerCard pc2) cardClientIds.add(pc2.getClientId());
-                    pairsFound++;
-                    i++; 
-                    if (pairsFound == 6) break;
+            int pairsCollected = 0;
+            for (Map.Entry<Integer, Integer> entry : rankCount.entrySet()) {
+                int pairsFromRank = entry.getValue() / 2;
+                if (pairsFromRank == 0) continue;
+                // 本rank最多取够凑满6对所需的对数
+                int pairsToTake = Math.min(pairsFromRank, 6 - pairsCollected);
+                int cardsToTake = pairsToTake * 2;
+                int taken = 0;
+                for (Card c : cards) {
+                    if (c.getRank() == entry.getKey() && taken < cardsToTake) {
+                        if (c instanceof PokerCard pc) cardClientIds.add(pc.getClientId());
+                        taken++;
+                    }
                 }
+                pairsCollected += pairsToTake;
+                if (pairsCollected >= 6) break;
             }
             return new Pair<>(SIX_PAIRS, cardClientIds);
         }
@@ -293,6 +304,121 @@ public class ToSouthHandUtils {
         return count;
     }
 
+    /**
+     * 计算手牌中炸弹的最优总倍数（四条炸弹与连对炸弹共用牌时，选倍数最高的方案）
+     * <p>
+     * 核心逻辑：同一些牌可能同时组成四条和连对，不能重复计算。
+     * 枚举所有 count>=4 的 rank 是否当四条，剩余 count>=2 的 rank 组连对链，取最大值。
+     * <p>
+     * 示例1：4×8, 2×7, 3×6 → 四条(8倍) vs 三连对(6倍)，选四条 → 最优=8
+     * 示例2：4×8, 2×7, 3×6, 2×5 → 四条(8倍) vs 四连对(10倍)，选四连对 → 最优=10
+     *
+     * @param cards          手牌列表
+     * @param fourKindMulti  四条炸弹配置倍数
+     * @param threePairMulti 三连对炸弹配置倍数
+     * @param fourPairMulti  四连对炸弹配置倍数
+     * @return 最优炸弹总倍数
+     */
+    public static int calcOptimalBombMultiplier(List<Card> cards, int fourKindMulti, int threePairMulti, int fourPairMulti) {
+        // 1. 统计每个 rank 的张数
+        Map<Integer, Integer> rankCount = new HashMap<>();
+        for (Card c : cards) {
+            rankCount.merge(c.getRank(), 1, Integer::sum);
+        }
+
+        // 2. 找出所有可以当四条的 rank（count >= 4，排除2）
+        List<Integer> fourKindCandidates = new ArrayList<>();
+        for (Map.Entry<Integer, Integer> entry : rankCount.entrySet()) {
+            if (entry.getKey() == RANK_2) continue; // 2 不参与连对，四条2单独在下面处理
+            if (entry.getValue() >= 4) {
+                fourKindCandidates.add(entry.getKey());
+            }
+        }
+
+        // 3. 四条2 单独计算（2不能组连对，永远当四条）
+        int fixedFourKindMulti = 0;
+        Integer rank2Count = rankCount.get(RANK_2);
+        if (rank2Count != null && rank2Count >= 4) {
+            fixedFourKindMulti = fourKindMulti;
+        }
+
+        // 4. 枚举所有 非2的四条 rank 子集（是否当四条），找最大方案
+        int n = fourKindCandidates.size();
+        int maxBombMulti = 0;
+
+        for (int mask = 0; mask < (1 << n); mask++) {
+            Set<Integer> usedAsFourKind = new HashSet<>();
+            int fourKindSum = 0;
+            for (int i = 0; i < n; i++) {
+                if ((mask & (1 << i)) != 0) {
+                    usedAsFourKind.add(fourKindCandidates.get(i));
+                    fourKindSum += fourKindMulti;
+                }
+            }
+
+            // 剩余 count>=2 的 rank（排除2、排除已选为四条的rank）可以组连对
+            List<Integer> pairRanks = new ArrayList<>();
+            for (Map.Entry<Integer, Integer> entry : rankCount.entrySet()) {
+                int rank = entry.getKey();
+                if (rank == RANK_2) continue;
+                if (usedAsFourKind.contains(rank)) continue;
+                if (entry.getValue() >= 2) {
+                    pairRanks.add(rank);
+                }
+            }
+            Collections.sort(pairRanks);
+
+            // 找连续链并用 DP 计算最优连对炸弹倍数
+            int pairBombMulti = calcChainBombMultiplier(pairRanks, threePairMulti, fourPairMulti);
+
+            maxBombMulti = Math.max(maxBombMulti, fourKindSum + pairBombMulti);
+        }
+
+        return fixedFourKindMulti + maxBombMulti;
+    }
+
+    /**
+     * 从已排序的 pair rank 列表中，找出所有连续链，用 DP 计算最优连对炸弹总倍数
+     */
+    private static int calcChainBombMultiplier(List<Integer> sortedPairRanks, int threePairMulti, int fourPairMulti) {
+        if (sortedPairRanks.isEmpty()) return 0;
+
+        int total = 0;
+        // 把 ranks 拆分成多段连续链
+        List<Integer> chain = new ArrayList<>();
+        chain.add(sortedPairRanks.getFirst());
+
+        for (int i = 1; i < sortedPairRanks.size(); i++) {
+            if (sortedPairRanks.get(i) == sortedPairRanks.get(i - 1) + 1) {
+                chain.add(sortedPairRanks.get(i));
+            } else {
+                // 当前链断开，计算这段链的最优
+                total += dpChainMax(chain.size(), threePairMulti, fourPairMulti);
+                chain.clear();
+                chain.add(sortedPairRanks.get(i));
+            }
+        }
+        total += dpChainMax(chain.size(), threePairMulti, fourPairMulti);
+        return total;
+    }
+
+    /**
+     * DP 计算长度为 L 的连续链，最优切分成三连对(3)和四连对(4)炸弹的最大总倍数
+     * <p>
+     * 例: L=6 → 3+3=12 vs 4+2=10 → 选12
+     * 例: L=7 → 3+4=16 vs 4+3=16 → 选16
+     */
+    private static int dpChainMax(int L, int threePairMulti, int fourPairMulti) {
+        if (L < 3) return 0;
+        int[] dp = new int[L + 1];
+        for (int i = 1; i <= L; i++) {
+            dp[i] = dp[i - 1]; // 不在 i 处结束炸弹
+            if (i >= 3) dp[i] = Math.max(dp[i], dp[i - 3] + threePairMulti);
+            if (i >= 4) dp[i] = Math.max(dp[i], dp[i - 4] + fourPairMulti);
+        }
+        return dp[L];
+    }
+
     public static int countBomb(List<Card> cards) {
         cards.sort(CARD_COMPARATOR);
         return countQuads(cards);
@@ -303,6 +429,29 @@ public class ToSouthHandUtils {
      * 先排除四张炸弹和三张牌型，再从剩余的对子中寻找连续序列
      */
     public static int countConsecutivePairBombs(List<Card> cards) {
+        int[] counts = countConsecutivePairBombsByType(cards);
+        return counts[0] + counts[1];
+    }
+
+    /**
+     * 统计手牌中三连对炸弹的数量（恰好3连对）
+     */
+    public static int countThreePairBombs(List<Card> cards) {
+        return countConsecutivePairBombsByType(cards)[0];
+    }
+
+    /**
+     * 统计手牌中四连对炸弹的数量（4连对及以上）
+     */
+    public static int countFourPairBombs(List<Card> cards) {
+        return countConsecutivePairBombsByType(cards)[1];
+    }
+
+    /**
+     * 统计连对炸弹，按类型拆分
+     * @return int[0] = 三连对数量, int[1] = 四连对及以上数量
+     */
+    private static int[] countConsecutivePairBombsByType(List<Card> cards) {
         Map<Integer, Integer> rankCountMap = new HashMap<>();
         for (Card c : cards) {
             rankCountMap.merge(c.getRank(), 1, Integer::sum);
@@ -320,20 +469,23 @@ public class ToSouthHandUtils {
         }
         pairRanks.sort(Comparator.reverseOrder());
 
-        int bombCount = 0;
+        int threePairCount = 0; // 三连对（恰好3连对）
+        int fourPairCount = 0;  // 四连对及以上
         int chainLen = 0;
         int prevRank = -1;
         for (int r : pairRanks) {
             if (prevRank == -1 || prevRank == r + 1) {
                 chainLen++;
             } else {
-                if (chainLen >= 3) bombCount++;
+                if (chainLen == 3) threePairCount++;
+                else if (chainLen >= 4) fourPairCount++;
                 chainLen = 1;
             }
             prevRank = r;
         }
-        if (chainLen >= 3) bombCount++;
-        return bombCount;
+        if (chainLen == 3) threePairCount++;
+        else if (chainLen >= 4) fourPairCount++;
+        return new int[]{threePairCount, fourPairCount};
     }
 
     private static int countRank(List<Card> cards, int rank) {
@@ -357,22 +509,12 @@ public class ToSouthHandUtils {
     }
 
     private static int countPairs(List<Card> cards) {
-        int pairs = 0;
-        int i = 0;
-        while (i < cards.size() - 1) {
-            if (cards.get(i).getRank() == cards.get(i + 1).getRank()) {
-                // 四张同点是炸弹，不计入对子，整组跳过
-                if (i + 3 < cards.size() && cards.get(i).getRank() == cards.get(i + 3).getRank()) {
-                    i += 4;
-                } else {
-                    pairs++;
-                    i += 2;
-                }
-            } else {
-                i++;
-            }
+        // 每个rank贡献 count/2 对（4张=2对，3张=1对，2张=1对，1张=0对）
+        Map<Integer, Integer> rankCount = new HashMap<>();
+        for (Card c : cards) {
+            rankCount.merge(c.getRank(), 1, Integer::sum);
         }
-        return pairs;
+        return rankCount.values().stream().mapToInt(cnt -> cnt / 2).sum();
     }
 
     private static int countQuads(List<Card> cards) {
@@ -444,7 +586,7 @@ public class ToSouthHandUtils {
         if (rankMap.get(rank).size() == 1) {
             return rankMap.get(rank);
         }
-        
+
         // 兜底：如果 rankMap.get(rank) 还是 > 0 (比如顺子没凑成，且数量>2)，直接返回第一张
         if (!rankMap.get(rank).isEmpty()) {
             return List.of(firstCard);
@@ -466,7 +608,7 @@ public class ToSouthHandUtils {
         if (CollUtil.isEmpty(handCards)) return Collections.emptyList();
 
         List<List<Card>> result = new ArrayList<>();
-        
+
         // 1. 整合牌型 (分解手牌)
         Map<ToSouthCardType, List<List<Card>>> integratedCards = integrateHandCards(handCards);
 
@@ -503,16 +645,16 @@ public class ToSouthHandUtils {
 
             result.add(List.of(handCards.getLast()));
         }
-        
+
         // 对结果去重并排序 (从小到大)
         result.sort((list1, list2) -> {
             // 先按牌型类型排序 (单张 < 对子 < 三张 < 顺子 < 连对 < 炸弹)
-             ToSouthCardType t1 = getCardType(list1);
-             ToSouthCardType t2 = getCardType(list2);
-             // 如果类型不同，按枚举顺序
-             if (t1 != t2) return Integer.compare(getCardTypePriority(t1), getCardTypePriority(t2));
-             
-             // 如果类型相同，按最大牌比较
+            ToSouthCardType t1 = getCardType(list1);
+            ToSouthCardType t2 = getCardType(list2);
+            // 如果类型不同，按枚举顺序
+            if (t1 != t2) return Integer.compare(getCardTypePriority(t1), getCardTypePriority(t2));
+
+            // 如果类型相同，按最大牌比较
             Card max1 = list1.getFirst();
             Card max2 = list2.getFirst();
             return CARD_COMPARATOR.compare(max2, max1); // 升序 (小在前)
@@ -544,7 +686,7 @@ public class ToSouthHandUtils {
         if (CollUtil.isEmpty(handCards) || CollUtil.isEmpty(lastCards)) return Collections.emptyList();
 
         List<List<Card>> result = new ArrayList<>();
-        
+
         // 识别上家牌型
         ToSouthCardType lastType = getCardType(lastCards);
         if (lastType == ToSouthCardType.NONE) return Collections.emptyList();
@@ -667,74 +809,86 @@ public class ToSouthHandUtils {
             }
             extractConsecPairCandidates(result, currentChain, allRankMap, lastCards, targetPairCount);
         }
-        
+
         // 2. 尝试用连对压制 2 (特殊规则)
         List<List<Card>> consecutivePairs = integratedCards.get(ToSouthCardType.CONSECUTIVE_PAIRS);
         if (CollUtil.isNotEmpty(consecutivePairs)) {
-             if (lastType == ToSouthCardType.SINGLE && lastCards.getFirst().getRank() == RANK_2) {
-                 // 上家是单2，优先找4连对(8张)，没有则找3连对(6张)
-                 for (List<Card> cp : consecutivePairs) {
-                     // 排序，确保从小到大
-                     List<Card> sortedCp = new ArrayList<>(cp);
-                     sortedCp.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
+            if (lastType == ToSouthCardType.SINGLE && lastCards.getFirst().getRank() == RANK_2) {
+                // 上家是单2，优先找4连对(8张)，没有则找3连对(6张)
+                for (List<Card> cp : consecutivePairs) {
+                    // 排序，确保从小到大
+                    List<Card> sortedCp = new ArrayList<>(cp);
+                    sortedCp.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
 
-                     if (sortedCp.size() >= 8) {
-                         // 优先出4连对 (截取前8张)
-                         result.add(sortedCp.subList(0, 8));
-                     } else if (sortedCp.size() >= 6) {
-                         // 其次出3连对 (截取前6张)
-                         result.add(sortedCp.subList(0, 6));
-                     }
-                 }
-             } else if (lastType == ToSouthCardType.PAIR && lastCards.getFirst().getRank() == RANK_2) {
-                 // 上家是对2，找4连对(8张)
-                 for (List<Card> cp : consecutivePairs) {
-                     if (cp.size() >= 8) {
-                         List<Card> sortedCp = new ArrayList<>(cp);
-                         sortedCp.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
-                         // 截取前8张
+                    if (sortedCp.size() >= 8) {
+                        // 优先出4连对 (截取前8张)
                         result.add(sortedCp.subList(0, 8));
+                    } else if (sortedCp.size() >= 6) {
+                        // 其次出3连对 (截取前6张)
+                        result.add(sortedCp.subList(0, 6));
                     }
                 }
-            } else if (lastType == ToSouthCardType.BOMB_QUAD) {
+            } else if (lastType == ToSouthCardType.PAIR && lastCards.getFirst().getRank() == RANK_2) {
+                // 上家是对2，找4连对(8张)
                 for (List<Card> cp : consecutivePairs) {
                     if (cp.size() >= 8) {
                         List<Card> sortedCp = new ArrayList<>(cp);
                         sortedCp.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
-                        List<Card> candidate = new ArrayList<>(sortedCp.subList(0, 8));
-                        if (compare(lastCards, candidate)) {
-                            result.add(candidate);
-                        }
+                        // 截取前8张
+                        result.add(sortedCp.subList(0, 8));
+                    }
+                }
+            } else if (lastType == ToSouthCardType.BOMB_QUAD) {
+                // 上家是四条，4连对及以上可以无条件压制（任何4连对都比最大四条大）
+                for (List<Card> cp : consecutivePairs) {
+                    if (cp.size() >= 8) {
+                        List<Card> sortedCp = new ArrayList<>(cp);
+                        sortedCp.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
+                        result.add(new ArrayList<>(sortedCp.subList(0, 8)));
+                    }
+                }
+            } else if (lastType == ToSouthCardType.CONSECUTIVE_PAIRS && lastCards.size() == 6) {
+                // 上家是3连对，4连对及以上可以作为炸弹压制（任何4连对都比最大3连对大）
+                for (List<Card> cp : consecutivePairs) {
+                    if (cp.size() >= 8) {
+                        List<Card> sortedCp = new ArrayList<>(cp);
+                        sortedCp.sort((c1, c2) -> Integer.compare(c1.getRank(), c2.getRank()));
+                        result.add(new ArrayList<>(sortedCp.subList(0, 8)));
                     }
                 }
             }
         }
-        
+
         // 3. 尝试用炸弹压制
         List<List<Card>> bombs = integratedCards.get(ToSouthCardType.BOMB_QUAD);
         if (CollUtil.isNotEmpty(bombs)) {
-             // 遍历所有炸弹，检查是否能压制
-             for (List<Card> bomb : bombs) {
-                 if (compare(lastCards, bomb)) {
-                     result.add(bomb);
-                 }
-             }
+            // 遍历所有炸弹，检查是否能压制
+            for (List<Card> bomb : bombs) {
+                if (compare(lastCards, bomb)) {
+                    result.add(bomb);
+                }
+            }
         }
-        
-        // 对结果去重并排序 (从小到大)
+
+        // 对结果去重并排序 (从小到大：普通牌 < 四条炸弹 < 4连对炸弹)
         result.sort((list1, list2) -> {
-            // 先按牌型类型排序 (普通 < 连对压2 < 炸弹)
-             ToSouthCardType t1 = getCardType(list1);
-             ToSouthCardType t2 = getCardType(list2);
-             // 如果类型不同，炸弹排最后
-             boolean isBomb1 = isBombType(t1);
-             boolean isBomb2 = isBombType(t2);
-             if (isBomb1 != isBomb2) return isBomb1 ? 1 : -1;
-             
-             // 如果类型相同，按最大牌比较
+            ToSouthCardType t1 = getCardType(list1);
+            ToSouthCardType t2 = getCardType(list2);
+            boolean isBomb1 = isBombType(t1);
+            boolean isBomb2 = isBombType(t2);
+            // 炸弹排最后
+            if (isBomb1 != isBomb2) return isBomb1 ? 1 : -1;
+            if (isBomb1) {
+                // 炸弹内部：四条(BOMB_QUAD) < 4连对+(CONSECUTIVE_PAIRS)
+                // 因为4连对任何一个都比最大四条大，所以四条先推荐（更小的炸弹先出）
+                boolean isConsec1 = (t1 == ToSouthCardType.CONSECUTIVE_PAIRS);
+                boolean isConsec2 = (t2 == ToSouthCardType.CONSECUTIVE_PAIRS);
+                if (isConsec1 != isConsec2) return isConsec1 ? 1 : -1;
+            }
+            // 同类型：按最大牌升序（小在前）
             Card max1 = list1.getFirst();
             Card max2 = list2.getFirst();
-            return CARD_COMPARATOR.compare(max2, max1); // 升序 (小在前)
+            return CARD_COMPARATOR.compare(max2, max1);
         });
 
         return result;
@@ -769,7 +923,7 @@ public class ToSouthHandUtils {
         combinations.sort((list1, list2) -> {
             Card max1 = list1.getFirst();
             Card max2 = list2.getFirst();
-            return CARD_COMPARATOR.compare(max2, max1); 
+            return CARD_COMPARATOR.compare(max2, max1);
         });
         // 排序后是 [Min ... Max]
         // 取第一个 (最小的)
@@ -859,8 +1013,7 @@ public class ToSouthHandUtils {
 
     /**
      * 整合手牌：将散乱的手牌按规则整理成具体的牌型集合
-     * 提取顺序：连对炸弹 > 四条炸弹 > 三张 > 顺子 > 对子 > 单张
-     * 连对炸弹优先于四条炸弹提取，保证4张同点数的牌可以拆对参与连对链
+     * 提取顺序：四连对炸弹(链长>=4) > 四条炸弹 > 三连对炸弹(链长>=3) > 三张 > 顺子 > 对子 > 单张
      * 排序优先级: 炸弹（4连对炸弹 > 4张炸弹 > 3连对炸弹）> 顺子 > 3张 > 对子 > 单张
      */
     public static Map<ToSouthCardType, List<List<Card>>> integrateHandCards(List<Card> handCards) {
@@ -874,41 +1027,11 @@ public class ToSouthHandUtils {
             rankMap.computeIfAbsent(c.getRank(), k -> new ArrayList<>()).add(c);
         }
 
-        // 1. 优先提取连对炸弹（3+连对，允许四条和三张拆出对子参与连对链）
-        // 找出所有 count >= 2 的 rank（排除2），四条/三张也可以贡献一对
+        // 1. 提取四连对炸弹（链长>=4，允许四条和三张拆出对子参与连对链）
         List<List<Card>> consecutivePairs = new ArrayList<>();
-        List<Integer> pairRanks = new ArrayList<>();
-        for (Map.Entry<Integer, List<Card>> entry : rankMap.entrySet()) {
-            if (entry.getValue().size() >= 2 && entry.getKey() != RANK_2) {
-                pairRanks.add(entry.getKey());
-            }
-        }
-        // pairRanks 是降序的 (TreeMap key降序)
-        if (pairRanks.size() >= 3) {
-            List<Integer> currentChain = new ArrayList<>();
-            for (int r : pairRanks) {
-                if (currentChain.isEmpty()) {
-                    currentChain.add(r);
-                } else {
-                    int lastR = currentChain.getLast();
-                    if (lastR == r + 1) {
-                        currentChain.add(r);
-                    } else {
-                        if (currentChain.size() >= 3) {
-                            addConsecutivePairs(consecutivePairs, rankMap, currentChain);
-                        }
-                        currentChain.clear();
-                        currentChain.add(r);
-                    }
-                }
-            }
-            if (currentChain.size() >= 3) {
-                addConsecutivePairs(consecutivePairs, rankMap, currentChain);
-            }
-        }
-        result.put(ToSouthCardType.CONSECUTIVE_PAIRS, consecutivePairs);
+        extractPairChains(consecutivePairs, rankMap, 4);
 
-        // 2. 提取四条炸弹（连对提取后，剩余仍有4张同点数的才作为四条炸弹）
+        // 2. 提取四条炸弹（四连对提取后，剩余仍有4张同点数的才作为四条炸弹）
         List<List<Card>> bombs = new ArrayList<>();
         Iterator<Map.Entry<Integer, List<Card>>> it = rankMap.entrySet().iterator();
         while (it.hasNext()) {
@@ -920,7 +1043,11 @@ public class ToSouthHandUtils {
         }
         result.put(ToSouthCardType.BOMB_QUAD, bombs);
 
-        // 3. 提取三张（连对提取后，剩余 count==3 的才作为三张）
+        // 3. 提取三连对炸弹（四条提取后，剩余count>=2的重新找链长>=3）
+        extractPairChains(consecutivePairs, rankMap, 3);
+        result.put(ToSouthCardType.CONSECUTIVE_PAIRS, consecutivePairs);
+
+        // 4. 提取三张（连对提取后，剩余 count==3 的才作为三张）
         List<List<Card>> triples = new ArrayList<>();
         it = rankMap.entrySet().iterator();
         while (it.hasNext()) {
@@ -945,9 +1072,9 @@ public class ToSouthHandUtils {
         singleRanks.sort((r1, r2) -> Integer.compare(r2, r1));
         // 2不参与顺子
         singleRanks.removeIf(r -> r == RANK_2);
-        
+
         if (singleRanks.size() >= 3) { // 顺子至少3张
-             List<Integer> currentChain = new ArrayList<>();
+            List<Integer> currentChain = new ArrayList<>();
             for (int r : singleRanks) {
                 if (currentChain.isEmpty()) {
                     currentChain.add(r);
@@ -964,16 +1091,16 @@ public class ToSouthHandUtils {
                     }
                 }
             }
-             if (currentChain.size() >= 3) {
-                 addStraight(straights, rankMap, currentChain);
-             }
+            if (currentChain.size() >= 3) {
+                addStraight(straights, rankMap, currentChain);
+            }
         }
         result.put(ToSouthCardType.STRAIGHT, straights);
 
         // 5. 剩余的归为对子或单张
         List<List<Card>> pairs = new ArrayList<>();
         List<List<Card>> singles = new ArrayList<>();
-        
+
         for (Map.Entry<Integer, List<Card>> entry : rankMap.entrySet()) {
             List<Card> cs = entry.getValue();
             if (cs.isEmpty()) continue;
@@ -984,10 +1111,10 @@ public class ToSouthHandUtils {
                 singles.add(cs);
             } else {
                 while (cs.size() >= 2) {
-                     List<Card> pair = new ArrayList<>();
-                     pair.add(cs.removeFirst());
-                     pair.add(cs.removeFirst());
-                     pairs.add(pair);
+                    List<Card> pair = new ArrayList<>();
+                    pair.add(cs.removeFirst());
+                    pair.add(cs.removeFirst());
+                    pairs.add(pair);
                 }
                 if (!cs.isEmpty()) {
                     singles.add(cs);
@@ -1000,10 +1127,48 @@ public class ToSouthHandUtils {
         return result;
     }
 
+    /**
+     * 从rankMap中提取连对链（链长>=minChainLen），提取后从rankMap中移除已用牌
+     * @param target       结果集，提取的连对链会添加到此列表
+     * @param rankMap      rank→牌列表映射（key降序）
+     * @param minChainLen  最小链长（4=四连对，3=三连对）
+     */
+    private static void extractPairChains(List<List<Card>> target, Map<Integer, List<Card>> rankMap, int minChainLen) {
+        List<Integer> pairRanks = new ArrayList<>();
+        for (Map.Entry<Integer, List<Card>> entry : rankMap.entrySet()) {
+            if (entry.getValue().size() >= 2 && entry.getKey() != RANK_2) {
+                pairRanks.add(entry.getKey());
+            }
+        }
+        // pairRanks 是降序的 (TreeMap key降序)
+        if (pairRanks.size() >= minChainLen) {
+            List<Integer> currentChain = new ArrayList<>();
+            for (int r : pairRanks) {
+                if (currentChain.isEmpty()) {
+                    currentChain.add(r);
+                } else {
+                    int lastR = currentChain.getLast();
+                    if (lastR == r + 1) {
+                        currentChain.add(r);
+                    } else {
+                        if (currentChain.size() >= minChainLen) {
+                            addConsecutivePairs(target, rankMap, currentChain);
+                        }
+                        currentChain.clear();
+                        currentChain.add(r);
+                    }
+                }
+            }
+            if (currentChain.size() >= minChainLen) {
+                addConsecutivePairs(target, rankMap, currentChain);
+            }
+        }
+    }
+
     private static void addConsecutivePairs(List<List<Card>> target, Map<Integer, List<Card>> rankMap, List<Integer> ranks) {
         if (ranks.isEmpty()) return;
         List<Card> chain = new ArrayList<>();
-        
+
         // 规则：连对最大的对子取最强的花色，其他的对子取最弱的花色
         // ranks 是降序排列 (e.g. 5, 4, 3)
         // 所以 ranks.get(0) 是最大对子
@@ -1012,8 +1177,8 @@ public class ToSouthHandUtils {
         for (Integer r : ranks) {
             List<Card> cs = rankMap.get(r);
             if (cs != null && !cs.isEmpty()) {
-                cs.sort(CARD_COMPARATOR); 
-                
+                cs.sort(CARD_COMPARATOR);
+
                 List<Card> selected = new ArrayList<>();
                 if (r == maxRank) {
                     // 最大对子取最强花色：CARD_COMPARATOR 花色升序，最强(♥=1)排最前
@@ -1037,7 +1202,7 @@ public class ToSouthHandUtils {
     private static void addStraight(List<List<Card>> target, Map<Integer, List<Card>> rankMap, List<Integer> ranks) {
         if (ranks.isEmpty()) return;
         List<Card> chain = new ArrayList<>();
-        
+
         // 规则：顺子最大的那张牌若有多张，取花色最强的那张；顺子其他牌都取花色最弱的
         // ranks 是降序排列 (e.g. 7, 6, 5, 4, 3)
         // ranks.get(0) 是最大牌
@@ -1047,7 +1212,7 @@ public class ToSouthHandUtils {
             List<Card> cs = rankMap.get(r);
             if (cs != null && !cs.isEmpty()) {
                 cs.sort(CARD_COMPARATOR);
-                
+
                 if (r == maxRank) {
                     // 最大牌取最强花色：CARD_COMPARATOR 花色升序，最强(♥=1)排最前
                     chain.add(cs.removeFirst());
@@ -1069,7 +1234,7 @@ public class ToSouthHandUtils {
      * @param targetLen  需要匹配的顺子长度
      */
     private static void extractStraightCandidates(List<List<Card>> result, List<Integer> chain,
-            Map<Integer, List<Card>> rankMap, List<Card> lastCards, int targetLen) {
+                                                  Map<Integer, List<Card>> rankMap, List<Card> lastCards, int targetLen) {
         if (chain.size() < targetLen) return;
         for (int i = 0; i <= chain.size() - targetLen; i++) {
             List<Card> straight = new ArrayList<>();
@@ -1098,7 +1263,7 @@ public class ToSouthHandUtils {
      * @param targetPairCount 需要匹配的连对对数
      */
     private static void extractConsecPairCandidates(List<List<Card>> result, List<Integer> chain,
-            Map<Integer, List<Card>> rankMap, List<Card> lastCards, int targetPairCount) {
+                                                    Map<Integer, List<Card>> rankMap, List<Card> lastCards, int targetPairCount) {
         if (chain.size() < targetPairCount) return;
         for (int i = 0; i <= chain.size() - targetPairCount; i++) {
             List<Card> pairs = new ArrayList<>();
@@ -1151,7 +1316,7 @@ public class ToSouthHandUtils {
             int nextRank;
             if (currentRank == 14) break; // A -> End
             else nextRank = currentRank + 1;
-            
+
             List<Card> nextCards = rankMap.get(nextRank);
             if (nextCards == null || nextCards.size() != firstRankCount) {
                 break;
@@ -1187,7 +1352,7 @@ public class ToSouthHandUtils {
 
     public static void main(String[] args) {
         System.out.println("=== 南方前进牌型工具类测试 ===");
-        
+
         // 1. 基础随机手牌测试 (5组)
         System.out.println("--- 基础手牌整合与最佳出牌测试 ---");
         for (int i = 0; i < 5; i++) {

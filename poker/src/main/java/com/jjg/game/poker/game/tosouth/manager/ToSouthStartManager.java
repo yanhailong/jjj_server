@@ -25,6 +25,9 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
     /** GM指定发牌数据：playerId -> List<int[]{suit, rank}> */
     private static final Map<Long, List<int[]>> GM_DEAL_CARDS = new ConcurrentHashMap<>();
 
+    /** GM指定机器人发牌数据：gmPlayerId -> Map<robotIndex(1-based), List<int[]{suit, rank}>> */
+    private static final Map<Long, Map<Integer, List<int[]>>> GM_ROBOT_DEAL_CARDS = new ConcurrentHashMap<>();
+
     /** 最大手牌数 */
     private static final int MAX_HAND_CARDS = 13;
 
@@ -35,6 +38,9 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
             if ("dealCards".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到dealCards的gm命令 playerId = {}, gmOrders = {}", playerController.playerId(), gmOrders);
                 return handleDealCards(playerController, gmOrders);
+            } else if ("dealRobotCards".equalsIgnoreCase(gmOrders[0])) {
+                log.debug("收到dealRobotCards的gm命令 playerId = {}, gmOrders = {}", playerController.playerId(), gmOrders);
+                return handleDealRobotCards(playerController, gmOrders);
             } else {
                 res.code = Code.NOT_FOUND;
             }
@@ -122,6 +128,96 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
     }
 
     /**
+     * 处理 dealRobotCards GM命令
+     * 格式: dealRobotCards 1 ♠A ♥K ♦10 ♣2
+     * 第一个参数为机器人编号（1=第一个机器人，2=第二个机器人，按座位顺序）
+     * 其余参数为手牌，规则同 dealCards
+     */
+    private CommonResult<String> handleDealRobotCards(PlayerController playerController, String[] gmOrders) {
+        CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
+
+        // 校验：至少需要 机器人编号 + 1张手牌
+        if (gmOrders.length < 3) {
+            res.code = Code.FAIL;
+            res.data = "格式：dealRobotCards 机器人编号 手牌... 例如：dealRobotCards 1 ♠A ♥K";
+            return res;
+        }
+
+        // 解析机器人编号
+        int robotIndex;
+        try {
+            robotIndex = Integer.parseInt(gmOrders[1]);
+        } catch (NumberFormatException e) {
+            res.code = Code.FAIL;
+            res.data = "机器人编号必须为数字，例如：dealRobotCards 1 ♠A ♥K";
+            return res;
+        }
+        if (robotIndex < 1) {
+            res.code = Code.FAIL;
+            res.data = "机器人编号从1开始，1=第一个机器人，2=第二个机器人";
+            return res;
+        }
+
+        // 校验手牌数量：最多13张
+        int cardCount = gmOrders.length - 2;
+        if (cardCount > MAX_HAND_CARDS) {
+            res.code = Code.FAIL;
+            res.data = "最多指定" + MAX_HAND_CARDS + "张手牌";
+            return res;
+        }
+
+        List<int[]> cardSpecs = new ArrayList<>();
+        Set<String> suitRankSet = new HashSet<>();
+
+        for (int i = 2; i < gmOrders.length; i++) {
+            String cardStr = gmOrders[i].trim();
+            if (cardStr.isEmpty()) {
+                continue;
+            }
+
+            int[] parsed = parseCard(cardStr);
+            if (parsed == null) {
+                res.code = Code.FAIL;
+                res.data = "无法识别的手牌：" + cardStr + "，格式示例：♠A ♥K ♦10 ♣2";
+                return res;
+            }
+
+            String key = parsed[0] + "_" + parsed[1];
+            if (!suitRankSet.add(key)) {
+                res.code = Code.FAIL;
+                res.data = "手牌不能重复：" + cardStr;
+                return res;
+            }
+
+            cardSpecs.add(parsed);
+        }
+
+        if (cardSpecs.isEmpty()) {
+            res.code = Code.FAIL;
+            res.data = "请至少指定1张有效手牌";
+            return res;
+        }
+
+        long playerId = playerController.playerId();
+        GM_ROBOT_DEAL_CARDS.computeIfAbsent(playerId, k -> new ConcurrentHashMap<>()).put(robotIndex, cardSpecs);
+
+        // 构建回显信息
+        StringBuilder sb = new StringBuilder("GM机器人发牌已设置，第").append(robotIndex).append("个机器人下一把将获得：");
+        for (int i = 2; i < gmOrders.length; i++) {
+            if (i > 2) {
+                sb.append(" ");
+            }
+            sb.append(gmOrders[i]);
+        }
+        if (cardSpecs.size() < MAX_HAND_CARDS) {
+            sb.append("，剩余").append(MAX_HAND_CARDS - cardSpecs.size()).append("张随机补全");
+        }
+        res.data = sb.toString();
+        log.info("GM机器人发牌设置成功 - 发起人: {}, 机器人编号: {}, 指定手牌数: {}", playerId, robotIndex, cardSpecs.size());
+        return res;
+    }
+
+    /**
      * 解析手牌字符串，如 ♠A, ♥K, ♦10, ♣2
      *
      * @param cardStr 手牌字符串
@@ -183,6 +279,16 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
         return GM_DEAL_CARDS.containsKey(playerId);
     }
 
+    /**
+     * 消费GM指定的机器人手牌（一次性使用，取出后自动移除）
+     *
+     * @param gmPlayerId 发起GM命令的玩家ID
+     * @return 机器人编号 -> 手牌列表的映射，无数据返回null
+     */
+    public static Map<Integer, List<int[]>> consumeGmRobotCards(long gmPlayerId) {
+        return GM_ROBOT_DEAL_CARDS.remove(gmPlayerId);
+    }
+
     @Override
     public void start() {
         log.info("正在启动南方前进游戏...");
@@ -192,5 +298,6 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
     public void shutdown() {
         log.info("正在关闭南方前进游戏...");
         GM_DEAL_CARDS.clear();
+        GM_ROBOT_DEAL_CARDS.clear();
     }
 }

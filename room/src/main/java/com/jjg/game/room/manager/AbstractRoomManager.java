@@ -3,7 +3,6 @@ package com.jjg.game.room.manager;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.activity.wealthroulette.controller.WealthRouletteController;
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
@@ -76,11 +75,11 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         TimerListener<IProcessorHandler> {
     protected final Logger log = LoggerFactory.getLogger(getClass());
     // 房间管理器是否处于房间关闭流程中
-    private boolean isRoomStopping = false;
+    private volatile boolean isRoomStopping = false;
+    // 房间管理器是否将房间全部初始化
+    private volatile boolean isRoomInit = false;
     @Autowired
     protected NodeManager nodeManager;
-    @Autowired
-    protected ClusterSystem clusterSystem;
     @Autowired
     protected CorePlayerService playerService;
     protected PlayerExecutorGroupDisruptor processorExecutors;
@@ -116,7 +115,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected CoreLogger coreLogger;
     @Autowired
     protected RechargeService rechargeService;
-
     // 不同类型的房间roomDao
     protected Map<Class<? extends Room>, AbstractRoomDao<? extends Room, ? extends RoomPlayer>> roomDaoMap
             = new HashMap<>();
@@ -707,6 +705,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 服务器关闭时
      */
     public void onServerShutdown() {
+        roomManagerTimer.close();
         // 优先暂停游戏中的定时器和状态机
         for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> values : roomControllerMap.values()) {
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : values.values()) {
@@ -1037,7 +1036,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 空房间检测, 5s 检测一次
      */
     protected void emptyRoomCheck() {
-        if (!GameDataManager.getInstance().isLoadAllFinished()) {
+        if (isRoomStopping || !GameDataManager.getInstance().isLoadAllFinished() || !isRoomInit) {
             return;
         }
         // 房间配置 <=> Pair<此类房间至少保存的数量，房间删除时间>
@@ -1111,6 +1110,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                     }
                 }
             }
+        }
+        if (isRoomStopping) {
+            return;
         }
         if (!needDestroyRooms.isEmpty()) {
             // 销毁过期房间
@@ -1273,10 +1275,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         return friendRoomBillHistoryDao;
     }
 
-    public PlayerPackService getPlayerPackService() {
-        return playerPackService;
-    }
-
     public MailService getMailService() {
         return mailService;
     }
@@ -1291,5 +1289,13 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
     public CoreLogger getCoreLogger() {
         return coreLogger;
+    }
+
+    public boolean isRoomInit() {
+        return isRoomInit;
+    }
+
+    public void setRoomInit(boolean roomInit) {
+        isRoomInit = roomInit;
     }
 }

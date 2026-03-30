@@ -50,10 +50,10 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
         EGamePhase eGamePhase = getCurrentGamePhase();
         // 如果在结算阶段需要从缓存中读取数据
         RespBaccaratTableInfo baccaratTableInfo =
-            BaccaratMessageBuilder.buildRespBaccaratTableInfo(this, gameDataVo, eGamePhase);
+                BaccaratMessageBuilder.buildRespBaccaratTableInfo(playerController.playerId(), this, gameDataVo, eGamePhase);
         // send
         playerController.send(Objects.requireNonNullElseGet(baccaratTableInfo,
-            () -> new RespBaccaratTableInfo(Code.FAIL)));
+                () -> new RespBaccaratTableInfo(Code.FAIL)));
     }
 
     /**
@@ -87,6 +87,7 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
     protected void phaseRunOver() {
 
     }
+
     public long calculationEffectiveWaterFlow(Map<Integer, List<Integer>> playerBetInfo) {
         Map<Integer, Long> effectiveWaterFlow = new HashMap<>();
         Map<Integer, BetAreaCfg> cfgMap = GameDataManager.getBetAreaCfgList().stream()

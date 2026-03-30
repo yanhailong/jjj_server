@@ -31,6 +31,8 @@ public record NoticeDto(
         // 跳转类型
         int scene,
         // 跳转资源
-        String jump_url
+        String jump_url,
+        //大类型  0.公告  1.活动
+        int big_type
 ) {
 }

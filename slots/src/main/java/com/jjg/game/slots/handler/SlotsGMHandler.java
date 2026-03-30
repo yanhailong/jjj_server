@@ -4,6 +4,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.manager.SlotsFactoryManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,8 @@ public class SlotsGMHandler implements GmListener {
 
     @Autowired
     private SlotsFactoryManager slotsFactoryManager;
+    @Autowired
+    private SlotsPoolDao slotsPoolDao;
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
@@ -50,6 +53,14 @@ public class SlotsGMHandler implements GmListener {
                     res.code = Code.FAIL;
                     return res;
                 }
+            } else if ("clearPoolCD".equalsIgnoreCase(gmOrders[0])) { //清除奖池冷却时间
+                log.debug("收到 clearPoolCD 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                int roomCfgId = Integer.parseInt(gmOrders[1]);
+                if (roomCfgId < 1) {
+                    res.code = Code.FAIL;
+                    return res;
+                }
+                slotsPoolDao.clearPoolCD(roomCfgId);
             } else {
                 res.code = Code.NOT_FOUND;
             }

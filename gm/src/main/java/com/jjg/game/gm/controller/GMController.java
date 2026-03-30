@@ -210,7 +210,8 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if (StringUtils.isEmpty(dto.content()) || dto.showTime() < 0 || dto.interval_time() < 0 || dto.priority() < 0 || dto.start_time() < 1 || dto.end_time() < 1) {
+            // showTime 必须大于 0，否则服务端调度时钟和客户端实际展示语义会不一致。
+            if (StringUtils.isEmpty(dto.content()) || dto.showTime() <= 0 || dto.interval_time() < 0 || dto.priority() < 0 || dto.start_time() < 1 || dto.end_time() < 1) {
                 log.debug("从后台收到的跑马灯参数错误");
                 return fail("common.paramerror");
             }
@@ -1264,6 +1265,7 @@ public class GMController extends AbstractController {
             notice.setEndTime(dto.end_time());
             notice.setScence(dto.scene());
             notice.setJumpUrl(dto.jump_url());
+            notice.setBigType(dto.big_type());
             noticeDao.save(notice);
 
             PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyLoadNoticeConfig());
