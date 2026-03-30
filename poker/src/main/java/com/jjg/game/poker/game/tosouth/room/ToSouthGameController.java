@@ -846,6 +846,28 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         return count;
     }
 
+    /**
+     * 重写基类 respRoomInitInfo：修正玩家加入时广播的 playerStatus
+     * 基类用 seatInfo.isJoinGame() 作为 playerStatus，新玩家 isJoinGame()=false 导致推送 playerStatus=false
+     * 这里改为显式设置 playerStatus=true（表示玩家在房间）
+     */
+    @Override
+    public void respRoomInitInfo(PlayerController playerController) {
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
+        gamePlayer.getPokerPlayerGameData().setInit(true);
+        respRoomInitInfoAction(playerController);
+        // 通知其他玩家：玩家加入，playerStatus=true
+        NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
+        PokerPlayerInfo info = PokerBuilder.buildPlayerInfo(gamePlayer, null, this);
+        info.playerStatus = true;
+        playerChange.pokerPlayerInfo = info;
+        playerChange.totalNum = gameDataVo.getGamePlayerMap().size();
+        roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder()
+                .sendAllPlayer(playerChange).exceptPlayer(playerController.playerId()));
+        // 尝试开启游戏
+        tryStartNextGame();
+    }
+
     @Override
     public void respRoomInitInfoAction(PlayerController playerController) {
         log.debug("响应南方前进房间信息 - 玩家: {}", playerController.playerId());
@@ -1141,10 +1163,6 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         gameDataVo.getReadyPlayerIds().remove(playerId);
         gameDataVo.getReadyTimerScheduled().remove(playerId);
         gameDataVo.getReadyTimerVersion().remove(playerId);
-        // 真人玩家加入时，通知其他玩家
-        if (!(gamePlayer instanceof GameRobotPlayer)) {
-            broadcastPlayerJoinChange(playerId);
-        }
     }
 
     @Override
@@ -1158,8 +1176,9 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         gameDataVo.setLastGameWinnerPlayerId(0);
         gameDataVo.getLastGamePlayerIds().clear();
 
-        // 通知所有还在房间的真人玩家：该玩家已离开，同步playerStatus
-        broadcastPlayerLeaveChange(playerId, remove);
+        // 设置 joinGame=false，基类 onPlayerLeaveRoom 会广播 NotifyPokerPlayerChange，
+        // 其中 playerStatus = seatInfo.isJoinGame()，这样基类广播的 playerStatus 就是 false
+        remove.setJoinGame(false);
 
         log.info("玩家 {} 离开房间，已清除准备状态和续局状态", playerId);
     }
