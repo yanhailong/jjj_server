@@ -301,14 +301,14 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         gameDataVo.getCurrentRoundPlays().add(new ToSouthRoundRecord(info.getSeatId(), realPlayCardIds, playCardIds, type));
         // 记录出牌到一局日志
         playCards.sort(ToSouthHandUtils.CARD_COMPARATOR);
-        gameDataVo.getGameLog().recordPlay(info.getPlayerId(), info.getSeatId(),
-                type.name(), ToSouthHandUtils.cardListToString(playCards), info.getCurrentCards().size());
+        //gameDataVo.getGameLog().recordPlay(info.getPlayerId(), info.getSeatId(),
+//                type.name(), ToSouthHandUtils.cardListToString(playCards), info.getCurrentCards().size());
         if (log.isDebugEnabled()) {
             log.debug("玩家 {} 出牌成功 - 类型: {}, 牌: {}, 剩余手牌: {}", info.getPlayerId(), type, ToSouthHandUtils.cardListToString(playCards), info.getCurrentCards().size());
         }
         if (info.getCurrentCards().isEmpty()) {
             log.info("玩家 {} 胜利 (出完手牌)，游戏结束", info.getPlayerId());
-            gameDataVo.getGameLog().recordGameEnd(info.getPlayerId());
+            //gameDataVo.getGameLog().recordGameEnd(info.getPlayerId());
             info.setOver(true);
 
             // 先广播最后一手出牌信息给所有玩家，再进行结算
@@ -617,7 +617,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 // 清空本轮出牌记录
                 gameDataVo.getCurrentRoundPlays().clear();
 
-                gameDataVo.getGameLog().recordNewRound(nextLeader.getPlayerId());
+                //gameDataVo.getGameLog().recordNewRound(nextLeader.getPlayerId());
                 broadcastNextTurn(nextLeader.getPlayerId(), false, passerPlayerId);
                 gameDataVo.setIndex(nextLeader.getSeatId());
                 addNextTimer(nextLeader, 0);
