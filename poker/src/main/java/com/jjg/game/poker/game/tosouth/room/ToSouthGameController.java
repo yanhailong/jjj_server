@@ -1007,20 +1007,17 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 long pid = info.getPlayerId();
                 long playerBalance = getTransactionItemNum(pid);
                 if (playerBalance < minBalance) {
-                    gameDataVo.getReadyPlayerIds().remove(pid);
-                    gameDataVo.getReadyTimerVersion().remove(pid);
-                    // 1. 通知被踢玩家退出到大厅（必须在 exitRoom 之前，exitRoom 会清理 GamePlayer 导致无法广播）
-                    NotifyExitRoom exitNotify = new NotifyExitRoom();
-                    exitNotify.langId = Code.USER_NOT_GOLD;
-                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(pid, exitNotify));
-                    // 2. 服务端真正退出房间，exitRoom 内部会触发 onPlayerLeaveRoomAction
-                    //    → broadcastPlayerLeaveChange(playerStatus=false) 通知其他玩家
-                    PlayerController pc = getRoomController().getPlayerController(pid);
-                    if (pc != null) {
-                        getRoomController().getRoomManager().exitRoom(pc);
+                    RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
+                    if (roomPlayer == null || roomPlayer.isOnline()) {
+                        NotifyExitRoom exitNotify = new NotifyExitRoom();
+                        exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
+                        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
+                        log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
                     } else {
-                        getRoomController().getRoomManager().exitRoom(pid);
+                        getRoomController().getRoomManager().exitRoom(playerId);
+                        log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
                     }
+                    gameDataVo.getReadyTimerVersion().remove(playerId);
                     return;
                 }
             }
@@ -1130,22 +1127,18 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             }
         }
         if (!insufficientPlayerIds.isEmpty()) {
-            for (Long pid : insufficientPlayerIds) {
-                gameDataVo.getReadyPlayerIds().remove(pid);
-                gameDataVo.getReadyTimerVersion().remove(pid);
-                // 1. 通知被踢玩家退出到大厅（必须在 exitRoom 之前，exitRoom 会清理 GamePlayer 导致无法广播）
-                NotifyExitRoom exitNotify = new NotifyExitRoom();
-                exitNotify.langId = Code.USER_NOT_GOLD;
-                broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(pid, exitNotify));
-                // 2. 服务端真正退出房间，exitRoom 内部会触发 onPlayerLeaveRoomAction
-                //    → broadcastPlayerLeaveChange(playerStatus=false) 通知其他玩家
-                PlayerController pc = getRoomController().getPlayerController(pid);
-                if (pc != null) {
-                    getRoomController().getRoomManager().exitRoom(pc);
+            for (Long playerId : insufficientPlayerIds) {
+                RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
+                if (roomPlayer == null || roomPlayer.isOnline()) {
+                    NotifyExitRoom exitNotify = new NotifyExitRoom();
+                    exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
+                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
+                    log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
                 } else {
-                    getRoomController().getRoomManager().exitRoom(pid);
+                    getRoomController().getRoomManager().exitRoom(playerId);
+                    log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
                 }
-                log.info("玩家 {} 资金不足，已踢出房间", pid);
+                gameDataVo.getReadyTimerVersion().remove(playerId);
             }
             // 踢人后重新检查人数是否足够
             int remaining = gameDataVo.getSeatDownNum();
