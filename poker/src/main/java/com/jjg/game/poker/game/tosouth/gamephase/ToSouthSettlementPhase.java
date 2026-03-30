@@ -14,6 +14,7 @@ import com.jjg.game.poker.game.tosouth.message.bean.ToSouthPlayerSettlementInfo;
 import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthSettlementInfo;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
+import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameLog;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
@@ -156,6 +157,42 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             notify.endTime = System.currentTimeMillis();
             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
             log.info("南方前进结算map: {}", settlementMap);
+
+            // ========== 记录最终结算到一局日志，并打印流程日志和结算日志 ==========
+            ToSouthGameLog gameLog = gameDataVo.getGameLog();
+            Map<Integer, PokerCard> cardMapForLog = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
+            for (ToSouthPlayerSettlementInfo sInfo : playerSettlementInfos) {
+                // 计算剩余手牌数
+                PlayerSeatInfo seat = gameDataVo.getPlayerSeatInfoMap().get(sInfo.playerId);
+                int remainCards = seat != null ? seat.getCurrentCards().size() : 0;
+
+                // 构建结算明细描述
+                String detail = "";
+                if (!sInfo.isWinner && !context.isInstantWin() && seat != null) {
+                    List<Card> handCards = seat.getCurrentCards().stream().map(cardMapForLog::get).collect(Collectors.toList());
+                    int cardCount = handCards.size();
+                    int countTwo = ToSouthHandUtils.countTwo(handCards);
+                    int countRedTwo = ToSouthHandUtils.countRedTwo(handCards);
+                    int countBlackTwo = countTwo - countRedTwo;
+                    int cardMulti = (cardCount == 13) ? cardCount * 2 : cardCount;
+                    int redTwoMulti = moneyCfg.getRemainred2();
+                    int blackTwoMulti = moneyCfg.getRemainblack2();
+                    int optimalBombMulti = ToSouthHandUtils.calcOptimalBombMultiplier(
+                            handCards, moneyCfg.getFourkindboom1(), moneyCfg.getRemainBoom1(), moneyCfg.getFourpairsboom1());
+                    int totalMulti = cardMulti + countRedTwo * redTwoMulti + countBlackTwo * blackTwoMulti + optimalBombMulti;
+                    detail = String.format("牌倍:%d, 红2:%dx%d, 黑2:%dx%d, 炸弹倍:%d, 总倍数:%d",
+                            cardMulti, countRedTwo, redTwoMulti, countBlackTwo, blackTwoMulti, optimalBombMulti, totalMulti);
+                } else if (!sInfo.isWinner && context.isInstantWin() && seat != null) {
+                    int cardCount = seat.getCurrentCards().size();
+                    detail = String.format("通杀翻倍, 总倍数:%d", cardCount * 2);
+                }
+                gameLog.recordFinalSettlement(sInfo.playerId, sInfo.winScore, sInfo.isWinner, remainCards, detail);
+            }
+
+            // 打印流程日志和结算日志
+            String roomInfo = "房间:" + gameDataVo.getRoomCfg().getId() + " 底注:" + baseBet;
+            log.info(gameLog.buildFlowLog(roomInfo));
+            log.info(gameLog.buildSettlementLog(roomInfo));
         }
     }
 

@@ -19,6 +19,7 @@ import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthSendCardsInfo;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
+import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameLog;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
@@ -118,6 +119,9 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
 
             // 记录本局玩家集合，供下局判断是否同桌续局
             gameDataVo.setLastGamePlayerIds(currentPlayerIds);
+
+            // 记录首出玩家到一局日志
+            gameDataVo.getGameLog().recordFirstPlayer(firstPlayer.getPlayerId(), samePlayers);
 
             // 3. 检查通杀（炸弹测试模式下跳过，否则人人有炸弹把把触发通杀）
             if (!BOMB_TEST_MODE) {
@@ -239,6 +243,9 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                         gmPreAssigned.containsKey(info.getPlayerId()) ? "[GM] " : "",
                         ToSouthHandUtils.cardListToString(handCards));
             }
+            // 记录发牌到一局日志
+            gameDataVo.getGameLog().recordDeal(info.getPlayerId(), info.getSeatId(),
+                    ToSouthHandUtils.cardListToString(handCards));
 
             RespToSouthSendCardsInfo sendCardsInfo = new RespToSouthSendCardsInfo();
             sendCardsInfo.sortedHandCards = sortedHandCards;
@@ -376,6 +383,9 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                 log.debug("炸弹测试发牌 - 玩家: {}, 座位: {}, 手牌: {}", info.getPlayerId(), info.getSeatId(),
                         ToSouthHandUtils.cardListToString(handCards));
             }
+            // 记录发牌到一局日志
+            gameDataVo.getGameLog().recordDeal(info.getPlayerId(), info.getSeatId(),
+                    ToSouthHandUtils.cardListToString(handCards));
 
             RespToSouthSendCardsInfo sendCardsInfo = new RespToSouthSendCardsInfo();
             sendCardsInfo.sortedHandCards = sortedHandCards;
@@ -418,6 +428,11 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             if (instantWinCards != null) {
                 winnerMap.put(seatInfo, instantWinCards);
                 log.info("玩家 {} 触发通杀！类型: {}", seatInfo.getPlayerId(), instantWinCards.getFirst());
+                // 记录通杀到一局日志
+                List<Card> sorted = new ArrayList<>(handCards);
+                sorted.sort(ToSouthHandUtils.CARD_COMPARATOR);
+                gameDataVo.getGameLog().recordInstantWin(seatInfo.getPlayerId(),
+                        instantWinCards.getFirst(), ToSouthHandUtils.cardListToString(sorted));
             }
         }
 

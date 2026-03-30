@@ -191,6 +191,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             gameDataVo.getCurRoundPassedPlayerSeats().add(info.getSeatId());
             gameDataVo.setPassCount(gameDataVo.getPassCount() + 1);
             log.debug("玩家 {} 过牌，当前连续过牌数: {}", info.getPlayerId(), gameDataVo.getPassCount());
+            gameDataVo.getGameLog().recordPass(info.getPlayerId(), info.getSeatId());
             checkNextTurn(info.getPlayerId());
             return;
         }
@@ -298,12 +299,16 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
         // 记录出牌
         gameDataVo.getCurrentRoundPlays().add(new ToSouthRoundRecord(info.getSeatId(), realPlayCardIds, playCardIds, type));
+        // 记录出牌到一局日志
+        playCards.sort(ToSouthHandUtils.CARD_COMPARATOR);
+        gameDataVo.getGameLog().recordPlay(info.getPlayerId(), info.getSeatId(),
+                type.name(), ToSouthHandUtils.cardListToString(playCards), info.getCurrentCards().size());
         if (log.isDebugEnabled()) {
-            playCards.sort(ToSouthHandUtils.CARD_COMPARATOR);
             log.debug("玩家 {} 出牌成功 - 类型: {}, 牌: {}, 剩余手牌: {}", info.getPlayerId(), type, ToSouthHandUtils.cardListToString(playCards), info.getCurrentCards().size());
         }
         if (info.getCurrentCards().isEmpty()) {
             log.info("玩家 {} 胜利 (出完手牌)，游戏结束", info.getPlayerId());
+            gameDataVo.getGameLog().recordGameEnd(info.getPlayerId());
             info.setOver(true);
 
             // 先广播最后一手出牌信息给所有玩家，再进行结算
@@ -489,6 +494,14 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 log.debug("炸弹结算 - 赢家: {}, 输家: {}, 被炸数量: {}, 总倍数: {}, 金额: {}, 连炸: {}",
                         winnerId, victimId, settledRecords.size(), totalMultiplier, score, bombChain.size() >= 2);
                 addBombScore(details, victimId, winnerId, score, detailType);
+                // 记录炸弹结算到一局日志（税后赢分从 details 中取）
+                long winScore = 0;
+                for (ToSouthBombDetail d : details) {
+                    if (d.playerId == winnerId && d.type == ToSouthConstant.BOMB_WIN_TYPE) {
+                        winScore = d.score;
+                    }
+                }
+                gameDataVo.getGameLog().recordBombSettlement(winnerId, victimId, score, winScore, bombChain.size());
             }
         }
 
@@ -604,6 +617,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 // 清空本轮出牌记录
                 gameDataVo.getCurrentRoundPlays().clear();
 
+                gameDataVo.getGameLog().recordNewRound(nextLeader.getPlayerId());
                 broadcastNextTurn(nextLeader.getPlayerId(), false, passerPlayerId);
                 gameDataVo.setIndex(nextLeader.getSeatId());
                 addNextTimer(nextLeader, 0);
