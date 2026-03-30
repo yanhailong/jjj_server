@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
@@ -91,6 +92,45 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             // 应用结算结果
             long totalTax = 0;
             List<ToSouthPlayerSettlementInfo> playerSettlementInfos = new ArrayList<>();
+
+            Map<Long, Long> settlementMap2 = new HashMap<>(settlementMap);
+            //重新计算结算
+            for (Map.Entry<Long, Long> entry : settlementMap.entrySet()) {
+                long playerId = entry.getKey();
+                long change = entry.getValue();
+                GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+                if (change < 0) {
+                    long loseAmount = -change;
+                    int transactionItemId = controller.getGameTransactionItemId();
+                    int goldCfgId = ItemUtils.getGoldItemId();
+                    int diamondCfgId = ItemUtils.getDiamondItemId();
+                    Map<Long, Long> positiveMap = settlementMap.entrySet().stream()
+                            .filter(entry2 -> entry2.getValue() != null && entry2.getValue() > 0)
+                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    if (transactionItemId == goldCfgId) {
+                        long gold = gamePlayer.getGold();
+                        if (gold < loseAmount) {
+                            long l = gold / positiveMap.size();
+                            long l1 = loseAmount - l;
+                            settlementMap2.put(playerId, gold);
+                            positiveMap.forEach((k, v) -> {
+                                settlementMap2.put(k, (v) - l1);
+                            });
+                        }
+                    } else if (transactionItemId == diamondCfgId) {
+                        long diamond = gamePlayer.getDiamond();
+                        if (diamond < loseAmount) {
+                            long l = diamond / positiveMap.size();
+                            long l1 = loseAmount - l;
+                            settlementMap2.put(playerId, diamond);
+                            positiveMap.forEach((k, v) -> {
+                                settlementMap2.put(k, (v) - l1);
+                            });
+                        }
+                    }
+                }
+            }
+
             for (Map.Entry<Long, Long> entry : settlementMap.entrySet()) {
                 long playerId = entry.getKey();
                 long change = entry.getValue();
@@ -119,6 +159,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                     }
                 } else {
                     long loseAmount = -change;
+
                     if (loseAmount > 0) {
                         controller.deductItem(playerId, loseAmount, AddType.GAME_SETTLEMENT, "南方前进输钱", false);
                     }
@@ -130,6 +171,8 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                     }
 
                 }
+
+
                 // 构建玩家结算信息
                 ToSouthPlayerSettlementInfo info = new ToSouthPlayerSettlementInfo();
                 info.playerId = playerId;

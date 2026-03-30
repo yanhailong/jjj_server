@@ -999,6 +999,32 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
                 return;
             }
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(getRoom().getRoomCfgId());
+            long minBalance = warehouseCfg.getEnterLimit();
+            List<Long> insufficientPlayerIds = new ArrayList<>();
+            for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
+                if (!info.isSeatDown()) continue;
+                long pid = info.getPlayerId();
+                long playerBalance = getTransactionItemNum(pid);
+                if (playerBalance < minBalance) {
+                    gameDataVo.getReadyPlayerIds().remove(pid);
+                    gameDataVo.getReadyTimerVersion().remove(pid);
+                    // 1. 通知被踢玩家退出到大厅（必须在 exitRoom 之前，exitRoom 会清理 GamePlayer 导致无法广播）
+                    NotifyExitRoom exitNotify = new NotifyExitRoom();
+                    exitNotify.langId = Code.USER_NOT_GOLD;
+                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(pid, exitNotify));
+                    // 2. 服务端真正退出房间，exitRoom 内部会触发 onPlayerLeaveRoomAction
+                    //    → broadcastPlayerLeaveChange(playerStatus=false) 通知其他玩家
+                    PlayerController pc = getRoomController().getPlayerController(pid);
+                    if (pc != null) {
+                        getRoomController().getRoomManager().exitRoom(pc);
+                    } else {
+                        getRoomController().getRoomManager().exitRoom(pid);
+                    }
+                    return;
+                }
+            }
+
             gameDataVo.getReadyPlayerIds().add(playerId);
             log.info("玩家 {} 准备完成，当前准备人数: {}", playerId, gameDataVo.getReadyPlayerIds().size());
             notify.playerId = playerId;
@@ -1106,6 +1132,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         if (!insufficientPlayerIds.isEmpty()) {
             for (Long pid : insufficientPlayerIds) {
                 gameDataVo.getReadyPlayerIds().remove(pid);
+                gameDataVo.getReadyTimerVersion().remove(pid);
                 // 1. 通知被踢玩家退出到大厅（必须在 exitRoom 之前，exitRoom 会清理 GamePlayer 导致无法广播）
                 NotifyExitRoom exitNotify = new NotifyExitRoom();
                 exitNotify.langId = Code.USER_NOT_GOLD;
