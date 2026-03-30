@@ -18,7 +18,6 @@ import com.jjg.game.slots.game.garaGemstone1.GaraGemstone1Constant;
 import com.jjg.game.slots.game.garaGemstone1.dao.GaraGemstone1GameDataDao;
 import com.jjg.game.slots.game.garaGemstone1.dao.GaraGemstone1ResultLibDao;
 import com.jjg.game.slots.game.garaGemstone1.data.*;
-import com.jjg.game.slots.game.garaGemstone1.data.*;
 import com.jjg.game.slots.game.garaGemstone1.pb.GaraGemstone1WinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.utils.SlotsUtil;
@@ -141,7 +140,7 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
             PoolCfg poolCfg = GameDataManager.getPoolCfg(resultLib.getJackpotId());
             //检查是否中大奖
             CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
-                    poolCfg.getTruePool(), AddType.SLOTS_JACKPOT_REWARD);
+                    poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
             if (result.success()) {
                 gameRunInfo.addSmallPoolGold(result.data);
             }
@@ -151,7 +150,7 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
             PoolCfg axisPoolCfg = GameDataManager.getPoolCfg(resultLib.getAxisJackpotId());
             if (axisPoolCfg != null) {
                 CommonResult<Long> axisResult = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
-                        axisPoolCfg.getTruePool(), AddType.SLOTS_JACKPOT_REWARD);
+                        axisPoolCfg.getTruePool(), axisPoolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
                 if (axisResult.success()) {
                     gameRunInfo.addSmallPoolGold(axisResult.data);
                     log.debug("触发倍数轴奖金符号奖池 playerId={} poolId={} reward={}", playerGameData.getPlayerId(), resultLib.getAxisJackpotId(), axisResult.data);
@@ -202,7 +201,7 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
             PoolCfg axisPoolCfg = GameDataManager.getPoolCfg(freeGame.getAxisJackpotId());
             if (axisPoolCfg != null) {
                 CommonResult<Long> axisResult = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
-                        axisPoolCfg.getTruePool(), AddType.SLOTS_JACKPOT_REWARD);
+                        axisPoolCfg.getTruePool(), axisPoolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
                 if (axisResult.success()) {
                     gameRunInfo.addSmallPoolGold(axisResult.data);
                     log.debug("免费局触发倍数轴奖金符号奖池 playerId={} poolId={} reward={}", playerGameData.getPlayerId(), freeGame.getAxisJackpotId(), axisResult.data);
