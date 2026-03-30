@@ -1789,9 +1789,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     protected void triggerWinTask(Player player, long allWinGold, long bet, int moneyItemId) {
         long winValue = allWinGold - bet;
-        if (winValue <= 0 && moneyItemId == ItemUtils.getGoldItemId()) {
+        if (moneyItemId == ItemUtils.getGoldItemId()) {
             wealthRouletteController.addProgress(player, gameType, winValue);
-            return;
         }
         int gameType = getGameType();
         //触发任务

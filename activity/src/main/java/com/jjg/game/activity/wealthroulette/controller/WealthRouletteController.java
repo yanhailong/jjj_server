@@ -34,6 +34,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.GameFunctionService;
@@ -64,7 +65,7 @@ import java.util.Map;
  * @date 2025/12/1 09:37
  */
 @Component
-public class WealthRouletteController implements ConfigExcelChangeListener, IPlayerLoginSuccess, GameEventListener, IRedDotService {
+public class WealthRouletteController implements ConfigExcelChangeListener, IPlayerLoginSuccess, GameEventListener, IRedDotService, GmListener {
     private final Logger log = LoggerFactory.getLogger(WealthRouletteController.class);
     private final CountDao countDao;
     private final GameFunctionService gameFunctionService;
@@ -112,7 +113,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
     }
 
     /**
-     * 添加进度
+     * 添加进度(赢钱为负,输钱为正)
      *
      * @param player   玩家数据
      * @param progress 进度
@@ -126,7 +127,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         }
         //按游戏判断
         countDao.incrementWithoutExpireRefresh(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), getChildId(player.getId(), LocalDate.now()),
-                BigDecimal.valueOf(Math.abs(progress)), TimeHelper.DAY_SECOND * 2);
+                BigDecimal.valueOf(-progress), TimeHelper.DAY_SECOND * 2);
     }
 
     /**
@@ -170,6 +171,9 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
      * @param conversionValue 需要转换值
      */
     private BigDecimal getConversionValue(long playerId, long conversionValue, boolean realConversion) {
+        if (conversionValue <= 0) {
+            return BigDecimal.ZERO;
+        }
         //获取转换率
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(70);
         if (globalConfigCfg == null || StringUtils.isEmpty(globalConfigCfg.getValue())) {
@@ -497,10 +501,16 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         //计算当天积分
         BigDecimal count = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX),
                 getChildId(playerId, LocalDate.now().minusDays(1)));
+        if (count.longValue() <= 0) {
+            countDao.reset(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId));
+            return;
+        }
         BigDecimal add = getConversionValue(playerId, count.longValue(), true);
         if (add.compareTo(BigDecimal.ZERO) >= 0) {
             countDao.setCount(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId), add);
             log.info("财富转盘 今日积分 playerId:{} addPoint:{}", playerId, add.longValue());
+        } else {
+            countDao.reset(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId));
         }
     }
 
@@ -591,6 +601,27 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
             res.wealthRouletteHistoryInfos = historyRecords;
         }
         res.startIndex = req.startIndex;
+        return res;
+    }
+
+    @Override
+    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
+        try {
+            if (!"wealthRouletteReset".equalsIgnoreCase(gmOrders[0])) {
+                res.code = Code.NOT_FOUND;
+                return res;
+            }
+            long playerId = Long.parseLong(gmOrders[1]);
+            if (playerId <= 0) {
+                playerId = playerController.playerId();
+            }
+            resetData(playerId);
+            res.data = "wealthRouletteReset success playerId=" + playerId;
+        } catch (Exception e) {
+            log.error("财富转盘 GM命令执行异常 gmOrders:{}", JSON.toJSONString(gmOrders), e);
+            res.code = Code.EXCEPTION;
+        }
         return res;
     }
 }
