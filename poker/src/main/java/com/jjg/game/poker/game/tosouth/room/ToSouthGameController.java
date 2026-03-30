@@ -35,6 +35,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.manager.RoomManager;
 import com.jjg.game.room.message.BaseRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.timer.RoomTimerEvent;
@@ -74,7 +75,6 @@ import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUI
 
 @GameController(gameType = EGameType.TO_SOUTH, roomType = RoomType.POKER_ROOM)
 public class ToSouthGameController extends BasePokerGameController<ToSouthGameDataVo> {
-
     /**
      * 准备倒计时（毫秒）
      */
@@ -1101,13 +1101,14 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
      * 为真实玩家启动10秒准备倒计时，超时未准备则踢出房间
      */
     private void scheduleReadyTimeout(long playerId) {
+        gameDataVo.getReadyTimerVersion().remove(playerId);
         gameDataVo.getReadyTimerScheduled().add(playerId);
-        long version = gameDataVo.getReadyTimerVersion().merge(playerId, 1L, Long::sum);
-        ToSouthReadyTimeoutHandler handler = new ToSouthReadyTimeoutHandler(playerId, gameDataVo.getId(), version, this,gameDataVo);
         long exeTime = System.currentTimeMillis() + READY_TIMEOUT;
+        gameDataVo.getReadyTimerVersion().put(playerId,exeTime);
+        ToSouthReadyTimeoutHandler handler = new ToSouthReadyTimeoutHandler(playerId, gameDataVo.getId(), exeTime, roomController);
         TimerEvent<IProcessorHandler> timerEvent = new TimerEvent<>(this, exeTime, handler);
         addGameTimeEvent(timerEvent, RoomEventType.ROOM_PHASE_RUN_EVENT);
-        log.info("玩家 {} 准备倒计时开始 ({}秒), version={}", playerId, READY_TIMEOUT / 1000, version);
+        log.info("玩家 {} 准备倒计时开始 ({}秒), exeTime={}", playerId, READY_TIMEOUT / 1000, exeTime);
     }
 
     /**
@@ -1127,6 +1128,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             getRoomController().getRoomManager().exitRoom(playerId);
             log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
         }
+        gameDataVo.getReadyTimerVersion().remove(playerId);
     }
 
     @Override
@@ -1135,10 +1137,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         // 玩家每次进入房间时，清除旧的准备倒计时状态，确保 tryStartGame 会重新调度新倒计时
         gameDataVo.getReadyPlayerIds().remove(playerId);
         gameDataVo.getReadyTimerScheduled().remove(playerId);
-        // 初始化版本号为0，后续 scheduleReadyTimeout 里 merge 会递增为1
-        gameDataVo.getReadyTimerVersion().merge(playerId, 1L, Long::sum);
-        log.info("玩家 {} 进入房间，已重置准备倒计时状态, version={}", playerId,
-                gameDataVo.getReadyTimerVersion().get(playerId));
+        gameDataVo.getReadyTimerVersion().remove(playerId);
     }
 
     @Override
@@ -1147,8 +1146,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         // 清除该玩家的准备状态
         gameDataVo.getReadyPlayerIds().remove(playerId);
         gameDataVo.getReadyTimerScheduled().remove(playerId);
-        // 递增准备倒计时版本号，使该玩家的旧定时器失效（防止重进房间后被旧定时器踢出）
-        gameDataVo.getReadyTimerVersion().merge(playerId, 1L, Long::sum);
+        gameDataVo.getReadyTimerVersion().remove(playerId);
         // 清除续局状态，有人退出后下一局视为首局（黑桃3先出）
         gameDataVo.setLastGameWinnerPlayerId(0);
         gameDataVo.getLastGamePlayerIds().clear();
