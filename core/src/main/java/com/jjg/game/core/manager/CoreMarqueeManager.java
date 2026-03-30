@@ -240,8 +240,8 @@ public class CoreMarqueeManager implements TimerListener {
         return list
                 .stream()
                 .sorted(Comparator
-                        .comparingInt(com.jjg.game.core.data.Marquee::getType).reversed()  // 先按 type 降序
-                        .thenComparingInt(com.jjg.game.core.data.Marquee::getPriority)     // 再按 priority 升序
+                        .comparingInt(Marquee::getType).reversed()  // 先按 type 降序
+                        .thenComparingInt(Marquee::getPriority)     // 再按 priority 升序
                 )
                 .collect(Collectors.toCollection(LinkedList::new));
     }
