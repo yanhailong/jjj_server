@@ -814,6 +814,15 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
                 return;
             }
+            // 资金检查：准备时余额低于准入标准则踢出房间
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(getRoom().getRoomCfgId());
+            long minBalance = warehouseCfg.getEnterLimit() * 50L;
+            long playerBalance = getTransactionItemNum(playerId);
+            if (playerBalance < minBalance) {
+                log.info("玩家 {} 准备时资金不足，当前: {}, 需要: {}, 踢出房间", playerId, playerBalance, minBalance);
+                kickUnreadyPlayer(playerId);
+                return;
+            }
             gameDataVo.getReadyPlayerIds().add(playerId);
             log.info("玩家 {} 准备完成，当前准备人数: {}", playerId, gameDataVo.getReadyPlayerIds().size());
             notify.playerId = playerId;
@@ -829,8 +838,40 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         if (getCurrentGamePhase() != EGamePhase.WAIT_READY) {
             return false;
         }
-        // 结算后/首次进入 WAIT_READY 时，同步阶段变化给客户端（readyPlayerIds 为空说明是刚 resetData 后的首次调用）
+        // 结算后/首次进入 WAIT_READY 时（readyPlayerIds 为空说明是刚 resetData 后的首次调用）
         if (gameDataVo.getReadyPlayerIds().isEmpty()) {
+            // 资金检查：在通知准备之前先踢掉资金不足的玩家
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(getRoom().getRoomCfgId());
+            long minBalance = warehouseCfg.getEnterLimit() * 50L;
+            List<Long> insufficientPlayerIds = new ArrayList<>();
+            for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
+                if (!info.isSeatDown()) continue;
+                long pid = info.getPlayerId();
+                long playerBalance = getTransactionItemNum(pid);
+                if (playerBalance < minBalance) {
+                    log.info("玩家 {} 资金不足，当前: {}, 需要: {}, 踢出房间", pid, playerBalance, minBalance);
+                    insufficientPlayerIds.add(pid);
+                }
+            }
+            for (Long pid : insufficientPlayerIds) {
+                RoomPlayer roomPlayer = getRoomController().getRoomPlayer(pid);
+                if (roomPlayer == null || roomPlayer.isOnline()) {
+                    NotifyExitRoom exitNotify = new NotifyExitRoom();
+                    exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
+                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(pid, exitNotify));
+                    log.info("玩家 {} 资金不足，通知客户端退出房间", pid);
+                } else {
+                    getRoomController().getRoomManager().exitRoom(pid);
+                    log.info("玩家 {} 离线且资金不足，服务端直接退出房间", pid);
+                }
+            }
+            // 踢人后检查人数是否足够
+            Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
+            if (gameDataVo.getSeatDownNum() < roomCfg.getMinPlayer()) {
+                log.info("资金检查后人数不足 ({}/{}), 无法开局", gameDataVo.getSeatDownNum(), roomCfg.getMinPlayer());
+                return false;
+            }
+            // 资金检查完毕，广播 WAIT_READY 阶段变化给客户端
             NotifyPokerPhaseChange phaseChange = PokerBuilder.buildNotifyPhaseChange(EGamePhase.WAIT_READY, -1);
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(phaseChange));
             log.info("广播阶段变化：WAIT_READY，等待玩家准备");
@@ -875,42 +916,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 return false;
             }
         }
-        // 全部准备完成，开始游戏前先检查资金
-        // 资金检查：每位玩家需持有倍场50倍资金，不足则踢出房间（在 WAIT_READY 阶段踢人，exitRoom 可正常生效）
-        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(getRoom().getRoomCfgId());
-        long minBalance = warehouseCfg.getEnterLimit() * 50L;
-        List<Long> insufficientPlayerIds = new ArrayList<>();
-        for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
-            if (!info.isSeatDown()) continue;
-            long pid = info.getPlayerId();
-            long playerBalance = getTransactionItemNum(pid);
-            if (playerBalance < minBalance) {
-                log.info("玩家 {} 资金不足，当前: {}, 需要: {}, 踢出房间", pid, playerBalance, minBalance);
-                insufficientPlayerIds.add(pid);
-            }
-        }
-        if (!insufficientPlayerIds.isEmpty()) {
-            for (Long pid : insufficientPlayerIds) {
-                gameDataVo.getReadyPlayerIds().remove(pid);
-                RoomPlayer roomPlayer = getRoomController().getRoomPlayer(pid);
-                if (roomPlayer == null || roomPlayer.isOnline()) {
-                    NotifyExitRoom exitNotify = new NotifyExitRoom();
-                    exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
-                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(pid, exitNotify));
-                    log.info("玩家 {} 资金不足，通知客户端退出房间", pid);
-                } else {
-                    getRoomController().getRoomManager().exitRoom(pid);
-                    log.info("玩家 {} 离线且资金不足，服务端直接退出房间", pid);
-                }
-            }
-            // 踢人后重新检查人数是否足够
-            int remaining = gameDataVo.getSeatDownNum();
-            if (remaining < roomCfg.getMinPlayer()) {
-                log.info("资金检查后人数不足 ({}/{}), 无法开局", remaining, roomCfg.getMinPlayer());
-                return false;
-            }
-        }
-
+        // 全部准备完成，开始游戏
         addPokerPhaseTimer(new ToSouthStartGamePhase(this, gameDataVo.getId()));
         log.info("全部玩家已准备，开始游戏 当前id{} roomId:{}", gameDataVo.getId(), roomController.getRoom().getId());
         return true;

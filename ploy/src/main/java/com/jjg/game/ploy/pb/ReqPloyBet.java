@@ -14,5 +14,7 @@ import com.jjg.game.ploy.constant.PloyConstant;
 @ProtoDesc("请求下注")
 public class ReqPloyBet extends AbstractMessage {
     @ProtoDesc("下注金额")
-    public long value;
+    public long bet;
+    @ProtoDesc("额外字段")
+    public int value;
 }

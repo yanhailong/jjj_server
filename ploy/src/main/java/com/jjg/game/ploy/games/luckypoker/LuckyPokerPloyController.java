@@ -66,14 +66,6 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         if (code != Code.SUCCESS) {
             return res;
         }
-
-        Player player = playerService.doSave(playerGameData.playerId(), p -> {
-            p.setGameType(gameType);
-            p.setRoomCfgId(roomCfgId);
-        });
-
-        playerGameData.updatePlayer(player);
-
         PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
         res.stakeList = cfg.getLineBetScore();
         res.defaultBet = cfg.getDefaultBet().get(0);

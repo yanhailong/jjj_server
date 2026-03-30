@@ -3,7 +3,7 @@ package com.jjg.game.ploy.constant;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.ploy.controller.AbstractPloyController;
-import com.jjg.game.ploy.games.airstrike.AirStrikePloyController;
+import com.jjg.game.ploy.games.airraid.AirRaidPloyController;
 import com.jjg.game.ploy.games.luckypoker.LuckyPokerPloyController;
 
 import java.util.HashMap;
@@ -21,7 +21,7 @@ public enum PloyGameType {
     //鸿运扑克
     LUCKY_POKER(CoreConst.GameType.LUCKY_POKER, LuckyPokerPloyController.class),
     //空袭
-    AIR_STRIKE(CoreConst.GameType.AIR_STRIKE, AirStrikePloyController.class),
+    AIR_STRIKE(CoreConst.GameType.AIR_STRIKE, AirRaidPloyController.class),
     //hillo
 //    HILLO(CoreConst.GameType.HILLO, HilloPloyController.class),
     //高低扑克
@@ -61,7 +61,6 @@ public enum PloyGameType {
     }
 
     public static PloyGameType fromType(int gameType) {
-        System.out.println(gameTypeMap);
         return gameTypeMap.get(gameType);
     }
 }
