@@ -60,8 +60,8 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                 log.info("初始化玩家列表完成，人数: {}", gameDataVo.getPlayerSeatInfoList().size());
             }
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(controller.getRoom().getRoomCfgId());
-            gameDataVo.setRoomBet(warehouseCfg.getEnterLimit());
-            log.debug("南方前进开始游戏，房间底注为：{}", warehouseCfg.getEnterLimit());
+            gameDataVo.setRoomBet(warehouseCfg.getBetShow());
+            log.debug("南方前进开始游戏，房间底注为：{}", warehouseCfg.getBetShow());
 
             // 1. 洗牌发牌
             Map<Integer, PokerCard> cardListMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));

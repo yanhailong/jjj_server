@@ -853,7 +853,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         baseInfo.phase = getCurrentGamePhase();
         if (playerController.getPlayer().getRoomId() > 0 && playerController.getScene() instanceof AbstractRoomController<?, ?> roomController) {
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomController.getRoom().getRoomCfgId());
-            baseInfo.roomBet = warehouseCfg.getEnterLimit();
+            baseInfo.roomBet = warehouseCfg.getBetShow();
         }
         baseInfo.playerInfos = new ArrayList<>();
         Map<Long, PlayerSeatInfo> playerSeatInfoMap = gameDataVo.getPlayerSeatInfoMap();
