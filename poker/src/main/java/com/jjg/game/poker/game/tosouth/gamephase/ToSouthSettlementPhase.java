@@ -131,7 +131,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 }
             }
 
-            for (Map.Entry<Long, Long> entry : settlementMap.entrySet()) {
+            for (Map.Entry<Long, Long> entry : settlementMap2.entrySet()) {
                 long playerId = entry.getKey();
                 long change = entry.getValue();
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
@@ -203,7 +203,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             notify.settlementInfos = playerSettlementInfos;
             notify.endTime = System.currentTimeMillis();
             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
-            log.info("南方前进结算map: {}", settlementMap);
+            log.info("南方前进结算map: {}", settlementMap2);
 
             // ========== 记录最终结算到一局日志，并打印流程日志和结算日志 ==========
             ToSouthGameLog gameLog = gameDataVo.getGameLog();
