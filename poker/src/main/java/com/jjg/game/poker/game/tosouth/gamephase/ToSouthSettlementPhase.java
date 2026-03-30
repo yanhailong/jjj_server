@@ -114,7 +114,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                             long l1 = l - loseAmount;
                             settlementMap2.put(playerId, -gold);
                             positiveMap.forEach((k, v) -> {
-                                settlementMap2.put(k, (v) + l1);
+                                settlementMap2.put(k, (v) - l1);
                             });
                         }
                     } else if (transactionItemId == diamondCfgId) {
@@ -126,7 +126,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                             settlementMap2.put(playerId, diamond);
                             positiveMap.forEach((k, v) -> {
 //                                26000 - 8000
-                                settlementMap2.put(k, (v) + l1);
+                                settlementMap2.put(k, (v) - l1);
                             });
                         }
                     }
