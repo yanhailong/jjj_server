@@ -1239,34 +1239,34 @@ public class ContinuousRechargeController extends BaseActivityController impleme
      * 生成今天的配置id
      */
     private void genTodayWefareCfgIds() {
-        Map<Long, ActivityData> activityData = activityManager.getActivityData();
-        long now = currentTimeMillis();
-
-        int groupSize = this.welfareDailyCfgMap.get(1).size();
-
-        for (Map.Entry<Long, ActivityData> en : activityData.entrySet()) {
-            ActivityData data = en.getValue();
-            if (data.getType() != ActivityType.CONTINUOUS_RECHARGE) {
-                continue;
-            }
-            Pair<Integer, long[]> phase = getPhase(en.getValue(), true);
-            if (phase.getFirst() != ActivityConstant.ContinuousRecharge.PHASE_WELFARE) {
-                continue;
-            }
-
-            long startTime = phase.getSecond()[0];
-            int diff = TimeHelper.getDateDifference(now, startTime);
-            int index = diff % groupSize;
-
-            Map<Integer, CumulativebenefitsCfg> cfgMap = cfgIds(index);
-            if (CollectionUtil.isEmpty(cfgMap)) {
-                cfgMap = cfgIds(0);
-//                this.wefareCfgIndexId = 0;
-            } else {
-//                this.wefareCfgIndexId = diff;
-            }
-            this.todayWelfareCfgMap = cfgMap;
-        }
+//        Map<Long, ActivityData> activityData = activityManager.getActivityData();
+//        long now = currentTimeMillis();
+//
+//        int groupSize = this.welfareDailyCfgMap.get(1).size();
+//
+//        for (Map.Entry<Long, ActivityData> en : activityData.entrySet()) {
+//            ActivityData data = en.getValue();
+//            if (data.getType() != ActivityType.CONTINUOUS_RECHARGE) {
+//                continue;
+//            }
+//            Pair<Integer, long[]> phase = getPhase(en.getValue(), true);
+//            if (phase.getFirst() != ActivityConstant.ContinuousRecharge.PHASE_WELFARE) {
+//                continue;
+//            }
+//
+//            long startTime = phase.getSecond()[0];
+//            int diff = TimeHelper.getDateDifference(now, startTime);
+//            int index = diff % groupSize;
+//
+//            Map<Integer, CumulativebenefitsCfg> cfgMap = cfgIds(index);
+//            if (CollectionUtil.isEmpty(cfgMap)) {
+//                cfgMap = cfgIds(0);
+////                this.wefareCfgIndexId = 0;
+//            } else {
+////                this.wefareCfgIndexId = diff;
+//            }
+//            this.todayWelfareCfgMap = cfgMap;
+//        }
     }
 
     @Override
