@@ -35,6 +35,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.manager.RoomManager;
 import com.jjg.game.room.message.BaseRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.timer.RoomTimerEvent;
@@ -74,7 +75,6 @@ import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUI
 
 @GameController(gameType = EGameType.TO_SOUTH, roomType = RoomType.POKER_ROOM)
 public class ToSouthGameController extends BasePokerGameController<ToSouthGameDataVo> {
-
     /**
      * 准备倒计时（毫秒）
      */
@@ -853,7 +853,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         baseInfo.phase = getCurrentGamePhase();
         if (playerController.getPlayer().getRoomId() > 0 && playerController.getScene() instanceof AbstractRoomController<?, ?> roomController) {
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomController.getRoom().getRoomCfgId());
-            baseInfo.roomBet = warehouseCfg.getEnterLimit();
+            baseInfo.roomBet = warehouseCfg.getBetShow();
         }
         baseInfo.playerInfos = new ArrayList<>();
         Map<Long, PlayerSeatInfo> playerSeatInfoMap = gameDataVo.getPlayerSeatInfoMap();
@@ -1101,13 +1101,14 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
      * 为真实玩家启动10秒准备倒计时，超时未准备则踢出房间
      */
     private void scheduleReadyTimeout(long playerId) {
+        gameDataVo.getReadyTimerVersion().remove(playerId);
         gameDataVo.getReadyTimerScheduled().add(playerId);
-        long version = gameDataVo.getReadyTimerVersion().merge(playerId, 1L, Long::sum);
-        ToSouthReadyTimeoutHandler handler = new ToSouthReadyTimeoutHandler(playerId, gameDataVo.getId(), version, this,gameDataVo);
         long exeTime = System.currentTimeMillis() + READY_TIMEOUT;
+        gameDataVo.getReadyTimerVersion().put(playerId,exeTime);
+        ToSouthReadyTimeoutHandler handler = new ToSouthReadyTimeoutHandler(playerId, gameDataVo.getId(), exeTime, roomController);
         TimerEvent<IProcessorHandler> timerEvent = new TimerEvent<>(this, exeTime, handler);
         addGameTimeEvent(timerEvent, RoomEventType.ROOM_PHASE_RUN_EVENT);
-        log.info("玩家 {} 准备倒计时开始 ({}秒), version={}", playerId, READY_TIMEOUT / 1000, version);
+        log.info("玩家 {} 准备倒计时开始 ({}秒), exeTime={}", playerId, READY_TIMEOUT / 1000, exeTime);
     }
 
     /**
@@ -1127,6 +1128,10 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             getRoomController().getRoomManager().exitRoom(playerId);
             log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
         }
+        gameDataVo.getReadyTimerVersion().remove(playerId);
+        // 通知其他玩家该玩家已离开（在线踢出时 exitRoom 未同步调用，需立即广播；
+        // 离线踢出时 exitRoom 已移除 GamePlayer，broadcastPlayerLeaveChange 内部判空自动跳过）
+        broadcastPlayerLeaveChange(playerId);
     }
 
     @Override
@@ -1135,10 +1140,11 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         // 玩家每次进入房间时，清除旧的准备倒计时状态，确保 tryStartGame 会重新调度新倒计时
         gameDataVo.getReadyPlayerIds().remove(playerId);
         gameDataVo.getReadyTimerScheduled().remove(playerId);
-        // 初始化版本号为0，后续 scheduleReadyTimeout 里 merge 会递增为1
-        gameDataVo.getReadyTimerVersion().merge(playerId, 1L, Long::sum);
-        log.info("玩家 {} 进入房间，已重置准备倒计时状态, version={}", playerId,
-                gameDataVo.getReadyTimerVersion().get(playerId));
+        gameDataVo.getReadyTimerVersion().remove(playerId);
+        // 真人玩家加入时，通知其他玩家
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            broadcastPlayerJoinChange(playerId);
+        }
     }
 
     @Override
@@ -1147,8 +1153,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         // 清除该玩家的准备状态
         gameDataVo.getReadyPlayerIds().remove(playerId);
         gameDataVo.getReadyTimerScheduled().remove(playerId);
-        // 递增准备倒计时版本号，使该玩家的旧定时器失效（防止重进房间后被旧定时器踢出）
-        gameDataVo.getReadyTimerVersion().merge(playerId, 1L, Long::sum);
+        gameDataVo.getReadyTimerVersion().remove(playerId);
         // 清除续局状态，有人退出后下一局视为首局（黑桃3先出）
         gameDataVo.setLastGameWinnerPlayerId(0);
         gameDataVo.getLastGamePlayerIds().clear();
@@ -1157,6 +1162,57 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         broadcastPlayerLeaveChange(playerId, remove);
 
         log.info("玩家 {} 离开房间，已清除准备状态和续局状态", playerId);
+    }
+
+    /**
+     * 广播玩家加入变化通知：将加入玩家的状态（playerStatus=true）同步给所有还在房间的其他玩家
+     */
+    private void broadcastPlayerJoinChange(long playerId) {
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        if (gamePlayer == null) {
+            return;
+        }
+        SeatInfo seatInfo = null;
+        for (SeatInfo si : gameDataVo.getSeatInfo().values()) {
+            if (si.getPlayerId() == playerId) {
+                seatInfo = si;
+                break;
+            }
+        }
+        if (seatInfo == null) {
+            return;
+        }
+        NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
+        PokerPlayerInfo info = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, this);
+        info.playerStatus = true;
+        info.status = true;
+        playerChange.pokerPlayerInfo = info;
+        playerChange.totalNum = gameDataVo.getGamePlayerMap().size();
+        broadcastToPlayers(RoomMessageBuilder.newBuilder()
+                .sendAllPlayer(playerChange).exceptPlayer(playerId));
+        log.info("已广播玩家 {} 加入状态变化给其他玩家", playerId);
+    }
+
+    /**
+     * 广播玩家离开变化通知（通过 playerId 查找 SeatInfo）
+     * 如果 GamePlayer 或 SeatInfo 已被 exitRoom 清理，则自动跳过避免重复广播
+     */
+    private void broadcastPlayerLeaveChange(long playerId) {
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        if (gamePlayer == null) {
+            return;
+        }
+        SeatInfo seatInfo = null;
+        for (SeatInfo si : gameDataVo.getSeatInfo().values()) {
+            if (si.getPlayerId() == playerId) {
+                seatInfo = si;
+                break;
+            }
+        }
+        if (seatInfo == null) {
+            return;
+        }
+        broadcastPlayerLeaveChange(playerId, seatInfo);
     }
 
     /**
