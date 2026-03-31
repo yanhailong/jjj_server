@@ -58,6 +58,11 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
     }
 
     @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("十倍金牛 无法重载配置表");
+    }
+
+    @Override
     public TenFoldGoldenBullGameRunInfo enterGame(PlayerController playerController) {
         //获取玩家游戏数据
         TenFoldGoldenBullPlayerGameData playerGameData = getPlayerGameData(playerController);

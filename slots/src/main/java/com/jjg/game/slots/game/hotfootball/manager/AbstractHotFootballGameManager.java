@@ -43,6 +43,11 @@ public abstract class AbstractHotFootballGameManager extends AbstractSlotsGameMa
     }
 
     @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("火热足球 无法重载配置表");
+    }
+
+    @Override
     public HotFootballGameRunInfo enterGame(PlayerController playerController) {
         //获取玩家游戏数据
         HotFootballPlayerGameData playerGameData = getPlayerGameData(playerController);

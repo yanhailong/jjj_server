@@ -46,6 +46,12 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
 
     }
 
+    @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("愤怒的小鸟 无法重载配置表");
+    }
+
+
     /**
      * 将库里面的中将线信息转化为消息
      *
