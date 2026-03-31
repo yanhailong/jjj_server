@@ -1190,7 +1190,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
         if(gameDataVo.getExitPlayerIds().contains(playerId)){
             getRoomController().getRoomManager().exitRoom(playerId);
-            log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
+            log.info("玩家 {} 离线且未准备，服务端强制退出房间", playerId);
             return;
         }
         if (roomPlayer == null || roomPlayer.isOnline()) {
