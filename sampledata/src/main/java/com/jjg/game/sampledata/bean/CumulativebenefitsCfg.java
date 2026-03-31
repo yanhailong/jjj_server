@@ -18,43 +18,43 @@ public class CumulativebenefitsCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Cumulativebenefits";
 
-    /**
-     * 任务条件
-     */
-    protected int condition;
-    /**
-     * 任务归类
-     */
-    protected int group;
-    /**
-     * 道具ID_道具数量
-     */
-    protected Map<Integer, Long> rewards;
-  /** 类型 */
+  /**
+   * 任务条件
+   */
+  protected int condition;
+  /**
+   * 任务归类
+   */
+  protected int group;
+  /**
+   * 道具ID_道具数量
+   */
+  protected Map<Integer, Long> rewards;
+  /**
+   * 类型
+   */
   protected int type;
-    /**
-     * 权重
-     */
-    protected int weight;
+  /**
+   * 权重
+   */
+  protected int weight;
 
-    /**
-     * 返回任务条件
-     */
-    public int getCondition() {
-        return condition;
-    }
+  /**
+   * 返回任务条件
+   */
+  public int getCondition() {
+    return condition;
+  }
 
-    /**
-     * 返回任务归类
-     */
-    public int getGroup() {
-        return group;
-    }
+  /**
+   * 返回任务归类
+   */
+  public int getGroup() {
+    return group;
+  }
 
-    /**
-     * 返回道具ID_道具数量
-     */
-    public Map<Integer,Long> getRewards() {
+  /** 返回道具ID_道具数量 */
+  public Map<Integer,Long> getRewards() {
     return rewards;
   }
 
