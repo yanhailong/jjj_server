@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
@@ -14,6 +15,7 @@ import com.jjg.game.poker.game.tosouth.message.bean.ToSouthPlayerSettlementInfo;
 import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthSettlementInfo;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
+import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameLog;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
@@ -90,7 +92,51 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             // 应用结算结果
             long totalTax = 0;
             List<ToSouthPlayerSettlementInfo> playerSettlementInfos = new ArrayList<>();
+
+            Map<Long, Long> settlementMap2 = new HashMap<>(settlementMap);
+            //重新计算结算
             for (Map.Entry<Long, Long> entry : settlementMap.entrySet()) {
+                long playerId = entry.getKey();
+                long change = entry.getValue();
+                GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+                if (change < 0) {
+                    long loseAmount = -change;
+                    int transactionItemId = controller.getGameTransactionItemId();
+                    int goldCfgId = ItemUtils.getGoldItemId();
+                    int diamondCfgId = ItemUtils.getDiamondItemId();
+                    Map<Long, Long> positiveMap = settlementMap.entrySet().stream()
+                            .filter(entry2 -> entry2.getValue() != null && entry2.getValue() > 0)
+                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    if (transactionItemId == goldCfgId) {
+                        long gold = gamePlayer.getGold();
+                        if (gold < loseAmount) {
+                            //只有三家的时候才会复现
+                            long l = gold / positiveMap.size();
+                            long l1 = loseAmount / positiveMap.size();
+                            settlementMap2.put(playerId, -gold);
+                            positiveMap.forEach((k, v) -> {
+                                settlementMap2.put(k,v-l1+l);
+                                log.info("111111111111111:{},{},{}",l,l1,(v) - l1);
+                            });
+
+                        }
+                    } else if (transactionItemId == diamondCfgId) {
+                        long diamond = gamePlayer.getDiamond();
+                        if (diamond < loseAmount) {
+                            long l = diamond / positiveMap.size();
+//                          18000 - 26000 = -8000
+                            long l1 = l - loseAmount;
+                            settlementMap2.put(playerId, diamond);
+                            positiveMap.forEach((k, v) -> {
+//                                26000 - 8000
+                                settlementMap2.put(k,v-l1+l);
+                            });
+                        }
+                    }
+                }
+            }
+
+            for (Map.Entry<Long, Long> entry : settlementMap2.entrySet()) {
                 long playerId = entry.getKey();
                 long change = entry.getValue();
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
@@ -118,6 +164,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                     }
                 } else {
                     long loseAmount = -change;
+
                     if (loseAmount > 0) {
                         controller.deductItem(playerId, loseAmount, AddType.GAME_SETTLEMENT, "南方前进输钱", false);
                     }
@@ -129,6 +176,8 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                     }
 
                 }
+
+
                 // 构建玩家结算信息
                 ToSouthPlayerSettlementInfo info = new ToSouthPlayerSettlementInfo();
                 info.playerId = playerId;
@@ -159,7 +208,43 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             notify.settlementInfos = playerSettlementInfos;
             notify.endTime = System.currentTimeMillis();
             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
-            log.info("南方前进结算map: {}", settlementMap);
+            log.info("南方前进结算map: {}", settlementMap2);
+
+            // ========== 记录最终结算到一局日志，并打印流程日志和结算日志 ==========
+            ToSouthGameLog gameLog = gameDataVo.getGameLog();
+            Map<Integer, PokerCard> cardMapForLog = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
+            for (ToSouthPlayerSettlementInfo sInfo : playerSettlementInfos) {
+                // 计算剩余手牌数
+                PlayerSeatInfo seat = gameDataVo.getPlayerSeatInfoMap().get(sInfo.playerId);
+                int remainCards = seat != null ? seat.getCurrentCards().size() : 0;
+
+                // 构建结算明细描述
+                String detail = "";
+                if (!sInfo.isWinner && !context.isInstantWin() && seat != null) {
+                    List<Card> handCards = seat.getCurrentCards().stream().map(cardMapForLog::get).collect(Collectors.toList());
+                    int cardCount = handCards.size();
+                    int countTwo = ToSouthHandUtils.countTwo(handCards);
+                    int countRedTwo = ToSouthHandUtils.countRedTwo(handCards);
+                    int countBlackTwo = countTwo - countRedTwo;
+                    int cardMulti = (cardCount == 13) ? cardCount * 2 : cardCount;
+                    int redTwoMulti = moneyCfg.getRemainred2();
+                    int blackTwoMulti = moneyCfg.getRemainblack2();
+                    int optimalBombMulti = ToSouthHandUtils.calcOptimalBombMultiplier(
+                            handCards, moneyCfg.getFourkindboom1(), moneyCfg.getRemainBoom1(), moneyCfg.getFourpairsboom1());
+                    int totalMulti = cardMulti + countRedTwo * redTwoMulti + countBlackTwo * blackTwoMulti + optimalBombMulti;
+                    detail = String.format("牌倍:%d, 红2:%dx%d, 黑2:%dx%d, 炸弹倍:%d, 总倍数:%d",
+                            cardMulti, countRedTwo, redTwoMulti, countBlackTwo, blackTwoMulti, optimalBombMulti, totalMulti);
+                } else if (!sInfo.isWinner && context.isInstantWin() && seat != null) {
+                    int cardCount = seat.getCurrentCards().size();
+                    detail = String.format("通杀翻倍, 总倍数:%d", cardCount * 2);
+                }
+                gameLog.recordFinalSettlement(sInfo.playerId, sInfo.winScore, sInfo.isWinner, remainCards, detail);
+            }
+
+            // 打印流程日志和结算日志
+            String roomInfo = "房间:" + gameDataVo.getRoomCfg().getId() + " 底注:" + baseBet;
+            log.info(gameLog.buildFlowLog(roomInfo));
+            log.info(gameLog.buildSettlementLog(roomInfo));
         }
     }
 

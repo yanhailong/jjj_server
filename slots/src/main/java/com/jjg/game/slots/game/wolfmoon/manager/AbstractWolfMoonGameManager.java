@@ -37,6 +37,11 @@ public abstract class AbstractWolfMoonGameManager extends AbstractSlotsGameManag
     }
 
     @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("狼月 无法重载配置表");
+    }
+
+    @Override
     public int getGameType() {
         return CoreConst.GameType.WOLF_MOON;
     }

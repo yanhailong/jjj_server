@@ -38,6 +38,11 @@ public class HotFootballGenerateManager extends AbstractSlotsGenerateManager<Hot
     private Map<Integer, BaseElementCfg> baseElementCfgMap;
 
     @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("火热足球 无法重载配置表");
+    }
+
+    @Override
     public HotFootballResultLib checkAward(int[] arr, HotFootballResultLib lib, boolean freeModel) throws Exception {
         if(freeModel){
             lib.setGameType(this.gameType);

@@ -53,6 +53,11 @@ public class AngryBirdsGenerateManager extends AbstractSlotsGenerateManager<Angr
         return lib;
     }
 
+    @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("愤怒的小鸟 无法重载配置表");
+    }
+
     /**
      * 全局分散
      */
