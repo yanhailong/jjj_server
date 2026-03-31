@@ -120,9 +120,6 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             // 记录本局玩家集合，供下局判断是否同桌续局
             gameDataVo.setLastGamePlayerIds(currentPlayerIds);
 
-            // 记录首出玩家到一局日志
-//            gameDataVo.getGameLog().recordFirstPlayer(firstPlayer.getPlayerId(), samePlayers);
-
             // 3. 检查通杀（炸弹测试模式下跳过，否则人人有炸弹把把触发通杀）
             if (!BOMB_TEST_MODE) {
                 checkInstantWin(controller);
@@ -431,8 +428,8 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                 // 记录通杀到一局日志
                 List<Card> sorted = new ArrayList<>(handCards);
                 sorted.sort(ToSouthHandUtils.CARD_COMPARATOR);
-//                gameDataVo.getGameLog().recordInstantWin(seatInfo.getPlayerId(),
-//                        instantWinCards.getFirst(), ToSouthHandUtils.cardListToString(sorted));
+                gameDataVo.getGameLog().recordInstantWinSettlement(seatInfo.getPlayerId(),
+                        instantWinCards.getFirst(), ToSouthHandUtils.cardListToString(sorted));
             }
         }
 
