@@ -1999,13 +1999,22 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (contribt < 1) {
             return Collections.emptyList();
         }
-        log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.playerId(), contribt, resultLib.getJackpotIds());
 
         //检查奖池是否已经冷却
-        if (!slotsPoolDao.checkPoolCD(playerGameData.getRoomCfgId())) {
-            System.out.println("冷却中");
+        List<Integer> canRewardPoolIds = new ArrayList<>();
+        for (Object obj : resultLib.getJackpotIds()) {
+            int jackpotId = (int) obj;
+            if (!slotsPoolDao.checkPoolCD(jackpotId)) {
+                return Collections.emptyList();
+            }
+            canRewardPoolIds.add(jackpotId);
+        }
+
+        if(canRewardPoolIds.isEmpty()){
             return Collections.emptyList();
         }
+
+        log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.playerId(), contribt, resultLib.getJackpotIds());
 
         //真奖池
         Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
@@ -2033,8 +2042,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
 
         List<Integer> jackpotIds = new ArrayList<>();
-        for (Object obj : resultLib.getJackpotIds()) {
-            int jackpotId = (int) obj;
+        for (int jackpotId : canRewardPoolIds) {
             PoolCfg poolCfg = GameDataManager.getPoolCfg(jackpotId);
             if (poolCfg == null) {
                 log.debug("获取的池子配置为空 poolId = {}", jackpotId);
