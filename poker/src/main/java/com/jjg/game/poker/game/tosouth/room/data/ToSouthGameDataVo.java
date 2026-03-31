@@ -48,11 +48,23 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
     // 上一局的玩家ID集合，用于判断是否同桌续局
     private Set<Long> lastGamePlayerIds = new HashSet<>();
 
+    private Set<Long> exitPlayerIds = new HashSet<>();
+
+    public Set<Long> getExitPlayerIds() {
+        return exitPlayerIds;
+    }
+
+    public void setExitPlayerIds(Set<Long> exitPlayerIds) {
+        this.exitPlayerIds = exitPlayerIds;
+    }
+
     /**
      * 必须初始化的参数是房间配置RoomCfg，如果后续子类添加数据需要在自己的构造函数中添加
      *
      * @param roomCfg
      */
+
+
     public ToSouthGameDataVo(Room_ChessCfg roomCfg) {
         super(roomCfg);
     }

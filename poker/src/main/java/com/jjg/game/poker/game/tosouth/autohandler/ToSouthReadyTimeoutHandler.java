@@ -43,6 +43,10 @@ public class ToSouthReadyTimeoutHandler implements IProcessorHandler {
         if (gameController instanceof AbstractPhaseGameController<?, ?> phaseGameController) {
             ToSouthGameDataVo gameDataVo = (ToSouthGameDataVo) roomController.getGameController().getGameDataVo();
 
+            if (gameDataVo.getGamePlayer(playerId) == null) {
+                return;
+            }
+
             // 验证游戏ID一致（防止跨局触发）
             if (gameDataVo.getId() != gameId) {
                 return;
@@ -66,6 +70,9 @@ public class ToSouthReadyTimeoutHandler implements IProcessorHandler {
             // 玩家超时未准备，踢出房间
             log.info("玩家 {} 准备超时(10秒)，踢出房间", playerId);
             gameController.kickUnreadyPlayer(playerId);
+
+            gameController.scheduleReadyTimeout(playerId, 3000);
+
         }
     }
 }
