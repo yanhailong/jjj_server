@@ -2,17 +2,14 @@ package com.jjg.game.slots.game.candyparty.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseRollerCfg;
-import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
-import com.jjg.game.sampledata.bean.SpecialModeCfg;
-import com.jjg.game.sampledata.bean.SpecialPlayCfg;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
+import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.candyparty.constant.CandyPartyConstant;
 import com.jjg.game.slots.game.candyparty.data.CandyPartyAddIconInfo;
 import com.jjg.game.slots.game.candyparty.data.CandyPartyAwardLineInfo;
@@ -34,6 +31,7 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
     private final Map<Integer, Integer> modelLayer;
     //过关条件 modelId->需要元素Id->需要数量
     private Map<Integer, Pair<Integer, Integer>> passingCriteriaMap = Map.of();
+
     public CandyPartyGameGenerateManager() {
         super(CandyPartyResultLib.class);
         modelLayer = new HashMap<>();
@@ -43,37 +41,33 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
     }
 
     @Override
-    protected void triggerFree(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig, SpecialAuxiliaryInfo specialAuxiliaryInfo) {
+    public SpecialAuxiliaryInfo triggerMiniGame(int specialModeType, int[] arr, int miniGameId, List<SpecialGirdInfo> specialGirdInfoList) {
         int specialAuxiliaryCfgId = CandyPartyConstant.SpecialMode.AUXILIARY_MAP.getOrDefault(specialModeType, 0);
-        if (specialAuxiliaryCfg.getId() != specialAuxiliaryCfgId) {
-            return;
+        if (miniGameId != specialAuxiliaryCfgId) {
+            return null;
         }
-        if (specialAuxiliaryPropConfig.getTriggerCountPropInfo() == null) {
-            return;
-        }
-        //检查是否有免费旋转次数，免费旋转的结果，通过specialMode生成
-        Integer freeCount = specialAuxiliaryPropConfig.getTriggerCountPropInfo().getRandKey();
-        if (freeCount == null || freeCount < 1) {
-            return;
+        log.debug("触发小游戏 miniGameId = {}", miniGameId);
+        //根据小游戏id去找相关配置
+        SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(miniGameId);
+        if (specialAuxiliaryCfg == null) {
+            log.warn("未找到该小游戏的配置 miniGameId = {}", miniGameId);
+            return null;
         }
 
-        for (int i = 0; i < freeCount; i++) {
-            //检查是否有修改图案策略组id
-            int specialGroupGirdID = 0;
-            if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
-                Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
-                if (randKey != null && randKey > 0) {
-                    specialGroupGirdID = randKey;
-                }
-            }
-
-            CandyPartyResultLib t = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
-            if (t == null) {
-                log.error("糖果派对生成免费结果库失败,specialModeType:{} ", specialModeType);
-                continue;
-            }
-            specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(t));
+        SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(miniGameId);
+        if (specialAuxiliaryPropConfig == null) {
+            log.warn("未找到该小游戏小关的权重信息配置 miniGameId = {}", miniGameId);
+            return null;
         }
+
+        SpecialAuxiliaryInfo specialAuxiliaryInfo = new SpecialAuxiliaryInfo();
+        specialAuxiliaryInfo.setCfgId(miniGameId);
+
+        //检查免费旋转
+        triggerFree(specialModeType, specialAuxiliaryCfg, specialAuxiliaryPropConfig, specialAuxiliaryInfo);
+        //检查是否有额外奖励
+        triggerAuxiliaryExtra(arr, specialAuxiliaryCfg, specialAuxiliaryPropConfig, specialAuxiliaryInfo, specialGirdInfoList);
+        return specialAuxiliaryInfo;
     }
 
     @Override
@@ -104,6 +98,35 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
     }
 
     @Override
+    protected int resolveAssignPatternBet(int icon, int count) {
+        Map<Integer, BaseElementRewardCfg> rewardCfgMap = this.assignPatternRewardCfgMap.get(icon);
+        if (CollectionUtil.isEmpty(rewardCfgMap)) {
+            return 0;
+        }
+        BaseElementRewardCfg rewardCfg = rewardCfgMap.get(count);
+        if (rewardCfg == null) {
+            for (Pair<Integer, Integer> pair : passingCriteriaMap.values()) {
+                if (pair.getFirst() == icon) {
+                    rewardCfg = rewardCfgMap.values().iterator().next();
+                }
+            }
+        }
+        return rewardCfg == null ? 1 : rewardCfg.getBet();
+    }
+
+    @Override
+    public boolean assignPatternAwardSpecialCheck(Set<Integer> targetCounts, int icon, int size) {
+        //过关图标特殊处理
+        for (Pair<Integer, Integer> pair : passingCriteriaMap.values()) {
+            if (pair.getFirst() == icon) {
+                return size >= targetCounts.size();
+            }
+        }
+        return false;
+    }
+
+
+    @Override
     public CandyPartyResultLib checkAward(int[] arr, CandyPartyResultLib lib, boolean freeModel) throws Exception {
         lib.setGameType(this.gameType);
         lib.setIconArr(arr);
@@ -113,10 +136,10 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
         int cols = specialModeCfg.getCols();
 
         List<CandyPartyAwardLineInfo> candyPartyAwardLineInfos = checkAssignPatternAward(arr, rows, cols);
-        lib.setAwardLineInfoList(candyPartyAwardLineInfos);
+        lib.addAllAwardLineInfo(candyPartyAwardLineInfos);
 
         List<SpecialAuxiliaryInfo> specialAuxiliaryInfos = overallDisperse(lib);
-        lib.setSpecialAuxiliaryInfoList(specialAuxiliaryInfos);
+        lib.addSpecialAuxiliaryInfo(specialAuxiliaryInfos);
         //存储消除后添加的图标
         List<CandyPartyAddIconInfo> addIconInfoList = new ArrayList<>();
         //拷贝数组
@@ -124,7 +147,7 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
         System.arraycopy(arr, 0, newArr, 0, arr.length);
         //是否有消除
         List<CandyPartyAwardLineInfo> awardLineInfoList = lib.getAwardLineInfoList();
-        repairIcons(cols, rows, newArr, awardLineInfoList, addIconInfoList);
+        repairIcons(cols, rows, newArr, awardLineInfoList, addIconInfoList, lib.getRollerMode());
         if (!addIconInfoList.isEmpty()) {
             lib.setAddIconInfos(addIconInfoList);
         }
@@ -136,7 +159,7 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
             if (pair != null) {
                 for (CandyPartyAwardLineInfo info : awardLineInfoList) {
                     if (info.getSameIcon() == pair.getFirst()) {
-                        addCount++;
+                        addCount += info.getSameIconSet().size();
                     }
                 }
                 if (CollectionUtil.isNotEmpty(lib.getAddIconInfos())) {
@@ -146,7 +169,7 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
                         }
                         for (CandyPartyAwardLineInfo info : addIconInfo.getAwardLineInfoList()) {
                             if (info.getSameIcon() == pair.getFirst()) {
-                                addCount++;
+                                addCount += info.getSameIconSet().size();
                             }
                         }
                     }
@@ -193,7 +216,7 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
     /**
      * 修补图标
      */
-    public void repairIcons(int cols, int rows, int[] arr, List<CandyPartyAwardLineInfo> list, List<CandyPartyAddIconInfo> addIconInfoList) {
+    public void repairIcons(int cols, int rows, int[] arr, List<CandyPartyAwardLineInfo> list, List<CandyPartyAddIconInfo> addIconInfoList, int baseRoller) {
         if (CollectionUtil.isEmpty(list)) {
             return;
         }
@@ -221,20 +244,19 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
             int colIndex = en.getKey();
             Set<Integer> set = en.getValue();
             //处理图标消除、下落和补充
-            processIcons(rows, colIndex, set, arr, addIconMap);
+            processIcons(rows, colIndex, set, arr, addIconMap, baseRoller);
         }
 
         addIconInfo.setAddIconMap(addIconMap);
         //检查中奖
         List<CandyPartyAwardLineInfo> newAwardInfoList = new ArrayList<>();
-
         List<CandyPartyAwardLineInfo> candyPartyAwardLineInfos = checkAssignPatternAward(arr, rows, cols);
         if (CollectionUtil.isNotEmpty(candyPartyAwardLineInfos)) {
             newAwardInfoList.addAll(candyPartyAwardLineInfos);
         }
         addIconInfo.setAwardLineInfoList(newAwardInfoList);
         addIconInfoList.add(addIconInfo);
-        repairIcons(cols, rows, arr, newAwardInfoList, addIconInfoList);
+        repairIcons(cols, rows, arr, newAwardInfoList, addIconInfoList, baseRoller);
     }
 
 
@@ -247,7 +269,7 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
      * @return 新增的图标id
      */
     public void processIcons(int rows, int colIndex, Set<Integer> removedIndexes, int[] arr,
-                             Map<Integer, Integer> addIconMap) {
+                             Map<Integer, Integer> addIconMap, int baseRoller) {
         int beginIndex = (colIndex - 1) * rows + 1;
         //这一列结束坐标
         int endIndex = beginIndex + rows - 1;
@@ -268,7 +290,7 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
             curIndex--;
         }
 
-        Map<Integer, BaseRollerCfg> rollerCfgMap = this.baseRollerCfgMap.values().iterator().next();
+        Map<Integer, BaseRollerCfg> rollerCfgMap = this.baseRollerCfgMap.get(baseRoller);
         BaseRollerCfg baseRollerCfg = rollerCfgMap.get(colIndex);
         int first = baseRollerCfg.getAxleCountScope().get(0) - 1;
         int last = baseRollerCfg.getAxleCountScope().get(1) - 1;

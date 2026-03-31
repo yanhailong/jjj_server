@@ -39,16 +39,14 @@ public interface CandyPartyConstant {
     }
 
     interface SpecialMode {
-        int JACKPOT_MODEL = 3;
-        int FREE_MODEL = 2;
         //层数->modelId
-        Map<Integer, Integer> FREE_MAP = Map.of(1, 1, 2, 2, 3, 3);
+        Map<Integer, Integer> FREE_MAP = Map.of(1, 4, 2, 5, 3, 6);
         //层数->modelId
-        Map<Integer, Integer> NORMAL_MAP = Map.of(1, 4, 2, 5, 3, 6);
+        Map<Integer, Integer> NORMAL_MAP = Map.of(1, 1, 2, 2, 3, 3);
         //层数->modelId
         Map<Integer, Integer> JACKPOT_MAP = Map.of(1, 7, 2, 8, 3, 9);
         //层数->小游戏id
-        Map<Integer, Integer> AUXILIARY_MAP = Map.of(1, 30510001, 2, 30510002, 3, 30510003);
+        Map<Integer, Integer> AUXILIARY_MAP = Map.of(4, 30510001, 5, 30510002, 6, 30510003);
     }
 
     interface SpecialPlay {

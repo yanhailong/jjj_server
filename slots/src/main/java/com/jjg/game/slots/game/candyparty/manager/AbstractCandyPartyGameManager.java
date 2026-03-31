@@ -176,14 +176,14 @@ public abstract class AbstractCandyPartyGameManager extends AbstractSlotsGameMan
             return resultLibType;
         }
         //根据玩家的层数获取id
-        if (resultLibType.data == CandyPartyConstant.SpecialMode.JACKPOT_MODEL) {
+        if (CandyPartyConstant.SpecialMode.JACKPOT_MAP.containsValue(resultLibType.data)) {
             Integer realType = CandyPartyConstant.SpecialMode.JACKPOT_MAP.get(playerGameData.getLayerNumber());
             if (realType != null) {
                 resultLibType.data = realType;
             }
         }
         //根据玩家的层数获取id
-        if (resultLibType.data == CandyPartyConstant.SpecialMode.FREE_MODEL) {
+        if (CandyPartyConstant.SpecialMode.FREE_MAP.containsValue(resultLibType.data)) {
             Integer realType = CandyPartyConstant.SpecialMode.FREE_MAP.get(playerGameData.getLayerNumber());
             if (realType != null) {
                 resultLibType.data = realType;

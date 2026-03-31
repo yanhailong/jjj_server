@@ -195,12 +195,26 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
             LinkedHashSet<Integer> sameIconSet = new LinkedHashSet<>();
             traverseConnectedIcons(arr, rows, cols, startIndex, index, visited, equivalentIcons, sameIconSet);
-            if (targetCounts.contains(sameIconSet.size())) {
+            int size = sameIconSet.size();
+            if (targetCounts.contains(size) || assignPatternAwardSpecialCheck(targetCounts, icon, size)) {
                 result.add(buildAssignPatternAwardLineInfo(resolveAssignPatternSameIcon(icon), sameIconSet));
             }
         }
         return result;
     }
+
+    /**
+     * 扩散模式特殊处理
+     *
+     * @param targetCounts 需要图标
+     * @param icon         图标
+     * @param size         图标大小
+     * @return true 报错 false 不保存
+     */
+    public boolean assignPatternAwardSpecialCheck(Set<Integer> targetCounts, int icon, int size) {
+        return false;
+    }
+
 
     protected Map<Integer, Set<Integer>> buildPassingCriteriaTargetCountMap() {
         return this.assignPatternTargetCountMap;
@@ -342,10 +356,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         return this.assignPatternSameIconMap.getOrDefault(icon, icon);
     }
 
-    private int resolveAssignPatternBet(int icon, int count) {
+    protected int resolveAssignPatternBet(int icon, int count) {
         Map<Integer, BaseElementRewardCfg> rewardCfgMap = this.assignPatternRewardCfgMap.get(icon);
         if (CollectionUtil.isEmpty(rewardCfgMap)) {
-            return 1;
+            return 0;
         }
         BaseElementRewardCfg rewardCfg = rewardCfgMap.get(count);
         return rewardCfg == null ? 1 : rewardCfg.getBet();
