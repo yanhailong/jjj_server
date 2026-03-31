@@ -189,6 +189,12 @@ public abstract class AbstractCandyPartyGameManager extends AbstractSlotsGameMan
                 resultLibType.data = realType;
             }
         }
+        if (CandyPartyConstant.SpecialMode.NORMAL_MAP.containsValue(resultLibType.data)) {
+            Integer realType = CandyPartyConstant.SpecialMode.NORMAL_MAP.get(playerGameData.getLayerNumber());
+            if (realType != null) {
+                resultLibType.data = realType;
+            }
+        }
         return resultLibType;
     }
 
@@ -257,10 +263,7 @@ public abstract class AbstractCandyPartyGameManager extends AbstractSlotsGameMan
     }
 
     public void checkElementCollection(CandyPartyGameRunInfo gameRunInfo, CandyPartyPlayerGameData playerGameData) {
-        //免费模式不切换
-        if (gameRunInfo.getStatus() == CandyPartyConstant.Status.FREE) {
-            return;
-        }
+
         //收集图标
         Map<Integer, Pair<Integer, Integer>> passingCriteriaMap = gameGenerateManager.getPassingCriteriaMap();
         if (CollectionUtil.isEmpty(passingCriteriaMap)) {
@@ -275,13 +278,14 @@ public abstract class AbstractCandyPartyGameManager extends AbstractSlotsGameMan
         int collectedIconNum = playerGameData.getCollectedIconNum();
         int total = resultLib.getElementCollectionNum() + collectedIconNum;
         int remain = total - pair.getSecond();
-        if (remain >= 0) {
+        //免费模式不切换
+        if (remain >= 0 && playerGameData.getStatus() != CandyPartyConstant.Status.FREE) {
             //第三层到第一层不继承收集数量
             if (playerGameData.getLayerNumber() == CandyPartyConstant.Common.MAX_LAYER) {
                 remain = 0;
             }
             //设置下一层,以及收集的数量
-            int layerNumber = playerGameData.getLayerNumber() % CandyPartyConstant.Common.MAX_LAYER + 1;
+            int layerNumber = (playerGameData.getLayerNumber() % CandyPartyConstant.Common.MAX_LAYER) + 1;
             playerGameData.setLayerNumber(layerNumber);
             playerGameData.setCollectedIconNum(remain);
             return;

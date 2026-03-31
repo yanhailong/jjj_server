@@ -1373,12 +1373,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     protected abstract <D extends AbstractResultLibDao> D getResultLibDao();
 
+    @Deprecated
     protected <D extends AbstractGameDataDao> D getGameDataDao() {
         return null;
     }
 
     protected abstract <D extends AbstractSlotsGenerateManager> D getGenerateManager();
 
+    @Deprecated
     protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
         return null;
     }

@@ -18,6 +18,7 @@ import java.lang.reflect.Modifier;
  * @author 11
  * @date 2025/8/1 16:53
  */
+@Deprecated
 public abstract class AbstractGameDataDao<T extends SlotsPlayerGameDataDTO> extends MongoBaseDao<T, Long> {
     protected Logger log = LoggerFactory.getLogger(getClass());
 

@@ -9,6 +9,7 @@ import java.lang.reflect.Constructor;
  * @author 11
  * @date 2025/8/5 14:11
  */
+@Deprecated
 @Document
 public class SlotsPlayerGameDataDTO {
     protected long playerId;
