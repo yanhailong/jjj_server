@@ -393,7 +393,7 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
         }
         //发送奖励
         Map<Integer, Long> addItemMap = ItemUtils.expendItems(cfg.getItem(), req.buyNum);
-        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, addItemMap, AddType.ACTIVITY_WEALTH_ROULETTE_REWARDS);
+        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, addItemMap, AddType.ACTIVITY_WEALTH_ROULETTE_BUY_REWARDS);
         if (!addResult.success()) {
             log.error("财富转盘 购买商品后添加道具失败 playerId:{} goodId:{}", playerId, req.goodId);
             // 发奖失败时补偿回滚积分与限购次数，避免扣分/扣次数但不到账
