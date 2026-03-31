@@ -158,7 +158,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
             return result;
         }
         //更新奖池冷却时间
-        updatePoolCD(roomCfgId, poolId);
+        updatePoolCD(poolId);
         log.info("从小池子扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId, value, poolValue, addType);
         return result;
     }
@@ -200,7 +200,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
         }
 
         result.data = value;
-        updatePoolCD(roomCfgId, poolId);
+        updatePoolCD(poolId);
         log.debug("从小池子按照百分比扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},beforeValue = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId, poolValue, value, afterPoolValue, addType);
         return result;
     }
@@ -241,35 +241,35 @@ public class SlotsPoolDao extends AbstractPoolDao {
     /**
      * 更新奖池冷却时间
      *
-     * @param roomCfgId
+     * @param poolId
      */
-    public void updatePoolCD(int roomCfgId, int poolId) {
+    public void updatePoolCD(int poolId) {
         PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
         if (poolCfg != null) {
             long cdTime = (long) poolCfg.getMin() * TimeHelper.ONE_MINUTE_OF_MILLIS + System.currentTimeMillis();
-            this.redisTemplate.opsForHash().put(this.POOL_CD_TABLE_NAME, roomCfgId, cdTime);
-            log.info("更新奖池冷却时间 roomCfgId = {},poolId = {},cdTime = {}", roomCfgId, poolId, cdTime);
+            this.redisTemplate.opsForHash().put(this.POOL_CD_TABLE_NAME, poolId, cdTime);
+            log.info("更新奖池冷却时间 poolId = {},cdTime = {}", poolId, cdTime);
         }
     }
 
     /**
      * 清除奖池冷却时间
      *
-     * @param roomCfgId
+     * @param poolId
      */
-    public void clearPoolCD(int roomCfgId) {
-        this.redisTemplate.opsForHash().delete(this.POOL_CD_TABLE_NAME, roomCfgId);
-        log.info("清除奖池冷却时间 roomCfgId = {}", roomCfgId);
+    public void clearPoolCD(int poolId) {
+        this.redisTemplate.opsForHash().delete(this.POOL_CD_TABLE_NAME, poolId);
+        log.info("清除奖池冷却时间 poolId = {}", poolId);
     }
 
     /**
      * 检查奖池是否已经冷却
      *
-     * @param roomCfgId
+     * @param poolId
      * @return
      */
-    public boolean checkPoolCD(int roomCfgId) {
-        Object o = this.redisTemplate.opsForHash().get(this.POOL_CD_TABLE_NAME, roomCfgId);
+    public boolean checkPoolCD(int poolId) {
+        Object o = this.redisTemplate.opsForHash().get(this.POOL_CD_TABLE_NAME, poolId);
         if(o == null){
             return true;
         }

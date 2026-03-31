@@ -44,6 +44,10 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
 //        super.init();
     }
 
+    @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("王牌Dj游戏 无法重载配置表");
+    }
 
     /**
      * 开始游戏

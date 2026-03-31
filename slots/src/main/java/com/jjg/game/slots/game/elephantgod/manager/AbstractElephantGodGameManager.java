@@ -36,6 +36,11 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
     }
 
     @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("象财神 无法重载配置表");
+    }
+
+    @Override
     protected ElephantGodGameRunInfo startGame(PlayerController playerController, ElephantGodPlayerGameData playerGameData, long betValue, boolean auto) {
         ElephantGodGameRunInfo gameRunInfo = new ElephantGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {

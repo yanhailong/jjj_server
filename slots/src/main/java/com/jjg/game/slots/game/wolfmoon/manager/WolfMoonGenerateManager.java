@@ -31,6 +31,10 @@ public class WolfMoonGenerateManager extends AbstractSlotsGenerateManager<WolfMo
     public WolfMoonGenerateManager() {
         super(WolfMoonResultLib.class);
     }
+    @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("狼月 无法重载配置表");
+    }
 
     @Override
     public WolfMoonResultLib generateFreeOne(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, int specialGroupGirdID) {
