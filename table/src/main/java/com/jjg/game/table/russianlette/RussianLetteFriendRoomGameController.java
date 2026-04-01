@@ -11,6 +11,7 @@ import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseFriendRoomTableGameController;
 import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
 import com.jjg.game.table.russianlette.gamephase.RussianLetteBetPhase;
+import com.jjg.game.table.russianlette.gamephase.RussianLetteDrawPhase;
 import com.jjg.game.table.russianlette.gamephase.RussianLetteSettlementPhase;
 import com.jjg.game.table.russianlette.message.RussianLetteMessageBuilder;
 import com.jjg.game.table.russianlette.message.resp.NotifyRussianLetteTableInfo;
@@ -34,7 +35,7 @@ public class RussianLetteFriendRoomGameController extends BaseFriendRoomTableGam
         super.respRoomInitInfo(playerController);
         // 发送初始化数据
         NotifyRussianLetteTableInfo animalsTableInfo =
-            RussianLetteMessageBuilder.notifyAnimalsTableInfo(playerController.playerId(),this, true);
+                RussianLetteMessageBuilder.notifyAnimalsTableInfo(playerController.playerId(), this, true);
         playerController.send(animalsTableInfo);
     }
 
@@ -46,8 +47,9 @@ public class RussianLetteFriendRoomGameController extends BaseFriendRoomTableGam
     @Override
     protected LinkedHashSet<IRoomPhase> initGamePhaseConf() {
         LinkedHashSet<IRoomPhase> roomPhases = new LinkedHashSet<>();
-//        roomPhases.add(new RussianLetteTableWaitReadyPhase(this));
-        roomPhases.add(new RussianLetteBetPhase(this));
+//        roomPhases.add(new RussianLetteTableWaitReadyPhase(this));  // REST        stageTime[0]
+        roomPhases.add(new RussianLetteBetPhase(this));             // BET         stageTime[0]
+        roomPhases.add(new RussianLetteDrawPhase(this));            // DRAW_ON     stageTime[1]
         roomPhases.add(new RussianLetteSettlementPhase(this));
         return roomPhases;
     }
