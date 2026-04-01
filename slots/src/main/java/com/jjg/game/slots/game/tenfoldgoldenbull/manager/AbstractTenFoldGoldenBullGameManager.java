@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -52,6 +53,13 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
     }
 
     @Override
+    public void generate(Map<Integer, Integer> libTypeCountMap, boolean saveToDB) {
+        Integer jackpotCount = libTypeCountMap.getOrDefault(TenFoldGoldenBullConstant.SpecialMode.JACKPOT, 0);
+        libTypeCountMap.put(TenFoldGoldenBullConstant.SpecialMode.JACKPOT, jackpotCount / 10);
+        super.generate(libTypeCountMap, saveToDB);
+    }
+
+    @Override
     public TenFoldGoldenBullGameRunInfo enterGame(PlayerController playerController) {
         //获取玩家游戏数据
         TenFoldGoldenBullPlayerGameData playerGameData = getPlayerGameData(playerController);
@@ -67,18 +75,6 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
         TenFoldGoldenBullGameRunInfo gameRunInfo = new TenFoldGoldenBullGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
-    }
-
-
-    @Override
-    protected void onAutoExitAction(TenFoldGoldenBullPlayerGameData gameData, int eventId) {
-//        if (gameData.getStatus() == TenFoldGoldenBullConstant.Status.REAL_LUCKY_BULL) {
-//            TenFoldGoldenBullResultLib resultLib = gameData.getLuckyBull();
-//            for (int i = gameData.getCurrentRandomIndex(); i < resultLib.getRandomResult().size(); i++) {
-//                log.info("福牛模式自动旋转 playerId = {},currentRandomIndex = {}", gameData.getPlayerId(), gameData.getCurrentRandomIndex());
-//                startGame(new PlayerController(null, null), gameData, gameData.getOneBetScore(), true);
-//            }
-//        }
     }
 
     /**

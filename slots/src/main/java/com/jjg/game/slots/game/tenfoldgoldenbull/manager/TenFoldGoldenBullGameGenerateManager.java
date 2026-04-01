@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.tenfoldgoldenbull.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.WeightRandom;
+import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -18,7 +19,9 @@ import jodd.util.StringUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author lm
@@ -90,6 +93,33 @@ public class TenFoldGoldenBullGameGenerateManager extends AbstractSlotsGenerateM
             }
         }
         modifyGirdAction(specialModeCfg, lib, arr);
+        //如果非jackpot将全部的图标随机一个
+        if (libType == TenFoldGoldenBullConstant.SpecialMode.REAL_LUCKY_BULL) {
+            int baseIcon = 0;
+            Set<Integer> wilds = this.iconsMap.get(SlotsConst.BaseElement.TYPE_WILD);
+            boolean allSame = true;
+            for (int i = 1; i < arr.length; i++) {
+                int icon = arr[i];
+                if (icon == SlotsConst.Common.IMMUTABLE_ELEMENTS || wilds.contains(icon)) {
+                    continue;
+                }
+                if (baseIcon == 0) {
+                    baseIcon = icon;
+                }
+                if (icon != baseIcon) {
+                    allSame = false;
+                    break;
+                }
+            }
+            if (allSame) {
+                Set<Integer> normal = this.iconsMap.get(SlotsConst.BaseElement.TYPE_NORMAL);
+                List<Integer> randomList = new ArrayList<>(normal);
+                int finalBaseIcon = baseIcon;
+                randomList.removeIf(elm -> elm == finalBaseIcon);
+                Integer newIcon = RandomUtil.randomEle(randomList);
+                arr[1] = newIcon;
+            }
+        }
         //判断中奖，返回
         return checkAward(arr, lib);
     }
@@ -155,7 +185,7 @@ public class TenFoldGoldenBullGameGenerateManager extends AbstractSlotsGenerateM
             if (tempLib == null) {
                 continue;
             }
-            lib.addLibType(libType);
+            tempLib.addLibType(libType);
             lib.addRandomResult(tempLib);
             if (CollectionUtil.isNotEmpty(tempLib.getAwardLineInfoList())) {
                 break;
