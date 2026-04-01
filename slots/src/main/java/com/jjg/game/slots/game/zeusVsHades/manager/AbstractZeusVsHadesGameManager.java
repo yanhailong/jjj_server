@@ -266,8 +266,6 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
         } else {
             playerGameData.setStatus(ZeusVsHadesConstant.Status.HADES);
         }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
         return new ZeusVsHadesGameRunInfo(Code.SUCCESS, playerController.playerId());
     }
 
