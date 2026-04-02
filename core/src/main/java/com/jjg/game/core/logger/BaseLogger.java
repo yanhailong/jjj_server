@@ -726,6 +726,7 @@ public class BaseLogger {
             json.put("addType", mail.getAddType().getValue());
             //备注
             json.put("desc", mail.getDesc());
+            json.put("operator", mail.getOperator());
 
             sendLog("mail", null, json);
         } catch (Exception e) {
