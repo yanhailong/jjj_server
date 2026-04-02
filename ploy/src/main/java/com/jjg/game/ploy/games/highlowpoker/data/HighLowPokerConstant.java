@@ -19,6 +19,8 @@ public interface HighLowPokerConstant {
         //请求选择
         int REQ_HIGH_LOW_POKER_CHOOSE = BASE_MSG_PREFIX | 0x5;
         int RES_HIGH_LOW_POKER_CHOOSE = BASE_MSG_PREFIX | 0x6;
+        //历史记录返回
+        int RES_HIGH_LOW_POKER_RECORD = BASE_MSG_PREFIX | 0x7;
     }
 
     interface Common {

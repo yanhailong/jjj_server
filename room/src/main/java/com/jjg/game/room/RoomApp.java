@@ -108,6 +108,7 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
         for (Map.Entry<String, IRoomStartListener> en : startListenerMap.entrySet()) {
             en.getValue().shutdown();
         }
+        ployManager.shutdown();
         coreStartService.shutdown();
         marsCoreStartService.shutdown();
         //定时器停止

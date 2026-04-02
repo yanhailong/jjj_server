@@ -24,6 +24,7 @@ import com.jjg.game.ploy.data.PlayerPloyGameData;
 import com.jjg.game.ploy.data.PloyBetDivideInfo;
 import com.jjg.game.ploy.data.PropInfo;
 import com.jjg.game.ploy.logger.PloyLogger;
+import com.jjg.game.ploy.pb.ReqPloyRecord;
 import com.jjg.game.ploy.utils.PropUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PloygameRoomCfg;
@@ -214,6 +215,15 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
             return Code.EXCEPTION;
         }
     }
+
+    /**
+     * 请求记录
+     *
+     * @param playerController 玩家数据
+     * @param req              请求
+     * @return 响应数据
+     */
+    public abstract AbstractMessage reqPloyRecord(PlayerController playerController, ReqPloyRecord req);
 
     /**
      * 构建玩家进入游戏时的返回消息
@@ -433,5 +443,21 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     }
 
     public void shutdown() {
+        if (CollectionUtil.isEmpty(gameDataMap)) {
+            return;
+        }
+        //保存玩家数据
+        for (Map.Entry<Integer, Map<Long, T>> entry : gameDataMap.entrySet()) {
+            if (CollectionUtil.isEmpty(entry.getValue())) {
+                continue;
+            }
+            for (Map.Entry<Long, T> playerGameDataEntry : entry.getValue().entrySet()) {
+                log.info("关服保存策略游戏玩家数据 playerId:{}", playerGameDataEntry.getKey());
+                gameDataDao.saveGameData(playerGameDataEntry.getValue());
+                log.info("关服保存策略游戏玩家数据完成 playerId:{}", playerGameDataEntry.getKey());
+            }
+        }
     }
+
+
 }

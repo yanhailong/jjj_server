@@ -69,6 +69,7 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
 
     @Override
     public void stop() {
+        ployManager.shutdown();
         //关闭工厂
         this.slotsFactoryManager.shutdown();
         //关闭core模块
