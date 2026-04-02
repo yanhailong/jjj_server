@@ -347,6 +347,7 @@ public class GMController extends AbstractController {
             vo.setLevel(p.getLevel());
             vo.setGameType(p.getGameType());
             vo.setRoomCfgId(p.getRoomCfgId());
+            vo.setGuestAccount(account.getThirdAccount(LoginType.GUEST));
 
             SafeVo safeVo = new SafeVo();
             safeVo.setSafeGold(p.getSafeBoxGold());

@@ -20,6 +20,7 @@ public class PlayerVo {
     private int level;
     private int gameType;
     private int roomCfgId;
+    private String guestAccount;
 
     public long getPlayerId() {
         return playerId;
@@ -139,5 +140,13 @@ public class PlayerVo {
 
     public void setRoomCfgId(int roomCfgId) {
         this.roomCfgId = roomCfgId;
+    }
+
+    public String getGuestAccount() {
+        return guestAccount;
+    }
+
+    public void setGuestAccount(String guestAccount) {
+        this.guestAccount = guestAccount;
     }
 }
