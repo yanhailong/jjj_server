@@ -2,6 +2,7 @@ package com.jjg.game.ploy.games.highlowpoker.pb.bean;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.ploy.games.highlowpoker.data.HighLowHistoryInfo;
 
 import java.util.List;
 

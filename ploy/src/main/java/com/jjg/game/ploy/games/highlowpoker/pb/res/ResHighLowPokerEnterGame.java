@@ -4,8 +4,8 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.ploy.games.highlowpoker.data.HighLowHistoryInfo;
 import com.jjg.game.ploy.games.highlowpoker.data.HighLowPokerConstant;
-import com.jjg.game.ploy.games.highlowpoker.pb.bean.HighLowHistoryInfo;
 
 import java.util.List;
 
