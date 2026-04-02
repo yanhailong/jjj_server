@@ -130,7 +130,7 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
             T playerGameData = getPlayerGameData(playerController.playerId(), this.roomCfgId);
             if (playerGameData == null) {
                 log.warn("获取 playerGameData 失败，下注失败 playerId = {},roomCfgId = {}", playerController.playerId(), this.roomCfgId);
-                return buildResBetMessage(Code.FAIL, null);
+                return buildResBetMessage(Code.FAIL, null, 0, 0);
             }
 
             //检查押分值
@@ -138,57 +138,30 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
             boolean match = cfg.getLineBetScore().stream().anyMatch(b -> b == betValue);
             if (!match) {
                 log.warn("下注额错误，下注失败 playerId = {},roomCfgId = {},betValue = {}", playerController.playerId(), playerGameData.getRoomCfgId(), betValue);
-                return buildResBetMessage(Code.PARAM_ERROR, playerGameData);
+                return buildResBetMessage(Code.PARAM_ERROR, playerGameData, 0, 0);
             }
 
             //玩家扣除下注金额，并加入标准池
             CommonResult<PloyBetDivideInfo> moneyResult = moneyToPool(playerGameData, betValue);
             if (!moneyResult.success()) {
-                return buildResBetMessage(moneyResult.code, playerGameData);
+                return buildResBetMessage(moneyResult.code, playerGameData, 0, 0);
             }
-            //更新活跃时间
+            //构建返回消息
+            AbstractResponse res = buildResBetMessage(Code.SUCCESS, playerGameData, betValue, value);
+            if (res.code != Code.SUCCESS) {
+                poolToPlayer(playerGameData, moneyResult.data.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
+                return res;
+            }
+            //更新数据
             playerGameData.setLastActiveTime(System.currentTimeMillis());
-            //判断该用哪种方式计算赔率
-            AbstractResponse res;
-            if (CollectionUtil.isEmpty(cfg.getOdds())) {
-                res = buildResBetMessage(Code.SUCCESS, playerGameData, 0);
-                if (res.code != Code.SUCCESS) {
-                    poolToPlayer(playerGameData, moneyResult.data.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
-                    return res;
-                }
-                playerGameData.setLastBet(betValue);
-                playerGameData.setLastBetTime(playerGameData.getLastActiveTime());
-            } else {
-                //计算偏差范围
-                long diff = BigDecimal.valueOf(moneyResult.data.getPoolAfterValue() - cfg.getInitBasePool()).divide(BigDecimal.valueOf(cfg.getInitBasePool()), 6, RoundingMode.HALF_UP).multiply(tenThousandBigDecimal).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
-                PoolResultLibCfg libCfg = getLibCfgByPoolDiff(diff);
-                if (libCfg == null) {
-                    log.warn("获取结果库配置失败,下注失败 playerId = {},roomCfgId = {},betValue = {},poolValue = {},diff = {}", playerController.playerId(), playerGameData.getRoomCfgId(), betValue, moneyResult.data.getPoolAfterValue(), diff);
-                    poolToPlayer(playerGameData, moneyResult.data.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
-                    return buildResBetMessage(Code.FAIL, playerGameData);
-                }
-
-                //根据权重随机获取一种结果
-                PropInfo propInfo = this.poolResultLibPropMap.get(libCfg.getModelId());
-                Integer randKey = propInfo.getRandKey();
-                if (randKey == null) {
-                    log.warn("获取结果库配置失败,下注失败 playerId = {},roomCfgId = {},betValue = {},poolValue = {},diff = {}", playerController.playerId(), playerGameData.getRoomCfgId(), betValue, moneyResult.data.getPoolAfterValue(), diff);
-                    poolToPlayer(playerGameData, moneyResult.data.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
-                    return buildResBetMessage(Code.FAIL, playerGameData);
-                }
-                playerGameData.setLastBet(betValue);
-                playerGameData.setLastBetTime(playerGameData.getLastActiveTime());
-                playerGameData.setPoolResultLibCfgId(libCfg.getId());
-                playerGameData.setBeforeMoney(moneyResult.data.getPlayerBeforeMoney());
-                playerGameData.setAfterMoney(moneyResult.data.getPlayerAfterMoney());
-                res = buildResBetMessage(Code.SUCCESS, playerGameData, randKey);
-            }
-
+            playerGameData.setLastBet(betValue);
+            playerGameData.setLastBetTime(playerGameData.getLastActiveTime());
+            playerGameData.setPloyBetDivideInfo(moneyResult.data);
             log.info("策略游戏下注返回 playerId = {},gameType = {},res = {}", playerController.playerId(), playerGameData.getGameType(), JSON.toJSONString(res));
             return res;
         } catch (Exception e) {
             log.error("", e);
-            return buildResBetMessage(Code.EXCEPTION, null);
+            return buildResBetMessage(Code.EXCEPTION, null, 0, 0);
         }
     }
 
@@ -230,20 +203,16 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
      */
     protected abstract AbstractResponse buildResEnterGameMessage(int code, int gameType, int roomCfgId, T playerGameData);
 
-
-    protected AbstractMessage buildResBetMessage(int code, T playerGameData) {
-        return buildResBetMessage(code, playerGameData, 0);
-    }
-
     /**
      * 构建玩家下注后的返回消息
      *
      * @param code
      * @param playerGameData
-     * @param oddsType
+     * @param betValue
+     * @param value
      * @return
      */
-    protected abstract AbstractResponse buildResBetMessage(int code, T playerGameData, int oddsType);
+    protected abstract AbstractResponse buildResBetMessage(int code, T playerGameData, long betValue, int value);
 
     /**
      * 玩家扣除下注金额，并加入标准池
