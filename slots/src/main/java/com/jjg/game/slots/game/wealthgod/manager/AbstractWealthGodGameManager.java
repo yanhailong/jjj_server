@@ -101,7 +101,7 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
             //从奖池扣除，并给玩家加钱
             rewardFromBigPool(gameRunInfo, playerGameData);
             //奖池中奖
-            rewardFromSmallPool(gameRunInfo, playerGameData, gameRunInfo.getResultLib().getJackpotIds());
+            rewardFromSmallPool2(gameRunInfo, playerGameData, gameRunInfo.getResultLib().getJackpotIds());
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task

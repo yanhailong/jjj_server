@@ -387,6 +387,9 @@ public class CoreMessageHandler {
         // 如果玩家在房间中
         ResConfirmPlayerScene res = new ResConfirmPlayerScene(Code.SUCCESS);
         res.sceneType = nodeType == NodeType.GAME ? ESceneType.ROOM : ESceneType.HALL;
+
+        //
+        log.info("nodeType:{}",nodeType.getValue());
         playerController.send(res);
     }
 

@@ -266,8 +266,6 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
         } else {
             playerGameData.setStatus(ZeusVsHadesConstant.Status.HADES);
         }
-
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
         return new ZeusVsHadesGameRunInfo(Code.SUCCESS, playerController.playerId());
     }
 
@@ -309,14 +307,14 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
 
     @Override
     protected void onAutoExitAction(ZeusVsHadesPlayerGameData playerGameData, int eventId) {
-        //检查当前是否处于特殊模式
-        if (playerGameData.getStatus() == BasketballSuperstarConstant.Status.FREE) {
-            int forCount = playerGameData.getRemainFreeCount().get();
-            while (forCount > 0) {
-                autoStartGame(playerGameData, playerGameData.getAllBetScore());
-                forCount = playerGameData.getRemainFreeCount().get();
-            }
-        }
+//        //检查当前是否处于特殊模式
+//        if (playerGameData.getStatus() == BasketballSuperstarConstant.Status.FREE) {
+//            int forCount = playerGameData.getRemainFreeCount().get();
+//            while (forCount > 0) {
+//                autoStartGame(playerGameData, playerGameData.getAllBetScore());
+//                forCount = playerGameData.getRemainFreeCount().get();
+//            }
+//        }
     }
 
 

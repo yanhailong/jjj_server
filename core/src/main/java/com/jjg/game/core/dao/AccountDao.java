@@ -254,14 +254,30 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
         //要加锁
         String lockKey = getLockKey(player.getId());
         redisLock.executeWithLock(lockKey, GameConstant.Redis.TIME, TimeUnit.MILLISECONDS, () -> {
-            Account tmpAccount = checkAndSave(player.getId(), a -> {
-                String thirdAccountData = a.removeThirdAccount(loginType);
-                if (StringUtils.isNotBlank(thirdAccountData)) {
+            Account tmpAccount = checkAndSaveRes(player.getId(), new DataSaveCallback<>() {
+                @Override
+                public void updateData(Account dataEntity) {
+                }
+
+                @Override
+                public boolean updateDataWithRes(Account dataEntity) {
+                    String thirdAccountData = dataEntity.removeThirdAccount(loginType);
+                    if (StringUtils.isBlank(thirdAccountData)) {
+                        log.warn("remove third account failed, no bind data. playerId={}, loginType={}", player.getId(), loginType);
+                        return false;
+                    }
+
                     redisTemplate.opsForHash().delete(thirdTableName(loginType), thirdAccountData);
+                    return true;
                 }
             });
 
             if (tmpAccount == null) {
+                Account existAccount = queryAccountByPlayerId(player.getId());
+                if (existAccount != null) {
+                    result.code = Code.FAIL;
+                    return result;
+                }
                 log.warn("解绑第三方账号时获取account数据未找到 playerId={}", player.getId());
                 result.code = Code.NOT_FOUND;
             } else {

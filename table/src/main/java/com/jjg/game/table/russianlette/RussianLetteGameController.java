@@ -9,15 +9,15 @@ import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
+import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.russianlette.data.RussianLetteGameDataVo;
 import com.jjg.game.table.russianlette.gamephase.RussianLetteBetPhase;
 import com.jjg.game.table.russianlette.gamephase.RussianLetteDrawPhase;
 import com.jjg.game.table.russianlette.gamephase.RussianLetteSettlementPhase;
 import com.jjg.game.table.russianlette.message.RussianLetteMessageBuilder;
-import com.jjg.game.table.russianlette.message.resp.NotifyRussianLetteTableInfo;
+import com.jjg.game.table.russianlette.message.resp.RespRussianLetteInfo;
 
 import java.util.LinkedHashSet;
-import java.util.List;
 
 /**
  * 俄罗斯转盘游戏控制器
@@ -44,9 +44,13 @@ public class RussianLetteGameController extends BaseTableGameController<RussianL
      */
     @Override
     public void respRoomInitInfo(PlayerController playerController) {
-        NotifyRussianLetteTableInfo animalsTableInfo =
-            RussianLetteMessageBuilder.notifyAnimalsTableInfo(playerController.playerId(), this, true);
-        playerController.send(animalsTableInfo);
+        // 发送初始化数据
+        RespRussianLetteInfo resp = RussianLetteMessageBuilder.buildRespRussianLetteInfo(
+                playerController.playerId(), this);
+        playerController.send(resp);
+        // 更新玩家操作时间（心跳续约）
+        TableGameDataVo tableGameDataVo = getGameDataVo();
+        tableGameDataVo.updatePlayerOperateTime(playerController.playerId());
     }
 
     /**

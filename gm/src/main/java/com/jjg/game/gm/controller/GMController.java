@@ -393,14 +393,14 @@ public class GMController extends AbstractController {
             }
 
             if (StringUtils.isEmpty(dto.designated())) {  //为空表示全服邮件
-                mailService.addAllServerMail(dto.title(), dto.content(), mailItems, AddType.HUMAN_MAIL, null);
+                mailService.addAllServerMail(dto.title(), dto.content(), mailItems, AddType.HUMAN_MAIL, null, dto.username());
             } else {
                 List<Long> playerIds = new ArrayList<>();
                 String[] arr = dto.designated().split(",");
                 for (String str : arr) {
                     playerIds.add(Long.parseLong(str));
                 }
-                mailService.addMails(playerIds, dto.title(), dto.content(), mailItems, AddType.HUMAN_MAIL, null);
+                mailService.addMails(playerIds, dto.title(), dto.content(), mailItems, AddType.HUMAN_MAIL, null, dto.username());
             }
 
             //返回修改结果
