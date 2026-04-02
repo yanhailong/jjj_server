@@ -393,29 +393,30 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             }
         } else {
             //没有房间类的游戏重连
-            Optional<PlayerLastGameInfo> op = playerLastGameInfoDao.findById(player.getId());
-            if (op.isEmpty()) {
-                return false;
-            }
-
-            PlayerLastGameInfo playerLastGameInfo = op.get();
-            if (!playerLastGameInfo.isHalfwayOffline() || StringUtils.isEmpty(playerLastGameInfo.getNodePath())) {
-                return false;
-            }
-
-            //获取节点
-            node = clusterSystem.getNode(playerLastGameInfo.getNodePath());
-            if (node == null) {
-                node = nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
-                if (node == null) {
-                    playerLastGameInfo.setHalfwayOffline(false);
-                    playerLastGameInfo.setNodePath(null);
-                    playerLastGameInfoDao.save(playerLastGameInfo);
-                    return false;
-                }
-            }
-            playerSessionInfo.setGameType(playerLastGameInfo.getGameType());
-            playerSessionInfo.setRoomCfgId(playerLastGameInfo.getRoomCfgId());
+//            Optional<PlayerLastGameInfo> op = playerLastGameInfoDao.findById(player.getId());
+//            if (op.isEmpty()) {
+//                return false;
+//            }
+//
+//            PlayerLastGameInfo playerLastGameInfo = op.get();
+//            if (!playerLastGameInfo.isHalfwayOffline() || StringUtils.isEmpty(playerLastGameInfo.getNodePath())) {
+//                return false;
+//            }
+//
+//            //获取节点
+//            node = clusterSystem.getNode(playerLastGameInfo.getNodePath());
+//            if (node == null) {
+//                node = nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
+//                if (node == null) {
+//                    playerLastGameInfo.setHalfwayOffline(false);
+//                    playerLastGameInfo.setNodePath(null);
+//                    playerLastGameInfoDao.save(playerLastGameInfo);
+//                    return false;
+//                }
+//            }
+//            playerSessionInfo.setGameType(playerLastGameInfo.getGameType());
+//            playerSessionInfo.setRoomCfgId(playerLastGameInfo.getRoomCfgId());
+            return false;
         }
         log.info("玩家重连开始切换节点 playerId={},gameType={},toNode = {}",
                 player.getId(), player.getGameType(), node.getNodePath());

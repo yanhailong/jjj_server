@@ -1116,6 +1116,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 从奖池扣除钱(jackpot用)
+     * 4个奖池专用
      *
      * @param gameRunInfo
      * @param playerGameData
@@ -1148,6 +1149,44 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setPlayer(result.data);
 
             log.info("玩家奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), poolId, poolValue);
+        }
+    }
+
+    /**
+     * 从奖池扣除钱(jackpot用)
+     * 单奖池专用
+     *
+     * @param gameRunInfo
+     * @param playerGameData
+     */
+    protected void rewardFromSmallPool2(GameRunInfo gameRunInfo, T playerGameData, List<Integer> jackpotIds) {
+        if (jackpotIds == null || jackpotIds.isEmpty()) {
+            return;
+        }
+
+        RoomType roomType = playerGameData.getRoomType();
+        if (roomType != null) {
+            return;
+        }
+
+        for (int poolId : jackpotIds) {
+            PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+            if (poolCfg == null) {
+                continue;
+            }
+
+            //检查是否中大奖
+            CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(),
+                    poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
+            if (!result.success()) {
+                log.warn("从小池子扣除，并给玩家加钱失败2 code = {}", result.code);
+                return;
+            }
+
+            playerGameData.addSmallPoolReward(result.data);
+            gameRunInfo.addSmallPoolGold(result.data);
+
+            log.info("玩家从单奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), poolId, result.data);
         }
     }
 
@@ -2010,7 +2049,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             canRewardPoolIds.add(jackpotId);
         }
 
-        if(canRewardPoolIds.isEmpty()){
+        if (canRewardPoolIds.isEmpty()) {
             return Collections.emptyList();
         }
 

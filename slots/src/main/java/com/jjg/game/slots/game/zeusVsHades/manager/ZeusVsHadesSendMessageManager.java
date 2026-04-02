@@ -119,7 +119,7 @@ public class ZeusVsHadesSendMessageManager extends BaseSendMessageManager {
             if (freeLib != null) {
                 int index = gameRunInfo.getData().getFreeIndex().get();
                 boolean isCount = gameRunInfo.getData().getIsCount();
-                log.info("==========================>index:{},status:{},iscount:{}", index, res.status, gameRunInfo.getData().getIsCount());
+//                log.info("==========================>index:{},status:{},iscount:{}", index, res.status, gameRunInfo.getData().getIsCount());
 
                 if (res.status == ZeusVsHadesConstant.Status.NORMAL && isCount) {
                     res.zeusFree = 1;
@@ -288,7 +288,7 @@ public class ZeusVsHadesSendMessageManager extends BaseSendMessageManager {
         }
 
         sendInfo.addPlayerMsg(playerController.playerId(), res);
-        sendInfo.getLogMessage().add(res);
+//        sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回奖池结果", false);
     }
 
