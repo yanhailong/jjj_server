@@ -2,6 +2,7 @@ package com.jjg.game.ploy.games.luckypoker;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSONArray;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
@@ -19,6 +20,7 @@ import com.jjg.game.ploy.games.luckypoker.pb.ResDealCards;
 import com.jjg.game.ploy.games.luckypoker.pb.ResLuckyPokerBet;
 import com.jjg.game.ploy.games.luckypoker.pb.ResLuckyPokerEnterGame;
 import com.jjg.game.ploy.games.luckypoker.utils.LuckyPokerUtils;
+import com.jjg.game.ploy.pb.ReqPloyRecord;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PloygameRoomCfg;
 import com.jjg.game.sampledata.bean.PoolResultLibCfg;
@@ -49,6 +51,11 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
     @Override
     public void init(int gameType) {
         log.info("初始化鸿运扑克控制器");
+    }
+
+    @Override
+    public AbstractMessage reqPloyRecord(PlayerController playerController, ReqPloyRecord req) {
+        return null;
     }
 
     /**

@@ -13,8 +13,6 @@ import com.jjg.game.ploy.constant.PloyConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.PLOY_LUCKY_POKER, cmd = PloyConstant.MsgBean.REQ_PLOY_RECORD)
 @ProtoDesc("请求记录")
 public class ReqPloyRecord extends AbsNodeMessage {
-    @ProtoDesc("游戏类型")
-    public int gameType;
     @ProtoDesc("页码")
     public int pageIndex;
 }

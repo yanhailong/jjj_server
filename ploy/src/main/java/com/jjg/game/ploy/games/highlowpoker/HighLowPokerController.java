@@ -1,6 +1,7 @@
 package com.jjg.game.ploy.games.highlowpoker;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
@@ -16,13 +17,12 @@ import com.jjg.game.ploy.games.highlowpoker.data.HighLowPokerConstant;
 import com.jjg.game.ploy.games.highlowpoker.data.HighLowPokerHistory;
 import com.jjg.game.ploy.games.highlowpoker.data.HighLowPokerPloyGameData;
 import com.jjg.game.ploy.games.highlowpoker.pb.bean.HighLowHistoryInfo;
+import com.jjg.game.ploy.games.highlowpoker.pb.bean.HighLowRecordInfo;
 import com.jjg.game.ploy.games.highlowpoker.pb.req.ReqHighLowPokerChoose;
 import com.jjg.game.ploy.games.highlowpoker.pb.req.ReqHighLowPokerExchange;
-import com.jjg.game.ploy.games.highlowpoker.pb.res.ResHighLowPokerBet;
-import com.jjg.game.ploy.games.highlowpoker.pb.res.ResHighLowPokerChoose;
-import com.jjg.game.ploy.games.highlowpoker.pb.res.ResHighLowPokerEnterGame;
-import com.jjg.game.ploy.games.highlowpoker.pb.res.ResHighLowPokerExchange;
+import com.jjg.game.ploy.games.highlowpoker.pb.res.*;
 import com.jjg.game.ploy.games.highlowpoker.util.HighLowUtil;
+import com.jjg.game.ploy.pb.ReqPloyRecord;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PloygameRoomCfg;
 import org.slf4j.Logger;
@@ -47,6 +47,34 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
     public HighLowPokerController(HighLowUtil highLowUtil) {
         super(log, HighLowPokerPloyGameData.class);
         this.highLowUtil = highLowUtil;
+    }
+
+    @Override
+    public AbstractMessage reqPloyRecord(PlayerController playerController, ReqPloyRecord req) {
+        ResHighLowPokerRecord res = new ResHighLowPokerRecord(Code.SUCCESS);
+        HighLowPokerPloyGameData playerGameData = getPlayerGameData(playerController.playerId(), roomCfgId);
+        if (playerGameData == null) {
+            res.code = Code.NOT_FOUND;
+            log.warn("未找到玩家的 playerGameData,查看记录失败 playerId = {}", playerController.playerId());
+            return res;
+        }
+        List<HighLowPokerHistory> totalHistories = playerGameData.getTotalHistories();
+        if (CollectionUtil.isNotEmpty(totalHistories)) {
+            res.historyInfoList = new ArrayList<>(totalHistories.size());
+            for (HighLowPokerHistory history : totalHistories) {
+                HighLowRecordInfo recordInfo = new HighLowRecordInfo();
+                recordInfo.historyInfos = new ArrayList<>(history.getHistory().size());
+                for (Pair<Integer, String> pair : history.getHistory()) {
+                    HighLowHistoryInfo info = new HighLowHistoryInfo();
+                    info.cardId = pair.getFirst();
+                    info.odd = pair.getSecond();
+                    recordInfo.historyInfos.add(info);
+                }
+                recordInfo.totalIncome = history.getTotalProfit();
+                res.historyInfoList.add(recordInfo);
+            }
+        }
+        return res;
     }
 
     @Override
@@ -156,17 +184,18 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
         int nextIndex = playerGameData.getCurrentIndex() + 1;
         Card nextCard = new Card(card.get(nextIndex));
         Card oldCard = new Card(card.get(playerGameData.getCurrentIndex()));
+        String rate = chooseRate.get(highLowChoose.getIndex());
         boolean check = highLowChoose.check(oldCard, nextCard);
         if (!check) {
             //失败了
             res.nextCardId = nextCard.getValue();
             res.currentCoin = 0;
             playerGameData.setCurrentCoin(0);
+            playerGameData.addHistory(Pair.newPair(oldCard.getValue(), rate));
             resetData(playerGameData, 0);
             return res;
         }
         //计算可兑换金币
-        String rate = chooseRate.get(highLowChoose.getIndex());
         long lastBet = playerGameData.getLastBet();
         long addGold = BigDecimal.valueOf(lastBet).multiply(new BigDecimal(rate)).longValue();
         playerGameData.setCurrentCoin(playerGameData.getCurrentCoin() + addGold);

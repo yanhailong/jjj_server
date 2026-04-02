@@ -13,6 +13,7 @@ import com.jjg.game.ploy.constant.PloyGameType;
 import com.jjg.game.ploy.controller.AbstractPloyController;
 import com.jjg.game.ploy.pb.ReqPloyBet;
 import com.jjg.game.ploy.pb.ReqPloyEnterGame;
+import com.jjg.game.ploy.pb.ReqPloyRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -65,6 +66,30 @@ public class PloyMessageHandler implements GmListener {
             log.warn("未找到playerController的 subScene，下注失败 playerId = {},subScene = {}", playerController.playerId(), subScene);
         }
     }
+
+    /**
+     * 进入游戏
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(PloyConstant.MsgBean.REQ_PLOY_RECORD)
+    public void reqPloyRecord(PlayerController playerController, ReqPloyRecord req) {
+        try {
+            Object subScene = playerController.getSubScene();
+            if (subScene instanceof AbstractPloyController<?> ployController) {
+                AbstractMessage res = ployController.reqPloyRecord(playerController, req);
+                if (res != null) {
+                    playerController.send(res);
+                }
+            } else {
+                log.warn("未找到playerController的 subScene，请求记录失败 playerId = {},subScene = {}", playerController.playerId(), subScene);
+            }
+        } catch (Exception e) {
+            log.error("reqPloyRecord error", e);
+        }
+    }
+
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {

@@ -1,5 +1,6 @@
 package com.jjg.game.ploy.games.airraid;
 
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.timer.TimerEvent;
@@ -15,6 +16,7 @@ import com.jjg.game.ploy.games.airraid.pb.cluster.BetSync;
 import com.jjg.game.ploy.games.airraid.pb.cluster.CashOutSync;
 import com.jjg.game.ploy.games.airraid.pb.cluster.CrashSync;
 import com.jjg.game.ploy.games.airraid.pb.cluster.GameStateSync;
+import com.jjg.game.ploy.pb.ReqPloyRecord;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.AirRaidCfg;
 import com.jjg.game.sampledata.bean.PloygameRoomCfg;
@@ -340,6 +342,11 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             res.code = Code.EXCEPTION;
         }
         return res;
+    }
+
+    @Override
+    public AbstractMessage reqPloyRecord(PlayerController playerController, ReqPloyRecord req) {
+        return null;
     }
 
     /**
