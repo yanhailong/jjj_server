@@ -133,7 +133,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        HighLowPokerPloyGameData playerGameData = getPlayerGameData(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+        HighLowPokerPloyGameData playerGameData = getPlayerGameData(playerController.playerId(), roomCfgId);
         if (playerGameData == null) {
             res.code = Code.NOT_FOUND;
             log.warn("未找到玩家的 playerGameData,选择失败 playerId = {}", playerController.playerId());
@@ -223,7 +223,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
      */
     public AbstractResponse exchange(PlayerController playerController, ReqHighLowPokerExchange req) {
         ResHighLowPokerExchange res = new ResHighLowPokerExchange(Code.SUCCESS);
-        HighLowPokerPloyGameData playerGameData = getPlayerGameData(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+        HighLowPokerPloyGameData playerGameData = getPlayerGameData(playerController.playerId(), roomCfgId);
         if (playerGameData == null) {
             res.code = Code.NOT_FOUND;
             log.warn("未找到玩家的 playerGameData,兑换金币 playerId = {}", playerController.playerId());
