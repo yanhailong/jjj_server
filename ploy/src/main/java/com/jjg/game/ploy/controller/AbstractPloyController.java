@@ -218,8 +218,9 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
 
     /**
      * 请求记录
+     *
      * @param playerController 玩家数据
-     * @param req 请求
+     * @param req              请求
      * @return 响应数据
      */
     public abstract AbstractMessage reqPloyRecord(PlayerController playerController, ReqPloyRecord req);
@@ -442,6 +443,20 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     }
 
     public void shutdown() {
+        if (CollectionUtil.isEmpty(gameDataMap)) {
+            return;
+        }
+        //保存玩家数据
+        for (Map.Entry<Integer, Map<Long, T>> entry : gameDataMap.entrySet()) {
+            if (CollectionUtil.isEmpty(entry.getValue())) {
+                continue;
+            }
+            for (Map.Entry<Long, T> playerGameDataEntry : entry.getValue().entrySet()) {
+                log.info("关服保存策略游戏玩家数据 playerId:{}", playerGameDataEntry.getKey());
+                gameDataDao.saveGameData(playerGameDataEntry.getValue());
+                log.info("关服保存策略游戏玩家数据完成 playerId:{}", playerGameDataEntry.getKey());
+            }
+        }
     }
 
 
