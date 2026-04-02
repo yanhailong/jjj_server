@@ -34,7 +34,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 鸿运扑克游戏控制�?
+ * 鸿运扑克游戏控制器
  *
  * @author 11
  * @date 2026/3/19
@@ -74,7 +74,7 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         }
         PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
         res.stakeList = cfg.getLineBetScore();
-        res.defaultBet = cfg.getDefaultBet().get(0);
+        res.defaultBet = cfg.getDefaultBet();
         return res;
     }
 
@@ -130,7 +130,7 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
     public ResDealCards dealCards(PlayerController playerController, List<Integer> cardIds) {
         ResDealCards res = new ResDealCards(Code.SUCCESS);
         try {
-            LuckyPokerPlayerPloyGameData playerGameData = getPlayerGameData(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+            LuckyPokerPlayerPloyGameData playerGameData = getPlayerGameData(playerController.playerId(), this.roomCfgId);
             if (playerGameData == null) {
                 res.code = Code.NOT_FOUND;
                 log.warn("未找到玩家的 playerGameData ，故发牌失败 playerId = {}", playerController.playerId());
@@ -226,7 +226,7 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         List<PloyCard> tmpSaveCards = new ArrayList<>();
 
 
-        // 未选择换牌：直接使用第二次发的整手�?
+        // 未选择换牌：直接使用第二次发的整手牌
         if (CollectionUtil.isEmpty(cardIds)) {
             if (CollectionUtil.isEmpty(playerGameData.getSecondCardList()) || playerGameData.getSecondCardList().size() < POKER_SIZE) {
                 log.warn("补牌数据不足，发牌失败 playerId={}", playerController.playerId());

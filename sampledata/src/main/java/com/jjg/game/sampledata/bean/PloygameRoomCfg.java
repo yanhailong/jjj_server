@@ -19,12 +19,16 @@ public class PloygameRoomCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "PloygameRoom";
 
+  /** 机器人加入房间间隔（毫秒） */
+  protected List<Integer> IntervalTime;
   /** 参数-税率 */
   protected int TaxRate;
   /** 默认押分 */
-  protected List<Integer> defaultBet;
+  protected int defaultBet;
   /** 游戏ID */
   protected int gameType;
+  /** 参数-信息 */
+  protected List<Integer> information;
   /** 初始化标准池 */
   protected long initBasePool;
   /** 押注进入标准池万分比 */
@@ -39,8 +43,15 @@ public class PloygameRoomCfg extends BaseCfgBean {
   protected Map<Integer,Integer> odds;
   /** 参数-返奖率 */
   protected int rewardRate;
+  /** 机器人人数（时间段:机器人人数|……） */
+  protected List<List<Integer>> robot_num;
   /** 倍场名称 */
   protected int roomName;
+
+  /** 返回机器人加入房间间隔（毫秒） */
+  public List<Integer> getIntervalTime() {
+    return IntervalTime;
+  }
 
   /** 返回参数-税率 */
   public int getTaxRate() {
@@ -48,13 +59,18 @@ public class PloygameRoomCfg extends BaseCfgBean {
   }
 
   /** 返回默认押分 */
-  public List<Integer> getDefaultBet() {
+  public int getDefaultBet() {
     return defaultBet;
   }
 
   /** 返回游戏ID */
   public int getGameType() {
     return gameType;
+  }
+
+  /** 返回参数-信息 */
+  public List<Integer> getInformation() {
+    return information;
   }
 
   /** 返回初始化标准池 */
@@ -90,6 +106,11 @@ public class PloygameRoomCfg extends BaseCfgBean {
   /** 返回参数-返奖率 */
   public int getRewardRate() {
     return rewardRate;
+  }
+
+  /** 返回机器人人数（时间段:机器人人数|……） */
+  public List<List<Integer>> getRobot_num() {
+    return robot_num;
   }
 
   /** 返回倍场名称 */

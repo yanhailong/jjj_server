@@ -1,8 +1,9 @@
 package com.jjg.game.sampledata.bean;
 
-import javax.annotation.processing.Generated;
-import java.util.Map;
+import java.util.*;
 
+
+import javax.annotation.processing.Generated;
 /**
  * 配置bean
  *
@@ -18,37 +19,23 @@ public class CumulativebenefitsCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Cumulativebenefits";
 
-  /**
-   * 任务条件
-   */
+  /** 任务条件 */
   protected int condition;
-  /**
-   * 任务归类
-   */
+  /** 任务归类 */
   protected int group;
-  /**
-   * 道具ID_道具数量
-   */
-  protected Map<Integer, Long> rewards;
-  /**
-   * 类型
-   */
+  /** 道具ID_道具数量 */
+  protected Map<Integer,Long> rewards;
+  /** 类型 */
   protected int type;
-  /**
-   * 权重
-   */
+  /** 权重 */
   protected int weight;
 
-  /**
-   * 返回任务条件
-   */
+  /** 返回任务条件 */
   public int getCondition() {
     return condition;
   }
 
-  /**
-   * 返回任务归类
-   */
+  /** 返回任务归类 */
   public int getGroup() {
     return group;
   }

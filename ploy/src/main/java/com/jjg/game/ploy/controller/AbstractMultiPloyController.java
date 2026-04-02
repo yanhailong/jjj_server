@@ -1,11 +1,13 @@
 package com.jjg.game.ploy.controller;
 
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.ploy.data.PlayerMultiPloyGameData;
+import com.jjg.game.ploy.data.PloyGameRoom;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,12 +21,17 @@ import java.util.Set;
  * @author 11
  * @date 2026/3/19
  */
-public abstract class AbstractMultiPloyController<T extends PlayerMultiPloyGameData> extends AbstractPloyController<T> implements IGameClusterLeaderListener {
+public abstract class AbstractMultiPloyController<T extends PlayerMultiPloyGameData, R extends PloyGameRoom> extends AbstractPloyController<T> implements IGameClusterLeaderListener {
     @Autowired
-    private ClusterSystem clusterSystem;
+    protected ClusterSystem clusterSystem;
+    @Autowired
+    protected MarsCurator marsCurator;
 
-    public AbstractMultiPloyController(Logger log, Class<T> cla) {
-        super(log, cla);
+    protected Class<R> gameRoomDataCla;
+
+    public AbstractMultiPloyController(Logger log, Class<T> playerGameDataCla, Class<R> gameRoomDataCla) {
+        super(log, playerGameDataCla);
+        this.gameRoomDataCla = gameRoomDataCla;
     }
 
     @Override

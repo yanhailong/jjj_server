@@ -18,7 +18,6 @@ import com.jjg.game.ploy.games.airraid.pb.cluster.CrashSync;
 import com.jjg.game.ploy.games.airraid.pb.cluster.GameStateSync;
 import com.jjg.game.ploy.pb.ReqPloyRecord;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.AirRaidCfg;
 import com.jjg.game.sampledata.bean.PloygameRoomCfg;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -40,17 +39,14 @@ import java.util.concurrent.TimeUnit;
  * @date 2026/3/19
  */
 @Component
-public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPlayerPloyGameData> {
+public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPlayerPloyGameData, AirRaidGameRoom> {
 
     private final String TIMER_BETTING_PHASE = "AIR_RAID_BETTING";
     private final String TIMER_MULTIPLIER_UPDATE = "AIR_RAID_MULTIPLIER";
     private final String TIMER_CRASH_SETTLE = "AIR_RAID_CRASH_SETTLE";
 
-    //是否为主节点
-    private volatile boolean leader = false;
-
     //游戏全局状态(所有回合共享)
-    private final AirRaidGame game = new AirRaidGame();
+    private final AirRaidGameRoom game = new AirRaidGameRoom();
     //定时器事件
     private TimerEvent<String> event;
     //所有玩家(包含所有节点)的下注信息
@@ -58,11 +54,11 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
 
     public AirRaidPloyController() {
-        super(LoggerFactory.getLogger(AirRaidPloyController.class), AirRaidPlayerPloyGameData.class);
+        super(LoggerFactory.getLogger(AirRaidPloyController.class), AirRaidPlayerPloyGameData.class, AirRaidGameRoom.class);
     }
 
     private void addEvent() {
-        this.event = new TimerEvent<>(this, "AirRaid", 1).setInitTime(1).withTimeUnit(TimeUnit.MINUTES);
+        this.event = new TimerEvent<>(this, "AirRaid", 1).setInitTime(1).withTimeUnit(TimeUnit.SECONDS);
         this.timerCenter.add(this.event);
     }
 
@@ -71,14 +67,12 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
     @Override
     public void isLeader() {
         log.info("AirRaid 当选为主节点，启动游戏循环");
-        leader = true;
-//        addEvent();
+        addEvent();
     }
 
     @Override
     public void notLeader() {
         log.info("AirRaid 失去主节点身份，停止定时器");
-        leader = false;
         this.timerCenter.remove(this.event);
     }
 
@@ -113,7 +107,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 进入飞行阶段
      */
     private void startFlyingPhase() {
-        if (!leader) return;
+        if (!this.marsCurator.isMaster()) return;
 
         game.startFlying();
         log.info("AirRaid 飞行阶段开始");
@@ -130,7 +124,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 更新倍率 (飞行阶段, 主节点每200ms调用)
      */
     private void updateMultiplier() {
-        if (!leader || game.getPhase() != AirRaidPhase.FLYING) return;
+        if (!this.marsCurator.isMaster() || game.getPhase() != AirRaidPhase.FLYING) return;
 
 //        AirRaidCfg cfg = getAirRaidCfg();
 //        int growthRate = (cfg != null) ? cfg.getGrowthmultiplier() : 1000;
@@ -148,7 +142,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 坠毁阶段
      */
     private void crashPhase() {
-        if (!leader) return;
+        if (!this.marsCurator.isMaster()) return;
 
         // 停止倍率更新定时器
         stopMultiplierTimer();
@@ -374,6 +368,12 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
                 return res;
             }
 
+            PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
+            if (cfg == null) {
+                res.code = Code.SAMPLE_ERROR;
+                return res;
+            }
+
             // 验证注单是否存在
             AirRaidBetData airRaidBetData = playerGameData.getAirRaidBetDataMap().get(betIndex);
             if (airRaidBetData == null) {
@@ -395,9 +395,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             long winAmount = airRaidBetData.getWinAmount();
 
             // 从奖池给玩家发奖
-            AirRaidCfg airRaidCfg = null;
-            int taxRate = (airRaidCfg != null) ? airRaidCfg.getWinRatio() : 0;
-            CommonResult<Pair<PloyBetDivideInfo, Player>> winResult = winFromPool(playerGameData, winAmount, taxRate);
+            CommonResult<Pair<PloyBetDivideInfo, Player>> winResult = winFromPool(playerGameData, winAmount, cfg.getTaxRate());
             if (!winResult.success()) {
                 // 回滚兑现状态
                 airRaidBetData.setCashedOut(false);

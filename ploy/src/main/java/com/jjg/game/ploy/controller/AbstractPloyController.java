@@ -87,7 +87,7 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
      */
     public void init(int gameType) {
         this.gameType = gameType;
-        this.roomCfgId = gameType * 10 + 1;
+        this.roomCfgId = gameType * 10 + 4;
     }
 
 
