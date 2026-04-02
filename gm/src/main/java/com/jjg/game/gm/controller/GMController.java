@@ -693,7 +693,7 @@ public class GMController extends AbstractController {
                                 return true;
                             }
                             log.warn("玩家当前状态不能被解封 playerId = {},status = {},toStatus = {}", dataEntity.getPlayerId(), dataEntity.getStatus(), AccountStatus.NORMAL.getCode());
-                            return true;
+                            return false;
                         }
                     });
 
