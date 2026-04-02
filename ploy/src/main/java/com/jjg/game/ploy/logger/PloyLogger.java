@@ -27,8 +27,10 @@ public class PloyLogger extends BaseLogger {
         json.put("ployGameType", gameData.getGameType());
         json.put("bet", gameData.getLastBet());
         json.put("betTime", gameData.getLastBetTime());
-        json.put("beforeMoney", gameData.getBeforeMoney());
-        json.put("afterMoney", gameData.getAfterMoney());
+        if (gameData.getPloyBetDivideInfo() != null) {
+            json.put("beforeMoney", gameData.getPloyBetDivideInfo().getPlayerBeforeMoney());
+            json.put("afterMoney", gameData.getPloyBetDivideInfo().getPlayerAfterMoney());
+        }
         json.put("win", gameData.getWin());
         return json;
     }

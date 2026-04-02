@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -27,6 +28,8 @@ import com.jjg.game.sampledata.bean.PoolResultLibCfg;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -82,18 +85,25 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
      *
      * @param code
      * @param playerGameData
-     * @param oddsType
      * @return
      */
     @Override
-    protected AbstractResponse buildResBetMessage(int code, LuckyPokerPlayerPloyGameData playerGameData, int oddsType) {
+    protected AbstractResponse buildResBetMessage(int code, LuckyPokerPlayerPloyGameData playerGameData, long betValue, int value) {
         ResLuckyPokerBet res = new ResLuckyPokerBet(code);
         if (code != Code.SUCCESS) {
             return res;
         }
 
+        PloygameRoomCfg ploygameRoomCfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
+
+        CommonResult<Integer> oddsResult = randOdds(playerGameData, ploygameRoomCfg, betValue);
+        if (!oddsResult.success()) {
+            res.code = oddsResult.code;
+            return res;
+        }
+
         //获取牌型
-        PokerRank pokerRank1 = PokerRank.rankOf(oddsType);
+        PokerRank pokerRank1 = PokerRank.rankOf(oddsResult.data);
         //获取第二次的牌型
         PoolResultLibCfg poolResultLibCfg = GameDataManager.getPoolResultLibCfg(playerGameData.getPoolResultLibCfgId());
         //根据权重随机获取一种结
@@ -119,6 +129,39 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         return res;
     }
 
+    /**
+     * 获取赔率
+     *
+     * @param playerGameData
+     * @param gameRoomCfg
+     * @param betValue
+     * @return
+     */
+    private CommonResult<Integer> randOdds(LuckyPokerPlayerPloyGameData playerGameData, PloygameRoomCfg gameRoomCfg, long betValue) {
+        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
+        PloyBetDivideInfo ployBetDivideInfo = playerGameData.getPloyBetDivideInfo();
+        //计算偏差范围
+        long diff = BigDecimal.valueOf(ployBetDivideInfo.getPoolAfterValue() - gameRoomCfg.getInitBasePool()).divide(BigDecimal.valueOf(gameRoomCfg.getInitBasePool()), 6, RoundingMode.HALF_UP).multiply(tenThousandBigDecimal).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
+        PoolResultLibCfg libCfg = getLibCfgByPoolDiff(diff);
+        if (libCfg == null) {
+            log.warn("获取结果库配置失败,下注失败 playerId = {},roomCfgId = {},betValue = {},poolValue = {},diff = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), betValue, ployBetDivideInfo.getPoolAfterValue(), diff);
+            poolToPlayer(playerGameData, ployBetDivideInfo.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
+            result.code = Code.FAIL;
+            return result;
+        }
+
+        //根据权重随机获取一种结果
+        PropInfo propInfo = this.poolResultLibPropMap.get(libCfg.getModelId());
+        Integer randKey = propInfo.getRandKey();
+        if (randKey == null) {
+            log.warn("获取结果库配置失败,下注失败 playerId = {},roomCfgId = {},betValue = {},poolValue = {},diff = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), betValue, ployBetDivideInfo.getPoolAfterValue(), diff);
+            poolToPlayer(playerGameData, ployBetDivideInfo.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
+            result.code = Code.FAIL;
+            return result;
+        }
+        result.data = randKey;
+        return result;
+    }
 
     /**
      * 玩家发牌
@@ -172,7 +215,7 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
             playerGameData.setFinalCardList(drawResult.data.getFirst());
             playerGameData.setWinTimes(times);
             playerGameData.setWin(value);
-            playerGameData.setAfterMoney(player.getGold());
+            playerGameData.changePlayerLastMoney(player.getGold());
 
             //保存记录
             LuckyPokerRecord record = new LuckyPokerRecord();
@@ -190,7 +233,7 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
             res.pokerRank = pokerRank.rank;
 
             //发送日志
-            logger.luckpoker(player,playerGameData);
+            logger.luckpoker(player, playerGameData);
 
             //清除数据
             playerGameData.setFirstCardList(null);

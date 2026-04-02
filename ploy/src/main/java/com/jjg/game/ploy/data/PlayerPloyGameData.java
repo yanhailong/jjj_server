@@ -29,20 +29,17 @@ public class PlayerPloyGameData {
     protected long lastBet;
     //最近一次的押注
     protected long lastBetTime;
-    //押注前余额
-    protected long beforeMoney;
-    //押注后余额
-    protected long afterMoney;
     //盈利情况
     protected long win;
     //中奖倍数
     protected int winTimes;
-    //最近一次的poolResultLib表的id
-    protected int poolResultLibCfgId;
     //最近一次活跃时间
     @Transient
     @JsonIgnore
     protected transient long lastActiveTime;
+    @Transient
+    @JsonIgnore
+    protected transient PloyBetDivideInfo ployBetDivideInfo;
     //@Field(targetType = FieldType.DECIMAL128)
     //private BigDecimal amount;
 
@@ -78,36 +75,12 @@ public class PlayerPloyGameData {
         this.lastBet = lastBet;
     }
 
-    public int getPoolResultLibCfgId() {
-        return poolResultLibCfgId;
-    }
-
-    public void setPoolResultLibCfgId(int poolResultLibCfgId) {
-        this.poolResultLibCfgId = poolResultLibCfgId;
-    }
-
     public long getLastBetTime() {
         return lastBetTime;
     }
 
     public void setLastBetTime(long lastBetTime) {
         this.lastBetTime = lastBetTime;
-    }
-
-    public long getBeforeMoney() {
-        return beforeMoney;
-    }
-
-    public void setBeforeMoney(long beforeMoney) {
-        this.beforeMoney = beforeMoney;
-    }
-
-    public long getAfterMoney() {
-        return afterMoney;
-    }
-
-    public void setAfterMoney(long afterMoney) {
-        this.afterMoney = afterMoney;
     }
 
     public long getWin() {
@@ -134,6 +107,14 @@ public class PlayerPloyGameData {
         this.lastActiveTime = lastActiveTime;
     }
 
+    public PloyBetDivideInfo getPloyBetDivideInfo() {
+        return ployBetDivideInfo;
+    }
+
+    public void setPloyBetDivideInfo(PloyBetDivideInfo ployBetDivideInfo) {
+        this.ployBetDivideInfo = ployBetDivideInfo;
+    }
+
     public long playerId() {
         if (this.playerController == null) {
             return 0;
@@ -146,5 +127,11 @@ public class PlayerPloyGameData {
             return;
         }
         this.playerController.setPlayer(player);
+    }
+
+    public void changePlayerLastMoney(long money){
+        if(this.ployBetDivideInfo != null){
+            this.ployBetDivideInfo.setPlayerAfterMoney(money);
+        }
     }
 }

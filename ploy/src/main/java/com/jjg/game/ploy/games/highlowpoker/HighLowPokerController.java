@@ -107,7 +107,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
     }
 
     @Override
-    protected AbstractResponse buildResBetMessage(int code, HighLowPokerPloyGameData playerGameData, int oddsType) {
+    protected AbstractResponse buildResBetMessage(int code, HighLowPokerPloyGameData playerGameData, long betValue, int value) {
         ResHighLowPokerBet res = new ResHighLowPokerBet(code);
         if (code != Code.SUCCESS) {
             return res;

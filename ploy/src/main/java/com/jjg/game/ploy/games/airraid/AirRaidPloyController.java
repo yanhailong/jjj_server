@@ -1,5 +1,6 @@
 package com.jjg.game.ploy.games.airraid;
 
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
@@ -46,7 +47,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
     private final String TIMER_CRASH_SETTLE = "AIR_RAID_CRASH_SETTLE";
 
     //游戏全局状态(所有回合共享)
-    private final AirRaidGameRoom game = new AirRaidGameRoom();
+    private final AirRaidGameRoom gameRoom = new AirRaidGameRoom();
     //定时器事件
     private TimerEvent<String> event;
     //所有玩家(包含所有节点)的下注信息
@@ -62,17 +63,17 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         this.timerCenter.add(this.event);
     }
 
-    // ==================== 主节点选举回调 ====================
-
     @Override
     public void isLeader() {
-        log.info("AirRaid 当选为主节点，启动游戏循环");
-        addEvent();
+        //必须是大厅主节点参与计算
+        if (NodeType.HALL.name().equals(this.clusterSystem.nodeConfig.getType())) {
+            log.info("AirRaid 当选为主节点，启动游戏循环");
+            addEvent();
+        }
     }
 
     @Override
     public void notLeader() {
-        log.info("AirRaid 失去主节点身份，停止定时器");
         this.timerCenter.remove(this.event);
     }
 
@@ -80,7 +81,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
     private void startGameLoop() {
         //获取当前阶段
-        switch (game.getPhase()) {
+        switch (gameRoom.getPhase()) {
             case BETTING:
         }
     }
@@ -91,7 +92,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
     private void startBettingPhase() {
         // 生成本局坠毁倍率
         int crashMultiplier = AirRaidCrashCalculator.generateCrashMultiplier();
-        game.startNewRound(crashMultiplier);
+        gameRoom.startNewRound(crashMultiplier);
         log.info("AirRaid 新回合开始, crashMultiplier={}", crashMultiplier);
 
         // 广播游戏状态给所有节点
@@ -109,7 +110,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
     private void startFlyingPhase() {
         if (!this.marsCurator.isMaster()) return;
 
-        game.startFlying();
+        gameRoom.startFlying();
         log.info("AirRaid 飞行阶段开始");
 
         // 广播游戏状态
@@ -124,7 +125,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 更新倍率 (飞行阶段, 主节点每200ms调用)
      */
     private void updateMultiplier() {
-        if (!this.marsCurator.isMaster() || game.getPhase() != AirRaidPhase.FLYING) return;
+        if (!this.marsCurator.isMaster() || gameRoom.getPhase() != AirRaidPhase.FLYING) return;
 
 //        AirRaidCfg cfg = getAirRaidCfg();
 //        int growthRate = (cfg != null) ? cfg.getGrowthmultiplier() : 1000;
@@ -147,8 +148,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         // 停止倍率更新定时器
         stopMultiplierTimer();
 
-        game.crash();
-        log.info("AirRaid 坠毁, crashMultiplier={}", game.getCrashMultiplier());
+        gameRoom.crash();
+        log.info("AirRaid 坠毁, crashMultiplier={}", gameRoom.getCrashMultiplier());
 
         // 广播坠毁到所有节点
         broadcastCrash();
@@ -164,37 +165,40 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
     @Override
     public void onTimer(TimerEvent<String> e) {
-        AirRaidPhase phase = game.getPhase();
+
+
+
+        AirRaidPhase phase = gameRoom.getPhase();
         long now = System.currentTimeMillis();
         if (phase == AirRaidPhase.BETTING) {
-            if (game.getPhaseStartTime() < 1) {
-                game.setPhaseStartTime(now);
+            if (gameRoom.getPhaseStartTime() < 1) {
+                gameRoom.setPhaseStartTime(now);
             } else {
                 //获取时间差
-                long diff = now - game.getPhaseStartTime();
+                long diff = now - gameRoom.getPhaseStartTime();
                 //检查该阶段是否结束
                 if (diff >= AirRaidConstant.Common.BET_PHASE_TIME_MILLS) {
-                    game.setPhase(AirRaidPhase.BETTING_END_BET);
-                    game.setPhaseStartTime(now);
+                    gameRoom.setPhase(AirRaidPhase.BETTING_END_BET);
+                    gameRoom.setPhaseStartTime(now);
                 }
             }
         } else if (phase == AirRaidPhase.BETTING_END_BET) {
             //获取时间差
-            long diff = now - game.getPhaseStartTime();
+            long diff = now - gameRoom.getPhaseStartTime();
             //检查该阶段是否结束
             if (diff >= AirRaidConstant.Common.BET_PHASE_TIME_BEFORE_END_MILLS) {
-                game.setPhase(AirRaidPhase.FLYING);
-                game.setPhaseStartTime(now);
+                gameRoom.setPhase(AirRaidPhase.FLYING);
+                gameRoom.setPhaseStartTime(now);
             }
         } else if (phase == AirRaidPhase.FLYING) {
 
         } else {
             //获取时间差
-            long diff = now - game.getPhaseStartTime();
+            long diff = now - gameRoom.getPhaseStartTime();
             //检查该阶段是否结束
             if (diff >= AirRaidConstant.Common.BET_PHASE_TIME_BEFORE_END_MILLS) {
-                game.setPhase(AirRaidPhase.FLYING);
-                game.setPhaseStartTime(now);
+                gameRoom.setPhase(AirRaidPhase.FLYING);
+                gameRoom.setPhaseStartTime(now);
             }
         }
 
@@ -233,19 +237,19 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
         res.stakeList = cfg.getLineBetScore();
         res.betInfoList = buildBetInfoList();
-        res.roundHistory = game.getRoundHistoryList();
+        res.roundHistory = gameRoom.getRoundHistoryList();
 
         // 填充游戏状态快照字段
-        res.phase = game.getPhase().getCode();
-        res.currentMultiplier = game.getCurrentMultiplier();
+        res.phase = gameRoom.getPhase().getCode();
+        res.currentMultiplier = gameRoom.getCurrentMultiplier();
         return res;
     }
 
     @Override
-    protected AbstractResponse buildResBetMessage(int code, AirRaidPlayerPloyGameData playerGameData, int oddsType) {
-        // 空袭游戏不使用标准 bet 流程，由 airRaidBet 方法处理
+    protected AbstractResponse buildResBetMessage(int code, AirRaidPlayerPloyGameData playerGameData, long betValue, int value) {
         return null;
     }
+
 
     /**
      * 空袭游戏下注
@@ -260,9 +264,9 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         ResAirRaidBet res = new ResAirRaidBet(Code.SUCCESS);
         try {
             // 验证游戏阶段
-            if (this.game.getPhase() != AirRaidPhase.BETTING) {
+            if (this.gameRoom.getPhase() != AirRaidPhase.BETTING) {
                 res.code = Code.FAIL;
-                log.warn("AirRaid 非下注阶段，下注失败 playerId={}, phase={}", playerController.playerId(), this.game.getPhase());
+                log.warn("AirRaid 非下注阶段，下注失败 playerId={}, phase={}", playerController.playerId(), this.gameRoom.getPhase());
                 return res;
             }
 
@@ -317,8 +321,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             });
             airRaidPlayerInfo.bet += bet;
 
-            playerGameData.setBeforeMoney(moneyResult.data.getPlayerBeforeMoney());
-            playerGameData.setAfterMoney(moneyResult.data.getPlayerAfterMoney());
+//            playerGameData.setBeforeMoney(moneyResult.data.getPlayerBeforeMoney());
+//            playerGameData.setAfterMoney(moneyResult.data.getPlayerAfterMoney());
 
             // 构建返回消息
             res.betInfoList = buildBetInfoList();
@@ -354,9 +358,9 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         ResAirRaidCashOut res = new ResAirRaidCashOut(Code.SUCCESS);
         try {
             // 验证游戏阶段
-            if (game.getPhase() != AirRaidPhase.FLYING) {
+            if (gameRoom.getPhase() != AirRaidPhase.FLYING) {
                 res.code = Code.FAIL;
-                log.warn("AirRaid 非飞行阶段，兑现失败 playerId={}, phase={}", playerController.playerId(), game.getPhase());
+                log.warn("AirRaid 非飞行阶段，兑现失败 playerId={}, phase={}", playerController.playerId(), gameRoom.getPhase());
                 return res;
             }
 
@@ -390,7 +394,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             }
 
             // 兑现: 计算赢得金额
-            int currentMultiplier = game.getCurrentMultiplier();
+            int currentMultiplier = gameRoom.getCurrentMultiplier();
             airRaidBetData.cashOut(currentMultiplier);
             long winAmount = airRaidBetData.getWinAmount();
 
@@ -430,11 +434,11 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      */
     private void broadcastGameState() {
         GameStateSync syncMsg = new GameStateSync();
-        syncMsg.phase = game.getPhase().getCode();
-        syncMsg.currentMultiplier = game.getCurrentMultiplier();
-        syncMsg.crashMultiplier = game.getCrashMultiplier();
+        syncMsg.phase = gameRoom.getPhase().getCode();
+        syncMsg.currentMultiplier = gameRoom.getCurrentMultiplier();
+        syncMsg.crashMultiplier = gameRoom.getCrashMultiplier();
         syncMsg.betInfoList = buildBetInfoList();
-        syncMsg.roundHistory = game.getRoundHistoryList();
+        syncMsg.roundHistory = gameRoom.getRoundHistoryList();
         messageSync(syncMsg, true);
     }
 
@@ -456,8 +460,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      */
     private void broadcastCrash() {
         CrashSync syncMsg = new CrashSync();
-        syncMsg.crashMultiplier = game.getCrashMultiplier();
-        syncMsg.roundHistory = game.getRoundHistoryList();
+        syncMsg.crashMultiplier = gameRoom.getCrashMultiplier();
+        syncMsg.roundHistory = gameRoom.getRoundHistoryList();
 
         messageSync(syncMsg, true);
     }
@@ -472,9 +476,9 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             log.info("收到游戏状态同步 phase={}, currentMultiplier={}", msg.phase, msg.currentMultiplier);
 
             // 更新本地游戏状态
-            game.setPhase(AirRaidPhase.fromCode(msg.phase));
-            game.setCurrentMultiplier(msg.currentMultiplier);
-            game.setCrashMultiplier(msg.crashMultiplier);
+            gameRoom.setPhase(AirRaidPhase.fromCode(msg.phase));
+            gameRoom.setCurrentMultiplier(msg.currentMultiplier);
+            gameRoom.setCrashMultiplier(msg.crashMultiplier);
 
             // 推送给本地玩家
             ResAirRaidGameState res = new ResAirRaidGameState(Code.SUCCESS);
@@ -539,9 +543,9 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         try {
             log.info("收到飞机坠毁同步 crashMultiplier={}", msg.crashMultiplier);
             // 更新本地游戏状态
-            game.setPhase(AirRaidPhase.CRASHED);
-            game.setCurrentMultiplier(msg.crashMultiplier);
-            game.setCrashMultiplier(msg.crashMultiplier);
+            gameRoom.setPhase(AirRaidPhase.CRASHED);
+            gameRoom.setCurrentMultiplier(msg.crashMultiplier);
+            gameRoom.setCrashMultiplier(msg.crashMultiplier);
 
             // 推送给本地玩家
             ResAirRaidCrash res = new ResAirRaidCrash(Code.SUCCESS);
