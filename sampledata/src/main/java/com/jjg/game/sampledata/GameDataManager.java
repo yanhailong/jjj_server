@@ -1,27 +1,38 @@
 package com.jjg.game.sampledata;
 
-import com.jjg.game.sampledata.bean.*;
-import com.jjg.game.sampledata.container.*;
-import com.jjg.game.sampledata.container.BaseCfgContainer.ContainerExceptionBlocker;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.processing.Generated;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.*;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 // =================== 模板开始 ===================
+import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.container.*;
 // =================== 模板结束 ===================
+import com.jjg.game.sampledata.container.BaseCfgContainer.ContainerExceptionBlocker;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import javax.annotation.processing.Generated;
 
 /**
  * 游戏数据管理器
@@ -110,7 +121,6 @@ public class GameDataManager {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
     containerMap.put(ActivityConfigCfg.class, new ActivityConfigCfgContainer());
-    containerMap.put(AirRaidCfg.class, new AirRaidCfgContainer());
     containerMap.put(AlbumCfg.class, new AlbumCfgContainer());
     containerMap.put(AuxiliaryAwardCfg.class, new AuxiliaryAwardCfgContainer());
     containerMap.put(AvatarCfg.class, new AvatarCfgContainer());
@@ -130,7 +140,6 @@ public class GameDataManager {
     containerMap.put(ChessJackStrategyCfg.class, new ChessJackStrategyCfgContainer());
     containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
     containerMap.put(ChessTexasStrategyCfg.class, new ChessTexasStrategyCfgContainer());
-    containerMap.put(ComingSoonCfg.class, new ComingSoonCfgContainer());
     containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
     containerMap.put(ContinuouschargingCfg.class, new ContinuouschargingCfgContainer());
     containerMap.put(CumulativebenefitsCfg.class, new CumulativebenefitsCfgContainer());
@@ -629,18 +638,6 @@ public class GameDataManager {
     return getInstance().getCfgContainer(ActivityConfigCfg.class).getCfgBeanList();
   }
 
-  public static AirRaidCfg getAirRaidCfg(int key) {
-    return getInstance().getCfgContainer(AirRaidCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, AirRaidCfg> getAirRaidCfgMap() {
-    return getInstance().getCfgContainer(AirRaidCfg.class).getCfgBeanMap();
-  }
-
-  public static List<AirRaidCfg> getAirRaidCfgList() {
-    return getInstance().getCfgContainer(AirRaidCfg.class).getCfgBeanList();
-  }
-
   public static AlbumCfg getAlbumCfg(int key) {
     return getInstance().getCfgContainer(AlbumCfg.class).getCfgBeanMap().get(key);
   }
@@ -867,18 +864,6 @@ public class GameDataManager {
 
   public static List<ChessTexasStrategyCfg> getChessTexasStrategyCfgList() {
     return getInstance().getCfgContainer(ChessTexasStrategyCfg.class).getCfgBeanList();
-  }
-
-  public static ComingSoonCfg getComingSoonCfg(int key) {
-    return getInstance().getCfgContainer(ComingSoonCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, ComingSoonCfg> getComingSoonCfgMap() {
-    return getInstance().getCfgContainer(ComingSoonCfg.class).getCfgBeanMap();
-  }
-
-  public static List<ComingSoonCfg> getComingSoonCfgList() {
-    return getInstance().getCfgContainer(ComingSoonCfg.class).getCfgBeanList();
   }
 
   public static ConditionCfg getConditionCfg(int key) {
@@ -1641,6 +1626,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\java\\gamedoc\\游戏配置表");
+    loadAllData("D:\\workspace\\number\\gamedoc-master\\gamedoc\\游戏配置表");
   }
 }

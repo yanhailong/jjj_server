@@ -1,5 +1,6 @@
 package com.jjg.game.ploy.games.airraid.data;
 
+import com.jjg.game.ploy.data.PloyGameRoom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author 11
  * @date 2026/3/27
  */
-public class AirRaidGame {
+public class AirRaidGameRoom extends PloyGameRoom {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     //回合历史队列(保留最近20局的坠毁倍率)

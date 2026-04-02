@@ -39,6 +39,8 @@ public class SouthernMoneyCfg extends BaseCfgBean {
   protected int remainBoom1;
   /** 结算剩余普通牌的倍数 */
   protected int remainNormal;
+  /** 血战结算的倍数 */
+  protected String remainNormal1;
   /** 结算剩余手牌黑2的倍数 */
   protected int remainblack2;
   /** 结算剩余手牌红2的倍数 */
@@ -94,6 +96,11 @@ public class SouthernMoneyCfg extends BaseCfgBean {
   /** 返回结算剩余普通牌的倍数 */
   public int getRemainNormal() {
     return remainNormal;
+  }
+
+  /** 返回血战结算的倍数 */
+  public String getRemainNormal1() {
+    return remainNormal1;
   }
 
   /** 返回结算剩余手牌黑2的倍数 */

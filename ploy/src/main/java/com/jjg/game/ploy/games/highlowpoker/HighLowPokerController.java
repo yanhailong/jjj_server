@@ -61,7 +61,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
             return res;
         }
         res.stakeList = cfg.getLineBetScore();
-        res.defaultBet = cfg.getDefaultBet().getFirst();
+        res.defaultBet = cfg.getDefaultBet();
         if (playerGameData.getCard() != null) {
             //发送剩余牌数
             res.remainCardNum = playerGameData.getCard().size() - playerGameData.getCurrentIndex() - 1;
