@@ -17,9 +17,12 @@ import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameLog;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
+import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.RoomBankerChangeParam;
+import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import com.jjg.game.sampledata.bean.SouthernMoneyCfg;
@@ -156,7 +159,6 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                     totalTax += tax;
                     finalWinScore = change - tax;
                     controller.addItem(playerId, finalWinScore, AddType.GAME_SETTLEMENT);
-                    gameDataTracker.addGameLogData("tax", totalTax);
                     if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                         robotPlayer.setLastWin(1);
                     } else {
@@ -202,6 +204,9 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 }
                 playerSettlementInfos.add(info);
             }
+
+            // 好友房：房主收益记录
+            addCreateRecord(controller, totalTax, settlementMap2);
 
             // 发送结算消息给客户端
             NotifyToSouthSettlementInfo notify = new NotifyToSouthSettlementInfo();
@@ -326,5 +331,33 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
         for (PlayerSeatInfo winner : winners) {
             settlementMap.put(winner.getPlayerId(), totalWinScore);
         }
+    }
+
+    /**
+     * 好友房：计算房主收益并记录流水
+     */
+    private void addCreateRecord(ToSouthGameController controller, long totalTax, Map<Long, Long> settlementMap2) {
+        if (gameController.getRoom() instanceof FriendRoom) {
+            // 构建 SettlementData 供好友房账单历史记录
+            Map<Long, SettlementData> settlementDataMap = new HashMap<>();
+            for (Map.Entry<Long, Long> entry : settlementMap2.entrySet()) {
+                long playerId = entry.getKey();
+                long change = entry.getValue();
+                long betWin = change;          // 净赢值
+                long totalWin = Math.max(change, 0); // 赢的总值
+                long betTotal = Math.abs(change);    // 下注总值（用绝对值代表参与金额）
+                long tax = 0;
+                if (change > 0) {
+                    tax = BigDecimal.valueOf(change)
+                            .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getEffectiveRatio()))
+                            .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                }
+                settlementDataMap.put(playerId, new SettlementData(betWin, totalWin, betTotal, tax));
+            }
+            RoomBankerChangeParam roomBankerChangeParam = new RoomBankerChangeParam();
+            roomBankerChangeParam.addRoomCreatorTotalIncome(calcRoomCreatorIncome(totalTax));
+            controller.dealBankerFlowing(roomBankerChangeParam, settlementDataMap);
+        }
+        gameDataTracker.addGameLogData("tax", totalTax);
     }
 }
