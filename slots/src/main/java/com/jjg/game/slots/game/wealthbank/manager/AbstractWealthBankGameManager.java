@@ -389,7 +389,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
             // 补丁：rewardFromBigPool中setAllWinGold没有加smallPoolGold 导致两次显示总金额不同
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
-            triggerWinTask(playerGameData.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerGameData.getPlayer(), gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //添加美元收集进度
             if (gameRunInfo.getTotalDollars() < 1) {
@@ -1034,7 +1034,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
     }
 
     @Override
-    protected WealthBankResultLib afterForbidPoolLib(SpecialResultLibCfg specialResultLibCfg, WealthBankResultLib resultLib) {
+    protected WealthBankResultLib afterForbidPoolLib(SpecialResultLibCfg specialResultLibCfg, WealthBankResultLib resultLib, WealthBankPlayerGameData playerGameData) {
         resultLib.setJackpotIds(null);
         return resultLib;
     }

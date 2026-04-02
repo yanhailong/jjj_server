@@ -61,6 +61,20 @@ public class SlotsGMHandler implements GmListener {
                     return res;
                 }
                 slotsPoolDao.clearPoolCD(poolId);
+            } else if ("setAllBetCount".equalsIgnoreCase(gmOrders[0])) {
+                log.debug("收到 setAllBetCount 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                boolean change = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId()).gmChangeAllData(playerController, Integer.parseInt(gmOrders[1]), -1);
+                if (!change) {
+                    res.code = Code.FAIL;
+                    return res;
+                }
+            } else if ("setPrizelessCount".equalsIgnoreCase(gmOrders[0])) {
+                log.debug("收到 setPrizelessCount 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                boolean change = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId()).gmChangeAllData(playerController, -1, Integer.parseInt(gmOrders[1]));
+                if (!change) {
+                    res.code = Code.FAIL;
+                    return res;
+                }
             } else {
                 res.code = Code.NOT_FOUND;
             }

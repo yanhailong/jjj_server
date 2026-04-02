@@ -1378,7 +1378,14 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         Map<Integer, PropInfo> tempNoJackpotResultLibTypePropInfoMap = new HashMap<>();
 
         Map<Integer, Map<Integer, PropInfo>> tempResultLibSectionPropMap = new HashMap<>();
+        //weightChange
         Map<Integer, List<ChangeSectionData>> tmpChangeResultLibSectionPropMap = null;
+        //mark
+        Map<Integer, List<ChangeSectionData2>> tmpMarkResultLibSectionPropMap = null;
+        //accumulate
+        Map<Integer, List<ChangeSectionData2>> tmpAccumulateResultLibSectionPropMap = null;
+        //prizeless
+        Map<Integer, List<ChangeSectionData2>> tmpPrizelessResultLibSectionPropMap = null;
 
         boolean addSection = true;
         Map<Integer, Map<Integer, int[]>> tempResultLibSectionMap = new HashMap<>();
@@ -1433,7 +1440,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
             //计算sectionProp
             Map<Integer, PropInfo> typeSectionPropMap = null;
-            if (cfg.getSectionProp() != null && !cfg.getSectionProp().isEmpty()) {
+            if (cfg.getSectionProp() != null && !cfg.getSectionProp().isEmpty() && tempResultLibSectionPropMap.isEmpty()) {
                 typeSectionPropMap = tempResultLibSectionPropMap.computeIfAbsent(cfg.getModelId(), k -> new HashMap<>());
 
                 for (Map.Entry<Integer, List<String>> en2 : cfg.getSectionProp().entrySet()) {
@@ -1480,9 +1487,11 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                     typeSectionPropMap.put(type, propInfo);
                 }
                 addSection = false;
+            }else {
+                typeSectionPropMap = tempResultLibSectionPropMap.get(SlotsConst.Common.DEFAULT_SPECIAL_RESULT_LIB_MODELID);
             }
 
-            //计算change后的sectionProp
+            //计算change后的sectionProp（只解析存储delta）
             if (cfg.getWeightChange() != null && !cfg.getWeightChange().isEmpty() && typeSectionPropMap != null && !typeSectionPropMap.isEmpty()) {
                 if (tmpChangeResultLibSectionPropMap == null) {
                     tmpChangeResultLibSectionPropMap = new HashMap<>();
@@ -1500,51 +1509,52 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                     changeSectionData.setBetMin(Long.parseLong(split[0]));
                     changeSectionData.setBetMax(Long.parseLong(split[1]));
 
-                    //深拷贝 typeSectionPropMap
-                    Map<Integer, PropInfo> copyTypeSectionPropMap = new HashMap<>();
-                    for (Map.Entry<Integer, PropInfo> innerEntry : typeSectionPropMap.entrySet()) {
-                        copyTypeSectionPropMap.put(innerEntry.getKey(), innerEntry.getValue().clone());
-                    }
-
+                    //只解析存储变更指令
+                    Map<Integer, Map<Integer, Integer>> weightChanges = new HashMap<>();
                     List<String> changeList = l1.get(1);
                     for (String s : changeList) {
                         String[] strArr = s.split(",");
                         int libType = Integer.parseInt(strArr[0]);
-
-                        PropInfo propInfo = copyTypeSectionPropMap.get(libType);
-                        if (propInfo == null) {
+                        if (!typeSectionPropMap.containsKey(libType)) {
                             continue;
                         }
 
+                        Map<Integer, Integer> sectionChanges = weightChanges.computeIfAbsent(libType, k -> new HashMap<>());
                         String[] changeIndexArr = strArr[1].split("\\|");
                         for (String indexS : changeIndexArr) {
                             String[] tmpStrArr = indexS.split("-");
                             int sectionIndex = Integer.parseInt(tmpStrArr[0]);
                             int prop = Integer.parseInt(tmpStrArr[1]);
-
-                            //修改这个区间的权重
-                            int[] range = propInfo.getPropMap().get(sectionIndex);
-                            if (range != null) {
-                                range[1] = range[0] + prop;
-                            }
+                            sectionChanges.put(sectionIndex, prop);
                         }
-
-                        //移除权重为0的entry，重新计算begin/end区间和sum
-                        propInfo.getPropMap().entrySet().removeIf(entry -> entry.getValue()[1] - entry.getValue()[0] <= 0);
-                        int begin = 0;
-                        for (Map.Entry<Integer, int[]> entry : propInfo.getPropMap().entrySet()) {
-                            int[] range = entry.getValue();
-                            int weight = range[1] - range[0];
-                            range[0] = begin;
-                            range[1] = begin + weight;
-                            begin = range[1];
-                        }
-                        propInfo.setSum(begin);
                     }
-                    changeSectionData.setSectionPropMap(copyTypeSectionPropMap);
+                    changeSectionData.setWeightChanges(weightChanges);
                     dataList.add(changeSectionData);
                 }
                 tmpChangeResultLibSectionPropMap.put(cfg.getModelId(), dataList);
+            }
+
+            //计算 mark 修改后的 sectionProp
+            List<ChangeSectionData2> markList = analyzChangeWeightMap(cfg.getMark(), typeSectionPropMap);
+            if (markList != null) {
+                if (tmpMarkResultLibSectionPropMap == null) tmpMarkResultLibSectionPropMap = new HashMap<>();
+                tmpMarkResultLibSectionPropMap.put(cfg.getModelId(), markList);
+            }
+            //计算 accumulate 修改后的 sectionProp
+            List<ChangeSectionData2> accumulateList = analyzChangeWeightMap(cfg.getAccumulate(), typeSectionPropMap);
+            if (accumulateList != null) {
+                if (tmpAccumulateResultLibSectionPropMap == null) tmpAccumulateResultLibSectionPropMap = new HashMap<>();
+                //升序排列，findFirst取最小满足阈值
+                accumulateList.sort(Comparator.comparingInt(ChangeSectionData2::getType));
+                tmpAccumulateResultLibSectionPropMap.put(cfg.getModelId(), accumulateList);
+            }
+            //计算 prizeless 修改后的 sectionProp
+            List<ChangeSectionData2> prizelessList = analyzChangeWeightMap(cfg.getPrizeless(), typeSectionPropMap);
+            if (prizelessList != null) {
+                if (tmpPrizelessResultLibSectionPropMap == null) tmpPrizelessResultLibSectionPropMap = new HashMap<>();
+                //降序排列，findFirst取最大满足阈值
+                prizelessList.sort((a, b) -> Integer.compare(b.getType(), a.getType()));
+                tmpPrizelessResultLibSectionPropMap.put(cfg.getModelId(), prizelessList);
             }
         }
 
@@ -1564,7 +1574,48 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         data.setResultLibSectionPropMap(tempResultLibSectionPropMap);
         data.setChangeResultLibSectionPropMap(tmpChangeResultLibSectionPropMap);
         data.setResultLibSectionMap(tempResultLibSectionMap);
+        data.setMarkResultLibSectionPropMap(tmpMarkResultLibSectionPropMap);
+        data.setAccumulateResultLibSectionPropMap(tmpAccumulateResultLibSectionPropMap);
+        data.setPrizelessResultLibSectionPropMap(tmpPrizelessResultLibSectionPropMap);
         return data;
+    }
+
+    private List<ChangeSectionData2> analyzChangeWeightMap(Map<Integer, List<String>> cfgMap, Map<Integer, PropInfo> typeSectionPropMap) {
+        if (cfgMap == null || cfgMap.isEmpty() || typeSectionPropMap == null || typeSectionPropMap.isEmpty()) {
+            return null;
+        }
+        List<ChangeSectionData2> dataList = new ArrayList<>();
+        for (Map.Entry<Integer, List<String>> en : cfgMap.entrySet()) {
+            int key = en.getKey();
+
+            //只解析存储变更指令，不预计算PropInfo
+            Map<Integer, Map<Integer, Integer>> weightChanges = new HashMap<>();
+            for (String str : en.getValue()) {
+                //str 格式 1&0-0|1-0
+                String[] arr1 = str.split("&");
+                int libType = Integer.parseInt(arr1[0]);
+                if (!typeSectionPropMap.containsKey(libType)) {
+                    continue;
+                }
+                String[] arr2 = arr1[1].split("\\|");
+
+                Map<Integer, Integer> sectionChanges = weightChanges.computeIfAbsent(libType, k -> new HashMap<>());
+                for (String str2 : arr2) {
+                    String[] arr3 = str2.split("-");
+                    int sectionIndex = Integer.parseInt(arr3[0]);
+                    int prop = Integer.parseInt(arr3[1]);
+                    sectionChanges.put(sectionIndex, prop);
+                }
+            }
+
+            if (!weightChanges.isEmpty()) {
+                ChangeSectionData2 changeSectionData2 = new ChangeSectionData2();
+                changeSectionData2.setType(key);
+                changeSectionData2.setWeightChanges(weightChanges);
+                dataList.add(changeSectionData2);
+            }
+        }
+        return dataList.isEmpty() ? null : dataList;
     }
 
     /**

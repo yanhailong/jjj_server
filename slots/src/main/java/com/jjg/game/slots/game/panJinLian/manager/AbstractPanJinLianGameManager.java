@@ -75,7 +75,7 @@ public abstract class AbstractPanJinLianGameManager extends AbstractSlotsGameMan
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             // 触发赢钱任务
-            triggerWinTask(player, gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(player, gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             player = slotsPlayerService.get(playerGameData.playerId());
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));

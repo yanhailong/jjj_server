@@ -99,6 +99,9 @@ public class SlotsConst {
         //不可变固定元素
         public static final int IMMUTABLE_ELEMENTS = 99999;
 
+        //因为SpecialResultLibCfg.getSectionProp()的之，在所有的modelId中都是一样的，所以服务器只会读取默认的modelId对应的sectionProp
+        public static final int DEFAULT_SPECIAL_RESULT_LIB_MODELID = 1;
+
     }
 
     //结果库变更类型

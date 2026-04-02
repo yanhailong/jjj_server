@@ -1,9 +1,16 @@
 package com.jjg.game.hall.service;
 
+import com.jjg.game.common.cluster.ClusterClient;
+import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
+import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.pb.NotifyAllNodesCleanPlayer;
 import com.jjg.game.core.service.PlayerSnapshotService;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
@@ -27,6 +34,7 @@ import com.jjg.game.sampledata.bean.GameFunctionCfg;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -136,6 +144,7 @@ public class HallPlayerService extends AbstractPlayerService implements ConfigEx
 
         int index = 0;
         int finishNum = 0;
+        List<Long> playerIds = new ArrayList<>();
         for (Object o : loginSet) {
             try {
                 if (index % 1000 == 0) {
@@ -147,15 +156,37 @@ public class HallPlayerService extends AbstractPlayerService implements ConfigEx
                     }
                 }
 
-                boolean clear = clean(Long.parseLong(o.toString()), expireTime);
+                long playerId = Long.parseLong(o.toString());
+                boolean clear = clean(playerId, expireTime);
                 if (clear) {
                     finishNum++;
+                    playerLoginTimeDao.remove(playerId);
+                    playerIds.add(playerId);
                 }
                 index++;
             } catch (Exception e) {
                 log.error("清除player数据异常,playerId:{}", o, e);
             }
         }
+
+        //通知其他游戏节点，清除该玩家信息
+        if (!playerIds.isEmpty()) {
+            //获取slots节点
+            List<ClusterClient> clusterClients = ClusterSystem.system.getNodesByType(NodeType.GAME, CoreConst.GameType.DOLLAR_EXPRESS);
+            if (clusterClients != null && !clusterClients.isEmpty()) {
+                NotifyAllNodesCleanPlayer notify = new NotifyAllNodesCleanPlayer();
+                notify.playerIds = playerIds;
+                ClusterMessage msg = new ClusterMessage(MessageUtil.getPFMessage(notify));
+                clusterClients.forEach(client -> {
+                    try {
+                        client.write(msg);
+                    } catch (Exception e) {
+                        log.error("", e);
+                    }
+                });
+            }
+        }
+
         log.info("清除player数据完成,循环次数={},成功次数={},消耗时间={} ms", index, finishNum, System.currentTimeMillis() - now);
     }
 
@@ -187,7 +218,6 @@ public class HallPlayerService extends AbstractPlayerService implements ConfigEx
             playerDao.save(player);
             redisTemplate.opsForHash().delete(tableName, playerId);
         }
-        playerLoginTimeDao.remove(playerId);
         playerPackService.moveToMongo(playerId);
         playerBuildingService.moveToMongo(playerId);
         playerLastGameInfoDao.deleteById(playerId);

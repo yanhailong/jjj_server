@@ -126,7 +126,7 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(player, gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(player, gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
@@ -279,12 +279,7 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
 
     @Override
     protected void offlineSaveGameDataDto(ZeusVsHadesPlayerGameData gameData) {
-        try {
-            ZeusVsHadesPlayerGameDataDTO dto = gameData.converToDto(ZeusVsHadesPlayerGameDataDTO.class);
-            gameDataDao.saveGameData(dto);
-        } catch (Exception e) {
-            log.error("", e);
-        }
+        super.offlineSaveGameDataDto(gameData);
     }
 
     @Override

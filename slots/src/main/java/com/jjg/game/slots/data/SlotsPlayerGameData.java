@@ -5,6 +5,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.annotation.Transient;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
@@ -61,7 +62,9 @@ public class SlotsPlayerGameData {
     //离线时间
     protected long offlineTime;
     //离线事件
-    protected Map<Integer,OffLineEventData> offlineEventMap;
+    protected Map<Integer, OffLineEventData> offlineEventMap;
+    @Transient
+    protected transient PlayerAllSlotsData playerAllSlotsData;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -290,33 +293,33 @@ public class SlotsPlayerGameData {
     }
 
     public SlotsRoomController getSlotsRoomController() {
-        if(this.playerController == null || this.playerController.getScene() == null){
+        if (this.playerController == null || this.playerController.getScene() == null) {
             return null;
         }
 
-        if(this.playerController.getScene() instanceof SlotsRoomController){
-            return (SlotsRoomController)this.playerController.getScene();
+        if (this.playerController.getScene() instanceof SlotsRoomController) {
+            return (SlotsRoomController) this.playerController.getScene();
         }
         return null;
     }
 
     public RoomType getRoomType() {
         SlotsRoomController slotsRoomController = getSlotsRoomController();
-        if(slotsRoomController == null){
+        if (slotsRoomController == null) {
             return null;
         }
         return slotsRoomController.getRoom().getType();
     }
 
     public Player getPlayer() {
-        if(this.playerController == null){
+        if (this.playerController == null) {
             return null;
         }
         return this.playerController.getPlayer();
     }
 
     public void setPlayer(Player player) {
-        if(this.playerController == null){
+        if (this.playerController == null) {
             return;
         }
         this.playerController.setPlayer(player);
@@ -331,17 +334,25 @@ public class SlotsPlayerGameData {
     }
 
     public void actionOffLineEvent(int eventId) {
-        if(this.offlineEventMap == null || this.offlineEventMap.isEmpty()) {
+        if (this.offlineEventMap == null || this.offlineEventMap.isEmpty()) {
             return;
         }
         this.offlineEventMap.get(eventId).setAction(true);
     }
 
     public void addOffLineEvent(OffLineEventData offLineEventData) {
-        if(this.offlineEventMap == null) {
+        if (this.offlineEventMap == null) {
             this.offlineEventMap = new HashMap<>();
         }
         this.offlineEventMap.put(offLineEventData.getId(), offLineEventData);
+    }
+
+    public PlayerAllSlotsData getPlayerAllSlotsData() {
+        return playerAllSlotsData;
+    }
+
+    public void setPlayerAllSlotsData(PlayerAllSlotsData playerAllSlotsData) {
+        this.playerAllSlotsData = playerAllSlotsData;
     }
 
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {

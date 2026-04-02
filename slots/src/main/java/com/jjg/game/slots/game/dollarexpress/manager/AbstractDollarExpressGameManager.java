@@ -390,7 +390,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerGameData.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerGameData.getPlayer(), gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //添加美元收集进度
             if (gameRunInfo.getTotalDollars() < 1) {
@@ -1050,7 +1050,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     }
 
     @Override
-    protected DollarExpressResultLib afterForbidPoolLib(SpecialResultLibCfg specialResultLibCfg, DollarExpressResultLib resultLib) {
+    protected DollarExpressResultLib afterForbidPoolLib(SpecialResultLibCfg specialResultLibCfg, DollarExpressResultLib resultLib, DollarExpressPlayerGameData playerGameData) {
         resultLib.setJackpotIds(null);
         return resultLib;
     }
