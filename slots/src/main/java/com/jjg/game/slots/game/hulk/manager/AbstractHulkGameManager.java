@@ -6,7 +6,10 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
+import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
+import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.hulk.HulkConstant;
 import com.jjg.game.slots.game.hulk.dao.HulkResultLibDao;
 import com.jjg.game.slots.game.hulk.data.HulkAwardLineInfo;
@@ -171,6 +174,33 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
         return gameRunInfo;
     }
 
+    private void addMiniGameInfo(HulkGameRunInfo gameRunInfo, HulkPlayerGameData playerGameData, HulkResultLib resultLib) {
+        List<Long> carsWinGold = new ArrayList<>();
+        for (SpecialAuxiliaryInfo info : resultLib.getSpecialAuxiliaryInfoList()) {
+            SpecialAuxiliaryCfg cfg = GameDataManager.getSpecialAuxiliaryCfg(info.getCfgId());
+            if (cfg.getType() != HulkConstant.SpecialAuxiliary.MINI_GAME) {
+                continue;
+            }
+
+            if (info.getAwardInfos() == null || info.getAwardInfos().isEmpty()) {
+                continue;
+            }
+
+            for (SpecialAuxiliaryAwardInfo awardInfo : info.getAwardInfos()) {
+                if (awardInfo.getAwardCList() == null || awardInfo.getAwardCList().isEmpty()) {
+                    continue;
+                }
+
+                for (int i : awardInfo.getAwardCList()) {
+                    carsWinGold.add(playerGameData.getOneBetScore() * i);
+                }
+
+                gameRunInfo.setAirplane(awardInfo.getAwardD());
+                gameRunInfo.setCarsWinGold(carsWinGold);
+            }
+        }
+    }
+
     @Override
     protected HulkGameRunInfo normal(HulkGameRunInfo gameRunInfo, HulkPlayerGameData playerGameData, long betValue, HulkResultLib resultLib) {
         //是否触发特殊模式
@@ -187,6 +217,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
             log.debug("触发免费  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         } else if (libType == HulkConstant.SpecialMode.MINI) {
             clientShowStatus = HulkConstant.Status.TRIGGER_MINI;
+            addMiniGameInfo(gameRunInfo, playerGameData, resultLib);
             log.debug("触发小游戏  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         } else if (libType == HulkConstant.SpecialMode.ONT_WILD) {
             clientShowStatus = HulkConstant.Status.TRIGGER_ONE_WILD;

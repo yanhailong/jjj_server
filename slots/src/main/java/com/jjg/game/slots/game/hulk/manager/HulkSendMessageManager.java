@@ -9,10 +9,7 @@ import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.hulk.data.HulkGameRunInfo;
-import com.jjg.game.slots.game.hulk.pb.HulkPoolInfo;
-import com.jjg.game.slots.game.hulk.pb.ResHulkEnterGame;
-import com.jjg.game.slots.game.hulk.pb.ResHulkPool;
-import com.jjg.game.slots.game.hulk.pb.ResHulkStartGame;
+import com.jjg.game.slots.game.hulk.pb.*;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -121,6 +118,10 @@ public class HulkSendMessageManager extends BaseSendMessageManager {
             res.freeModeTotalReward = gameRunInfo.getFreeModeTotalReward();
             //剩余免费次数
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
+            //汽车赢取的奖励
+            res.carsWinGold = gameRunInfo.getCarsWinGold();
+            //飞机的倍数
+            res.airplane = gameRunInfo.getAirplane();
 
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {

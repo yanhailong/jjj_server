@@ -11,6 +11,8 @@ public class SpecialAuxiliaryAwardInfo {
     private int randCount;
     //奖励c
     private List<Integer> awardCList;
+    //奖励d
+    private int awardD;
 
     public int getRandCount() {
         return randCount;
@@ -33,5 +35,13 @@ public class SpecialAuxiliaryAwardInfo {
             this.awardCList = new ArrayList<>();
         }
         this.awardCList.add(awardC);
+    }
+
+    public int getAwardD() {
+        return awardD;
+    }
+
+    public void setAwardD(int awardD) {
+        this.awardD = awardD;
     }
 }
