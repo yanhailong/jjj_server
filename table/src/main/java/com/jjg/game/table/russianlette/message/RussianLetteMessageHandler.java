@@ -97,13 +97,7 @@ public class RussianLetteMessageHandler implements IConsoleReceiver {
             return;
         }
         // 构建并发送完整的桌面信息响应（含所有字段）
-        RussianLetteGameController rgc = (RussianLetteGameController) gameController;
-        RespRussianLetteInfo resp = RussianLetteMessageBuilder.buildRespRussianLetteInfo(
-                playerController.playerId(), rgc);
-        playerController.send(resp);
-        // 更新玩家操作时间（心跳续约）
-        TableGameDataVo tableGameDataVo = (TableGameDataVo) gameController.getGameDataVo();
-        tableGameDataVo.updatePlayerOperateTime(playerController.playerId());
+        gameController.respRoomInitInfo(playerController);
     }
 
     /**
