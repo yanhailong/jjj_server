@@ -105,52 +105,56 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
         //中奖线
         lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
         //小游戏
-        lib.addTimes(miniGame(lib.getSpecialAuxiliaryInfoList()));
+        lib.addTimes(miniGame(lib));
         //免费
         lib.addTimes(calFree(lib));
     }
 
     /**
      * 单线倍数
+     *
      * @param awardLineInfoList
      * @return
      */
     private long calLineTimes(List<HulkAwardLineInfo> awardLineInfoList) {
-        if(awardLineInfoList == null || awardLineInfoList.isEmpty()) {
+        if (awardLineInfoList == null || awardLineInfoList.isEmpty()) {
             return 0;
         }
 
         long times = 0;
-        for(HulkAwardLineInfo info : awardLineInfoList) {
+        for (HulkAwardLineInfo info : awardLineInfoList) {
             times += info.getBaseTimes();
         }
         return times;
     }
 
-    private long miniGame(List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList){
-        if(specialAuxiliaryInfoList == null || specialAuxiliaryInfoList.isEmpty()) {
+    private long miniGame(HulkResultLib lib) {
+        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
             return 0;
         }
 
         long times = 0;
-        for(SpecialAuxiliaryInfo info : specialAuxiliaryInfoList){
+        for (SpecialAuxiliaryInfo info : lib.getSpecialAuxiliaryInfoList()) {
             SpecialAuxiliaryCfg cfg = GameDataManager.getSpecialAuxiliaryCfg(info.getCfgId());
-            if(cfg.getType() != HulkConstant.SpecialAuxiliary.MINI_GAME){
+            if (cfg.getType() != HulkConstant.SpecialAuxiliary.MINI_GAME) {
                 continue;
             }
 
-            if(info.getAwardInfos() == null || info.getAwardInfos().isEmpty()){
+            if (info.getAwardInfos() == null || info.getAwardInfos().isEmpty()) {
                 continue;
             }
 
-            for(SpecialAuxiliaryAwardInfo awardInfo : info.getAwardInfos()){
-                if(awardInfo.getAwardCList() == null || awardInfo.getAwardCList().isEmpty()){
+            for (SpecialAuxiliaryAwardInfo awardInfo : info.getAwardInfos()) {
+                if (awardInfo.getAwardCList() == null || awardInfo.getAwardCList().isEmpty()) {
                     continue;
                 }
 
-                for(int i : awardInfo.getAwardCList()){
-                    times += i;
+                int sum = 0;
+                for (int i : awardInfo.getAwardCList()) {
+                    sum += i;
                 }
+
+                times += sum * awardInfo.getAwardD();
             }
         }
         return times;

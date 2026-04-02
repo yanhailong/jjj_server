@@ -14,6 +14,8 @@ public class SpecialAuxiliaryPropConfig {
     private PropInfo specialGroupGirdIDPropInfo;
     //奖励c
     private PropInfo awardTypeCPropInfo;
+    //奖励d
+    private PropInfo awardTypeDPropInfo;
 
     public int getId() {
         return id;
@@ -53,5 +55,13 @@ public class SpecialAuxiliaryPropConfig {
 
     public void setAwardTypeCPropInfo(PropInfo awardTypeCPropInfo) {
         this.awardTypeCPropInfo = awardTypeCPropInfo;
+    }
+
+    public PropInfo getAwardTypeDPropInfo() {
+        return awardTypeDPropInfo;
+    }
+
+    public void setAwardTypeDPropInfo(PropInfo awardTypeDPropInfo) {
+        this.awardTypeDPropInfo = awardTypeDPropInfo;
     }
 }

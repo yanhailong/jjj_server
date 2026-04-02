@@ -1373,6 +1373,14 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 }
             }
         }
+
+        //添加奖励d
+        if (specialAuxiliaryPropConfig.getAwardTypeDPropInfo() != null) {
+            Integer randD = specialAuxiliaryPropConfig.getAwardTypeDPropInfo().getRandKey();
+            if (randD != null) {
+                specialAuxiliaryAwardInfo.setAwardD(randD);
+            }
+        }
         specialAuxiliaryInfo.addAwardInfo(specialAuxiliaryAwardInfo);
     }
 
@@ -1628,6 +1636,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             config.setSpecialGroupGirdIDPropInfo(SlotsUtil.converMapToPropInfo(cfg.getSpecialGroupGirdID()));
             //奖励c
             config.setAwardTypeCPropInfo(SlotsUtil.converMapToLimitPropInfo(cfg.getAwardTypeC()));
+            //奖励d
+            config.setAwardTypeDPropInfo(SlotsUtil.converMapToPropInfo(cfg.getAwardTypeD()));
 
             tmpSpecialAuxiliaryPropConfigMap.put(config.getId(), config);
         }

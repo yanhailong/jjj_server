@@ -94,12 +94,12 @@ public class HulkMessageHandler {
     @Command(HulkConstant.MsgBean.REQ_POOL_VALUE)
     public void reqPoolValue(PlayerController playerController, ReqHulkPool req) {
         try {
-//            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             HulkGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
-                gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+                gameRunInfo = gameManager.getPoolValue(playerController, req.stakeValue);
             } else if (playerController.getScene() instanceof SlotsRoomController) {
-                gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeVlue);
+                gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeValue);
             } else {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;

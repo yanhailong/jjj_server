@@ -70,7 +70,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
     public void isLeader() {
         log.info("AirRaid 当选为主节点，启动游戏循环");
         leader = true;
-        addEvent();
+//        addEvent();
     }
 
     @Override

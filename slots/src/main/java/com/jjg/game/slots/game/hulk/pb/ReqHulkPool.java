@@ -14,5 +14,5 @@ import com.jjg.game.slots.game.hulk.HulkConstant;
 @ProtoDesc("请求获取奖池")
 public class ReqHulkPool extends AbsNodeMessage {
     @ProtoDesc("下注金额")
-    public long stakeVlue;
+    public long stakeValue;
 }
