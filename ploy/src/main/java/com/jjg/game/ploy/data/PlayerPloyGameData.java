@@ -3,8 +3,8 @@ package com.jjg.game.ploy.data;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
-import org.springframework.data.mongodb.core.index.CompoundIndex;
 
 /**
  * 玩家在策略游戏中的数据
@@ -12,12 +12,10 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
  * @author 11
  * @date 2026/3/19
  */
-@CompoundIndex(
-        name = "ploy_game_data_idx",
-        def = "{'playerId': 1, 'roomCfgId': 1}",
-        unique = true
-)
 public class PlayerPloyGameData {
+
+    @Id
+    private String id;
     @Transient
     @JsonIgnore
     protected transient PlayerController playerController;
@@ -42,6 +40,14 @@ public class PlayerPloyGameData {
     protected transient PloyBetDivideInfo ployBetDivideInfo;
     //@Field(targetType = FieldType.DECIMAL128)
     //private BigDecimal amount;
+
+    public static String buildId(long playerId, long roomCfgId) {
+        return playerId + ":" + roomCfgId;
+    }
+
+    public String getId() {
+        return id;
+    }
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -120,6 +126,10 @@ public class PlayerPloyGameData {
             return 0;
         }
         return this.playerController.playerId();
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public void updatePlayer(Player player) {

@@ -18,7 +18,7 @@ public class HighLowPokerPloyGameData extends PlayerSinglePloyGameData {
     //当前能兑换的金币
     private long currentCoin;
     //本局历史记录 key牌id，value赔率
-    private List<Pair<Integer, String>> history;
+    private List<HighLowHistoryInfo> history;
     //整体历史记录
     private List<HighLowPokerHistory> totalHistories;
     //玩家当前牌的下标
@@ -40,11 +40,11 @@ public class HighLowPokerPloyGameData extends PlayerSinglePloyGameData {
         this.currentCoin = currentCoin;
     }
 
-    public List<Pair<Integer, String>> getHistory() {
+    public List<HighLowHistoryInfo> getHistory() {
         return history;
     }
 
-    public void setHistory(List<Pair<Integer, String>> history) {
+    public void setHistory(List<HighLowHistoryInfo> history) {
         this.history = history;
     }
 
@@ -68,7 +68,7 @@ public class HighLowPokerPloyGameData extends PlayerSinglePloyGameData {
         if (this.history == null) {
             this.history = new ArrayList<>();
         }
-        this.history.add(history);
+        this.history.add(new HighLowHistoryInfo(history.getFirst(), history.getSecond()));
     }
 
     public void addTotalHistory(HighLowPokerHistory totalHistory) {

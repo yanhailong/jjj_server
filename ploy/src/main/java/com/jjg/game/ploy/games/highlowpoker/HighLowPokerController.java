@@ -16,7 +16,6 @@ import com.jjg.game.ploy.games.highlowpoker.data.HighLowChoose;
 import com.jjg.game.ploy.games.highlowpoker.data.HighLowPokerConstant;
 import com.jjg.game.ploy.games.highlowpoker.data.HighLowPokerHistory;
 import com.jjg.game.ploy.games.highlowpoker.data.HighLowPokerPloyGameData;
-import com.jjg.game.ploy.games.highlowpoker.pb.bean.HighLowHistoryInfo;
 import com.jjg.game.ploy.games.highlowpoker.pb.bean.HighLowRecordInfo;
 import com.jjg.game.ploy.games.highlowpoker.pb.req.ReqHighLowPokerChoose;
 import com.jjg.game.ploy.games.highlowpoker.pb.req.ReqHighLowPokerExchange;
@@ -63,13 +62,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
             res.historyInfoList = new ArrayList<>(totalHistories.size());
             for (HighLowPokerHistory history : totalHistories) {
                 HighLowRecordInfo recordInfo = new HighLowRecordInfo();
-                recordInfo.historyInfos = new ArrayList<>(history.getHistory().size());
-                for (Pair<Integer, String> pair : history.getHistory()) {
-                    HighLowHistoryInfo info = new HighLowHistoryInfo();
-                    info.cardId = pair.getFirst();
-                    info.odd = pair.getSecond();
-                    recordInfo.historyInfos.add(info);
-                }
+                recordInfo.historyInfos = new ArrayList<>(history.getHistory());
                 recordInfo.totalIncome = history.getTotalProfit();
                 res.historyInfoList.add(recordInfo);
             }
@@ -99,7 +92,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
             //发送当前牌
             res.currentCard = playerGameData.getCard().get(playerGameData.getCurrentIndex());
             //发送历史选择
-            res.historyChoose = buildHistoryChoose(playerGameData.getHistory());
+            res.historyChoose = playerGameData.getHistory();
             //当前能兑换的金币
             res.currentCoin = playerGameData.getCurrentCoin();
         }
@@ -135,19 +128,6 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
         return res;
     }
 
-    public List<HighLowHistoryInfo> buildHistoryChoose(List<Pair<Integer, String>> history) {
-        if (CollectionUtil.isEmpty(history)) {
-            return List.of();
-        }
-        List<HighLowHistoryInfo> list = new ArrayList<>(history.size());
-        for (Pair<Integer, String> pair : history) {
-            HighLowHistoryInfo info = new HighLowHistoryInfo();
-            info.cardId = pair.getFirst();
-            info.odd = pair.getSecond();
-            list.add(info);
-        }
-        return list;
-    }
 
     /**
      * 对局开始进行选择

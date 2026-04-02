@@ -16,7 +16,6 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.CorePlayerService;
-import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.ploy.dao.PlayerPloyGameDataDao;
 import com.jjg.game.ploy.dao.PloyPoolDao;
 import com.jjg.game.ploy.dao.PloyRecordDao;
@@ -57,8 +56,6 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     @Autowired
     protected PlayerPloyGameDataDao gameDataDao;
     @Autowired
-    protected TaskManager taskManager;
-    @Autowired
     protected PloyRecordDao recordDao;
     @Autowired
     protected PloyLogger logger;
@@ -97,14 +94,14 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     /**
      * 进入游戏
      *
-     * @param playerController
-     * @return
+     * @param playerController 玩家数据
+     * @return 响应数据
      */
     public AbstractMessage enterGame(PlayerController playerController, int gameType, int roomCfgId) {
         try {
             T playerGameData = createPlayerGameData(playerController, gameType, roomCfgId);
             if (playerGameData == null) {
-                log.warn("创建 playerGameData 失败，进入游戏失败 playerId = {},roomCfgId = {}", playerController.playerId(), playerGameData.getRoomCfgId());
+                log.warn("创建 playerGameData 失败，进入游戏失败 playerId = {},roomCfgId = {}", playerController.playerId(), roomCfgId);
                 return buildResEnterGameMessage(Code.FAIL, gameType, roomCfgId, null);
             }
 
@@ -133,7 +130,7 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
             T playerGameData = getPlayerGameData(playerController.playerId(), this.roomCfgId);
             if (playerGameData == null) {
                 log.warn("获取 playerGameData 失败，下注失败 playerId = {},roomCfgId = {}", playerController.playerId(), this.roomCfgId);
-                return buildResBetMessage(Code.FAIL, null, 0, 0);
+                return buildResBetMessage(Code.FAIL, null);
             }
 
             //检查押分值
@@ -141,31 +138,57 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
             boolean match = cfg.getLineBetScore().stream().anyMatch(b -> b == betValue);
             if (!match) {
                 log.warn("下注额错误，下注失败 playerId = {},roomCfgId = {},betValue = {}", playerController.playerId(), playerGameData.getRoomCfgId(), betValue);
-                return buildResBetMessage(Code.PARAM_ERROR, playerGameData, 0, 0);
+                return buildResBetMessage(Code.PARAM_ERROR, playerGameData);
             }
 
             //玩家扣除下注金额，并加入标准池
             CommonResult<PloyBetDivideInfo> moneyResult = moneyToPool(playerGameData, betValue);
             if (!moneyResult.success()) {
-                return buildResBetMessage(moneyResult.code, playerGameData, 0, 0);
+                return buildResBetMessage(moneyResult.code, playerGameData);
             }
             //更新活跃时间
             playerGameData.setLastActiveTime(System.currentTimeMillis());
-            //构建返回消息
-            AbstractResponse res = buildResBetMessage(Code.SUCCESS, playerGameData, betValue, value);
-            if (res.code != Code.SUCCESS) {
-                poolToPlayer(playerGameData, moneyResult.data.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
-                return res;
+            //判断该用哪种方式计算赔率
+            AbstractResponse res;
+            if (CollectionUtil.isEmpty(cfg.getOdds())) {
+                res = buildResBetMessage(Code.SUCCESS, playerGameData, 0);
+                if (res.code != Code.SUCCESS) {
+                    poolToPlayer(playerGameData, moneyResult.data.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
+                    return res;
+                }
+                playerGameData.setLastBet(betValue);
+                playerGameData.setLastBetTime(playerGameData.getLastActiveTime());
+            } else {
+                //计算偏差范围
+                long diff = BigDecimal.valueOf(moneyResult.data.getPoolAfterValue() - cfg.getInitBasePool()).divide(BigDecimal.valueOf(cfg.getInitBasePool()), 6, RoundingMode.HALF_UP).multiply(tenThousandBigDecimal).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
+                PoolResultLibCfg libCfg = getLibCfgByPoolDiff(diff);
+                if (libCfg == null) {
+                    log.warn("获取结果库配置失败,下注失败 playerId = {},roomCfgId = {},betValue = {},poolValue = {},diff = {}", playerController.playerId(), playerGameData.getRoomCfgId(), betValue, moneyResult.data.getPoolAfterValue(), diff);
+                    poolToPlayer(playerGameData, moneyResult.data.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
+                    return buildResBetMessage(Code.FAIL, playerGameData);
+                }
+
+                //根据权重随机获取一种结果
+                PropInfo propInfo = this.poolResultLibPropMap.get(libCfg.getModelId());
+                Integer randKey = propInfo.getRandKey();
+                if (randKey == null) {
+                    log.warn("获取结果库配置失败,下注失败 playerId = {},roomCfgId = {},betValue = {},poolValue = {},diff = {}", playerController.playerId(), playerGameData.getRoomCfgId(), betValue, moneyResult.data.getPoolAfterValue(), diff);
+                    poolToPlayer(playerGameData, moneyResult.data.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
+                    return buildResBetMessage(Code.FAIL, playerGameData);
+                }
+                playerGameData.setLastBet(betValue);
+                playerGameData.setLastBetTime(playerGameData.getLastActiveTime());
+                playerGameData.setPoolResultLibCfgId(libCfg.getId());
+                playerGameData.setBeforeMoney(moneyResult.data.getPlayerBeforeMoney());
+                playerGameData.setAfterMoney(moneyResult.data.getPlayerAfterMoney());
+                res = buildResBetMessage(Code.SUCCESS, playerGameData, randKey);
             }
 
-            playerGameData.setLastBet(betValue);
-            playerGameData.setLastBetTime(playerGameData.getLastActiveTime());
-            playerGameData.setPloyBetDivideInfo(moneyResult.data);
             log.info("策略游戏下注返回 playerId = {},gameType = {},res = {}", playerController.playerId(), playerGameData.getGameType(), JSON.toJSONString(res));
             return res;
         } catch (Exception e) {
             log.error("", e);
-            return buildResBetMessage(Code.EXCEPTION, null, 0, 0);
+            return buildResBetMessage(Code.EXCEPTION, null);
         }
     }
 
@@ -177,11 +200,10 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
      */
     public int exitGame(Player player, ExitType exitType) {
         try {
-            T playerGameData = removePlayerGameData(player.getId(), player.getRoomCfgId());
+            T playerGameData = removePlayerGameData(player.getId(), roomCfgId);
             if (playerGameData == null) {
                 return Code.SUCCESS;
             }
-
             gameDataDao.saveGameData(playerGameData);
             return Code.SUCCESS;
         } catch (Exception e) {
@@ -209,14 +231,19 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     protected abstract AbstractResponse buildResEnterGameMessage(int code, int gameType, int roomCfgId, T playerGameData);
 
 
+    protected AbstractMessage buildResBetMessage(int code, T playerGameData) {
+        return buildResBetMessage(code, playerGameData, 0);
+    }
+
     /**
      * 构建玩家下注后的返回消息
      *
      * @param code
      * @param playerGameData
+     * @param oddsType
      * @return
      */
-    protected abstract AbstractResponse buildResBetMessage(int code, T playerGameData, long betValue, int value);
+    protected abstract AbstractResponse buildResBetMessage(int code, T playerGameData, int oddsType);
 
     /**
      * 玩家扣除下注金额，并加入标准池
@@ -340,6 +367,7 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
         if (playerGameData == null) {
             Constructor<T> constructor = this.playerGameDataClass.getConstructor();
             playerGameData = constructor.newInstance();
+            playerGameData.setId(PlayerPloyGameData.buildId(playerController.playerId(), roomCfgId));
             playerGameData.setPlayerController(playerController);
             playerGameData.setGameType(gameType);
             playerGameData.setRoomCfgId(roomCfgId);
@@ -363,9 +391,7 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
         if (temMap == null || temMap.isEmpty()) {
             return null;
         }
-        T data = temMap.remove(playerId);
-        taskManager.onExit(playerId);
-        return data;
+        return temMap.remove(playerId);
     }
 
     /**

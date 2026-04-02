@@ -53,6 +53,7 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
 
     @Override
     public void init(int gameType) {
+        super.init(gameType);
         log.info("初始化鸿运扑克控制器");
     }
 

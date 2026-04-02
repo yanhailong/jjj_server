@@ -44,8 +44,7 @@ public class PlayerPloyGameDataDao {
      */
     public <T extends PlayerPloyGameData> T findOne(long playerId, long roomCfgId, Class<T> cla) {
         Query query = new Query();
-        query.addCriteria(Criteria.where("playerId").is(playerId));
-        query.addCriteria(Criteria.where("roomCfgId").is(roomCfgId));
+        query.addCriteria(Criteria.where("id").is(PlayerPloyGameData.buildId(playerId, roomCfgId)));
         return this.mongoTemplate.findOne(query, cla);
     }
 }

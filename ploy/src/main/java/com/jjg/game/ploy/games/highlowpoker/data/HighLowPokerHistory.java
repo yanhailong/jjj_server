@@ -1,7 +1,5 @@
 package com.jjg.game.ploy.games.highlowpoker.data;
 
-import com.jjg.game.common.proto.Pair;
-
 import java.util.List;
 
 /**
@@ -10,15 +8,15 @@ import java.util.List;
  */
 public class HighLowPokerHistory {
     //本局历史记录 牌id,赔率
-    private List<Pair<Integer, String>> history;
+    private List<HighLowHistoryInfo> history;
     //总营收
     private long totalProfit;
 
-    public List<Pair<Integer, String>> getHistory() {
+    public List<HighLowHistoryInfo> getHistory() {
         return history;
     }
 
-    public void setHistory(List<Pair<Integer, String>> history) {
+    public void setHistory(List<HighLowHistoryInfo> history) {
         this.history = history;
     }
 
