@@ -1,10 +1,7 @@
 package com.jjg.game.ploy.games.airraid;
 
-import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
-import com.jjg.game.common.protostuff.MessageUtil;
-import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -249,7 +246,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
     }
 
     @Override
-    protected AbstractMessage buildResBetMessage(int code, AirRaidPlayerPloyGameData playerGameData, int oddsType) {
+    protected AbstractResponse buildResBetMessage(int code, AirRaidPlayerPloyGameData playerGameData, int oddsType) {
         // 空袭游戏不使用标准 bet 流程，由 airRaidBet 方法处理
         return null;
     }

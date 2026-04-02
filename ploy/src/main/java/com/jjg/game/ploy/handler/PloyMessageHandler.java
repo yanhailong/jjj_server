@@ -1,6 +1,7 @@
 package com.jjg.game.ploy.handler;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
@@ -56,7 +57,10 @@ public class PloyMessageHandler implements GmListener {
     public void reqPloyBet(PlayerController playerController, ReqPloyBet req) {
         Object subScene = playerController.getSubScene();
         if (subScene instanceof AbstractPloyController<?> ployController) {
-            ployController.bet(playerController, req.bet, req.value);
+            AbstractMessage res = ployController.bet(playerController, req.bet, req.value);
+            if (res != null) {
+                playerController.send(res);
+            }
         } else {
             log.warn("未找到playerController的 subScene，下注失败 playerId = {},subScene = {}", playerController.playerId(), subScene);
         }

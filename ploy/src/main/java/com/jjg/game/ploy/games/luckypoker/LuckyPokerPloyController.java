@@ -2,15 +2,12 @@ package com.jjg.game.ploy.games.luckypoker;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSONArray;
-import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.Card;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.ploy.controller.AbstractSinglePloyController;
 import com.jjg.game.ploy.data.PloyBetDivideInfo;
 import com.jjg.game.ploy.data.PloyCard;
@@ -28,8 +25,9 @@ import com.jjg.game.sampledata.bean.PoolResultLibCfg;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -81,7 +79,7 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
      * @return
      */
     @Override
-    protected AbstractMessage buildResBetMessage(int code, LuckyPokerPlayerPloyGameData playerGameData, int oddsType) {
+    protected AbstractResponse buildResBetMessage(int code, LuckyPokerPlayerPloyGameData playerGameData, int oddsType) {
         ResLuckyPokerBet res = new ResLuckyPokerBet(code);
         if (code != Code.SUCCESS) {
             return res;

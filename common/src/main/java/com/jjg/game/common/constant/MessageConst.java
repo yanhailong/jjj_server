@@ -189,6 +189,8 @@ public interface MessageConst {
         int CANDY_PARTY = 0x4B;
         //空袭
         int PLOY_AIR_RAID = 0x4C;
+        //高低扑克
+        int HIGH_LOW_POKER = 0x4D;
     }
 
     interface ToClientConst {

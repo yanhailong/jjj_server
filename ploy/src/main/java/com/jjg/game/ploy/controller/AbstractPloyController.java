@@ -150,11 +150,16 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
             }
             //更新活跃时间
             playerGameData.setLastActiveTime(System.currentTimeMillis());
-
             //判断该用哪种方式计算赔率
-            AbstractMessage res;
+            AbstractResponse res;
             if (CollectionUtil.isEmpty(cfg.getOdds())) {
                 res = buildResBetMessage(Code.SUCCESS, playerGameData, 0);
+                if (res.code != Code.SUCCESS) {
+                    poolToPlayer(playerGameData, moneyResult.data.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
+                    return res;
+                }
+                playerGameData.setLastBet(betValue);
+                playerGameData.setLastBetTime(playerGameData.getLastActiveTime());
             } else {
                 //计算偏差范围
                 long diff = BigDecimal.valueOf(moneyResult.data.getPoolAfterValue() - cfg.getInitBasePool()).divide(BigDecimal.valueOf(cfg.getInitBasePool()), 6, RoundingMode.HALF_UP).multiply(tenThousandBigDecimal).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
@@ -173,7 +178,6 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
                     poolToPlayer(playerGameData, moneyResult.data.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
                     return buildResBetMessage(Code.FAIL, playerGameData);
                 }
-
                 playerGameData.setLastBet(betValue);
                 playerGameData.setLastBetTime(playerGameData.getLastActiveTime());
                 playerGameData.setPoolResultLibCfgId(libCfg.getId());
@@ -233,7 +237,7 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
      * @param oddsType
      * @return
      */
-    protected abstract AbstractMessage buildResBetMessage(int code, T playerGameData, int oddsType);
+    protected abstract AbstractResponse buildResBetMessage(int code, T playerGameData, int oddsType);
 
     /**
      * 玩家扣除下注金额，并加入标准池
@@ -290,15 +294,16 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
             log.warn("从奖池扣除的钱小于1 playerId = {}", playerGameData.playerId());
             return new CommonResult<>(Code.FAIL);
         }
-
-        //计算出给玩家加的钱
-        int addRate = this.tenThousand - tax;
         long addToPlayer = value;
-        if (addRate > 0) {
-            //扣税
-            addToPlayer = BigDecimal.valueOf(addRate).multiply(BigDecimal.valueOf(value)).setScale(0, RoundingMode.FLOOR).longValue();
+        if (tax > 0) {
+            //计算出给玩家加的钱
+            int addRate = this.tenThousand - tax;
+            if (addRate > 0) {
+                //扣税
+                addToPlayer = BigDecimal.valueOf(addRate).multiply(BigDecimal.valueOf(value)).setScale(0, RoundingMode.FLOOR)
+                        .divide(BigDecimal.valueOf(this.tenThousand), RoundingMode.DOWN).longValue();
+            }
         }
-
         CommonResult<Pair<Player, Long>> playerCommonResult = poolToPlayer(playerGameData, value, addToPlayer, AddType.PLOY_REWARD);
         if (!playerCommonResult.success()) {
             return new CommonResult<>(playerCommonResult.code);
@@ -322,11 +327,12 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
         Long afterPool = poolDao.reduce(playerGameData.getGameType(), playerGameData.getRoomCfgId(), -Math.abs(poolChangeValue));
         if (afterPool == null) {
             log.warn("从奖池扣除失败 playerId = {},poolChangeValue = {},addToPlayerValue = {},addType = {}", playerGameData.playerId(), poolChangeValue, addToPlayerValue, addType);
-            return new CommonResult<>(Code.SUCCESS);
+            return new CommonResult<>(Code.FAIL);
         }
 
         CommonResult<Player> addResult = playerService.addGold(playerGameData.playerId(), Math.abs(addToPlayerValue), addType, String.valueOf(playerGameData.getGameType()));
         if (!addResult.success()) {
+            poolDao.add(playerGameData.getGameType(), playerGameData.getRoomCfgId(), Math.abs(poolChangeValue));
             return new CommonResult<>(addResult.code);
         }
 
@@ -345,13 +351,13 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     protected T createPlayerGameData(PlayerController playerController, int gameType, int roomCfgId) throws Exception {
         //1.从内存获取
         T playerGameData = getPlayerGameData(playerController.playerId(), roomCfgId);
-        if (playerGameData == null) {
+        if (playerGameData != null) {
             playerGameData.setPlayerController(playerController);
             return playerGameData;
         }
 
         //2.从数据库获取
-        playerGameData = gameDataDao.findOne(playerGameData.playerId(), roomCfgId, this.playerGameDataClass);
+        playerGameData = gameDataDao.findOne(playerController.playerId(), roomCfgId, this.playerGameDataClass);
         if (playerGameData == null) {
             Constructor<T> constructor = this.playerGameDataClass.getConstructor();
             playerGameData = constructor.newInstance();
