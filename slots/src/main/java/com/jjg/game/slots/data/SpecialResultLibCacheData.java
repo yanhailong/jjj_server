@@ -142,7 +142,7 @@ public class SpecialResultLibCacheData {
         if (allBetCount > 0 && this.accumulateResultLibSectionPropMap != null && !this.accumulateResultLibSectionPropMap.isEmpty()) {
             List<ChangeSectionData2> tmpList = this.accumulateResultLibSectionPropMap.get(modelId);
             if (tmpList != null && !tmpList.isEmpty()) {
-                ChangeSectionData2 data2 = tmpList.stream().filter(d -> allBetCount <= d.getType()).findFirst().orElse(null);
+                ChangeSectionData2 data2 = tmpList.stream().filter(d -> allBetCount == d.getType()).findFirst().orElse(null);
                 if (data2 != null) {
                     return data2.applyTo(basePropMap);
                 }
@@ -153,7 +153,7 @@ public class SpecialResultLibCacheData {
         if (prizelessCount > 0 && this.prizelessResultLibSectionPropMap != null && !this.prizelessResultLibSectionPropMap.isEmpty()) {
             List<ChangeSectionData2> tmpList = this.prizelessResultLibSectionPropMap.get(modelId);
             if (tmpList != null && !tmpList.isEmpty()) {
-                ChangeSectionData2 data2 = tmpList.stream().filter(d -> prizelessCount >= d.getType()).findFirst().orElse(null);
+                ChangeSectionData2 data2 = tmpList.stream().filter(d -> prizelessCount == d.getType()).findFirst().orElse(null);
                 if (data2 != null) {
                     return data2.applyTo(basePropMap);
                 }
