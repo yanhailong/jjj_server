@@ -191,7 +191,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         playerSessionService.offline(playerController.getPlayer(), exitType == ExitType.DROPPED);
         //计算玩游戏的时长
         int onlineTimeLen = 0;
-        if (playerGameData != null) {
+        if (playerGameData != null && playerGameData.getCreateTime() != 0) {
             onlineTimeLen = TimeHelper.nowInt() - playerGameData.getCreateTime();
         }
         session.setReference(null);
