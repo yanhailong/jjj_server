@@ -227,6 +227,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
      */
     @Override
     public TenFoldGoldenBullGameRunInfo normal(TenFoldGoldenBullGameRunInfo gameRunInfo, TenFoldGoldenBullPlayerGameData playerGameData, long betValue, TenFoldGoldenBullResultLib resultLib) {
+        gameRunInfo.setStake(betValue);
         Set<Integer> typeSet = resultLib.getLibTypeSet();
         //检查是否触发假福牛
         if (gameGenerateManager.getModelRandom() != null) {
@@ -248,7 +249,6 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
             gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
             gameRunInfo.setIconArr(resultLib.getIconArr());
             gameRunInfo.setResultLib(resultLib);
-            gameRunInfo.setStake(betValue);
         }
         return gameRunInfo;
     }

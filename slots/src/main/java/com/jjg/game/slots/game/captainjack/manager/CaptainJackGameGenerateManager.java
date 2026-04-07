@@ -9,12 +9,10 @@ import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
-import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackAddIconInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackAwardLineInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAwardLineInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import jodd.util.StringUtil;
 import org.apache.commons.lang.StringUtils;
@@ -386,6 +384,9 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
         if (CollectionUtil.isEmpty(lib.getLibTypeSet())) {
             return;
         }
+        if (CollectionUtil.isNotEmpty(lib.getDigTimesMultiplier())) {
+            lib.addTimes(calMiniGame(lib));
+        }
         if (CollectionUtil.isEmpty(lib.getSpecialAuxiliaryInfoList())) {
             //中奖线
             lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
@@ -395,6 +396,17 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
             //计算免费游戏总倍数
             lib.addTimes(calFree(lib, Integer.MAX_VALUE));
         }
+    }
+
+    private long calMiniGame(CaptainJackResultLib lib) {
+        if (CollectionUtil.isEmpty(lib.getDigTimesMultiplier())) {
+            return 0;
+        }
+        long total = 0;
+        for (Integer multiplier : lib.getDigTimesMultiplier()) {
+            total += multiplier;
+        }
+        return total;
     }
 
     /**
@@ -458,7 +470,8 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
             for (int i = 0; i < endIndex; i++) {
                 JSONObject jsonObject = info.getFreeGames().get(i);
                 CaptainJackResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), CaptainJackResultLib.class);
-                if (CollectionUtil.isEmpty(tmpLib.getAddIconInfos())) {
+                tmpLib.addTimes(calMiniGame(tmpLib));
+                if (CollectionUtil.isEmpty(tmpLib.getAwardLineInfoList())) {
                     continue;
                 }
                 //中奖线

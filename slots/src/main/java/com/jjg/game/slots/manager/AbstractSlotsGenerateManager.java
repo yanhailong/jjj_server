@@ -54,12 +54,20 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     //specialResultLib表的一些权重等等信息
     protected SpecialResultLibCacheData specialResultLibCacheData = null;
 
+    //是不是数值工具，因为数值工具和正常服务器加载数据可能有区别，所以这里区分出来
+    protected boolean numberTool;
+
     public AbstractSlotsGenerateManager(Class<T> resultLibClazz) {
         this.resultLibClazz = resultLibClazz;
     }
 
     public void init(int gameType) {
+        init(gameType, false);
+    }
+
+    public void init(int gameType, boolean numberTool) {
         this.gameType = gameType;
+        this.numberTool = numberTool;
         initConfig();
     }
 
@@ -1464,7 +1472,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                         String[] arr2 = arr[0].split("&");
 
                         int p = Integer.parseInt(arr[1]);
-                        if (p < 1) {
+                        if (!this.numberTool && p < 1) {
                             continue;
                         }
 
@@ -1487,7 +1495,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                     typeSectionPropMap.put(type, propInfo);
                 }
                 addSection = false;
-            }else {
+            } else {
                 typeSectionPropMap = tempResultLibSectionPropMap.get(SlotsConst.Common.DEFAULT_SPECIAL_RESULT_LIB_MODELID);
             }
 
@@ -1543,7 +1551,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             //计算 accumulate 修改后的 sectionProp
             List<ChangeSectionData2> accumulateList = analyzChangeWeightMap(cfg.getAccumulate(), typeSectionPropMap);
             if (accumulateList != null) {
-                if (tmpAccumulateResultLibSectionPropMap == null) tmpAccumulateResultLibSectionPropMap = new HashMap<>();
+                if (tmpAccumulateResultLibSectionPropMap == null)
+                    tmpAccumulateResultLibSectionPropMap = new HashMap<>();
                 //升序排列，findFirst取最小满足阈值
                 accumulateList.sort(Comparator.comparingInt(ChangeSectionData2::getType));
                 tmpAccumulateResultLibSectionPropMap.put(cfg.getModelId(), accumulateList);
@@ -1862,7 +1871,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
             for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
                 T tmpLib = JSON.parseObject(jsonObject.toJSONString(), this.resultLibClazz);
-                calTimes(tmpLib);
                 times += tmpLib.getTimes();
             }
         }

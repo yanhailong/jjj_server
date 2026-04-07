@@ -160,6 +160,9 @@ public class ScratchCardsController extends BaseActivityController implements Or
             }
             // 记录日志
             activityLogger.sendScratchCardsJoin(player, activityData, costItem, times, removedItem.data, commonResult.data, rewards, scratchCardsResults);
+        } else {
+            // 记录未获奖日志
+            activityLogger.sendScratchCardsJoin(player, activityData, costItem, times, removedItem.data, new ItemOperationResult(), new HashMap<>(), scratchCardsResults);
         }
         return res;
     }

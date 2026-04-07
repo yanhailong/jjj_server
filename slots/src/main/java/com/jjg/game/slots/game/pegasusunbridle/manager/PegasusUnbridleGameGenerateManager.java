@@ -41,7 +41,6 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
     private Map<Integer, Integer> elementRollMap;
 
 
-
     @Override
     public PegasusUnbridleResultLib checkAward(int[] arr, PegasusUnbridleResultLib lib, boolean freeModel) throws Exception {
         lib.setGameType(this.gameType);
@@ -52,6 +51,7 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
         if (CollectionUtil.isNotEmpty(lib.getLibTypeSet())) {
             for (Integer libType : lib.getLibTypeSet()) {
                 if (libType == PegasusUnbridleConstant.SpecialMode.NORMAL) {
+                    calTimes(lib);
                     continue;
                 }
                 //随机元素
@@ -87,15 +87,17 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
                     calTimes(specialLib);
                     if (randomIcon.createElementCount == realCount) {
                         specialLib.addJackpotId(PegasusUnbridleConstant.Common.JACKPOT_ID);
+                        //设置免费的总次数
+                        lib.setTimes(specialLib.getTimes());
                         break;
                     }
                     if (randomIcon.changeCount == 0) {
+                        lib.setTimes(specialLib.getTimes());
                         break;
                     }
                 }
             }
         }
-        calTimes(lib);
         return lib;
     }
 
