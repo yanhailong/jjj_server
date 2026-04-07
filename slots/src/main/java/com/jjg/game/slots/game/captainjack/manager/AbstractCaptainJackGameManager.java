@@ -9,7 +9,6 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackGameDataDao;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackPlayerGameDataDTO;
@@ -199,7 +198,9 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         } else if (resultLib.getLibTypeSet().contains(CaptainJackConstant.SpecialMode.MINI_GAME)) {
             playerGameData.setStatus(CaptainJackConstant.Status.TREASURE_CHEST);
             playerGameData.setResultLib(resultLib);
-            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+            long times = gameGenerateManager.calLineTimes(resultLib.getAwardLineInfoList());
+            times += gameGenerateManager.calAfterAddIcons(resultLib.getAddIconInfos());
+            gameRunInfo.addBigPoolTimes(times);
         } else {
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
@@ -235,21 +236,27 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
             log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(), afterCount);
         }
 
-        //累计免费模式的中奖金额
-        playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
-        gameRunInfo.addBigPoolTimes(freeGame.getTimes());
-        if (afterCount == 0) {
-            playerGameData.setStatus(CaptainJackConstant.Status.NORMAL);
-            playerGameData.setFreeLib(null);
-            playerGameData.getFreeIndex().set(0);
-            gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
-            playerGameData.setFreeAllWin(0);
-            log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
-        }
         //免费触发挖宝
         if (freeGame.getDigTimes() > 0 && CollectionUtil.isNotEmpty(freeGame.getDigTimesMultiplier())) {
             playerGameData.setStatus(CaptainJackConstant.Status.TREASURE_CHEST);
             playerGameData.setResultLib(freeGame);
+            long times = gameGenerateManager.calLineTimes(freeGame.getAwardLineInfoList());
+            times += gameGenerateManager.calAfterAddIcons(freeGame.getAddIconInfos());
+            //累计免费模式的中奖金额
+            playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * times);
+            gameRunInfo.addBigPoolTimes(times);
+        } else {
+            //累计免费模式的中奖金额
+            playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
+            gameRunInfo.addBigPoolTimes(freeGame.getTimes());
+            if (afterCount == 0) {
+                playerGameData.setStatus(CaptainJackConstant.Status.NORMAL);
+                playerGameData.setFreeLib(null);
+                playerGameData.getFreeIndex().set(0);
+                gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
+                playerGameData.setFreeAllWin(0);
+                log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+            }
         }
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.setResultLib(freeGame);
