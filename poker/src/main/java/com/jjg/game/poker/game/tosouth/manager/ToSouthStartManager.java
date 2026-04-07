@@ -4,9 +4,11 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLibManager;
 import com.jjg.game.room.listener.IRoomStartListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -21,6 +23,9 @@ import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.*;
 @Component
 public class ToSouthStartManager implements IRoomStartListener, GmListener {
     private static final Logger log = LoggerFactory.getLogger(ToSouthStartManager.class);
+
+    @Autowired
+    private ToSouthCardLibManager toSouthCardLibManager;
 
     /** GM指定发牌数据：playerId -> List<int[]{suit, rank}> */
     private static final Map<Long, List<int[]>> GM_DEAL_CARDS = new ConcurrentHashMap<>();
@@ -41,6 +46,12 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
             } else if ("dealRobotCards".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到dealRobotCards的gm命令 playerId = {}, gmOrders = {}", playerController.playerId(), gmOrders);
                 return handleDealRobotCards(playerController, gmOrders);
+            } else if ("addWinStreak".equalsIgnoreCase(gmOrders[0])) {
+                log.debug("收到addWinStreak的gm命令 playerId = {}, gmOrders = {}", playerController.playerId(), gmOrders);
+                return handleAddWinStreak(playerController, gmOrders);
+            } else if ("addTotalProfit".equalsIgnoreCase(gmOrders[0])) {
+                log.debug("收到addTotalProfit的gm命令 playerId = {}, gmOrders = {}", playerController.playerId(), gmOrders);
+                return handleAddTotalProfit(playerController, gmOrders);
             } else {
                 res.code = Code.NOT_FOUND;
             }
@@ -280,6 +291,13 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
     }
 
     /**
+     * 检查玩家是否有待使用的GM机器人手牌
+     */
+    public static boolean hasGmRobotCards(long playerId) {
+        return GM_ROBOT_DEAL_CARDS.containsKey(playerId);
+    }
+
+    /**
      * 消费GM指定的机器人手牌（一次性使用，取出后自动移除）
      *
      * @param gmPlayerId 发起GM命令的玩家ID
@@ -287,6 +305,74 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
      */
     public static Map<Integer, List<int[]>> consumeGmRobotCards(long gmPlayerId) {
         return GM_ROBOT_DEAL_CARDS.remove(gmPlayerId);
+    }
+
+    /**
+     * 处理 addWinStreak GM命令
+     * 格式: addWinStreak 数值
+     * 正数=增加连赢次数，负数=增加连输次数
+     * 例: addWinStreak -10 → 当前streak加上-10
+     */
+    private CommonResult<String> handleAddWinStreak(PlayerController playerController, String[] gmOrders) {
+        CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
+
+        if (gmOrders.length < 2) {
+            res.code = Code.FAIL;
+            res.data = "格式：addWinStreak 数值，例如：addWinStreak -10";
+            return res;
+        }
+
+        int delta;
+        try {
+            delta = Integer.parseInt(gmOrders[1].trim());
+        } catch (NumberFormatException e) {
+            res.code = Code.FAIL;
+            res.data = "数值格式错误：" + gmOrders[1] + "，请输入整数";
+            return res;
+        }
+
+        long playerId = playerController.playerId();
+        int oldStreak = toSouthCardLibManager.getPlayerWinStreak(playerId);
+        int newStreak = oldStreak + delta;
+        toSouthCardLibManager.setPlayerWinStreak(playerId, newStreak);
+
+        res.data = "winStreak已修改：" + oldStreak + " → " + newStreak + "（delta=" + delta + "），重新进入房间后生效";
+        log.info("GM修改winStreak - 玩家: {}, {} → {}（delta={}）", playerId, oldStreak, newStreak, delta);
+        return res;
+    }
+
+    /**
+     * 处理 addTotalProfit GM命令
+     * 格式: addTotalProfit 数值
+     * 正数=增加总盈亏，负数=减少总盈亏
+     * 例: addTotalProfit -1000 → 当前totalProfit加上-1000
+     */
+    private CommonResult<String> handleAddTotalProfit(PlayerController playerController, String[] gmOrders) {
+        CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
+
+        if (gmOrders.length < 2) {
+            res.code = Code.FAIL;
+            res.data = "格式：addTotalProfit 数值，例如：addTotalProfit -1000";
+            return res;
+        }
+
+        long delta;
+        try {
+            delta = Long.parseLong(gmOrders[1].trim());
+        } catch (NumberFormatException e) {
+            res.code = Code.FAIL;
+            res.data = "数值格式错误：" + gmOrders[1] + "，请输入整数";
+            return res;
+        }
+
+        long playerId = playerController.playerId();
+        long oldProfit = toSouthCardLibManager.getPlayerTotalProfit(playerId);
+        toSouthCardLibManager.addPlayerTotalProfit(playerId, delta);
+        long newProfit = oldProfit + delta;
+
+        res.data = "totalProfit已修改：" + oldProfit + " → " + newProfit + "（delta=" + delta + "），重新进入房间后生效";
+        log.info("GM修改totalProfit - 玩家: {}, {} → {}（delta={}）", playerId, oldProfit, newProfit, delta);
+        return res;
     }
 
     @Override

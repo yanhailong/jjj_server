@@ -1,34 +1,32 @@
 package com.jjg.game.poker.game.tosouth.gamephase;
 
-import cn.hutool.core.collection.CollUtil;
 import com.jjg.game.common.proto.Pair;
-import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Card;
-import com.jjg.game.poker.game.common.BasePokerGameController;
-import com.jjg.game.poker.game.common.BasePokerGameDataVo;
-import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
-import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseStartGamePhase;
 import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
-import com.jjg.game.poker.game.tosouth.constant.ToSouthConstant;
 import com.jjg.game.poker.game.tosouth.data.ToSouthSettlementContext;
+import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLib;
+import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLibManager;
 import com.jjg.game.poker.game.tosouth.manager.ToSouthStartManager;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthSendCardsInfo;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
-import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameLog;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
-import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.PoolResultsCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_2;
@@ -131,6 +129,17 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
     }
 
     private void sendCards(Map<Integer, PokerCard> cardListMap, ToSouthGameDataVo gameDataVo) {
+        // ====== GM命令优先：有GM发牌命令时跳过牌库抽牌 ======
+        boolean hasGmCommand = hasAnyGmCards(gameDataVo);
+        if (!hasGmCommand) {
+            // ====== 牌库抽牌检查 ======
+            if (tryDealFromCardLib(cardListMap, gameDataVo)) {
+                return; // 牌库发牌成功，跳过正常发牌
+            }
+        } else {
+            log.info("[牌库] 检测到GM发牌命令，跳过牌库抽牌");
+        }
+
         List<Integer> list = new ArrayList<>(cardListMap.keySet());
 
         // ====== GM发牌处理：预分配GM指定的手牌，并从牌池中移除 ======
@@ -256,6 +265,293 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
     }
 
     /**
+     * 尝试从牌库中发牌（基于PoolResultsCfg权重配置）
+     *
+     * 流程:
+     * 1. 检查牌库是否存在、PoolResultsCfg配置是否存在
+     * 2. 收集所有真人玩家的连赢/连输值
+     * 3. 优先找连赢玩家（streak最大），其次找连输玩家（streak最小）
+     * 4. 匹配addTypeProp中的streak key（一次只能修改一组，一桌只修改一次）
+     * 5. 用addTypeProp的delta修改typeProp的基础权重
+     * 6. 按修改后的权重随机选取一个分区(sectionKey)
+     * 7. 从Redis该分区随机抽取牌库条目
+     * 8. playerCards发给触发修改的真人玩家，robotCards发给其余3人
+     *
+     * @return true=牌库发牌成功, false=回退到正常发牌
+     */
+    private boolean tryDealFromCardLib(Map<Integer, PokerCard> cardListMap, ToSouthGameDataVo gameDataVo) {
+        if (!(gameController instanceof ToSouthGameController controller)) {
+            return false;
+        }
+
+        // 获取 ToSouthCardLibManager
+        ToSouthCardLibManager cardLibManager = CommonUtil.getContext().getBean(ToSouthCardLibManager.class);
+
+        if (!cardLibManager.hasCardLib()) {
+            return false;
+        }
+
+        // 收集活跃的玩家列表
+        List<PlayerSeatInfo> activePlayers = gameDataVo.getPlayerSeatInfoList().stream()
+                .filter(p -> !p.isDelState())
+                .collect(Collectors.toList());
+
+        // 需要恰好4人才能使用牌库
+        if (activePlayers.size() != 4) {
+            return false;
+        }
+
+        Map<Long, Integer> streakMap = gameDataVo.getPlayerWinStreakMap();
+
+        // ====== 先用任意一条PoolResultsCfg提取addTypeProp的streak key ======
+        List<PoolResultsCfg> allPoolCfgList = cardLibManager.getPoolResultsCfgListByGameType();
+        if (allPoolCfgList.isEmpty()) {
+            return false;
+        }
+        Map<Integer, Map<Integer, Integer>> addTypeProp = allPoolCfgList.getFirst().getAddTypeProp();
+
+        // 收集所有addTypeProp中的streak key（排除0，因为0是基础偏差）
+        List<Integer> positiveStreakKeys = new ArrayList<>(); // 连赢阈值
+        List<Integer> negativeStreakKeys = new ArrayList<>(); // 连输阈值
+        if (addTypeProp != null) {
+            for (int key : addTypeProp.keySet()) {
+                if (key > 0) positiveStreakKeys.add(key);
+                else if (key < 0) negativeStreakKeys.add(key);
+            }
+        }
+        // 正数key从大到小排序（优先匹配高阈值）
+        positiveStreakKeys.sort(Collections.reverseOrder());
+        // 负数key从小到大排序（优先匹配低阈值，即绝对值最大的）
+        Collections.sort(negativeStreakKeys);
+
+        // 最小触发阈值
+        int minPositiveThreshold = positiveStreakKeys.isEmpty() ? Integer.MAX_VALUE : positiveStreakKeys.getLast();
+        int maxNegativeThreshold = negativeStreakKeys.isEmpty() ? Integer.MIN_VALUE : negativeStreakKeys.getLast();
+
+        PlayerSeatInfo targetPlayer = null;
+        int matchedStreakKey = 0;
+
+        // 优先找连赢的真人玩家（streak >= 最小正阈值）
+        int bestPositiveStreak = 0;
+        for (PlayerSeatInfo seat : activePlayers) {
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(seat.getPlayerId());
+            if (gamePlayer instanceof GameRobotPlayer) continue;
+
+            int streak = streakMap.getOrDefault(seat.getPlayerId(), 0);
+            if (streak >= minPositiveThreshold && streak > bestPositiveStreak) {
+                bestPositiveStreak = streak;
+                targetPlayer = seat;
+            }
+        }
+
+        if (targetPlayer != null) {
+            // 匹配streakKey: 从大到小找第一个 <= streak的key
+            for (int key : positiveStreakKeys) {
+                if (bestPositiveStreak >= key) {
+                    matchedStreakKey = key;
+                    break;
+                }
+            }
+        }
+
+        // 其次找连输的真人玩家（streak <= 最大负阈值）
+        if (targetPlayer == null) {
+            int bestNegativeStreak = 0;
+            for (PlayerSeatInfo seat : activePlayers) {
+                GamePlayer gamePlayer = gameDataVo.getGamePlayer(seat.getPlayerId());
+                if (gamePlayer instanceof GameRobotPlayer) continue;
+
+                int streak = streakMap.getOrDefault(seat.getPlayerId(), 0);
+                if (streak <= maxNegativeThreshold && streak < bestNegativeStreak) {
+                    bestNegativeStreak = streak;
+                    targetPlayer = seat;
+                }
+            }
+
+            if (targetPlayer != null) {
+                // 匹配streakKey: 从小到大找第一个 >= streak的key（注意都是负数）
+                for (int key : negativeStreakKeys) {
+                    if (bestNegativeStreak <= key) {
+                        matchedStreakKey = key;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 没有连赢/连输达到阈值的玩家 → 取第一个真人玩家，matchedStreakKey=0（使用基础权重偏差）
+        if (targetPlayer == null) {
+            for (PlayerSeatInfo seat : activePlayers) {
+                GamePlayer gamePlayer = gameDataVo.getGamePlayer(seat.getPlayerId());
+                if (!(gamePlayer instanceof GameRobotPlayer)) {
+                    targetPlayer = seat;
+                    break;
+                }
+            }
+        }
+
+        // 全是机器人，无需牌库控制
+        if (targetPlayer == null) {
+            return false;
+        }
+
+        // ====== 根据目标玩家的总盈亏选择对应的PoolResultsCfg模型 ======
+        Map<Long, Long> profitMap = gameDataVo.getPlayerTotalProfitMap();
+        long playerTotalProfit = profitMap.getOrDefault(targetPlayer.getPlayerId(), 0L);
+        PoolResultsCfg poolCfg = cardLibManager.selectPoolResultsCfg(playerTotalProfit);
+        if (poolCfg == null || poolCfg.getTypeProp() == null || poolCfg.getTypeProp().isEmpty()) {
+            return false;
+        }
+
+        // ====== 计算修改后的权重 ======
+        // 只使用typeProp中的分区key（这些才是Redis中有数据的分区）
+        Set<Integer> validSectionKeys = poolCfg.getTypeProp().keySet();
+        Map<Integer, Integer> baseWeights = new LinkedHashMap<>(poolCfg.getTypeProp());
+        // 使用当前poolCfg的addTypeProp，matchedStreakKey=0时使用基础偏差
+        addTypeProp = poolCfg.getAddTypeProp();
+        Map<Integer, Integer> deltaMap = addTypeProp != null ? addTypeProp.get(matchedStreakKey) : null;
+        if (deltaMap != null) {
+            for (Map.Entry<Integer, Integer> entry : deltaMap.entrySet()) {
+                int sectionKey = entry.getKey();
+                int delta = entry.getValue();
+                // 只修改typeProp中已有的分区，忽略addTypeProp中多出的分区
+                if (validSectionKeys.contains(sectionKey)) {
+                    baseWeights.merge(sectionKey, delta, Integer::sum);
+                }
+            }
+        }
+
+        // 排序分区key并clamp权重到>=0
+        List<Integer> sortedSectionKeys = new ArrayList<>(baseWeights.keySet());
+        Collections.sort(sortedSectionKeys);
+
+        // 计算总权重（权重<=0的分区不参与随机）
+        long totalWeight = 0;
+        for (int key : sortedSectionKeys) {
+            int weight = Math.max(0, baseWeights.get(key));
+            baseWeights.put(key, weight);
+            totalWeight += weight;
+        }
+
+        if (totalWeight <= 0) {
+            log.warn("[牌库] 权重总和为0，回退正常发牌 streakKey={}", matchedStreakKey);
+            return false;
+        }
+
+        // ====== 按权重随机选取分区 ======
+        long rand = ThreadLocalRandom.current().nextLong(totalWeight);
+        int selectedSectionKey = sortedSectionKeys.getLast(); // 默认最后一个
+        long cumulative = 0;
+        for (int key : sortedSectionKeys) {
+            cumulative += baseWeights.get(key);
+            if (rand < cumulative) {
+                selectedSectionKey = key;
+                break;
+            }
+        }
+
+        // ====== 从Redis抽取牌库 ======
+        ToSouthCardLib cardLib = cardLibManager.getCardLib(selectedSectionKey);
+        if (cardLib == null) {
+            log.info("[牌库] 分区{}牌库为空，回退正常发牌", selectedSectionKey);
+            return false;
+        }
+
+        // 验证牌库数据有效性
+        if (cardLib.getPlayerCards() == null || cardLib.getPlayerCards().size() != 13
+                || cardLib.getRobotCards() == null || cardLib.getRobotCards().size() != 3) {
+            log.warn("[牌库] 牌库数据无效，回退正常发牌");
+            return false;
+        }
+
+        // 验证牌库中的牌ID在当前牌池中都存在
+        for (int cardId : cardLib.getPlayerCards()) {
+            if (!cardListMap.containsKey(cardId)) {
+                log.warn("[牌库] 牌库中的牌ID不在当前牌池中 cardId={}, 回退正常发牌", cardId);
+                return false;
+            }
+        }
+        for (List<Integer> robotHand : cardLib.getRobotCards()) {
+            for (int cardId : robotHand) {
+                if (!cardListMap.containsKey(cardId)) {
+                    log.warn("[牌库] 牌库中的牌ID不在当前牌池中 cardId={}, 回退正常发牌", cardId);
+                    return false;
+                }
+            }
+        }
+
+        int playerStreak = streakMap.getOrDefault(targetPlayer.getPlayerId(), 0);
+        log.info("[牌库] 触发牌库发牌 玩家={}, streak={}, streakKey={}, totalProfit={}, modelId={}, 选中分区={}, 倍数={}, 权重总和={}",
+                targetPlayer.getPlayerId(), playerStreak, matchedStreakKey,
+                playerTotalProfit, poolCfg.getModelId(),
+                selectedSectionKey, cardLib.getMultiplier(), totalWeight);
+
+        // ====== 分配手牌：目标玩家拿playerCards，其余3人拿robotCards ======
+        int robotIdx = 0;
+        int handPoker = gameDataVo.getRoomCfg().getHandPoker();
+        gameDataVo.setCards(new ArrayList<>()); // 牌库发牌后牌堆为空
+
+        for (PlayerSeatInfo info : activePlayers) {
+            List<Integer> playCard;
+            if (info.getPlayerId() == targetPlayer.getPlayerId()) {
+                playCard = new ArrayList<>(cardLib.getPlayerCards());
+            } else {
+                if (robotIdx < cardLib.getRobotCards().size()) {
+                    playCard = new ArrayList<>(cardLib.getRobotCards().get(robotIdx++));
+                } else {
+                    log.warn("[牌库] 机器人牌不足，回退正常发牌");
+                    return false;
+                }
+            }
+
+            // 截取到handPoker张（正常应该是13张）
+            if (playCard.size() > handPoker) {
+                playCard = playCard.subList(0, handPoker);
+            }
+
+            List<Card> handCards = new ArrayList<>();
+            for (Integer id : playCard) {
+                handCards.add(cardListMap.get(id));
+            }
+
+            // 排序和高亮
+            List<Integer> highlightIds = ToSouthHandUtils.sortAndGetHighlightCards(handCards);
+            if (!highlightIds.isEmpty()) {
+                gameDataVo.getPlayerHighlightCards().put(info.getPlayerId(), highlightIds);
+            }
+
+            playCard.clear();
+            List<Integer> sortedHandCards = new ArrayList<>();
+            for (Card c : handCards) {
+                if (c instanceof PokerCard pc) {
+                    playCard.add(pc.getPokerPoolId());
+                    sortedHandCards.add(pc.getClientId());
+                }
+            }
+
+            info.setCards(new ArrayList<>());
+            info.getCards().add(playCard);
+
+            log.debug("[牌库] 发牌 - 玩家: {}, 座位: {}, 手牌: {}", info.getPlayerId(), info.getSeatId(),
+                    ToSouthHandUtils.cardListToString(handCards));
+
+            // 记录发牌到一局日志
+            gameDataVo.getGameLog().recordDeal(info.getPlayerId(), info.getSeatId(),
+                    "[牌库] " + ToSouthHandUtils.cardListToString(handCards));
+
+            RespToSouthSendCardsInfo sendCardsInfo = new RespToSouthSendCardsInfo();
+            sendCardsInfo.sortedHandCards = sortedHandCards;
+            List<Integer> temp = new ArrayList<>(sortedHandCards);
+            Collections.shuffle(temp);
+            sendCardsInfo.originalHandCards = temp;
+            sendCardsInfo.highlightCards = highlightIds;
+            gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), sendCardsInfo));
+        }
+
+        return true;
+    }
+
+    /**
      * 将GM指定的手牌(suit+rank)解析为实际的pokerPoolId列表，并从可用牌池中移除
      *
      * @param cardListMap  牌池映射
@@ -298,6 +594,21 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             }
         }
         return null;
+    }
+
+    /**
+     * 检查当前牌局是否有任何GM发牌命令（dealCards 或 dealRobotCards）
+     * 用于判断是否跳过牌库抽牌
+     */
+    private boolean hasAnyGmCards(ToSouthGameDataVo gameDataVo) {
+        for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+            if (info.isDelState()) continue;
+            long playerId = info.getPlayerId();
+            if (ToSouthStartManager.hasGmCards(playerId) || ToSouthStartManager.hasGmRobotCards(playerId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

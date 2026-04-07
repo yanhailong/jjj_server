@@ -1926,6 +1926,33 @@ public class GMController extends AbstractController {
     }
 
     /**
+     * 生成poker牌库
+     */
+    @RequestMapping(BackendGMCmd.GENERATE_TO_POKER_LIB)
+    public WebResult<String> generateToSouthLib(@RequestBody GeneratePokerLibDto param) {
+        log.info("收到生成生成poker牌库的请求 param={}", param);
+        try {
+            ClusterClient clusterClient;
+            if (StringUtils.isNotEmpty(param.nodeName())) {
+                clusterClient = clusterSystem.getNodesByName(param.nodeName());
+            } else {
+                clusterClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
+            }
+
+            NotifyGenerateToSouthLib notify = new NotifyGenerateToSouthLib();
+            notify.count = param.count();
+
+            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
+            ClusterMessage msg = new ClusterMessage(pfMessage);
+            clusterClient.write(msg);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("生成poker牌库异常", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
      * 修改礼包码
      */
     @RequestMapping(BackendGMCmd.MODIFY_REDEEM_CODE)

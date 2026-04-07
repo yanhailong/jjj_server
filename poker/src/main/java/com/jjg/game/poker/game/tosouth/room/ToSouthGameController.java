@@ -68,6 +68,8 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.poker.game.tosouth.autohandler.ToSouthAutoPlayHandler;
 import com.jjg.game.poker.game.tosouth.autohandler.ToSouthReadyTimeoutHandler;
+import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLibManager;
+import com.jjg.game.common.utils.CommonUtil;
 
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.DIAMOND_SUIT;
 import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.HEART_SUIT;
@@ -1218,6 +1220,20 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         gameDataVo.getReadyPlayerIds().remove(playerId);
         gameDataVo.getReadyTimerScheduled().remove(playerId);
         gameDataVo.getReadyTimerVersion().remove(playerId);
+
+        // 从Redis加载玩家的连赢/连输和总盈亏数据（跨房间持久化）
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            try {
+                ToSouthCardLibManager cardLibManager = CommonUtil.getContext().getBean(ToSouthCardLibManager.class);
+                int streak = cardLibManager.getPlayerWinStreak(playerId);
+                long totalProfit = cardLibManager.getPlayerTotalProfit(playerId);
+                gameDataVo.getPlayerWinStreakMap().put(playerId, streak);
+                gameDataVo.getPlayerTotalProfitMap().put(playerId, totalProfit);
+                log.info("玩家 {} 进入房间，加载统计数据 streak={}, totalProfit={}", playerId, streak, totalProfit);
+            } catch (Exception e) {
+                log.error("加载玩家统计数据异常 playerId={}", playerId, e);
+            }
+        }
     }
 
     @Override
