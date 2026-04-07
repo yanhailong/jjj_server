@@ -23,13 +23,14 @@ public class AirRaidBetData {
 
     /**
      * 兑现：标记已兑现，计算赢得金额
+     * winAmount = betAmount × multiplier / 10000
      *
-     * @param multiplier 当前倍率(万分比)
+     * @param multiplier 当前倍率(万分比, 10000 = 1.00x)
      */
     public void cashOut(int multiplier) {
         this.cashedOut = true;
         this.cashOutMultiplier = multiplier;
-        this.winAmount = betAmount * multiplier / 100;
+        this.winAmount = betAmount * multiplier / 10000;
     }
 
     public long getBetAmount() {

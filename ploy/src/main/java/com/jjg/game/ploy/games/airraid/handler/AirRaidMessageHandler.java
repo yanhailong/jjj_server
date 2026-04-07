@@ -57,14 +57,6 @@ public class AirRaidMessageHandler implements GmListener {
         airRaidPloyController.onCashOutSync(msg);
     }
 
-    /**
-     * 坠毁同步
-     */
-    @Command(AirRaidConstant.MsgBean.CRASH_SYNC)
-    public void onCrashSync(CrashSync msg) {
-        airRaidPloyController.onCrashSync(msg);
-    }
-
 
     //--------------------------------------------------玩家消息-----------------------------------------
 
