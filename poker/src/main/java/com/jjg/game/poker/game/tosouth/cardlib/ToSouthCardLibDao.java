@@ -44,6 +44,9 @@ public class ToSouthCardLibDao {
     /** 玩家总盈亏记录 HASH: playerId → totalProfit */
     private static final String PLAYER_PROFIT_KEY = "toSouthProfit";
 
+    /** 标准池 Redis key前缀（与slots一致: pool:{gameType}，HASH: roomCfgId → balance） */
+    private static final String POOL_PREFIX = "pool:";
+
     /** 当前正在使用的结果库名（内存缓存） */
     private volatile String currentLibName;
 
@@ -244,6 +247,41 @@ public class ToSouthCardLibDao {
     public boolean hasCardLib() {
         String libName = getCurrentLibNameFromRedis();
         return libName != null && !libName.isEmpty();
+    }
+
+    // ==================== 水池余额（参考 slots 的 AbstractPoolDao / SlotsPoolDao） ====================
+
+    /**
+     * 初始化水池余额（putIfAbsent，不覆盖已有值）
+     *
+     * @param gameType  游戏类型
+     * @param roomCfgId 房间配置ID
+     * @param initValue 初始值（来自 Room_Chess.xlsx 的 initBasePool）
+     */
+    public void initPoolBalance(int gameType, int roomCfgId, long initValue) {
+        redisTemplate.opsForHash().putIfAbsent(POOL_PREFIX + gameType, roomCfgId, initValue);
+        log.info("初始化水池余额 gameType={}, roomCfgId={}, initValue={}", gameType, roomCfgId, initValue);
+    }
+
+    /**
+     * 获取当前水池余额
+     *
+     * @return 当前水池余额，不存在返回0
+     */
+    public long getPoolBalance(int gameType, int roomCfgId) {
+        Object val = redisTemplate.opsForHash().get(POOL_PREFIX + gameType, roomCfgId);
+        if (val == null) return 0;
+        return Long.parseLong(val.toString());
+    }
+
+    /**
+     * 水池余额增减（原子操作）
+     * 正数=系统收钱（玩家输）, 负数=系统赔钱（玩家赢）
+     *
+     * @return 操作后的余额
+     */
+    public long addPoolBalance(int gameType, int roomCfgId, long value) {
+        return redisTemplate.opsForHash().increment(POOL_PREFIX + gameType, roomCfgId, value);
     }
 
     // ==================== 玩家统计数据（持久化到Redis，跨房间保留） ====================
