@@ -4,33 +4,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 存储weightChange的权重变更指令（delta），查询时按需计算
+ * 存储权重变更指令（delta），查询时按需计算，避免预缓存大量PropInfo
  *
  * @author 11
  * @date 2026/3/3
  */
-public class ChangeSectionData {
-    //下注下限
-    private long betMin;
-    //下注上限
-    private long betMax;
+public class ChangeSectionData2 {
+    //类型（mark类型 / accumulate阈值 / prizeless阈值）
+    private int type;
     //权重变更指令: libType -> (sectionIndex -> newWeight)
     private Map<Integer, Map<Integer, Integer>> weightChanges;
 
-    public long getBetMin() {
-        return betMin;
+    public int getType() {
+        return type;
     }
 
-    public void setBetMin(long betMin) {
-        this.betMin = betMin;
-    }
-
-    public long getBetMax() {
-        return betMax;
-    }
-
-    public void setBetMax(long betMax) {
-        this.betMax = betMax;
+    public void setType(int type) {
+        this.type = type;
     }
 
     public Map<Integer, Map<Integer, Integer>> getWeightChanges() {

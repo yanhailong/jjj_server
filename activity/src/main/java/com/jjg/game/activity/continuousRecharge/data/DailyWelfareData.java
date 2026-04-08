@@ -17,6 +17,7 @@ public class DailyWelfareData {
     private BigDecimal rechargeNum;
     //已领取奖励  cfgId
     private Set<Integer> receSet;
+    private int group;
 
     public int getDate() {
         return date;
@@ -62,5 +63,13 @@ public class DailyWelfareData {
             this.receSet = new HashSet<>();
         }
         this.receSet.add(cfgId);
+    }
+
+    public int getGroup() {
+        return group;
+    }
+
+    public void setGroup(int group) {
+        this.group = group;
     }
 }

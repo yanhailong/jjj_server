@@ -38,6 +38,8 @@ public class Mail implements Cloneable {
     private AddType addType;
     //备注
     private String desc;
+    //操作人
+    private String operator;
 
     public long getId() {
         return id;
@@ -128,6 +130,14 @@ public class Mail implements Cloneable {
 
     public void setDesc(String desc) {
         this.desc = desc;
+    }
+
+    public String getOperator() {
+        return operator;
+    }
+
+    public void setOperator(String operator) {
+        this.operator = operator;
     }
 
     @Override

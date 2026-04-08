@@ -360,5 +360,7 @@ public interface MessageConst {
         int NOTIFY_GOLD_OPERATE = BASE_MSG_PREFIX | 0x13;
         //通知加载公告配置
         int NOTIFY_LOAD_NOTICE_LIST = BASE_MSG_PREFIX | 0x14;
+        //向其他游戏节点推送清除玩家信息
+        int NOTICE_CLEAN_PLAYER = BASE_MSG_PREFIX | 0x15;
     }
 }

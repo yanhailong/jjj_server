@@ -142,6 +142,12 @@ public class AccountController extends AbstractController {
                 dto.setSubChannel("1");
             }
 
+            //默认webgl
+            DeviceType deviceType = DeviceType.valueOf(dto.getDevice());
+            if (deviceType == null) {
+                dto.setDevice(DeviceType.WEB.getValue());
+            }
+
             switch (loginType) {
                 case GUEST -> {
                     return guestLogin(dto, ipResult.data);
@@ -493,14 +499,8 @@ public class AccountController extends AbstractController {
         //生成token
         String token = RandomUtils.getUUid();
 
-        //默认安卓设备
-        DeviceType deviceType = DeviceType.valueOf(dto.getDevice());
-        if (deviceType == null) {
-            deviceType = DeviceType.ANDROID;
-        }
-
         //保存token，方便weboskcet连接时进行校验
-        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), dto.getChannel(), ip, deviceType.getValue(),
+        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), dto.getChannel(), ip, dto.getDevice(),
                 dto.getMac(), account.getChannel().getValue(), dto.getShareId(), dto.getSubChannel(), dto.getWesteId(), dto.getFcm());
 
         LoginVo vo = new LoginVo();

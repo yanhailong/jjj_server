@@ -32,6 +32,10 @@ public class WolfMoonGenerateManager extends AbstractSlotsGenerateManager<WolfMo
     public WolfMoonGenerateManager() {
         super(WolfMoonResultLib.class);
     }
+    @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("狼月 无法重载配置表");
+    }
 
     //固定堆叠百搭符号 不消除
     private final Set<Integer> freeImmutableElements = Set.of(WolfMoonConstant.BaseElement.WILD);

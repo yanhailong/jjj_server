@@ -44,6 +44,11 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
     }
 
     @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("绿巨人 无法重载配置表");
+    }
+
+    @Override
     public HulkGameRunInfo enterGame(PlayerController playerController) {
         //获取玩家游戏数据
         HulkPlayerGameData playerGameData = getPlayerGameData(playerController);
@@ -108,7 +113,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.getPlayerId());

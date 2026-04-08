@@ -39,6 +39,8 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
     private final Map<Long, Long> readyTimerVersion = new HashMap<>();
     // 通杀结算上下文（开局阶段检测通杀后保存，供准备完成后判断走结算还是打牌）
     private ToSouthSettlementContext instantWinContext;
+    // 一局日志累积器（记录从发牌到结算的完整流水，结算时统一输出）
+    private ToSouthGameLog gameLog = new ToSouthGameLog();
 
     // ========== 跨局保留字段（不在resetData中清除） ==========
     // 上一局的赢家ID（最先出完牌的人），0表示没有上一局
@@ -46,11 +48,23 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
     // 上一局的玩家ID集合，用于判断是否同桌续局
     private Set<Long> lastGamePlayerIds = new HashSet<>();
 
+    private Set<Long> exitPlayerIds = new HashSet<>();
+
+    public Set<Long> getExitPlayerIds() {
+        return exitPlayerIds;
+    }
+
+    public void setExitPlayerIds(Set<Long> exitPlayerIds) {
+        this.exitPlayerIds = exitPlayerIds;
+    }
+
     /**
      * 必须初始化的参数是房间配置RoomCfg，如果后续子类添加数据需要在自己的构造函数中添加
      *
      * @param roomCfg
      */
+
+
     public ToSouthGameDataVo(Room_ChessCfg roomCfg) {
         super(roomCfg);
     }
@@ -171,6 +185,10 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
         this.lastGamePlayerIds = lastGamePlayerIds;
     }
 
+    public ToSouthGameLog getGameLog() {
+        return gameLog;
+    }
+
     @Override
     public int getPoolId() {
         return ToSouthDataHelper.getPoolId(this);
@@ -190,5 +208,6 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
         this.readyTimerScheduled = new HashSet<>();
         this.readyTimerVersion.clear();
         this.instantWinContext = null;
+        this.gameLog = new ToSouthGameLog();
     }
 }

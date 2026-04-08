@@ -36,7 +36,10 @@ public class TenFoldGoldenBullGameGenerateManager extends AbstractSlotsGenerateM
     private Pair<Integer, Integer> modelRandom;
     private final WeightRandom<Integer> randomCount = new WeightRandom<>();
     private final WeightRandom<Integer> randomIcon = new WeightRandom<>();
-
+    @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("十倍金牛 无法重载配置表");
+    }
     @Override
     public TenFoldGoldenBullResultLib checkAward(int[] arr, TenFoldGoldenBullResultLib lib, boolean freeModel) throws Exception {
         lib.setGameType(this.gameType);

@@ -424,9 +424,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                     gameController.triggerSettlementAction(gamePlayer.getId(), gameController.getRoom().getGameType(), 0,
                             info.betValue, gameController.getGameTransactionItemId());
                 } else {
-                    gameController.dealLose(gamePlayer, info.betValue);
                     poolWinValue += Math.abs(info.betValue);
                 }
+                gameController.dealIncome(gamePlayer, info.betValue);
             }
         }
         //增加总体

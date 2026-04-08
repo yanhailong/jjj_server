@@ -1,7 +1,6 @@
 package com.jjg.game.activity.continuousRecharge.data;
 
 import com.jjg.game.activity.common.data.PlayerActivityData;
-import com.jjg.game.activity.constant.ActivityConstant;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -129,7 +128,7 @@ public class ContinuousRechargeActivityData extends PlayerActivityData {
      *
      * @param dayIndex    当天索引（0-6）
      * @param rechargeNum 充值金额
-     * @param date  日期
+     * @param date        日期
      * @return
      */
     public DailyContinuousData updateDailyContinuousData(int dayIndex, BigDecimal rechargeNum, int date) {
@@ -148,9 +147,9 @@ public class ContinuousRechargeActivityData extends PlayerActivityData {
             data.addRechargeNum(rechargeNum);
         }
 
-        if(this.continuousTotalRecharge == null){
+        if (this.continuousTotalRecharge == null) {
             this.continuousTotalRecharge = rechargeNum;
-        }else {
+        } else {
             this.continuousTotalRecharge = this.continuousTotalRecharge.add(rechargeNum);
         }
         this.dailyRechargeMap.put(dayIndex, data);
@@ -162,11 +161,12 @@ public class ContinuousRechargeActivityData extends PlayerActivityData {
      *
      * @param rechargeNum
      */
-    public void updateWelfareRechargeData(int date, BigDecimal rechargeNum) {
+    public void updateWelfareRechargeData(int date, int group, BigDecimal rechargeNum) {
         //判断是不是跨天
         if (this.dailyWelfareData == null || this.dailyWelfareData.getDate() != date) {
             this.dailyWelfareData = new DailyWelfareData();
             this.dailyWelfareData.setDate(date);
+            this.dailyWelfareData.setGroup(group);
         }
 
         this.dailyWelfareData.addRechargeNum(rechargeNum);
@@ -178,41 +178,12 @@ public class ContinuousRechargeActivityData extends PlayerActivityData {
         }
     }
 
-    public boolean checkReceWefarDailyRewards(int cfgId){
-        if(this.dailyWelfareData == null){
+    public boolean checkReceWefarDailyRewards(int cfgId) {
+        if (this.dailyWelfareData == null) {
             return false;
         }
 
         return this.dailyWelfareData.rece(cfgId);
-    }
-
-    /**
-     * 检查最新的一天是否完成
-     *
-     * @return
-     */
-    public boolean currentDayCompelete() {
-        DailyContinuousData lastDayData = queryDailyContinuousByDay(this.currentDayIndex);
-        return lastDayData != null && lastDayData.canNext();
-    }
-
-    /**
-     * 计算七日连充累计充值总额
-     *
-     * @return
-     */
-    public BigDecimal calculateContinuousTotalRecharge() {
-        if (this.dailyRechargeMap == null || this.dailyRechargeMap.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-        BigDecimal total = BigDecimal.ZERO;
-        for (DailyContinuousData d : this.dailyRechargeMap.values()) {
-            if(d.getRechargeNum() == null){
-                continue;
-            }
-            total = total.add(d.getRechargeNum());
-        }
-        return total;
     }
 
     /**
@@ -228,7 +199,7 @@ public class ContinuousRechargeActivityData extends PlayerActivityData {
         return this.welfarReceSet.contains(cfgId);
     }
 
-    public void welfareReward(int cfgId){
+    public void welfareReward(int cfgId) {
         if (this.welfarReceSet == null) {
             this.welfarReceSet = new HashSet<>();
         }
@@ -238,9 +209,9 @@ public class ContinuousRechargeActivityData extends PlayerActivityData {
     /**
      * 清除最近一天的充值数据
      */
-    public void clearContinuousCurrentData(){
+    public void clearContinuousCurrentData() {
         DailyContinuousData data = queryDailyContinuousByDay(this.currentDayIndex);
-        if(data == null){
+        if (data == null) {
             return;
         }
         data.setRechargeNum(null);

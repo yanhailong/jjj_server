@@ -299,11 +299,16 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
      * @param items
      */
     public Mail addLangMail(long playerId, LanguageData title, LanguageData content, List<Item> items, AddType addType, String desc) {
+        return addLangMail(playerId, title, content, items, addType, desc, null);
+    }
+
+    public Mail addLangMail(long playerId, LanguageData title, LanguageData content, List<Item> items, AddType addType, String desc, String operator) {
         Mail mail = createMail(title, content, items, false);
         mail.setId(IdUtil.getSnowflakeNextId());
         mail.setPlayerId(playerId);
         mail.setAddType(addType);
         mail.setDesc(desc);
+        mail.setOperator(operator);
         addMail(mail);
         return mail;
     }
@@ -325,7 +330,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
      * @param content
      * @param items
      */
-    public void addMails(List<Long> playerIds, String title, String content, List<Item> items, AddType addType, String desc) {
+    public void addMails(List<Long> playerIds, String title, String content, List<Item> items, AddType addType, String desc, String operator) {
         List<Mail> mails = new ArrayList<>();
 
         LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, title);
@@ -337,6 +342,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
             mail.setPlayerId(playerId);
             mail.setAddType(addType);
             mail.setDesc(desc);
+            mail.setOperator(operator);
             mails.add(mail);
             coreLogger.addMail(mail);
         }
@@ -372,7 +378,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     /**
      * 给所有在线玩家发送全服邮件（分批执行，防止内存或查询压力过大）
      */
-    public void addAllServerMail(String title, String content, List<Item> items, AddType addType, String desc) throws Exception {
+    public void addAllServerMail(String title, String content, List<Item> items, AddType addType, String desc, String operator) throws Exception {
         LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, title);
         LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, content);
 
@@ -380,6 +386,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         Mail mail = createMail(titleData, contentData, items, true);
         mail.setAddType(addType);
         mail.setDesc(desc);
+        mail.setOperator(operator);
         mailDao.saveServerMail(mail);
 
         // 获取所有在线玩家

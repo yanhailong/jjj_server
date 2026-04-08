@@ -60,6 +60,11 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
     }
 
     @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("十倍金牛 无法重载配置表");
+    }
+
+    @Override
     public TenFoldGoldenBullGameRunInfo enterGame(PlayerController playerController) {
         //获取玩家游戏数据
         TenFoldGoldenBullPlayerGameData playerGameData = getPlayerGameData(playerController);
@@ -136,7 +141,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.getPlayerId());

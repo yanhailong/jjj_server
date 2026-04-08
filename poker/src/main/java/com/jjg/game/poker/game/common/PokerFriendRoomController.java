@@ -21,8 +21,8 @@ public class PokerFriendRoomController extends AbstractFriendRoomController<Room
     @Override
     protected boolean checkBankerCanNextRound() {
         return switch (room.getGameType()) {
-            // 德州为系统庄家，不限制庄家，也没有上庄
-            case CoreConst.GameType.TEXAS -> true;
+            // 德州、南方前进为系统庄家，不限制庄家，也没有上庄
+            case CoreConst.GameType.TEXAS, CoreConst.GameType.TO_SOUTH -> true;
             // TODO 暂定，后续确认需不需要庄家后再确定
             case CoreConst.GameType.VEGAS_THREE, CoreConst.GameType.BLACK_JACK -> false;
             default -> false;
@@ -38,6 +38,7 @@ public class PokerFriendRoomController extends AbstractFriendRoomController<Room
 
     @Override
     public boolean canBeBanker() {
-        return room.getGameType() != CoreConst.GameType.TEXAS;
+        return room.getGameType() != CoreConst.GameType.TEXAS
+                && room.getGameType() != CoreConst.GameType.TO_SOUTH;
     }
 }

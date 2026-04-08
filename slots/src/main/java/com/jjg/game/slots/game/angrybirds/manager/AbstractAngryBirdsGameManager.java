@@ -40,6 +40,12 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
 
     }
 
+    @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("愤怒的小鸟 无法重载配置表");
+    }
+
+
     /**
      * 将库里面的中将线信息转化为消息
      *
@@ -117,7 +123,7 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.getPlayerId());
