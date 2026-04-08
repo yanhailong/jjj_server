@@ -128,16 +128,21 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
         }
     }
 
+    /** 牌库发牌总开关：true=走牌库权重抽牌, false=正常随机发牌（每人13张） */
+    private static final boolean CARD_LIB_ENABLED = false;
+
     private void sendCards(Map<Integer, PokerCard> cardListMap, ToSouthGameDataVo gameDataVo) {
         // ====== GM命令优先：有GM发牌命令时跳过牌库抽牌 ======
         boolean hasGmCommand = hasAnyGmCards(gameDataVo);
-        if (!hasGmCommand) {
+        if (CARD_LIB_ENABLED && !hasGmCommand) {
             // ====== 牌库抽牌检查 ======
             if (tryDealFromCardLib(cardListMap, gameDataVo)) {
                 return; // 牌库发牌成功，跳过正常发牌
             }
-        } else {
+        } else if (hasGmCommand) {
             log.info("[牌库] 检测到GM发牌命令，跳过牌库抽牌");
+        } else {
+            log.info("[牌库] 牌库发牌开关已关闭(CARD_LIB_ENABLED=false)，使用正常随机发牌");
         }
 
         List<Integer> list = new ArrayList<>(cardListMap.keySet());
@@ -395,31 +400,31 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             return false;
         }
 
-        // ====== 根据目标玩家的总盈亏选择对应的PoolResultsCfg模型 ======
-        Map<Long, Long> profitMap = gameDataVo.getPlayerTotalProfitMap();
-        long playerTotalProfit = profitMap.getOrDefault(targetPlayer.getPlayerId(), 0L);
-        PoolResultsCfg poolCfg = cardLibManager.selectPoolResultsCfg(playerTotalProfit);
+        // ====== 根据水池偏差选择对应的PoolResultsCfg模型（参考slots水池控制） ======
+        int roomCfgId = controller.getRoom().getRoomCfgId();
+        PoolResultsCfg poolCfg = cardLibManager.selectPoolResultsCfg(roomCfgId);
         if (poolCfg == null || poolCfg.getTypeProp() == null || poolCfg.getTypeProp().isEmpty()) {
             return false;
         }
 
-        // ====== 计算修改后的权重 ======
-        // 只使用typeProp中的分区key（这些才是Redis中有数据的分区）
+        // ====== 计算权重 ======
         Set<Integer> validSectionKeys = poolCfg.getTypeProp().keySet();
         Map<Integer, Integer> baseWeights = new LinkedHashMap<>(poolCfg.getTypeProp());
-        // 使用当前poolCfg的addTypeProp，matchedStreakKey=0时使用基础偏差
+        // 触发连赢/连输时，直接使用 addTypeProp 中的权重替换基础权重（不再加减）
         addTypeProp = poolCfg.getAddTypeProp();
-        Map<Integer, Integer> deltaMap = addTypeProp != null ? addTypeProp.get(matchedStreakKey) : null;
-        if (deltaMap != null) {
-            for (Map.Entry<Integer, Integer> entry : deltaMap.entrySet()) {
-                int sectionKey = entry.getKey();
-                int delta = entry.getValue();
-                // 只修改typeProp中已有的分区，忽略addTypeProp中多出的分区
-                if (validSectionKeys.contains(sectionKey)) {
-                    baseWeights.merge(sectionKey, delta, Integer::sum);
+        if (matchedStreakKey != 0 && addTypeProp != null) {
+            Map<Integer, Integer> streakWeights = addTypeProp.get(matchedStreakKey);
+            if (streakWeights != null) {
+                for (Map.Entry<Integer, Integer> entry : streakWeights.entrySet()) {
+                    int sectionKey = entry.getKey();
+                    int newWeight = entry.getValue();
+                    if (validSectionKeys.contains(sectionKey)) {
+                        baseWeights.put(sectionKey, newWeight); // 直接赋值，不做加减
+                    }
                 }
             }
         }
+        // matchedStreakKey==0 时，使用 typeProp 基础权重，不做任何修改
 
         // 排序分区key并clamp权重到>=0
         List<Integer> sortedSectionKeys = new ArrayList<>(baseWeights.keySet());
@@ -481,9 +486,10 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
         }
 
         int playerStreak = streakMap.getOrDefault(targetPlayer.getPlayerId(), 0);
-        log.info("[牌库] 触发牌库发牌 玩家={}, streak={}, streakKey={}, totalProfit={}, modelId={}, 选中分区={}, 倍数={}, 权重总和={}",
+        long poolDiff = cardLibManager.getPoolDiff(roomCfgId);
+        log.info("[牌库] 触发牌库发牌 玩家={}, streak={}, streakKey={}, poolDiff={}, modelId={}, 选中分区={}, 倍数={}, 权重总和={}",
                 targetPlayer.getPlayerId(), playerStreak, matchedStreakKey,
-                playerTotalProfit, poolCfg.getModelId(),
+                poolDiff, poolCfg.getModelId(),
                 selectedSectionKey, cardLib.getMultiplier(), totalWeight);
 
         // ====== 分配手牌：目标玩家拿playerCards，其余3人拿robotCards ======

@@ -2,18 +2,23 @@ package com.jjg.game.poker.game.tosouth.cardlib;
 
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolResultsCfg;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import com.jjg.game.sampledata.bean.SouthernMoneyCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * 南方前进牌库管理器
  * 负责牌库的生成、获取等管理操作
+ * 水池控制参考 slots 的 AbstractSlotsGameManager
  */
 @Component
 public class ToSouthCardLibManager {
@@ -22,10 +27,143 @@ public class ToSouthCardLibManager {
     /** 南方前进游戏ID */
     private static final int GAME_TYPE_TO_SOUTH = 300400;
 
+    private static final BigDecimal TEN_THOUSAND = BigDecimal.valueOf(10000);
 
     @Autowired
     private ToSouthCardLibDao cardLibDao;
 
+    /**
+     * 应用启动时初始化水池余额
+     */
+    @PostConstruct
+    public void init() {
+        initPool();
+    }
+
+    /**
+     * 初始化水池余额（参考 SlotsPoolDao.initPool）
+     * 读取 Room_Chess.xlsx 中的 initBasePool，使用 putIfAbsent 写入 Redis
+     */
+    public void initPool() {
+        try {
+            Map<Integer, Room_ChessCfg> cfgMap = GameDataManager.getRoom_ChessCfgMap();
+            if (cfgMap == null || cfgMap.isEmpty()) {
+                log.warn("Room_ChessCfg 配置为空，跳过水池初始化");
+                return;
+            }
+            for (Map.Entry<Integer, Room_ChessCfg> en : cfgMap.entrySet()) {
+                Room_ChessCfg cfg = en.getValue();
+                if (cfg.getGameID() != GAME_TYPE_TO_SOUTH) {
+                    continue;
+                }
+                int roomCfgId = cfg.getId();
+                long initBasePool = cfg.getInitBasePool();
+                if (initBasePool <= 0) {
+                    log.warn("Room_ChessCfg roomCfgId={} 的 initBasePool={} 无效，跳过", roomCfgId, initBasePool);
+                    continue;
+                }
+                cardLibDao.initPoolBalance(GAME_TYPE_TO_SOUTH, roomCfgId, initBasePool);
+            }
+            log.info("南方前进水池初始化完成");
+        } catch (Exception e) {
+            log.error("南方前进水池初始化异常", e);
+        }
+    }
+
+    // ==================== 水池余额操作 ====================
+
+    /**
+     * 获取当前水池余额
+     */
+    public long getPoolBalance(int roomCfgId) {
+        return cardLibDao.getPoolBalance(GAME_TYPE_TO_SOUTH, roomCfgId);
+    }
+
+    /**
+     * 水池余额增减
+     * 正数=系统收钱（玩家输）, 负数=系统赔钱（玩家赢）
+     *
+     * @return 操作后的余额
+     */
+    public long addPoolBalance(int roomCfgId, long value) {
+        return cardLibDao.addPoolBalance(GAME_TYPE_TO_SOUTH, roomCfgId, value);
+    }
+
+    /**
+     * 获取水池初始值（来自 Room_Chess.xlsx 的 initBasePool）
+     */
+    public long getPoolInit(int roomCfgId) {
+        Room_ChessCfg cfg = GameDataManager.getRoom_ChessCfg(roomCfgId);
+        if (cfg == null) {
+            log.warn("Room_ChessCfg 不存在 roomCfgId={}", roomCfgId);
+            return 0;
+        }
+        return cfg.getInitBasePool();
+    }
+
+    /**
+     * 计算水池偏差值（万分比）
+     * 公式: diff = ((currentPool - initPool) / initPool) * 10000
+     * 参考 AbstractSlotsGameManager.getLibCfg
+     *
+     * @param roomCfgId 房间配置ID
+     * @return 水池偏差（万分比），initPool为0时返回0
+     */
+    public long getPoolDiff(int roomCfgId) {
+        long poolInit = getPoolInit(roomCfgId);
+        if (poolInit <= 0) {
+            return 0;
+        }
+        long poolValue = getPoolBalance(roomCfgId);
+        return BigDecimal.valueOf(poolValue - poolInit)
+                .divide(BigDecimal.valueOf(poolInit), 6, RoundingMode.HALF_UP)
+                .multiply(TEN_THOUSAND)
+                .setScale(0, RoundingMode.HALF_UP)
+                .longValue();
+    }
+
+    /**
+     * 根据水池偏差选择对应的 PoolResultsCfg（水池模型）
+     * 参考 AbstractSlotsGameManager.getLibCfgByPoolDiff
+     *
+     * 水池偏差落在 [enterLimitMin, enterLimitMax) 区间内的配置
+     * 当 enterLimitMin <= -999999 时视为无下限
+     * 当 enterLimitMax >= 999999 时视为无上限
+     *
+     * @param roomCfgId 房间配置ID（用于获取水池余额和初始值）
+     * @return 匹配的配置，未找到则返回兜底配置
+     */
+    public PoolResultsCfg selectPoolResultsCfg(int roomCfgId) {
+        List<PoolResultsCfg> cfgList = getPoolResultsCfgListByGameType();
+        if (cfgList.isEmpty()) {
+            return null;
+        }
+
+        long diff = getPoolDiff(roomCfgId);
+
+        for (PoolResultsCfg cfg : cfgList) {
+            boolean minOk = diff >= cfg.getEnterLimitMin() || cfg.getEnterLimitMin() <= -999999;
+            boolean maxOk = diff < cfg.getEnterLimitMax() || cfg.getEnterLimitMax() >= 999999;
+            if (minOk && maxOk) {
+                log.debug("水池模型匹配 roomCfgId={}, diff={}, modelId={}, enterLimit=[{}, {})",
+                        roomCfgId, diff, cfg.getModelId(), cfg.getEnterLimitMin(), cfg.getEnterLimitMax());
+                return cfg;
+            }
+        }
+
+        // 未匹配到，返回标准池(modelId=4)
+        for (PoolResultsCfg cfg : cfgList) {
+            if (cfg.getModelId() == 4) {
+                log.warn("水池偏差 {} 未匹配到任何模型，使用默认 modelId=4, roomCfgId={}", diff, roomCfgId);
+                return cfg;
+            }
+        }
+        // 兜底：返回第一条
+        log.warn("水池偏差 {} 未匹配到任何模型且无默认模型，使用第一条, roomCfgId={}", diff, roomCfgId);
+        return cfgList.getFirst();
+    }
+
+    // ==================== 牌库操作 ====================
 
     /**
      * 批量生成牌库
@@ -178,35 +316,6 @@ public class ToSouthCardLibManager {
         return allCfgList.stream()
                 .filter(cfg -> cfg.getGameType() == GAME_TYPE_TO_SOUTH)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * 根据玩家总盈亏选择对应的PoolResultsCfg (modelId)
-     * 玩家总盈亏落在 [enterLimitMin, enterLimitMax) 区间内的配置
-     *
-     * @param playerTotalProfit 玩家在南方前进的总盈亏
-     * @return 匹配的配置，未找到则返回默认(modelId=4,标准池)
-     */
-    public PoolResultsCfg selectPoolResultsCfg(long playerTotalProfit) {
-        List<PoolResultsCfg> cfgList = getPoolResultsCfgListByGameType();
-        if (cfgList.isEmpty()) {
-            return null;
-        }
-
-        for (PoolResultsCfg cfg : cfgList) {
-            if (playerTotalProfit >= cfg.getEnterLimitMin() && playerTotalProfit < cfg.getEnterLimitMax()) {
-                return cfg;
-            }
-        }
-
-        // 未匹配到，返回标准池(modelId=4)
-        for (PoolResultsCfg cfg : cfgList) {
-            if (cfg.getModelId() == 4) {
-                return cfg;
-            }
-        }
-        // 兜底：返回第一条
-        return cfgList.getFirst();
     }
 
     // ==================== 玩家统计数据（持久化到Redis） ====================
