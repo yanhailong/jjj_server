@@ -349,6 +349,14 @@ public class SlotsPlayerGameData {
         this.playerController.setPlayer(player);
     }
 
+    public Map<Integer, OffLineEventData> getOfflineEventMap() {
+        return offlineEventMap;
+    }
+
+    public void setOfflineEventMap(Map<Integer, OffLineEventData> offlineEventMap) {
+        this.offlineEventMap = offlineEventMap;
+    }
+
     public void actionOffLineEvent(int eventId) {
         if (this.offlineEventMap == null || this.offlineEventMap.isEmpty()) {
             return;

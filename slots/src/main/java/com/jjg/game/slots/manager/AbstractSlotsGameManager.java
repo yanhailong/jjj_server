@@ -1229,7 +1229,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
 
             //检查是否中大奖
-            CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(),
+            CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
                     poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
             if (!result.success()) {
                 log.warn("从小池子扣除，并给玩家加钱失败2 code = {}", result.code);
@@ -1239,7 +1239,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.addSmallPoolReward(result.data);
             gameRunInfo.addSmallPoolGold(result.data);
 
-            log.info("玩家从单奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), poolId, result.data);
+            log.info("玩家从单奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), poolId, result.data);
         }
     }
 
@@ -2132,7 +2132,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return Collections.emptyList();
         }
 
-        log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.playerId(), contribt, resultLib.getJackpotIds());
+        log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.getPlayerId(), contribt, resultLib.getJackpotIds());
 
         //真奖池
         Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
