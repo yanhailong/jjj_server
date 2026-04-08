@@ -549,6 +549,9 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
         }
         DollarExpressResultLib freeGame = libResult.data;
 
+        //累计免费模式的中奖金额
+        playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
+
         gameRunInfo.setStatus(playerGameData.getStatus());
 
         int afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
