@@ -5,7 +5,12 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLibManager;
+import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
+import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.listener.IRoomStartListener;
+import com.jjg.game.room.manager.RoomManager;
+import com.jjg.game.sampledata.bean.RoomCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +31,9 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
 
     @Autowired
     private ToSouthCardLibManager toSouthCardLibManager;
+
+    @Autowired
+    private RoomManager roomManager;
 
     /** GM指定发牌数据：playerId -> List<int[]{suit, rank}> */
     private static final Map<Long, List<int[]>> GM_DEAL_CARDS = new ConcurrentHashMap<>();
@@ -312,6 +320,7 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
      * 格式: addWinStreak 数值
      * 正数=增加连赢次数，负数=增加连输次数
      * 例: addWinStreak -10 → 当前streak加上-10
+     * 同时更新Redis和内存，不退出房间直接生效
      */
     private CommonResult<String> handleAddWinStreak(PlayerController playerController, String[] gmOrders) {
         CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
@@ -334,25 +343,42 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
         long playerId = playerController.playerId();
         int oldStreak = toSouthCardLibManager.getPlayerWinStreak(playerId);
         int newStreak = oldStreak + delta;
+
+        // 1. 更新Redis
         toSouthCardLibManager.setPlayerWinStreak(playerId, newStreak);
 
-        res.data = "winStreak已修改：" + oldStreak + " → " + newStreak + "（delta=" + delta + "），重新进入房间后生效";
-        log.info("GM修改winStreak - 玩家: {}, {} → {}（delta={}）", playerId, oldStreak, newStreak, delta);
+        // 2. 更新内存中的gameDataVo（不退出房间直接生效）
+        boolean memoryUpdated = false;
+        try {
+            AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gc =
+                    roomManager.getGameControllerByPlayerId(playerId);
+            if (gc instanceof ToSouthGameController tgc) {
+                tgc.getGameDataVo().getPlayerWinStreakMap().put(playerId, newStreak);
+                memoryUpdated = true;
+            }
+        } catch (Exception e) {
+            log.warn("GM修改winStreak内存同步失败（Redis已更新）", e);
+        }
+
+        res.data = "winStreak已修改：" + oldStreak + " → " + newStreak + "（delta=" + delta + "），已立即生效"
+                + (memoryUpdated ? "" : "（内存未同步，玩家可能不在房间）");
+        log.info("GM修改winStreak - 玩家: {}, {} → {}（delta={}, memoryUpdated={}）", playerId, oldStreak, newStreak, delta, memoryUpdated);
         return res;
     }
 
     /**
-     * 处理 addTotalProfit GM命令
+     * 处理 addTotalProfit GM命令（已改为修改水池余额）
      * 格式: addTotalProfit 数值
-     * 正数=增加总盈亏，负数=减少总盈亏
-     * 例: addTotalProfit -1000 → 当前totalProfit加上-1000
+     * 正数=水池增加，负数=水池减少
+     * 例: addTotalProfit -1000 → 当前水池余额减少1000
+     * 水池余额存在Redis中，直接修改即可立即生效
      */
     private CommonResult<String> handleAddTotalProfit(PlayerController playerController, String[] gmOrders) {
         CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
 
         if (gmOrders.length < 2) {
             res.code = Code.FAIL;
-            res.data = "格式：addTotalProfit 数值，例如：addTotalProfit -1000";
+            res.data = "格式：addTotalProfit 数值，例如：addTotalProfit -1000（正数=水池增加，负数=水池减少）";
             return res;
         }
 
@@ -366,12 +392,22 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
         }
 
         long playerId = playerController.playerId();
-        long oldProfit = toSouthCardLibManager.getPlayerTotalProfit(playerId);
-        toSouthCardLibManager.addPlayerTotalProfit(playerId, delta);
-        long newProfit = oldProfit + delta;
 
-        res.data = "totalProfit已修改：" + oldProfit + " → " + newProfit + "（delta=" + delta + "），重新进入房间后生效";
-        log.info("GM修改totalProfit - 玩家: {}, {} → {}（delta={}）", playerId, oldProfit, newProfit, delta);
+        // 获取玩家当前房间的roomCfgId
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gc =
+                roomManager.getGameControllerByPlayerId(playerId);
+        if (!(gc instanceof ToSouthGameController tgc)) {
+            res.code = Code.FAIL;
+            res.data = "玩家不在南方前进房间中，无法修改水池";
+            return res;
+        }
+        int roomCfgId = tgc.getRoom().getRoomCfgId();
+
+        long oldBalance = toSouthCardLibManager.getPoolBalance(roomCfgId);
+        long newBalance = toSouthCardLibManager.addPoolBalance(roomCfgId, delta);
+
+        res.data = "水池余额已修改：" + oldBalance + " → " + newBalance + "（delta=" + delta + ", roomCfgId=" + roomCfgId + "），已立即生效";
+        log.info("GM修改水池余额 - 玩家: {}, roomCfgId={}, {} → {}（delta={}）", playerId, roomCfgId, oldBalance, newBalance, delta);
         return res;
     }
 
