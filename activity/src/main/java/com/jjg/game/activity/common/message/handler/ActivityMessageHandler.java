@@ -1,6 +1,6 @@
 package com.jjg.game.activity.common.message.handler;
 
-import com.alibaba.fastjson.JSONObject;
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowFreeRewards;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowRecord;
@@ -22,8 +22,11 @@ import com.jjg.game.activity.scratchcards.controller.ScratchCardsController;
 import com.jjg.game.activity.scratchcards.message.req.ReqScratchCardsExchange;
 import com.jjg.game.activity.sharepromote.controller.SharePromoteController;
 import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteBindPlayer;
+import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteOneReceive;
 import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteSelfRankInfo;
 import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteWeekRankInfo;
+import com.jjg.game.activity.sharepromote.message.res.ResSharePromoteClaimBindRewards;
+import com.jjg.game.activity.sharepromote.message.res.ResSharePromoteOneReceive;
 import com.jjg.game.activity.wealthroulette.controller.WealthRouletteController;
 import com.jjg.game.activity.wealthroulette.message.req.*;
 import com.jjg.game.common.config.NodeConfig;
@@ -32,16 +35,21 @@ import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.GameFunctionService;
-import com.jjg.game.core.utils.TipUtils;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author lm
@@ -279,6 +287,41 @@ public class ActivityMessageHandler {
         }
         AbstractResponse res = sharePromoteController.reqSharePromoteSelfRankInfo(playerController, req);
         playerController.send(res);
+    }
+
+    /**
+     * 推广分享-一键领取
+     */
+    @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_ONE_RECEIVE)
+    public void reqSharePromoteOneReceive(PlayerController playerController, ReqSharePromoteOneReceive req) {
+        ActivityData activityData = activityManager.getOpenActivityData(playerController.getPlayer(), ActivityType.SHARE_PROMOTE);
+        if (activityData == null) {
+            return;
+        }
+        ResSharePromoteOneReceive finalRes = new ResSharePromoteOneReceive(Code.SUCCESS);
+        AbstractResponse res = sharePromoteController.reqSharePromoteClaimBindRewards(playerController, activityData);
+        List<ItemInfo> itemInfos = new ArrayList<>();
+        if (res.code == Code.SUCCESS && res instanceof ResSharePromoteClaimBindRewards bindRewards) {
+            itemInfos.add(bindRewards.infoList);
+        }
+        BaseActivityController baseActivityController = activityData.getType().getController();
+        if (!activityManager.playerJoinActivityCheck(activityData, playerController.getPlayer())) {
+            finalRes.itemInfos = itemInfos;
+            playerController.send(finalRes);
+            return;
+        }
+        finalRes.itemInfos = itemInfos;
+        if (baseActivityController instanceof SharePromoteController controller) {
+            Map<Integer, Long> rewards = controller.oneReceiveClaimActivityRewards(playerController.getPlayer(), activityData);
+            if (CollectionUtil.isNotEmpty(rewards)) {
+                if (CollectionUtil.isNotEmpty(itemInfos)) {
+                    ItemUtils.mergeItems(rewards, Map.of(itemInfos.getFirst().itemId, itemInfos.getFirst().count));
+                }
+                finalRes.itemInfos = ItemUtils.buildItemInfo(rewards);
+            }
+        }
+        sharePromoteController.updateRodDot(playerController.playerId(), activityData, true);
+        playerController.send(finalRes);
     }
 
 
