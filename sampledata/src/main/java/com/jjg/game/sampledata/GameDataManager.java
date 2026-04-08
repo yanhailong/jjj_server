@@ -140,6 +140,7 @@ public class GameDataManager {
     containerMap.put(ChessJackStrategyCfg.class, new ChessJackStrategyCfgContainer());
     containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
     containerMap.put(ChessTexasStrategyCfg.class, new ChessTexasStrategyCfgContainer());
+    containerMap.put(ComingSoonCfg.class, new ComingSoonCfgContainer());
     containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
     containerMap.put(ContinuouschargingCfg.class, new ContinuouschargingCfgContainer());
     containerMap.put(CumulativebenefitsCfg.class, new CumulativebenefitsCfgContainer());
@@ -172,6 +173,7 @@ public class GameDataManager {
     containerMap.put(PointsAwardTurntableCfg.class, new PointsAwardTurntableCfgContainer());
     containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
     containerMap.put(PoolCfg.class, new PoolCfgContainer());
+    containerMap.put(PoolResultsCfg.class, new PoolResultsCfgContainer());
     containerMap.put(PopUpConfigCfg.class, new PopUpConfigCfgContainer());
     containerMap.put(PopUpGetWayCfg.class, new PopUpGetWayCfgContainer());
     containerMap.put(PrivilegeCardCfg.class, new PrivilegeCardCfgContainer());
@@ -190,7 +192,6 @@ public class GameDataManager {
     containerMap.put(SpecialModeCfg.class, new SpecialModeCfgContainer());
     containerMap.put(SpecialPlayCfg.class, new SpecialPlayCfgContainer());
     containerMap.put(SpecialResultLibCfg.class, new SpecialResultLibCfgContainer());
-    containerMap.put(PoolResultsCfg.class, new PoolResultsCfgContainer());
     containerMap.put(StatusCfg.class, new StatusCfgContainer());
     containerMap.put(TaskCfg.class, new TaskCfgContainer());
     containerMap.put(TexasCfg.class, new TexasCfgContainer());
@@ -865,6 +866,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(ChessTexasStrategyCfg.class).getCfgBeanList();
   }
 
+  public static ComingSoonCfg getComingSoonCfg(int key) {
+    return getInstance().getCfgContainer(ComingSoonCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ComingSoonCfg> getComingSoonCfgMap() {
+    return getInstance().getCfgContainer(ComingSoonCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ComingSoonCfg> getComingSoonCfgList() {
+    return getInstance().getCfgContainer(ComingSoonCfg.class).getCfgBeanList();
+  }
+
   public static ConditionCfg getConditionCfg(int key) {
     return getInstance().getCfgContainer(ConditionCfg.class).getCfgBeanMap().get(key);
   }
@@ -1249,6 +1262,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(PoolCfg.class).getCfgBeanList();
   }
 
+  public static PoolResultsCfg getPoolResultsCfg(int key) {
+    return getInstance().getCfgContainer(PoolResultsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PoolResultsCfg> getPoolResultsCfgMap() {
+    return getInstance().getCfgContainer(PoolResultsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PoolResultsCfg> getPoolResultsCfgList() {
+    return getInstance().getCfgContainer(PoolResultsCfg.class).getCfgBeanList();
+  }
+
   public static PopUpConfigCfg getPopUpConfigCfg(int key) {
     return getInstance().getCfgContainer(PopUpConfigCfg.class).getCfgBeanMap().get(key);
   }
@@ -1465,18 +1490,6 @@ public class GameDataManager {
     return getInstance().getCfgContainer(SpecialResultLibCfg.class).getCfgBeanList();
   }
 
-  public static PoolResultsCfg getPoolResultsCfg(int key) {
-    return getInstance().getCfgContainer(PoolResultsCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, PoolResultsCfg> getPoolResultsCfgMap() {
-    return getInstance().getCfgContainer(PoolResultsCfg.class).getCfgBeanMap();
-  }
-
-  public static List<PoolResultsCfg> getPoolResultsCfgList() {
-    return getInstance().getCfgContainer(PoolResultsCfg.class).getCfgBeanList();
-  }
-
   public static StatusCfg getStatusCfg(int key) {
     return getInstance().getCfgContainer(StatusCfg.class).getCfgBeanMap().get(key);
   }
@@ -1613,6 +1626,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\workspace\\number\\gamedoc-3.0\\gamedoc\\游戏配置表");
+    loadAllData("D:\\lhc\\p\\gamedoc\\游戏配置表");
   }
 }

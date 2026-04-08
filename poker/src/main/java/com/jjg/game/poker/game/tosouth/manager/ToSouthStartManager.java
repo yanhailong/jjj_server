@@ -378,6 +378,7 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
     @Override
     public void start() {
         log.info("正在启动南方前进游戏...");
+        toSouthCardLibManager.initPool();
     }
 
     @Override

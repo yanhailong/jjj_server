@@ -35,10 +35,10 @@ public class ToSouthCardLibManager {
     /**
      * 应用启动时初始化水池余额
      */
-    @PostConstruct
-    public void init() {
-        initPool();
-    }
+//    @PostConstruct
+//    public void init() {
+//        initPool();
+//    }
 
     /**
      * 初始化水池余额（参考 SlotsPoolDao.initPool）

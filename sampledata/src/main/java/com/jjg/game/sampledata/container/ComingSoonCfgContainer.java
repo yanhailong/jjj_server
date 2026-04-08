@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.PoolResultsCfg;
+import com.jjg.game.sampledata.bean.ComingSoonCfg;
 
 /**
- * poolResults.xlsx配置管理容器
+ * ComingSoon.xlsx配置管理容器
  *
- * @excelName poolResults.xlsx
- * @sheetName poolResults
+ * @excelName ComingSoon.xlsx
+ * @sheetName ComingSoon
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class PoolResultsCfgContainer extends BaseCfgContainer<PoolResultsCfg> {
+public class ComingSoonCfgContainer extends BaseCfgContainer<ComingSoonCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -27,23 +27,23 @@ public class PoolResultsCfgContainer extends BaseCfgContainer<PoolResultsCfg> {
   }
 
   @Override
-  public PoolResultsCfgContainer getNewContainer(){
-    return new PoolResultsCfgContainer();
+  public ComingSoonCfgContainer getNewContainer(){
+    return new ComingSoonCfgContainer();
   }
 
-  public PoolResultsCfgContainer() {
+  public ComingSoonCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("poolResults.xlsx");
+    excelNameList.add("ComingSoon.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected PoolResultsCfg createNewBean() {
-    return new PoolResultsCfg();
+  protected ComingSoonCfg createNewBean() {
+    return new ComingSoonCfg();
   }
 }
