@@ -129,7 +129,7 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
     }
 
     /** 牌库发牌总开关：true=走牌库权重抽牌, false=正常随机发牌（每人13张） */
-    private static final boolean CARD_LIB_ENABLED = false;
+    private static final boolean CARD_LIB_ENABLED = true;
 
     private void sendCards(Map<Integer, PokerCard> cardListMap, ToSouthGameDataVo gameDataVo) {
         // ====== GM命令优先：有GM发牌命令时跳过牌库抽牌 ======
