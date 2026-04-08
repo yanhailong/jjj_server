@@ -58,6 +58,8 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 return gameRunInfo;
             }
 
+            resetFreeStateIfInvalid(playerGameData,DollarExpressConstant.Status.ALL_BOARD_FREE,DollarExpressConstant.Status.NORMAL,"DollarExpress");
+
             gameRunInfo.setData(playerGameData);
             gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
             gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());

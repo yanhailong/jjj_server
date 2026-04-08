@@ -57,6 +57,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
                 gameRunInfo.setCode(Code.FAIL);
                 return gameRunInfo;
             }
+            resetFreeStateIfInvalid(playerGameData,WealthBankConstant.Status.ALL_BOARD_FREE,WealthBankConstant.Status.NORMAL,"Wealth Bank");
             gameRunInfo.setData(playerGameData);
             gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
             gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());

@@ -43,10 +43,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -104,6 +101,49 @@ public class SharePromoteController extends BaseActivityController {
             sharePromoteDao.addPlayerIncome(playerId, add);
         }
         return res;
+    }
+
+    public Map<Integer, Long> oneReceiveClaimActivityRewards(Player player, ActivityData activityData) {
+        long playerId = player.getId();
+        long activityId = activityData.getId();
+        //获取活动详情数据
+        Map<Integer, SharePromoteCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+        if (CollectionUtil.isEmpty(dataMap)) {
+            return Map.of();
+        }
+        Map<Integer, Long> rewardMap = new HashMap<>();
+        for (Map.Entry<Integer, PlayerActivityData> entry : dataMap.entrySet()) {
+            PlayerActivityData playerActivityData = entry.getValue();
+            if (playerActivityData.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                continue;
+            }
+            SharePromoteCfg cfg = baseCfgBeanMap.get(entry.getKey());
+            if (cfg == null || CollectionUtil.isEmpty(cfg.getGetitem())) {
+                continue;
+            }
+            // 发放奖励
+            CommonResult<ItemOperationResult> addedItems = playerPackService.addItems(playerId, cfg.getGetitem(), AddType.ACTIVITY_SHARE_PROMOTE);
+            if (!addedItems.success()) {
+                continue;
+            }
+            playerActivityData.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
+            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, dataMap);
+            //发送日志
+            Long add = cfg.getGetitem().getOrDefault(ItemUtils.getGoldItemId(), 0L);
+            if (add > 0) {
+                activityLogger.sendSharePromoteAddRewards(player, activityData, 0, 4, 0, 0, add, 0,
+                        addedItems.data.getGoldNum(), 0);
+            }
+            ItemUtils.mergeItems(rewardMap, cfg.getGetitem());
+            SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
+            if (playerInfoData != null) {
+                addRecord(playerInfoData, add);
+                sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
+                sharePromoteDao.addPlayerIncome(playerId, add);
+            }
+        }
+        return rewardMap;
     }
 
     @Override
