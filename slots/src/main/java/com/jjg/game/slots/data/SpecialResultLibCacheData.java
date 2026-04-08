@@ -142,7 +142,7 @@ public class SpecialResultLibCacheData {
         if (allBetCount > 0 && this.accumulateResultLibSectionPropMap != null && !this.accumulateResultLibSectionPropMap.isEmpty()) {
             List<ChangeSectionData2> tmpList = this.accumulateResultLibSectionPropMap.get(modelId);
             if (tmpList != null && !tmpList.isEmpty()) {
-                ChangeSectionData2 data2 = tmpList.stream().filter(d -> allBetCount == d.getType()).findFirst().orElse(null);
+                ChangeSectionData2 data2 = tmpList.stream().filter(d -> allBetCount <= d.getType()).findFirst().orElse(null);
                 if (data2 != null) {
                     return data2.applyTo(basePropMap);
                 }
