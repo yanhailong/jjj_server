@@ -606,21 +606,31 @@ public class WealthRouletteController implements ConfigExcelChangeListener, IPla
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
-        CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
-        try {
-            if (!"wealthRouletteReset".equalsIgnoreCase(gmOrders[0])) {
-                res.code = Code.NOT_FOUND;
-                return res;
+        CommonResult<String> res = new CommonResult<>(Code.FAIL);
+        if ("wealthRouletteReset".equalsIgnoreCase(gmOrders[0])) {
+            try {
+                long playerId = Long.parseLong(gmOrders[1]);
+                if (playerId <= 0) {
+                    playerId = playerController.playerId();
+                }
+                resetData(playerId);
+                res.data = "wealthRouletteReset success playerId=" + playerId;
+                res.code = Code.SUCCESS;
+            } catch (Exception e) {
+                log.error("财富转盘 GM命令执行异常 gmOrders:{}", JSON.toJSONString(gmOrders), e);
+                res.code = Code.EXCEPTION;
             }
-            long playerId = Long.parseLong(gmOrders[1]);
-            if (playerId <= 0) {
-                playerId = playerController.playerId();
+        }
+        if ("addWealthRoulettePoint".equalsIgnoreCase(gmOrders[0])) {
+            try {
+                long playerId = playerController.playerId();
+                long point = Long.parseLong(gmOrders[1]);
+                countDao.incrBy(playerId, CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(PREFIX), CURRENT_POINT.formatted(playerId), BigDecimal.valueOf(point));
+                res.code = Code.SUCCESS;
+            } catch (Exception e) {
+                log.error("财富转盘 GM命令执行异常 gmOrders:{}", JSON.toJSONString(gmOrders), e);
+                res.code = Code.EXCEPTION;
             }
-            resetData(playerId);
-            res.data = "wealthRouletteReset success playerId=" + playerId;
-        } catch (Exception e) {
-            log.error("财富转盘 GM命令执行异常 gmOrders:{}", JSON.toJSONString(gmOrders), e);
-            res.code = Code.EXCEPTION;
         }
         return res;
     }
