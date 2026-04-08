@@ -12,11 +12,7 @@ import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneAddFreeInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneAwardLineInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneResultLib;
-import com.jjg.game.slots.game.superstar.data.SuperStarAwardLineInfo;
-import com.jjg.game.slots.game.thor.data.ThorAwardLineInfo;
-import com.jjg.game.slots.game.wealthgod.data.WealthGodAwardLineInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
-import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.*;

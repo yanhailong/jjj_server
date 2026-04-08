@@ -59,6 +59,23 @@ public class DemonChildGameGenerateManager extends AbstractSlotsGenerateManager<
 
     @Override
     public void calTimes(DemonChildResultLib lib) throws Exception {
+        //计算免费的总倍数
+        if (triggerFreeLib(lib, DemonChildConstant.SpecialMode.FREE)) {
+            lib.addTimes(calFree(lib));
+        } else {
+            lib.addTimes(calBonusMultiplier(lib));
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        }
+    }
+
+    /**
+     * 计算奖金倍数
+     *
+     * @param lib
+     * @return
+     */
+    public long calBonusMultiplier(DemonChildResultLib lib) {
+        long multiplier = 0;
         //计算奖金倍数
         if (CollectionUtil.isNotEmpty(lib.getSpecialGirdInfoList())) {
             for (SpecialGirdInfo girdInfo : lib.getSpecialGirdInfoList()) {
@@ -69,12 +86,12 @@ public class DemonChildGameGenerateManager extends AbstractSlotsGenerateManager<
                         continue;
                     }
                     for (Map.Entry<Integer, Integer> entry : girdInfo.getValueMap().entrySet()) {
-                        lib.addTimes(entry.getValue());
+                        multiplier += entry.getValue();
                     }
                 }
             }
         }
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        return multiplier;
     }
 
     /**

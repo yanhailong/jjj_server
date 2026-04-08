@@ -47,6 +47,10 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
     private long lastGameWinnerPlayerId;
     // 上一局的玩家ID集合，用于判断是否同桌续局
     private Set<Long> lastGamePlayerIds = new HashSet<>();
+    // 玩家连赢/连输计数（正=连赢, 负=连输），跨局保留，从Redis加载
+    private Map<Long, Integer> playerWinStreakMap = new HashMap<>();
+    // 玩家总盈亏（正=盈利, 负=亏损），跨局保留，从Redis加载
+    private Map<Long, Long> playerTotalProfitMap = new HashMap<>();
 
     private Set<Long> exitPlayerIds = new HashSet<>();
 
@@ -183,6 +187,22 @@ public class ToSouthGameDataVo extends BasePokerGameDataVo {
 
     public void setLastGamePlayerIds(Set<Long> lastGamePlayerIds) {
         this.lastGamePlayerIds = lastGamePlayerIds;
+    }
+
+    public Map<Long, Integer> getPlayerWinStreakMap() {
+        return playerWinStreakMap;
+    }
+
+    public void setPlayerWinStreakMap(Map<Long, Integer> playerWinStreakMap) {
+        this.playerWinStreakMap = playerWinStreakMap;
+    }
+
+    public Map<Long, Long> getPlayerTotalProfitMap() {
+        return playerTotalProfitMap;
+    }
+
+    public void setPlayerTotalProfitMap(Map<Long, Long> playerTotalProfitMap) {
+        this.playerTotalProfitMap = playerTotalProfitMap;
     }
 
     public ToSouthGameLog getGameLog() {

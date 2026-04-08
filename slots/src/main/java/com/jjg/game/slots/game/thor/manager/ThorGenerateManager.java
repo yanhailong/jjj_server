@@ -389,7 +389,6 @@ public class ThorGenerateManager extends AbstractSlotsGenerateManager<ThorAwardL
 
             for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
                 ThorResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), ThorResultLib.class);
-                calTimes(tmpLib);
                 if (lib.getLibTypeSet().contains(ThorConstant.SpecialMode.ICE)) {
                     if (hasFireWild(tmpLib.getIconArr())) {
                         tmpLib.setTimes(tmpLib.getTimes() * 3);

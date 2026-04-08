@@ -212,6 +212,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
 
     @Override
     protected PegasusUnbridleGameRunInfo normal(PegasusUnbridleGameRunInfo gameRunInfo, PegasusUnbridlePlayerGameData playerGameData, long betValue, PegasusUnbridleResultLib resultLib) {
+        gameRunInfo.setStake(betValue);
         Set<Integer> typeSet = resultLib.getLibTypeSet();
         //检查是否触发假福马
         if (gameGenerateManager.getModelRandom() != null) {
@@ -233,7 +234,6 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
             gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
             gameRunInfo.setIconArr(resultLib.getIconArr());
             gameRunInfo.setResultLib(resultLib);
-            gameRunInfo.setStake(betValue);
         }
         return gameRunInfo;
     }

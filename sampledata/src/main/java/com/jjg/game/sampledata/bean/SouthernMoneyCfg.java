@@ -33,6 +33,8 @@ public class SouthernMoneyCfg extends BaseCfgBean {
   protected int gameId;
   /** 牌池ID */
   protected int poolId;
+  /** 游戏最低准备金额 */
+  protected int prepareamount;
   /** 被管炸弹的倍数（三连对） */
   protected int remainBoom;
   /** 结算剩余炸弹的倍数（三连对） */
@@ -81,6 +83,11 @@ public class SouthernMoneyCfg extends BaseCfgBean {
   /** 返回牌池ID */
   public int getPoolId() {
     return poolId;
+  }
+
+  /** 返回游戏最低准备金额 */
+  public int getPrepareamount() {
+    return prepareamount;
   }
 
   /** 返回被管炸弹的倍数（三连对） */

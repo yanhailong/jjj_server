@@ -58,6 +58,8 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 return gameRunInfo;
             }
 
+            resetFreeStateIfInvalid(playerGameData,DollarExpressConstant.Status.ALL_BOARD_FREE,DollarExpressConstant.Status.NORMAL,"DollarExpress");
+
             gameRunInfo.setData(playerGameData);
             gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
             gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
@@ -548,6 +550,9 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             return gameRunInfo;
         }
         DollarExpressResultLib freeGame = libResult.data;
+
+        //累计免费模式的中奖金额
+        playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
 
         gameRunInfo.setStatus(playerGameData.getStatus());
 

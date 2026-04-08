@@ -24,6 +24,8 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLibManager;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import com.jjg.game.sampledata.bean.SouthernMoneyCfg;
 import org.slf4j.Logger;
@@ -246,6 +248,12 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 gameLog.recordFinalSettlement(sInfo.playerId, sInfo.winScore, sInfo.isWinner, remainCards, detail);
             }
 
+            // ========== 更新玩家连赢/连输计数（跨局保留） ==========
+            updatePlayerWinStreak(gameDataVo, settlementMap2);
+
+            // ========== 更新水池余额（参考slots水池控制） ==========
+            updatePoolBalance(gameDataVo, settlementMap2);
+
             // 打印流程日志和结算日志
             String roomInfo = "房间:" + gameDataVo.getRoomCfg().getId() + " 底注:" + baseBet;
             log.info(gameLog.buildFlowLog(roomInfo));
@@ -330,6 +338,94 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
         // 4. 赢家获得总分
         for (PlayerSeatInfo winner : winners) {
             settlementMap.put(winner.getPlayerId(), totalWinScore);
+        }
+    }
+
+    /**
+     * 更新玩家连赢/连输计数和总盈亏
+     * 赢家: streak = max(0, old) + 1
+     * 输家: streak = min(0, old) - 1
+     * 只跟踪真人玩家
+     * 同时持久化到Redis（跨房间保留）
+     */
+    private void updatePlayerWinStreak(ToSouthGameDataVo gameDataVo, Map<Long, Long> settlementMap2) {
+        Map<Long, Integer> streakMap = gameDataVo.getPlayerWinStreakMap();
+        Map<Long, Long> profitMap = gameDataVo.getPlayerTotalProfitMap();
+
+        ToSouthCardLibManager cardLibManager = null;
+        try {
+            cardLibManager = CommonUtil.getContext().getBean(ToSouthCardLibManager.class);
+        } catch (Exception e) {
+            log.error("获取ToSouthCardLibManager异常", e);
+        }
+
+        for (Map.Entry<Long, Long> entry : settlementMap2.entrySet()) {
+            long playerId = entry.getKey();
+            long change = entry.getValue();
+            // 只跟踪真人玩家
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+            if (gamePlayer instanceof GameRobotPlayer) continue;
+
+            // 更新连赢/连输
+            int oldStreak = streakMap.getOrDefault(playerId, 0);
+            int newStreak = oldStreak;
+            if (change > 0) {
+                newStreak = Math.max(0, oldStreak) + 1;
+            } else if (change < 0) {
+                newStreak = Math.min(0, oldStreak) - 1;
+            }
+            streakMap.put(playerId, newStreak);
+
+            // 更新总盈亏（内存）
+            long oldProfit = profitMap.getOrDefault(playerId, 0L);
+            profitMap.put(playerId, oldProfit + change);
+
+            // 持久化到Redis
+            if (cardLibManager != null) {
+                try {
+                    cardLibManager.setPlayerWinStreak(playerId, newStreak);
+                    cardLibManager.addPlayerTotalProfit(playerId, change);
+                } catch (Exception e) {
+                    log.error("持久化玩家统计数据异常 playerId={}", playerId, e);
+                }
+            }
+        }
+        log.info("玩家连赢/连输更新: {}", streakMap);
+        log.info("玩家总盈亏更新: {}", profitMap);
+    }
+
+    /**
+     * 更新水池余额（参考 slots 水池控制）
+     * 真人玩家赢钱 → 系统赔钱 → 水池减少
+     * 真人玩家输钱 → 系统收钱 → 水池增加
+     * poolChange = -sum(真人玩家结算值)
+     */
+    private void updatePoolBalance(ToSouthGameDataVo gameDataVo, Map<Long, Long> settlementMap2) {
+        if (!(gameController instanceof ToSouthGameController controller)) {
+            return;
+        }
+        ToSouthCardLibManager cardLibManager = null;
+        try {
+            cardLibManager = CommonUtil.getContext().getBean(ToSouthCardLibManager.class);
+        } catch (Exception e) {
+            log.error("获取ToSouthCardLibManager异常，跳过水池更新", e);
+            return;
+        }
+
+        long poolChange = 0;
+        for (Map.Entry<Long, Long> entry : settlementMap2.entrySet()) {
+            long playerId = entry.getKey();
+            long change = entry.getValue();
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+            if (gamePlayer instanceof GameRobotPlayer) continue;
+            // 真人玩家赢钱(change>0)→系统赔钱→水池减少, 反之水池增加
+            poolChange -= change;
+        }
+
+        if (poolChange != 0) {
+            int roomCfgId = controller.getRoom().getRoomCfgId();
+            long afterBalance = cardLibManager.addPoolBalance(roomCfgId, poolChange);
+            log.info("水池余额更新 roomCfgId={}, poolChange={}, afterBalance={}", roomCfgId, poolChange, afterBalance);
         }
     }
 
