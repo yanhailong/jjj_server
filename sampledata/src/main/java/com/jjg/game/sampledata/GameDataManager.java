@@ -172,6 +172,7 @@ public class GameDataManager {
     containerMap.put(PointsAwardTurntableCfg.class, new PointsAwardTurntableCfgContainer());
     containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
     containerMap.put(PoolCfg.class, new PoolCfgContainer());
+    containerMap.put(PoolResultsCfg.class, new PoolResultsCfgContainer());
     containerMap.put(PopUpConfigCfg.class, new PopUpConfigCfgContainer());
     containerMap.put(PopUpGetWayCfg.class, new PopUpGetWayCfgContainer());
     containerMap.put(PrivilegeCardCfg.class, new PrivilegeCardCfgContainer());
@@ -1246,6 +1247,18 @@ public class GameDataManager {
 
   public static List<PoolCfg> getPoolCfgList() {
     return getInstance().getCfgContainer(PoolCfg.class).getCfgBeanList();
+  }
+
+  public static PoolResultsCfg getPoolResultsCfg(int key) {
+    return getInstance().getCfgContainer(PoolResultsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PoolResultsCfg> getPoolResultsCfgMap() {
+    return getInstance().getCfgContainer(PoolResultsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PoolResultsCfg> getPoolResultsCfgList() {
+    return getInstance().getCfgContainer(PoolResultsCfg.class).getCfgBeanList();
   }
 
   public static PopUpConfigCfg getPopUpConfigCfg(int key) {
