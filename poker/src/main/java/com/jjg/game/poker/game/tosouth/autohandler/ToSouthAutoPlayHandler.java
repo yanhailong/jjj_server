@@ -10,6 +10,7 @@ import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.poker.game.tosouth.message.req.ReqTurnAction;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
+import com.jjg.game.poker.game.tosouth.util.ToSouthCardType;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -99,7 +100,11 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
                     bestCards = ToSouthHandUtils.findBestPlay(handCards);
                 }
             } else {
-                bestCards = ToSouthHandUtils.findBestPlay(handCards);
+                if (hasAlertPlayer(gameDataVo)) {
+                    bestCards = findBestPlayForAlert(handCards);
+                } else {
+                    bestCards = ToSouthHandUtils.findBestPlay(handCards);
+                }
             }
         } else if (!gameDataVo.getCurRoundPassedPlayerSeats().contains(currentPlayerSeat.getSeatId())) {
             // 跟牌
@@ -127,5 +132,50 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
         log.info("玩家/机器人 {} 首轮 {}  首出 {} 自动操作: type={}, cards={}", getPlayerId(), gameDataVo.isFirstRound(), isLeader, reqTurnAction.actionType, reqTurnAction.cards);
         assert controller != null;
         controller.turnAction(getPlayerId(), reqTurnAction);
+    }
+
+    /**
+     * 检查是否有玩家手牌只剩1张（警报状态）
+     */
+    private boolean hasAlertPlayer(ToSouthGameDataVo gameDataVo) {
+        for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+            if (!info.isDelState() && info.getCurrentCards().size() == 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 警报状态下的首出策略：
+     * 优先出顺子/对子等多张牌型（1张牌的对手无法跟），
+     * 如果只有单牌，从最大的开始出
+     */
+    private List<Card> findBestPlayForAlert(List<Card> handCards) {
+        List<List<Card>> allPlays = ToSouthHandUtils.findAllBestPlays(handCards);
+        if (allPlays.isEmpty()) return null;
+
+        // 优先找非单张牌型（顺子、三条、对子 — 1张牌的对手无法跟）
+        // findAllBestPlays 排序: STRAIGHT(1) > TRIPLE(2) > PAIR(3) > SINGLE(4) > CONSECUTIVE_PAIRS(5) > BOMB(6)
+        for (List<Card> play : allPlays) {
+            ToSouthCardType type = ToSouthHandUtils.getCardType(play);
+            if (type != ToSouthCardType.SINGLE && type != ToSouthCardType.BOMB_QUAD
+                    && type != ToSouthCardType.CONSECUTIVE_PAIRS) {
+                return play;
+            }
+        }
+
+        // 只剩单张 → 从最大的先出
+        // findAllBestPlays 中 singles 从小到大排列，取最后一个 SINGLE 即为最大
+        List<Card> largestSingle = null;
+        for (List<Card> play : allPlays) {
+            if (ToSouthHandUtils.getCardType(play) == ToSouthCardType.SINGLE) {
+                largestSingle = play;
+            }
+        }
+        if (largestSingle != null) return largestSingle;
+
+        // 兜底
+        return allPlays.getFirst();
     }
 }

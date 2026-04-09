@@ -139,12 +139,9 @@ public class ToSouthHandUtils {
     public static boolean compare(List<Card> prev, List<Card> current) {
         ToSouthCardType type1 = getCardType(prev);
         ToSouthCardType type2 = getCardType(current);
-        log.info("开始牌型比较：prev:{}，current:{}", JSON.toJSONString(type1), JSON.toJSONString(type2));
         if (type2 == ToSouthCardType.NONE) return false;
         // 炸弹牌型，只能炸2的牌型和三连对，不能炸顺子、单张对子3-A等普通牌型
         if (type2 == ToSouthCardType.BOMB_QUAD) {
-            log.info("prev:{}", JSON.toJSONString(type1));
-            log.info("current:{}", JSON.toJSONString(type2));
             if (type1 == ToSouthCardType.BOMB_QUAD) {
                 // 都是四张，比大小
                 return compareMaxCard(prev, current);

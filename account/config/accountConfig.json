@@ -1,7 +1,7 @@
 {
   "playerBeginId": 1300000,
   "gameservers": [
-    "ws://192.168.3.31:8090"
+    "ws://172.18.11.38:8090"
   ],
   "flags": {
     "poor": [

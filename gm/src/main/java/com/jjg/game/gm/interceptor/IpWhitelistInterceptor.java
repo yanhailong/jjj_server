@@ -36,7 +36,7 @@ public class IpWhitelistInterceptor implements HandlerInterceptor, Ordered {
     private NodeConfig nodeConfig;
     /**
      * 从配置读取白名单IP列表
-     * 格式: ["192.168.3.31", "10.0.0.0/24", "::1"]
+     * 格式: ["172.18.11.38", "10.0.0.0/24", "::1"]
      */
     private String[] whiteIpList;
 
@@ -203,7 +203,7 @@ public class IpWhitelistInterceptor implements HandlerInterceptor, Ordered {
     /**
      * 检查IP是否在白名单中
      * 支持格式：
-     * 1. 单个IP: 192.168.3.31
+     * 1. 单个IP: 172.18.11.38
      * 2. IP段CIDR: 192.168.3.0/24
      * 3. 通配符: 192.168.3.*
      */

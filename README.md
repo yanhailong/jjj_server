@@ -79,7 +79,7 @@ gate:
    host: 0.0.0.0 
 
 zookeeper:
- connects: 192.168.3.31:2181  #zookeeper地址
+ connects: 172.18.11.38:2181  #zookeeper地址
  marsRoot: jjg  #节点根目录
 
 cluster:
@@ -97,13 +97,13 @@ spring:
   web-application-type: none  
  data:
   redis:
-   host: 192.168.3.31
+   host: 172.18.11.38
    port: 6379
    database: 11
   mongodb:
-   uri: mongodb://admin:jjg123456@192.168.3.31:27017/vegasnight_game_dev?authSource=admin
+   uri: mongodb://admin:jjg123456@172.18.11.38:27017/vegasnight_game_dev?authSource=admin
  kafka:
-   bootstrap-servers: 192.168.3.31:9092
+   bootstrap-servers: 172.18.11.38:9092
    producer:
      key-serializer: org.apache.kafka.common.serialization.StringSerializer
      value-serializer: org.apache.kafka.common.serialization.StringSerializer

@@ -10,6 +10,7 @@ import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.room.manager.RoomManager;
+import com.jjg.game.sampledata.bean.PoolResultsCfg;
 import com.jjg.game.sampledata.bean.RoomCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -406,8 +407,15 @@ public class ToSouthStartManager implements IRoomStartListener, GmListener {
         long oldBalance = toSouthCardLibManager.getPoolBalance(roomCfgId);
         long newBalance = toSouthCardLibManager.addPoolBalance(roomCfgId, delta);
 
-        res.data = "水池余额已修改：" + oldBalance + " → " + newBalance + "（delta=" + delta + ", roomCfgId=" + roomCfgId + "），已立即生效";
-        log.info("GM修改水池余额 - 玩家: {}, roomCfgId={}, {} → {}（delta={}）", playerId, roomCfgId, oldBalance, newBalance, delta);
+        // 获取修改后匹配的调控模型ID
+        PoolResultsCfg matchedCfg = toSouthCardLibManager.selectPoolResultsCfg(roomCfgId);
+        int modelId = matchedCfg != null ? matchedCfg.getModelId() : -1;
+        long poolDiff = toSouthCardLibManager.getPoolDiff(roomCfgId);
+
+        res.data = "水池余额已修改：" + oldBalance + " → " + newBalance + "（delta=" + delta + ", roomCfgId=" + roomCfgId
+                + ", poolDiff=" + poolDiff + ", 调控modelId=" + modelId + "），已立即生效";
+        log.info("GM修改水池余额 - 玩家: {}, roomCfgId={}, {} → {}（delta={}, poolDiff={}, modelId={}）",
+                playerId, roomCfgId, oldBalance, newBalance, delta, poolDiff, modelId);
         return res;
     }
 

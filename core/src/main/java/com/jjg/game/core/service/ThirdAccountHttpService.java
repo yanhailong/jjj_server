@@ -98,7 +98,7 @@ public class ThirdAccountHttpService {
             }
 
             HttpRequest httpRequest = HttpRequest.get(thirdServiceInfo.getGoogleVerifyUrl() + token);
-//            httpRequest.setProxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("192.168.3.46", 32649)));
+//            httpRequest.setProxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("172.18.11.16", 32649)));
 
             HttpResponse resp = httpRequest.execute();
             String body = resp.body();
@@ -307,7 +307,7 @@ public class ThirdAccountHttpService {
 
             // 验证token
             HttpRequest httpRequest = HttpRequest.get(thirdServiceInfo.getFacebookDebugTokenUrl());
-//            httpRequest.setProxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("192.168.3.46", 32649)));
+//            httpRequest.setProxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("172.18.11.16", 32649)));
 
             Map<String, Object> params = new HashMap<>();
             params.put("input_token", token);
