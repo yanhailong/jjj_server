@@ -49,8 +49,6 @@ public class CoreConst {
         public static final int CLEOPATRA = 101400;
         //狼月
         public static final int WOLF_MOON = 101500;
-        //热血足球
-        public static final int HOT_SOCCER = 101600;
         //圣诞狂欢夜
         public static final int CHRISTMAS_PARTY = 101700;
         //篮球巨星
