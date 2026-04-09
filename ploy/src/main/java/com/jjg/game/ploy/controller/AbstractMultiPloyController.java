@@ -63,15 +63,10 @@ public abstract class AbstractMultiPloyController<T extends PlayerMultiPloyGameD
      * 消息同步到其他节点
      *
      * @param msg      要同步的消息
-     * @param toClient 是否同时推送给本节点的客户端玩家
      */
-    protected void messageSync(AbstractMessage msg, boolean toClient) {
+    protected void messageSync(AbstractMessage msg) {
         PFMessage pfMessage = MessageUtil.getPFMessage(msg);
         clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString(), NodeType.GAME.toString())::contains);
-
-        if (toClient) {
-            broadcastLocalPlayers(msg);
-        }
     }
 
     /**

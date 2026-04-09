@@ -3,8 +3,8 @@
 ![](.\server.png)
 
 ```
+Nginx:负载均衡，流量进行分发
 account：账号服务器，负责账号的注册和登录。client 通过http进行注册或者登录成功后，返回token和游戏服务器的地址
-Nginx:负载均衡，将流量进行分发到 gate 服务
 gate：网关服务器，负责与 client 保持连接，并且根据不同的业务场景将 client 的请求数据转发到其他服务
 hall：大厅服务器，负责大厅业务场景逻辑
 game：子游戏

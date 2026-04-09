@@ -409,7 +409,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             syncMsg.headImgId = playerController.getPlayer().getHeadImgId();
             syncMsg.betAmount = bet;
             syncMsg.betIndex = betIndex;
-            messageSync(syncMsg, false);
+            messageSync(syncMsg);
             broadcastLocalPlayersExcept(res, playerController.playerId());
 
             log.info("AirRaid 下注成功 playerId={}, bet={}, betIndex={}", playerController.playerId(), bet, betIndex);
@@ -535,7 +535,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         msg.stopTime = resolvePhaseStopTime(phaseDurationMs);
         msg.currentMultiplier = getAuthoritativeCurrentMultiplier(System.currentTimeMillis());
         msg.crashMultiplier = gameRoom.getCrashMultiplier();
-        messageSync(msg, false);
+        messageSync(msg);
         broadcastLocalPlayers(buildGameStateResponse(msg));
     }
 
@@ -549,7 +549,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         syncMsg.cashOutMultiplier = cashOutMultiplier;
         syncMsg.winAmount = winAmount;
         syncMsg.betIndex = betIndex;
-        messageSync(syncMsg, false);
+        messageSync(syncMsg);
 
         ResAirRaidCashOut res = new ResAirRaidCashOut(Code.SUCCESS);
         res.playerId = playerId;
