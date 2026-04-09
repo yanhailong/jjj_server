@@ -59,9 +59,9 @@ public class GameConstant {
         int CLIENT_LANG_TYPE = 1;
 
         //玩家中奖跑马灯，间隔时间
-        int PLAYER_WIN_INTERVAL = 8;
+        int PLAYER_WIN_INTERVAL = 16;
         //活动开始跑马灯，间隔时间
-        int ACTIVITY_INTERVAL = 8;
+        int ACTIVITY_INTERVAL = 16;
     }
 
 
