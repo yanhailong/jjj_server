@@ -32,10 +32,6 @@ public abstract class AbstractMahjiongWin2GameManager extends AbstractSlotsGameM
         log.info("启动麻将胡了2游戏管理器...");
         super.init();
 
-//        Map<Integer, Integer> map = new HashMap<>();
-//        map.put(1, 50000);
-//        map.put(2, 50000);
-//        addGenerateLibEvent(map);
     }
 
 

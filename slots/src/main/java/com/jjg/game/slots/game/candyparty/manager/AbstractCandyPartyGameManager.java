@@ -308,10 +308,12 @@ public abstract class AbstractCandyPartyGameManager extends AbstractSlotsGameMan
                     playerGameData.getRemainFreeCount().set(specialAuxiliaryInfo.getFreeGames().size());
                 }
             }
-            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+            long times = gameGenerateManager.calLineTimes(resultLib.getAwardLineInfoList(), 1);
+            times += gameGenerateManager.calAfterAddIcons(resultLib.getAddIconInfos(), 1);
+            gameRunInfo.addBigPoolTimes(times);
             gameRunInfo.setFreeGameMultiple(resultLib.getFreeGameMultiple());
             log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(),
-                    playerGameData.getRemainFreeCount().get(), resultLib.getTimes());
+                    playerGameData.getRemainFreeCount().get(), times);
         } else {
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
