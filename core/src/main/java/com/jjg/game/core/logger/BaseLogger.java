@@ -509,7 +509,7 @@ public class BaseLogger {
         String msg = JSONObject.toJSONString(json, SerializerFeature.WriteNonStringKeyAsString);
 
         topic = StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic.toLowerCase();
-//        kafkaTemplate.send(topic, RandomUtils.getUUid(), msg);
+        kafkaTemplate.send(topic, RandomUtils.getUUid(), msg);
 
 //        log.debug("打印日志数据 topic = {},msg = {}", topic, msg);
     }
