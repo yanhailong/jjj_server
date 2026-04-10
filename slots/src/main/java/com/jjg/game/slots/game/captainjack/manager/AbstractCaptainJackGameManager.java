@@ -255,7 +255,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
                 playerGameData.getFreeIndex().set(0);
                 gameRunInfo.setFreeModeTotalReward(playerGameData.getFreeAllWin());
                 playerGameData.setFreeAllWin(0);
-                log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
+                log.debug("免费游戏次数结束，回归正常状态 playerId = {},roomCfgId = {}", playerGameData.getPlayerId(), playerGameData.getRoomCfgId());
             }
         }
         gameRunInfo.setIconArr(freeGame.getIconArr());

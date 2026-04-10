@@ -26,7 +26,7 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
     protected final AngryBirdsGenerateManager gameGenerateManager;
     protected final AngryBirdsResultLibDao angryBirdsResultLibDao;
 
-    public AbstractAngryBirdsGameManager(AngryBirdsGenerateManager gameGenerateManager,AngryBirdsResultLibDao angryBirdsResultLibDao) {
+    public AbstractAngryBirdsGameManager(AngryBirdsGenerateManager gameGenerateManager, AngryBirdsResultLibDao angryBirdsResultLibDao) {
         super(AngryBirdsPlayerGameData.class, AngryBirdsResultLib.class, AngryBirdsGameRunInfo.class);
         this.gameGenerateManager = gameGenerateManager;
         this.angryBirdsResultLibDao = angryBirdsResultLibDao;
@@ -160,10 +160,13 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
                     }
                 }
             }
+            int times = gameGenerateManager.calLineTimes(resultLib.getAwardLineInfoList());
+            gameRunInfo.addBigPoolTimes(times);
             log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(),
                     playerGameData.getRemainFreeCount().get());
+        } else {
+            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
-        gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         //检查是否中大奖
         rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
         gameRunInfo.setReplaceInfo(resultLib.getReplaceInfoList());

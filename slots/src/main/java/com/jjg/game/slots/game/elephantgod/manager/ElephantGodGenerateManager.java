@@ -105,8 +105,12 @@ public class ElephantGodGenerateManager extends AbstractSlotsGenerateManager<Ele
                 }
             }
         }
-        //中奖线
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        if (triggerFreeLib(lib, ElephantGodConstant.SpecialMode.FREE)) {
+            lib.addTimes(calFree(lib));
+        } else {
+            //中奖线
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        }
     }
 
     private int checkWildCount(int[] arr) {

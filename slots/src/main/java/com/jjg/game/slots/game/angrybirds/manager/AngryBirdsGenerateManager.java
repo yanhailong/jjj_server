@@ -164,7 +164,13 @@ public class AngryBirdsGenerateManager extends AbstractSlotsGenerateManager<Angr
                 lineInfo.setBaseTimes(lineInfo.getBaseTimes() * lib.getFreeMultiplier());
             }
         }
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        if (triggerFreeLib(lib, AngryBirdsConstant.SpecialMode.FREE)) {
+            //免费
+            lib.addTimes(calFree(lib));
+        } else {
+            //中奖线
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        }
     }
 
     /**

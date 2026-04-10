@@ -2,9 +2,11 @@ package com.jjg.game.slots.game.frozenThrone.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
+import com.jjg.game.sampledata.bean.BaseLineCfg;
+import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
+import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
@@ -246,7 +248,6 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
         if (!checkElement(lib)) {
             throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
         }
-
         if (triggerFreeLib(lib, FrozenThroneConstant.SpecialMode.FREE)) {
             //免费
             lib.addTimes(calFree(lib));

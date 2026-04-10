@@ -131,10 +131,13 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
             playerGameData.setStatus(ElephantGodConstant.Status.FREE);
             playerGameData.setFreeLib(resultLib);
             playerGameData.getRemainFreeCount().set(resultLib.getAddFreeCount());
+            int times = generateManager.calLineTimes(resultLib.getAwardLineInfoList());
+            gameRunInfo.addBigPoolTimes(times);
             log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(),
                     playerGameData.getRemainFreeCount().get(), resultLib.getTimes());
+        } else {
+            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
-        gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         //检查是否中大奖
         rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
         log.debug("id = {}", resultLib.getId());
