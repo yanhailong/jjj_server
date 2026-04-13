@@ -42,6 +42,17 @@ public class SlotsFactoryManager {
         this.slotsRoomManager.init();
     }
 
+    public void onEnterGame(long playerId, int roomCfgId, long roomId) {
+        exitOldPlayerGameDataOnEnter(slotsGameManagerMap, playerId, roomCfgId, roomId);
+        exitOldPlayerGameDataOnEnter(slotsRoomGameManagerMap, playerId, roomCfgId, roomId);
+    }
+
+    private void exitOldPlayerGameDataOnEnter(Map<Integer, AbstractSlotsGameManager> gameManagerMap, long playerId, int roomCfgId, long roomId) {
+        for (AbstractSlotsGameManager<?, ?, ?> gameManager : gameManagerMap.values()) {
+            gameManager.exitOldPlayerGameDataOnEnter(playerId, roomCfgId, roomId);
+        }
+    }
+
     /**
      * 初始化游戏管理器
      */
