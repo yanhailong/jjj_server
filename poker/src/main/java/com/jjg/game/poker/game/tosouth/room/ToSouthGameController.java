@@ -528,7 +528,8 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
     private void addBombScore(List<ToSouthBombDetail> details, long loserId, long winnerId, long score, int type) {
         // 直接扣除输家积分
-        deductItem(loserId, score, AddType.GAME_SETTLEMENT, "南方前进炸弹扣分", false);
+        // 炸弹扣钱
+        deductItem(loserId, score, AddType.GAME_SETTLEMENT, "ToSouth bomb loses money", false);
         details.add(new ToSouthBombDetail(loserId, score, ToSouthConstant.BOMB_LOSE_TYPE));
 
         // 计算赢家税后积分并添加
@@ -1006,7 +1007,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             notify.status = 2;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
             //取消准备加入准备倒计时
-            scheduleReadyTimeout(playerId,READY_TIMEOUT);
+            scheduleReadyTimeout(playerId, READY_TIMEOUT);
         } else {
             // 准备（status == 1 或默认）
             if (gameDataVo.getReadyPlayerIds().contains(playerId)) {
@@ -1083,7 +1084,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 if (gameDataVo.getReadyTimerScheduled().contains(pid)) continue;
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(pid);
                 if (!(gamePlayer instanceof GameRobotPlayer)) {
-                    scheduleReadyTimeout(gamePlayer.getId(),READY_TIMEOUT);
+                    scheduleReadyTimeout(gamePlayer.getId(), READY_TIMEOUT);
                 }
             }
         } else {
@@ -1109,7 +1110,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 if (gameDataVo.getReadyTimerScheduled().contains(pid)) continue;
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(pid);
                 if (!(gamePlayer instanceof GameRobotPlayer)) {
-                    scheduleReadyTimeout(pid,READY_TIMEOUT);
+                    scheduleReadyTimeout(pid, READY_TIMEOUT);
                 }
             }
         }
@@ -1190,7 +1191,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
      */
     public void kickUnreadyPlayer(long playerId) {
         RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
-        if(gameDataVo.getExitPlayerIds().contains(playerId)){
+        if (gameDataVo.getExitPlayerIds().contains(playerId)) {
             getRoomController().getRoomManager().exitRoom(playerId);
             log.info("玩家 {} 离线且未准备，服务端强制退出房间", playerId);
             return;

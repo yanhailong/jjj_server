@@ -1,10 +1,13 @@
 package com.jjg.game.room.datatrack;
 
+import com.jjg.game.common.concurrent.PlayerWorker;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.SimplePlayerInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -16,6 +19,8 @@ import java.util.Map;
  * @author 2CL
  */
 public class GameDataTracker {
+
+    private static final Logger log = LoggerFactory.getLogger(GameDataTracker.class);
     // 玩家的埋点数据
     private final HashMap<Object, Object> playerTrackData = new HashMap<>();
 
@@ -114,6 +119,7 @@ public class GameDataTracker {
         String gameLogTopicTmp = gameLogTopic + "_" + dataTrackLogType.name().toLowerCase();
         // 发送日志数据
         trackLogger.sendLog(gameLogTopicTmp, tempTrackData);
+
         // 给玩家记录的日志，在发送之后需要进行清除
         playerTrackData.clear();
     }

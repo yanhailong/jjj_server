@@ -543,7 +543,7 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
 
             // 记录发牌到一局日志
             gameDataVo.getGameLog().recordDeal(info.getPlayerId(), info.getSeatId(),
-                    "[牌库] " + ToSouthHandUtils.cardListToString(handCards));
+                    "[Card Library] " + ToSouthHandUtils.cardListToString(handCards));
 
             RespToSouthSendCardsInfo sendCardsInfo = new RespToSouthSendCardsInfo();
             sendCardsInfo.sortedHandCards = sortedHandCards;
