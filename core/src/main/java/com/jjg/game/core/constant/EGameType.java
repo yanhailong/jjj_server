@@ -49,6 +49,7 @@ public enum EGameType {
     ANGRY_BIRDS(CoreConst.GameType.ANGRY_BIRDS, RoomType.SLOTS, "愤怒的小鸟"),
     PAN_JIN_LIAN(CoreConst.GameType.PAN_JIN_LIAN, RoomType.SLOTS, "潘金莲"),
     HOT_FOOTBALL(CoreConst.GameType.HOT_FOOTBALL, RoomType.SLOTS, "热血足球"),
+    CANDY_PARTY(CoreConst.GameType.CANDY_PARTY, RoomType.SLOTS, "糖果派对"),
 
 
     // TABLE

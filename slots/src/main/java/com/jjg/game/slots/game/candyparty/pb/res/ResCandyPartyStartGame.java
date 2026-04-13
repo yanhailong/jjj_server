@@ -21,7 +21,7 @@ public class ResCandyPartyStartGame extends AbstractResponse {
     public List<Integer> iconList;
     @ProtoDesc("本局中奖金币")
     public long allWinGold;
-    @ProtoDesc("当前状态 0.正常  1.免费 2.探宝")
+    @ProtoDesc("当前状态 0.正常  1.免费 ")
     public int status;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
