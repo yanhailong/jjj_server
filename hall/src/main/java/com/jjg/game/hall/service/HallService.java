@@ -1052,8 +1052,18 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
                 List<WarePoolInfo> warePoolInfoList = new ArrayList<>();
                 for (Map.Entry<Object, Object> en : smallPool.entrySet()) {
+                    int roomCfgId = Integer.parseInt(en.getKey().toString());
+                    WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
+                    if (warehouseCfg == null) {
+                        continue;
+                    }
+
+                    if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
+                        continue;
+                    }
+
                     WarePoolInfo warePoolInfo = new WarePoolInfo();
-                    warePoolInfo.wareId = Integer.parseInt(en.getKey().toString());
+                    warePoolInfo.wareId = roomCfgId;
                     long smallPoolValue = Long.parseLong(en.getValue().toString());
 
                     Object o = fakeSmallPool.get(warePoolInfo.wareId);
