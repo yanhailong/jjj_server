@@ -14,7 +14,7 @@ import java.util.List;
 public class ResElephantGodStartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")
     public List<Integer> iconList;
-    @ProtoDesc("当前状态 0.正常  1.免费 2.探宝")
+    @ProtoDesc("当前状态 0.正常  1.免费")
     public int status;
     @ProtoDesc("累计中奖金币")
     public long allWinGold;

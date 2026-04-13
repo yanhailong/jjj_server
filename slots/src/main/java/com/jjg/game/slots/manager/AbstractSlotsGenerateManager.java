@@ -2142,7 +2142,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
                 continue;
             }
-
             for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
                 T tmpLib = JSON.parseObject(jsonObject.toJSONString(), this.resultLibClazz);
                 calTimes(tmpLib);

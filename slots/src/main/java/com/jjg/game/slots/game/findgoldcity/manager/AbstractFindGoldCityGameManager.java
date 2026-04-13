@@ -16,8 +16,6 @@ import com.jjg.game.slots.game.findgoldcity.data.FindGoldCityResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.Map;
-
 /**
  * @author lm
  * @date 2025/12/8 17:24
@@ -203,13 +201,6 @@ public abstract class AbstractFindGoldCityGameManager extends AbstractSlotsGameM
     @Override
     public int getGameType() {
         return CoreConst.GameType.FIND_GOLD_CITY;
-    }
-
-    @Override
-    public void generate(Map<Integer, Integer> libTypeCountMap, boolean saveToDB) {
-        Integer jackpotCount = libTypeCountMap.getOrDefault(FindGoldCityConstant.SpecialMode.JACKPOT, 0);
-        libTypeCountMap.put(FindGoldCityConstant.SpecialMode.JACKPOT, jackpotCount / 10);
-        super.generate(libTypeCountMap, saveToDB);
     }
 
     @Override
