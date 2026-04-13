@@ -47,7 +47,7 @@ public enum RoomType {
         // 普通房间
         if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
             roomType = eGameType.getDefualtRoomType();
-        } else {
+        } else if(warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START){
             // 好友房 2: 百人 3 poker
             int gameType = warehouseCfg.getGameType();
             if (gameType == CoreConst.GameMajorType.TABLE) {
@@ -57,6 +57,8 @@ public enum RoomType {
             } else if(gameType == CoreConst.GameMajorType.SLOTS){
                 roomType = RoomType.SLOTS_TEAM_UP_ROOM;
             }
+        }else {
+            roomType = eGameType.getDefualtRoomType();
         }
         return roomType;
     }

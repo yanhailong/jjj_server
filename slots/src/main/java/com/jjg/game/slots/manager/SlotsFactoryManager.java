@@ -78,9 +78,12 @@ public class SlotsFactoryManager {
 
         if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
             return this.slotsGameManagerMap.get(gameType);
-        } else {
+        }
+
+        if(warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START){
             return this.slotsRoomGameManagerMap.get(gameType);
         }
+        return this.slotsGameManagerMap.get(gameType);
     }
 
     public AbstractSlotsGameManager getGameManager(int gameType) {

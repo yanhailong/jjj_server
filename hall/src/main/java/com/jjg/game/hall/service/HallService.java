@@ -18,7 +18,6 @@ import com.jjg.game.core.dao.VerCodeDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.DropItemManager;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.*;
 import com.jjg.game.core.utils.CoreUtil;
 import com.jjg.game.core.utils.ItemUtils;
@@ -93,7 +92,11 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     @Autowired
     public NewGameExpectDao newGameExpectDao;
 
+    //普通场次缓存信息
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
+    //vip场次缓存信息
+    private Map<Integer, List<WareHouseConfigInfo>> vipWareHouseConfigMap = new HashMap<>();
+
     //游戏类型->游戏状态
     private Map<Integer, GameStatus> gameStatusesMap;
     //排序后的gameList
@@ -102,6 +105,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private Map<Integer, List<GameListConfig>> westeSortGameMap;
     //游戏倍场界面的奖池
     private Map<Integer, List<WarePoolInfo>> poolMap;
+    //svip游戏倍场界面的奖池
+    private Map<Integer, List<WarePoolInfo>> svipPoolMap;
 
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
@@ -183,11 +188,17 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      * @param gameType
      * @return
      */
-    public List<WarePoolInfo> getPoolListByGameType(int gameType) {
-        if (this.poolMap == null || this.poolMap.isEmpty()) {
+    public List<WarePoolInfo> getPoolListByGameType(Player player, int gameType) {
+        if (player.getSvip() < 1) {
+            if (this.poolMap == null || this.poolMap.isEmpty()) {
+                return null;
+            }
+            return this.poolMap.get(gameType);
+        }
+        if (this.svipPoolMap == null || this.svipPoolMap.isEmpty()) {
             return null;
         }
-        return this.poolMap.get(gameType);
+        return this.svipPoolMap.get(gameType);
     }
 
     /**
@@ -874,9 +885,11 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      */
     private void initWareHouseConfigData() {
         Map<Integer, List<WareHouseConfigInfo>> tempwareHouseConfigMap = new HashMap<>();
+        Map<Integer, List<WareHouseConfigInfo>> tempvipWareHouseConfigMap = new HashMap<>();
 
         for (WarehouseCfg c : GameDataManager.getWarehouseCfgList()) {
             List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameID(), k -> new ArrayList<>());
+            List<WareHouseConfigInfo> tempVipList = tempvipWareHouseConfigMap.computeIfAbsent(c.getGameID(), k -> new ArrayList<>());
             if (c.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
                 WareHouseConfigInfo info = new WareHouseConfigInfo();
                 info.wareId = c.getId();
@@ -884,13 +897,22 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 info.limitPlayerLevelMin = c.getPlayerLvLimit();
                 info.betShow = c.getBetShow();
                 tempList.add(info);
+            } else if (c.getRoomType() > GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START && c.getRoomType() <= GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
+                WareHouseConfigInfo info = new WareHouseConfigInfo();
+                info.wareId = c.getId();
+                info.limitGoldMin = c.getEnterLimit();
+                info.limitPlayerLevelMin = c.getPlayerLvLimit();
+                info.betShow = c.getBetShow();
+                tempVipList.add(info);
             }
         }
 
         //根据场次id，从小到大排序
         tempwareHouseConfigMap.replaceAll((key, list) -> list.stream().sorted(Comparator.comparingInt(wh -> wh.wareId)).collect(Collectors.toList()));
+        tempvipWareHouseConfigMap.replaceAll((key, list) -> list.stream().sorted(Comparator.comparingInt(wh -> wh.wareId)).collect(Collectors.toList()));
 
         this.wareHouseConfigMap = tempwareHouseConfigMap;
+        this.vipWareHouseConfigMap = tempvipWareHouseConfigMap;
     }
 
     /**
@@ -1044,6 +1066,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return;
         }
         Map<Integer, List<WarePoolInfo>> tmpPoolMap = new HashMap<>();
+        Map<Integer, List<WarePoolInfo>> tmpSvipPoolMap = new HashMap<>();
 
         this.sortGameList.forEach(cfg -> {
             if (CommonUtil.getMajorTypeByGameType(cfg.sid) == CoreConst.GameMajorType.SLOTS) {
@@ -1051,7 +1074,14 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 Map<Object, Object> fakeSmallPool = poolDao.getFakeSmallPoolByRoomCfgId(cfg.sid);
 
                 List<WarePoolInfo> warePoolInfoList = new ArrayList<>();
+                List<WarePoolInfo> sipWarePoolInfoList = new ArrayList<>();
                 for (Map.Entry<Object, Object> en : smallPool.entrySet()) {
+                    int roomCfgId = Integer.parseInt(en.getKey().toString());
+                    WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
+                    if (warehouseCfg == null) {
+                        continue;
+                    }
+
                     WarePoolInfo warePoolInfo = new WarePoolInfo();
                     warePoolInfo.wareId = Integer.parseInt(en.getKey().toString());
                     long smallPoolValue = Long.parseLong(en.getValue().toString());
@@ -1063,16 +1093,22 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                             smallPoolValue = fakeSmallPoolValue;
                         }
                     }
-
                     warePoolInfo.pool = smallPoolValue;
-                    warePoolInfoList.add(warePoolInfo);
+
+                    if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
+                        warePoolInfoList.add(warePoolInfo);
+                    } else if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
+                        sipWarePoolInfoList.add(warePoolInfo);
+                    }
                 }
 
                 tmpPoolMap.put(cfg.sid, warePoolInfoList);
+                tmpSvipPoolMap.put(cfg.sid, sipWarePoolInfoList);
             }
         });
 
         this.poolMap = tmpPoolMap;
+        this.svipPoolMap = tmpSvipPoolMap;
     }
 
     /**

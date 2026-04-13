@@ -153,7 +153,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
     public void reqPool(PlayerController playerController, ReqPool req) {
         ResPool res = new ResPool(HallCode.SUCCESS);
         try {
-            res.warePoolInfoList = hallService.getPoolListByGameType(req.gameType);
+            res.warePoolInfoList = hallService.getPoolListByGameType(playerController.getPlayer(),req.gameType);
 //            log.info("玩家获取奖池信息，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);

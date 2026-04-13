@@ -91,7 +91,7 @@ public class RoomService implements IRoomStartListener {
         }
         for (WarehouseCfg warehouseCfg : warehouseCfgs) {
             // 组队类型的房间直接跳过
-            if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
+            if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START && warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
                 continue;
             }
             //清除老的数据的房间信息

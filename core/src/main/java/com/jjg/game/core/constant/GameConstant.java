@@ -150,6 +150,8 @@ public class GameConstant {
     public interface RoomTypeCons {
         // 好友房 房间类型开始...
         int FRIEND_ROOM_TYPE_START = 10;
+        // SVIP 房间类型开始...
+        int SVIP_ROOM_TYPE_START = 20;
     }
 
     //账号类型
