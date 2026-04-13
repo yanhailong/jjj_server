@@ -903,6 +903,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             if (playerGameData == null || isCurrentEnterGameData(entry.getKey(), playerGameData, roomCfgId, roomId)) {
                 continue;
             }
+            Player player = playerGameData.getPlayer();
+            log.info("slots清除老数据 playerId:{} gameType:{} roomConfigId:{} roomId:{}", playerId, playerGameData.getGameType(), playerGameData.getRoomCfgId(),
+                    player == null ? "null" : player.getRoomId());
             exitPlayerGameData(playerId, playerGameData, false);
         }
     }
