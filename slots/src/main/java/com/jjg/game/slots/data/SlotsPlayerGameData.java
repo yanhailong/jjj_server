@@ -78,6 +78,8 @@ public class SlotsPlayerGameData {
     //离线事件
     @Transient
     protected transient Map<Integer, OffLineEventData> offlineEventMap;
+    @Transient
+    protected transient PlayerAllSlotsData playerAllSlotsData;
 
     public long getPlayerId() {
         if (playerId == 0) {
@@ -340,19 +342,19 @@ public class SlotsPlayerGameData {
         return this.playerController.getPlayer();
     }
 
+    public void setPlayer(Player player) {
+        if (this.playerController == null) {
+            return;
+        }
+        this.playerController.setPlayer(player);
+    }
+
     public Map<Integer, OffLineEventData> getOfflineEventMap() {
         return offlineEventMap;
     }
 
     public void setOfflineEventMap(Map<Integer, OffLineEventData> offlineEventMap) {
         this.offlineEventMap = offlineEventMap;
-    }
-
-    public void setPlayer(Player player) {
-        if (this.playerController == null) {
-            return;
-        }
-        this.playerController.setPlayer(player);
     }
 
     public void actionOffLineEvent(int eventId) {
@@ -367,6 +369,14 @@ public class SlotsPlayerGameData {
             this.offlineEventMap = new HashMap<>();
         }
         this.offlineEventMap.put(offLineEventData.getId(), offLineEventData);
+    }
+
+    public PlayerAllSlotsData getPlayerAllSlotsData() {
+        return playerAllSlotsData;
+    }
+
+    public void setPlayerAllSlotsData(PlayerAllSlotsData playerAllSlotsData) {
+        this.playerAllSlotsData = playerAllSlotsData;
     }
 
     public void buildRoomKey() {

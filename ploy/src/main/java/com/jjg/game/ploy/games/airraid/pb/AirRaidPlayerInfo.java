@@ -14,7 +14,9 @@ public class AirRaidPlayerInfo {
     public long playerId;
     @ProtoDesc("头像id")
     public int headImgId;
-    @ProtoDesc("头像id")
+    @ProtoDesc("注单索引")
+    public int betIndex;
+    @ProtoDesc("下注额")
     public long bet;
     @ProtoDesc("是否已兑现")
     public boolean cashedOut;

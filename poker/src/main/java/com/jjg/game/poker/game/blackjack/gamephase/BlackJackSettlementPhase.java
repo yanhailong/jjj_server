@@ -284,7 +284,6 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                 if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(2);
                 } else {
-                    gameController.dealLose(gamePlayer, get);
                     poolWinValue += Math.abs(get);
                 }
             }
@@ -358,9 +357,8 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                 //触发任务
                 gameController.triggerSettlementAction(gamePlayer.getId(), gameController.getRoom().getGameType(), 0,
                         income, gameController.getGameTransactionItemId());
-            } else {
-                gameController.dealLose(gamePlayer, income);
             }
+            gameController.dealIncome(gamePlayer, income);
         }
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }

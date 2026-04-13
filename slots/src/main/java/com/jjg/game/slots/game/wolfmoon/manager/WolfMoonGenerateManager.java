@@ -33,6 +33,11 @@ public class WolfMoonGenerateManager extends AbstractSlotsGenerateManager<WolfMo
         super(WolfMoonResultLib.class);
     }
 
+    @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("狼月 无法重载配置表");
+    }
+
     //固定堆叠百搭符号 不消除
     private final Set<Integer> freeImmutableElements = Set.of(WolfMoonConstant.BaseElement.WILD);
     //基础倍数/乘倍数->最大倍数
@@ -134,11 +139,11 @@ public class WolfMoonGenerateManager extends AbstractSlotsGenerateManager<WolfMo
             if (addMultiple) {
                 //重新计算倍数
                 lib.setTimes(0);
-                try {
-                    calTimes(lib);
-                } catch (Exception e) {
-                    log.error("狼月计算倍数异常", e);
-                }
+                //中奖线
+                int tempBaseMultiple = Math.max(1, lib.getBaseMultiple());
+                lib.addTimes(calLineTimes(lib.getAwardLineInfoList(), tempBaseMultiple));
+                //消除后新增图标
+                lib.addTimes(calAfterAddIcons(lib.getAddIconInfos(), tempBaseMultiple));
             }
             remainFreeCount += addCount;
             specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
@@ -286,11 +291,15 @@ public class WolfMoonGenerateManager extends AbstractSlotsGenerateManager<WolfMo
 
     @Override
     public void calTimes(WolfMoonResultLib lib) throws Exception {
-        //中奖线
-        int baseMultiple = Math.max(1, lib.getBaseMultiple());
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList(), baseMultiple));
-        //消除后新增图标
-        lib.addTimes(calAfterAddIcons(lib.getAddIconInfos(), baseMultiple));
+        if (triggerFreeLib(lib, -1)) {
+            lib.addTimes(calFree(lib));
+        } else {
+            //中奖线
+            int baseMultiple = Math.max(1, lib.getBaseMultiple());
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList(), baseMultiple));
+            //消除后新增图标
+            lib.addTimes(calAfterAddIcons(lib.getAddIconInfos(), baseMultiple));
+        }
     }
 
     /**

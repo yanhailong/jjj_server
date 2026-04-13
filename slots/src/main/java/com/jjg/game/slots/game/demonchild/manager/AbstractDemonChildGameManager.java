@@ -79,7 +79,7 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.getPlayerId());
@@ -111,15 +111,18 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
     @Override
     protected DemonChildGameRunInfo normal(DemonChildGameRunInfo gameRunInfo, DemonChildPlayerGameData playerGameData, long betValue, DemonChildResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
+        long bigPoolTimes = resultLib.getTimes();
         if (resultLib.getLibTypeSet().contains(DemonChildConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(DemonChildConstant.Status.FREE);
             playerGameData.setFreeLib(resultLib);
             playerGameData.getRemainFreeCount().set(resultLib.getFreeTotalCount());
             gameRunInfo.setTotalFreeCount(resultLib.getFreeTotalCount());
+            bigPoolTimes = gameGenerateManager.calLineTimes(resultLib.getAwardLineInfoList());
+            bigPoolTimes += gameGenerateManager.calBonusMultiplier(resultLib);
             log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(),
-                    playerGameData.getRemainFreeCount().get(), resultLib.getTimes());
+                    playerGameData.getRemainFreeCount().get(), bigPoolTimes);
         }
-        gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+        gameRunInfo.addBigPoolTimes(bigPoolTimes);
         //检查是否中大奖
         rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));

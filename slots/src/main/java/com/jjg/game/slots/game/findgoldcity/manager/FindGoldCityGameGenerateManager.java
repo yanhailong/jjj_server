@@ -87,6 +87,7 @@ public class FindGoldCityGameGenerateManager extends MultiGridSlotsGenerateManag
                 }
             }
         }
+
         calTimes(lib);
         return lib;
     }

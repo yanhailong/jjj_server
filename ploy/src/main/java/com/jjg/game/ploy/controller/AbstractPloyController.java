@@ -88,8 +88,14 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     public void init(int gameType) {
         this.gameType = gameType;
         this.roomCfgId = gameType * 10 + 4;
+
+        loadConfig();
     }
 
+    protected void loadConfig() {
+        loadPloyGameRoomCfg();
+        loadPoolResultLibCfg();
+    }
 
     /**
      * 进入游戏
@@ -383,15 +389,22 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
 
     @Override
     public void initSampleCallbackCollector() {
-        addInitSampleFileObserveWithCallBack(PoolResultLibCfg.EXCEL_NAME, this::poolResultLib);
+        addChangeSampleFileObserveWithCallBack(PoolResultLibCfg.EXCEL_NAME, this::loadPloyGameRoomCfg);
+        addChangeSampleFileObserveWithCallBack(PoolResultLibCfg.EXCEL_NAME, this::loadPoolResultLibCfg);
     }
 
-    protected void poolResultLib() {
+    protected void loadPloyGameRoomCfg() {
+    }
+
+    protected void loadPoolResultLibCfg() {
         Map<Integer, PoolResultLibCfg> tmpPoolResultLibCfgMap = new HashMap<>();
         Map<Integer, PropInfo> poolResultLibPropMap = new HashMap<>();
 
         for (Map.Entry<Integer, PoolResultLibCfg> en : GameDataManager.getPoolResultLibCfgMap().entrySet()) {
             PoolResultLibCfg cfg = en.getValue();
+            if (this.gameType != cfg.getGameType()) {
+                continue;
+            }
             tmpPoolResultLibCfgMap.put(cfg.getModelId(), cfg);
             poolResultLibPropMap.put(cfg.getModelId(), PropUtils.converMapToPropInfo(cfg.getTypeProp()));
         }

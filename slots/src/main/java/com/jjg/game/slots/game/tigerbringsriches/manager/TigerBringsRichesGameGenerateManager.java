@@ -50,6 +50,7 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
         if (CollectionUtil.isNotEmpty(lib.getLibTypeSet())) {
             for (Integer libType : lib.getLibTypeSet()) {
                 if (libType == TigerBringsRichesConstant.SpecialMode.NORMAL) {
+                    calTimes(lib);
                     continue;
                 }
                 //随机元素
@@ -85,15 +86,18 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
                     calTimes(specialLib);
                     if (randomIcon.createElementCount == realCount) {
                         specialLib.addJackpotId(TigerBringsRichesConstant.Common.JACKPOT_ID);
+                        //设置免费的总次数
+                        lib.setTimes(specialLib.getTimes());
                         break;
                     }
                     if (randomIcon.changeCount == 0) {
+                        //设置免费的总次数
+                        lib.setTimes(specialLib.getTimes());
                         break;
                     }
                 }
             }
         }
-        calTimes(lib);
         return lib;
     }
 

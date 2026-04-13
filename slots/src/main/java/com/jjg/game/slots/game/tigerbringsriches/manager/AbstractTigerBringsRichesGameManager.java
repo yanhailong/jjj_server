@@ -146,7 +146,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.getPlayerId());
@@ -223,6 +223,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
      */
     @Override
     protected TigerBringsRichesGameRunInfo normal(TigerBringsRichesGameRunInfo gameRunInfo, TigerBringsRichesPlayerGameData playerGameData, long betValue, TigerBringsRichesResultLib resultLib) {
+        gameRunInfo.setStake(betValue);
         Set<Integer> typeSet = resultLib.getLibTypeSet();
         //检查是否触发假福马
         if (gameGenerateManager.getModelRandom() != null) {
@@ -244,7 +245,6 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
             gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
             gameRunInfo.setIconArr(resultLib.getIconArr());
             gameRunInfo.setResultLib(resultLib);
-            gameRunInfo.setStake(betValue);
         }
         return gameRunInfo;
     }

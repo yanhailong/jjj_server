@@ -9,6 +9,7 @@ public record MailDto(
         String title,
         String content,
         //道具列表
-        String items
+        String items,
+        String username
 ) {
 }

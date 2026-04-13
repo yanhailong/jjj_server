@@ -347,6 +347,7 @@ public class GMController extends AbstractController {
             vo.setLevel(p.getLevel());
             vo.setGameType(p.getGameType());
             vo.setRoomCfgId(p.getRoomCfgId());
+            vo.setGuestAccount(account.getThirdAccount(LoginType.GUEST));
 
             SafeVo safeVo = new SafeVo();
             safeVo.setSafeGold(p.getSafeBoxGold());
@@ -393,14 +394,14 @@ public class GMController extends AbstractController {
             }
 
             if (StringUtils.isEmpty(dto.designated())) {  //为空表示全服邮件
-                mailService.addAllServerMail(dto.title(), dto.content(), mailItems, AddType.HUMAN_MAIL, null);
+                mailService.addAllServerMail(dto.title(), dto.content(), mailItems, AddType.HUMAN_MAIL, null, dto.username());
             } else {
                 List<Long> playerIds = new ArrayList<>();
                 String[] arr = dto.designated().split(",");
                 for (String str : arr) {
                     playerIds.add(Long.parseLong(str));
                 }
-                mailService.addMails(playerIds, dto.title(), dto.content(), mailItems, AddType.HUMAN_MAIL, null);
+                mailService.addMails(playerIds, dto.title(), dto.content(), mailItems, AddType.HUMAN_MAIL, null, dto.username());
             }
 
             //返回修改结果
@@ -693,7 +694,7 @@ public class GMController extends AbstractController {
                                 return true;
                             }
                             log.warn("玩家当前状态不能被解封 playerId = {},status = {},toStatus = {}", dataEntity.getPlayerId(), dataEntity.getStatus(), AccountStatus.NORMAL.getCode());
-                            return true;
+                            return false;
                         }
                     });
 
@@ -1923,6 +1924,33 @@ public class GMController extends AbstractController {
     @RequestMapping(BackendGMCmd.GET_GENERATE_LIB_LAST_TIME)
     public WebResult<Map<Integer, Long>> getGenerateLibLastTime() {
         return success("common.success", slotsLibDao.getGenerateTime());
+    }
+
+    /**
+     * 生成poker牌库
+     */
+    @RequestMapping(BackendGMCmd.GENERATE_TO_POKER_LIB)
+    public WebResult<String> generateToSouthLib(@RequestBody GeneratePokerLibDto param) {
+        log.info("收到生成生成poker牌库的请求 param={}", param);
+        try {
+            ClusterClient clusterClient;
+            if (StringUtils.isNotEmpty(param.nodeName())) {
+                clusterClient = clusterSystem.getNodesByName(param.nodeName());
+            } else {
+                clusterClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
+            }
+
+            NotifyGenerateToSouthLib notify = new NotifyGenerateToSouthLib();
+            notify.count = param.count();
+
+            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
+            ClusterMessage msg = new ClusterMessage(pfMessage);
+            clusterClient.write(msg);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("生成poker牌库异常", e);
+            return fail("common.exception");
+        }
     }
 
     /**

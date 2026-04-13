@@ -1,8 +1,8 @@
 package com.jjg.game.slots.dao;
 
 import com.jjg.game.common.protostuff.ProtostuffUtil;
+import com.jjg.game.core.utils.LZ4CompressionUtil;
 import com.jjg.game.slots.data.SlotsResultLib;
-import com.jjg.game.slots.utils.LZ4CompressionUtil;
 import org.redisson.api.RKeys;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;

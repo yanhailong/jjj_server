@@ -43,7 +43,7 @@ public class LuckyMouseGenerateManager extends AbstractSlotsGenerateManager<Luck
     @Override
     protected void specialPlayConfig() {
         SpecialPlayCfg specialPlayCfg = GameDataManager.getSpecialPlayCfg(LuckyMouseConstant.SpecialPlay.FU_SHU_TRIGGER_ID);
-        if (specialPlayCfg == null  || StringUtil.isEmpty(specialPlayCfg.getValue())) {
+        if (specialPlayCfg == null || StringUtil.isEmpty(specialPlayCfg.getValue())) {
             return;
         }
         String[] modeArr = specialPlayCfg.getValue().split(",");
@@ -151,7 +151,7 @@ public class LuckyMouseGenerateManager extends AbstractSlotsGenerateManager<Luck
 
     @Override
     public void calTimes(LuckyMouseResultLib lib) throws Exception {
-        if(triggerFreeLib(lib, LuckyMouseConstant.SpecialMode.FREE)) {
+        if (triggerFreeLib(lib, LuckyMouseConstant.SpecialMode.FREE)) {
             //免费
             lib.addTimes(calFree(lib));
         } else {
@@ -185,7 +185,7 @@ public class LuckyMouseGenerateManager extends AbstractSlotsGenerateManager<Luck
         return CollUtil.isEmpty(list)
                 ? 0
                 : list.stream()
-                .mapToInt(LuckyMouseAwardLineInfo::getBaseTimes)
-                .sum();
+                  .mapToInt(LuckyMouseAwardLineInfo::getBaseTimes)
+                  .sum();
     }
 }

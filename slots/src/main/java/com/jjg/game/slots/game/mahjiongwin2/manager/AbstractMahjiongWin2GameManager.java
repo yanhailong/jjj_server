@@ -32,10 +32,6 @@ public abstract class AbstractMahjiongWin2GameManager extends AbstractSlotsGameM
         log.info("启动麻将胡了2游戏管理器...");
         super.init();
 
-//        Map<Integer, Integer> map = new HashMap<>();
-//        map.put(1, 50000);
-//        map.put(2, 50000);
-//        addGenerateLibEvent(map);
     }
 
 
@@ -83,7 +79,7 @@ public abstract class AbstractMahjiongWin2GameManager extends AbstractSlotsGameM
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.getPlayerId());

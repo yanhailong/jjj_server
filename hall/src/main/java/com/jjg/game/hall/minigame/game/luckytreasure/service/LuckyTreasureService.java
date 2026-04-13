@@ -21,6 +21,7 @@ import com.jjg.game.core.manager.SubscriptionManager;
 import com.jjg.game.core.pb.LuckyTreasureUpdateBroadcast;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.TipUtils;
+import com.jjg.game.hall.logger.MinigameLogger;
 import com.jjg.game.hall.minigame.game.luckytreasure.LuckyTreasureManager;
 import com.jjg.game.hall.minigame.game.luckytreasure.bean.LuckyTreasureConsumeInfo;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureHistory;
@@ -60,6 +61,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
     private final SubscriptionManager subscriptionManager;
     private final ClusterSystem clusterSystem;
     private final HallPlayerService playerService;
+    private final MinigameLogger minigameLogger;
 
     private AtomicLong lastUpdateTime = new AtomicLong(0);
 
@@ -83,7 +85,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                                 TimerCenter timerCenter,
                                 SubscriptionManager subscriptionManager,
                                 ClusterSystem clusterSystem,
-                                PlayerPackService playerPackService, HallPlayerService playerService) {
+                                PlayerPackService playerPackService, HallPlayerService playerService, MinigameLogger minigameLogger) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
         this.redisLock = redisLock;
@@ -92,6 +94,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         this.subscriptionManager = subscriptionManager;
         this.clusterSystem = clusterSystem;
         this.playerService = playerService;
+        this.minigameLogger = minigameLogger;
     }
 
     /**
@@ -419,6 +422,9 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                     result.data = response;
                     //购买成功通知更新 广播到所有节点
                     broadcastUpdate(latestTreasure.getIssueNumber());
+
+                    //发送购买日志
+                    this.minigameLogger.luckyTreasureBuy(player, latestTreasure, consumeMap, count, response.getRemainingCount());
                 }
                 return result;
             } catch (Exception e) {

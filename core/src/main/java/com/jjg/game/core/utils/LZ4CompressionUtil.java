@@ -1,4 +1,4 @@
-package com.jjg.game.slots.utils;
+package com.jjg.game.core.utils;
 
 import net.jpountz.lz4.LZ4Compressor;
 import net.jpountz.lz4.LZ4Factory;

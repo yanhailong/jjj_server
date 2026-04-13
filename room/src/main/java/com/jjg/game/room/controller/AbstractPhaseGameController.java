@@ -29,8 +29,6 @@ import com.jjg.game.room.datatrack.GameDataTracker;
 import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomPhaseTimeEvent;
 import com.jjg.game.room.timer.RoomTimerEvent;
-import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BetAreaCfg;
 import com.jjg.game.sampledata.bean.RoomCfg;
 
 import java.lang.reflect.Constructor;
@@ -417,7 +415,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
      * @param player    玩家数据
      * @param loseValue 输的金额
      */
-    public void dealLose(Player player, long loseValue) {
+    public void dealIncome(Player player, long loseValue) {
         if (player instanceof GameRobotPlayer) {
             return;
         }

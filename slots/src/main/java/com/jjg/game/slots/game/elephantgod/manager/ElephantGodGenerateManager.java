@@ -33,6 +33,11 @@ public class ElephantGodGenerateManager extends AbstractSlotsGenerateManager<Ele
     }
 
     @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("象财神 无法重载配置表");
+    }
+
+    @Override
     public ElephantGodResultLib checkAward(int[] arr, ElephantGodResultLib lib, boolean freeModel) throws Exception {
         lib.setGameType(this.gameType);
         lib.setIconArr(arr);
@@ -100,8 +105,12 @@ public class ElephantGodGenerateManager extends AbstractSlotsGenerateManager<Ele
                 }
             }
         }
-        //中奖线
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        if (triggerFreeLib(lib, ElephantGodConstant.SpecialMode.FREE)) {
+            lib.addTimes(calFree(lib));
+        } else {
+            //中奖线
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        }
     }
 
     private int checkWildCount(int[] arr) {

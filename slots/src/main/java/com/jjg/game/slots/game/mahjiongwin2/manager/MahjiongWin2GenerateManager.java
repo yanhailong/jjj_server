@@ -255,10 +255,15 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
 
     @Override
     public void calTimes(MahjiongWin2ResultLib lib) throws Exception {
-        //中奖线
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
-        //消除后新增图标
-        lib.addTimes(calAfterAddIcons(lib.getAddIconInfos()));
+        if (triggerFreeLib(lib, MahjiongWin2Constant.SpecialMode.FREE)) {
+            //免费
+            lib.addTimes(calFree(lib));
+        } else {
+            //中奖线
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+            //消除后新增图标
+            lib.addTimes(calAfterAddIcons(lib.getAddIconInfos()));
+        }
     }
 
     /**

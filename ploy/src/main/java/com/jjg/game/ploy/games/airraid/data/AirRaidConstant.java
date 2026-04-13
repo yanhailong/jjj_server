@@ -41,4 +41,13 @@ public interface AirRaidConstant {
         //结算阶段
         int CRASHED_PHASE_TIME_MILLS = 3000;
     }
+
+    interface Odds{
+        //倍数增长率
+        int GROWTH = 0;
+        //风险增量
+        int RISK = 1;
+        //初始坠毁率
+        int CRASH = 2;
+    }
 }

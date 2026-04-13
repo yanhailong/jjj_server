@@ -13,6 +13,7 @@ import com.jjg.game.activity.continuousRecharge.data.DailyContinuousData;
 import com.jjg.game.activity.continuousRecharge.message.*;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.constant.AddType;
@@ -64,13 +65,18 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
     //连续充值活动按天分组 dayIndex ->cfgList
     private Map<Integer, List<ContinuouschargingCfg>> continuouschargingCfgMap = null;
-    //福利每天活动分组 group ->cfgList
-    private Map<Integer, List<CumulativebenefitsCfg>> welfareDailyCfgMap = null;
+    //福利每天活动分组 group ->cfgId -> cfg
+    private Map<Integer, Map<Integer, CumulativebenefitsCfg>> welfareDailyCfgMap = null;
+    //权重之和
+    private int dailyWelfarPropSum = 0;
+    //每个group配置的权重区间
+    private Map<Integer, int[]> welfareDailyCfgPropSectionMap = null;
+
     //福利活动中月度配置
     private List<CumulativebenefitsCfg> welfareMonthCfgList = null;
 
     //今天的配置
-    private Map<Integer, CumulativebenefitsCfg> todayWelfareCfgMap = null;
+    private volatile int welfareDailyTodayGroup = 1;
 
     //GM调试用：时间(毫秒)
     private long debugMills = 0;
@@ -374,18 +380,10 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                 return;
             }
 
-            //检查 data.getDailyWelfareData().getDate()这一天应该使用哪一个配置
-            LocalDate beginTime = TimeHelper.getLocalDateTime(phase.getSecond()[0]).toLocalDate();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-            LocalDate targetDate = LocalDate.parse(String.valueOf(data.getDailyWelfareData().getDate()), formatter);
-            // 3. 计算天数差
-            int diff = (int) ChronoUnit.DAYS.between(beginTime, targetDate);
-            //根据天数差获取当天的配置
-            int groupSize = this.welfareDailyCfgMap.get(1).size();
-            int index = diff % groupSize;
-            Map<Integer, CumulativebenefitsCfg> tmpTodayCfgMap = cfgIds(index);
+            //获取当天使用的组配置
+            Map<Integer, CumulativebenefitsCfg> tmpTodayCfgMap = this.welfareDailyCfgMap.get(data.getDailyWelfareData().getGroup());
             if (CollectionUtil.isEmpty(tmpTodayCfgMap)) {
-                tmpTodayCfgMap = this.todayWelfareCfgMap;
+                tmpTodayCfgMap = this.welfareDailyCfgMap.get(this.welfareDailyTodayGroup);
             }
 
             boolean send = false;
@@ -399,16 +397,16 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                     continue;
                 }
 
-//                long target = cfg.getCondition();
-//                if (data.getDailyWelfareData().getRechargeNum().longValue() >= target) {
-//                    send = true;
-//                    // 达标但未领取，通过邮件补发
-//                    mailService.addCfgMail(player.getId(), ActivityConstant.ContinuousRecharge.WELFARE_DAILY_MAIL_ID, ItemUtils.buildItems(cfg.getRewards()), AddType.ACTIVITY_WELFARE_DAILY_REWARD);
-//
-//                    // 标记已补发，避免重复补发
-//                    data.getDailyWelfareData().receReward(cfg.getId());
-//                    log.info("累计福利每日任务邮件补发 playerId={}, day={}, cfgId={}, rechargeNum={}", player.getId(), data.getDailyWelfareData().getDate(), cfg.getId(), data.getDailyWelfareData().getRechargeNum());
-//                }
+                long target = cfg.getCondition();
+                if (data.getDailyWelfareData().getRechargeNum().longValue() >= target) {
+                    send = true;
+                    // 达标但未领取，通过邮件补发
+                    mailService.addCfgMail(player.getId(), ActivityConstant.ContinuousRecharge.WELFARE_DAILY_MAIL_ID, ItemUtils.buildItems(cfg.getRewards()), AddType.ACTIVITY_WELFARE_DAILY_REWARD);
+
+                    // 标记已补发，避免重复补发
+                    data.getDailyWelfareData().receReward(cfg.getId());
+                    log.info("累计福利每日任务邮件补发 playerId={}, day={}, cfgId={}, rechargeNum={}", player.getId(), data.getDailyWelfareData().getDate(), cfg.getId(), data.getDailyWelfareData().getRechargeNum());
+                }
             }
 
             if (send) {
@@ -439,16 +437,16 @@ public class ContinuousRechargeController extends BaseActivityController impleme
                 }
 
                 //检查是否达成条件
-//                if (monthRecharge < cfg.getCondition()) {
-//                    continue;
-//                }
+                if (monthRecharge < cfg.getCondition()) {
+                    continue;
+                }
 
                 //检查是否领取
                 if (data.welfarRece(cfg.getId())) {
                     continue;
                 }
                 // 发送邮件
-//                mailService.addCfgMail(player.getId(), ActivityConstant.ContinuousRecharge.WELFARE_MONTH_MAIL_ID, ItemUtils.buildItems(cfg.getRewards()), AddType.ACTIVITY_WELFARE_MONTHLY_REWARD);
+                mailService.addCfgMail(player.getId(), ActivityConstant.ContinuousRecharge.WELFARE_MONTH_MAIL_ID, ItemUtils.buildItems(cfg.getRewards()), AddType.ACTIVITY_WELFARE_MONTHLY_REWARD);
                 // 标记已补发，避免重复补发
                 data.welfareReward(cfg.getId());
                 log.info("福利月奖励邮件补发 playerId={}, cfgId={}, rechargeNum={}", player.getId(), cfg.getId(), monthRecharge);
@@ -630,11 +628,11 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         log.debug("处理七日连充活动的福利充值 playerId = {}", player.getId());
         // 更新今日福利充值
         int date = getToday();
-        data.updateWelfareRechargeData(date, order.getPrice());
+        data.updateWelfareRechargeData(date, this.welfareDailyTodayGroup, order.getPrice());
         // 保存数据
         dataMap.put(DETAIL_ID, data);
         playerActivityDao.savePlayerActivityData(player.getId(), activityData.getType(), activityData.getId(), dataMap);
-        activityLogger.sendWelfarLog(player, order.getPrice(), activityData, data, this.todayWelfareCfgMap);
+        activityLogger.sendWelfarLog(player, order.getPrice(), activityData, data, this.welfareDailyCfgMap.get(this.welfareDailyTodayGroup));
     }
 
     @Override
@@ -802,12 +800,13 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         }
 
         int taskType = cfg.getType();
-        long target = 0;
-        Map<Integer, Long> rewards = null;
+        long target = cfg.getCondition();
+        Map<Integer, Long> rewards = cfg.getRewards();
         int date = getToday();
 
         if (taskType == ActivityConstant.ContinuousRecharge.WELFARE_DAILY_TYPE) {
-            if (!this.todayWelfareCfgMap.containsKey(cfg.getId())) {
+            Map<Integer, CumulativebenefitsCfg> todayWelfareCfgMap = this.welfareDailyCfgMap.get(this.welfareDailyTodayGroup);
+            if (!todayWelfareCfgMap.containsKey(cfg.getId())) {
                 result.code = Code.FORBID;
                 log.warn("该配置id不在今天随机配置中 playerId = {}", player.getId());
                 return result;
@@ -893,7 +892,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         // 保存数据
         dataMap.put(DETAIL_ID, data);
         playerActivityDao.savePlayerActivityData(player.getId(), activityData.getType(), activityData.getId(), dataMap);
-        activityLogger.sendWelfarLog(player, BigDecimal.ZERO, activityData, data, this.todayWelfareCfgMap);
+        activityLogger.sendWelfarLog(player, BigDecimal.ZERO, activityData, data, this.welfareDailyCfgMap.get(this.welfareDailyTodayGroup));
         log.info("累计福利领取奖励 playerId={}, cfgId={}, taskType={}", player.getId(), detailId, taskType);
         return result;
     }
@@ -1029,12 +1028,14 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         //设置每日的信息
         info.welfareInfo.dailyTaskList = new ArrayList<>();
 
-        for (CumulativebenefitsCfg cfg : this.todayWelfareCfgMap.values()) {
+        Map<Integer, CumulativebenefitsCfg> todayWelfareCfgMap = this.welfareDailyCfgMap.get(this.welfareDailyTodayGroup);
+
+        for (CumulativebenefitsCfg cfg : todayWelfareCfgMap.values()) {
             WelfareTaskInfo welfareTaskInfo = new WelfareTaskInfo();
             welfareTaskInfo.cfgId = cfg.getId();
 
-            welfareTaskInfo.target = 0;
-            welfareTaskInfo.rewardItems = ItemUtils.buildItemInfo(null);
+            welfareTaskInfo.target = cfg.getCondition();
+            welfareTaskInfo.rewardItems = ItemUtils.buildItemInfo(cfg.getRewards());
 
             //判断是否可领取
             if (data.getDailyWelfareData() == null) {
@@ -1054,8 +1055,8 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         for (CumulativebenefitsCfg cfg : this.welfareMonthCfgList) {
             WelfareTaskInfo welfareTaskInfo = new WelfareTaskInfo();
             welfareTaskInfo.cfgId = cfg.getId();
-            welfareTaskInfo.target = 0;
-            welfareTaskInfo.rewardItems = ItemUtils.buildItemInfo(null);
+            welfareTaskInfo.target = cfg.getCondition();
+            welfareTaskInfo.rewardItems = ItemUtils.buildItemInfo(cfg.getRewards());
 
             //判断是否可领取
             if (data.getWelfarMonthRechargeNum() != null && data.getWelfarMonthRechargeNum().longValue() >= welfareTaskInfo.target) {
@@ -1218,17 +1219,36 @@ public class ContinuousRechargeController extends BaseActivityController impleme
      */
     private void loadCumulativebenefitsCfg() {
         //整理配置
-        Map<Integer, List<CumulativebenefitsCfg>> tmpWelfareDailyCfgMap = new HashMap<>();
+        Map<Integer, Map<Integer, CumulativebenefitsCfg>> tmpWelfareDailyCfgMap = new HashMap<>();
+        Map<Integer, int[]> tmpWelfareDailyCfgPropSectionMap = new HashMap<>();
         List<CumulativebenefitsCfg> tmpWelfareMonthCfgList = new ArrayList<>();
+
+        int begin = 0;
+        int end = 0;
         for (Map.Entry<Integer, CumulativebenefitsCfg> en : GameDataManager.getCumulativebenefitsCfgMap().entrySet()) {
             CumulativebenefitsCfg cfg = en.getValue();
             if (cfg.getType() == ActivityConstant.ContinuousRecharge.WELFARE_DAILY_TYPE) {
-                tmpWelfareDailyCfgMap.computeIfAbsent(0, k -> new ArrayList<>()).add(cfg);
+                tmpWelfareDailyCfgMap.computeIfAbsent(cfg.getGroup(), k -> new HashMap<>()).put(cfg.getId(), cfg);
+
+                int[] sectionArr = tmpWelfareDailyCfgPropSectionMap.get(cfg.getGroup());
+                if (sectionArr != null) {
+                    continue;
+                }
+
+                begin = end;
+                end += cfg.getWeight();
+
+                sectionArr = new int[2];
+                sectionArr[0] = begin;
+                sectionArr[1] = end;
+                tmpWelfareDailyCfgPropSectionMap.put(cfg.getGroup(), sectionArr);
             } else if (cfg.getType() == ActivityConstant.ContinuousRecharge.WELFARE_MONTHLY_TYPE) {
                 tmpWelfareMonthCfgList.add(cfg);
             }
         }
 
+        this.dailyWelfarPropSum = end;
+        this.welfareDailyCfgPropSectionMap = tmpWelfareDailyCfgPropSectionMap;
         this.welfareDailyCfgMap = tmpWelfareDailyCfgMap;
         this.welfareMonthCfgList = tmpWelfareMonthCfgList;
 
@@ -1239,34 +1259,26 @@ public class ContinuousRechargeController extends BaseActivityController impleme
      * 生成今天的配置id
      */
     private void genTodayWefareCfgIds() {
-//        Map<Long, ActivityData> activityData = activityManager.getActivityData();
-//        long now = currentTimeMillis();
-//
-//        int groupSize = this.welfareDailyCfgMap.get(1).size();
-//
-//        for (Map.Entry<Long, ActivityData> en : activityData.entrySet()) {
-//            ActivityData data = en.getValue();
-//            if (data.getType() != ActivityType.CONTINUOUS_RECHARGE) {
-//                continue;
-//            }
-//            Pair<Integer, long[]> phase = getPhase(en.getValue(), true);
-//            if (phase.getFirst() != ActivityConstant.ContinuousRecharge.PHASE_WELFARE) {
-//                continue;
-//            }
-//
-//            long startTime = phase.getSecond()[0];
-//            int diff = TimeHelper.getDateDifference(now, startTime);
-//            int index = diff % groupSize;
-//
-//            Map<Integer, CumulativebenefitsCfg> cfgMap = cfgIds(index);
-//            if (CollectionUtil.isEmpty(cfgMap)) {
-//                cfgMap = cfgIds(0);
-////                this.wefareCfgIndexId = 0;
-//            } else {
-////                this.wefareCfgIndexId = diff;
-//            }
-//            this.todayWelfareCfgMap = cfgMap;
-//        }
+        Map<Long, ActivityData> activityData = activityManager.getActivityData();
+        for (Map.Entry<Long, ActivityData> en : activityData.entrySet()) {
+            ActivityData data = en.getValue();
+            if (data.getType() != ActivityType.CONTINUOUS_RECHARGE) {
+                continue;
+            }
+
+            int group = 0;
+            int rand = RandomUtils.randomInt(this.dailyWelfarPropSum);
+            for (Map.Entry<Integer, int[]> en2 : this.welfareDailyCfgPropSectionMap.entrySet()) {
+                int[] arr = en2.getValue();
+                if (rand >= arr[0] && rand < arr[1]) {
+                    group = en2.getKey();
+                    break;
+                }
+            }
+
+            this.welfareDailyTodayGroup = group;
+            break;
+        }
     }
 
     @Override
@@ -1382,19 +1394,6 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         } else {
             return new Pair<>(ActivityConstant.ContinuousRecharge.PHASE_OVER, null);
         }
-    }
-
-    private Map<Integer, CumulativebenefitsCfg> cfgIds(int index) {
-        if (this.welfareDailyCfgMap == null || this.welfareDailyCfgMap.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
-        Map<Integer, CumulativebenefitsCfg> map = new HashMap<>();
-//        for (Map.Entry<Integer, List<CumulativebenefitsCfg>> en : this.welfareDailyCfgMap.entrySet()) {
-//            CumulativebenefitsCfg cfg = en.getValue().get(index);
-//            map.put(cfg.getId(), cfg);
-//        }
-        return map;
     }
 
     @Override

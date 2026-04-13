@@ -37,6 +37,11 @@ public interface BackendGMCmd {
     //生成结果库的状态
     String GENERATE_LIB_STATUS = "generateLibStatus";
 
+    //生成poker类的结果集
+    String GENERATE_TO_POKER_LIB = "generateToPokerLib";
+    //生成南方前进牌库的状态
+    String GENERATE_TO_SOUTH_LIB_STATUS = "generateToSouthLibStatus";
+
     //保存商品
     String SAVE_SHOP_PRODUCTS = "saveShopProducts";
     //删除商品

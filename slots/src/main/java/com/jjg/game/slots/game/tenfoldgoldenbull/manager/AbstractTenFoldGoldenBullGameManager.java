@@ -60,6 +60,11 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
     }
 
     @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("十倍金牛 无法重载配置表");
+    }
+
+    @Override
     public TenFoldGoldenBullGameRunInfo enterGame(PlayerController playerController) {
         //获取玩家游戏数据
         TenFoldGoldenBullPlayerGameData playerGameData = getPlayerGameData(playerController);
@@ -136,7 +141,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.getPlayerId());
@@ -212,6 +217,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
      */
     @Override
     public TenFoldGoldenBullGameRunInfo normal(TenFoldGoldenBullGameRunInfo gameRunInfo, TenFoldGoldenBullPlayerGameData playerGameData, long betValue, TenFoldGoldenBullResultLib resultLib) {
+        gameRunInfo.setStake(betValue);
         Set<Integer> typeSet = resultLib.getLibTypeSet();
         //检查是否触发假福牛
         if (gameGenerateManager.getModelRandom() != null) {
@@ -233,7 +239,6 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
             gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
             gameRunInfo.setIconArr(resultLib.getIconArr());
             gameRunInfo.setResultLib(resultLib);
-            gameRunInfo.setStake(betValue);
         }
         return gameRunInfo;
     }

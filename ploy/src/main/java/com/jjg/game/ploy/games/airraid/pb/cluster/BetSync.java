@@ -1,6 +1,7 @@
 package com.jjg.game.ploy.games.airraid.pb.cluster;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.ploy.games.airraid.data.AirRaidConstant;
 
@@ -12,7 +13,9 @@ import com.jjg.game.ploy.games.airraid.data.AirRaidConstant;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.PLOY_AIR_RAID,
         cmd = AirRaidConstant.MsgBean.BET_SYNC, resp = true, toPbFile = false)
-public class BetSync {
+public class BetSync extends AbstractMessage {
+    //当前回合号
+    public int roundId;
     //玩家ID
     public long playerId;
     //头像ID

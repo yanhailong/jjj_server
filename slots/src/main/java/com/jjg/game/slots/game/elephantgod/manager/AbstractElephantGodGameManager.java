@@ -31,6 +31,11 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
     }
 
     @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("象财神 无法重载配置表");
+    }
+
+    @Override
     protected ElephantGodGameRunInfo startGame(PlayerController playerController, ElephantGodPlayerGameData playerGameData, long betValue, boolean auto) {
         ElephantGodGameRunInfo gameRunInfo = new ElephantGodGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
@@ -60,7 +65,7 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.getPlayerId());
@@ -126,10 +131,13 @@ public abstract class AbstractElephantGodGameManager extends AbstractSlotsGameMa
             playerGameData.setStatus(ElephantGodConstant.Status.FREE);
             playerGameData.setFreeLib(resultLib);
             playerGameData.getRemainFreeCount().set(resultLib.getAddFreeCount());
+            int times = generateManager.calLineTimes(resultLib.getAwardLineInfoList());
+            gameRunInfo.addBigPoolTimes(times);
             log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(),
                     playerGameData.getRemainFreeCount().get(), resultLib.getTimes());
+        } else {
+            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
-        gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         //检查是否中大奖
         rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
         log.debug("id = {}", resultLib.getId());

@@ -75,10 +75,7 @@ public class SaveLogUtil {
                 @Override
                 public void action() {
                     dealEffectiveWaterFlow(gameController, gamePlayer, sum, finalTotalBet);
-                    //总输的
-                    if (income <= 0) {
-                        gameController.dealLose(gamePlayer, income);
-                    }
+                    gameController.dealIncome(gamePlayer, income);
                 }
             }.setHandlerParamWithSelf("generalLog"));
             //触发任务

@@ -19,9 +19,9 @@ public class PlayerPloyGameData {
     @Transient
     @JsonIgnore
     protected transient PlayerController playerController;
-    //进策略游戏前的 gameType
+    //游戏 gameType
     protected int gameType;
-    //进策略游戏前的 roomCfgId
+    //场次 roomCfgId
     protected int roomCfgId;
     //最近一次的押注
     protected long lastBet;

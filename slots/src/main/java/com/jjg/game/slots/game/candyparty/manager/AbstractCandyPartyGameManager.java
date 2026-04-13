@@ -100,13 +100,13 @@ public abstract class AbstractCandyPartyGameManager extends AbstractSlotsGameMan
             //如果获取结果库失败，会重试，所以用循环
             for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
                 //根据倍数区间从结果库里面随机获取一条
-                resultLib = getLib(libCfgResult.data, libType, playerGameData.getAllBetScore());
+                resultLib = getLib(libCfgResult.data, libType, playerGameData);
                 if (resultLib != null) {
                     //检查该lib是否中奖jackpot
                     if (resultLib.getJackpotIds() != null && !resultLib.getJackpotIds().isEmpty()) {
                         List<Integer> rewardPoolIds = checkLibPool(resultLib, playerGameData);
                         if (rewardPoolIds.isEmpty()) {  //如果发现lib可以中奖，但是不够资格
-                            resultLib = afterForbidPoolLib(libCfgResult.data, resultLib);
+                            resultLib = afterForbidPoolLib(libCfgResult.data, resultLib, playerGameData);
                         }
                     }
                 }
@@ -238,7 +238,7 @@ public abstract class AbstractCandyPartyGameManager extends AbstractSlotsGameMan
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.getPlayerId());
@@ -308,10 +308,12 @@ public abstract class AbstractCandyPartyGameManager extends AbstractSlotsGameMan
                     playerGameData.getRemainFreeCount().set(specialAuxiliaryInfo.getFreeGames().size());
                 }
             }
-            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+            long times = gameGenerateManager.calLineTimes(resultLib.getAwardLineInfoList(), 1);
+            times += gameGenerateManager.calAfterAddIcons(resultLib.getAddIconInfos(), 1);
+            gameRunInfo.addBigPoolTimes(times);
             gameRunInfo.setFreeGameMultiple(resultLib.getFreeGameMultiple());
             log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(),
-                    playerGameData.getRemainFreeCount().get(), resultLib.getTimes());
+                    playerGameData.getRemainFreeCount().get(), times);
         } else {
             gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }

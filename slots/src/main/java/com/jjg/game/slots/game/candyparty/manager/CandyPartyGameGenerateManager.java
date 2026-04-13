@@ -318,10 +318,15 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
 
     @Override
     public void calTimes(CandyPartyResultLib lib) throws Exception {
-        //中奖线
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList(), 1));
-        //消除后新增图标
-        lib.addTimes(calAfterAddIcons(lib.getAddIconInfos(), 1));
+        if (triggerFreeLib(lib)) {
+            lib.addTimes(calFree(lib));
+        } else {
+            //中奖线
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList(), 1));
+            //消除后新增图标
+            lib.addTimes(calAfterAddIcons(lib.getAddIconInfos(), 1));
+        }
+
     }
 
     /**

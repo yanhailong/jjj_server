@@ -319,5 +319,10 @@ public interface ActivityConstant {
         int RES_CONTINUOUS_RECHARGE = BASE_MSG_PREFIX | 0x77;
         //领取连续充值，福利奖励
         int RES_CONTINUOUS_RECHARGE_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x78;
+
+
+        //推广分享一键领取收益
+        int REQ_SHARE_PROMOTE_ONE_RECEIVE = BASE_MSG_PREFIX | 0x79;
+        int RES_SHARE_PROMOTE_ONE_RECEIVE = BASE_MSG_PREFIX | 0x80;
     }
 }

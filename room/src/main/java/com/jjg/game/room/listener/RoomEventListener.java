@@ -131,7 +131,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             }
             //先取玩家信息,退出成功后会删掉
             int onlineTimeLen = 0;
-            if (gamePlayer != null) {
+            if (gamePlayer != null && gamePlayer.getEnterGameTime() != 0) {
                 onlineTimeLen = TimeHelper.nowInt() - gamePlayer.getEnterGameTime();
             }
             logger.exitGame(playerController.getPlayer(), onlineTimeLen, playerController.getPlayer().getDeviceType());

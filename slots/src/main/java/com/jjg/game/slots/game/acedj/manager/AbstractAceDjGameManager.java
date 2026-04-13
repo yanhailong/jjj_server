@@ -44,6 +44,10 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
         super.init();
     }
 
+    @Override
+    public void changeSampleCallbackCollector() {
+        log.warn("王牌Dj游戏 无法重载配置表");
+    }
 
     /**
      * 开始游戏
@@ -89,7 +93,7 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(player, gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(player, gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.getPlayerId());

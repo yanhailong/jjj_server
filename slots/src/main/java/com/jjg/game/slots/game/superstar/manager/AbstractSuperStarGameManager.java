@@ -72,7 +72,10 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
         SuperStarGameRunInfo gameRunInfo = new SuperStarGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
+            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
+            playerController.setPlayer(player);
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(player.getRoomCfgId());
+            gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
             gameRunInfo = normal(gameRunInfo, playerGameData, betValue);
 
@@ -86,7 +89,7 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //触发实际赢钱的task
-            triggerWinTask(playerController.getPlayer(), gameRunInfo.getAllWinGold(), playerGameData.getAllBetScore(), warehouseCfg.getTransactionItemId());
+            triggerWinTask(playerController.getPlayer(), gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
 
             //添加大奖展示id
             int times = calWinTimes(gameRunInfo, playerGameData);
@@ -94,7 +97,7 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.getPlayerId());
+            player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
