@@ -21,7 +21,7 @@ public class ResWolfMoonStartGame extends AbstractResponse {
     public List<Integer> iconList;
     @ProtoDesc("本局中奖金币")
     public long allWinGold;
-    @ProtoDesc("当前状态 0.正常  1.免费")
+    @ProtoDesc("当前状态 0.正常  1.免费 2.免费游戏选择")
     public int status;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
