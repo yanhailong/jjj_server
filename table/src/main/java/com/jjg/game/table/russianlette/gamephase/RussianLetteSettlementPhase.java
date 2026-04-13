@@ -23,6 +23,8 @@ import com.jjg.game.table.russianlette.message.RussianLetteMessageBuilder;
 import com.jjg.game.table.russianlette.message.resp.NotifyRussianLetteSettlement;
 import com.jjg.game.table.russianlette.message.resp.RussianLetteHistoryBean;
 
+import com.jjg.game.table.common.message.bean.BetTableInfo;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -198,6 +200,39 @@ public class RussianLetteSettlementPhase extends BaseDiceSettlementPhase<Russian
 
         long endTime = System.currentTimeMillis();
 //        log.info("结算阶段  执行时间：{}   距离下个阶段时间：{}",endTime-startTime,gameDataVo.getPhaseEndTime()-endTime);
+    }
+
+    /**
+     * 重写区域下注日志，补全 betIdxTotal（全玩家该区域总押注）和 betValue（玩家本次该区域押注额）。
+     * 基类只设置了 betIdx 和 playerBetTotal，这两个字段未赋值导致 Kafka 消息中为 0。
+     */
+    @Override
+    public void addPlayerAreaDataLog(GamePlayer gamePlayer) {
+        Map<Integer, List<Integer>> playerBetInfoMap = gameDataVo.getPlayerBetInfo(gamePlayer.getId());
+        if (playerBetInfoMap == null || playerBetInfoMap.isEmpty()) {
+            return;
+        }
+
+        // 统计每个 betIdx 所有玩家的总押注（betIdxTotal）
+        Map<Integer, Long> betIdxTotalMap = new HashMap<>();
+        for (Map<Integer, List<Integer>> betInfo : gameDataVo.getPlayerBetInfo().values()) {
+            for (Map.Entry<Integer, List<Integer>> e : betInfo.entrySet()) {
+                long areaSum = e.getValue().stream().mapToLong(Integer::longValue).sum();
+                betIdxTotalMap.merge(e.getKey(), areaSum, Long::sum);
+            }
+        }
+
+        List<BetTableInfo> betTableInfos = new ArrayList<>(playerBetInfoMap.size());
+        for (Map.Entry<Integer, List<Integer>> entry : playerBetInfoMap.entrySet()) {
+            long areaTotal = entry.getValue().stream().mapToLong(Integer::longValue).sum();
+            BetTableInfo betTableInfo = new BetTableInfo();
+            betTableInfo.betIdx = entry.getKey();
+            betTableInfo.playerBetTotal = areaTotal;
+            betTableInfo.betIdxTotal = betIdxTotalMap.getOrDefault(entry.getKey(), 0L);
+            betTableInfo.betValue = areaTotal;
+            betTableInfos.add(betTableInfo);
+        }
+        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_DATA, JSON.toJSONString(betTableInfos));
     }
 
     @Override
