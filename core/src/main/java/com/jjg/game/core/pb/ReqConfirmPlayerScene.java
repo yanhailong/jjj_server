@@ -13,8 +13,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtoDesc("请求确认玩家处于哪个场景中")
 @ProtobufMessage(
     messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
-    cmd = MessageConst.CoreMessage.REQ_CONFIRM_PLAYER_SCENE,
-    resp = true
+    cmd = MessageConst.CoreMessage.REQ_CONFIRM_PLAYER_SCENE
 )
 public class ReqConfirmPlayerScene extends AbstractMessage {
 }
