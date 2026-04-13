@@ -126,7 +126,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
                 log.debug("游戏已关闭，选择游戏失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
                 return;
             }
-            List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(req.gameType);
+            List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(playerController.getPlayer(), req.gameType);
             if (wareHouseConfigList == null || wareHouseConfigList.isEmpty()) {
                 res.code = Code.NOT_FOUND;
                 playerController.send(res);
@@ -153,7 +153,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
     public void reqPool(PlayerController playerController, ReqPool req) {
         ResPool res = new ResPool(HallCode.SUCCESS);
         try {
-            res.warePoolInfoList = hallService.getPoolListByGameType(playerController.getPlayer(),req.gameType);
+            res.warePoolInfoList = hallService.getPoolListByGameType(playerController.getPlayer(), req.gameType);
 //            log.info("玩家获取奖池信息，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
@@ -803,7 +803,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
             return new CommonResult<>(Code.FORBID);
         }
 
-        List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(gameType);
+        List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(playerController.getPlayer(), gameType);
         if (wareHouseConfigList == null || wareHouseConfigList.isEmpty()) {
             log.debug("未找到对应的游戏场次配置，选择场次失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return new CommonResult<>(Code.NOT_FOUND);

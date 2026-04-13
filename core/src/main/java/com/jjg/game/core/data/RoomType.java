@@ -1,5 +1,6 @@
 package com.jjg.game.core.data;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.constant.GameConstant;
@@ -47,17 +48,17 @@ public enum RoomType {
         // 普通房间
         if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
             roomType = eGameType.getDefualtRoomType();
-        } else if(warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START){
+        } else if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
             // 好友房 2: 百人 3 poker
             int gameType = warehouseCfg.getGameType();
             if (gameType == CoreConst.GameMajorType.TABLE) {
                 roomType = RoomType.BET_TEAM_UP_ROOM;
             } else if (gameType == CoreConst.GameMajorType.POKER) {
                 roomType = RoomType.POKER_TEAM_UP_ROOM;
-            } else if(gameType == CoreConst.GameMajorType.SLOTS){
+            } else if (gameType == CoreConst.GameMajorType.SLOTS) {
                 roomType = RoomType.SLOTS_TEAM_UP_ROOM;
             }
-        }else {
+        } else {
             roomType = eGameType.getDefualtRoomType();
         }
         return roomType;

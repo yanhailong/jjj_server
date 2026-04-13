@@ -95,7 +95,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     //普通场次缓存信息
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //vip场次缓存信息
-    private Map<Integer, List<WareHouseConfigInfo>> vipWareHouseConfigMap = new HashMap<>();
+    private Map<Integer, List<WareHouseConfigInfo>> svipWareHouseConfigMap = new HashMap<>();
 
     //游戏类型->游戏状态
     private Map<Integer, GameStatus> gameStatusesMap;
@@ -178,8 +178,18 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         clusterSystem.broadcastToOnlinePlayer(notify);
     }
 
-    public List<WareHouseConfigInfo> getWareHouseConfigByGameType(int gameType) {
+    public List<WareHouseConfigInfo> getWareHouseConfigByGameType(Player player, int gameType) {
+        if (player.getSvip() > 0) {
+            if (this.svipWareHouseConfigMap != null) {
+                List<WareHouseConfigInfo> list = this.svipWareHouseConfigMap.get(gameType);
+                if (list != null && !list.isEmpty()) {
+                    return list;
+                }
+            }
+        }
+
         return wareHouseConfigMap.get(gameType);
+
     }
 
     /**
@@ -897,7 +907,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 info.limitPlayerLevelMin = c.getPlayerLvLimit();
                 info.betShow = c.getBetShow();
                 tempList.add(info);
-            } else if (c.getRoomType() > GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START && c.getRoomType() <= GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
+            } else if (c.getRoomType() >= GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
                 WareHouseConfigInfo info = new WareHouseConfigInfo();
                 info.wareId = c.getId();
                 info.limitGoldMin = c.getEnterLimit();
@@ -912,7 +922,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         tempvipWareHouseConfigMap.replaceAll((key, list) -> list.stream().sorted(Comparator.comparingInt(wh -> wh.wareId)).collect(Collectors.toList()));
 
         this.wareHouseConfigMap = tempwareHouseConfigMap;
-        this.vipWareHouseConfigMap = tempvipWareHouseConfigMap;
+        this.svipWareHouseConfigMap = tempvipWareHouseConfigMap;
     }
 
     /**
@@ -1083,7 +1093,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     }
 
                     WarePoolInfo warePoolInfo = new WarePoolInfo();
-                    warePoolInfo.wareId = Integer.parseInt(en.getKey().toString());
+                    warePoolInfo.wareId = roomCfgId;
                     long smallPoolValue = Long.parseLong(en.getValue().toString());
 
                     Object o = fakeSmallPool.get(warePoolInfo.wareId);

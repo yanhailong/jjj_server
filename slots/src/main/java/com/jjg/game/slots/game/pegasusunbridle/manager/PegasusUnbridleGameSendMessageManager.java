@@ -144,7 +144,7 @@ public class PegasusUnbridleGameSendMessageManager extends BaseSendMessageManage
             log.debug("奖池结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
         sendInfo.addPlayerMsg(playerController.playerId(), res);
-        sendInfo.getLogMessage().add(res);
+//        sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回奖池结果", false);
     }
 }

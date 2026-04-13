@@ -2133,7 +2133,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected L getLib(SpecialResultLibCfg specialResultLibCfg, int libType, T playerGameData) {
         //获取倍数区间
         CommonResult<Integer> resultLibSectionResult = getResultLibSection(specialResultLibCfg.getModelId(), libType, playerGameData.getAllBetScore(),
-                0, playerGameData.getPlayerAllSlotsData().getAllBetCount(), playerGameData.getPlayerAllSlotsData().getPrizelessCount());
+                playerGameData.getPlayer().getSvip(), playerGameData.getPlayerAllSlotsData().getAllBetCount(), playerGameData.getPlayerAllSlotsData().getPrizelessCount());
         if (!resultLibSectionResult.success()) {
             log.warn("获取区间失败 modelId = {},libtype = {}", specialResultLibCfg.getModelId(), libType);
             return null;

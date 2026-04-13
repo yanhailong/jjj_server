@@ -102,8 +102,7 @@ public class BaccaratMessageBuilder {
         baccaratBaseInfo.phaseTotalTime = Math.toIntExact(gameDataVo.getPhaseRunTime());
         baccaratBaseInfo.totalCardNum = gameDataVo.getInitCardNum();
         baccaratBaseInfo.remainingCardNum = gameDataVo.getCardList().size();
-        baccaratBaseInfo.wareId =
-                gameController.getRoom().getRoomCfgId() - EGameType.BACCARAT.getGameTypeId() * 10;
+        baccaratBaseInfo.wareId = gameController.getGameDataVo().getRoomCfg().getRoomID();
         return baccaratBaseInfo;
     }
 

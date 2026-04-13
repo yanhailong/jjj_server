@@ -105,7 +105,9 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         respSummaryList.tableSummaryList = new ArrayList<>();
         for (AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameWareController :
                 gameControllers) {
+            System.out.println(11111);
             if (gameWareController instanceof BaccaratGameController baccaratGameController) {
+                System.out.println(22222);
                 BaccaratTableSummary baccaratTableSummary =
                         BaccaratMessageBuilder.buildBaccaratSummaryInfo(baccaratGameController);
                 respSummaryList.tableSummaryList.add(baccaratTableSummary);
