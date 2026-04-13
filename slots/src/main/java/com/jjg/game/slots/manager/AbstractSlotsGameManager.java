@@ -898,14 +898,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     public void exitOldPlayerGameDataOnEnter(long playerId, int roomCfgId, long roomId) {
-        boolean clearTask = true;
         for (Map.Entry<Integer, Map<Long, T>> entry : this.gameDataMap.entrySet()) {
             T playerGameData = entry.getValue().get(playerId);
             if (playerGameData == null || isCurrentEnterGameData(entry.getKey(), playerGameData, roomCfgId, roomId)) {
                 continue;
             }
-            exitPlayerGameData(playerId, playerGameData, clearTask);
-            clearTask = false;
+            exitPlayerGameData(playerId, playerGameData, false);
         }
     }
 
