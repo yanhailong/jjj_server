@@ -883,18 +883,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     public void removePlayerGameData(long playerId, int roomCfgId) {
-        removePlayerGameData(playerId, roomCfgId, true);
-    }
-
-    public void removePlayerGameData(long playerId, int roomCfgId, boolean clearTask) {
         Map<Long, T> temMap = this.gameDataMap.get(roomCfgId);
         if (temMap == null || temMap.isEmpty()) {
             return;
         }
         temMap.remove(playerId);
-        if (clearTask) {
-            taskManager.onExit(playerId);
-        }
     }
 
     public void exitOldPlayerGameDataOnEnter(long playerId, int roomCfgId, long roomId) {
@@ -906,7 +899,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             Player player = playerGameData.getPlayer();
             log.info("slots清除老数据 playerId:{} gameType:{} roomConfigId:{} roomId:{}", playerId, playerGameData.getGameType(), playerGameData.getRoomCfgId(),
                     player == null ? "null" : player.getRoomId());
-            exitPlayerGameData(playerId, playerGameData, false);
+            exitPlayerGameData(playerId, playerGameData);
         }
     }
 
@@ -921,7 +914,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         return playerController != null && playerController.getPlayer().getRoomId() == enterRoomId;
     }
 
-    protected void exitPlayerGameData(long playerId, T playerGameData, boolean clearTask) {
+    protected void exitPlayerGameData(long playerId, T playerGameData) {
         long now = System.currentTimeMillis();
         playerGameData.setOfflineTime(now);
         playerGameData.setOnline(false);
@@ -939,7 +932,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             slotsRoomManager.exitRoom(playerController);
         }
         offlineSaveGameDataDto(playerGameData);
-        removePlayerGameData(playerId, playerGameData.getRoomCfgId(), clearTask);
+        removePlayerGameData(playerId, playerGameData.getRoomCfgId());
         playerAllSlotsDataDao.saveToRedis(playerGameData.getPlayerAllSlotsData());
     }
 
@@ -1619,7 +1612,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return null;
         }
         if (exitType != ExitType.DROPPED) {
-            exitPlayerGameData(playerController.playerId(), playerGameData, true);
+            exitPlayerGameData(playerController.playerId(), playerGameData);
         } else {
             long now = System.currentTimeMillis();
             playerGameData.setOfflineTime(now);
@@ -1631,13 +1624,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     data.setActionMills(now + data.getActionMills() + data.getDelayMills());
                 }
             }
-            taskManager.saveTask(playerController.playerId());
-        }
-
-        //playerAllSlotsData 只要退出就要落库
-        if (exitType == ExitType.DROPPED) {
+            //playerAllSlotsData 只要退出就要落库
             playerAllSlotsDataDao.saveToRedis(playerGameData.getPlayerAllSlotsData());
         }
+        taskManager.onExit(playerController.playerId());
         return playerGameData;
     }
 
