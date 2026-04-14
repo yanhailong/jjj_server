@@ -21,7 +21,7 @@ public class ResFindGoldCityStartGame extends AbstractResponse {
     public List<Integer> iconList;
     @ProtoDesc("本局中奖金币")
     public long allWinGold;
-    @ProtoDesc("当前状态 0.正常 1.假福马模式 2福马")
+    @ProtoDesc("当前状态 0.正常 1.免费")
     public int status;
     @ProtoDesc("玩家当前金币")
     public long allGold;

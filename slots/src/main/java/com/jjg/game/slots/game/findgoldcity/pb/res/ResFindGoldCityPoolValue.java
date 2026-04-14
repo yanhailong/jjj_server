@@ -9,7 +9,10 @@ import com.jjg.game.slots.game.findgoldcity.constant.FindGoldCityConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.FIND_GOLD_CITY, cmd = FindGoldCityConstant.MsgBean.RES_FIND_GOLD_CITY_POOL_VALUE, resp = true)
 @ProtoDesc("返回奖池")
 public class ResFindGoldCityPoolValue extends AbstractResponse {
+    public long mini;
+    public long minor;
     public long major;
+    public long grand;
 
     public ResFindGoldCityPoolValue(int code) {
         super(code);

@@ -213,12 +213,17 @@ public class FindGoldCityGameSendMessageManager extends BaseSendMessageManager {
         SendInfo sendInfo = new SendInfo();
         ResFindGoldCityPoolValue res = new ResFindGoldCityPoolValue(gameRunInfo.getCode());
         if (gameRunInfo.success()) {
+            res.mini = gameRunInfo.getMini();
+            res.minor = gameRunInfo.getMinor();
             res.major = gameRunInfo.getMajor();
+            res.grand = gameRunInfo.getGrand();
         } else {
-            log.debug("奖池结果错误  getPlayerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+            log.debug("奖池结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回奖池结果", false);
     }
+
+
 }

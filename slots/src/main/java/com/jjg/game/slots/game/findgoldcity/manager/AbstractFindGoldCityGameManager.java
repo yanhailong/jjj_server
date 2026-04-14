@@ -39,20 +39,6 @@ public abstract class AbstractFindGoldCityGameManager extends AbstractSlotsGameM
         super.init();
     }
 
-    @Override
-    public FindGoldCityGameRunInfo enterGame(PlayerController playerController) {
-        //获取玩家游戏数据
-        FindGoldCityPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，进入游戏获取获取数据失败 getPlayerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new FindGoldCityGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        resetFreeStateIfInvalid(playerGameData, FindGoldCityConstant.Status.FREE, FindGoldCityConstant.Status.NORMAL, "寻找黄金城");
-        FindGoldCityGameRunInfo gameRunInfo = new FindGoldCityGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
-        gameRunInfo.setData(playerGameData);
-        return gameRunInfo;
-    }
-
     /**
      * 免费游戏
      *
@@ -162,10 +148,14 @@ public abstract class AbstractFindGoldCityGameManager extends AbstractSlotsGameM
             playerGameData.setStatus(FindGoldCityConstant.Status.FREE);
             playerGameData.setFreeLib(resultLib);
             playerGameData.getRemainFreeCount().set(resultLib.getAddFreeCount());
+            long times = gameGenerateManager.calLineTimes(resultLib.getAwardLineInfoList());
+            times += gameGenerateManager.calAfterAddIcons(resultLib.getAddIconInfos());
+            gameRunInfo.addBigPoolTimes(times);
             log.debug("触发免费模式  getPlayerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(),
-                    playerGameData.getRemainFreeCount().get(), resultLib.getTimes());
+                    playerGameData.getRemainFreeCount().get(), times);
+        } else {
+            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         }
-        gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         //检查是否中大奖
         rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
         log.debug("id = {}", resultLib.getId());
@@ -178,25 +168,6 @@ public abstract class AbstractFindGoldCityGameManager extends AbstractSlotsGameM
 
     }
 
-    /**
-     * 获取奖池信息
-     *
-     * @param playerController
-     * @param stake
-     * @param
-     * @return
-     */
-    @Override
-    public FindGoldCityGameRunInfo getPoolValue(PlayerController playerController, long stake) {
-        FindGoldCityGameRunInfo gameRunInfo = new FindGoldCityGameRunInfo(Code.SUCCESS, playerController.playerId());
-        try {
-            gameRunInfo.setMajor(getPoolValueByRoomCfgId(playerController.getPlayer().getRoomCfgId()));
-            return gameRunInfo;
-        } catch (Exception e) {
-            log.error("", e);
-        }
-        return gameRunInfo;
-    }
 
     @Override
     public int getGameType() {

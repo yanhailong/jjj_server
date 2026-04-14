@@ -30,6 +30,7 @@ public class FindGoldCityGameGenerateManager extends MultiGridSlotsGenerateManag
     private Map<Integer, Pair<Integer, Integer>> bonusAccumulationMap = Map.of();
     //元素id->百搭符号权重_黏性百搭符号权重
     private Map<Integer, WeightRandom<Integer>> goldSymbolConversion = Map.of();
+
     public FindGoldCityGameGenerateManager() {
         super(FindGoldCityResultLib.class);
     }
@@ -87,7 +88,6 @@ public class FindGoldCityGameGenerateManager extends MultiGridSlotsGenerateManag
                 }
             }
         }
-
         calTimes(lib);
         return lib;
     }
@@ -317,10 +317,14 @@ public class FindGoldCityGameGenerateManager extends MultiGridSlotsGenerateManag
 
     @Override
     public void calTimes(FindGoldCityResultLib lib) throws Exception {
-        //中奖线
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
-        //消除图标
-        lib.addTimes(calAfterAddIcons(lib.getAddIconInfos()));
+        if (triggerFreeLib(lib, FindGoldCityConstant.SpecialMode.FREE)) {
+            lib.addTimes(calFree(lib));
+        } else {
+            //中奖线
+            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+            //消除图标
+            lib.addTimes(calAfterAddIcons(lib.getAddIconInfos()));
+        }
     }
 
     /**

@@ -22,7 +22,7 @@ public class ResFindGoldCityEnterGame extends AbstractResponse {
     public long defaultBet;
     @ProtoDesc("累计免费中奖金币")
     public long totalWinGold;
-    @ProtoDesc("当前状态 0.正常 ")
+    @ProtoDesc("当前状态 0.正常 1.免费")
     public int status;
     @ProtoDesc("图标id列表")
     public List<Integer> iconList;
