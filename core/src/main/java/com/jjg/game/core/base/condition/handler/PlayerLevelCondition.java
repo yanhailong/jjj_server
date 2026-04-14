@@ -3,6 +3,7 @@ package com.jjg.game.core.base.condition.handler;
 import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.base.condition.MatchResultData;
+import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,11 @@ public class PlayerLevelCondition implements ConditionHandler<Integer> {
     @Override
     public String type() {
         return "playerLevel";
+    }
+
+    @Override
+    public EGameEventType eventType() {
+        return EGameEventType.PLAYER_LEVEL;
     }
 
     @Override

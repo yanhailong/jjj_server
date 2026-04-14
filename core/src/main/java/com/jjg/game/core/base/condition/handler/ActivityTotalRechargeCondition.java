@@ -5,6 +5,7 @@ import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.data.PlayerRecharge;
 import com.jjg.game.core.base.condition.event.TimeEvent;
+import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.dao.PlayerRechargeFlowDao;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
@@ -32,6 +33,11 @@ public class ActivityTotalRechargeCondition implements ConditionHandler<PlayerRe
     @Override
     public String type() {
         return "activityTotalRecharge";
+    }
+
+    @Override
+    public EGameEventType eventType() {
+        return EGameEventType.RECHARGE;
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.data.PlayerBet;
 import com.jjg.game.core.base.condition.event.BetEvent;
+import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
@@ -28,6 +29,11 @@ public class PlayGameCountCondition extends BaseRedisCondition<PlayerBet> {
     @Override
     public String type() {
         return "playGameCount";
+    }
+
+    @Override
+    public EGameEventType eventType() {
+        return null;
     }
 
     public boolean matchCheck(BetEvent e, PlayerBet config) {
