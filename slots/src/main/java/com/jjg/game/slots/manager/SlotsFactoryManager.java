@@ -72,16 +72,14 @@ public class SlotsFactoryManager {
 
     public AbstractSlotsGameManager getGameManager(int gameType, int roomCfgId) {
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
-        if (warehouseCfg == null) {
-            return null;
-        }
+        if (warehouseCfg != null) {
+            if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
+                return this.slotsGameManagerMap.get(gameType);
+            }
 
-        if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
-            return this.slotsGameManagerMap.get(gameType);
-        }
-
-        if(warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START){
-            return this.slotsRoomGameManagerMap.get(gameType);
+            if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
+                return this.slotsRoomGameManagerMap.get(gameType);
+            }
         }
         return this.slotsGameManagerMap.get(gameType);
     }
