@@ -212,23 +212,4 @@ public abstract class AbstractPanJinLianGameManager extends AbstractSlotsGameMan
             log.error("", e);
         }
     }
-
-    @Override
-    protected void onAutoExitAction(PanJinLianPlayerGameData playerGameData, int eventId) {
-//        if (playerGameData.getStatus() == PanJinLianConstant.Status.FREE) {
-//            int forCount = playerGameData.getRemainFreeCount().get();
-//            while (forCount > 0) {
-//                autoStartGame(playerGameData, playerGameData.getAllBetScore());
-//                forCount = playerGameData.getRemainFreeCount().get();
-//            }
-//        }
-    }
-
-    /**
-     * 自动游戏
-     */
-    public PanJinLianGameRunInfo autoStartGame(PanJinLianPlayerGameData playerGameData, long betValue) {
-        log.debug("系统开始自动游戏 playerId={}", playerGameData.getPlayerId());
-        return startGame(null, playerGameData, betValue, true);
-    }
 }

@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.proto.Pair;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -16,7 +15,6 @@ import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.game.basketballSuperstar.BasketballSuperstarConstant;
 import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.game.zeusVsHades.ZeusVsHadesConstant;
 import com.jjg.game.slots.game.zeusVsHades.dao.ZeusVsHadesGameDataDao;
@@ -304,32 +302,6 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
             log.error("", e);
         }
     }
-
-    @Override
-    protected void onAutoExitAction(ZeusVsHadesPlayerGameData playerGameData, int eventId) {
-//        //检查当前是否处于特殊模式
-//        if (playerGameData.getStatus() == BasketballSuperstarConstant.Status.FREE) {
-//            int forCount = playerGameData.getRemainFreeCount().get();
-//            while (forCount > 0) {
-//                autoStartGame(playerGameData, playerGameData.getAllBetScore());
-//                forCount = playerGameData.getRemainFreeCount().get();
-//            }
-//        }
-    }
-
-
-
-    /**
-     * 自动玩游戏
-     *
-     * @param betValue
-     * @return
-     */
-    public ZeusVsHadesGameRunInfo autoStartGame(ZeusVsHadesPlayerGameData playerGameData, long betValue) {
-        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.getPlayerId());
-        return startGame(new PlayerController(null, null), playerGameData, betValue, true);
-    }
-
 
     @Override
     protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {

@@ -232,14 +232,6 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
     }
 
     @Override
-    protected void onAutoExitAction(LuckyMousePlayerGameData gameData, int eventId) {
-//        if (gameData.getStatus() == LuckyMouseConstant.Status.REAL_FU_SHU) {
-//            freeStateAction(gameData, (playerGameData) ->
-//                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
-//        }
-    }
-
-    @Override
     protected LuckyMouseResultLibDao getResultLibDao() {
         return this.libDao;
     }

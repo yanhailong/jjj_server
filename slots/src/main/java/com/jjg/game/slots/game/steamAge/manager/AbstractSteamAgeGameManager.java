@@ -231,18 +231,6 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
         }
     }
 
-    @Override
-    protected void onAutoExitAction(SteamAgePlayerGameData playerGameData, int eventId) {
-//        //检查当前是否处于特殊模式
-//        if (playerGameData.getStatus() == SteamAgeConstant.Status.FREE) {
-//            int forCount = playerGameData.getRemainFreeCount().get();
-//            while (forCount > 0) {
-//                autoStartGame(playerGameData, playerGameData.getAllBetScore());
-//                forCount = playerGameData.getRemainFreeCount().get();
-//            }
-//        }
-    }
-
     /**
      * 自动玩游戏
      *

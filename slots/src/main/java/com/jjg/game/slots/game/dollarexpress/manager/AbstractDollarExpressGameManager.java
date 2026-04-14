@@ -1028,27 +1028,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
         return 0;
     }
 
-    @Override
-    protected void onAutoExitAction(DollarExpressPlayerGameData playerGameData, int eventId) {
-//        if (playerGameData.getInvers().get()) {
-//            autoInvest(playerGameData);
-//            log.debug("自动投资游戏事件 playerId = {}", playerGameData.getPlayerId());
-//        }
-//
-//        if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD) {
-//            log.debug("自动二选一事件 playerId = {}", playerGameData.getPlayerId());
-//            autoChooseFreeModelType(playerGameData);
-//            //检查当前是否处于特殊模式
-//            if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_FREE) {
-//                int forCount = playerGameData.getRemainFreeCount().get();
-//                for (int i = 0; i < forCount; i++) {
-//                    autoStartGame(playerGameData, playerGameData.getAllBetScore());
-//                }
-//            } else if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {
-//                autoStartGame(playerGameData, playerGameData.getAllBetScore());
-//            }
-//        }
-    }
 
     public DollarExpressCollectDollarConfig getDollarExpressCollectDollarConfig() {
         return dollarExpressCollectDollarConfig;

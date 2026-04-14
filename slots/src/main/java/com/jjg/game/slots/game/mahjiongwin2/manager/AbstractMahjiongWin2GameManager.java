@@ -173,14 +173,6 @@ public abstract class AbstractMahjiongWin2GameManager extends AbstractSlotsGameM
     }
 
     @Override
-    protected void onAutoExitAction(MahjiongWin2PlayerGameData gameData, int eventId) {
-//        if (gameData.getStatus() == MahjiongWin2Constant.Status.FREE) {
-//            freeStateAction(gameData, (playerGameData) ->
-//                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
-//        }
-    }
-
-    @Override
     public int getGameType() {
         return CoreConst.GameType.MAHJIONG_WIN2;
     }

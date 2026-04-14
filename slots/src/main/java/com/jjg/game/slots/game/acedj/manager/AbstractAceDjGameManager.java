@@ -248,11 +248,4 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
         }
     }
 
-    @Override
-    protected void onAutoExitAction(AceDjPlayerGameData gameData, int eventId) {
-//        if (gameData.getStatus() == AceDjConstant.Status.FREE) {
-//            freeStateAction(gameData, (playerGameData) ->
-//                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
-//        }
-    }
 }

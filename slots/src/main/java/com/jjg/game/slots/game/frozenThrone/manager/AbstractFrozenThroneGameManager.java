@@ -237,18 +237,6 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
         }
     }
 
-    @Override
-    protected void onAutoExitAction(FrozenThronePlayerGameData playerGameData, int eventId) {
-//        //检查当前是否处于特殊模式
-//        if (playerGameData.getStatus() == FrozenThroneConstant.Status.FREE) {
-//            int forCount = playerGameData.getRemainFreeCount().get();
-//            while (forCount > 0) {
-//                autoStartGame(playerGameData, playerGameData.getAllBetScore());
-//                forCount = playerGameData.getRemainFreeCount().get();
-//            }
-//        }
-    }
-
     /**
      * 自动玩游戏
      *

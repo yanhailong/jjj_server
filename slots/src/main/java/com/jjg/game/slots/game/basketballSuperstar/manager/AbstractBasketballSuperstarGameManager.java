@@ -234,18 +234,6 @@ public abstract class AbstractBasketballSuperstarGameManager extends AbstractSlo
     }
 
 
-    @Override
-    protected void onAutoExitAction(BasketballSuperstarPlayerGameData playerGameData, int eventId) {
-//        //检查当前是否处于特殊模式
-//        if (playerGameData.getStatus() == BasketballSuperstarConstant.Status.FREE) {
-//            int forCount = playerGameData.getRemainFreeCount().get();
-//            while (forCount > 0) {
-//                autoStartGame(playerGameData, playerGameData.getAllBetScore());
-//                forCount = playerGameData.getRemainFreeCount().get();
-//            }
-//        }
-    }
-
     /**
      * 自动玩游戏
      *

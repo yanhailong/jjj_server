@@ -75,18 +75,6 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
         return gameRunInfo;
     }
 
-
-    @Override
-    protected void onAutoExitAction(TigerBringsRichesPlayerGameData gameData, int eventId) {
-//        if (gameData.getStatus() == TigerBringsRichesConstant.Status.REAL_TIGER_BRINGS_RICHES) {
-//            TigerBringsRichesResultLib resultLib = gameData.getSpecialLib();
-//            for (int i = gameData.getCurrentRandomIndex(); i < resultLib.getSpecialResult().size(); i++) {
-//                log.info("虎虎生财自动旋转 playerId = {},currentRandomIndex = {}", gameData.getPlayerId(), gameData.getCurrentRandomIndex());
-//                startGame(new PlayerController(null, null), gameData, gameData.getOneBetScore(), true);
-//            }
-//        }
-    }
-
     /**
      * 将库里面的中将线信息转化为消息
      *

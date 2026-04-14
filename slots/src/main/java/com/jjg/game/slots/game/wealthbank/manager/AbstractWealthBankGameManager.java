@@ -1008,28 +1008,6 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
     }
 
 
-    @Override
-    protected void onAutoExitAction(WealthBankPlayerGameData playerGameData, int eventId) {
-
-//        if (playerGameData.getStatus() == WealthBankConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == WealthBankConstant.Status.GOLD_ALL_BOARD) {
-//            log.debug("[Wealth Bank] 添加自动投资游戏事件 playerId = {}", playerGameData.getPlayerId());
-//            autoChooseFreeModelType(playerGameData);
-//            //检查当前是否处于特殊模式
-//            if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_FREE) {
-//                int forCount = playerGameData.getRemainFreeCount().get();
-//                for (int i = 0; i < forCount; i++) {
-//                    autoStartGame(playerGameData, playerGameData.getAllBetScore());
-//                }
-//            } else if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == WealthBankConstant.Status.ALL_BOARD_GOLD_TRAIN) {
-//                autoStartGame(playerGameData, playerGameData.getAllBetScore());
-//            }
-//        }
-//        if (playerGameData.getInvers().get()) {
-//            autoInvest(playerGameData);
-//            log.debug("[Wealth Bank] 添加自动二选一事件 playerId = {}", playerGameData.getPlayerId());
-//        }
-    }
-
     public WealthBankCollectDollarConfig getDollarExpressCollectDollarConfig() {
         return wealthBankCollectDollarConfig;
     }

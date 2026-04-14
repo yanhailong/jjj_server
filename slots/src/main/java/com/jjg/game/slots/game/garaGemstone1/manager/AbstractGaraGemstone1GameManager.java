@@ -256,14 +256,6 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
     }
 
     @Override
-    protected void onAutoExitAction(GaraGemstone1PlayerGameData gameData, int eventId) {
-//        if (gameData.getStatus() == GaraGemstone1Constant.Status.REAL_FU_SHU) {
-//            freeStateAction(gameData, (playerGameData) ->
-//                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
-//        }
-    }
-
-    @Override
     protected GaraGemstone1ResultLibDao getResultLibDao() {
         return this.libDao;
     }

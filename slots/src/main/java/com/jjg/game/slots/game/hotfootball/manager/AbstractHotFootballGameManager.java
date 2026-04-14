@@ -214,14 +214,6 @@ public abstract class AbstractHotFootballGameManager extends AbstractSlotsGameMa
     }
 
     @Override
-    protected void onAutoExitAction(HotFootballPlayerGameData gameData, int eventId) {
-//        if (gameData.getStatus() == HotFootballConstant.Status.FREE) {
-//            freeStateAction(gameData, (playerGameData) ->
-//                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
-//        }
-    }
-
-    @Override
     public int getGameType() {
         return CoreConst.GameType.HOT_FOOTBALL;
     }

@@ -263,13 +263,6 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
         this.fake_free_prop = Integer.parseInt(specialPlayCfg.getValue().split(",")[1]);
     }
 
-    @Override
-    protected void onAutoExitAction(MoneyRabbitPlayerGameData gameData, int eventId) {
-//        if (gameData.getStatus() == MoneyRabbitConstant.Status.FREE) {
-//            freeStateAction(gameData, (playerGameData) ->
-//                    startGame(new PlayerController(null, null), playerGameData, playerGameData.getAllBetScore(), true));
-//        }
-    }
 
     @Override
     protected MoneyRabbitResultLibDao getResultLibDao() {

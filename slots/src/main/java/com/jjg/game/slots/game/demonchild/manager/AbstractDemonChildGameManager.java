@@ -216,24 +216,4 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
         }
     }
 
-    @Override
-    protected void onAutoExitAction(DemonChildPlayerGameData gameData, int eventId) {
-//        //发放免费模式和探宝奖励
-//        if (gameData.getStatus() == DemonChildConstant.Status.FREE) {
-//            Object freeLib = gameData.getFreeLib();
-//            if (freeLib instanceof DemonChildResultLib lib) {
-//                List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = lib.getSpecialAuxiliaryInfoList();
-//                int totalSize = 0;
-//                for (SpecialAuxiliaryInfo auxiliaryInfo : specialAuxiliaryInfoList) {
-//                    if (auxiliaryInfo.getFreeGames() != null) {
-//                        totalSize = auxiliaryInfo.getFreeGames().size();
-//                    }
-//                }
-//                int index = gameData.getFreeIndex().get();
-//                for (int i = index; i < totalSize; i++) {
-//                    startGame(new PlayerController(null, null), gameData, gameData.getAllBetScore(), true);
-//                }
-//            }
-//        }
-    }
 }
