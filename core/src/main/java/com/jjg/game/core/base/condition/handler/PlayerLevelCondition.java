@@ -15,7 +15,7 @@ import java.util.List;
  * @date 2026/1/14 10:35
  */
 @Component
-public class playerLevelCondition implements ConditionHandler<Integer> {
+public class PlayerLevelCondition implements ConditionHandler<Integer> {
 
     @Override
     public String type() {
