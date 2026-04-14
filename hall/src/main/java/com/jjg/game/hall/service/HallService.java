@@ -94,7 +94,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
     //普通场次缓存信息
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
-    //vip场次缓存信息
+    //svip场次缓存信息
     private Map<Integer, List<WareHouseConfigInfo>> svipWareHouseConfigMap = new HashMap<>();
 
     //游戏类型->游戏状态
@@ -1075,46 +1075,69 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         if (this.sortGameList == null || this.sortGameList.isEmpty()) {
             return;
         }
+
+        //筛选出slots的gameType
+        List<Integer> gameTypeList = new ArrayList<>();
+        this.sortGameList.forEach(cfg -> {
+            if (CommonUtil.getMajorTypeByGameType(cfg.sid) == CoreConst.GameMajorType.SLOTS) {
+                gameTypeList.add(cfg.sid);
+            }
+        });
+
+        if (gameTypeList.isEmpty()) {
+            return;
+        }
+
+        //从redis中批量获取小奖池
+        Map<Integer, Map<Integer, Long>> smallPoolMap = poolDao.getSmallPools(gameTypeList);
+        if (smallPoolMap == null || smallPoolMap.isEmpty()) {
+            return;
+        }
+        //从redis中批量获取假奖池
+        Map<Integer, Map<Integer, Long>> tmpFakeSmallPoolMap = poolDao.getFakeSmallPools(gameTypeList);
+        final Map<Integer, Map<Integer, Long>> fakeSmallPoolMap = tmpFakeSmallPoolMap != null ? tmpFakeSmallPoolMap : Collections.emptyMap();
+
         Map<Integer, List<WarePoolInfo>> tmpPoolMap = new HashMap<>();
         Map<Integer, List<WarePoolInfo>> tmpSvipPoolMap = new HashMap<>();
 
-        this.sortGameList.forEach(cfg -> {
-            if (CommonUtil.getMajorTypeByGameType(cfg.sid) == CoreConst.GameMajorType.SLOTS) {
-                Map<Object, Object> smallPool = poolDao.getSmallPoolByRoomCfgId(cfg.sid);
-                Map<Object, Object> fakeSmallPool = poolDao.getFakeSmallPoolByRoomCfgId(cfg.sid);
+        gameTypeList.forEach(gameType -> {
+            //获取对应游戏的奖池；smallPool 是主数据源，缺失则跳过；fakeSmallPool 为可选增强，缺失不影响下发
+            Map<Integer, Long> smallPool = smallPoolMap.get(gameType);
+            if (smallPool == null || smallPool.isEmpty()) {
+                return;
+            }
+            Map<Integer, Long> fakeSmallPool = fakeSmallPoolMap.get(gameType);
 
-                List<WarePoolInfo> warePoolInfoList = new ArrayList<>();
-                List<WarePoolInfo> sipWarePoolInfoList = new ArrayList<>();
-                for (Map.Entry<Object, Object> en : smallPool.entrySet()) {
-                    int roomCfgId = Integer.parseInt(en.getKey().toString());
-                    WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
-                    if (warehouseCfg == null) {
-                        continue;
-                    }
-
-                    WarePoolInfo warePoolInfo = new WarePoolInfo();
-                    warePoolInfo.wareId = roomCfgId;
-                    long smallPoolValue = Long.parseLong(en.getValue().toString());
-
-                    Object o = fakeSmallPool.get(warePoolInfo.wareId);
-                    if (o != null) {
-                        long fakeSmallPoolValue = Long.parseLong(o.toString());
-                        if (fakeSmallPoolValue > smallPoolValue) {
-                            smallPoolValue = fakeSmallPoolValue;
-                        }
-                    }
-                    warePoolInfo.pool = smallPoolValue;
-
-                    if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
-                        warePoolInfoList.add(warePoolInfo);
-                    } else if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
-                        sipWarePoolInfoList.add(warePoolInfo);
-                    }
+            List<WarePoolInfo> warePoolInfoList = new ArrayList<>();
+            List<WarePoolInfo> sipWarePoolInfoList = new ArrayList<>();
+            for (Map.Entry<Integer, Long> en : smallPool.entrySet()) {
+                int roomCfgId = en.getKey();
+                WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
+                if (warehouseCfg == null) {
+                    continue;
                 }
 
-                tmpPoolMap.put(cfg.sid, warePoolInfoList);
-                tmpSvipPoolMap.put(cfg.sid, sipWarePoolInfoList);
+                WarePoolInfo warePoolInfo = new WarePoolInfo();
+                warePoolInfo.wareId = roomCfgId;
+                long smallPoolValue = en.getValue();
+
+                if (fakeSmallPool != null) {
+                    Long fakeSmallPoolValue = fakeSmallPool.get(warePoolInfo.wareId);
+                    if (fakeSmallPoolValue != null && fakeSmallPoolValue > smallPoolValue) {
+                        smallPoolValue = fakeSmallPoolValue;
+                    }
+                }
+                warePoolInfo.pool = smallPoolValue;
+
+                if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
+                    warePoolInfoList.add(warePoolInfo);
+                } else if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
+                    sipWarePoolInfoList.add(warePoolInfo);
+                }
             }
+
+            tmpPoolMap.put(gameType, warePoolInfoList);
+            tmpSvipPoolMap.put(gameType, sipWarePoolInfoList);
         });
 
         this.poolMap = tmpPoolMap;

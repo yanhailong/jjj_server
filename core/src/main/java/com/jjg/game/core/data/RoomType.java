@@ -1,6 +1,5 @@
 package com.jjg.game.core.data;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.constant.GameConstant;
