@@ -550,7 +550,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 }
             }
         }
-        return matchDataDao.getNewWaitJoinRoomId(gameType, roomConfigId, maxLimit, oldRoomId, nodeManager.getNodePath());
+        return 0;
+//        return matchDataDao.getNewWaitJoinRoomId(gameType, roomConfigId, maxLimit, oldRoomId, nodeManager.getNodePath());
     }
 
     /**
