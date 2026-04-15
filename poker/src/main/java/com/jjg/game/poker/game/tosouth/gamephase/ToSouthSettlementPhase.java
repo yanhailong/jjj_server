@@ -156,7 +156,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 if (change > 0) {
                     // 扣除抽水
                     long tax = BigDecimal.valueOf(change)
-                            .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getEffectiveRatio()))
+                            .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getWinRatio()))
                             .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
 
                     totalTax += tax;
@@ -496,7 +496,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 long tax = 0;
                 if (change > 0) {
                     tax = BigDecimal.valueOf(change)
-                            .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getEffectiveRatio()))
+                            .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getWinRatio()))
                             .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
                 }
                 settlementDataMap.put(playerId, new SettlementData(betWin, totalWin, betTotal, tax));
