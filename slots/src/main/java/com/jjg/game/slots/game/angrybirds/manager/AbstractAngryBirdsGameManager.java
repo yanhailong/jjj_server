@@ -68,27 +68,6 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
         return list;
     }
 
-    /**
-     * 玩家开始游戏
-     *
-     */
-    @Override
-    public AngryBirdsGameRunInfo playerStartGame(PlayerController playerController, long stake) {
-        //获取玩家游戏数据
-        AngryBirdsPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new AngryBirdsGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        if (getRoomType() != null) {
-            int code = slotsRoomManager.checkCanPlay(this, playerController);
-            if (code != Code.SUCCESS) {
-                log.debug("该游戏无法继续 playerId = {},gameType = {},roomCfgId = {},code = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), code);
-                return new AngryBirdsGameRunInfo(code, playerController.playerId());
-            }
-        }
-        return startGame(playerController, playerGameData, stake, false);
-    }
 
     /**
      * 开始游戏

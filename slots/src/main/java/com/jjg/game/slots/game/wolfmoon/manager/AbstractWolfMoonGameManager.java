@@ -71,6 +71,10 @@ public abstract class AbstractWolfMoonGameManager extends AbstractSlotsGameManag
         try {
             gameRunInfo.setAuto(auto);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
+            if (warehouseCfg == null) {
+                gameRunInfo.setCode(Code.SAMPLE_ERROR);
+                return gameRunInfo;
+            }
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
@@ -284,6 +288,7 @@ public abstract class AbstractWolfMoonGameManager extends AbstractSlotsGameManag
             endFreeAction(playerGameData);
         }
     }
+
 
     private void endFreeAction(WolfMoonPlayerGameData playerGameData) {
         playerGameData.setStatus(WolfMoonConstant.Status.NORMAL);

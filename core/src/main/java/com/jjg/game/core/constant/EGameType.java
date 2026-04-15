@@ -50,6 +50,7 @@ public enum EGameType {
     PAN_JIN_LIAN(CoreConst.GameType.PAN_JIN_LIAN, RoomType.SLOTS, "潘金莲"),
     HOT_FOOTBALL(CoreConst.GameType.HOT_FOOTBALL, RoomType.SLOTS, "热血足球"),
     CANDY_PARTY(CoreConst.GameType.CANDY_PARTY, RoomType.SLOTS, "糖果派对"),
+    FIND_GOLD_CITY(CoreConst.GameType.FIND_GOLD_CITY, RoomType.SLOTS, "寻找黄金城"),
 
 
     // TABLE
