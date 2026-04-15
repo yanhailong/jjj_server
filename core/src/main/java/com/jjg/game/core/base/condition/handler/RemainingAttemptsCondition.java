@@ -4,6 +4,7 @@ import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.data.RemainingAttempts;
 import com.jjg.game.core.base.condition.event.RemainingAttemptsEvent;
+import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.dao.CountDao;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +28,11 @@ public class RemainingAttemptsCondition extends BaseRedisCondition<RemainingAtte
     @Override
     public String type() {
         return "remainingAttempts";
+    }
+
+    @Override
+    public EGameEventType eventType() {
+        return EGameEventType.ACTIVITY_JOIN;
     }
 
     public boolean matchCheck(RemainingAttemptsEvent event, RemainingAttempts config) {

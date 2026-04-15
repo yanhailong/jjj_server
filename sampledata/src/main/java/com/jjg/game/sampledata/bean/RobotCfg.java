@@ -47,6 +47,8 @@ public class RobotCfg extends BaseCfgBean {
   protected int picture;
   /** 玩家等级 */
   protected int playerLevel;
+  /** 对战类行为策略ID-南方前进 */
+  protected List<List<Integer>> southRobotID;
   /** VIP等级 */
   protected int vipLevel;
 

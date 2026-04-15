@@ -1,11 +1,10 @@
 package com.jjg.game.core.base.condition.handler;
 
 import com.jjg.game.core.base.condition.ConditionContext;
-import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.data.PlayerRecharge;
 import com.jjg.game.core.base.condition.event.PlayerRechargeEvent;
-import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
@@ -29,6 +28,11 @@ public class SingleRechargeCondition extends BaseRedisCondition<PlayerRecharge> 
     @Override
     public String type() {
         return "singleRecharge";
+    }
+
+    @Override
+    public EGameEventType eventType() {
+        return EGameEventType.RECHARGE;
     }
 
     public boolean matchCheck(PlayerRechargeEvent event, PlayerRecharge config) {

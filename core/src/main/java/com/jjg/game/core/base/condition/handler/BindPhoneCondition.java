@@ -5,6 +5,7 @@ import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.data.UserItem;
 import com.jjg.game.core.base.condition.event.UserItemEvent;
+import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.Account;
@@ -33,6 +34,11 @@ public class BindPhoneCondition implements ConditionHandler<Integer> {
     @Override
     public String type() {
         return "bindPhone";
+    }
+
+    @Override
+    public EGameEventType eventType() {
+        return EGameEventType.BIND_PHONE;
     }
 
     @Override
