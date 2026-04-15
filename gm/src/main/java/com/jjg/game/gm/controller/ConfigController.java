@@ -10,6 +10,7 @@ import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.data.WebResult;
 import com.jjg.game.core.pb.NotifyConfigUpdate;
 import com.jjg.game.gm.dto.config.DeleteConfigDto;
+import com.jjg.game.gm.dto.config.GetConfigDto;
 import com.jjg.game.gm.dto.config.ReplaceConfigDto;
 import com.jjg.game.gm.dto.config.SyncConfigDto;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,11 +37,11 @@ public class ConfigController extends AbstractController {
     /**
      * 加载配置信息
      *
-     * @param name 配置excel表名
      */
     @PostMapping(BackendGMCmd.Config.GET_CONFIG_LIST)
-    public WebResult<List<AbstractExcelConfig>> getConfigList(@RequestBody String name) {
+    public WebResult<List<AbstractExcelConfig>> getConfigList(@RequestBody GetConfigDto dto) {
         try {
+            String name = dto.name();
             if (name == null || name.isEmpty()) {
                 return fail("common.paramerror");
             }
