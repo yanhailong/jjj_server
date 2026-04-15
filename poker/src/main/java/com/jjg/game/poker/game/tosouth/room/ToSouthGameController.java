@@ -961,16 +961,16 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         }
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), baseInfo));
         // START_GAME 阶段：已发牌但出牌阶段尚未开始，重连时需补发手牌数据
-//        if (baseInfo.phase == EGamePhase.START_GAME && selfPlayerInfo != null && !selfPlayerInfo.isDelState()) {
-//            List<Integer> sortedHandCards = PokerDataHelper.getClientId(gameDataVo, selfPlayerInfo.getCurrentCards());
-//            List<Integer> highlightCards = gameDataVo.getPlayerHighlightCards().get(playerController.playerId());
-//            RespToSouthSendCardsInfo sendCardsInfo = new RespToSouthSendCardsInfo();
-//            sendCardsInfo.sortedHandCards = sortedHandCards;
-//            sendCardsInfo.originalHandCards = new ArrayList<>(sortedHandCards);
-//            Collections.shuffle(sendCardsInfo.originalHandCards);
-//            sendCardsInfo.highlightCards = highlightCards;
-//            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), sendCardsInfo));
-//        }
+        if (baseInfo.phase == EGamePhase.START_GAME && selfPlayerInfo != null && !selfPlayerInfo.isDelState()) {
+            List<Integer> sortedHandCards = PokerDataHelper.getClientId(gameDataVo, selfPlayerInfo.getCurrentCards());
+            List<Integer> highlightCards = gameDataVo.getPlayerHighlightCards().get(playerController.playerId());
+            RespToSouthSendCardsInfo sendCardsInfo = new RespToSouthSendCardsInfo();
+            sendCardsInfo.sortedHandCards = sortedHandCards;
+            sendCardsInfo.originalHandCards = new ArrayList<>(sortedHandCards);
+            Collections.shuffle(sendCardsInfo.originalHandCards);
+            sendCardsInfo.highlightCards = highlightCards;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), sendCardsInfo));
+        }
     }
 
     /**
