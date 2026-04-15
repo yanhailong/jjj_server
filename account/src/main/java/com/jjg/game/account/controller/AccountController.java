@@ -76,10 +76,10 @@ public class AccountController extends AbstractController {
     @RequestMapping("loginConfig")
     public WebResult<LoginConfigVo> loginConfig(@RequestBody LoginConfigDto dto) {
         Map<Integer, LoginConfigData> map;
-        if (dto.getDevice() == DeviceType.ANDROID.getValue()) {
-            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
-        } else {
+        if (dto.getDevice() == DeviceType.IOS.getValue()) {
             map = loginConfigService.getDataMap(ChannelType.APPLE.getValue());
+        } else {
+            map = loginConfigService.getDataMap(ChannelType.GOOGLE.getValue());
         }
 
         LoginConfigVo vo = new LoginConfigVo();
@@ -142,7 +142,7 @@ public class AccountController extends AbstractController {
                 dto.setSubChannel("1");
             }
 
-            //默认webgl
+            //默认安卓
             DeviceType deviceType = DeviceType.valueOf(dto.getDevice());
             if (deviceType == null) {
                 dto.setDevice(DeviceType.WEB.getValue());
@@ -233,6 +233,12 @@ public class AccountController extends AbstractController {
             if (!loginConfigService.isLoginOpen(dto.getChannel(), playerSessionToken.getLoginType())) {
                 log.debug("该登录类型被后台关闭，获取服务器地址失败 dto = {}", JSONObject.toJSONString(dto));
                 return fail(Code.LOGIN_TYPE_NOT_ENABLED);
+            }
+
+            //默认安卓
+            DeviceType deviceType = DeviceType.valueOf(dto.getDevice());
+            if (deviceType == null) {
+                dto.setDevice(DeviceType.WEB.getValue());
             }
 
             //如果与缓存数据不一致，就更新缓存
@@ -527,12 +533,8 @@ public class AccountController extends AbstractController {
         }
 
         //对比设备类型
-        DeviceType deviceType = DeviceType.valueOf(dto.getDevice());
-        if (deviceType == null) {
-            deviceType = DeviceType.ANDROID;
-        }
-        if (deviceType.getValue() != playerSessionToken.getDevice()) {
-            playerSessionToken.setDevice(deviceType.getValue());
+        if (dto.getDevice() != playerSessionToken.getDevice()) {
+            playerSessionToken.setDevice(dto.getDevice());
             change = true;
         }
 
