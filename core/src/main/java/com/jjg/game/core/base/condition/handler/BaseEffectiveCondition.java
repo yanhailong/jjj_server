@@ -5,6 +5,7 @@ import com.jjg.game.core.base.condition.MatchResult;
 import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.data.PlayerEffective;
 import com.jjg.game.core.base.condition.event.BetEvent;
+import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
 
@@ -20,6 +21,11 @@ public abstract class BaseEffectiveCondition extends BaseRedisCondition<PlayerEf
 
     public BaseEffectiveCondition(CountDao countDao) {
         super(countDao);
+    }
+
+    @Override
+    public EGameEventType eventType() {
+        return null;
     }
 
     public abstract boolean matchCheck(BetEvent e, PlayerEffective config);

@@ -19,6 +19,7 @@ import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.poker.game.texas.autohandler.TexasRobotHandler;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
+import com.jjg.game.poker.game.tosouth.autohandler.ToSouthRobotHandler;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.IRoomPhase;
@@ -346,9 +347,14 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public void onRobotPlayerJoinRoom(PlayerController playerController, GamePlayer gamePlayer) {
         if (gamePlayer instanceof GameRobotPlayer gameRobotPlayer) {
             RobotCfg robotCfg = getRoomController().getRoomManager().getRobotService().getRobotCfg(gameRobotPlayer.getId());
-            List<List<Integer>> chessRobotID = robotCfg.getChessRobotID();
+            List<List<Integer>> robotIdList;
+            if (this instanceof ToSouthGameController) {
+                robotIdList = robotCfg.getSouthRobotID();
+            } else {
+                robotIdList = robotCfg.getChessRobotID();
+            }
             WeightRandom<Integer> random = new WeightRandom<>();
-            for (List<Integer> robotId : chessRobotID) {
+            for (List<Integer> robotId : robotIdList) {
                 random.add(robotId.getLast(), robotId.getFirst());
             }
             Integer strategyId = random.next();
@@ -373,6 +379,11 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                 }
                 case ToSouthGameController controller -> {
                     respRoomInitInfo(playerController);
+                    int southDelay = RobotScheduleUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
+                    ToSouthRobotHandler southHandler = new ToSouthRobotHandler(gameRobotPlayer, ToSouthRobotHandler.GO_READY, controller, 10000);
+                    RobotScheduleUtil.schedule(getRoomController(), southHandler, southDelay);
+                    // 标记已调度，防止 tryStartGame 重复调度
+                    controller.getGameDataVo().getReadyTimerScheduled().add(gameRobotPlayer.getId());
                 }
                 default -> {
                 }

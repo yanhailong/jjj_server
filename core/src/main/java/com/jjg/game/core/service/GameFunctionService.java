@@ -175,14 +175,12 @@ public class GameFunctionService implements GameEventListener {
     private void analysisCondition(GameFunctionCfg gameFunctionCfg, ConditionNode node, Map<EGameEventType, List<GameFunctionCfg>> tmpGameTypeOfFuncCache) {
         switch (node) {
             case AtomicNode<?> atomicNode -> {
-                String type = atomicNode.getHandler().type();
-                // 获取游戏事件类型
-                EGameEventType gameEventType = EGameEventType.gameEventType(type);
-                if (gameEventType == null) {
-                    log.error("条件表配置异常，配置的事件触发类型：{} 在游戏事件枚举中缺失", type);
+                EGameEventType eventType = atomicNode.getHandler().eventType();
+                if (eventType == null) {
+                    log.error("条件表配置异常，配置的事件触发类型：{} 在游戏事件枚举中缺失", gameFunctionCfg.getShowCondition());
                     return;
                 }
-                tmpGameTypeOfFuncCache.computeIfAbsent(gameEventType, k -> new ArrayList<>()).add(gameFunctionCfg);
+                tmpGameTypeOfFuncCache.computeIfAbsent(eventType, k -> new ArrayList<>()).add(gameFunctionCfg);
             }
             case AndNode andNode ->
                     andNode.getChildren().forEach(child -> analysisCondition(gameFunctionCfg, child, tmpGameTypeOfFuncCache));
