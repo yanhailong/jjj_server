@@ -855,57 +855,88 @@ public class GMController extends AbstractController {
     }
 
     /**
-     * 生成结果库
+     * 生成结果库（slots + poker 统一入口）
+     * 如果 gameType 包含南方前进(300400)，走 poker 服务生成；其余走 slots 服务
      */
     @RequestMapping(BackendGMCmd.GENERATE_LIB)
     public WebResult<String> generateLib(@RequestBody GenerateLibDto param) {
         log.info("收到生成结果库的请求请求 param={}", param);
         try {
-            ClusterClient clusterClient;
-            if (StringUtils.isNotEmpty(param.nodeName())) {
-                clusterClient = clusterSystem.getNodesByName(param.nodeName());
-            } else {
-                clusterClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
-            }
-
-            if (clusterClient == null) {
-                log.debug("未找到对应的游戏节点");
-                return fail("common.fail");
-            }
-
-            if (NodeType.GAME.name().equals(clusterClient.nodeConfig.getType()) && clusterClient.nodeConfig.getGameMajorTypes()[0] != CoreConst.GameMajorType.SLOTS) {
-                log.debug("只能是slots的游戏节点才需要生成结果库 param = {}", param);
-                return fail("common.fail");
-            }
-
-            NotifyGenrateLib notify = new NotifyGenrateLib();
-            //兼容批量传入生成需求
-            notify.list = new ArrayList<>();
-
+            // 收集所有待生成的 gameType → count
+            List<KVInfo> allList = new ArrayList<>();
             if (param.gameType() > 0 && param.count() > 0) {
                 KVInfo kvInfo = new KVInfo();
                 kvInfo.key = param.gameType();
                 kvInfo.value = param.count();
-                notify.list.add(kvInfo);
+                allList.add(kvInfo);
             }
-
             if (param.list() != null && !param.list().isEmpty()) {
                 for (GenerateLibCfgDto d : param.list()) {
                     KVInfo tmpInfo = new KVInfo();
                     tmpInfo.key = d.gameType();
                     tmpInfo.value = d.count();
-                    notify.list.add(tmpInfo);
+                    allList.add(tmpInfo);
                 }
             }
-
-            if (notify.list.isEmpty()) {
+            if (allList.isEmpty()) {
                 log.warn("没有可生成的结果库 param = {}", param);
                 return fail("common.fail");
             }
 
-            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
-            ClusterMessage msg = new ClusterMessage(pfMessage);
-            clusterClient.write(msg);
+            // 分流：poker 类型 vs slots 类型
+            List<KVInfo> pokerList = new ArrayList<>();
+            List<KVInfo> slotsList = new ArrayList<>();
+            for (KVInfo kv : allList) {
+                if (kv.key == CoreConst.GameType.TO_SOUTH) {
+                    pokerList.add(kv);
+                } else {
+                    slotsList.add(kv);
+                }
+            }
+
+            // poker 牌库 → 发送到 poker 节点
+            if (!pokerList.isEmpty()) {
+                ClusterClient pokerClient;
+                if (StringUtils.isNotEmpty(param.nodeName())) {
+                    pokerClient = clusterSystem.getNodesByName(param.nodeName());
+                } else {
+                    pokerClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.POKER);
+                }
+                if (pokerClient == null) {
+                    log.warn("未找到 poker 游戏节点，无法生成牌库");
+                    return fail("common.fail");
+                }
+                for (KVInfo kv : pokerList) {
+                    NotifyGenerateToSouthLib notify = new NotifyGenerateToSouthLib();
+                    notify.count = kv.value;
+                    PFMessage pfMessage = MessageUtil.getPFMessage(notify);
+                    pokerClient.write(new ClusterMessage(pfMessage));
+                    log.info("通知 poker 节点生成牌库 gameType={}, count={}", kv.key, kv.value);
+                }
+            }
+
+            // slots 结果库 → 发送到 slots 节点
+            if (!slotsList.isEmpty()) {
+                ClusterClient slotsClient;
+                if (StringUtils.isNotEmpty(param.nodeName())) {
+                    slotsClient = clusterSystem.getNodesByName(param.nodeName());
+                } else {
+                    slotsClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
+                }
+                if (slotsClient == null) {
+                    log.warn("未找到 slots 游戏节点，无法生成结果库");
+                    return fail("common.fail");
+                }
+                if (NodeType.GAME.name().equals(slotsClient.nodeConfig.getType()) && slotsClient.nodeConfig.getGameMajorTypes()[0] != CoreConst.GameMajorType.SLOTS) {
+                    log.debug("只能是slots的游戏节点才需要生成结果库 param = {}", param);
+                    return fail("common.fail");
+                }
+                NotifyGenrateLib notify = new NotifyGenrateLib();
+                notify.list = slotsList;
+                PFMessage pfMessage = MessageUtil.getPFMessage(notify);
+                slotsClient.write(new ClusterMessage(pfMessage));
+            }
+
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);
@@ -1924,33 +1955,6 @@ public class GMController extends AbstractController {
     @RequestMapping(BackendGMCmd.GET_GENERATE_LIB_LAST_TIME)
     public WebResult<Map<Integer, Long>> getGenerateLibLastTime() {
         return success("common.success", slotsLibDao.getGenerateTime());
-    }
-
-    /**
-     * 生成poker牌库
-     */
-    @RequestMapping(BackendGMCmd.GENERATE_TO_POKER_LIB)
-    public WebResult<String> generateToSouthLib(@RequestBody GeneratePokerLibDto param) {
-        log.info("收到生成生成poker牌库的请求 param={}", param);
-        try {
-            ClusterClient clusterClient;
-            if (StringUtils.isNotEmpty(param.nodeName())) {
-                clusterClient = clusterSystem.getNodesByName(param.nodeName());
-            } else {
-                clusterClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
-            }
-
-            NotifyGenerateToSouthLib notify = new NotifyGenerateToSouthLib();
-            notify.count = param.count();
-
-            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
-            ClusterMessage msg = new ClusterMessage(pfMessage);
-            clusterClient.write(msg);
-            return success("common.success");
-        } catch (Exception e) {
-            log.error("生成poker牌库异常", e);
-            return fail("common.exception");
-        }
     }
 
     /**
