@@ -26,8 +26,14 @@ import java.util.concurrent.TimeUnit;
  *     <li>水池余额 HASH（与 slots 共用 {@code pool:{gameType}} 前缀）</li>
  * </ul>
  * <p>
- * Redis key 格式: {libName}{sectionKey}
- * 每个 key 对应一个 SET，存储该区间的牌库条目
+ * Redis key 命名规则（与 Slots 对齐）：
+ * <ul>
+ *     <li>当前库标识：PokerResultLibCurrent:{gameType}</li>
+ *     <li>库1 前缀：  PokerResultLib1:{gameType}:{sectionKey}</li>
+ *     <li>库2 前缀：  PokerResultLib2:{gameType}:{sectionKey}</li>
+ *     <li>生成锁：    PokerResultLibGenLock:{gameType}</li>
+ *     <li>生成时间：  PokerResultLibLastGenTime:{gameType}</li>
+ * </ul>
  *
  * @param <T> 牌库条目类型，必须实现 {@link CardLibEntry}
  */
@@ -35,11 +41,22 @@ public abstract class AbstractCardLibDao<T extends CardLibEntry> {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
+    // ==================== 统一 Redis key 前缀 ====================
+    private static final String KEY_CURRENT   = "PokerResultLibCurrent:";
+    private static final String KEY_LIB1      = "PokerResultLib1:";
+    private static final String KEY_LIB2      = "PokerResultLib2:";
+    private static final String KEY_GEN_LOCK  = "PokerResultLibGenLock:";
+    private static final String KEY_GEN_TIME  = "PokerResultLibLastGenTime:";
+    private static final String KEY_STREAK    = "PokerResultLibStreak:";
+    private static final String KEY_PROFIT    = "PokerResultLibProfit:";
+
     /** 水池余额 Redis key前缀（与 slots 一致: pool:{gameType}，HASH: roomCfgId → balance） */
     protected static final String POOL_PREFIX = "pool:";
 
     /** 反序列化目标类 */
     protected final Class<T> clazz;
+    /** 游戏类型 ID */
+    protected final int gameType;
 
     /** 记录当前使用的是哪个库的 Redis key */
     protected final String currentLibKey;
@@ -62,25 +79,31 @@ public abstract class AbstractCardLibDao<T extends CardLibEntry> {
     protected RedissonClient redisson;
 
     /**
-     * @param clazz          牌库条目 Class，用于 Protostuff 反序列化
-     * @param currentLibKey  记录当前库名的 Redis key
-     * @param lib1Prefix     库1 前缀（例如 "xxxLib1:"）
-     * @param lib2Prefix     库2 前缀（例如 "xxxLib2:"）
-     * @param genLockKey     生成锁 Redis key
-     * @param lastGenTimeKey 最后一次生成时间 Redis key
+     * 子类只需传入牌库条目 Class 和 gameType，所有 Redis key 由基类统一生成
+     *
+     * @param clazz    牌库条目 Class，用于 Protostuff 反序列化
+     * @param gameType 游戏类型 ID（如 {@code CoreConst.GameType.TO_SOUTH}）
      */
-    protected AbstractCardLibDao(Class<T> clazz,
-                                 String currentLibKey,
-                                 String lib1Prefix,
-                                 String lib2Prefix,
-                                 String genLockKey,
-                                 String lastGenTimeKey) {
+    protected AbstractCardLibDao(Class<T> clazz, int gameType) {
         this.clazz = clazz;
-        this.currentLibKey = currentLibKey;
-        this.lib1Prefix = lib1Prefix;
-        this.lib2Prefix = lib2Prefix;
-        this.genLockKey = genLockKey;
-        this.lastGenTimeKey = lastGenTimeKey;
+        this.gameType = gameType;
+        this.currentLibKey = KEY_CURRENT + gameType;
+        this.lib1Prefix    = KEY_LIB1 + gameType + ":";
+        this.lib2Prefix    = KEY_LIB2 + gameType + ":";
+        this.genLockKey    = KEY_GEN_LOCK + gameType;
+        this.lastGenTimeKey = KEY_GEN_TIME + gameType;
+    }
+
+    // ==================== 子类可复用的 key 构建方法 ====================
+
+    /** 获取玩家连胜记录 Redis key：PokerResultLibStreak:{gameType} */
+    protected String getStreakKey() {
+        return KEY_STREAK + gameType;
+    }
+
+    /** 获取玩家盈亏记录 Redis key：PokerResultLibProfit:{gameType} */
+    protected String getProfitKey() {
+        return KEY_PROFIT + gameType;
     }
 
     /**
