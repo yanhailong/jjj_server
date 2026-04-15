@@ -166,7 +166,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                             player.setIp(session.getAddress().getHost());
                             player.setChannel(channelType);
                             player.setLoginType(loginType);
-                            player.setDeviceType(player.getDeviceType());
+                            player.setDeviceType(playerSessionToken.getDevice());
                         }
 
                         @Override
