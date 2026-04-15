@@ -27,6 +27,8 @@ public class RobotCfg extends BaseCfgBean {
   protected List<List<Integer>> betRobotID;
   /** 对战类行为策略ID-德州 */
   protected List<List<Integer>> chessRobotID;
+  /** 对战类行为策略ID-南方前进 */
+  protected List<List<Integer>> southRobotID;
   /** 押注类-每次局游戏结束时退出概率 */
   protected int exit;
   /** 押注类-退出房间时倍数 */
@@ -111,6 +113,11 @@ public class RobotCfg extends BaseCfgBean {
   /** 返回玩家等级 */
   public int getPlayerLevel() {
     return playerLevel;
+  }
+
+  /** 返回对战类行为策略ID-南方前进 */
+  public List<List<Integer>> getSouthRobotID() {
+    return southRobotID;
   }
 
   /** 返回VIP等级 */
