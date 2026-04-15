@@ -17,9 +17,7 @@ import com.jjg.game.ploy.games.airraid.data.*;
 import com.jjg.game.ploy.games.airraid.pb.*;
 import com.jjg.game.ploy.games.airraid.pb.cluster.BetSync;
 import com.jjg.game.ploy.games.airraid.pb.cluster.CashOutSync;
-import com.jjg.game.ploy.games.airraid.pb.cluster.CrashSync;
 import com.jjg.game.ploy.games.airraid.pb.cluster.GameStateSync;
-import com.jjg.game.ploy.games.luckypoker.pb.ResLuckyPokerBet;
 import com.jjg.game.ploy.pb.ReqPloyRecord;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PloygameRoomCfg;
@@ -341,6 +339,12 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
     public ResAirRaidBet bet(PlayerController playerController, long bet, int betIndex) {
         ResAirRaidBet res = new ResAirRaidBet(Code.SUCCESS);
         try {
+            if (clusterSystem.nodeConfig.weight < 1) {
+                res.code = Code.FAIL;
+                log.warn("该节点准备关闭，无法下注 playerId={}", playerController.playerId());
+                return res;
+            }
+
             long now = System.currentTimeMillis();
             // 验证游戏阶段: 仅下注阶段可投注
             if (!this.gameRoom.canBet(now)) {
@@ -655,13 +659,11 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         return stopTime;
     }
 
-    private ResAirRaidGameState buildGameStateResponse(GameStateSync msg) {
-        ResAirRaidGameState res = new ResAirRaidGameState(Code.SUCCESS);
+    private NotifyAirRaidGameState buildGameStateResponse(GameStateSync msg) {
+        NotifyAirRaidGameState res = new NotifyAirRaidGameState();
         res.phase = msg.phase;
-        res.currentMultiplier = getAuthoritativeCurrentMultiplier(System.currentTimeMillis());
-        if (msg.stopTime > 0) {
-            res.remainTime = Math.max(0, msg.stopTime - System.currentTimeMillis());
-        }
+        res.crashMultiplier = msg.crashMultiplier;
+        res.stopTime = (int)(msg.stopTime / 1000);
         return res;
     }
 

@@ -18,9 +18,9 @@ public interface AirRaidConstant {
         //兑现响应
         int RES_AIR_RAID_CASH_OUT = BASE_MSG_PREFIX | 0x4;
         //游戏状态广播
-        int RES_AIR_RAID_GAME_STATE = BASE_MSG_PREFIX | 0x5;
+        int NOTIFY_AIR_RAID_GAME_STATE = BASE_MSG_PREFIX | 0x5;
         //坠毁广播
-        int RES_AIR_RAID_CRASH = BASE_MSG_PREFIX | 0x6;
+        int NOTIFY_AIR_RAID_CRASH = BASE_MSG_PREFIX | 0x6;
 
 
         //游戏状态同步
