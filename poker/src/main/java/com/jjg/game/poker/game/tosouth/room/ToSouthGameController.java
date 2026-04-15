@@ -539,7 +539,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         // 计算赢家税后积分并添加
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         long tax = BigDecimal.valueOf(score)
-                .multiply(BigDecimal.valueOf(10000 - roomCfg.getEffectiveRatio()))
+                .multiply(BigDecimal.valueOf(roomCfg.getWinRatio()))
                 .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
         gameDataTracker.addGameLogData("tax", tax);
         long finalWinScore = score - tax;
