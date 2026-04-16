@@ -51,6 +51,9 @@ public class Carousel {
     @ProtoDesc("id唯一")
     private long id;
 
+    @ProtoDesc("是否为webgl")
+    private boolean webgl;
+
     public Carousel() {
     }
 
@@ -124,6 +127,14 @@ public class Carousel {
         this.id = id;
     }
 
+    public boolean isWebgl() {
+        return webgl;
+    }
+
+    public void setWebgl(boolean webgl) {
+        this.webgl = webgl;
+    }
+
     @Override
     public String toString() {
         return "Carousel{" +
@@ -134,6 +145,7 @@ public class Carousel {
                 ", sort=" + sort +
                 ", showType=" + showType +
                 ", id=" + id +
+                ", webgl" + webgl +
                 '}';
     }
 }
