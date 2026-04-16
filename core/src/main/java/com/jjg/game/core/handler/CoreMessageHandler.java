@@ -165,6 +165,11 @@ public class CoreMessageHandler {
                 return;
             }
 
+            if ("setSvip".equalsIgnoreCase(cmd)) {
+                setSvip(res, playerController, req.order, params);
+                return;
+            }
+
             if ("addItem".equalsIgnoreCase(cmd)) {
                 addItem(res, playerController, arr);
                 return;
@@ -321,6 +326,33 @@ public class CoreMessageHandler {
         coreSendMessageManager.buildBaseInfoChangeMessage(playerController, result.data);
     }
 
+    /**
+     * gm修改svip等级
+     */
+    private void setSvip(ResGm res, PlayerController playerController, String order, String params) throws Exception {
+        if (params == null || params.isEmpty()) {
+            res.code = Code.PARAM_ERROR;
+            log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(), order);
+            playerController.send(res);
+            return;
+        }
+
+        int level = Integer.parseInt(params);
+        if (level < 0) {
+            res.code = Code.PARAM_ERROR;
+            log.debug("params错误，使用gm失败 playerId = {},order = {}", playerController.playerId(), order);
+            playerController.send(res);
+            return;
+        }
+
+        Player player = playerService.doSave(playerController.playerId(), (p) -> {
+            p.setSvip(level);
+        });
+        playerController.setPlayer(player);
+        playerController.send(res);
+        log.debug("gm设置svip成功 playerId = {},orders = {}", playerController.playerId(), order);
+    }
+
     private void addItem(ResGm res, PlayerController playerController, String[] orders) throws Exception {
         if (orders.length < 3) {
             res.code = Code.PARAM_ERROR;
@@ -389,7 +421,7 @@ public class CoreMessageHandler {
         res.sceneType = nodeType == NodeType.GAME ? ESceneType.ROOM : ESceneType.HALL;
 
         //
-        log.info("nodeType:{}",nodeType.getValue());
+        log.info("nodeType:{}", nodeType.getValue());
         playerController.send(res);
     }
 

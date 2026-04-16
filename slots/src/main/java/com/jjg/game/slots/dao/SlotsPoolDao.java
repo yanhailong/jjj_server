@@ -40,7 +40,8 @@ public class SlotsPoolDao extends AbstractPoolDao {
     public void initPool() {
         for (Map.Entry<Integer, BaseRoomCfg> en : GameDataManager.getBaseRoomCfgMap().entrySet()) {
             BaseRoomCfg cfg = en.getValue();
-            if (cfg.getRoomName() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
+            //排除好友房
+            if (cfg.getRoomName() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START && cfg.getRoomName() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
                 continue;
             }
             this.redisTemplate.opsForHash().putIfAbsent(tableName(cfg.getGameType()), cfg.getId(), cfg.getInitBasePool());
@@ -91,13 +92,17 @@ public class SlotsPoolDao extends AbstractPoolDao {
             if (poolDiff > baseRoomCfg.getFakeCommissionProp().get(0)) {
                 BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(1)).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
                 long addToFakeValue = BigDecimal.valueOf(value).multiply(prop).longValue();
-                long afterValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, addToFakeValue);
-                log.info("添加到假奖池1 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {},afterValue = {}", gameType, roomCfgId, value, addToFakeValue, afterValue);
+                if (addToFakeValue > 0) {
+                    long afterValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, addToFakeValue);
+                    log.info("添加到假奖池1 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {},afterValue = {}", gameType, roomCfgId, value, addToFakeValue, afterValue);
+                }
             } else {
                 BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(2)).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
                 long addToFakeValue = BigDecimal.valueOf(value).multiply(prop).longValue();
-                long afterValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, addToFakeValue);
-                log.info("添加到假奖池2 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {},afterValue = {}", gameType, roomCfgId, value, addToFakeValue, afterValue);
+                if (addToFakeValue > 0) {
+                    long afterValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, addToFakeValue);
+                    log.info("添加到假奖池2 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {},afterValue = {}", gameType, roomCfgId, value, addToFakeValue, afterValue);
+                }
             }
         } else {  //从池子扣除
             Number fakePoolValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, value);
@@ -270,7 +275,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
      */
     public boolean checkPoolCD(int poolId) {
         Object o = this.redisTemplate.opsForHash().get(this.POOL_CD_TABLE_NAME, poolId);
-        if(o == null){
+        if (o == null) {
             return true;
         }
         long cdTime = Long.parseLong(o.toString());

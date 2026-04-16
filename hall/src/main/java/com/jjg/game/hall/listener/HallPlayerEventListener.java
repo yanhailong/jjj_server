@@ -266,8 +266,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 res.gameWareInfo.roomCfgId = player.getRoomCfgId();
                 WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(player.getRoomCfgId());
                 if (warehouseCfg != null) {
-                    res.gameWareInfo.isFriendRoom =
-                            warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START;
+                    res.gameWareInfo.isFriendRoom = (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START && warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START);
                 }
                 session.send(res);
                 hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice(), playerSessionToken.getMac(), playerSessionToken.getFcm());

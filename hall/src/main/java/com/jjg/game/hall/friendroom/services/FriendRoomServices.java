@@ -231,7 +231,7 @@ public class FriendRoomServices {
         }
         // 检查场次是否存在
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(reqCreateFriendsRoom.roomCfgId);
-        if (warehouseCfg == null || warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
+        if (warehouseCfg == null || warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START || warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
             return Code.PARAM_ERROR;
         }
         // 牌局时长合法性检查

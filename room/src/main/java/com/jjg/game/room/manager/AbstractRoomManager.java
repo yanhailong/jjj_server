@@ -1153,7 +1153,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         }
         Set<Integer> availableGameTypeIds = getEnabledGameTypeIds();
         for (WarehouseCfg warehouseCfg : GameDataManager.getWarehouseCfgList()) {
-            if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
+            if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START && warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
                 continue;
             }
             if (!availableGameTypeIds.contains(warehouseCfg.getGameID())) {

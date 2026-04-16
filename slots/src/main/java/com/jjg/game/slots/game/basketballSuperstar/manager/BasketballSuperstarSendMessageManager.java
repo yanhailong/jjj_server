@@ -245,7 +245,7 @@ public class BasketballSuperstarSendMessageManager extends BaseSendMessageManage
         }
 
         sendInfo.addPlayerMsg(playerController.playerId(), res);
-        sendInfo.getLogMessage().add(res);
+//        sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回奖池结果", false);
     }
 }
