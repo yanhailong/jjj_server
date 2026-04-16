@@ -179,17 +179,13 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     }
 
     public List<WareHouseConfigInfo> getWareHouseConfigByGameType(Player player, int gameType) {
-        if (player.getSvip() > 0) {
-            if (this.svipWareHouseConfigMap != null) {
-                List<WareHouseConfigInfo> list = this.svipWareHouseConfigMap.get(gameType);
-                if (list != null && !list.isEmpty()) {
-                    return list;
-                }
+        if (player.getSvip() > 0 && this.svipWareHouseConfigMap != null) {
+            List<WareHouseConfigInfo> list = this.svipWareHouseConfigMap.get(gameType);
+            if (list != null && !list.isEmpty()) {
+                return list;
             }
         }
-
         return wareHouseConfigMap.get(gameType);
-
     }
 
     /**
@@ -199,16 +195,18 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      * @return
      */
     public List<WarePoolInfo> getPoolListByGameType(Player player, int gameType) {
-        if (player.getSvip() < 1) {
-            if (this.poolMap == null || this.poolMap.isEmpty()) {
-                return null;
+        // SVIP 优先查 svipPoolMap
+        if (player.getSvip() >= 1 && this.svipPoolMap != null) {
+            List<WarePoolInfo> svipPool = this.svipPoolMap.get(gameType);
+            if (svipPool != null && !svipPool.isEmpty()) {
+                return svipPool;
             }
-            return this.poolMap.get(gameType);
         }
-        if (this.svipPoolMap == null || this.svipPoolMap.isEmpty()) {
+        // fallback 到普通 poolMap
+        if (this.poolMap == null || this.poolMap.isEmpty()) {
             return null;
         }
-        return this.svipPoolMap.get(gameType);
+        return this.poolMap.get(gameType);
     }
 
     /**
