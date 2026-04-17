@@ -124,6 +124,8 @@ public class GMController extends AbstractController {
     private GmToAllBridge gmToAllBridge;
     @ClusterRpcReference
     private GmToSlotsBridge gmToSlotsBridge;
+    @ClusterRpcReference
+    private GmToRoomBridge gmToRoomBridge;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -2034,6 +2036,73 @@ public class GMController extends AbstractController {
             redeemCodeInfo.setUse(dto.use());
             redeemCodeInfoDao.save(redeemCodeInfo);
             return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 给玩家设置svip
+     */
+    @RequestMapping(BackendGMCmd.PLAYER_SVIP)
+    public WebResult<String> playerSvip(@RequestBody PlayerSvipDto dto) {
+        log.info("收到设置svip的请求 dto = {}", dto);
+        try {
+            if (dto.playerIds() == null || dto.playerIds().isEmpty()) {
+                log.warn("设置svip时，玩家id不能为空 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            if (dto.playerIds().size() > 100) {
+                log.warn("设置svip时，玩家id数量太多了！！！ size = {}", dto.playerIds().size());
+                return fail("common.paramerror");
+            }
+
+            int svip = dto.mark() ? 1 : 0;
+
+            boolean success = true;
+            for (long playerId : dto.playerIds()) {
+                PlayerSessionInfo sessionInfo = playerSessionService.getInfo(playerId);
+                //玩家离线或者处于大厅，或者在slots游戏中
+                if (sessionInfo == null || sessionInfo.getGameType() < 1 || sessionInfo.getGameType() == CoreConst.GameMajorType.SLOTS) {
+                    Player player = playerService.doSave(playerId, (p) -> {
+                        p.setSvip(svip);
+                    });
+
+                    if (player == null) {
+                        success = false;
+                        log.debug("修改玩家svip失败, playerId = {}", playerId);
+                    } else {
+                        log.debug("修改玩家svip成功, playerId = {}", playerId);
+                    }
+                    continue;
+                }
+
+                //获取节点
+                String[] arr = sessionInfo.getCurrentNode().split("/");
+                ClusterClient clusterClient = clusterSystem.getNodesByName(arr[arr.length - 1]);
+                if (clusterClient == null) {
+                    log.debug("设置svip时，未找到玩家所在节点 playerId = {},nodeName = {}", playerId, sessionInfo.getCurrentNode());
+                    success = false;
+                    continue;
+                }
+
+                GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(clusterClient).setTryMillisPerClient(1000));
+
+                int code = gmToRoomBridge.changeSvip(playerId, svip);
+                if (code == 200) {
+                    log.debug("通知节点修改玩家svip成功, playerId = {},node = {}", playerId, sessionInfo.getCurrentNode());
+                } else {
+                    success = false;
+                    log.debug("通知节点修改玩家svip失败, playerId = {},node = {}", playerId, sessionInfo.getCurrentNode());
+                }
+            }
+
+            if (success) {
+                return success("common.success");
+            }
+            return fail("common.fail");
         } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");

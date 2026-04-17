@@ -110,6 +110,9 @@ public interface BackendGMCmd {
     //启用/禁用礼包码
     String CHANGE_REDEEM_CODE_STATUS = "changeRedeemCodeStatus";
 
+    //给玩家设置svip
+    String PLAYER_SVIP = "playerSvip";
+
     /**
      * 配置相关q
      */
