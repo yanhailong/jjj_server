@@ -108,6 +108,7 @@ public class GaraGemstone1SendMessageManager extends BaseSendMessageManager {
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
             res.winIconInfoList = gameRunInfo.getAwardLineInfos();
+            res.multiplyAxisTimes = gameRunInfo.getMultiplyAxisTimes();
             logger.gameResult(playerController.getPlayer(), gameRunInfo,res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());

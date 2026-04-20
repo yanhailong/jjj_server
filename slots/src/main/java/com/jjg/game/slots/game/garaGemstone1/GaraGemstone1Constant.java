@@ -5,7 +5,7 @@ import com.jjg.game.slots.constant.SlotsConst;
 
 public interface GaraGemstone1Constant {
     interface MsgBean {
-        int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.LUCKY_MOUSE << MessageConst.MessageCommon.RIGHT_MOVE;
+        int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.GARA_GEMSTONE_1 << MessageConst.MessageCommon.RIGHT_MOVE;
         //请求配置
         int REQ_LUCKY_MOUSE_CONFIG_INFO = BASE_MSG_PREFIX | 0x1;
         int RES_LUCKY_MOUSE_CONFIG_INFO = BASE_MSG_PREFIX | 0x2;
@@ -21,20 +21,19 @@ public interface GaraGemstone1Constant {
 
     interface Status{
         int NORMAL = SlotsConst.Status.NORMAL;
-        //触发真免费
-        int REAL_FU_SHU = SlotsConst.Status.FREE;
-        //触发假免费
-        int FAKE_FU_SHU = 2;
     }
 
     interface BaseElement{
-        int ID_WILD = 11;
-        int ID_SCATTER = 12;
+        int ID_WILD = 8;
         int ID_ADDFREEE = 13;
-        int ID_MINI = 14;
-        int ID_MINOR = 15;
-        int ID_MAJOR = 16;
-        int ID_GRAND = 17;
+        int ID_JACKPOOL = 9;
+        int ID_10 = 10;
+        int ID_11 = 11;
+        int ID_12 = 12;
+        int ID_13 = 13;
+        int ID_14 = 14;
+        int ID_15 = 15;
+        int ID_16 = 16;
     }
 
     interface SpecialMode{
@@ -43,14 +42,10 @@ public interface GaraGemstone1Constant {
         int JACKPOOL = 3;
     }
 
-    interface SpecialPlay{
-        int FU_SHU_TRIGGER_ID = 5036001;
-        /** 倍数轴配置：根据权重选择倍数及对应符号ID */
-        int MULTIPLY_AXIS_ID = 5055011;
-    }
-
     interface BaseRollerGroup{
         /** 倍数轴滚轴ID，对应 BaseRoller.xlsx 20550114 */
         int MULTIPLY_AXIS_ROLLER_ID = 20550114;
+        /** 倍数轴配置ID，对应 SpecialPlay.xlsx 5055011 */
+        int MULTIPLY_AXIS_CFG_ID = 5055011;
     }
 }

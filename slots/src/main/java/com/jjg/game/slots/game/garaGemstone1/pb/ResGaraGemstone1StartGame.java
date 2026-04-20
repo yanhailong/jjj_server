@@ -8,7 +8,7 @@ import com.jjg.game.slots.game.garaGemstone1.GaraGemstone1Constant;
 
 import java.util.List;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.LUCKY_MOUSE, cmd = GaraGemstone1Constant.MsgBean.RES_LUCKY_MOUSE_START_GAME, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.GARA_GEMSTONE_1, cmd = GaraGemstone1Constant.MsgBean.RES_LUCKY_MOUSE_START_GAME, resp = true)
 @ProtoDesc("返回开始游戏信息")
 public class ResGaraGemstone1StartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")
@@ -31,6 +31,8 @@ public class ResGaraGemstone1StartGame extends AbstractResponse {
     public long exp;
     @ProtoDesc("中奖图标信息")
     public List<GaraGemstone1WinIconInfo> winIconInfoList;
+    @ProtoDesc("第四轴倍数值")
+    public long multiplyAxisTimes;
 
     public ResGaraGemstone1StartGame(int code) {
         super(code);

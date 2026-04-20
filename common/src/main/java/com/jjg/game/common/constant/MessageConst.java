@@ -191,6 +191,13 @@ public interface MessageConst {
         int PLOY_AIR_RAID = 0x4C;
         //高低扑克
         int HIGH_LOW_POKER = 0x4D;
+
+        //伽罗宝石1
+        int GARA_GEMSTONE_1 = 0x4E;
+        //伽罗宝石2
+        int GARA_GEMSTONE_2 = 0x4F;
+        //伽罗宝石3
+        int GARA_GEMSTONE_3 = 0x50;
     }
 
     interface ToClientConst {

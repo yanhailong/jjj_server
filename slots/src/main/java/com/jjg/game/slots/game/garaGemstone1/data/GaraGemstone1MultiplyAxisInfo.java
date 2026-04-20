@@ -3,17 +3,16 @@ package com.jjg.game.slots.game.garaGemstone1.data;
 /**
  * 伽罗宝石 倍数轴配置信息
  * 对应 SpecialPlay.xlsx 5055011 中每一个条目
+ * 格式：iconId_times_weight
  */
 public class GaraGemstone1MultiplyAxisInfo {
 
-    /** 符号ID */
+    /** 符号ID（需在 BaseRoller 20550114 elements 中存在） */
     private int iconId;
+    /** 倍数值（1/2/3/5/10/15），奖金符号填0 */
+    private int times;
     /** 权重 */
     private int weight;
-    /** 倍数值，0 表示奖金符号（bonus），触发对应奖池 */
-    private int times;
-    /** 奖池ID，大于0时表示奖金符号，触发对应奖池奖励 */
-    private int poolId;
 
     public int getIconId() {
         return iconId;
@@ -21,14 +20,6 @@ public class GaraGemstone1MultiplyAxisInfo {
 
     public void setIconId(int iconId) {
         this.iconId = iconId;
-    }
-
-    public int getWeight() {
-        return weight;
-    }
-
-    public void setWeight(int weight) {
-        this.weight = weight;
     }
 
     public int getTimes() {
@@ -39,11 +30,11 @@ public class GaraGemstone1MultiplyAxisInfo {
         this.times = times;
     }
 
-    public int getPoolId() {
-        return poolId;
+    public int getWeight() {
+        return weight;
     }
 
-    public void setPoolId(int poolId) {
-        this.poolId = poolId;
+    public void setWeight(int weight) {
+        this.weight = weight;
     }
 }

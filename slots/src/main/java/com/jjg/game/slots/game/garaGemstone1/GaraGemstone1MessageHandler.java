@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-@MessageType(MessageConst.MessageTypeDef.LUCKY_MOUSE)
+@MessageType(MessageConst.MessageTypeDef.GARA_GEMSTONE_1)
 public class GaraGemstone1MessageHandler {
     private Logger log = LoggerFactory.getLogger(getClass());
 
