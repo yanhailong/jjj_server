@@ -4,6 +4,7 @@ import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.data.PlayerRecharge;
+import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
@@ -30,6 +31,11 @@ public class AccountTotalRechargeCondition implements ConditionHandler<PlayerRec
     @Override
     public String type() {
         return "accountTotalRecharge";
+    }
+
+    @Override
+    public EGameEventType eventType() {
+        return EGameEventType.RECHARGE;
     }
 
     @Override

@@ -102,6 +102,8 @@ public class GamePlayer extends Player {
         this.setFriendRoomInvitationCode(p.getFriendRoomInvitationCode());
         this.setChannel(p.getChannel());
         this.setLoginType(p.getLoginType());
+        this.setSubChannel(p.getSubChannel());
+        this.setSvip(p.getSvip());
     }
 
 }

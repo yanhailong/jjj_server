@@ -113,7 +113,7 @@
                 <configuration>
                     <serverId>innerTest</serverId>
                     <fromFile>target/${project.artifactId}_${project.version}_${maven.build.timestamp}.zip</fromFile>
-                    <url>scp://192.168.3.31${update.patch}</url>
+                    <url>scp://172.18.11.38${update.patch}</url>
                     <commands>
                         <!-- 解压 -->
                         <command>cd ${update.patch};unzip  -o ${project.artifactId}_${project.version}_${maven.build.timestamp}.zip -d .</command>

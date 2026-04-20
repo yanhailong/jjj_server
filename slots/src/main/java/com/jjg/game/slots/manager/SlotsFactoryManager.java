@@ -42,6 +42,17 @@ public class SlotsFactoryManager {
         this.slotsRoomManager.init();
     }
 
+    public void onEnterGame(long playerId, int roomCfgId, long roomId) {
+        exitOldPlayerGameDataOnEnter(slotsGameManagerMap, playerId, roomCfgId, roomId);
+        exitOldPlayerGameDataOnEnter(slotsRoomGameManagerMap, playerId, roomCfgId, roomId);
+    }
+
+    private void exitOldPlayerGameDataOnEnter(Map<Integer, AbstractSlotsGameManager> gameManagerMap, long playerId, int roomCfgId, long roomId) {
+        for (AbstractSlotsGameManager<?, ?, ?> gameManager : gameManagerMap.values()) {
+            gameManager.exitOldPlayerGameDataOnEnter(playerId, roomCfgId, roomId);
+        }
+    }
+
     /**
      * 初始化游戏管理器
      */
@@ -72,15 +83,16 @@ public class SlotsFactoryManager {
 
     public AbstractSlotsGameManager getGameManager(int gameType, int roomCfgId) {
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
-        if (warehouseCfg == null) {
-            return null;
-        }
+        if (warehouseCfg != null) {
+            if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
+                return this.slotsGameManagerMap.get(gameType);
+            }
 
-        if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
-            return this.slotsGameManagerMap.get(gameType);
-        } else {
-            return this.slotsRoomGameManagerMap.get(gameType);
+            if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
+                return this.slotsRoomGameManagerMap.get(gameType);
+            }
         }
+        return this.slotsGameManagerMap.get(gameType);
     }
 
     public AbstractSlotsGameManager getGameManager(int gameType) {

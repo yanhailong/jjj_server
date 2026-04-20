@@ -102,31 +102,46 @@ public class ToSouthGameLog {
         @Override
         public String toString() {
             return switch (type) {
-                case DEAL -> String.format("[%s] 玩家:%d 座位:%d 手牌:%s",
+                //[%s] 玩家:%d 座位:%d 手牌:%s"
+                case DEAL -> String.format("[%s] Player:%d Seat:%d Hand:%s",
                         type.desc, playerId, seatId, cardsStr);
-                case FIRST_PLAY, FOLLOW_PLAY, NEW_ROUND_PLAY -> String.format("[%s] 玩家:%d 座位:%d 牌型:%s 牌:%s 剩余:%d",
+                //[%s] 玩家:%d 座位:%d 牌型:%s 牌:%s 剩余:%d
+                case FIRST_PLAY, FOLLOW_PLAY, NEW_ROUND_PLAY -> String.format("[%s] Player:%d Seat:%d Type:%s Cards:%s Remaining:%d",
                         type.desc, playerId, seatId, cardType, cardsStr, remainCount);
-                case PASS -> String.format("[%s] 玩家:%d 座位:%d",
+                //[%s] 玩家:%d 座位:%d
+                case PASS -> String.format("[%s] Player:%d Seat:%d",
                         type.desc, playerId, seatId);
-                case BOMB_SETTLEMENT -> String.format("[%s] 赢家:%d(+%d) 输家:%d(-%d) 连炸:%d",
+                //[%s] 赢家:%d(+%d) 输家:%d(-%d) 连炸:%d
+                case BOMB_SETTLEMENT -> String.format("[%s] Winner:%d(+%d) Loser:%d(-%d) Bomb Streak:%d",
                         type.desc, winnerId, winScore, loserId, loseScore, chainSize);
-                case INSTANT_WIN_SETTLEMENT -> String.format("[%s] 玩家:%d 类型:%s 牌:%s",
+                //[%s] 玩家:%d 类型:%s 牌:%s
+                case INSTANT_WIN_SETTLEMENT -> String.format("[%s] Player:%d Type:%s Cards:%s",
                         type.desc, playerId, getInstantWinTypeName(instantWinType), cardsStr);
-                case FINAL_SETTLEMENT -> String.format("[%s] 玩家:%d %s %+d (剩余牌:%d%s)",
-                        type.desc, playerId, winner ? "赢" : "输", winScore, remainCount,
+                //[%s] 玩家:%d %s %+d (剩余牌:%d%s)
+                case FINAL_SETTLEMENT -> String.format("[%s] Player:%d %s %+d (Remaining:%d%s)",
+                        type.desc, playerId, winner ? "win" : "lose", winScore, remainCount,
                         detail != null && !detail.isEmpty() ? ", " + detail : "");
             };
         }
 
         private static String getInstantWinTypeName(int winType) {
+//            return switch (winType) {
+//                case 1 -> "4个2";
+//                case 2 -> "一条龙";
+//                case 3 -> "同色";
+//                case 4 -> "6对";
+//                case 5 -> "5连对";
+//                case 6 -> "6连对";
+//                default -> "未知(" + winType + ")";
+//            };
             return switch (winType) {
-                case 1 -> "4个2";
-                case 2 -> "一条龙";
-                case 3 -> "同色";
-                case 4 -> "6对";
-                case 5 -> "5连对";
-                case 6 -> "6连对";
-                default -> "未知(" + winType + ")";
+                case 1 -> "4x 2";
+                case 2 -> "Straight";
+                case 3 -> "Flush";
+                case 4 -> "6 Pairs";
+                case 5 -> "5x Pairs";
+                case 6 -> "6x Pairs";
+                default -> "Unknown(" + winType + ")";
             };
         }
     }

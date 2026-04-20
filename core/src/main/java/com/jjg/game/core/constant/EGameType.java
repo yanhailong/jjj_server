@@ -27,7 +27,6 @@ public enum EGameType {
     CLEOPATRA(CoreConst.GameType.CLEOPATRA, RoomType.SLOTS, "埃及艳后"),
     WEALTH_BANK(CoreConst.GameType.WEALTH_BANK, RoomType.SLOTS, "财富银行"),
     WOLF_MOON(CoreConst.GameType.WOLF_MOON, RoomType.SLOTS, "狼月"),
-    HOT_SOCCER(CoreConst.GameType.HOT_SOCCER, RoomType.SLOTS, "热血足球"),
     CHRISTMAS_PARTY(CoreConst.GameType.CHRISTMAS_PARTY, RoomType.SLOTS, "圣诞狂欢夜"),
     BASKETBALL_STAR(CoreConst.GameType.BASKETBALL_STAR, RoomType.SLOTS, "篮球巨星"),
     DEGULA_WEALTH(CoreConst.GameType.DEGULA_WEALTH, RoomType.SLOTS, "德古拉黑暗财富"),

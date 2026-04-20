@@ -4,6 +4,7 @@ import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.MatchResultData;
 import com.jjg.game.core.base.condition.data.UserItem;
 import com.jjg.game.core.base.condition.event.UserItemEvent;
+import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
@@ -29,6 +30,11 @@ public class UseItemCountCondition extends BaseRedisCondition<UserItem> {
     @Override
     public String type() {
         return "useItemCount";
+    }
+
+    @Override
+    public EGameEventType eventType() {
+        return null;
     }
 
     @Override

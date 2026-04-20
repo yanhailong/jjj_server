@@ -36,8 +36,10 @@ import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.manager.RoomManager;
+import com.jjg.game.room.robot.RobotScheduleUtil;
 import com.jjg.game.room.message.BaseRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.timer.RoomTimerEvent;
@@ -68,6 +70,8 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.poker.game.tosouth.autohandler.ToSouthAutoPlayHandler;
 import com.jjg.game.poker.game.tosouth.autohandler.ToSouthReadyTimeoutHandler;
+import com.jjg.game.poker.game.tosouth.autohandler.ToSouthRobotHandler;
+import com.jjg.game.sampledata.bean.ChessRobotCfg;
 import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLibManager;
 import com.jjg.game.common.utils.CommonUtil;
 
@@ -528,13 +532,14 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
     private void addBombScore(List<ToSouthBombDetail> details, long loserId, long winnerId, long score, int type) {
         // 直接扣除输家积分
-        deductItem(loserId, score, AddType.GAME_SETTLEMENT, "南方前进炸弹扣分", false);
+        // 炸弹扣钱
+        deductItem(loserId, score, AddType.GAME_SETTLEMENT, "ToSouth bomb loses money", false);
         details.add(new ToSouthBombDetail(loserId, score, ToSouthConstant.BOMB_LOSE_TYPE));
 
         // 计算赢家税后积分并添加
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         long tax = BigDecimal.valueOf(score)
-                .multiply(BigDecimal.valueOf(10000 - roomCfg.getEffectiveRatio()))
+                .multiply(BigDecimal.valueOf(roomCfg.getWinRatio()))
                 .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
         gameDataTracker.addGameLogData("tax", tax);
         long finalWinScore = score - tax;
@@ -1006,7 +1011,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             notify.status = 2;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
             //取消准备加入准备倒计时
-            scheduleReadyTimeout(playerId,READY_TIMEOUT);
+            scheduleReadyTimeout(playerId, READY_TIMEOUT);
         } else {
             // 准备（status == 1 或默认）
             if (gameDataVo.getReadyPlayerIds().contains(playerId)) {
@@ -1059,19 +1064,15 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(phaseChange));
             log.info("广播阶段变化：WAIT_READY，等待玩家准备");
 
-            // 2. 机器人自动准备
+            // 2. 机器人按 delayTime 延迟调度准备（不再自动准备）
             for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
                 if (!info.isSeatDown()) continue;
                 long pid = info.getPlayerId();
                 if (gameDataVo.getReadyPlayerIds().contains(pid)) continue;
+                if (gameDataVo.getReadyTimerScheduled().contains(pid)) continue;
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(pid);
-                if (gamePlayer instanceof GameRobotPlayer) {
-                    gameDataVo.getReadyPlayerIds().add(pid);
-                    NotifyToSouthPlayerReady notify = new NotifyToSouthPlayerReady();
-                    notify.playerId = pid;
-                    notify.status = 1;
-                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
-                    log.info("机器人 {} 自动准备", pid);
+                if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+                    scheduleRobotReady(robotPlayer);
                 }
             }
 
@@ -1083,33 +1084,21 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 if (gameDataVo.getReadyTimerScheduled().contains(pid)) continue;
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(pid);
                 if (!(gamePlayer instanceof GameRobotPlayer)) {
-                    scheduleReadyTimeout(gamePlayer.getId(),READY_TIMEOUT);
+                    scheduleReadyTimeout(gamePlayer.getId(), READY_TIMEOUT);
                 }
             }
         } else {
-            // 非首次调用（玩家点击准备后触发）：只补充机器人和倒计时
-            for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
-                if (!info.isSeatDown()) continue;
-                long pid = info.getPlayerId();
-                if (gameDataVo.getReadyPlayerIds().contains(pid)) continue;
-                GamePlayer gamePlayer = gameDataVo.getGamePlayer(pid);
-                if (gamePlayer instanceof GameRobotPlayer) {
-                    gameDataVo.getReadyPlayerIds().add(pid);
-                    NotifyToSouthPlayerReady notify = new NotifyToSouthPlayerReady();
-                    notify.playerId = pid;
-                    notify.status = 1;
-                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
-                    log.info("机器人 {} 自动准备", pid);
-                }
-            }
+            // 非首次调用（玩家点击准备后触发）：补充机器人调度和倒计时
             for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
                 if (!info.isSeatDown()) continue;
                 long pid = info.getPlayerId();
                 if (gameDataVo.getReadyPlayerIds().contains(pid)) continue;
                 if (gameDataVo.getReadyTimerScheduled().contains(pid)) continue;
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(pid);
-                if (!(gamePlayer instanceof GameRobotPlayer)) {
-                    scheduleReadyTimeout(pid,READY_TIMEOUT);
+                if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+                    scheduleRobotReady(robotPlayer);
+                } else {
+                    scheduleReadyTimeout(pid, READY_TIMEOUT);
                 }
             }
         }
@@ -1183,6 +1172,82 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     }
 
     /**
+     * 机器人按 delayTime 延迟调度准备/退出
+     * <p>
+     * 对局结束瞬间根据 lastWin + continueAfterVictory/continueAfterFail 权重预判留守或退出，
+     * 但执行（准备或退出）均在等待 delayTime 延迟后才真正发生。
+     *
+     * @param robotPlayer 机器人玩家
+     */
+    private void scheduleRobotReady(GameRobotPlayer robotPlayer) {
+        long pid = robotPlayer.getId();
+        int actionId = robotPlayer.getActionId();
+        ChessRobotCfg cfg = (actionId > 0) ? GameDataManager.getChessRobotCfg(actionId) : null;
+        // 延迟时间：优先从配置读取，无配置则兜底 2-5 秒
+        int delay;
+        if (cfg != null) {
+            delay = RobotScheduleUtil.getChessExecutionDelay(actionId);
+        } else {
+            delay = RandomUtils.nextInt(2000, 5000);
+            log.warn("机器人 {} actionId={} 无 ChessRobotCfg 配置，使用兜底延迟 {}ms", pid, actionId, delay);
+        }
+        // 准备概率：首次进入100%；续局根据胜负读取权重
+        int pro;
+        if (robotPlayer.getLastWin() == 0 || cfg == null) {
+            // 首次进入房间 或 无配置 → 100%准备
+            pro = 10000;
+        } else {
+            List<Integer> continueList = robotPlayer.getLastWin() == 1
+                    ? cfg.getContinueAfterVictory()
+                    : cfg.getContinueAfterFail();
+            pro = (continueList != null && !continueList.isEmpty()) ? continueList.getFirst() : 10000;
+        }
+        ToSouthRobotHandler handler = new ToSouthRobotHandler(robotPlayer, ToSouthRobotHandler.GO_READY, this, pro);
+        RobotScheduleUtil.schedule(getRoomController(), handler, delay);
+        gameDataVo.getReadyTimerScheduled().add(pid);
+        log.info("机器人 {} 调度准备/退出 delay={}ms, pro={}, lastWin={}, actionId={}", pid, delay, pro, robotPlayer.getLastWin(), actionId);
+    }
+
+    /**
+     * 机器人准备（由 ToSouthRobotHandler.GO_READY 回调）
+     *
+     * @param playerId 机器人玩家ID
+     */
+    public void robotGoReady(long playerId) {
+        if (getCurrentGamePhase() != EGamePhase.WAIT_READY) {
+            return;
+        }
+        if (gameDataVo.getReadyPlayerIds().contains(playerId)) {
+            return;
+        }
+        gameDataVo.getReadyPlayerIds().add(playerId);
+        NotifyToSouthPlayerReady notify = new NotifyToSouthPlayerReady();
+        notify.playerId = playerId;
+        notify.status = 1;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
+        int readyCount = gameDataVo.getReadyPlayerIds().size();
+        int seatDownCount = gameDataVo.getSeatDownNum();
+        log.info("机器人 {} 准备完成，广播 NotifyToSouthPlayerReady(playerId={}, status=1)，当前准备人数: {}/{}", playerId, playerId, readyCount, seatDownCount);
+        tryStartGame();
+    }
+
+    /**
+     * 机器人退出房间（continueAfter概率未通过时调用）
+     *
+     * @param playerId 机器人玩家ID
+     */
+    public void robotExitRoom(long playerId) {
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        if (gamePlayer instanceof GameRobotPlayer) {
+            PlayerController pc = getRoomController().getPlayerController(playerId);
+            if (pc != null) {
+                getRoomController().getRoomManager().robotPlayerExitRoom(List.of(pc));
+                log.info("机器人 {} 退出房间（continueAfter概率未通过）", playerId);
+            }
+        }
+    }
+
+    /**
      * 踢出未准备的玩家
      * 1. 通知被踢玩家退出到大厅（必须在 exitRoom 之前，exitRoom 会清理 GamePlayer 导致无法广播）
      * 2. exitRoom(PlayerController) 真正退出 → 内部触发 onPlayerLeaveRoomAction
@@ -1190,7 +1255,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
      */
     public void kickUnreadyPlayer(long playerId) {
         RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
-        if(gameDataVo.getExitPlayerIds().contains(playerId)){
+        if (gameDataVo.getExitPlayerIds().contains(playerId)) {
             getRoomController().getRoomManager().exitRoom(playerId);
             log.info("玩家 {} 离线且未准备，服务端强制退出房间", playerId);
             return;
@@ -1340,7 +1405,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
         // 如果是机器人，添加机器人处理器
         if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
-            int delay = RandomUtils.nextInt(2000, 5000);
+            int delay = RobotScheduleUtil.getChessExecutionDelay(robotPlayer.getActionId());
             ToSouthAutoPlayHandler handler = new ToSouthAutoPlayHandler(playerId, gameDataVo.getId(), this);
             addPlayerTimer(handler, delay);
         } else {

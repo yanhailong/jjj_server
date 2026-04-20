@@ -55,6 +55,8 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
 
         //获取每个图标出现的次数
         Map<Integer, Integer> showCountMap = checkIconShowCount(lib.getIconArr());
+        //获取每个图标出现的坐标
+        Map<Integer, Set<Integer>> showIndexMap = checkIconShowIndex(lib.getIconArr());
         //已经出现的小游戏id
         Set<Integer> showAuxiliaryIdSet = new HashSet<>();
         addShowAuxiliaryId(lib, showAuxiliaryIdSet);
@@ -78,9 +80,17 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
             if (elementsCount != cfg.getRewardNum()) {
                 continue;
             }
-            if (cfg.getBet() > 0) {
-                lib.setTimes(lib.getTimes() + cfg.getBet());
+
+            //添加 SCATTER 分散中奖记录
+            if (cfg.getBet() > 0 && cfg.getElementId().contains(FrozenThroneConstant.BaseElement.ID_SCATTER)) {
+                FrozenThroneAwardLineInfo scatterAwardInfo = new FrozenThroneAwardLineInfo();
+                scatterAwardInfo.setSameIcon(FrozenThroneConstant.BaseElement.ID_SCATTER);
+                scatterAwardInfo.setSameIconSet(showIndexMap.get(FrozenThroneConstant.BaseElement.ID_SCATTER));
+                scatterAwardInfo.setBaseTimes(cfg.getBet());
+                lib.addAwardLineInfo(scatterAwardInfo);
+                log.debug("SCATTER 分散中奖 scatterCount={} bet={}", elementsCount, cfg.getBet());
             }
+
             //是否触发小游戏
             if (cfg.getFeatureTriggerId() != null && !cfg.getFeatureTriggerId().isEmpty()) {
                 int count = checkAddFreeCount(lib);
@@ -248,12 +258,13 @@ public class FrozenThroneGenerateManager extends AbstractSlotsGenerateManager<Fr
         if (!checkElement(lib)) {
             throw new IllegalArgumentException("检查结果有错误 lib = " + JSONObject.toJSONString(lib));
         }
+
+        //中奖线（含 SCATTER 分散中奖，无论是否触发免费都需计算）
+        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+
         if (triggerFreeLib(lib, FrozenThroneConstant.SpecialMode.FREE)) {
-            //免费
+            //免费游戏总奖励
             lib.addTimes(calFree(lib));
-        } else {
-            //中奖线
-            lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
         }
     }
 

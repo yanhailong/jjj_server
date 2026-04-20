@@ -13,6 +13,4 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_ONE_RECEIVE)
 @ProtoDesc("一键领取绑定相关收益")
 public class ReqSharePromoteOneReceive extends AbstractMessage {
-    @ProtoDesc("邀请码")
-    public String invitationCode;
 }

@@ -124,6 +124,8 @@ public class GMController extends AbstractController {
     private GmToAllBridge gmToAllBridge;
     @ClusterRpcReference
     private GmToSlotsBridge gmToSlotsBridge;
+    @ClusterRpcReference
+    private GmToRoomBridge gmToRoomBridge;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -855,57 +857,88 @@ public class GMController extends AbstractController {
     }
 
     /**
-     * 生成结果库
+     * 生成结果库（slots + poker 统一入口）
+     * 如果 gameType 包含南方前进(300400)，走 poker 服务生成；其余走 slots 服务
      */
     @RequestMapping(BackendGMCmd.GENERATE_LIB)
     public WebResult<String> generateLib(@RequestBody GenerateLibDto param) {
         log.info("收到生成结果库的请求请求 param={}", param);
         try {
-            ClusterClient clusterClient;
-            if (StringUtils.isNotEmpty(param.nodeName())) {
-                clusterClient = clusterSystem.getNodesByName(param.nodeName());
-            } else {
-                clusterClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
-            }
-
-            if (clusterClient == null) {
-                log.debug("未找到对应的游戏节点");
-                return fail("common.fail");
-            }
-
-            if (NodeType.GAME.name().equals(clusterClient.nodeConfig.getType()) && clusterClient.nodeConfig.getGameMajorTypes()[0] != CoreConst.GameMajorType.SLOTS) {
-                log.debug("只能是slots的游戏节点才需要生成结果库 param = {}", param);
-                return fail("common.fail");
-            }
-
-            NotifyGenrateLib notify = new NotifyGenrateLib();
-            //兼容批量传入生成需求
-            notify.list = new ArrayList<>();
-
+            // 收集所有待生成的 gameType → count
+            List<KVInfo> allList = new ArrayList<>();
             if (param.gameType() > 0 && param.count() > 0) {
                 KVInfo kvInfo = new KVInfo();
                 kvInfo.key = param.gameType();
                 kvInfo.value = param.count();
-                notify.list.add(kvInfo);
+                allList.add(kvInfo);
             }
-
             if (param.list() != null && !param.list().isEmpty()) {
                 for (GenerateLibCfgDto d : param.list()) {
                     KVInfo tmpInfo = new KVInfo();
                     tmpInfo.key = d.gameType();
                     tmpInfo.value = d.count();
-                    notify.list.add(tmpInfo);
+                    allList.add(tmpInfo);
                 }
             }
-
-            if (notify.list.isEmpty()) {
+            if (allList.isEmpty()) {
                 log.warn("没有可生成的结果库 param = {}", param);
                 return fail("common.fail");
             }
 
-            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
-            ClusterMessage msg = new ClusterMessage(pfMessage);
-            clusterClient.write(msg);
+            // 分流：poker 类型 vs slots 类型
+            List<KVInfo> pokerList = new ArrayList<>();
+            List<KVInfo> slotsList = new ArrayList<>();
+            for (KVInfo kv : allList) {
+                if (kv.key == CoreConst.GameType.TO_SOUTH) {
+                    pokerList.add(kv);
+                } else {
+                    slotsList.add(kv);
+                }
+            }
+
+            // poker 牌库 → 发送到 poker 节点
+            if (!pokerList.isEmpty()) {
+                ClusterClient pokerClient;
+                if (StringUtils.isNotEmpty(param.nodeName())) {
+                    pokerClient = clusterSystem.getNodesByName(param.nodeName());
+                } else {
+                    pokerClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.POKER);
+                }
+                if (pokerClient == null) {
+                    log.warn("未找到 poker 游戏节点，无法生成牌库");
+                    return fail("common.fail");
+                }
+                for (KVInfo kv : pokerList) {
+                    NotifyGenerateToSouthLib notify = new NotifyGenerateToSouthLib();
+                    notify.count = kv.value;
+                    PFMessage pfMessage = MessageUtil.getPFMessage(notify);
+                    pokerClient.write(new ClusterMessage(pfMessage));
+                    log.info("通知 poker 节点生成牌库 gameType={}, count={}", kv.key, kv.value);
+                }
+            }
+
+            // slots 结果库 → 发送到 slots 节点
+            if (!slotsList.isEmpty()) {
+                ClusterClient slotsClient;
+                if (StringUtils.isNotEmpty(param.nodeName())) {
+                    slotsClient = clusterSystem.getNodesByName(param.nodeName());
+                } else {
+                    slotsClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
+                }
+                if (slotsClient == null) {
+                    log.warn("未找到 slots 游戏节点，无法生成结果库");
+                    return fail("common.fail");
+                }
+                if (NodeType.GAME.name().equals(slotsClient.nodeConfig.getType()) && slotsClient.nodeConfig.getGameMajorTypes()[0] != CoreConst.GameMajorType.SLOTS) {
+                    log.debug("只能是slots的游戏节点才需要生成结果库 param = {}", param);
+                    return fail("common.fail");
+                }
+                NotifyGenrateLib notify = new NotifyGenrateLib();
+                notify.list = slotsList;
+                PFMessage pfMessage = MessageUtil.getPFMessage(notify);
+                slotsClient.write(new ClusterMessage(pfMessage));
+            }
+
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);
@@ -1104,6 +1137,11 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
+            if (NodeType.HALL.toString().equals(clusterClient.getType()) && dto.whiteIdList() != null && dto.whiteIdList().isEmpty()) {
+                log.debug("hall节点无法更改id白名单 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
             NotifyGameNodeChange notify = new NotifyGameNodeChange();
             notify.weight = dto.weight();
             notify.ips = dto.whiteIpList();
@@ -1267,6 +1305,7 @@ public class GMController extends AbstractController {
             notice.setScence(dto.scene());
             notice.setJumpUrl(dto.jump_url());
             notice.setBigType(dto.big_type());
+            notice.setWebgl(dto.webgl());
             noticeDao.save(notice);
 
             PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyLoadNoticeConfig());
@@ -1927,33 +1966,6 @@ public class GMController extends AbstractController {
     }
 
     /**
-     * 生成poker牌库
-     */
-    @RequestMapping(BackendGMCmd.GENERATE_TO_POKER_LIB)
-    public WebResult<String> generateToSouthLib(@RequestBody GeneratePokerLibDto param) {
-        log.info("收到生成生成poker牌库的请求 param={}", param);
-        try {
-            ClusterClient clusterClient;
-            if (StringUtils.isNotEmpty(param.nodeName())) {
-                clusterClient = clusterSystem.getNodesByName(param.nodeName());
-            } else {
-                clusterClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
-            }
-
-            NotifyGenerateToSouthLib notify = new NotifyGenerateToSouthLib();
-            notify.count = param.count();
-
-            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
-            ClusterMessage msg = new ClusterMessage(pfMessage);
-            clusterClient.write(msg);
-            return success("common.success");
-        } catch (Exception e) {
-            log.error("生成poker牌库异常", e);
-            return fail("common.exception");
-        }
-    }
-
-    /**
      * 修改礼包码
      */
     @RequestMapping(BackendGMCmd.MODIFY_REDEEM_CODE)
@@ -2029,6 +2041,73 @@ public class GMController extends AbstractController {
             redeemCodeInfo.setUse(dto.use());
             redeemCodeInfoDao.save(redeemCodeInfo);
             return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 给玩家设置svip
+     */
+    @RequestMapping(BackendGMCmd.PLAYER_SVIP)
+    public WebResult<String> playerSvip(@RequestBody PlayerSvipDto dto) {
+        log.info("收到设置svip的请求 dto = {}", dto);
+        try {
+            if (dto.playerIds() == null || dto.playerIds().isEmpty()) {
+                log.warn("设置svip时，玩家id不能为空 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            if (dto.playerIds().size() > 100) {
+                log.warn("设置svip时，玩家id数量太多了！！！ size = {}", dto.playerIds().size());
+                return fail("common.paramerror");
+            }
+
+            int svip = dto.mark() ? 1 : 0;
+
+            boolean success = true;
+            for (long playerId : dto.playerIds()) {
+                PlayerSessionInfo sessionInfo = playerSessionService.getInfo(playerId);
+                //玩家离线或者处于大厅，或者在slots游戏中
+                if (sessionInfo == null || sessionInfo.getGameType() < 1 || sessionInfo.getGameType() == CoreConst.GameMajorType.SLOTS) {
+                    Player player = playerService.doSave(playerId, (p) -> {
+                        p.setSvip(svip);
+                    });
+
+                    if (player == null) {
+                        success = false;
+                        log.debug("修改玩家svip失败, playerId = {}", playerId);
+                    } else {
+                        log.debug("修改玩家svip成功, playerId = {}", playerId);
+                    }
+                    continue;
+                }
+
+                //获取节点
+                String[] arr = sessionInfo.getCurrentNode().split("/");
+                ClusterClient clusterClient = clusterSystem.getNodesByName(arr[arr.length - 1]);
+                if (clusterClient == null) {
+                    log.debug("设置svip时，未找到玩家所在节点 playerId = {},nodeName = {}", playerId, sessionInfo.getCurrentNode());
+                    success = false;
+                    continue;
+                }
+
+                GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(clusterClient).setTryMillisPerClient(1000));
+
+                int code = gmToRoomBridge.changeSvip(playerId, svip);
+                if (code == 200) {
+                    log.debug("通知节点修改玩家svip成功, playerId = {},node = {}", playerId, sessionInfo.getCurrentNode());
+                } else {
+                    success = false;
+                    log.debug("通知节点修改玩家svip失败, playerId = {},node = {}", playerId, sessionInfo.getCurrentNode());
+                }
+            }
+
+            if (success) {
+                return success("common.success");
+            }
+            return fail("common.fail");
         } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
@@ -2116,6 +2195,8 @@ public class GMController extends AbstractController {
         carousel.setJumpType(dto.jumpType());
         carousel.setJumpValue(dto.jumpValue());
         carousel.setSourceName(dto.sourceName());
+        carousel.setWebgl(dto.webgl());
+
         return carousel;
     }
 

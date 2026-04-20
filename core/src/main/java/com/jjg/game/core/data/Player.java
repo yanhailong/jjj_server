@@ -74,6 +74,8 @@ public class Player {
     private LoginType loginType;
     //子渠道
     private String subChannel;
+    //svip
+    private int svip;
 
     public long getId() {
         return id;
@@ -318,6 +320,14 @@ public class Player {
         this.subChannel = subChannel;
     }
 
+    public int getSvip() {
+        return svip;
+    }
+
+    public void setSvip(int svip) {
+        this.svip = svip;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
@@ -363,5 +373,7 @@ public class Player {
         newPlayer.setFriendRoomInvitationCode(this.getFriendRoomInvitationCode());
         newPlayer.setChannel(this.getChannel());
         newPlayer.setLoginType(this.getLoginType());
+        newPlayer.setSubChannel(this.getSubChannel());
+        newPlayer.setSvip(this.getSvip());
     }
 }

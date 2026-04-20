@@ -171,7 +171,7 @@ public interface MessageConst {
         //愤怒的小鸟
         int ANGRY_BIRDS = 0x45;
 
-        // pan jin lian
+        //潘金莲
         int PAN_JIN_LIAN = 0x46;
 
         //寻找黄金城

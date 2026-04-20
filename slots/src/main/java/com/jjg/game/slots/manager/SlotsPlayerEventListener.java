@@ -113,6 +113,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
             @Override
             public void action() throws Exception {
+                //删除之前全部的playerGameData
+                slotsFactoryManager.onEnterGame(playerController.playerId(), playerController.getPlayer().getRoomCfgId(), 0);
                 taskManager.loadTaskData(player.getId());
                 //创建 PlayerGameData
                 gameManager.createPlayerGameData(playerController);
@@ -147,6 +149,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
             @Override
             public void action() throws Exception {
+                //删除之前全部的playerGameData
+                slotsFactoryManager.onEnterGame(playerController.playerId(), playerController.getPlayer().getRoomCfgId(), player.getRoomId());
                 playerController.setScene(slotsRoomController);
                 //创建 PlayerGameData
                 taskManager.loadTaskData(player.getId());

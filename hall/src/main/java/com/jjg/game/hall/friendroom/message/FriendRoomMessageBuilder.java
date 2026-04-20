@@ -1,7 +1,5 @@
 package com.jjg.game.hall.friendroom.message;
 
-import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.utils.RobotUtil;
@@ -9,7 +7,6 @@ import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.hall.friendroom.message.struct.BaseFriendRoomPlayerInfo;
 import com.jjg.game.hall.friendroom.message.struct.FriendRoomBaseData;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import reactor.util.function.Tuple2;
@@ -65,6 +62,9 @@ public class FriendRoomMessageBuilder {
     public static FriendRoomBaseData buildFriendRoomBaseData(FriendRoom friendRoom) {
         FriendRoomBaseData friendRoomBaseData = new FriendRoomBaseData();
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(friendRoom.getRoomCfgId());
+        if(warehouseCfg == null){
+            return null;
+        }
         friendRoomBaseData.roomId = friendRoom.getId();
         friendRoomBaseData.roomAliasName = friendRoom.getAliasName();
         // 默认是暂停状态

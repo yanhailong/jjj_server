@@ -12,7 +12,6 @@ import com.jjg.game.common.listener.SessionLoginListener;
 import com.jjg.game.common.listener.SessionLogoutListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
-import com.jjg.game.core.service.PlayerSnapshotService;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.player.IPlayerRegister;
@@ -26,6 +25,7 @@ import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.core.recharge.service.RechargeService;
 import com.jjg.game.core.service.CarouselService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.core.service.PlayerSnapshotService;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.dao.LikeGameDao;
@@ -47,7 +47,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author 11
@@ -168,7 +167,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                             player.setIp(session.getAddress().getHost());
                             player.setChannel(channelType);
                             player.setLoginType(loginType);
-                            player.setDeviceType(player.getDeviceType());
+                            player.setDeviceType(playerSessionToken.getDevice());
                         }
 
                         @Override
@@ -261,8 +260,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.customerUrl = commonDao.getStrValue(GameConstant.CommonDaoId.CUSTOMER_TABLE_ID);
             //更新session
             PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
-
-
             //检查重连
             if (reconnect(session, player, playerSessionInfo)) {
                 res.gameWareInfo = new GameWareInfo();
@@ -270,22 +267,31 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 res.gameWareInfo.roomCfgId = player.getRoomCfgId();
                 WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(player.getRoomCfgId());
                 if (warehouseCfg != null) {
-                    res.gameWareInfo.isFriendRoom =
-                            warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START;
+                    res.gameWareInfo.isFriendRoom = (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START && warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START);
                 }
                 session.send(res);
                 hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice(), playerSessionToken.getMac(), playerSessionToken.getFcm());
                 // 调用登录接口类
                 PlayerController playerController = new PlayerController(session, player);
                 session.setReference(playerController);
+                Player finalPlayerLogin = player;
                 SystemInterfaceHolder.callGameSysAction(
-                        IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, account, dayOfFirstLogin));
+                        IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, finalPlayerLogin, account, dayOfFirstLogin));
 
                 //更新token过期时间
                 playerSessionTokenDao.updateExpire(playerSessionToken);
                 return;
             }
-
+            //重置玩家房间数据
+            if (player.getRoomCfgId() > 0 || player.getGameType() > 0 || player.getRoomId() > 0) {
+                Player resetPlayer = resetPlayerRoomData(player.getId());
+                if (resetPlayer != null) {
+                    player = resetPlayer;
+                    playerSessionService.changeGameType(player.getId(), player.getGameType(), player.getRoomCfgId());
+                } else {
+                    log.warn("登录重置玩家房间数据失败 playerId={}", player.getId());
+                }
+            }
             //返回登录消息
             session.send(res);
             hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice(), playerSessionToken.getMac(), playerSessionToken.getFcm());
@@ -310,8 +316,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             log.info("玩家登录成功 playerId = {},res = {}", player.getId(), JSON.toJSONString(res));
 
             // 调用登录接口类
+            Player finalPlayer = player;
             SystemInterfaceHolder.callGameSysAction(
-                    IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, account, dayOfFirstLogin));
+                    IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, finalPlayer, account, dayOfFirstLogin));
             //加载任务数据
             taskManager.loadTaskData(player.getId());
             rechargeService.loadOfflineRecharge(player.getId());
@@ -375,18 +382,17 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             if (room == null) {
                 log.warn("断线重连时，获取房间对象为空 playerId = {},roomId = {}", player.getId(), player.getRoomId());
                 // 重置玩家房间数据
-                resetPlayerRoomData(player.getId());
                 return false;
             }
             if (room instanceof FriendRoom friendRoom) {
+                if (friendRoom.getType() == RoomType.SLOTS_TEAM_UP_ROOM) {
+                    return false;
+                }
                 int checkRes =
                         friendRoomServices.checkJoinRoom(player.getId(), friendRoom.getCreator(), friendRoom, true);
                 // 进入好友房失败，直接重置玩家房间数据
                 if (checkRes != Code.SUCCESS) {
-                    log.warn("断线重连时，进入好友房失败 playerId = {},roomId = {} checkRes: {}",
-                            player.getId(), player.getRoomId(), checkRes);
-                    // 重置玩家房间数据
-                    resetPlayerRoomData(player.getId());
+                    log.warn("断线重连时，进入好友房失败 playerId = {},roomId = {} checkRes: {}", player.getId(), player.getRoomId(), checkRes);
                     return false;
                 }
             }
@@ -394,9 +400,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //获取房间所在的节点
             node = clusterSystem.getNode(path);
             if (node == null) {
-                log.warn("断线重连时，房间所在的节点为空 playerId = {},roomId = {},path = {}", player.getId(), player.getRoomId(),
-                        path);
-                resetPlayerRoomData(player.getId());
+                log.warn("断线重连时，房间所在的节点为空 playerId = {},roomId = {},path = {}", player.getId(), player.getRoomId(), path);
                 return false;
             }
         } else {

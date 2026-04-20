@@ -1,5 +1,7 @@
 package com.jjg.game.poker.game.tosouth.cardlib;
 
+import com.jjg.game.poker.game.common.cardlib.CardLibEntry;
+
 import java.util.*;
 
 /**
@@ -11,7 +13,7 @@ import java.util.*;
  * playerCards 始终是"特殊玩家"的牌(输/赢最多的那个座位的牌)
  * 抽中后发给触发权重修改的真人玩家
  */
-public class ToSouthCardLib {
+public class ToSouthCardLib implements CardLibEntry {
 
     /** 玩家位的输赢倍数(有符号: 负数=输, 正数=赢, 单位=底注倍数) */
     private long multiplier;
