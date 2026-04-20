@@ -147,11 +147,22 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
                 return buildResBetMessage(Code.PARAM_ERROR, playerGameData, 0, 0);
             }
 
+            //前置检查
+            int beforeCode = beforeMoneyToPoolCheck(playerGameData);
+            if (beforeCode != Code.SUCCESS) {
+                log.warn("扣钱前置检查失败，下注失败 playerId = {},roomCfgId = {},betValue = {},code = {}", playerController.playerId(), playerGameData.getRoomCfgId(), betValue, beforeCode);
+                return buildResBetMessage(beforeCode, playerGameData, 0, 0);
+            }
+
             //玩家扣除下注金额，并加入标准池
             CommonResult<PloyBetDivideInfo> moneyResult = moneyToPool(playerGameData, betValue);
             if (!moneyResult.success()) {
                 return buildResBetMessage(moneyResult.code, playerGameData, 0, 0);
             }
+            playerGameData.setLastBet(betValue);
+            playerGameData.setLastBetTime(playerGameData.getLastActiveTime());
+            playerGameData.setPloyBetDivideInfo(moneyResult.data);
+
             //构建返回消息
             AbstractResponse res = buildResBetMessage(Code.SUCCESS, playerGameData, betValue, value);
             if (res.code != Code.SUCCESS) {
@@ -160,9 +171,6 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
             }
             //更新数据
             playerGameData.setLastActiveTime(System.currentTimeMillis());
-            playerGameData.setLastBet(betValue);
-            playerGameData.setLastBetTime(playerGameData.getLastActiveTime());
-            playerGameData.setPloyBetDivideInfo(moneyResult.data);
             log.info("策略游戏下注返回 playerId = {},gameType = {},res = {}", playerController.playerId(), playerGameData.getGameType(), JSON.toJSONString(res));
             return res;
         } catch (Exception e) {
@@ -189,6 +197,15 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
             log.error("", e);
             return Code.EXCEPTION;
         }
+    }
+
+    /**
+     * 在玩家扣钱之前检查
+     *
+     * @return
+     */
+    public int beforeMoneyToPoolCheck(T playerGameData) {
+        return Code.SUCCESS;
     }
 
     /**

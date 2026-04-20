@@ -18,5 +18,7 @@ public interface LuckyPokerConstant {
         int REQ_DEAL_CARDS = BASE_MSG_PREFIX | 0x3;
         //发牌返回
         int RES_DEAL_CARDS = BASE_MSG_PREFIX | 0x4;
+        //游戏记录返回
+        int RES_RECORD = BASE_MSG_PREFIX | 0x5;
     }
 }

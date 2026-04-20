@@ -2,6 +2,7 @@ package com.jjg.game.ploy.data;
 
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.utils.PokerCardUtils;
+import org.springframework.data.annotation.PersistenceCreator;
 
 /**
  * @author 11
@@ -14,6 +15,12 @@ public class PloyCard extends Card {
     public PloyCard(PokerCardUtils.EPokerSuit suit, int rank) {
         super(suit.getSuitId(), rank);
         this.clientCardId = PokerCardUtils.getCardId(suit, rank);
+    }
+
+    @PersistenceCreator
+    public PloyCard(int suit, int rank, int clientCardId) {
+        super(suit, rank);
+        this.clientCardId = clientCardId;
     }
 
     public int getClientCardId() {

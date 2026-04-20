@@ -14,22 +14,12 @@ import java.util.List;
  */
 @Component
 public class LuckyPokerPlayerPloyGameData extends PlayerSinglePloyGameData {
-    //最近一次的poolResultLib表的id
-    protected int poolResultLibCfgId;
     //第一次发的牌
     private List<PloyCard> firstCardList;
     //第二次发的牌
     private List<PloyCard> secondCardList;
     //最终的手牌
     private List<PloyCard> finalCardList;
-
-    public int getPoolResultLibCfgId() {
-        return poolResultLibCfgId;
-    }
-
-    public void setPoolResultLibCfgId(int poolResultLibCfgId) {
-        this.poolResultLibCfgId = poolResultLibCfgId;
-    }
 
     public List<PloyCard> getFirstCardList() {
         return firstCardList;

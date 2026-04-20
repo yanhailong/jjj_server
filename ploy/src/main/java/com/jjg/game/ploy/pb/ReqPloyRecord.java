@@ -10,7 +10,7 @@ import com.jjg.game.ploy.constant.PloyConstant;
  * @author 11
  * @date 2026/3/20
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.PLOY_LUCKY_POKER, cmd = PloyConstant.MsgBean.REQ_PLOY_RECORD)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.PLOY_COMMON, cmd = PloyConstant.MsgBean.REQ_PLOY_RECORD)
 @ProtoDesc("请求记录")
 public class ReqPloyRecord extends AbstractMessage {
     @ProtoDesc("页码")
