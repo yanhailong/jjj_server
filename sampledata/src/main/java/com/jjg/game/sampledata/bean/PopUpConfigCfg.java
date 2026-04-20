@@ -19,8 +19,6 @@ public class PopUpConfigCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "popUpConfig";
 
-  /** 弹窗提示语 */
-  protected int Prompt;
   /** 每次登入弹出 */
   protected boolean boolLogin;
   /** 回大厅弹出 */
@@ -47,11 +45,6 @@ public class PopUpConfigCfg extends BaseCfgBean {
   protected String strarTime;
   /** 弹窗类型值 */
   protected List<List<Integer>> typeValue;
-
-  /** 返回弹窗提示语 */
-  public int getPrompt() {
-    return Prompt;
-  }
 
   /** 返回每次登入弹出 */
   public boolean getBoolLogin() {

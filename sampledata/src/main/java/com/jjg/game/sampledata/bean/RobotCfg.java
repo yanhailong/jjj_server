@@ -45,8 +45,6 @@ public class RobotCfg extends BaseCfgBean {
   protected int picture;
   /** 玩家等级 */
   protected int playerLevel;
-  /** 对战类行为策略ID-南方前进 */
-  protected List<List<Integer>> southRobotID;
   /** VIP等级 */
   protected int vipLevel;
 
@@ -113,11 +111,6 @@ public class RobotCfg extends BaseCfgBean {
   /** 返回玩家等级 */
   public int getPlayerLevel() {
     return playerLevel;
-  }
-
-  /** 返回对战类行为策略ID-南方前进 */
-  public List<List<Integer>> getSouthRobotID() {
-    return southRobotID;
   }
 
   /** 返回VIP等级 */

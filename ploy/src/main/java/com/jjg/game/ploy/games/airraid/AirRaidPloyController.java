@@ -404,7 +404,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             roundBetBook.recordBet(playerController.playerId(), playerController.getPlayer().getHeadImgId(), betIndex, bet);
 
             // 构建响应
-            res.betInfoList = roundBetBook.buildBetInfoList();
+            res.gold = moneyResult.data.getPlayerAfterMoney();
 
             // 通过集群消息同步到其他节点，本节点玩家单独推送正式协议消息
             BetSync syncMsg = new BetSync();
@@ -414,8 +414,6 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             syncMsg.betAmount = bet;
             syncMsg.betIndex = betIndex;
             messageSync(syncMsg);
-            broadcastLocalPlayersExcept(res, playerController.playerId());
-
             log.info("AirRaid 下注成功 playerId={}, bet={}, betIndex={}", playerController.playerId(), bet, betIndex);
         } catch (Exception e) {
             log.error("AirRaid 下注异常", e);
@@ -599,11 +597,6 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
                 return;
             }
             roundBetBook.recordBet(msg.playerId, msg.headImgId, msg.betIndex, msg.betAmount);
-
-            // 推送给本地玩家
-            ResAirRaidBet res = new ResAirRaidBet(Code.SUCCESS);
-            res.betInfoList = roundBetBook.buildBetInfoList();
-            broadcastLocalPlayers(res);
         } catch (Exception e) {
             log.error("AirRaid onBetSync异常", e);
         }

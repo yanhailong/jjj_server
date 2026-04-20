@@ -15,8 +15,8 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.PLOY_AIR_RAID, cmd = AirRaidConstant.MsgBean.RES_AIR_RAID_BET, resp = true)
 @ProtoDesc("下注返回")
 public class ResAirRaidBet extends AbstractResponse {
-    @ProtoDesc("投注信息列表")
-    public List<AirRaidBetInfo> betInfoList;
+    @ProtoDesc("当前余额")
+    public long gold;
 
     public ResAirRaidBet(int code) {
         super(code);

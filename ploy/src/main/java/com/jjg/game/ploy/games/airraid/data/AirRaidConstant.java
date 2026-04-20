@@ -21,6 +21,8 @@ public interface AirRaidConstant {
         int NOTIFY_AIR_RAID_GAME_STATE = BASE_MSG_PREFIX | 0x5;
         //坠毁广播
         int NOTIFY_AIR_RAID_CRASH = BASE_MSG_PREFIX | 0x6;
+        //下注广播
+        int NOTIFY_AIR_RAID_BET = BASE_MSG_PREFIX | 0x7;
 
 
         //游戏状态同步
