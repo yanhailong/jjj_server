@@ -1051,11 +1051,9 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 tryStartGame();
             } else {
                 //没开放
-                if (gameDataVo.getReadyPlayerIds().contains(playerId)) {
-                    notify.code = Code.GAME_IS_MAINTAIN;
-                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
-                    return;
-                }
+                notify.code = Code.GAME_IS_MAINTAIN;
+                broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+                return;
             }
 
         }
