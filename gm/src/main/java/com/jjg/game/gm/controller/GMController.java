@@ -1305,7 +1305,6 @@ public class GMController extends AbstractController {
             notice.setScence(dto.scene());
             notice.setJumpUrl(dto.jump_url());
             notice.setBigType(dto.big_type());
-            notice.setWebgl(dto.webgl());
             noticeDao.save(notice);
 
             PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyLoadNoticeConfig());
@@ -2195,7 +2194,6 @@ public class GMController extends AbstractController {
         carousel.setJumpType(dto.jumpType());
         carousel.setJumpValue(dto.jumpValue());
         carousel.setSourceName(dto.sourceName());
-        carousel.setWebgl(dto.webgl());
 
         return carousel;
     }
