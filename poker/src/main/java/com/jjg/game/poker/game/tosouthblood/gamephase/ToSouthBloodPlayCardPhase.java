@@ -1,0 +1,45 @@
+package com.jjg.game.poker.game.tosouthblood.gamephase;
+
+import com.jjg.game.poker.game.common.PokerBuilder;
+import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
+import com.jjg.game.poker.game.common.gamephase.BasePlayCardPhase;
+import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
+import com.jjg.game.poker.game.tosouthblood.room.ToSouthBloodGameController;
+import com.jjg.game.poker.game.tosouthblood.room.data.ToSouthBloodGameDataVo;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class ToSouthBloodPlayCardPhase extends BasePlayCardPhase<ToSouthBloodGameDataVo> {
+    private static final Logger log = LoggerFactory.getLogger(ToSouthBloodPlayCardPhase.class);
+
+    public ToSouthBloodPlayCardPhase(AbstractPhaseGameController<Room_ChessCfg, ToSouthBloodGameDataVo> gameController) {
+        super(gameController);
+    }
+
+    @Override
+    public void playCardPhaseDoAction() {
+        if (gameController instanceof ToSouthBloodGameController controller) {
+            if (gameDataVo.getPlayerSeatInfoList().isEmpty()) {
+                controller.addPokerPhase(new BaseWaitReadyPhase<>(controller));
+                return;
+            }
+            
+            // 启动第一个玩家的回合
+            PlayerSeatInfo firstPlayer = gameDataVo.getCurrentPlayerSeatInfo();
+            if (firstPlayer != null) {
+                // 通知打牌阶段开始
+                NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(getGamePhase(), gameDataVo.getPhaseEndTime());
+                broadcastMsgToRoom(notifyPokerPhaseChange);
+                // 广播回合开始
+                controller.broadcastNextTurn(firstPlayer.getPlayerId(), false);
+                // 添加操作定时器
+                controller.addNextTimer(firstPlayer, 0);
+            } else {
+                log.error("PlayCardPhase start but no current player set!");
+            }
+        }
+    }
+}
