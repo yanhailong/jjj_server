@@ -251,6 +251,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
         gameRunInfo.setStatus(clientShowStatus);
         gameRunInfo.setStake(betValue);
         gameRunInfo.setResultLib(resultLib);
+        gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
         return gameRunInfo;
     }
 
