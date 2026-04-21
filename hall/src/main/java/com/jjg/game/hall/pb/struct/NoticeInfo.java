@@ -39,8 +39,6 @@ public class NoticeInfo {
     private boolean read;
     @ProtoDesc("大类型  0.公告  1.活动")
     private int bigType;
-    @ProtoDesc("是否web")
-    private boolean webgl;
 
     public long getId() {
         return id;
@@ -160,13 +158,5 @@ public class NoticeInfo {
 
     public void setBigType(int bigType) {
         this.bigType = bigType;
-    }
-
-    public boolean isWebgl() {
-        return webgl;
-    }
-
-    public void setWebgl(boolean webgl) {
-        this.webgl = webgl;
     }
 }

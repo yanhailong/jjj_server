@@ -33,8 +33,6 @@ public record NoticeDto(
         // 跳转资源
         String jump_url,
         //大类型  0.公告  1.活动
-        int big_type,
-        // 是否为web
-        boolean webgl
+        int big_type
 ) {
 }
