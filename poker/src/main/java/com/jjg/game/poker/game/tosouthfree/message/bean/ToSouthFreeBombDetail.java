@@ -1,0 +1,24 @@
+package com.jjg.game.poker.game.tosouthfree.message.bean;
+
+import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.proto.ProtobufMessage;
+
+@ProtobufMessage
+@ProtoDesc("炸弹赔付明细")
+public class ToSouthFreeBombDetail {
+    @ProtoDesc("玩家 ID")
+    public long playerId;
+    @ProtoDesc("赢或输金额")
+    public long score;
+    @ProtoDesc("类型: 1=赢, 2=输")
+    public int type;
+
+    public ToSouthFreeBombDetail() {
+    }
+
+    public ToSouthFreeBombDetail(long playerId, long score,  int type) {
+        this.playerId = playerId;
+        this.score = score;
+        this.type = type;
+    }
+}

@@ -70,6 +70,8 @@ public enum EGameType {
     TEXAS(CoreConst.GameType.TEXAS, RoomType.POKER_ROOM, "德州"),
     VEGAS_THREE(CoreConst.GameType.VEGAS_THREE, RoomType.POKER_ROOM, "拉斯维加斯拼三张"),
     TO_SOUTH(CoreConst.GameType.TO_SOUTH, RoomType.POKER_ROOM, "南方前进"),
+    TO_SOUTH_BLOOD(CoreConst.GameType.TO_SOUTH_BLOOD, RoomType.POKER_ROOM, "南方前进-血战"),
+    TO_SOUTH_FREE(CoreConst.GameType.TO_SOUTH_FREE, RoomType.POKER_ROOM, "南方前进-免费"),
     ;
     // 游戏类型ID
     final int gameTypeId;

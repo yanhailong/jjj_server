@@ -166,13 +166,17 @@ public interface MessageConst {
         int HULK = 0x42;
         //恶魔之子
         int DEMON_CHILD = 0x43;
-
+        //南方前进
         int TO_SOUTH = 0x44;
         //愤怒的小鸟
         int ANGRY_BIRDS = 0x45;
 
         //潘金莲
         int PAN_JIN_LIAN = 0x46;
+        //南方前进_血战
+        int TO_SOUTH_BLOOD = 0x5A;
+        //南方前进_免费
+        int TO_SOUTH_FREE = 0x5B;
     }
 
     interface ToClientConst {

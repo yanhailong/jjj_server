@@ -39,6 +39,10 @@ public class GameFunctionCfg extends BaseCfgBean {
   protected String showCondition;
   /** 提示文本ID */
   protected int tips;
+  /** 前端触发 */
+  protected String trigger;
+  /** web端 */
+  protected String webimg;
 
   /** 返回游戏中左侧列表按钮 */
   public int getButList() {
@@ -88,6 +92,16 @@ public class GameFunctionCfg extends BaseCfgBean {
   /** 返回提示文本ID */
   public int getTips() {
     return tips;
+  }
+
+  /** 返回前端触发 */
+  public String getTrigger() {
+    return trigger;
+  }
+
+  /** 返回web端 */
+  public String getWebimg() {
+    return webimg;
   }
 
   @Override
