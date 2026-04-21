@@ -1,7 +1,7 @@
 package com.jjg.game.poker.game.tosouthfree.util;
 
 /**
- * 南方前进牌型
+ * 南方前进-免费牌型
  */
 public enum ToSouthFreeCardType {
     NONE(0), //错误牌型

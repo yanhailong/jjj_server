@@ -229,11 +229,11 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
         // 2. 牌型检查
         ToSouthFreeCardType type = ToSouthFreeHandUtils.getCardType(playCards);
         if (type == ToSouthFreeCardType.NONE) {
-            log.warn("[南方前进][出牌] 非法牌型 - 玩家: {}, 座位: {}, 牌: {}",
+            log.warn("[南方前进-免费][出牌] 非法牌型 - 玩家: {}, 座位: {}, 牌: {}",
                     playerId, info.getSeatId(), ToSouthFreeHandUtils.cardListToString(playCards));
             return;
         }
-        log.info("[南方前进][出牌] 玩家: {}, 座位: {}, 牌型: {}, 牌: {}",
+        log.info("[南方前进-免费][出牌] 玩家: {}, 座位: {}, 牌型: {}, 牌: {}",
                 playerId, info.getSeatId(), type, ToSouthFreeHandUtils.cardListToString(playCards));
 
         // 确定出牌子类型（在 lastPlayCards 更新前判断）：首出 / 跟牌 / 新一轮出牌
@@ -245,22 +245,22 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
             List<Integer> lastCardIds = gameDataVo.getLastPlayCards();
             List<Card> lastCards = playCardsIdsToCards(lastCardIds, cardMap);
             ToSouthFreeCardType lastType = ToSouthFreeHandUtils.getCardType(lastCards);
-            log.info("[南方前进][比牌] 上家牌型: {}, 上家牌: {} | 当前牌型: {}, 当前牌: {}",
+            log.info("[南方前进-免费][比牌] 上家牌型: {}, 上家牌: {} | 当前牌型: {}, 当前牌: {}",
                     lastType, ToSouthFreeHandUtils.cardListToString(lastCards),
                     type, ToSouthFreeHandUtils.cardListToString(playCards));
             if (!ToSouthFreeHandUtils.compare(lastCards, playCards)) {
-                log.warn("[南方前进][比牌] 管不上 - 玩家: {}, {} [{}] 无法压过 {} [{}]",
+                log.warn("[南方前进-免费][比牌] 管不上 - 玩家: {}, {} [{}] 无法压过 {} [{}]",
                         playerId,
                         ToSouthFreeHandUtils.cardListToString(playCards), type,
                         ToSouthFreeHandUtils.cardListToString(lastCards), lastType);
                 return;
             }
-            log.info("[南方前进][比牌] 管牌成功 - 玩家: {}, {} [{}] 压过 {} [{}]",
+            log.info("[南方前进-免费][比牌] 管牌成功 - 玩家: {}, {} [{}] 压过 {} [{}]",
                     playerId,
                     ToSouthFreeHandUtils.cardListToString(playCards), type,
                     ToSouthFreeHandUtils.cardListToString(lastCards), lastType);
         } else {
-            log.info("[南方前进][首出] 玩家: {}, 座位: {}, 牌型: {}, 牌: {}",
+            log.info("[南方前进-免费][首出] 玩家: {}, 座位: {}, 牌型: {}, 牌: {}",
                     playerId, info.getSeatId(), type, ToSouthFreeHandUtils.cardListToString(playCards));
         }
 
@@ -356,7 +356,7 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
 
         // 打印本轮完整出牌记录
         if (log.isDebugEnabled()) {
-            StringBuilder sb = new StringBuilder("[南方前进][炸弹结算] 开始处理 - 赢家座位: ")
+            StringBuilder sb = new StringBuilder("[南方前进-免费][炸弹结算] 开始处理 - 赢家座位: ")
                     .append(winnerSeatId).append(", 最后牌型: ").append(lastPlay.cardType)
                     .append("\n  本轮plays(共").append(plays.size()).append("条):");
             for (int i = 0; i < plays.size(); i++) {
@@ -388,7 +388,7 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
 
         // 打印扫描结果
         if (log.isDebugEnabled()) {
-            StringBuilder sb = new StringBuilder("[南方前进][炸弹结算] 扫描结果 - victimIndex=")
+            StringBuilder sb = new StringBuilder("[南方前进-免费][炸弹结算] 扫描结果 - victimIndex=")
                     .append(victimIndex).append(", bombChain(共").append(bombChain.size()).append("条):");
             for (int i = 0; i < bombChain.size(); i++) {
                 ToSouthFreeRoundRecord r = bombChain.get(i);
@@ -461,7 +461,7 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
             settledRecords.addAll(bombChain.subList(0, bombChain.size() - 1));
         }
 
-        log.debug("[南方前进][炸弹结算] settledRecords共{}条: {}", settledRecords.size(),
+        log.debug("[南方前进-免费][炸弹结算] settledRecords共{}条: {}", settledRecords.size(),
                 settledRecords.stream().map(r -> "seat" + r.seatId + ":" + r.cardType).toList());
 
         if (CollUtil.isNotEmpty(settledRecords)) {
@@ -473,7 +473,7 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
                             settledRecord.seatId, settledRecord.cardType, settledRecord.cards);
                     continue;
                 }
-                log.debug("[南方前进][炸弹结算] seat={} type={} 倍数={}",
+                log.debug("[南方前进-免费][炸弹结算] seat={} type={} 倍数={}",
                         settledRecord.seatId, settledRecord.cardType, multiplier);
                 totalMultiplier += multiplier;
             }
@@ -886,7 +886,7 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
 
     @Override
     public void respRoomInitInfoAction(PlayerController playerController) {
-        log.debug("响应南方前进房间信息 - 玩家: {}", playerController.playerId());
+        log.debug("响应南方前进-免费房间信息 - 玩家: {}", playerController.playerId());
         RespToSouthFreeRoomBaseInfo baseInfo = new RespToSouthFreeRoomBaseInfo(Code.SUCCESS);
         baseInfo.phase = getCurrentGamePhase();
         if (playerController.getPlayer().getRoomId() > 0 && playerController.getScene() instanceof AbstractRoomController<?, ?> roomController) {
@@ -958,7 +958,7 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
     }
 
     /**
-     * 南方前进请求准备/取消准备（在 WAIT_READY 阶段，四人全部准备后才开始发牌）
+     * 南方前进-免费请求准备/取消准备（在 WAIT_READY 阶段，四人全部准备后才开始发牌）
      *
      * @param playerId 玩家id
      * @param req      请求（status: 1=准备, 2=取消）

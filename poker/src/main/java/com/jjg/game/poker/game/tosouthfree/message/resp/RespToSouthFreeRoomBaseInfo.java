@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthFreeConstant.MsgBean.RESP_ROOM_BASE_INFO, resp = true)
-@ProtoDesc("响应南方前进房间基本信息")
+@ProtoDesc("响应南方前进-免费房间基本信息")
 public class RespToSouthFreeRoomBaseInfo extends AbstractResponse {
     @ProtoDesc("当前阶段")
     public EGamePhase phase;

@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 南方前进准备超时处理器
+ * 南方前进-免费准备超时处理器
  * 玩家在 WAIT_READY 阶段 10 秒内未点击准备，自动踢出房间
  */
 public class ToSouthFreeReadyTimeoutHandler implements IProcessorHandler {

@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 南方前进好友房游戏控制器
+ * 南方前进-免费好友房游戏控制器
  */
 @GameController(gameType = EGameType.TO_SOUTH_FREE, roomType = RoomType.POKER_TEAM_UP_ROOM)
 public class ToSouthFreeFriendGameController extends ToSouthFreeGameController {

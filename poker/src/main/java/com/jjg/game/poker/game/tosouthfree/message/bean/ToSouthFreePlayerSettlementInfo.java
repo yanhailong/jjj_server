@@ -6,7 +6,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import java.util.List;
 
 @ProtobufMessage
-@ProtoDesc("南方前进玩家结算信息")
+@ProtoDesc("南方前进-免费玩家结算信息")
 public class ToSouthFreePlayerSettlementInfo {
     @ProtoDesc("玩家 ID")
     public long playerId;

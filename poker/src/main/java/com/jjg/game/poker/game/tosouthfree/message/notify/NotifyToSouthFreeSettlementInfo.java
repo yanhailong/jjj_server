@@ -10,7 +10,7 @@ import com.jjg.game.poker.game.tosouthfree.message.bean.ToSouthFreePlayerSettlem
 import java.util.List;
 
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthFreeConstant.MsgBean.NOTIFY_SETTLEMENT_INFO, resp = true)
-@ProtoDesc("通知南方前进结算信息")
+@ProtoDesc("通知南方前进-免费结算信息")
 public class NotifyToSouthFreeSettlementInfo extends AbstractNotice {
     @ProtoDesc("玩家结算列表")
     public List<ToSouthFreePlayerSettlementInfo> settlementInfos;

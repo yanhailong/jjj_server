@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 南方前进一局日志累积器
+ * 南方前进-免费一局日志累积器
  * <p>
  * 以结构化 {@link GameEvent} 对象存储一局中所有事件，结算时统一输出：
  * <ul>
@@ -250,7 +250,7 @@ public class ToSouthFreeGameLog {
      */
     public String buildFlowLog(String roomInfo) {
         StringBuilder sb = new StringBuilder();
-        sb.append("\n========== 南方前进流程日志 (").append(roomInfo).append(") ==========");
+        sb.append("\n========== 南方前进-免费流程日志 (").append(roomInfo).append(") ==========");
         for (GameEvent event : events) {
             sb.append("\n  ").append(event);
         }
@@ -263,7 +263,7 @@ public class ToSouthFreeGameLog {
      */
     public String buildSettlementLog(String roomInfo) {
         StringBuilder sb = new StringBuilder();
-        sb.append("\n========== 南方前进结算日志 (").append(roomInfo).append(") ==========");
+        sb.append("\n========== 南方前进-免费结算日志 (").append(roomInfo).append(") ==========");
         for (GameEvent event : events) {
             if (event.type == EventType.BOMB_SETTLEMENT
                     || event.type == EventType.INSTANT_WIN_SETTLEMENT

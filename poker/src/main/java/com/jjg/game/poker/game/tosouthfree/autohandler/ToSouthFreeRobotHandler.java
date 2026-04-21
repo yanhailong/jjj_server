@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 南方前进机器人行为处理器
+ * 南方前进-免费机器人行为处理器
  * <p>
  * 参考 TexasRobotHandler 模式，通过 RobotScheduleUtil.schedule 延迟调度执行。
  * 当前支持 GO_READY 行为：机器人在 WAIT_READY 阶段按概率决定准备或退出。

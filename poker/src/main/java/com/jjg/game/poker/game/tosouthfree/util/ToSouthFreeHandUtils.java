@@ -13,7 +13,7 @@ import static com.jjg.game.poker.game.tosouthfree.constant.ToSouthFreeConstant.*
 import static com.jjg.game.poker.game.tosouthfree.constant.ToSouthFreeConstant.InstantWinType.*;
 
 /**
- * 南方前进牌型工具类
+ * 南方前进-免费牌型工具类
  */
 public class ToSouthFreeHandUtils {
 
@@ -1345,7 +1345,7 @@ public class ToSouthFreeHandUtils {
     }
 
     public static void main(String[] args) {
-        System.out.println("=== 南方前进牌型工具类测试 ===");
+        System.out.println("=== 南方前进-免费牌型工具类测试 ===");
 
         // 1. 基础随机手牌测试 (5组)
         System.out.println("--- 基础手牌整合与最佳出牌测试 ---");

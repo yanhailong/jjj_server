@@ -5,9 +5,9 @@ import com.jjg.game.poker.game.common.cardlib.AbstractCardLibDao;
 import org.springframework.stereotype.Component;
 
 /**
- * 南方前进牌库 Redis DAO
+ * 南方前进-免费牌库 Redis DAO
  * 通用能力（双库切换、批量读写、水池余额、锁）全部由 {@link AbstractCardLibDao} 提供。
- * 本类只保留南方前进特有的 Redis 操作（玩家连胜/盈亏）。
+ * 本类只保留南方前进-免费特有的 Redis 操作（玩家连胜/盈亏）。
  */
 @Component
 public class ToSouthFreeCardLibDao extends AbstractCardLibDao<ToSouthFreeCardLib> {

@@ -4,7 +4,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
 @ProtobufMessage
-@ProtoDesc("南方前进当前轮玩家公开信息")
+@ProtoDesc("南方前进-免费当前轮玩家公开信息")
 public class ToSouthFreeCurRoundPlayerInfo {
     public long playerId;
     @ProtoDesc("座位 ID")

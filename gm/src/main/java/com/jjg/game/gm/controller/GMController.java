@@ -889,7 +889,7 @@ public class GMController extends AbstractController {
             List<KVInfo> pokerList = new ArrayList<>();
             List<KVInfo> slotsList = new ArrayList<>();
             for (KVInfo kv : allList) {
-                if (kv.key == CoreConst.GameType.TO_SOUTH) {
+                if (kv.key == CoreConst.GameType.TO_SOUTH || kv.key == CoreConst.GameType.TO_SOUTH_BLOOD || kv.key == CoreConst.GameType.TO_SOUTH_FREE) {
                     pokerList.add(kv);
                 } else {
                     slotsList.add(kv);

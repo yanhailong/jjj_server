@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 import static com.jjg.game.poker.game.tosouthfree.constant.ToSouthFreeConstant.*;
 
 /**
- * 南方前进机器人出牌策略
+ * 南方前进-免费机器人出牌策略
  * <p>
  * 无状态工具类，所有方法均为 static。
  * 只负责决策"出哪些牌"，不修改任何游戏状态。

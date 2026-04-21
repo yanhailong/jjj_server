@@ -42,7 +42,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 南方前进结算阶段
+ * 南方前进-免费结算阶段
  */
 public class ToSouthFreeSettlementPhase extends BaseSettlementPhase<ToSouthFreeGameDataVo> {
     private static final Logger log = LoggerFactory.getLogger(ToSouthFreeSettlementPhase.class);
@@ -69,7 +69,7 @@ public class ToSouthFreeSettlementPhase extends BaseSettlementPhase<ToSouthFreeG
             long playerId = gamePlayer.getId();
             RoomPlayer roomPlayer = controller.getRoom().getRoomPlayers().get(playerId);
             if (roomPlayer != null && !roomPlayer.isOnline()) {
-                log.info("南方前进结算后：玩家 {} 离线，踢出房间", playerId);
+                log.info("南方前进-免费结算后：玩家 {} 离线，踢出房间", playerId);
                 controller.getRoomController().getRoomManager().exitRoom(playerId);
             }
         }
@@ -147,7 +147,7 @@ public class ToSouthFreeSettlementPhase extends BaseSettlementPhase<ToSouthFreeG
                 long change = entry.getValue();
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
                 if (gamePlayer == null) {
-                    log.error("南方前进结算时 gamePlayer=null playerId:{}", playerId);
+                    log.error("南方前进-免费结算时 gamePlayer=null playerId:{}", playerId);
                     continue;
                 }
 
@@ -171,7 +171,7 @@ public class ToSouthFreeSettlementPhase extends BaseSettlementPhase<ToSouthFreeG
                     long loseAmount = -change;
 
                     if (loseAmount > 0) {
-                        //南方前进输钱
+                        //南方前进-免费输钱
                         controller.deductItem(playerId, loseAmount, AddType.GAME_SETTLEMENT, "ToSouthFree loses money", false);
                     }
 
@@ -217,7 +217,7 @@ public class ToSouthFreeSettlementPhase extends BaseSettlementPhase<ToSouthFreeG
             notify.settlementInfos = playerSettlementInfos;
             notify.endTime = System.currentTimeMillis();
             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
-            log.info("南方前进结算map: {}", settlementMap2);
+            log.info("南方前进-免费结算map: {}", settlementMap2);
 
             // ========== 记录最终结算到一局日志，并打印流程日志和结算日志 ==========
             ToSouthFreeGameLog gameLog = gameDataVo.getGameLog();

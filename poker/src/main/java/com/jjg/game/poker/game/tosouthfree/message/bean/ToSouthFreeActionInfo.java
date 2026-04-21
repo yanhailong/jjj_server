@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @ProtobufMessage
-@ProtoDesc("南方前进牌桌操作状态信息")
+@ProtoDesc("南方前进-免费牌桌操作状态信息")
 public class ToSouthFreeActionInfo {
     @ProtoDesc("等待操作用户 id")
     public long waitPlayerId;
