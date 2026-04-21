@@ -72,6 +72,10 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
      */
     @Override
     public CaptainJackGameRunInfo playerStartGame(PlayerController playerController, long stake) {
+        //检查游戏是否开启
+        if (!this.open.get()) {
+            return new CaptainJackGameRunInfo(Code.GAME_IS_MAINTAIN, playerController.playerId());
+        }
         //获取玩家游戏数据
         CaptainJackPlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
