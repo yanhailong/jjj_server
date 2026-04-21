@@ -44,7 +44,7 @@ public class ToSouthFreeRobotHandler extends BasePokerRobotProcessorHandler<ToSo
                         log.debug("机器人 {} GO_READY 触发时不在 WAIT_READY 阶段，跳过", getPlayerId());
                         return;
                     }
-                    if (readyPro > RandomUtil.randomInt(10000)) {
+                    if (readyPro > RandomUtil.randomInt(10000) && gameController.isOpen()) {
                         // 概率通过 → 机器人准备
                         controller.robotGoReady(getPlayerId());
                     } else {

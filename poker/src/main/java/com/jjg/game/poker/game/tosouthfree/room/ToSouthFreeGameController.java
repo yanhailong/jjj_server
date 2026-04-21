@@ -997,42 +997,51 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
             //取消准备加入准备倒计时
             scheduleReadyTimeout(playerId, READY_TIMEOUT);
         } else {
-            // 准备（status == 1 或默认）
-            if (gameDataVo.getReadyPlayerIds().contains(playerId)) {
-                notify.code = Code.REPEAT_OP;
-                broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
-                return;
-            }
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(getRoom().getRoomCfgId());
-            long minBalance = warehouseCfg.getEnterLimit();
-            List<Long> insufficientPlayerIds = new ArrayList<>();
-            for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
-                if (!info.isSeatDown()) continue;
-                long pid = info.getPlayerId();
-                long playerBalance = getTransactionItemNum(pid);
-                if (playerBalance < minBalance) {
-                    RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
-                    if (roomPlayer == null || roomPlayer.isOnline()) {
-                        NotifyExitRoom exitNotify = new NotifyExitRoom();
-                        exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
-                        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
-                        log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
-                    } else {
-                        getRoomController().getRoomManager().exitRoom(playerId);
-                        log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
+            if (isOpen()) {
+                // 准备（status == 1 或默认）
+                if (gameDataVo.getReadyPlayerIds().contains(playerId)) {
+                    notify.code = Code.REPEAT_OP;
+                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+                    return;
+                }
+                WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(getRoom().getRoomCfgId());
+                long minBalance = warehouseCfg.getEnterLimit();
+                List<Long> insufficientPlayerIds = new ArrayList<>();
+                for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
+                    if (!info.isSeatDown()) continue;
+                    long pid = info.getPlayerId();
+                    long playerBalance = getTransactionItemNum(pid);
+                    if (playerBalance < minBalance) {
+                        RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
+                        if (roomPlayer == null || roomPlayer.isOnline()) {
+                            NotifyExitRoom exitNotify = new NotifyExitRoom();
+                            exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
+                            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
+                            log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
+                        } else {
+                            getRoomController().getRoomManager().exitRoom(playerId);
+                            log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
+                        }
+                        gameDataVo.getReadyTimerVersion().remove(playerId);
+                        return;
                     }
-                    gameDataVo.getReadyTimerVersion().remove(playerId);
+                }
+
+                gameDataVo.getReadyPlayerIds().add(playerId);
+                log.info("玩家 {} 准备完成，当前准备人数: {}", playerId, gameDataVo.getReadyPlayerIds().size());
+                notify.playerId = playerId;
+                notify.status = 1;
+                broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
+                // 检查是否满足开局条件（人数足够 + 全部准备）
+                tryStartGame();
+            } else {
+                //没开放
+                if (gameDataVo.getReadyPlayerIds().contains(playerId)) {
+                    notify.code = Code.GAME_IS_MAINTAIN;
+                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
                     return;
                 }
             }
-
-            gameDataVo.getReadyPlayerIds().add(playerId);
-            log.info("玩家 {} 准备完成，当前准备人数: {}", playerId, gameDataVo.getReadyPlayerIds().size());
-            notify.playerId = playerId;
-            notify.status = 1;
-            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
-            // 检查是否满足开局条件（人数足够 + 全部准备）
-            tryStartGame();
         }
     }
 
