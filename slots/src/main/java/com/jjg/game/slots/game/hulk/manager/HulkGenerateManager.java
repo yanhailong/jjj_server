@@ -121,7 +121,7 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
      * @param awardLineInfoList
      * @return
      */
-    private long calLineTimes(List<HulkAwardLineInfo> awardLineInfoList) {
+    public long calLineTimes(List<HulkAwardLineInfo> awardLineInfoList) {
         if (awardLineInfoList == null || awardLineInfoList.isEmpty()) {
             return 0;
         }
