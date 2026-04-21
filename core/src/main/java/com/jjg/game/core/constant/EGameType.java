@@ -50,8 +50,9 @@ public enum EGameType {
     HOT_FOOTBALL(CoreConst.GameType.HOT_FOOTBALL, RoomType.SLOTS, "热血足球"),
     CANDY_PARTY(CoreConst.GameType.CANDY_PARTY, RoomType.SLOTS, "糖果派对"),
     FIND_GOLD_CITY(CoreConst.GameType.FIND_GOLD_CITY, RoomType.SLOTS, "寻找黄金城"),
-
-
+    GARA_GEMSTONE_1(CoreConst.GameType.GARA_GEMSTONE_1, RoomType.SLOTS, "伽罗宝石1"),
+    GARA_GEMSTONE_2(CoreConst.GameType.GARA_GEMSTONE_2, RoomType.SLOTS, "伽罗宝石2"),
+    GARA_GEMSTONE_3(CoreConst.GameType.GARA_GEMSTONE_3, RoomType.SLOTS, "伽罗宝石3"),
     // TABLE
     RED_BLACK_WAR(CoreConst.GameType.RED_BLACK_WAR, RoomType.BET_ROOM, "红黑大战"),
     LOONG_TIGER_WAR(CoreConst.GameType.LOONG_TIGER_WAR, RoomType.BET_ROOM, "龙虎斗"),

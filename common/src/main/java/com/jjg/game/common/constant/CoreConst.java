@@ -101,6 +101,12 @@ public class CoreConst {
         public static final int HOT_FOOTBALL = 101600;
         //寻找黄金城
         public static final int FIND_GOLD_CITY = 102600;
+        //伽罗宝石1
+        public static final int GARA_GEMSTONE_1 = 105500;
+        //伽罗宝石2
+        public static final int GARA_GEMSTONE_2 = 105501;
+        //伽罗宝石3
+        public static final int GARA_GEMSTONE_3 = 105502;
         //红黑大战
         public static final int RED_BLACK_WAR = 200100;
         //龙虎斗
