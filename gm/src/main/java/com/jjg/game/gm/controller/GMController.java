@@ -174,8 +174,6 @@ public class GMController extends AbstractController {
                 log.info("修改游戏状态失败,无法保存到Redis , dto = {}", dtoList);
                 return fail("common.fail");
             }
-            //获取大厅节点
-            List<ClusterClient> nodesByType = ClusterSystem.system.getNodesByType(NodeType.HALL);
             //构建请求消息
             ReqRefreshGameStatus msg = new ReqRefreshGameStatus();
 
@@ -183,15 +181,9 @@ public class GMController extends AbstractController {
 
             byte[] data = ProtostuffUtil.serialize(msg);
             PFMessage pfMessage = new PFMessage(MessageConst.ToServer.REQ_REFRESH_GAME_STATUS, data);
-            ClusterMessage clusterMessage = new ClusterMessage(pfMessage);
-            for (ClusterClient clusterClient : nodesByType) {
-                try {
-                    //通知大厅节点修改游戏状态
-                    clusterClient.write(clusterMessage);
-                } catch (Exception e) {
-                    log.error("请求改变游戏状态时发送失败", e);
-                }
-            }
+
+            //通知大厅和游戏节点
+            clusterSystem.notifyNode(pfMessage,Set.of(NodeType.HALL.toString(), NodeType.GAME.toString())::contains);
             //返回修改结果
             return success("common.success");
         } catch (Exception e) {

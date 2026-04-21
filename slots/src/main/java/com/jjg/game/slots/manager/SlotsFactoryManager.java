@@ -1,7 +1,10 @@
 package com.jjg.game.slots.manager;
 
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.data.GameStatus;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
@@ -9,10 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author 11
@@ -25,6 +26,8 @@ public class SlotsFactoryManager {
     private SlotsPoolDao slotsPoolDao;
     @Autowired
     private SlotsRoomManager slotsRoomManager;
+    @Autowired
+    private GameStatusService gameStatusService;
 
     //所有的游戏管理器
     private Map<Integer, AbstractSlotsGameManager> slotsGameManagerMap = new HashMap<>();
@@ -40,6 +43,8 @@ public class SlotsFactoryManager {
         //初始化游戏管理器
         initGameManager(context);
         this.slotsRoomManager.init();
+        //刷新游戏状态
+        refreshGameStatus();
     }
 
     public void onEnterGame(long playerId, int roomCfgId, long roomId) {
@@ -97,6 +102,35 @@ public class SlotsFactoryManager {
 
     public AbstractSlotsGameManager getGameManager(int gameType) {
         return this.slotsGameManagerMap.get(gameType);
+    }
+
+
+    /**
+     * 刷新游戏状态
+     */
+    public void refreshGameStatus() {
+        List<GameStatus> allGameStatus = gameStatusService.getAllGameStatus();
+        if (allGameStatus == null || allGameStatus.isEmpty()) {
+            Map<String, AbstractSlotsGameManager> gameManages = CommonUtil.getContext().getBeansOfType(AbstractSlotsGameManager.class);
+            gameManages.forEach((k, v) -> {
+                v.getOpen().compareAndSet(true, false);
+            });
+            return;
+        }
+
+        Map<Integer, GameStatus> statusMap = allGameStatus.stream()
+                .collect(Collectors.toMap(GameStatus::gameId, gameStatus -> gameStatus));
+
+        Map<String, AbstractSlotsGameManager> gameManages = CommonUtil.getContext().getBeansOfType(AbstractSlotsGameManager.class);
+        gameManages.forEach((k, v) -> {
+            int gameType = v.getGameType();
+            GameStatus gameStatus = statusMap.get(gameType);
+            if (gameStatus != null && gameStatus.status() == 1 && gameStatus.open() == 1) {
+                v.getOpen().compareAndSet(false, true);
+            } else {
+                v.getOpen().compareAndSet(true, false);
+            }
+        });
     }
 
     /**

@@ -80,6 +80,10 @@ public abstract class AbstractAngryBirdsGameManager extends AbstractSlotsGameMan
      */
     @Override
     public AngryBirdsGameRunInfo playerStartGame(PlayerController playerController, long stake) {
+        //检查游戏是否开启
+        if (!this.open.get()) {
+            return new AngryBirdsGameRunInfo(Code.GAME_IS_MAINTAIN, playerController.playerId());
+        }
         //获取玩家游戏数据
         AngryBirdsPlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {

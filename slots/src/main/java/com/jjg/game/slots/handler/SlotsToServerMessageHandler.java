@@ -5,10 +5,12 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.handler.CoreToServerMessageHandler;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.NotifyAllNodesCleanPlayer;
 import com.jjg.game.core.pb.gm.NotifyGenrateLib;
+import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
 import com.jjg.game.slots.dao.PlayerAllSlotsDataDao;
@@ -53,6 +55,16 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
 
     // 锁
     private final Object queueLock = new Object();
+
+    @Command(MessageConst.ToServer.REQ_REFRESH_GAME_STATUS)
+    public void reqRefreshGameStatus(ReqRefreshGameStatus req) {
+        log.info("收到刷新游戏状态命令: {}", JSON.toJSONString(req));
+        try {
+            slotsFactoryManager.refreshGameStatus();
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
 
     /**
      * 生成结果库
