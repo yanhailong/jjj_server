@@ -17,8 +17,6 @@ public record CarouselDto(
         //动图 1是 2不是
         int showType,
         //id唯一值
-        long id,
-        // 轮播图分为 app和webgl
-        boolean webgl
+        long id
 ) {
 }

@@ -40,8 +40,6 @@ public class Notice {
     private String jumpUrl;
     //大类型  0.公告  1.活动
     private int bigType;
-    // 是否为web
-    private boolean webgl;
 
     public long getId() {
         return id;
@@ -161,13 +159,5 @@ public class Notice {
 
     public void setBigType(int bigType) {
         this.bigType = bigType;
-    }
-
-    public boolean isWebgl() {
-        return webgl;
-    }
-
-    public void setWebgl(boolean webgl) {
-        this.webgl = webgl;
     }
 }
