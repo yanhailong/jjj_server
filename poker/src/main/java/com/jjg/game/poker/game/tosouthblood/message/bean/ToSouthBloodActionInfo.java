@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @ProtobufMessage
-@ProtoDesc("南方前进牌桌操作状态信息")
+@ProtoDesc("南方前进-血战牌桌操作状态信息")
 public class ToSouthBloodActionInfo {
     @ProtoDesc("等待操作用户 id")
     public long waitPlayerId;

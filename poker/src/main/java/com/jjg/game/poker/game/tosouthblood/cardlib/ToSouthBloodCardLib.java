@@ -5,7 +5,7 @@ import com.jjg.game.poker.game.common.cardlib.CardLibEntry;
 import java.util.List;
 
 /**
- * 南方前进牌库条目
+ * 南方前进-血战牌库条目
  * 每场模拟生成两条记录:
  * - multiplier < 0 (输牌): 总输最多的座位 → playerCards，其余3人 → robotCards
  * - multiplier > 0 (赢牌): 总赢最多的座位 → playerCards，其余3人 → robotCards

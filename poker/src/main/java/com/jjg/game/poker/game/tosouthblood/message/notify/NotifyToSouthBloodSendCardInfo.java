@@ -7,6 +7,6 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.poker.game.tosouthblood.constant.ToSouthBloodConstant;
 
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthBloodConstant.MsgBean.NOTIFY_SEND_CARD_INFO, resp = true)
-@ProtoDesc("南方前进通知发牌信息")
+@ProtoDesc("南方前进-血战通知发牌信息")
 public class NotifyToSouthBloodSendCardInfo extends AbstractNotice {
 }

@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 南方前进好友房游戏控制器
+ * 南方前进-血战好友房游戏控制器
  */
 @GameController(gameType = EGameType.TO_SOUTH_BLOOD, roomType = RoomType.POKER_TEAM_UP_ROOM)
 public class ToSouthBloodFriendGameController extends ToSouthBloodGameController {

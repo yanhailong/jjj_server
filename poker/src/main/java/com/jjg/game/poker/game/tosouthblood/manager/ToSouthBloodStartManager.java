@@ -395,7 +395,7 @@ public class ToSouthBloodStartManager implements IRoomStartListener, GmListener 
                 roomManager.getGameControllerByPlayerId(playerId);
         if (!(gc instanceof ToSouthBloodGameController tgc)) {
             res.code = Code.FAIL;
-            res.data = "玩家不在南方前进房间中，无法修改水池";
+            res.data = "玩家不在南方前进-血战房间中，无法修改水池";
             return res;
         }
         int roomCfgId = tgc.getRoom().getRoomCfgId();
@@ -417,13 +417,13 @@ public class ToSouthBloodStartManager implements IRoomStartListener, GmListener 
 
     @Override
     public void start() {
-        log.info("正在启动南方前进-血战游戏...");
+        log.info("正在启动南方前进-血战-血战游戏...");
         toSouthBloodCardLibManager.initPool();
     }
 
     @Override
     public void shutdown() {
-        log.info("正在关闭南方前进-血战游戏...");
+        log.info("正在关闭南方前进-血战-血战游戏...");
         GM_DEAL_CARDS.clear();
         GM_ROBOT_DEAL_CARDS.clear();
     }

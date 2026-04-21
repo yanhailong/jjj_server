@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 import static com.jjg.game.poker.game.tosouthblood.constant.ToSouthBloodConstant.*;
 
 /**
- * 南方前进牌库无头模拟器
+ * 南方前进-血战牌库无头模拟器
  * 模拟4个机器人打一局完整的牌，记录各座位总输赢倍数，生成牌库条目
  */
 public class ToSouthBloodCardLibGenerator {

@@ -1,7 +1,7 @@
 package com.jjg.game.poker.game.tosouthblood.util;
 
 /**
- * 南方前进牌型
+ * 南方前进-血战牌型
  */
 public enum ToSouthBloodCardType {
     NONE(0), //错误牌型

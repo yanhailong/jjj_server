@@ -10,9 +10,9 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 南方前进牌库管理器
+ * 南方前进-血战牌库管理器
  * 通用能力（水池控制 / 模型选择 / 分区 key / 生成模板）全部由 {@link AbstractCardLibManager} 提供。
- * 本类只保留南方前进特有的逻辑：
+ * 本类只保留南方前进-血战特有的逻辑：
  * <ul>
  *     <li>GAME_TYPE 常量</li>
  *     <li>DAO 注入</li>
@@ -25,7 +25,7 @@ import java.util.List;
 public class ToSouthBloodCardLibManager
         extends AbstractCardLibManager<ToSouthBloodCardLib, ToSouthBloodCardLibDao> {
 
-    /** 南方前进游戏 ID */
+    /** 南方前进-血战游戏 ID */
     private static final int GAME_TYPE_TO_SOUTH = 300400;
 
     @Autowired

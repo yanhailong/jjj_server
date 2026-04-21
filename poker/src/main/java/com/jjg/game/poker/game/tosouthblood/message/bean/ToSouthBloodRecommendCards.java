@@ -6,7 +6,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import java.util.List;
 
 @ProtobufMessage
-@ProtoDesc("南方前进推荐牌组")
+@ProtoDesc("南方前进-血战推荐牌组")
 public class ToSouthBloodRecommendCards {
     @ProtoDesc("推荐牌 ID 列表")
     public List<Integer> cards;

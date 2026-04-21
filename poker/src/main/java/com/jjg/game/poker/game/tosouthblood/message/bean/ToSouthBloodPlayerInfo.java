@@ -7,7 +7,7 @@ import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 import java.util.List;
 
 @ProtobufMessage
-@ProtoDesc("南方前进玩家信息")
+@ProtoDesc("南方前进-血战玩家信息")
 public class ToSouthBloodPlayerInfo {
     @ProtoDesc("基本玩家信息")
     public PokerPlayerInfo pokerPlayerInfo;

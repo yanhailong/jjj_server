@@ -8,7 +8,7 @@ import com.jjg.game.poker.game.tosouthblood.constant.ToSouthBloodConstant;
 import com.jjg.game.poker.game.tosouthblood.message.bean.ToSouthBloodActionInfo;
 
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthBloodConstant.MsgBean.NOTIFY_TURN_ACTION_INFO, resp = true)
-@ProtoDesc("响应南方前进玩家回合行动信息")
+@ProtoDesc("响应南方前进-血战玩家回合行动信息")
 public class NotifyToSouthBloodTurnActionInfo extends AbstractNotice {
     @ProtoDesc("牌桌操作信息")
     public ToSouthBloodActionInfo actionInfo;

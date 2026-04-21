@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 南方前进结算上下文
+ * 南方前进-血战结算上下文
  * 封装结算所需的所有信息
  */
 public class ToSouthBloodSettlementContext {

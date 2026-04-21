@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 import static com.jjg.game.poker.game.tosouthblood.constant.ToSouthBloodConstant.*;
 
 /**
- * 南方前进开始游戏阶段 (洗牌发牌动画)
+ * 南方前进-血战开始游戏阶段 (洗牌发牌动画)
  */
 public class ToSouthBloodStartGamePhase extends BaseStartGamePhase<ToSouthBloodGameDataVo> {
     
@@ -58,7 +58,7 @@ public class ToSouthBloodStartGamePhase extends BaseStartGamePhase<ToSouthBloodG
             }
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(controller.getRoom().getRoomCfgId());
             gameDataVo.setRoomBet(warehouseCfg.getBetShow());
-            log.debug("南方前进开始游戏，房间底注为：{}", warehouseCfg.getBetShow());
+            log.debug("南方前进-血战开始游戏，房间底注为：{}", warehouseCfg.getBetShow());
 
             // 1. 洗牌发牌
             Map<Integer, PokerCard> cardListMap = ToSouthBloodDataHelper.getCardListMap(ToSouthBloodDataHelper.getPoolId(gameDataVo));
@@ -96,7 +96,7 @@ public class ToSouthBloodStartGamePhase extends BaseStartGamePhase<ToSouthBloodG
                     // 赢家异常，回退到黑桃3
                     firstPlayer = findSeatWithSpecifyCard(gameDataVo, cardListMap, RANK_3, SPADE_SUIT);
                     if (firstPlayer == null) {
-                        log.warn("南方前进牌组中没有黑桃3，请检查配置");
+                        log.warn("南方前进-血战牌组中没有黑桃3，请检查配置");
                         return;
                     }
                     gameDataVo.setIndex(firstPlayer.getSeatId());
@@ -106,7 +106,7 @@ public class ToSouthBloodStartGamePhase extends BaseStartGamePhase<ToSouthBloodG
                 // 新桌或有人变动，黑桃3先出
                 firstPlayer = findSeatWithSpecifyCard(gameDataVo, cardListMap, RANK_3, SPADE_SUIT);
                 if (firstPlayer == null) {
-                    log.warn("南方前进牌组中没有黑桃3，请检查配置");
+                    log.warn("南方前进-血战牌组中没有黑桃3，请检查配置");
                     return;
                 }
                 gameDataVo.setIndex(firstPlayer.getSeatId());

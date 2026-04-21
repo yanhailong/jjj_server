@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 南方前进统一自动操作处理器
+ * 南方前进-血战统一自动操作处理器
  * <p>
  * 机器人出牌 → 委托给 {@link ToSouthBloodRobotStrategy}（策略决策）
  * 真实玩家超时 → 首出出最小牌，跟牌直接过牌
