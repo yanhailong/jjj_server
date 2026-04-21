@@ -7,4 +7,14 @@ import com.jjg.game.slots.data.SlotsResultLib;
  * @date 2026/1/15
  */
 public class HulkResultLib extends SlotsResultLib<HulkAwardLineInfo> {
+    //触发局的倍数
+    private long triggerTimes;
+
+    public long getTriggerTimes() {
+        return triggerTimes;
+    }
+
+    public void setTriggerTimes(long triggerTimes) {
+        this.triggerTimes = triggerTimes;
+    }
 }
