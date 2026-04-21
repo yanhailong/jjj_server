@@ -456,6 +456,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         baseFuncProcessor.tryPublish(0, new BaseHandler<String>() {
             @Override
             public void action() {
+                if (!gameController.isOpen()) {
+                    return;
+                }
                 // 创建人数达到上限
                 if (room.getRoomPlayers() != null && room.getRoomPlayers().size() >= room.getMaxLimit() || !checkRobotJoinRoomCondition()) {
                     return;

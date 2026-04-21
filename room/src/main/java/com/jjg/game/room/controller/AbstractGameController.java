@@ -807,6 +807,17 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         return result.code;
     }
 
+    /**
+     * 游戏是否开启
+     *
+     * @return 游戏是否开启
+     */
+    public boolean isOpen() {
+        Map<Integer, Boolean> gameOpenMap = getRoomController().roomManager.getGameOpenMap();
+        int gameID = gameDataVo.getRoomCfg().getGameID();
+        return gameOpenMap.getOrDefault(gameID, false);
+    }
+
     public GameEventManager getGameEventManager() {
         return gameEventManager;
     }

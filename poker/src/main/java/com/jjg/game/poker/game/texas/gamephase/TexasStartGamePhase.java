@@ -35,7 +35,7 @@ public class TexasStartGamePhase extends BaseStartGamePhase<TexasGameDataVo> {
 
     @Override
     public void robotPhaseScheduleAction(GameRobotPlayer robotPlayer, int chessExecutionDelay, int pro) {
-        if (gameController instanceof TexasGameController controller) {
+        if (gameController.isOpen() && gameController instanceof TexasGameController controller) {
             TexasRobotHandler handler = new TexasRobotHandler(robotPlayer, TexasRobotHandler.GO_READY, controller, pro);
             RobotScheduleUtil.schedule(controller.getRoomController(), handler, chessExecutionDelay);
         }

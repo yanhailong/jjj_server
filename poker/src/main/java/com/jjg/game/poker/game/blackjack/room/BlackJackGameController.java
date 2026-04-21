@@ -415,6 +415,11 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
     @Override
     public void dealBet(long playerId, ReqPokerBet reqPokerBet) {
         NotifyBlackJackBetResult jackBetResult = new NotifyBlackJackBetResult();
+        if (!isOpen()) {
+            jackBetResult.code = Code.GAME_IS_MAINTAIN;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, jackBetResult));
+            return;
+        }
         Pair<GamePlayer, List<Integer>> gamePlayerListPair = betActionAfterCheck(playerId);
         if (gamePlayerListPair == null) {
             jackBetResult.code = Code.PARAM_ERROR;

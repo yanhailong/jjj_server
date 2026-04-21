@@ -29,6 +29,7 @@ import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.pb.ResExitGame;
 import com.jjg.game.core.recharge.service.RechargeService;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.task.manager.TaskManager;
@@ -115,6 +116,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected CoreLogger coreLogger;
     @Autowired
     protected RechargeService rechargeService;
+    //  游戏开关Map 游戏id->开关状态
+    protected volatile Map<Integer, Boolean> gameOpenMap = new HashMap<>();
     // 不同类型的房间roomDao
     protected Map<Class<? extends Room>, AbstractRoomDao<? extends Room, ? extends RoomPlayer>> roomDaoMap
             = new HashMap<>();
@@ -125,6 +128,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected Set<Class<? extends AbstractRoomController>> roomControllerClazz;
     // 游戏控制器class类集合
     protected Set<Class<? extends AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> gameControllerClazz;
+    @Autowired
+    private GameStatusService gameStatusService;
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
@@ -141,6 +146,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         this.roomManagerTimer.add(new TimerEvent<>(this, this::emptyRoomCheck, 5000));
     }
 
+    public Map<Integer, Boolean> getGameOpenMap() {
+        return gameOpenMap;
+    }
+
     public WealthRouletteController getWealthRouletteController() {
         return wealthRouletteController;
     }
@@ -155,6 +164,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
     public CoreMarqueeManager getCoreMarqueeManager() {
         return coreMarqueeManager;
+    }
+
+    public GameStatusService getGameStatusService() {
+        return gameStatusService;
     }
 
     @PostConstruct
@@ -204,6 +217,14 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         } catch (Exception exception) {
             log.error("获取房间控制器失败", exception);
             throw exception;
+        }
+
+        //刷新游戏状态
+        try {
+            refreshGameStatus();
+        } catch (Exception e) {
+            log.error("加载游戏状态数据异常", e);
+            throw e;
         }
     }
 
@@ -1298,5 +1319,16 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
     public void setRoomInit(boolean roomInit) {
         isRoomInit = roomInit;
+    }
+
+    public void refreshGameStatus() {
+        List<GameStatus> allGameStatus = gameStatusService.getAllGameStatus();
+        if (allGameStatus == null || allGameStatus.isEmpty()) {
+            gameOpenMap = Map.of();
+            return;
+        }
+        gameOpenMap = allGameStatus.stream()
+                .collect(Collectors.toMap(GameStatus::gameId,
+                        gameStatus -> gameStatus.status() == 1 && gameStatus.open() == 1));
     }
 }
