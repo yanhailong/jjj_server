@@ -44,11 +44,6 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
     }
 
     @Override
-    public void changeSampleCallbackCollector() {
-        log.warn("绿巨人 无法重载配置表");
-    }
-
-    @Override
     public HulkGameRunInfo enterGame(PlayerController playerController) {
         //获取玩家游戏数据
         HulkPlayerGameData playerGameData = getPlayerGameData(playerController);
