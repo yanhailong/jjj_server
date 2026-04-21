@@ -1,5 +1,7 @@
 package com.jjg.game.slots.game.hulk.manager;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
@@ -94,6 +96,7 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
 
                     });
                 }
+                lib.setTriggerTimes(cfg.getBet());
             }
 
 
@@ -160,6 +163,28 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
                 }
 
                 times += sum * awardInfo.getAwardD();
+            }
+        }
+        return times;
+    }
+
+    @Override
+    protected long calFree(HulkResultLib lib) throws Exception {
+        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            return 0;
+        }
+
+        //修改触发局的倍数
+        lib.setTriggerTimes(lib.getTriggerTimes() + calLineTimes(lib.getAwardLineInfoList()));
+
+        long times = lib.getTriggerTimes();
+        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+            if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
+                continue;
+            }
+            for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
+                HulkResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), this.resultLibClazz);
+                times += tmpLib.getTimes();
             }
         }
         return times;

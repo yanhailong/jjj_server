@@ -215,26 +215,26 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
             playerGameData.setStatus(HulkConstant.Status.FREE);
             playerGameData.setFreeLib(resultLib);
             playerGameData.setRemainFreeCount(new AtomicInteger(resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames().size()));
-            times = this.generateManager.calLineTimes(resultLib.getAwardLineInfoList());
+            times = resultLib.getTriggerTimes();
             log.debug("触发免费  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         } else if (libType == HulkConstant.SpecialMode.MINI) {
             clientShowStatus = HulkConstant.Status.TRIGGER_MINI;
             addMiniGameInfo(gameRunInfo, playerGameData, resultLib);
-            times = this.generateManager.calLineTimes(resultLib.getAwardLineInfoList());
+            times = resultLib.getTriggerTimes();
             log.debug("触发小游戏  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         } else if (libType == HulkConstant.SpecialMode.ONT_WILD) {
             clientShowStatus = HulkConstant.Status.TRIGGER_ONE_WILD;
             playerGameData.setStatus(HulkConstant.Status.ONE_WILD);
             playerGameData.setFreeLib(resultLib);
             playerGameData.setRemainFreeCount(new AtomicInteger(resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames().size()));
-            times = this.generateManager.calLineTimes(resultLib.getAwardLineInfoList());
+            times = resultLib.getTriggerTimes();
             log.debug("第3列变成wild  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         } else if (libType == HulkConstant.SpecialMode.THREE_WILD) {
             clientShowStatus = HulkConstant.Status.TRIGGER_THREE_WILD;
             playerGameData.setStatus(HulkConstant.Status.THREE_WILD);
             playerGameData.setFreeLib(resultLib);
             playerGameData.setRemainFreeCount(new AtomicInteger(resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames().size()));
-            times = this.generateManager.calLineTimes(resultLib.getAwardLineInfoList());
+            times = resultLib.getTriggerTimes();
             log.debug("第234列变成wild  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         }
 
