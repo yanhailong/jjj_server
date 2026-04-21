@@ -198,6 +198,10 @@ public interface MessageConst {
         int GARA_GEMSTONE_2 = 0x4F;
         //伽罗宝石3
         int GARA_GEMSTONE_3 = 0x50;
+        //南方前进-血战
+        int TO_SOUTH_BLOOD =  0x5A;
+        //南方前进-免费
+        int TO_SOUTH_FREE =  0x5B;
     }
 
     interface ToClientConst {
