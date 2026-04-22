@@ -173,6 +173,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                             .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
 
                     totalTax += tax;
+
                     finalWinScore = change - tax;
                     controller.addItem(playerId, finalWinScore, AddType.GAME_SETTLEMENT);
                     if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
@@ -221,7 +222,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 }
                 playerSettlementInfos.add(info);
             }
-
+            gameDataTracker.addGameLogData("tax", totalTax);
             // 好友房：房主收益记录
             addCreateRecord(controller, totalTax, settlementMap2);
 
