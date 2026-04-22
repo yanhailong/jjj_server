@@ -10,7 +10,7 @@ import com.jjg.game.poker.game.tosouthfree.constant.ToSouthFreeConstant;
  * @author lm
  * @date 2025/8/5 13:39
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthFreeConstant.MsgBean.REQ_CHANGE_TABLE)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH_FREE, cmd = ToSouthFreeConstant.MsgBean.REQ_CHANGE_TABLE)
 @ProtoDesc("请求换桌")
 public class ReqToSouthFreeChangeTable extends AbstractMessage {
 }

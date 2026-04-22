@@ -12,7 +12,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import java.util.List;
 import java.util.Set;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthFreeConstant.MsgBean.RESP_ROOM_BASE_INFO, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH_FREE, cmd = ToSouthFreeConstant.MsgBean.RESP_ROOM_BASE_INFO, resp = true)
 @ProtoDesc("响应南方前进-免费房间基本信息")
 public class RespToSouthFreeRoomBaseInfo extends AbstractResponse {
     @ProtoDesc("当前阶段")

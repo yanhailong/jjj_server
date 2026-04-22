@@ -8,7 +8,7 @@ import com.jjg.game.poker.game.tosouthfree.constant.ToSouthFreeConstant;
 
 import java.util.List;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthFreeConstant.MsgBean.RESP_SEND_CARDS_INFO, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH_FREE, cmd = ToSouthFreeConstant.MsgBean.RESP_SEND_CARDS_INFO, resp = true)
 @ProtoDesc("响应南方前进-免费房间基本信息")
 public class RespToSouthFreeSendCardsInfo extends AbstractNotice {
     @ProtoDesc("玩家原始手牌")

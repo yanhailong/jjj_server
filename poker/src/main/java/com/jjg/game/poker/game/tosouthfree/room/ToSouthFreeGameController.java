@@ -36,7 +36,7 @@ import com.jjg.game.poker.game.tosouthfree.message.notify.NotifyToSouthFreeBombS
 import com.jjg.game.poker.game.tosouthfree.message.notify.NotifyToSouthFreePlayerReady;
 import com.jjg.game.poker.game.tosouthfree.message.notify.NotifyToSouthFreeTurnActionInfo;
 import com.jjg.game.poker.game.tosouthfree.message.req.ReqToSouthFreeGoReady;
-import com.jjg.game.poker.game.tosouthfree.message.req.ReqTurnAction;
+import com.jjg.game.poker.game.tosouthfree.message.req.ReqToSouthFreeTurnAction;
 import com.jjg.game.poker.game.tosouthfree.message.resp.RespToSouthFreeChangTable;
 import com.jjg.game.poker.game.tosouthfree.message.resp.RespToSouthFreeRoomBaseInfo;
 import com.jjg.game.poker.game.tosouthfree.message.resp.RespToSouthFreeSendCardsInfo;
@@ -132,7 +132,7 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
         return getCurrentGamePhase() == EGamePhase.WAIT_READY;
     }
 
-    public void turnAction(long playerId, ReqTurnAction reqTurnAction) {
+    public void turnAction(long playerId, ReqToSouthFreeTurnAction reqTurnAction) {
         PlayerSeatInfo info = gameDataVo.getCurrentPlayerSeatInfo();
         if (getCurrentGamePhase() != EGamePhase.PLAY_CART) {
             log.warn("当前不在出牌阶段");
