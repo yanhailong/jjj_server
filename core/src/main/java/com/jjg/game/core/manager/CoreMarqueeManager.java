@@ -747,8 +747,4 @@ public class CoreMarqueeManager implements TimerListener {
         private static final BackendSchedule EMPTY = new BackendSchedule(null, 0, false);
     }
 
-    public static void main(String[] args) {
-        String valueStr = NumberUtil.decimalFormat(",###", 100);
-        System.out.println(valueStr);
-    }
 }
