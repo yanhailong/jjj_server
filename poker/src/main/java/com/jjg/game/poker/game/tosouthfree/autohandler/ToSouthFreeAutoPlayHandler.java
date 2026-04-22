@@ -7,7 +7,8 @@ import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.gamephase.BasePokerProcessorHandler;
 import com.jjg.game.poker.game.tosouthfree.data.ToSouthFreeDataHelper;
-import com.jjg.game.poker.game.tosouthfree.message.req.ReqTurnAction;
+//import com.jjg.game.poker.game.tosouthfree.message.req.ReqTurnAction;
+import com.jjg.game.poker.game.tosouthfree.message.req.ReqToSouthFreeTurnAction;
 import com.jjg.game.poker.game.tosouthfree.room.ToSouthFreeGameController;
 import com.jjg.game.poker.game.tosouthfree.room.data.ToSouthFreeGameDataVo;
 import com.jjg.game.poker.game.tosouthfree.util.ToSouthFreeHandUtils;
@@ -64,7 +65,7 @@ public class ToSouthFreeAutoPlayHandler extends BasePokerProcessorHandler<ToSout
     }
 
     private void doAutoPlay(ToSouthFreeGameDataVo gameDataVo, PlayerSeatInfo currentPlayerSeat) {
-        ReqTurnAction reqTurnAction = new ReqTurnAction();
+        ReqToSouthFreeTurnAction reqTurnAction = new ReqToSouthFreeTurnAction();
         reqTurnAction.cards = new ArrayList<>();
 
         Map<Integer, PokerCard> cardMap = ToSouthFreeDataHelper.getCardListMap(ToSouthFreeDataHelper.getPoolId(gameDataVo));

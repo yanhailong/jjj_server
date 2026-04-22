@@ -7,7 +7,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.poker.game.tosouthfree.constant.ToSouthFreeConstant;
 import com.jjg.game.poker.game.tosouthfree.message.req.ReqToSouthFreeChangeTable;
 import com.jjg.game.poker.game.tosouthfree.message.req.ReqToSouthFreeGoReady;
-import com.jjg.game.poker.game.tosouthfree.message.req.ReqTurnAction;
+import com.jjg.game.poker.game.tosouthfree.message.req.ReqToSouthFreeTurnAction;
 import com.jjg.game.poker.game.tosouthfree.room.ToSouthFreeGameController;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -26,7 +26,7 @@ public class ToSouthFreeMessageHandler {
     }
 
     @Command(value = ToSouthFreeConstant.MsgBean.REQ_TURN_ACTION)
-    public void reqTurnAction(PlayerController playerController, ReqTurnAction reqTurnAction) {
+    public void reqTurnAction(PlayerController playerController, ReqToSouthFreeTurnAction reqTurnAction) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
         if (gameController instanceof ToSouthFreeGameController controller) {

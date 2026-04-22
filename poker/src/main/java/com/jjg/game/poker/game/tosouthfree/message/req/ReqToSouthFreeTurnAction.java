@@ -9,7 +9,7 @@ import java.util.List;
 
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthFreeConstant.MsgBean.REQ_TURN_ACTION)
 @ProtoDesc("轮到指定玩家回合，玩家的操作")
-public class ReqTurnAction {
+public class ReqToSouthFreeTurnAction {
     @ProtoDesc("0 出牌  1 pass")
     public int actionType;
     @ProtoDesc("出牌列表")
