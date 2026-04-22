@@ -153,6 +153,8 @@ public class GameConstant {
         int FRIEND_ROOM_TYPE_START = 10;
         // SVIP 房间类型开始...
         int SVIP_ROOM_TYPE_START = 20;
+        // 体验类型房间...
+        int EXPERIENCE_ROOM_TYPE_START = 30;
     }
 
     //账号类型
