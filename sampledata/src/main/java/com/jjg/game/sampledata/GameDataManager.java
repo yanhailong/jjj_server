@@ -150,6 +150,7 @@ public class GameDataManager {
     containerMap.put(DropDetailedCfg.class, new DropDetailedCfgContainer());
     containerMap.put(DropGroupCfg.class, new DropGroupCfgContainer());
     containerMap.put(FirstpaymentCfg.class, new FirstpaymentCfgContainer());
+    containerMap.put(FreespinCfg.class, new FreespinCfgContainer());
     containerMap.put(GameFunctionCfg.class, new GameFunctionCfgContainer());
     containerMap.put(GameListCfg.class, new GameListCfgContainer());
     containerMap.put(GiftPackCfg.class, new GiftPackCfgContainer());
@@ -183,6 +184,7 @@ public class GameDataManager {
     containerMap.put(Room_BetCfg.class, new Room_BetCfgContainer());
     containerMap.put(Room_ChessCfg.class, new Room_ChessCfgContainer());
     containerMap.put(RouletteShopCfg.class, new RouletteShopCfgContainer());
+    containerMap.put(RunninglightCfg.class, new RunninglightCfgContainer());
     containerMap.put(ScratchCardsCfg.class, new ScratchCardsCfgContainer());
     containerMap.put(SharePromoteCfg.class, new SharePromoteCfgContainer());
     containerMap.put(SouthernMoneyCfg.class, new SouthernMoneyCfgContainer());
@@ -985,6 +987,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(FirstpaymentCfg.class).getCfgBeanList();
   }
 
+  public static FreespinCfg getFreespinCfg(int key) {
+    return getInstance().getCfgContainer(FreespinCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, FreespinCfg> getFreespinCfgMap() {
+    return getInstance().getCfgContainer(FreespinCfg.class).getCfgBeanMap();
+  }
+
+  public static List<FreespinCfg> getFreespinCfgList() {
+    return getInstance().getCfgContainer(FreespinCfg.class).getCfgBeanList();
+  }
+
   public static GameFunctionCfg getGameFunctionCfg(int key) {
     return getInstance().getCfgContainer(GameFunctionCfg.class).getCfgBeanMap().get(key);
   }
@@ -1379,6 +1393,18 @@ public class GameDataManager {
 
   public static List<RouletteShopCfg> getRouletteShopCfgList() {
     return getInstance().getCfgContainer(RouletteShopCfg.class).getCfgBeanList();
+  }
+
+  public static RunninglightCfg getRunninglightCfg(int key) {
+    return getInstance().getCfgContainer(RunninglightCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, RunninglightCfg> getRunninglightCfgMap() {
+    return getInstance().getCfgContainer(RunninglightCfg.class).getCfgBeanMap();
+  }
+
+  public static List<RunninglightCfg> getRunninglightCfgList() {
+    return getInstance().getCfgContainer(RunninglightCfg.class).getCfgBeanList();
   }
 
   public static ScratchCardsCfg getScratchCardsCfg(int key) {
