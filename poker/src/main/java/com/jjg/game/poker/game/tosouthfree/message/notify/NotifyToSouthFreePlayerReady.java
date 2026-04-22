@@ -6,7 +6,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.poker.game.tosouthfree.constant.ToSouthFreeConstant;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthFreeConstant.MsgBean.NOTIFY_PLAYER_READY, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH_FREE, cmd = ToSouthFreeConstant.MsgBean.NOTIFY_PLAYER_READY, resp = true)
 @ProtoDesc("通知南方前进-免费玩家准备")
 public class NotifyToSouthFreePlayerReady extends AbstractNotice {
     @ProtoDesc("玩家id")

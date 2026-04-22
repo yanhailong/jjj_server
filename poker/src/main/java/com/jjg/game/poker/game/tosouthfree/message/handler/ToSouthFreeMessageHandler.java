@@ -16,7 +16,7 @@ import com.jjg.game.sampledata.bean.RoomCfg;
 import org.springframework.stereotype.Component;
 
 @Component
-@MessageType(value = MessageConst.MessageTypeDef.TO_SOUTH)
+@MessageType(value = MessageConst.MessageTypeDef.TO_SOUTH_FREE)
 public class ToSouthFreeMessageHandler {
 
     private final RoomManager roomManager;
