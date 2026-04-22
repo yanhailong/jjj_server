@@ -111,6 +111,7 @@ public class ToSouthFreeSettlementPhase extends BaseSettlementPhase<ToSouthFreeG
                     int transactionItemId = controller.getGameTransactionItemId();
                     int goldCfgId = ItemUtils.getGoldItemId();
                     int diamondCfgId = ItemUtils.getDiamondItemId();
+                    int shellCfgId = ItemUtils.getShellItemId();
                     Map<Long, Long> positiveMap = settlementMap.entrySet().stream()
                             .filter(entry2 -> entry2.getValue() != null && entry2.getValue() > 0)
                             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -122,7 +123,7 @@ public class ToSouthFreeSettlementPhase extends BaseSettlementPhase<ToSouthFreeG
                             long l1 = loseAmount / positiveMap.size();
                             settlementMap2.put(playerId, -gold);
                             positiveMap.forEach((k, v) -> {
-                                settlementMap2.put(k,v-l1+l);
+                                settlementMap2.put(k, v - l1 + l);
                             });
 
                         }
@@ -132,10 +133,22 @@ public class ToSouthFreeSettlementPhase extends BaseSettlementPhase<ToSouthFreeG
                             long l = diamond / positiveMap.size();
 //                          18000 - 26000 = -8000
                             long l1 = l - loseAmount;
-                            settlementMap2.put(playerId, diamond);
+                            settlementMap2.put(playerId, -diamond);
                             positiveMap.forEach((k, v) -> {
 //                                26000 - 8000
-                                settlementMap2.put(k,v-l1+l);
+                                settlementMap2.put(k, v - l1 + l);
+                            });
+                        }
+                    } else if (transactionItemId == shellCfgId) {
+                        long shell = gamePlayer.getShell();
+                        if (shell < loseAmount) {
+                            long l = shell / positiveMap.size();
+//                          18000 - 26000 = -8000
+                            long l1 = loseAmount / positiveMap.size();
+                            settlementMap2.put(playerId, -shell);
+                            positiveMap.forEach((k, v) -> {
+//                                26000 - 8000
+                                settlementMap2.put(k, v - l1 + l);
                             });
                         }
                     }

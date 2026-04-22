@@ -137,6 +137,8 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
                 return gameRunInfo;
             }
 
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getRoomCfgId());
+
             playerGameData.addSelectedArea(areaId);
 
             //中奖的次数
@@ -191,17 +193,14 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
                     int goldTrainCount = generateManager.inversAllWinGoldTrainCount(allWinSpecialAuxiliaryCfg);
                     if (goldTrainCount > 0) {
                         long addGold = allAddGold * goldTrainCount;
-                        CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_INVEST_REWARD);
-                        if (!result.success()) {
-                            log.warn("[Wealth Bank] 投资游戏金火车给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                            gameRunInfo.setCode(result.code);
+                        rewardFromBigPool(gameRunInfo, playerGameData, addGold, AddType.SLOTS_INVEST_REWARD);
+                        if (!gameRunInfo.success()) {
+                            log.warn("投资游戏金火车给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
                             return gameRunInfo;
                         }
-                        gameRunInfo.addAllWinGold(addGold);
-
                         gameRunInfo.setInvestRewardGoldTrainCount(goldTrainCount);
                         gameRunInfo.setInvestRewardGold(allAddGold);
-                        player = result.data;
+                        player = playerGameData.getPlayer();
                         log.debug("[Wealth Bank] 小地图3次都中奖，添加金火车的金币 gameType = {},roomCfgId = {},addGold = {}", this.gameType, playerGameData.getRoomCfgId(), addGold);
                     }
                 }
@@ -217,6 +216,8 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
                 playerController.setPlayer(player);
             }
             playerGameData.clearInvers();
+
+            gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
         } catch (Exception e) {
             log.error("[Wealth Bank] ", e);
             gameRunInfo.setCode(Code.EXCEPTION);

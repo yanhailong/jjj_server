@@ -410,6 +410,8 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                             itemInfo.count = deductResult.data.getDiamond();
                         } else if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
                             itemInfo.count = deductResult.data.getGoldNum();
+                        } else if (itemCfg.getType() == GameConstant.Item.TYPE_SHELL) {
+                            itemInfo.count = deductResult.data.getShell();
                         } else {
                             Long num = deductResult.data.getChangeEndItemNum().get(en.getKey());
                             if (num != null) {

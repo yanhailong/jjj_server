@@ -10,6 +10,7 @@ public class OnlinePlayerVo {
     private int createTime;
     private long gold;
     private long diamond;
+    private long shell;
     private int registerChannel;
     private int gameType;
     private int roomCfgId;
@@ -52,6 +53,14 @@ public class OnlinePlayerVo {
 
     public void setDiamond(long diamond) {
         this.diamond = diamond;
+    }
+
+    public long getShell() {
+        return shell;
+    }
+
+    public void setShell(long shell) {
+        this.shell = shell;
     }
 
     public int getRegisterChannel() {

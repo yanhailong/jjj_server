@@ -35,6 +35,8 @@ public class PlayerAndAccountVo {
     private long gold;
     //钻石
     private long diamond;
+    //贝币
+    private long shell;
     //保险箱金币
     private long safeBoxGold;
     //保险箱钻石
@@ -200,6 +202,14 @@ public class PlayerAndAccountVo {
 
     public void setDiamond(long diamond) {
         this.diamond = diamond;
+    }
+
+    public long getShell() {
+        return shell;
+    }
+
+    public void setShell(long shell) {
+        this.shell = shell;
     }
 
     public long getSafeBoxGold() {
