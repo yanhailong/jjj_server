@@ -38,16 +38,16 @@ public class DecryptRequestBodyAdvice implements RequestBodyAdvice {
         //获取请求体
         String encryptedBody = new BufferedReader(new InputStreamReader(inputMessage.getBody(), StandardCharsets.UTF_8))
                 .lines().collect(Collectors.joining("\n"));
-        String decryptedBody = encryptedBody;
-//        String decryptedBody = null;
-//        try {
-//            decryptedBody = CryptoUtils.getDecryptRequest(encryptedBody);
-//        } catch (Exception e) {
-//            log.error("请求解密失败", e);
-//        }
-//        if (decryptedBody == null) {
-//            throw new DecryptException();
-//        }
+//        String decryptedBody = encryptedBody;
+        String decryptedBody = null;
+        try {
+            decryptedBody = CryptoUtils.getDecryptRequest(encryptedBody);
+        } catch (Exception e) {
+            log.error("请求解密失败", e);
+        }
+        if (decryptedBody == null) {
+            throw new DecryptException();
+        }
         String finalDecryptedBody = decryptedBody;
         return new HttpInputMessage() {
             @Override
