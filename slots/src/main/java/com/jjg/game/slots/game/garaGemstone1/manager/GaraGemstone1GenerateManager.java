@@ -7,10 +7,13 @@ import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRollerCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
+import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.garaGemstone1.GaraGemstone1Constant;
 import com.jjg.game.slots.game.garaGemstone1.data.GaraGemstone1AwardLineInfo;
 import com.jjg.game.slots.game.garaGemstone1.data.GaraGemstone1MultiplyAxisInfo;
 import com.jjg.game.slots.game.garaGemstone1.data.GaraGemstone1ResultLib;
+import com.jjg.game.slots.game.luckymouse.LuckyMouseConstant;
+import com.jjg.game.slots.game.luckymouse.data.LuckyMouseResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import jodd.util.StringUtil;
 import org.springframework.stereotype.Component;
@@ -24,9 +27,13 @@ public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<G
         super(GaraGemstone1ResultLib.class);
     }
 
-    /** 倍数轴配置列表，从 SpecialPlay 5055011 加载 */
+    /**
+     * 倍数轴配置列表，从 SpecialPlay 5055011 加载
+     */
     private List<GaraGemstone1MultiplyAxisInfo> multiplyAxisInfoList;
-    /** 倍数轴权重总和，用于加权随机 */
+    /**
+     * 倍数轴权重总和，用于加权随机
+     */
     private int multiplyAxisWeightTotal;
 
     @Override
@@ -42,9 +49,9 @@ public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<G
     /**
      * 从 SpecialPlay.xlsx 5055011 加载倍数轴配置。
      * 配置格式：iconId_times_weight|iconId_times_weight|...
-     *   iconId : 符号ID（需在 BaseRoller 20550114 elements 中存在）
-     *   times  : 倍数值（1/2/3/5/10/15），奖金符号填0
-     *   weight : 权重
+     * iconId : 符号ID（需在 BaseRoller 20550114 elements 中存在）
+     * times  : 倍数值（1/2/3/5/10/15），奖金符号填0
+     * weight : 权重
      * 示例：10_1_5000|11_2_3000|12_3_1000|13_5_500|14_10_400|15_15_100
      */
     private void loadMultiplyAxisConfig() {
@@ -146,7 +153,7 @@ public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<G
             log.warn("倍数轴滚轴配置为空 rollerId={}", GaraGemstone1Constant.BaseRollerGroup.MULTIPLY_AXIS_ROLLER_ID);
             int[] newArr = new int[originalArr.length + 3];
             System.arraycopy(originalArr, 0, newArr, 0, originalArr.length);
-            newArr[originalArr.length]     = selectedInfo.getIconId();
+            newArr[originalArr.length] = selectedInfo.getIconId();
             newArr[originalArr.length + 1] = selectedInfo.getIconId();
             newArr[originalArr.length + 2] = selectedInfo.getIconId();
             return newArr;
@@ -176,16 +183,16 @@ public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<G
         }
 
         // 取前、中、后（首尾相连）
-        int prevPos    = (centerPos - 1 + size) % size;
-        int nextPos    = (centerPos + 1) % size;
-        int prevIcon   = elements.get(prevPos);
+        int prevPos = (centerPos - 1 + size) % size;
+        int nextPos = (centerPos + 1) % size;
+        int prevIcon = elements.get(prevPos);
         int centerIcon = elements.get(centerPos);
-        int nextIcon   = elements.get(nextPos);
+        int nextIcon = elements.get(nextPos);
 
         // --- 5. 构建扩展数组（第四轴 index 10=上格, 11=中格/选定, 12=下格）---
         int[] newArr = new int[originalArr.length + 3];
         System.arraycopy(originalArr, 0, newArr, 0, originalArr.length);
-        newArr[originalArr.length]     = prevIcon;    // index 10: 第四轴上格
+        newArr[originalArr.length] = prevIcon;    // index 10: 第四轴上格
         newArr[originalArr.length + 1] = centerIcon;  // index 11: 第四轴中格（倍数选定格）
         newArr[originalArr.length + 2] = nextIcon;    // index 12: 第四轴下格
 
@@ -214,11 +221,49 @@ public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<G
     }
 
 
-    public GaraGemstone1ResultLib checkAward(int[] arr, GaraGemstone1ResultLib lib) throws Exception {
+    public GaraGemstone1ResultLib checkAward(int[] arr, GaraGemstone1ResultLib lib, boolean freeModel) throws Exception {
 
+        lib.setGameType(this.gameType);
 
+        int newLength = arr.length - 3;
+        int[] newArr = new int[newLength];
+        System.arraycopy(arr, 0, newArr, 0, newLength);
+        int[] extended = appendMultiplyAxisIcons(newArr, lib);
+        lib.setIconArr(extended);
 
-        return checkAward(arr, lib, false);
+        //检查连线
+        List<GaraGemstone1AwardLineInfo> awardLineInfoList = winLines(lib, freeModel);
+        lib.setAwardLineInfoList(awardLineInfoList);
+
+        //检查指定图案
+        List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = assignPattern(lib);
+        lib.addSpecialAuxiliaryInfo(specialAuxiliaryInfoList);
+
+        //检查满线图案_x连
+        List<GaraGemstone1AwardLineInfo> fullLineInfoList = fullLine(lib);
+        lib.addAllAwardLineInfo(fullLineInfoList);
+
+        //检查全局分散图案
+        List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
+        lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
+
+        //检查满线图案_数量
+        List<GaraGemstone1AwardLineInfo> fullLineCountInfoList = fullLineCount(lib);
+        lib.addAllAwardLineInfo(fullLineCountInfoList);
+
+        //检查连线分散数量
+        List<GaraGemstone1AwardLineInfo> lineDispersionCount = lineDispersionCount(lib);
+        lib.addAllAwardLineInfo(lineDispersionCount);
+
+        //计算倍数
+        calTimes(lib);
+
+        return lib;
     }
 
+    @Override
+    public void calTimes(GaraGemstone1ResultLib lib) throws Exception {
+        //第4列中间图标 倍数 * 中奖线
+        lib.addTimes(lib.getMultiplyAxisTimes() * calLineTimes(lib.getAwardLineInfoList()));
+    }
 }
