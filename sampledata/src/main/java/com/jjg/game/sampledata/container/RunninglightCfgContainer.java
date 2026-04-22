@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.ComingSoonCfg;
+import com.jjg.game.sampledata.bean.RunninglightCfg;
 
 /**
- * ComingSoon.xlsx配置管理容器
+ * runninglight.xlsx配置管理容器
  *
- * @excelName ComingSoon.xlsx
- * @sheetName ComingSoon
+ * @excelName runninglight.xlsx
+ * @sheetName runninglight
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class ComingSoonCfgContainer extends BaseCfgContainer<ComingSoonCfg> {
+public class RunninglightCfgContainer extends BaseCfgContainer<RunninglightCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -27,23 +27,23 @@ public class ComingSoonCfgContainer extends BaseCfgContainer<ComingSoonCfg> {
   }
 
   @Override
-  public ComingSoonCfgContainer getNewContainer(){
-    return new ComingSoonCfgContainer();
+  public RunninglightCfgContainer getNewContainer(){
+    return new RunninglightCfgContainer();
   }
 
-  public ComingSoonCfgContainer() {
+  public RunninglightCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("ComingSoon.xlsx");
+    excelNameList.add("runninglight.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected ComingSoonCfg createNewBean() {
-    return new ComingSoonCfg();
+  protected RunninglightCfg createNewBean() {
+    return new RunninglightCfg();
   }
 }

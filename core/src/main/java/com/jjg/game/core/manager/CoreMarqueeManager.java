@@ -5,6 +5,8 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.MarsCurator;
+import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.timer.TimerCenter;
@@ -17,7 +19,10 @@ import com.jjg.game.core.dao.MarqueeDao;
 import com.jjg.game.core.data.LanguageData;
 import com.jjg.game.core.data.LanguageParamData;
 import com.jjg.game.core.data.Marquee;
+import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.pb.*;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +31,7 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -33,7 +39,7 @@ import java.util.stream.Collectors;
  * @date 2025/8/13 14:20
  */
 @Component
-public class CoreMarqueeManager implements TimerListener {
+public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderListener, ConfigExcelChangeListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -44,6 +50,9 @@ public class CoreMarqueeManager implements TimerListener {
     private MarsCurator marsCurator;
     @Autowired
     private ClusterSystem clusterSystem;
+
+    //global表中关于机器人跑马灯的配置
+    private final int GLOBAL_ROBOT_MARQUEE_CFG_ID = 126;
 
     //排序后的跑马灯列表,  在列表越靠后，越优先
     private LinkedList<Marquee> sortedMarquees;
@@ -72,10 +81,15 @@ public class CoreMarqueeManager implements TimerListener {
     private final int MAX_MARQUEE_COUNT = 50;
 
     private TimerEvent<String> checkEvent;
+    private TimerEvent<String> robotEvent;
+
+    private AtomicBoolean init = new AtomicBoolean(false);
 
     public void init() {
         loadAllmarquee();
         addCheckEvent();
+        init.set(true);
+        addRobotMarqueeTimerEvent();
     }
 
     private void addCheckEvent() {
@@ -163,6 +177,7 @@ public class CoreMarqueeManager implements TimerListener {
         clearMarqueeState(marquee.getId());
         initNextPlayTime(marquee);
 
+        this.marqueeMap.put(marquee.getId(), marquee);
         switch (marquee.getType()) {
             case GameConstant.Marquee.PLAYER_WIN -> {
                 List<Marquee> marqueeList;
@@ -196,10 +211,9 @@ public class CoreMarqueeManager implements TimerListener {
             }
         }
 
-        this.marqueeMap.put(marquee.getId(), marquee);
-
-        log.debug("添加跑马灯后打印 map.size = {}", this.marqueeMap.size());
-        check();
+        log.debug("添加跑马灯后打印 sortedMarquees.size = {},playerWinSortedMarquees.size = {},activitySortedMarquees.size = {},map.size = {}",
+                this.sortedMarquees == null ? 0 : this.sortedMarquees.size(), this.playerWinSortedMarquees == null ? 0 : this.playerWinSortedMarquees.size(), this.activitySortedMarquees == null ? 0 : this.activitySortedMarquees.size(), this.marqueeMap.size());
+//        check();
     }
 
     /**
@@ -258,7 +272,7 @@ public class CoreMarqueeManager implements TimerListener {
         return list
                 .stream()
                 .sorted(Comparator
-                        .comparingInt(com.jjg.game.core.data.Marquee::getCreateTime).reversed()  // 按 createTime 降序
+                        .comparingInt(com.jjg.game.core.data.Marquee::getCreateTime)  // 按 createTime 降序
                 )
                 .collect(Collectors.toCollection(LinkedList::new));
     }
@@ -299,11 +313,15 @@ public class CoreMarqueeManager implements TimerListener {
     public void onTimer(TimerEvent e) {
         if (e == this.checkEvent) {
             check();
+        } else if (e == this.robotEvent) {
+            handleRobotMarqueeEvent();
         } else {
             String[] arr = e.getParameter().toString().split("_");
-            int id = Integer.parseInt(arr[1]);
-            if ("notifyStopEvent".equals(arr[0])) {
-                notifyClientStopMarquee(id);
+            if (arr.length > 1) {
+                int id = Integer.parseInt(arr[1]);
+                if ("notifyStopEvent".equals(arr[0])) {
+                    notifyClientStopMarquee(id);
+                }
             }
         }
     }
@@ -602,8 +620,7 @@ public class CoreMarqueeManager implements TimerListener {
     }
 
     private boolean isBackendMarquee(Marquee marquee) {
-        return marquee.getType() != GameConstant.Marquee.PLAYER_WIN
-                && marquee.getType() != GameConstant.Marquee.ACTIVITY;
+        return marquee.getType() != GameConstant.Marquee.PLAYER_WIN && marquee.getType() != GameConstant.Marquee.ACTIVITY;
     }
 
     private int getPlayDuration(Marquee marquee) {
@@ -638,9 +655,9 @@ public class CoreMarqueeManager implements TimerListener {
             return null;
         }
 
-        ListIterator<Marquee> it = marquees.listIterator(marquees.size());
-        while (it.hasPrevious()) {
-            Marquee marquee = it.previous();
+        ListIterator<Marquee> it = marquees.listIterator(0);
+        while (it.hasNext()) {
+            Marquee marquee = it.next();
             if (marquee.getStartTime() < 1) {
                 if (canFitBeforeBackend(marquee, now, nextBackendPlayTime)) {
                     return marquee;
@@ -712,9 +729,9 @@ public class CoreMarqueeManager implements TimerListener {
         int globalNextPlayTime = this.nextBackendAvailableTime;
         int nextPlayTime = 0;
         boolean blockOtherTypes = false;
-        ListIterator<Marquee> it = this.sortedMarquees.listIterator(this.sortedMarquees.size());
-        while (it.hasPrevious()) {
-            Marquee marquee = it.previous();
+        ListIterator<Marquee> it = this.sortedMarquees.listIterator(0);
+        while (it.hasNext()) {
+            Marquee marquee = it.next();
             if (now > marquee.getEndTime()) {
                 removeExpiredMarquee(it, marquee, "移除过期跑马灯 id = {}");
                 continue;
@@ -747,4 +764,82 @@ public class CoreMarqueeManager implements TimerListener {
         private static final BackendSchedule EMPTY = new BackendSchedule(null, 0, false);
     }
 
+    @Override
+    public void initSampleCallbackCollector() {
+        // 添加配置表监听
+        addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::addRobotMarqueeTimerEvent);
+    }
+
+    @Override
+    public void isLeader() {
+        addRobotMarqueeTimerEvent();
+    }
+
+    @Override
+    public void notLeader() {
+        removeRobotEvent();
+    }
+
+    private void removeRobotEvent() {
+        if (this.robotEvent != null) {
+            this.timerCenter.remove(this.robotEvent);
+            this.robotEvent = null;
+        }
+    }
+
+    /**
+     * 添加机器人跑马灯的定时任务
+     */
+    private void addRobotMarqueeTimerEvent() {
+        if (!this.init.get() || !this.marsCurator.isMaster() || !clusterSystem.nodeConfig.getType().equals(NodeType.HALL.name())) {
+            return;
+        }
+
+        GlobalConfigCfg cfg = GameDataManager.getGlobalConfigCfg(GLOBAL_ROBOT_MARQUEE_CFG_ID);
+        if (cfg == null || !cfg.getBoolValue()) {
+            removeRobotEvent();
+            return;
+        }
+
+        if (cfg.getIntValue() < GameConstant.Marquee.PLAYER_WIN_INTERVAL * 1000) {
+            removeRobotEvent();
+            log.warn("设置的机器人跑马灯间隔时间太短");
+            return;
+        }
+
+        if (this.robotEvent != null) {
+            if (cfg.getIntValue() == this.robotEvent.getIntervalTime()) {
+                return;
+            }
+            removeRobotEvent();
+        }
+
+        this.robotEvent = new TimerEvent<>(this, "robotEvent", cfg.getIntValue()).withTimeUnit(TimeUnit.MILLISECONDS);
+        this.timerCenter.add(this.robotEvent);
+    }
+
+    /**
+     * 处理机器人跑马灯事件
+     */
+    private void handleRobotMarqueeEvent() {
+        //随机一个机器人配置
+        RobotCfg robotCfg = RandomUtils.randomEle(GameDataManager.getRobotCfgList(), Integer.MAX_VALUE);
+        if (robotCfg == null) {
+            log.warn("执行机器人跑马灯时，获取 robotCfg 失败");
+            removeRobotEvent();
+            return;
+        }
+        //随机一个跑马灯配置
+        RunninglightCfg runninglightCfg = RandomUtils.randomEle(GameDataManager.getRunninglightCfgList(), Integer.MAX_VALUE);
+        if (runninglightCfg == null) {
+            log.warn("执行机器人跑马灯时，获取 runninglightCfg 失败");
+            removeRobotEvent();
+            return;
+        }
+        //随机押注金额
+        int bet = RandomUtils.randomEle(runninglightCfg.getBetList(), Integer.MAX_VALUE);
+        //随机中奖倍数
+        int times = RandomUtils.randomEle(runninglightCfg.getTimes(), Integer.MAX_VALUE);
+        playerWinMarquee(robotCfg.getNameId(), runninglightCfg.getMarquee(), runninglightCfg.getNameid(), (long) bet * times);
+    }
 }
