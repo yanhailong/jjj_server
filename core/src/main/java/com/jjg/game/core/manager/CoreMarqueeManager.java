@@ -1,5 +1,6 @@
 package com.jjg.game.core.manager;
 
+import cn.hutool.core.util.NumberUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
@@ -434,7 +435,8 @@ public class CoreMarqueeManager implements TimerListener {
         List<LanguageParamData> params = new ArrayList<>();
         addMarqueeParam(params, GameConstant.Marquee.CLIENT_NORMAL_TYPE, playerNickName);
         addMarqueeParam(params, GameConstant.Marquee.CLIENT_LANG_TYPE, gameLangId + "");
-        addMarqueeParam(params, GameConstant.Marquee.CLIENT_NORMAL_TYPE, value + "");
+        String valueStr = NumberUtil.decimalFormat(",###", value);
+        addMarqueeParam(params, GameConstant.Marquee.CLIENT_NORMAL_TYPE, valueStr);
         contentData.setParams(params);
 
         marquee.setContent(contentData);
@@ -744,4 +746,5 @@ public class CoreMarqueeManager implements TimerListener {
     private record BackendSchedule(Marquee readyMarquee, int nextPlayTime, boolean blockOtherTypes) {
         private static final BackendSchedule EMPTY = new BackendSchedule(null, 0, false);
     }
+
 }

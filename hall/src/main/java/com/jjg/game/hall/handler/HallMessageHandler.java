@@ -801,7 +801,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
         //如果游戏状态下架或者已经关闭禁止进入
         if (!hallService.canJoinGame(gameType)) {
             log.debug("游戏已关闭，选择游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
-            return new CommonResult<>(Code.FORBID);
+            return new CommonResult<>(Code.GAME_IS_MAINTAIN);
         }
 
         List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(playerController.getPlayer(), gameType);
