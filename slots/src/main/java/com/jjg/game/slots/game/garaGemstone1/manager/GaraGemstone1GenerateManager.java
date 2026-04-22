@@ -85,8 +85,8 @@ public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<G
      */
     public void generateAxisIcons(GaraGemstone1ResultLib lib) {
         int[] originalArr = lib.getIconArr();
-        int[] extended = appendMultiplyAxisIcons(originalArr, lib);
-        lib.setIconArr(extended);
+//        int[] extended = appendMultiplyAxisIcons(originalArr, lib);
+        lib.setIconArr(originalArr);
     }
 
     /**
@@ -212,4 +212,13 @@ public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<G
         }
         return multiplyAxisInfoList.get(multiplyAxisInfoList.size() - 1);
     }
+
+
+    public GaraGemstone1ResultLib checkAward(int[] arr, GaraGemstone1ResultLib lib) throws Exception {
+
+
+
+        return checkAward(arr, lib, false);
+    }
+
 }
