@@ -3,13 +3,10 @@ package com.jjg.game.slots.game.garaGemstone1.manager;
 import cn.hutool.core.collection.CollUtil;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRollerCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
-import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.garaGemstone1.GaraGemstone1Constant;
 import com.jjg.game.slots.game.garaGemstone1.data.GaraGemstone1AwardLineInfo;
 import com.jjg.game.slots.game.garaGemstone1.data.GaraGemstone1MultiplyAxisInfo;
@@ -19,10 +16,7 @@ import jodd.util.StringUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @Component
 public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<GaraGemstone1AwardLineInfo, GaraGemstone1ResultLib> {
@@ -81,17 +75,34 @@ public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<G
     }
 
     // -------------------------------------------------------------------------
-    // 倍数轴：checkAward 重写，在检查3×3中奖之前先生成第四轴图标并写入lib
-    // 覆盖 boolean freeModel 版本，因为 generateOne 和 generateFreeOne 最终都调用这个
+    // 游戏时动态生成第四轴（由 AbstractGaraGemstone1GameManager.normal() 调用）
     // -------------------------------------------------------------------------
 
-    @Override
-    public GaraGemstone1ResultLib checkAward(int[] arr, GaraGemstone1ResultLib lib, boolean freeModel) throws Exception {
-        // 生成倍数轴3个图标，追加到arr末尾，并在lib中记录倍数/奖池
-        int[] extendedArr = appendMultiplyAxisIcons(arr, lib);
-        // 用扩展后的数组（含第四轴）继续走父类逻辑：中奖检查 + calTimes
-        return super.checkAward(extendedArr, lib, freeModel);
+    /**
+     * 根据权重随机选出倍数轴符号，生成 [上格, 中格, 下格] 三个图标，
+     * 将其追加到 lib.iconArr 末尾，并在 lib 中记录倍数值和奖池ID。
+     * 供 AbstractGaraGemstone1GameManager.normal() 在游戏时调用。
+     */
+    public void generateAxisIcons(GaraGemstone1ResultLib lib) {
+        int[] originalArr = lib.getIconArr();
+        int[] extended = appendMultiplyAxisIcons(originalArr, lib);
+        lib.setIconArr(extended);
     }
+
+    /**
+     * 计算连线总倍数（外部可调用）。
+     */
+    public long calLineTimes(List<GaraGemstone1AwardLineInfo> list) {
+        return CollUtil.isEmpty(list)
+                ? 0
+                : list.stream()
+                .mapToInt(GaraGemstone1AwardLineInfo::getBaseTimes)
+                .sum();
+    }
+
+    // -------------------------------------------------------------------------
+    // 内部方法
+    // -------------------------------------------------------------------------
 
     /**
      * 根据权重随机选出倍数轴符号，从 BaseRoller 20550114 中取连续3格图标（前、中、后），
@@ -200,78 +211,5 @@ public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<G
             }
         }
         return multiplyAxisInfoList.get(multiplyAxisInfoList.size() - 1);
-    }
-
-    // -------------------------------------------------------------------------
-    // 中奖倍数计算：3×3 连线总和 × 倍数轴倍数
-    // -------------------------------------------------------------------------
-
-    @Override
-    public void calTimes(GaraGemstone1ResultLib lib) throws Exception {
-        long lineTimes = calLineTimes(lib.getAwardLineInfoList());
-        long axisMultiplier = lib.getMultiplyAxisTimes() > 0 ? lib.getMultiplyAxisTimes() : 1;
-        lib.addTimes(lineTimes * axisMultiplier);
-    }
-
-    // -------------------------------------------------------------------------
-    // 全局散花检查（触发 jackpot）
-    // -------------------------------------------------------------------------
-
-    @Override
-    protected List<SpecialAuxiliaryInfo> overallDisperse(GaraGemstone1ResultLib lib) {
-        Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE_GLOBAL);
-        if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
-            return null;
-        }
-
-        // 只统计3×3区域（index 1-9），排除第四轴图标（index 10-12）
-        int[] grid3x3 = Arrays.copyOf(lib.getIconArr(), 10);
-        Map<Integer, Integer> showCountMap = checkIconShowCount(grid3x3);
-        log.debug("检查全局分散");
-
-        for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
-            BaseElementRewardCfg cfg = en.getValue();
-            int elementsCount = 0;
-            for (int iconId : cfg.getElementId()) {
-                Integer count = showCountMap.get(iconId);
-                if (count != null) {
-                    elementsCount += count;
-                }
-            }
-            if (elementsCount != cfg.getRewardNum()) {
-                continue;
-            }
-            // 触发小游戏（本游戏无免费模式，此处留空）
-            if (cfg.getFeatureTriggerId() != null && !cfg.getFeatureTriggerId().isEmpty()) {
-                Set<Integer> triggerFreeSet = SlotsConst.specialModeTriggerFreeModeIds.get(this.gameType);
-                if (triggerFreeSet != null && !triggerFreeSet.isEmpty()) {
-                    cfg.getFeatureTriggerId().forEach(miniGameId ->
-                        triggerFreeSet.forEach(libType -> {
-                            SpecialAuxiliaryInfo info = triggerMiniGame(libType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
-                            if (info != null) {
-                                lib.addSpecialAuxiliaryInfo(info);
-                            }
-                        })
-                    );
-                }
-            }
-            if (cfg.getJackpotID() > 0) {
-                lib.setJackpotId(cfg.getJackpotID());
-                break;
-            }
-        }
-        return null;
-    }
-
-    // -------------------------------------------------------------------------
-    // 辅助方法
-    // -------------------------------------------------------------------------
-
-    private int calLineTimes(List<GaraGemstone1AwardLineInfo> list) {
-        return CollUtil.isEmpty(list)
-                ? 0
-                : list.stream()
-                .mapToInt(GaraGemstone1AwardLineInfo::getBaseTimes)
-                .sum();
     }
 }

@@ -94,7 +94,13 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
 
     @Override
     public GaraGemstone1GameRunInfo normal(GaraGemstone1GameRunInfo gameRunInfo, GaraGemstone1PlayerGameData playerGameData, long betValue, GaraGemstone1ResultLib resultLib) {
-        long addTimes = resultLib.getTimes();
+        // 游戏时动态生成第四轴图标，写入 resultLib.iconArr 并设置 multiplyAxisTimes/axisJackpotId
+        gameGenerateManager.generateAxisIcons(resultLib);
+
+        long lineTimes = gameGenerateManager.calLineTimes(resultLib.getAwardLineInfoList());
+        long axisMultiplier = resultLib.getMultiplyAxisTimes() > 0 ? resultLib.getMultiplyAxisTimes() : 1;
+        long addTimes = lineTimes * axisMultiplier;
+
         gameRunInfo.setStatus(GaraGemstone1Constant.Status.NORMAL);
         log.debug("id={},data={}", resultLib.getId(), JSON.toJSONString(resultLib));
         gameRunInfo.setIconArr(resultLib.getIconArr());
@@ -183,7 +189,7 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
 
     @Override
     public int getGameType() {
-        return CoreConst.GameType.LUCKY_MOUSE;
+        return CoreConst.GameType.GARA_GEMSTONE_1;
     }
 
     @Override
