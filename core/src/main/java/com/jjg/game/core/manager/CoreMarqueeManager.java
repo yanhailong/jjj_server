@@ -211,10 +211,6 @@ public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderList
             }
         }
 
-//        for (Marquee me : this.playerWinSortedMarquees) {
-//            System.out.println(JSON.toJSONString(me));
-//        }
-
         log.debug("添加跑马灯后打印 sortedMarquees.size = {},playerWinSortedMarquees.size = {},activitySortedMarquees.size = {},map.size = {}",
                 this.sortedMarquees == null ? 0 : this.sortedMarquees.size(), this.playerWinSortedMarquees == null ? 0 : this.playerWinSortedMarquees.size(), this.activitySortedMarquees == null ? 0 : this.activitySortedMarquees.size(), this.marqueeMap.size());
 //        check();
@@ -294,7 +290,6 @@ public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderList
         // 先评估后台紧急跑马灯：如果当前就该播，立即接管；否则根据下一次触发时间决定是否允许低优先级穿插。
         BackendSchedule backendSchedule = inspectBackendMarquees(now);
         if (backendSchedule.readyMarquee() != null) {
-            System.out.println(1);
             playMarquee(backendSchedule.readyMarquee(), now);
             return;
         }
@@ -304,14 +299,12 @@ public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderList
 
         Marquee playerWinMarquee = findPendingMarquee(this.playerWinSortedMarquees, now, backendSchedule.nextPlayTime(), "移除过期中奖跑马灯 id = {}");
         if (playerWinMarquee != null) {
-            System.out.println(2);
             playMarquee(playerWinMarquee, now);
             return;
         }
 
         Marquee activityMarquee = findPendingMarquee(this.activitySortedMarquees, now, backendSchedule.nextPlayTime(), "移除过期活动跑马灯 id = {}");
         if (activityMarquee != null) {
-            System.out.println(3);
             playMarquee(activityMarquee, now);
         }
     }
@@ -575,11 +568,9 @@ public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderList
      */
     private void clearMarqueeState(int id) {
         synchronized (lock) {
-            System.out.println("nowRunMarqueeId = " + nowRunMarqueeId + ", id = " + id);
             if (nowRunMarqueeId == id) {
                 nowRunMarqueeId = 0;
                 nowRunMarqueeEndTime = 0;
-                System.out.println("clearMarqueeState");
             }
             if (lastBackendMarqueeId == id) {
                 lastBackendMarqueeId = 0;
@@ -649,7 +640,6 @@ public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderList
             if (nowRunMarqueeId != 0 && now >= nowRunMarqueeEndTime) {
                 nowRunMarqueeId = 0;
                 nowRunMarqueeEndTime = 0;
-                System.out.println("finishCurrentIfNeed");
             }
         }
     }
@@ -707,7 +697,6 @@ public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderList
         if (!update(marquee.getId(), endTime)) {
             return;
         }
-        System.out.println("设置结束时间 now = " + now + ", endTime = " + endTime);
 
         if (isBackendMarquee(marquee)) {
             int nextPlayTime = now + getCycleDuration(marquee);
