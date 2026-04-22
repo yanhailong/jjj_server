@@ -55,6 +55,8 @@ public class ResQueryPlayerInfo extends AbstractResponse {
     public List<Integer> bindThirdAccountList;
     @ProtoDesc("已经开启的第三方奖励")
     public List<Integer> openThirdAccountList;
+    @ProtoDesc("贝币")
+    public long shell;
 
 
     public ResQueryPlayerInfo(int code) {

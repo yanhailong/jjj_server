@@ -21,6 +21,10 @@ public class ItemOperationResult {
     private long diamond;
     //钻石变化值
     private long changeDiamondNum;
+    //变化后的贝币数量
+    private long shell;
+    //贝币变化值
+    private long changeShellNum;
 
     public Map<Integer, Long> getChangeEndItemNum() {
         return changeEndItemNum;
@@ -70,7 +74,23 @@ public class ItemOperationResult {
         this.changeDiamondNum = changeDiamondNum;
     }
 
-    public void goldChange(long changeNum,long afterNum) {
+    public long getShell() {
+        return shell;
+    }
+
+    public void setShell(long shell) {
+        this.shell = shell;
+    }
+
+    public long getChangeShellNum() {
+        return changeShellNum;
+    }
+
+    public void setChangeShellNum(long changeShellNum) {
+        this.changeShellNum = changeShellNum;
+    }
+
+    public void goldChange(long changeNum, long afterNum) {
         this.goldNum = afterNum;
         this.changeGoldNum = changeNum;
     }
@@ -78,5 +98,10 @@ public class ItemOperationResult {
     public void diamondChange(long changeNum,long afterNum) {
         this.diamond = afterNum;
         this.changeDiamondNum = changeNum;
+    }
+
+    public void shellChange(long changeNum,long afterNum) {
+        this.shell = afterNum;
+        this.changeShellNum = changeNum;
     }
 }

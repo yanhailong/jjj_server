@@ -20,6 +20,8 @@ public class ResPlayerMoney extends AbstractResponse {
     public long safeBoxGold;
     @ProtoDesc("保险箱钻石")
     public long safeBoxDiamond;
+    @ProtoDesc("贝币")
+    public long shell;
 
     public ResPlayerMoney(int code) {
         super(code);

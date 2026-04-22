@@ -183,7 +183,7 @@ public class GMController extends AbstractController {
             PFMessage pfMessage = new PFMessage(MessageConst.ToServer.REQ_REFRESH_GAME_STATUS, data);
 
             //通知大厅和游戏节点
-            clusterSystem.notifyNode(pfMessage,Set.of(NodeType.HALL.toString(), NodeType.GAME.toString())::contains);
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString(), NodeType.GAME.toString())::contains);
             //返回修改结果
             return success("common.success");
         } catch (Exception e) {
@@ -331,6 +331,7 @@ public class GMController extends AbstractController {
             vo.setNickName(p.getNickName());
             vo.setGold(p.getGold());
             vo.setDiamond(p.getDiamond());
+            vo.setShell(p.getShell());
             vo.setVipLevel(p.getVipLevel());
             vo.setIp(p.getIp());
             vo.setCreateTime(account.getCreateTime());
@@ -418,7 +419,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if (dto.currency_id() != GameConstant.Item.TYPE_DIAMOND && dto.currency_id() != GameConstant.Item.TYPE_GOLD) {
+            if (dto.currency_id() != GameConstant.Item.TYPE_DIAMOND && dto.currency_id() != GameConstant.Item.TYPE_GOLD && dto.currency_id() != GameConstant.Item.TYPE_SHELL) {
                 log.debug("修改货币时，货币类型错误 currency_type = {}", dto.currency_id());
                 return fail("common.paramerror");
             }
@@ -446,26 +447,32 @@ public class GMController extends AbstractController {
 
             long beforeGold = player.getGold();
             long beforeDiamond = player.getDiamond();
+            long beforeShell = player.getShell();
+
             long beforeSafeGold = player.getSafeBoxGold();
             long beforeSafeDiamond = player.getSafeBoxDiamond();
 
             boolean notifyNode = false;
             AddType addType = AddType.BACKEND_CHANGE_MONEY;
-            CommonResult<Player> result;
+            CommonResult<Player> result = new CommonResult<>(Code.NOT_FOUND);
             if (dto.operator_type() == 1) {  //账户
                 PlayerSessionInfo info = playerSessionService.getInfo(player.getId());
                 if (info == null || info.getGameType() == CoreConst.GameMajorType.SLOTS) {
                     if (dto.type() == 1) { //增加
                         if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
                             result = playerService.addGold(dto.playerId(), dto.quantity(), addType, dto.remark());
-                        } else {  //钻石
+                        } else if (dto.currency_id() == GameConstant.Item.TYPE_DIAMOND) {  //钻石
                             result = playerService.addDiamond(dto.playerId(), dto.quantity(), addType, dto.remark());
+                        } else {
+                            result = playerService.addShell(dto.playerId(), dto.quantity(), addType, dto.remark());
                         }
                     } else {
                         if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
                             result = playerService.deductGold(dto.playerId(), dto.quantity(), addType, dto.remark());
-                        } else {  //钻石
+                        } else if (dto.currency_id() == GameConstant.Item.TYPE_DIAMOND) { //钻石
                             result = playerService.deductDiamond(dto.playerId(), dto.quantity(), addType, dto.remark());
+                        } else {
+                            result = playerService.deductShell(dto.playerId(), dto.quantity(), addType, dto.remark());
                         }
                     }
                 } else {
@@ -487,7 +494,7 @@ public class GMController extends AbstractController {
                     PFMessage pfMessage = MessageUtil.getPFMessage(notify);
                     ClusterMessage msg = new ClusterMessage(pfMessage);
                     clusterClient.write(msg);
-                    result = new CommonResult<>(Code.SUCCESS);
+                    result.code = Code.SUCCESS;
                     notifyNode = true;
                     log.debug("通知节点修改玩家账户 node = {},notify = {}", info.getCurrentNode(), JSON.toJSONString(notify));
                 }
@@ -495,13 +502,13 @@ public class GMController extends AbstractController {
                 if (dto.type() == 1) { //增加
                     if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
                         result = playerService.addSafeBoxGold(dto.playerId(), dto.quantity(), addType, dto.remark());
-                    } else {  //钻石
+                    } else if (dto.currency_id() == GameConstant.Item.TYPE_DIAMOND) {  //钻石
                         result = playerService.addSafeBoxDiamond(dto.playerId(), dto.quantity(), addType, dto.remark());
                     }
                 } else {
                     if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
                         result = playerService.deductSafeBoxGold(dto.playerId(), dto.quantity(), addType, dto.remark());
-                    } else {  //钻石
+                    } else if (dto.currency_id() == GameConstant.Item.TYPE_DIAMOND) { //钻石
                         result = playerService.deductSafeBoxDiamond(dto.playerId(), dto.quantity(), addType, dto.remark());
                     }
                 }
@@ -516,12 +523,15 @@ public class GMController extends AbstractController {
 //                coreSendMessageManager.buildBaseInfoChangeMessage(result.data);
                 if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
                     coreSendMessageManager.buildGoldChangeMessage(result.data, dto.type() == 1 ? dto.quantity() : -dto.quantity());
-                } else {
+                } else if (dto.currency_id() == GameConstant.Item.TYPE_DIAMOND) {
                     coreSendMessageManager.buildDiamondChangeMessage(result.data, dto.type() == 1 ? dto.quantity() : -dto.quantity());
+                } else {
+                    coreSendMessageManager.buildShellChangeMessage(result.data, dto.type() == 1 ? dto.quantity() : -dto.quantity());
                 }
             }
 
-            log.info("后台修改玩家货币成功 playerId = {},beforeGold={},beforeDiamond={},beforeSafeGold={},beforeSafeDiamond={},afterGold={},afterDiamond={},afterSafeGold={},afterSafeDiamond={}", player.getId(), beforeGold, beforeDiamond, beforeSafeGold, beforeSafeDiamond, player.getGold(), player.getDiamond(), player.getSafeBoxGold(), player.getSafeBoxDiamond());
+            log.info("后台修改玩家货币成功 playerId = {},beforeGold={},beforeDiamond={},beforeShell={},beforeSafeGold={},beforeSafeDiamond={},afterGold={},afterDiamond={},afterShell={},afterSafeGold={},afterSafeDiamond={}",
+                    player.getId(), beforeGold, beforeDiamond, beforeShell, beforeSafeGold, beforeSafeDiamond, player.getGold(), player.getDiamond(), player.getShell(), player.getSafeBoxGold(), player.getSafeBoxDiamond());
             //返回修改结果
             return success("common.success");
         } catch (Exception e) {
@@ -755,6 +765,7 @@ public class GMController extends AbstractController {
                     vo.setCreateTime(player.getCreateTime());
                     vo.setGold(player.getGold());
                     vo.setDiamond(player.getDiamond());
+                    vo.setShell(player.getShell());
                     vo.setGameType(player.getGameType());
                     vo.setRoomCfgId(player.getRoomCfgId());
                 } else {

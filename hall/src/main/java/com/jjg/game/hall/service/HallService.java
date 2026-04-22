@@ -836,6 +836,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 deductResult = hallPlayerService.deductGold(playerId, avatarCfg.getBuyItem().get(1), addType, id + "", true);
             } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
                 deductResult = hallPlayerService.deductDiamond(playerId, avatarCfg.getBuyItem().get(1), addType, id + "", true);
+            } else if (itemCfg.getType() == GameConstant.Item.TYPE_SHELL) {
+                deductResult = hallPlayerService.deductShell(playerId, avatarCfg.getBuyItem().get(1), addType, id + "", true);
             } else {
                 log.debug("该配置的buyItem配置错误，配置的itemIdc错误，id = {},itemCfgId = {}", id, moneyId);
                 result.code = Code.SAMPLE_ERROR;

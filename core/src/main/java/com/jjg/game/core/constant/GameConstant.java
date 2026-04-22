@@ -41,6 +41,7 @@ public class GameConstant {
 
         int TYPE_GOLD = 99;
         int TYPE_DIAMOND = 98;
+        int TYPE_SHELL = 97;
     }
 
     public interface Marquee {

@@ -187,6 +187,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
             res.vipLevel = player.getVipLevel();
             res.gold = player.getGold();
             res.diamond = player.getDiamond();
+            res.shell = player.getShell();
             res.safeBoxGold = player.getSafeBoxGold();
             res.safeBoxDiamond = player.getSafeBoxDiamond();
             res.headImgId = player.getHeadImgId();
@@ -817,18 +818,33 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
 
         //判断是否检查钻石余额
         boolean checkDiamond = false;
+        boolean checkShell = false;
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         if (warehouseCfg.getTransactionItemId() > 0) {
             ItemCfg itemCfg = GameDataManager.getItemCfg(warehouseCfg.getTransactionItemId());
-            if (itemCfg != null && itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
-                checkDiamond = true;
+            if (itemCfg != null) {
+                if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
+                    checkDiamond = true;
+                } else if (itemCfg.getType() == GameConstant.Item.TYPE_SHELL) {
+                    checkShell = true;
+                }
             }
         }
 
         Player player = hallPlayerService.get(playerController.getPlayer().getId());
-        if (warehouseCfg.getEnterLimit() != -1 && (checkDiamond ? warehouseCfg.getEnterLimit() > player.getDiamond() : warehouseCfg.getEnterLimit() > player.getGold())) {
-            log.debug("玩家携带货币不足 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},enterLimit = {},checkDiamond = {}", playerController.playerId(), gameType, roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), warehouseCfg.getEnterLimit(), checkDiamond);
-            return new CommonResult<>(Code.NOT_ENOUGH);
+        if (warehouseCfg.getEnterLimit() != -1) {
+            if (checkDiamond && warehouseCfg.getEnterLimit() > player.getDiamond()) {
+                log.debug("玩家携带货币(钻石)不足 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},shell={},enterLimit = {},checkDiamond = {},checkShell = {}", playerController.playerId(), gameType, roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), player.getShell(), warehouseCfg.getEnterLimit(), checkDiamond, checkShell);
+                return new CommonResult<>(Code.NOT_ENOUGH);
+            }
+            if (checkShell && warehouseCfg.getEnterLimit() > player.getShell()) {
+                log.debug("玩家携带货币(贝币)不足 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},shell={},enterLimit = {},checkDiamond = {},checkShell = {}", playerController.playerId(), gameType, roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), player.getShell(), warehouseCfg.getEnterLimit(), checkDiamond, checkShell);
+                return new CommonResult<>(Code.NOT_ENOUGH);
+            }
+            if (warehouseCfg.getEnterLimit() > player.getGold()) {
+                log.debug("玩家携带货币(金币)不足 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},shell={},enterLimit = {},checkDiamond = {},checkShell = {}", playerController.playerId(), gameType, roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), player.getShell(), warehouseCfg.getEnterLimit(), checkDiamond, checkShell);
+                return new CommonResult<>(Code.NOT_ENOUGH);
+            }
         }
 
         if (info.limitPlayerLevelMin > playerController.getPlayer().getLevel()) {
@@ -842,9 +858,19 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
             return new CommonResult<>(Code.NOT_FOUND);
         }
 
-        if (warehouseCfg.getEnterMax() != -1 && (checkDiamond ? warehouseCfg.getEnterMax() < player.getDiamond() : warehouseCfg.getEnterMax() < player.getGold())) {
-            log.debug("玩家携带货币超过房间限制 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},enterMax = {},checkDiamond = {}", playerController.playerId(), gameType, roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), warehouseCfg.getEnterMax(), checkDiamond);
-            return new CommonResult<>(Code.GOLD_TOO_MUCH);
+        if (warehouseCfg.getEnterMax() != -1) {
+            if (checkDiamond && warehouseCfg.getEnterMax() < player.getDiamond()) {
+                log.debug("玩家携带货币(钻石)超过房间限制 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},shell={},enterMax = {},checkDiamond = {},checkShell = {}", playerController.playerId(), gameType, roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), player.getShell(), warehouseCfg.getEnterMax(), checkDiamond, checkShell);
+                return new CommonResult<>(Code.GOLD_TOO_MUCH);
+            }
+            if (checkShell && warehouseCfg.getEnterMax() < player.getShell()) {
+                log.debug("玩家携带货币(贝币)超过房间限制 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},shell={},enterMax = {},checkDiamond = {},checkShell = {}", playerController.playerId(), gameType, roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), player.getShell(), warehouseCfg.getEnterMax(), checkDiamond, checkShell);
+                return new CommonResult<>(Code.GOLD_TOO_MUCH);
+            }
+            if (warehouseCfg.getEnterMax() < player.getGold()) {
+                log.debug("玩家携带货币(金币)超过房间限制 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},shell={},enterMax = {},checkDiamond = {},checkShell = {}", playerController.playerId(), gameType, roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), player.getShell(), warehouseCfg.getEnterMax(), checkDiamond, checkShell);
+                return new CommonResult<>(Code.GOLD_TOO_MUCH);
+            }
         }
         return new CommonResult<>(Code.SUCCESS, info);
     }

@@ -208,11 +208,11 @@ public class CoreToServerMessageHandler {
     }
 
     /**
-     * 通知修改玩家金币修改
+     * 通知修改玩家货币修改
      */
     @Command(MessageConst.ToServer.NOTIFY_GOLD_OPERATE)
     public void notifyGoldOperate(NotifyGoldOperator notify) {
-        log.debug("收到需要修改玩家金币的消息 notify = {}", JSON.toJSONString(notify));
+        log.debug("收到需要修改玩家货币的消息 notify = {}", JSON.toJSONString(notify));
         try {
             CommonResult<Player> result;
 
@@ -220,15 +220,19 @@ public class CoreToServerMessageHandler {
 
             if (notify.type == 1) {  //增加
                 if (notify.currency_id == GameConstant.Item.TYPE_GOLD) {
-                    result = playerService.addGoldAndDiamond(notify.playerId, notify.quantity, 0, addType, true, notify.remark);
+                    result = playerService.addMoneyCoin(notify.playerId, notify.quantity, 0, 0, addType, true, notify.remark);
+                } else if (notify.currency_id == GameConstant.Item.TYPE_DIAMOND) {
+                    result = playerService.addMoneyCoin(notify.playerId, 0, notify.quantity, 0, addType, true, notify.remark);
                 } else {
-                    result = playerService.addGoldAndDiamond(notify.playerId, 0, notify.quantity, addType, true, notify.remark);
+                    result = playerService.addMoneyCoin(notify.playerId, 0, 0, notify.quantity, addType, true, notify.remark);
                 }
             } else {  //减少
                 if (notify.currency_id == GameConstant.Item.TYPE_GOLD) {
-                    result = playerService.deductGoldAndDiamond(notify.playerId, notify.quantity, 0, addType, true, notify.remark);
+                    result = playerService.deductMoneyCoin(notify.playerId, notify.quantity, 0, 0, addType, true, notify.remark);
+                } else if (notify.currency_id == GameConstant.Item.TYPE_DIAMOND) {
+                    result = playerService.deductMoneyCoin(notify.playerId, 0, notify.quantity, 0, addType, true, notify.remark);
                 } else {
-                    result = playerService.deductGoldAndDiamond(notify.playerId, 0, notify.quantity, addType, true, notify.remark);
+                    result = playerService.deductMoneyCoin(notify.playerId, 0, 0, notify.quantity, addType, true, notify.remark);
                 }
             }
 

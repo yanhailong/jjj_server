@@ -1128,18 +1128,29 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
+        return rewardFromBigPool(gameRunInfo, playerGameData, addGold, AddType.SLOTS_BET_REWARD);
+    }
+
+    /**
+     * 从奖池扣除，并给玩家加钱(普通中奖)
+     *
+     * @param gameRunInfo
+     * @param playerGameData
+     */
+    protected G rewardFromBigPool(G gameRunInfo, T playerGameData, long addGold, AddType addType) {
         if (addGold < 1) {
             return gameRunInfo;
         }
 
         if (playerGameData.getRoomType() == null) {
-            CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
+            CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, addType);
             if (!result.success()) {
                 log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
                 gameRunInfo.setCode(result.code);
                 return gameRunInfo;
             }
             gameRunInfo.setAllWinGold(addGold);
+            playerGameData.setPlayer(result.data);
         } else if (playerGameData.getRoomType() == RoomType.SLOTS_TEAM_UP_ROOM) {
             int roomCfgId = playerGameData.getRoomCfgId();
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
@@ -1148,7 +1159,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 gameRunInfo.setCode(Code.SAMPLE_ERROR);
                 return gameRunInfo;
             }
-            CommonResult<Pair<Player, Long>> result = roomSlotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getRoomId(), addGold, warehouseCfg.getTransactionItemId(), AddType.SLOTS_BET_REWARD);
+            CommonResult<Pair<Player, Long>> result = roomSlotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getRoomId(), addGold, warehouseCfg.getTransactionItemId(), addType);
             if (!result.success()) {
                 if (result.code == Code.AMOUNT_OF_RESERVES_IS_NOT_ENOUGHT) {
                     sendRoomAmountNotEnough(playerGameData.playerId());
@@ -1166,6 +1177,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
             slotsRoomManager.updatePoolValue(playerGameData.getRoomId(), result.data.getSecond());
             gameRunInfo.setAllWinGold(addGold);
+            playerGameData.setPlayer(result.data.getFirst());
         } else {
             log.warn("无法识别玩家的roomType，加钱失败 playerId = {},roomType = {}", playerGameData.playerId(), playerGameData.getRoomType());
             gameRunInfo.setCode(Code.FAIL);
@@ -1964,6 +1976,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     public long getMoneyByItemId(WarehouseCfg warehouseCfg, Player player) {
         if (warehouseCfg.getTransactionItemId() == ItemUtils.getDiamondItemId()) {
             return player.getDiamond();
+        }
+        if (warehouseCfg.getTransactionItemId() == ItemUtils.getShellItemId()) {
+            return player.getShell();
         }
         return player.getGold();
     }

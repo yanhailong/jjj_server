@@ -28,7 +28,7 @@ public class SlotsLogger extends BaseLogger {
         json.put("allWin", gameRunInfo.getAllWinGold());
         json.put("gameType", player.getGameType());
         json.put("beforeGold", gameRunInfo.getBeforeGold());
-        json.put("afterGold", player.getGold());
+        json.put("afterGold", gameRunInfo.getAfterGold());
         json.put("level", player.getLevel());
         json.put("exp", player.getExp());
         json.put("auto", gameRunInfo.isAuto());
