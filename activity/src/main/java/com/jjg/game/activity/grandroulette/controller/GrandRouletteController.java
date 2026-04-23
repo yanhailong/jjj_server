@@ -153,6 +153,12 @@ public class GrandRouletteController extends BaseActivityController implements G
             res.code = Code.ERROR_REQ;
             return res;
         }
+        //判断玩家是否绑定手机
+        Account account = accountDao.queryAccountByPlayerId(playerId);
+        if (account == null || StringUtils.isEmpty(account.getThirdAccount(LoginType.PHONE))) {
+            res.code = Code.ERROR_REQ;
+            return res;
+        }
         //获取目标金币
         GlobalConfigCfg targetCfg = GameDataManager.getGlobalConfigCfg(129);
         if (targetCfg == null) {
@@ -190,6 +196,7 @@ public class GrandRouletteController extends BaseActivityController implements G
                 }
             }
         }
+
         //根据玩家次数计算金币数量
         Integer index = timesConfig.getOrDefault(playerTimes.getFirst(), 0);
         //修改金币
@@ -204,7 +211,7 @@ public class GrandRouletteController extends BaseActivityController implements G
             data.setActivityId(activityData.getId());
             data.setEndTime(getRealEndTime());
         }
-        if (data.getEndTime() < System.currentTimeMillis()) {
+        if (data.getClaimStatus() != ActivityConstant.ClaimStatus.NOT_CLAIM || data.getEndTime() < System.currentTimeMillis()) {
             res.code = Code.ERROR_REQ;
             return res;
         }
@@ -302,6 +309,10 @@ public class GrandRouletteController extends BaseActivityController implements G
             if (openActivityData == null) {
                 return;
             }
+            if (StringUtils.isEmpty(account.getRegisterIp()) || StringUtils.isEmpty(account.getRegisterMac())) {
+                log.info("绑定手机时 注册ip或者mac为null 已经存在的ip:{} 或者mac:{}", account.getRegisterIp(), account.getRegisterMac());
+                return;
+            }
             //判断是否有上级
             long playerId = player.getId();
             long beneficiaryPlayerId = getBeneficiaryPlayerId(playerId);
@@ -310,7 +321,8 @@ public class GrandRouletteController extends BaseActivityController implements G
             }
             long activityId = openActivityData.getId();
             GrandRouletteRechargeActivityData playerActivityData = getGrandRouletteRechargeActivityData(beneficiaryPlayerId, activityId);
-            if (playerActivityData == null) {
+            if (playerActivityData == null || playerActivityData.getEndTime() < System.currentTimeMillis()) {
+                log.info("下级绑定手机时 上级未开始活动 playerId:{} beneficiaryPlayerId:{}", playerId, beneficiaryPlayerId);
                 return;
             }
             if (!grandRouletteDao.addBindIpInfo(account.getRegisterIp(), account.getRegisterMac())) {
@@ -320,16 +332,18 @@ public class GrandRouletteController extends BaseActivityController implements G
             //进行绑定和加次数
             grandRouletteDao.addCumulativeTimes(activityId, beneficiaryPlayerId, 0, 0, 1);
             //添加到下级
-            grandRouletteDao.addSubordinateId(activityId, beneficiaryPlayerId, playerId, TimeHelper.nowInt());
-            //通知变化
-            NotifyBindSubordinatesChange notify = new NotifyBindSubordinatesChange();
-            notify.bindSubordinates = buildSubordinateInfo(playerId, activityId);
-            PFSession session = playerSessionService.getSession(playerId);
-            if (session == null) {
-                return;
+            GrandRouletteSubordinateInfo subordinateInfo = grandRouletteDao.addSubordinateId(activityId, beneficiaryPlayerId, playerId, TimeHelper.nowInt());
+            if (subordinateInfo != null) {
+                //通知变化
+                NotifyBindSubordinatesChange notify = new NotifyBindSubordinatesChange();
+                notify.bindSubordinates = buildSubordinateInfo(subordinateInfo);
+                PFSession session = playerSessionService.getSession(beneficiaryPlayerId);
+                if (session == null) {
+                    return;
+                }
+                session.send(notify);
+                updateRodDot(beneficiaryPlayerId, openActivityData, false, true);
             }
-            session.send(notify);
-            updateRodDot(beneficiaryPlayerId, openActivityData, false, true);
         }
     }
 
@@ -413,7 +427,8 @@ public class GrandRouletteController extends BaseActivityController implements G
             res.code = Code.ERROR_REQ;
             return res;
         }
-        if (data.getEndTime() <= System.currentTimeMillis()) {
+        if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM ||
+                data.getEndTime() < System.currentTimeMillis()) {
             res.code = Code.ERROR_REQ;
             return res;
         }
@@ -571,15 +586,15 @@ public class GrandRouletteController extends BaseActivityController implements G
             }
             Pair<Long, Long> playerTimes = grandRouletteDao.getPlayerTimes(activityId, player.getId());
             grandRouletteActivityInfo.remainTimes = playerTimes.getSecond().intValue();
-            grandRouletteActivityInfo.bindSubordinates = buildSubordinateInfo(player.getId(), activityId);
+            GrandRouletteSubordinateInfo subordinateIds = grandRouletteDao.getSubordinateIds(activityId, player.getId());
+            grandRouletteActivityInfo.bindSubordinates = buildSubordinateInfo(subordinateIds);
             grandRouletteActivityInfo.activityId = activityId;
             cardTypeInfo.activityData.add(grandRouletteActivityInfo);
         }
         return cardTypeInfo;
     }
 
-    private List<GrandRouletteSubordinate> buildSubordinateInfo(long playerId, long activityId) {
-        GrandRouletteSubordinateInfo subordinateIds = grandRouletteDao.getSubordinateIds(activityId, playerId);
+    private List<GrandRouletteSubordinate> buildSubordinateInfo(GrandRouletteSubordinateInfo subordinateIds) {
         if (subordinateIds != null && CollectionUtil.isNotEmpty(subordinateIds.getSubordinateMap())) {
             List<GrandRouletteSubordinate> subordinateArrayList = new ArrayList<>(subordinateIds.getSubordinateMap().size());
             for (Map.Entry<Long, Integer> entry : subordinateIds.getSubordinateMap().entrySet()) {

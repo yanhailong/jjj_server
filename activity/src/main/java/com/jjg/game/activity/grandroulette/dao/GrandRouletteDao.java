@@ -7,6 +7,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.PlayerKeyIndex;
 import com.jjg.game.core.utils.RedisUtils;
 import org.redisson.api.*;
+import org.redisson.client.codec.LongCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -25,6 +26,8 @@ import java.util.concurrent.TimeUnit;
 public class GrandRouletteDao {
     private static final Logger log = LoggerFactory.getLogger(GrandRouletteDao.class);
     private static final String MODIFY_TIMES_SCRIPT = """
+            local TWO_POW_32 = 4294967296
+            
             local currentData = redis.call('HGET', KEYS[1], ARGV[1])
             if currentData then
                 currentData = tonumber(currentData)
@@ -32,16 +35,19 @@ public class GrandRouletteDao {
                 currentData = 0
             end
             
-            local currentDrawTimes = currentData & 0xFFFFFFFF
-            local remainingTimes = currentData >> 32
+            -- 用除法和取模替代位运算
+            local currentDrawTimes = currentData % TWO_POW_32
+            local remainingTimes   = math.floor(currentData / TWO_POW_32)
             
             currentDrawTimes = currentDrawTimes + tonumber(ARGV[2])
-            remainingTimes = remainingTimes + tonumber(ARGV[3])
-            local reset = tonumber(ARGV[4])
-            if reset == 1 then
-               currentDrawTimes = 0
+            remainingTimes   = remainingTimes   + tonumber(ARGV[3])
+            
+            if tonumber(ARGV[4]) == 1 then
+                currentDrawTimes = 0
             end
-            local newData = (remainingTimes << 32) + currentDrawTimes
+            
+            local newData = remainingTimes * TWO_POW_32 + currentDrawTimes
+            
             redis.call('HSET', KEYS[1], ARGV[1], newData)
             return newData
             """;
@@ -83,7 +89,7 @@ public class GrandRouletteDao {
      * @param subordinateId 下级玩家id
      * @param time          时间
      */
-    public void addSubordinateId(long activityId, long playerId, long subordinateId, int time) {
+    public GrandRouletteSubordinateInfo addSubordinateId(long activityId, long playerId, long subordinateId, int time) {
         String key = BASE_SUBORDINATE_KEY.formatted(activityId);
         RMap<Long, GrandRouletteSubordinateInfo> map = redissonClient.getMap(key);
         RLock lock = map.getLock(playerId);
@@ -91,7 +97,7 @@ public class GrandRouletteDao {
         try {
             isLock = lock.tryLock(500, TimeUnit.MILLISECONDS);
             if (!isLock) {
-                return;
+                return null;
             }
             GrandRouletteSubordinateInfo info = map.get(playerId);
             if (info == null) {
@@ -100,6 +106,7 @@ public class GrandRouletteDao {
             Map<Long, Integer> subordinateMap = info.getSubordinateMap();
             subordinateMap.put(subordinateId, time);
             map.put(playerId, info);
+            return info;
         } catch (Exception e) {
             log.error("addSubordinateId:获取锁失败 activityId:{} playerId:{}  subordinateId:{} time:{}", activityId, playerId, subordinateId, time, e);
         } finally {
@@ -107,6 +114,7 @@ public class GrandRouletteDao {
                 lock.unlock();
             }
         }
+        return null;
     }
 
     /**
@@ -184,13 +192,13 @@ public class GrandRouletteDao {
     public long addCumulativeTimes(long activityId, long playerId, int resetCurrent, long currentDelta, long remainingDelta) {
         String key = BASE_TIMES_KEY.formatted(activityId);
         // 执行 Lua 脚本
-        long data = redissonClient.getScript()
+        long data = redissonClient.getScript(LongCodec.INSTANCE)
                 .eval(RScript.Mode.READ_WRITE, MODIFY_TIMES_SCRIPT, RScript.ReturnType.INTEGER,
                         Collections.singletonList(key),
-                        String.valueOf(playerId),
-                        String.valueOf(currentDelta),
-                        String.valueOf(remainingDelta),
-                        String.valueOf(resetCurrent));
+                        playerId,
+                        currentDelta,
+                        remainingDelta,
+                        resetCurrent);
         playerKeyIndex.addHash(playerId, key, String.valueOf(playerId));
         // 获取高32位，即剩余次数
         return data >> 32;
@@ -205,7 +213,7 @@ public class GrandRouletteDao {
      */
     public Pair<Long, Long> getPlayerTimes(long activityId, long playerId) {
         String key = BASE_TIMES_KEY.formatted(activityId);
-        RMap<Long, Long> map = redissonClient.getMap(key);
+        RMap<Long, Long> map = redissonClient.getMap(key, LongCodec.INSTANCE);
         long data = map.computeIfAbsent(playerId, addKey -> 1L << 32);
         long currentDrawTimes = data & 0xFFFFFFFFL;  // 获取低32位，即当前抽取次数
         long remainingTimes = data >> 32;  // 获取高32位，即剩余次数
