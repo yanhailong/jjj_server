@@ -32,6 +32,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.RedisUtils;
@@ -57,7 +58,7 @@ import java.util.stream.Collectors;
  * @date 2025/9/3
  */
 @Component
-public class GrandRouletteController extends BaseActivityController implements GameEventListener {
+public class GrandRouletteController extends BaseActivityController implements GameEventListener, GmListener {
 
     public static final String PREFIX = "grandroulette";
     private final Logger log = LoggerFactory.getLogger(GrandRouletteController.class);
@@ -647,6 +648,55 @@ public class GrandRouletteController extends BaseActivityController implements G
     public void onActivityStart(ActivityData activityData) {
         playerActivityDao.clearActivityData(ActivityType.GRAND_ROULETTE, activityData.getId());
         grandRouletteDao.resetActivityData(activityData.getId(), PREFIX);
+    }
+
+    @Override
+    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        String cmd = gmOrders[0];
+        Player player = playerController.getPlayer();
+        if ("addGrandRouletteTimes".equalsIgnoreCase(cmd)) {
+            int times = Integer.parseInt(gmOrders[1]);
+            ActivityData openActivityData = activityManager.getOpenActivityData(player, ActivityType.GRAND_ROULETTE);
+            if (openActivityData == null) {
+                return new CommonResult<>(Code.FAIL);
+            }
+            grandRouletteDao.addCumulativeTimes(openActivityData.getId(), player.getId(), 0, 0, times);
+            return new CommonResult<>(Code.SUCCESS);
+        }
+        if ("grandRouletteReset".equalsIgnoreCase(cmd)) {
+            ActivityData openActivityData = activityManager.getOpenActivityData(player, ActivityType.GRAND_ROULETTE);
+            if (openActivityData == null) {
+                return new CommonResult<>(Code.FAIL);
+            }
+            //重置数据
+            long activityDataId = openActivityData.getId();
+            long playerId = player.getId();
+            Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, ActivityType.GRAND_ROULETTE,
+                    activityDataId);
+            if (playerActivityData == null) {
+                return new CommonResult<>(Code.SUCCESS);
+            }
+            GrandRouletteRechargeActivityData data = (GrandRouletteRechargeActivityData) playerActivityData.get(DEFAULT_ID);
+            //需要重置数据
+            data.setEndTime(0);
+            data.setCumulativeGold(0);
+            data.setClaimStatus(ActivityConstant.ClaimStatus.NOT_CLAIM);
+            data.setRound(data.getRound() + 1);
+            grandRouletteDao.resetPlayerActivityData(activityDataId, playerId);
+            grandRouletteDao.addCumulativeTimes(activityDataId, playerId, 1, 0, 1);
+            playerActivityDao.savePlayerActivityData(playerId, ActivityType.GRAND_ROULETTE, activityDataId, playerActivityData);
+            return new CommonResult<>(Code.SUCCESS);
+        }
+        if ("grandRouletteActivity".equalsIgnoreCase(cmd)) {
+
+            ActivityData openActivityData = activityManager.getOpenActivityData(player, ActivityType.GRAND_ROULETTE);
+            if (openActivityData == null) {
+                return new CommonResult<>(Code.FAIL);
+            }
+            onActivityEnd(openActivityData);
+            return new CommonResult<>(Code.SUCCESS);
+        }
+        return null;
     }
 
     public record ConditionParam(int needNum, int needGoldNum, BigDecimal needRechargeNum, int needConcludeNum) {
