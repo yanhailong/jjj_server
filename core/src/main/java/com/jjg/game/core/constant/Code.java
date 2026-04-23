@@ -193,4 +193,6 @@ public interface Code {
     int USER_NOT_GOLD = 300401040;
     //游戏正在维护中
     int GAME_IS_MAINTAIN = 9002;
+    //无空闲房间，换房失败
+    int NO_VACANT_ROOM = 300400068;
 }
