@@ -1143,7 +1143,7 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
         }
         // 人数不够，等待
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
-        int total = gameDataVo.getSeatDownNum();
+        int total = gameDataVo.getSeatInfo().size();
         if (total < roomCfg.getMinPlayer()) {
             return false;
         }
