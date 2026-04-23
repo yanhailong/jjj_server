@@ -21,6 +21,8 @@ public class RobotCfg extends BaseCfgBean {
 
   /** 补充金币 */
   protected List<List<Long>> addMoney;
+  /** 补充贝币 */
+  protected List<List<Long>> addMoney1;
   /** 是否可用 */
   protected int available;
   /** 押注类行为策略ID */
@@ -39,6 +41,8 @@ public class RobotCfg extends BaseCfgBean {
   protected int gender;
   /** 携带基础金币 */
   protected long money;
+  /** 携带基础贝币 */
+  protected long money1;
   /** 机器人名称 */
   protected String nameId;
   /** 头像 */
@@ -53,6 +57,11 @@ public class RobotCfg extends BaseCfgBean {
   /** 返回补充金币 */
   public List<List<Long>> getAddMoney() {
     return addMoney;
+  }
+
+  /** 返回补充贝币 */
+  public List<List<Long>> getAddMoney1() {
+    return addMoney1;
   }
 
   /** 返回是否可用 */
@@ -98,6 +107,11 @@ public class RobotCfg extends BaseCfgBean {
   /** 返回携带基础金币 */
   public long getMoney() {
     return money;
+  }
+
+  /** 返回携带基础贝币 */
+  public long getMoney1() {
+    return money1;
   }
 
   /** 返回机器人名称 */
