@@ -717,7 +717,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(waitPlayerId, notify));
     }
 
-    
+
     public void broadcastNextTurn(long waitPlayerId, boolean canPass, long passerPlayerId) {
         NotifyToSouthTurnActionInfo notify = new NotifyToSouthTurnActionInfo();
         ToSouthActionInfo actionInfo = new ToSouthActionInfo();
@@ -1011,6 +1011,8 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             baseInfo.readyPlayerIds = gameDataVo.getReadyPlayerIds();
         }
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), baseInfo));
+        log.info("playerId:{} 发送RespToSouthRoomBaseInfo消息", playerController.playerId());
+
         // START_GAME 阶段：已发牌但出牌阶段尚未开始，重连时需补发手牌数据
         if (baseInfo.phase == EGamePhase.START_GAME && selfPlayerInfo != null && !selfPlayerInfo.isDelState()) {
             List<Integer> sortedHandCards = PokerDataHelper.getClientId(gameDataVo, selfPlayerInfo.getCurrentCards());

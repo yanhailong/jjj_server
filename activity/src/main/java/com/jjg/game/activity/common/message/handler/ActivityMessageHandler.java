@@ -13,6 +13,8 @@ import com.jjg.game.activity.common.message.req.ReqActivityDetailInfo;
 import com.jjg.game.activity.common.message.req.ReqActivityInfoByType;
 import com.jjg.game.activity.common.message.req.ReqActivityPlayerJoin;
 import com.jjg.game.activity.constant.ActivityConstant;
+import com.jjg.game.activity.grandroulette.controller.GrandRouletteController;
+import com.jjg.game.activity.grandroulette.message.req.ReqGrandRouletteHistory;
 import com.jjg.game.activity.levelpack.manager.PlayerLevelPackManager;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.activity.officialawards.controller.OfficialAwardsController;
@@ -68,10 +70,12 @@ public class ActivityMessageHandler {
     private final WealthRouletteController wealthRouletteController;
     private final ScratchCardsController scratchCardsController;
     private final GameFunctionService gameFunctionService;
+    private final GrandRouletteController grandRouletteController;
 
     public ActivityMessageHandler(ActivityManager activityManager, CashCowController cashCowController, SharePromoteController sharePromoteController,
                                   PlayerLevelPackManager playerLevelPackManager, NodeConfig nodeConfig, OfficialAwardsController officialAwardsController,
-                                  WealthRouletteController wealthRouletteController, ScratchCardsController scratchCardsController, GameFunctionService gameFunctionService) {
+                                  WealthRouletteController wealthRouletteController, ScratchCardsController scratchCardsController,
+                                  GameFunctionService gameFunctionService, GrandRouletteController grandRouletteController) {
         this.activityManager = activityManager;
         this.cashCowController = cashCowController;
         this.sharePromoteController = sharePromoteController;
@@ -81,6 +85,7 @@ public class ActivityMessageHandler {
         this.wealthRouletteController = wealthRouletteController;
         this.scratchCardsController = scratchCardsController;
         this.gameFunctionService = gameFunctionService;
+        this.grandRouletteController = grandRouletteController;
     }
 
     /**
@@ -458,4 +463,18 @@ public class ActivityMessageHandler {
         playerController.send(abstractResponse);
     }
 
+    /**
+     * 官方派奖 请求记录
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(ActivityConstant.MsgBean.REQ_GRAND_ROULETTE_HISTORY)
+    public void reqGrandRouletteHistory(PlayerController playerController, ReqGrandRouletteHistory req) {
+        ActivityData data = activityManager.getActivityData().get(req.activityId);
+        if (data != null && data.getType() == ActivityType.GRAND_ROULETTE) {
+            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
+                playerController.send(grandRouletteController.reqGrandRouletteHistory(playerController.getPlayer(), req));
+            }
+        }
+    }
 }
