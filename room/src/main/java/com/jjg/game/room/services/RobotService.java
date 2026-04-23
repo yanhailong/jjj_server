@@ -35,8 +35,11 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
     private final Logger log = LoggerFactory.getLogger(RobotService.class);
     // 不同时间段房间创建机器人的人数限制
     private final Map<Integer, TreeMap<Integer, Integer>> roomRobotCreateLimit = new HashMap<>();
-    //机器人缓存 金币数量,配置表id
+    //机器人缓存 贝币数量,配置表id
     private TreeMap<Long, RobotCfg> robotCache = new TreeMap<>();
+
+    //机器人缓存 金币数量,配置表id
+    private TreeMap<Long, RobotCfg> shellRobotCache = new TreeMap<>();
     //线程锁
     private final ReentrantLock lock = new ReentrantLock();
     private final RobotUtil robotUtil;
@@ -74,29 +77,58 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
         }
         lock.lock();
         try {
-            long enterLimit = warehouseCfg.getEnterLimit() * expend;
-            NavigableMap<Long, RobotCfg> subbedMap = robotCache.subMap(enterLimit, true, Long.MAX_VALUE, true);
-            if (subbedMap == null || subbedMap.isEmpty()) {
-                return null;
-            }
-            for (Iterator<Map.Entry<Long, RobotCfg>> it = subbedMap.entrySet().iterator(); it.hasNext(); ) {
-                Map.Entry<Long, RobotCfg> entry = it.next();
-                RobotCfg robotCfg = entry.getValue();
-                Long gold = entry.getKey();
-                //等级检查
-                if (robotCfg.getPlayerLevel() < warehouseCfg.getPlayerLvLimit()) {
-                    continue;
+            //金币配置
+            if (warehouseCfg.getTransactionItemId() == ItemUtils.getGoldItemId()) {
+                long enterLimit = warehouseCfg.getEnterLimit() * expend;
+                NavigableMap<Long, RobotCfg> subbedMap = robotCache.subMap(enterLimit, true, Long.MAX_VALUE, true);
+                if (subbedMap == null || subbedMap.isEmpty()) {
+                    return null;
                 }
-                long checkNum = 0;
-                if (warehouseCfg.getTransactionItemId() == ItemUtils.getGoldItemId()) {
-                    checkNum = gold;
+                for (Iterator<Map.Entry<Long, RobotCfg>> it = subbedMap.entrySet().iterator(); it.hasNext(); ) {
+                    Map.Entry<Long, RobotCfg> entry = it.next();
+                    RobotCfg robotCfg = entry.getValue();
+                    Long gold = entry.getKey();
+                    //等级检查
+                    if (robotCfg.getPlayerLevel() < warehouseCfg.getPlayerLvLimit()) {
+                        continue;
+                    }
+                    long checkNum = 0;
+                    if (warehouseCfg.getTransactionItemId() == ItemUtils.getGoldItemId()) {
+                        checkNum = gold;
+                    }
+                    //货币检查
+                    if (checkNum < enterLimit || warehouseCfg.getEnterMax() != -1 && checkNum > warehouseCfg.getEnterMax()) {
+                        continue;
+                    }
+                    it.remove();
+                    return createRobot(robotCfg, gold, 0, roomId, roomCfg);
                 }
-                //货币检查
-                if (checkNum < enterLimit || warehouseCfg.getEnterMax() != -1 && checkNum > warehouseCfg.getEnterMax()) {
-                    continue;
+                //贝币
+            } else if (warehouseCfg.getTransactionItemId() == ItemUtils.getShellItemId()) {
+                long enterLimit = warehouseCfg.getEnterLimit();
+                NavigableMap<Long, RobotCfg> subbedMap = shellRobotCache.subMap(enterLimit, true, Long.MAX_VALUE, true);
+                if (subbedMap == null || subbedMap.isEmpty()) {
+                    return null;
                 }
-                it.remove();
-                return createRobot(robotCfg, gold, roomId, roomCfg);
+                for (Iterator<Map.Entry<Long, RobotCfg>> it = subbedMap.entrySet().iterator(); it.hasNext(); ) {
+                    Map.Entry<Long, RobotCfg> entry = it.next();
+                    RobotCfg robotCfg = entry.getValue();
+                    Long shell = entry.getKey();
+                    //等级检查
+                    if (robotCfg.getPlayerLevel() < warehouseCfg.getPlayerLvLimit()) {
+                        continue;
+                    }
+                    long checkNum = 0;
+                    if (warehouseCfg.getTransactionItemId() == ItemUtils.getShellItemId()) {
+                        checkNum = shell;
+                    }
+                    //货币检查
+                    if (checkNum < enterLimit || warehouseCfg.getEnterMax() != -1 && checkNum > warehouseCfg.getEnterMax()) {
+                        continue;
+                    }
+                    it.remove();
+                    return createRobot(robotCfg, 0, shell, roomId, roomCfg);
+                }
             }
         } catch (Exception e) {
             log.error("获取机器人异常 roomCfgId:{} roomId:{}", roomCfgId, roomId, e);
@@ -125,11 +157,12 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
     /**
      * 初始化机器人数据
      */
-    private RobotPlayer createRobot(RobotCfg robotCfg, long gold, long roomId, RoomCfg roomCfg) {
+    private RobotPlayer createRobot(RobotCfg robotCfg, long gold, long shell, long roomId, RoomCfg roomCfg) {
         RobotPlayer robotPlayer = robotUtil.initRobotPlayer(robotCfg);
         robotPlayer.setRoomId(roomId);
         robotPlayer.setRoomCfgId(roomCfg.getId());
         robotPlayer.setGold(gold);
+        robotPlayer.setShell(shell);
         robotPlayer.setGameType(roomCfg.getGameID());
         robotPlayer.setRoomCfgId(roomCfg.getId());
         return robotPlayer;
@@ -186,12 +219,17 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
         return RandomUtils.randomWeightList(cfg.getAddMoney());
     }
 
+    private long getRobotRealConchMoney(RobotCfg cfg) {
+        return RandomUtils.randomWeightList(cfg.getAddMoney1());
+    }
+
     /**
      * 缓存机器人信息
      */
     public void initRobotPool() {
         //机器人id 机器人最少金币
         TreeMap<Long, RobotCfg> tempRobotCache = new TreeMap<>();
+        TreeMap<Long, RobotCfg> tempConchRobotCache = new TreeMap<>();
         List<RobotCfg> robotCfgList = GameDataManager.getRobotCfgList();
         for (RobotCfg robotCfg : robotCfgList) {
             if (robotCfg.getAvailable() != 0) {
@@ -199,8 +237,11 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
             }
             long robotRealMoney = getRobotRealMoney(robotCfg);
             tempRobotCache.put(robotRealMoney, robotCfg);
+            long robotRealConchMoney = getRobotRealConchMoney(robotCfg);
+            tempConchRobotCache.put(robotRealConchMoney, robotCfg);
         }
         robotCache = tempRobotCache;
+        shellRobotCache = tempConchRobotCache;
     }
 
     /**
@@ -219,6 +260,8 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
                 }
                 long robotRealMoney = getRobotRealMoney(robotCfg);
                 robotCache.put(robotRealMoney, robotCfg);
+                long robotRealConchMoney = getRobotRealConchMoney(robotCfg);
+                shellRobotCache.put(robotRealConchMoney, robotCfg);
             }
         } catch (Exception e) {
             log.error("recycleRobotPlayer error robotId:{}", robotIds, e);
@@ -242,6 +285,8 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
         try {
             long robotRealMoney = getRobotRealMoney(robotCfg);
             robotCache.put(robotRealMoney, robotCfg);
+            long robotRealConchMoney = getRobotRealConchMoney(robotCfg);
+            shellRobotCache.put(robotRealConchMoney, robotCfg);
         } catch (Exception e) {
             log.error("recycleRobotPlayer error robotId:{}", robotId, e);
         } finally {
