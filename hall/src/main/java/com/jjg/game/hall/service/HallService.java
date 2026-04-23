@@ -187,10 +187,10 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             if (list != null && !list.isEmpty()) {
                 return list;
             }
-            list = this.experienceWareHouseConfigMap.get(gameType);
-            if (list != null && !list.isEmpty()) {
-                return list;
-            }
+        }
+        List<WareHouseConfigInfo>  list = this.experienceWareHouseConfigMap.get(gameType);
+        if (list != null && !list.isEmpty()) {
+            return list;
         }
         return wareHouseConfigMap.get(gameType);
     }
@@ -208,10 +208,11 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             if (svipPool != null && !svipPool.isEmpty()) {
                 return svipPool;
             }
-            List<WarePoolInfo> warePool = this.expeiencePoolMap.get(gameType);
-            if (warePool != null && !warePool.isEmpty()) {
-                return warePool;
-            }
+
+        }
+        List<WarePoolInfo> expeiencePool = this.expeiencePoolMap.get(gameType);
+        if (expeiencePool != null && !expeiencePool.isEmpty()) {
+            return expeiencePool;
         }
         // fallback 到普通 poolMap
         if (this.poolMap == null || this.poolMap.isEmpty()) {
@@ -911,7 +912,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         for (WarehouseCfg c : GameDataManager.getWarehouseCfgList()) {
             List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameID(), k -> new ArrayList<>());
             List<WareHouseConfigInfo> tempVipList = tempvipWareHouseConfigMap.computeIfAbsent(c.getGameID(), k -> new ArrayList<>());
-            List<WareHouseConfigInfo> tempExperienceList = tempvipWareHouseConfigMap.computeIfAbsent(c.getGameID(), k -> new ArrayList<>());
+            List<WareHouseConfigInfo> tempExperienceList = tempExperienceWareHouseConfigMap.computeIfAbsent(c.getGameID(), k -> new ArrayList<>());
 
             if (c.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
                 WareHouseConfigInfo info = new WareHouseConfigInfo();
