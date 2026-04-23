@@ -34,7 +34,7 @@ public class ToSouthPlayCardPhase extends BasePlayCardPhase<ToSouthGameDataVo> {
                 NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(getGamePhase(), gameDataVo.getPhaseEndTime());
                 broadcastMsgToRoom(notifyPokerPhaseChange);
                 // 广播回合开始
-                controller.broadcastNextTurn(firstPlayer.getPlayerId(), false);
+                controller.broadcastFirstTurn(firstPlayer.getPlayerId(), false);
                 // 添加操作定时器
                 controller.addNextTimer(firstPlayer, 0);
             } else {

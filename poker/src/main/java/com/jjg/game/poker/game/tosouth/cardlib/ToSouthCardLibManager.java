@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.tosouth.cardlib;
 
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.poker.game.common.cardlib.AbstractCardLibManager;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SouthernMoneyCfg;
@@ -26,7 +27,7 @@ public class ToSouthCardLibManager
         extends AbstractCardLibManager<ToSouthCardLib, ToSouthCardLibDao> {
 
     /** 南方前进游戏 ID */
-    private static final int GAME_TYPE_TO_SOUTH = 300400;
+    private static final int GAME_TYPE_TO_SOUTH = CoreConst.GameType.TO_SOUTH;
 
     @Autowired
     private ToSouthCardLibDao cardLibDao;
