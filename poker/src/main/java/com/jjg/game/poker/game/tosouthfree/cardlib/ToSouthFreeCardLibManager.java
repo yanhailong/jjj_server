@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.tosouthfree.cardlib;
 
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.poker.game.common.cardlib.AbstractCardLibManager;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SouthernMoneyCfg;
@@ -26,7 +27,7 @@ public class ToSouthFreeCardLibManager
         extends AbstractCardLibManager<ToSouthFreeCardLib, ToSouthFreeCardLibDao> {
 
     /** 南方前进-免费游戏 ID */
-    private static final int GAME_TYPE_TO_SOUTH = 300400;
+    private static final int GAME_TYPE_TO_SOUTH = CoreConst.GameType.TO_SOUTH_FREE;
 
     @Autowired
     private ToSouthFreeCardLibDao cardLibDao;
