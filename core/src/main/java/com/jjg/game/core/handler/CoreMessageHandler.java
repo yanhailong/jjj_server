@@ -186,7 +186,7 @@ public class CoreMessageHandler {
             }
 
             if ("playerWinMarquee".equalsIgnoreCase(cmd)) {
-                marqueeManager.playerWinMarquee("shiyi", 17001, 100100026, 500000);
+                marqueeManager.playerWinMarquee("shiyi", 17001, 100100026, 500000,false);
                 return;
             }
 

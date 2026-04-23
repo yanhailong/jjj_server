@@ -12,6 +12,7 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.config.bean.LuckyTreasureConfig;
 import com.jjg.game.core.constant.*;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
@@ -42,6 +43,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -819,4 +821,16 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         return LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE;
     }
 
+    /**
+     * 清除历史记录：按 endTime 删除2个月之前的已结束活动
+     */
+    public void clean() {
+        try {
+            long threshold = TimeHelper.getTimestamp(LocalDateTime.now().minusMonths(2));
+            long deletedCount = luckyTreasureDao.deleteByEndTimeBefore(threshold);
+            log.info("清除夺宝奇兵历史记录完成, threshold = {}, deletedCount = {}", threshold, deletedCount);
+        } catch (Exception e) {
+            log.error("清除夺宝奇兵历史记录失败", e);
+        }
+    }
 }

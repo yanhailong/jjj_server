@@ -63,7 +63,7 @@ public class CoreToServerMessageHandler {
     @Command(MessageConst.ToServer.NOTICE_MARQUEE_HALL_MASTER)
     public void notifyMarqueeHallMaster(NotifyAllNodesMarqueeServer notify) {
         try {
-            log.info("收到其他节点推送的跑马灯信息 notify = {}", JSON.toJSONString(notify));
+//            log.info("收到其他节点推送的跑马灯信息 notify = {}", JSON.toJSONString(notify));
             Marquee marquee = new Marquee();
             marquee.setId(notify.marqueeInfo.id);
 

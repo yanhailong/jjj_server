@@ -136,4 +136,15 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
         return mongoTemplate.find(query, LuckyTreasure.class);
     }
 
+    /**
+     * 删除 endTime 早于指定时间戳的历史记录（只清理已结束的活动）
+     *
+     * @param endTime 时间戳（毫秒）
+     * @return 删除的记录数量
+     */
+    public long deleteByEndTimeBefore(long endTime) {
+        Query query = new Query(Criteria.where("endTime").gt(0).lt(endTime));
+        return mongoTemplate.remove(query, LuckyTreasure.class).getDeletedCount();
+    }
+
 }

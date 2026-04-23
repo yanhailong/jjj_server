@@ -435,9 +435,11 @@ public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderList
      * @param gameLangId     游戏名称的多语言id
      * @param value          金额
      */
-    public void playerWinMarquee(String playerNickName, int langId, int gameLangId, long value) {
+    public void playerWinMarquee(String playerNickName, int langId, int gameLangId, long value, boolean robot) {
 
-        log.debug("添加玩家中奖的跑马灯 nick = {},langId = {},gameLangId = {},value = {}", playerNickName, langId, gameLangId, value);
+        if(!robot){
+            log.debug("添加玩家中奖的跑马灯 nick = {},langId = {},gameLangId = {},value = {}", playerNickName, langId, gameLangId, value);
+        }
 
         Marquee marquee = new Marquee();
 
@@ -677,7 +679,7 @@ public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderList
         this.marqueeMap.remove(marquee.getId());
         removeFromRedis(marquee.getId());
         clearMarqueeState(marquee.getId());
-        log.debug(logText, marquee.getId());
+//        log.debug(logText, marquee.getId());
     }
 
     private boolean isExclusiveBackend(Marquee marquee) {
@@ -840,6 +842,6 @@ public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderList
         int bet = RandomUtils.randomEle(runninglightCfg.getBetList(), Integer.MAX_VALUE);
         //随机中奖倍数
         int times = RandomUtils.randomEle(runninglightCfg.getTimes(), Integer.MAX_VALUE);
-        playerWinMarquee(robotCfg.getNameId(), runninglightCfg.getMarquee(), runninglightCfg.getNameid(), (long) bet * times);
+        playerWinMarquee(robotCfg.getNameId(), runninglightCfg.getMarquee(), runninglightCfg.getNameid(), (long) bet * times, true);
     }
 }
