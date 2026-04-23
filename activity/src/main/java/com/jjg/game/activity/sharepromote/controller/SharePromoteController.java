@@ -803,7 +803,8 @@ public class SharePromoteController extends BaseActivityController {
         rankInfo.totalScore = totalScore;
     }
 
-    @Scheduled(cron = "0 0 0 * * MON")
+//    @Scheduled(cron = "0 0 0 * * MON")
+    @Scheduled(cron = "0 5 17 * * THU")
     public void sendRankRewards() {
         if (activityManager.isExecutionNode()) {
             Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
