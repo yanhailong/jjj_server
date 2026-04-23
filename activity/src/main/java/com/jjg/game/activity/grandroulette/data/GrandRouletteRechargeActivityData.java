@@ -10,6 +10,10 @@ import com.jjg.game.activity.common.data.PlayerActivityData;
  */
 public class GrandRouletteRechargeActivityData extends PlayerActivityData {
     /**
+     * 唯一标识
+     */
+    private long id;
+    /**
      * 结束时间
      */
     private long endTime;
@@ -17,6 +21,14 @@ public class GrandRouletteRechargeActivityData extends PlayerActivityData {
      * 累计金币
      */
     private long cumulativeGold;
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
 
     public long getEndTime() {
         return endTime;
