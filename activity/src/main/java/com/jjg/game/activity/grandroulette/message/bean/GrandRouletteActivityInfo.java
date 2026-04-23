@@ -28,4 +28,6 @@ public class GrandRouletteActivityInfo {
     public int bindPhoneState;
     @ProtoDesc("绑定信息")
     public List<GrandRouletteSubordinate> bindSubordinates;
+    @ProtoDesc("活动id")
+    public long activityId;
 }

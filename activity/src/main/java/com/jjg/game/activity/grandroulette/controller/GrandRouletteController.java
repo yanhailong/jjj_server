@@ -314,6 +314,7 @@ public class GrandRouletteController extends BaseActivityController implements G
                 return;
             }
             if (!grandRouletteDao.addBindIpInfo(account.getRegisterIp(), account.getRegisterMac())) {
+                log.info("已经存在的ip:{} 或者mac:{} 地址 ", account.getRegisterIp(), account.getRegisterMac());
                 return;
             }
             //进行绑定和加次数
@@ -571,6 +572,7 @@ public class GrandRouletteController extends BaseActivityController implements G
             Pair<Long, Long> playerTimes = grandRouletteDao.getPlayerTimes(activityId, player.getId());
             grandRouletteActivityInfo.remainTimes = playerTimes.getSecond().intValue();
             grandRouletteActivityInfo.bindSubordinates = buildSubordinateInfo(player.getId(), activityId);
+            grandRouletteActivityInfo.activityId = activityId;
             cardTypeInfo.activityData.add(grandRouletteActivityInfo);
         }
         return cardTypeInfo;
