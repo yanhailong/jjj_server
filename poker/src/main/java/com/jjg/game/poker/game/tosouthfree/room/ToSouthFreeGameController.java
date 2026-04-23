@@ -647,8 +647,56 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
         broadcastNextTurn(waitPlayerId, true, 0);
     }
 
-    public void broadcastNextTurn(long waitPlayerId, boolean canPass) {
-        broadcastNextTurn(waitPlayerId, canPass, 0);
+    /**
+     * 广播第一手牌的出牌信息（游戏结束前，通知所有玩家最终出牌动作）
+     * 与 broadcastNextTurn 不同
+     * lastPlaySeatId = -1
+     *
+     * @param
+     */
+    public void broadcastFirstTurn(long waitPlayerId, boolean canPass) {
+//        broadcastNextTurn(waitPlayerId, canPass, 0);
+        NotifyToSouthFreeTurnActionInfo notify = new NotifyToSouthFreeTurnActionInfo();
+        ToSouthFreeActionInfo actionInfo = new ToSouthFreeActionInfo();
+        actionInfo.lastpassUserId = 0;
+        actionInfo.waitPlayerId = waitPlayerId;
+        actionInfo.canPass = canPass;
+        fillCommonActionInfo(actionInfo);
+        // 计算等待时间
+        long currentTime = System.currentTimeMillis();
+        long duration = PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.PLAY_CARDS);
+        actionInfo.waitEndTime = currentTime + duration;
+        // 1. 发给其他人,不携带推荐牌组（非等待玩家不能出牌）
+        actionInfo.recommendCardsList = null;
+        actionInfo.lastPlaySeatId = -1;
+//        actionInfo.canPlay = false;
+        notify.actionInfo = actionInfo;
+
+        for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+            if (info.getPlayerId() == waitPlayerId) continue;
+            actionInfo.canPlay = false;
+            // 为每个接收者设置其自己的手牌
+            // 在 Netty/Protobuf 场景下，通常在 write 时会序列化，如果是同步序列化，那么可以复用对象。
+            // 但为了绝对安全，这里使用 clone
+            ToSouthFreeActionInfo playerActionInfo = cloneActionInfo(actionInfo);
+            playerActionInfo.selfHandCards = PokerDataHelper.getClientId(gameDataVo, info.getCurrentCards());
+            playerActionInfo.selfHighlightCards = gameDataVo.getPlayerHighlightCards().get(info.getPlayerId());
+            playerActionInfo.lastPlaySeatId = -1;
+            notify.actionInfo = playerActionInfo;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), notify));
+        }
+        Map<Long, PlayerSeatInfo> playerSeatInfoMap = gameDataVo.getPlayerSeatInfoMap();
+        PlayerSeatInfo waitPlayer = playerSeatInfoMap.get(waitPlayerId);
+        // 计算推荐出牌 (仅针对等待玩家) 发给当前操作玩家 (带 recommend)
+        fillRecommendCards(actionInfo, waitPlayer);
+
+        ToSouthFreeActionInfo waitPlayerActionInfo = cloneActionInfo(actionInfo);
+        waitPlayerActionInfo.selfHandCards = PokerDataHelper.getClientId(gameDataVo, waitPlayer.getCurrentCards());
+        waitPlayerActionInfo.selfHighlightCards = gameDataVo.getPlayerHighlightCards().get(waitPlayerId);
+
+        notify.actionInfo = waitPlayerActionInfo;
+
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(waitPlayerId, notify));
     }
 
     public void broadcastNextTurn(long waitPlayerId, boolean canPass, long passerPlayerId) {
