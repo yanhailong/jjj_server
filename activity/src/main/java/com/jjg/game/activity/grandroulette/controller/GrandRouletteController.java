@@ -309,6 +309,10 @@ public class GrandRouletteController extends BaseActivityController implements G
             if (openActivityData == null) {
                 return;
             }
+            if (StringUtils.isEmpty(account.getRegisterIp()) || StringUtils.isEmpty(account.getRegisterMac())) {
+                log.info("绑定手机时 注册ip或者mac为null 已经存在的ip:{} 或者mac:{}", account.getRegisterIp(), account.getRegisterMac());
+                return;
+            }
             //判断是否有上级
             long playerId = player.getId();
             long beneficiaryPlayerId = getBeneficiaryPlayerId(playerId);
