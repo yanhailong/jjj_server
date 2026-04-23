@@ -317,7 +317,8 @@ public class GrandRouletteController extends BaseActivityController implements G
             }
             long activityId = openActivityData.getId();
             GrandRouletteRechargeActivityData playerActivityData = getGrandRouletteRechargeActivityData(beneficiaryPlayerId, activityId);
-            if (playerActivityData == null) {
+            if (playerActivityData == null || playerActivityData.getEndTime() < System.currentTimeMillis()) {
+                log.info("下级绑定手机时 上级未开始活动 playerId:{} beneficiaryPlayerId:{}", playerId, beneficiaryPlayerId);
                 return;
             }
             if (!grandRouletteDao.addBindIpInfo(account.getRegisterIp(), account.getRegisterMac())) {
