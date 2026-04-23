@@ -320,16 +320,18 @@ public class GrandRouletteController extends BaseActivityController implements G
             //进行绑定和加次数
             grandRouletteDao.addCumulativeTimes(activityId, beneficiaryPlayerId, 0, 0, 1);
             //添加到下级
-            grandRouletteDao.addSubordinateId(activityId, beneficiaryPlayerId, playerId, TimeHelper.nowInt());
-            //通知变化
-            NotifyBindSubordinatesChange notify = new NotifyBindSubordinatesChange();
-            notify.bindSubordinates = buildSubordinateInfo(playerId, activityId);
-            PFSession session = playerSessionService.getSession(playerId);
-            if (session == null) {
-                return;
+            GrandRouletteSubordinateInfo subordinateInfo = grandRouletteDao.addSubordinateId(activityId, beneficiaryPlayerId, playerId, TimeHelper.nowInt());
+            if (subordinateInfo != null) {
+                //通知变化
+                NotifyBindSubordinatesChange notify = new NotifyBindSubordinatesChange();
+                notify.bindSubordinates = buildSubordinateInfo(subordinateInfo);
+                PFSession session = playerSessionService.getSession(beneficiaryPlayerId);
+                if (session == null) {
+                    return;
+                }
+                session.send(notify);
+                updateRodDot(beneficiaryPlayerId, openActivityData, false, true);
             }
-            session.send(notify);
-            updateRodDot(beneficiaryPlayerId, openActivityData, false, true);
         }
     }
 
@@ -571,15 +573,15 @@ public class GrandRouletteController extends BaseActivityController implements G
             }
             Pair<Long, Long> playerTimes = grandRouletteDao.getPlayerTimes(activityId, player.getId());
             grandRouletteActivityInfo.remainTimes = playerTimes.getSecond().intValue();
-            grandRouletteActivityInfo.bindSubordinates = buildSubordinateInfo(player.getId(), activityId);
+            GrandRouletteSubordinateInfo subordinateIds = grandRouletteDao.getSubordinateIds(activityId, player.getId());
+            grandRouletteActivityInfo.bindSubordinates = buildSubordinateInfo(subordinateIds);
             grandRouletteActivityInfo.activityId = activityId;
             cardTypeInfo.activityData.add(grandRouletteActivityInfo);
         }
         return cardTypeInfo;
     }
 
-    private List<GrandRouletteSubordinate> buildSubordinateInfo(long playerId, long activityId) {
-        GrandRouletteSubordinateInfo subordinateIds = grandRouletteDao.getSubordinateIds(activityId, playerId);
+    private List<GrandRouletteSubordinate> buildSubordinateInfo(GrandRouletteSubordinateInfo subordinateIds) {
         if (subordinateIds != null && CollectionUtil.isNotEmpty(subordinateIds.getSubordinateMap())) {
             List<GrandRouletteSubordinate> subordinateArrayList = new ArrayList<>(subordinateIds.getSubordinateMap().size());
             for (Map.Entry<Long, Integer> entry : subordinateIds.getSubordinateMap().entrySet()) {
