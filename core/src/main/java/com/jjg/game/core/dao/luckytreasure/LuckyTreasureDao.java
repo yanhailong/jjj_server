@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 夺宝奇兵数据dao
@@ -44,14 +45,22 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
     /**
      * 分页查询指定玩家参与过的夺宝奇兵活动
      * 按照开始时间倒序排列
+     * 仅返回 startTime 在最近3天内的记录；未结束的活动(endTime < 1)不受3天限制
      *
      * @param playerId 玩家ID
      * @param pageable 分页参数
      * @return 分页结果
      */
     public Page<LuckyTreasure> findPlayerRecord(long playerId, Pageable pageable) {
-        // 构建查询条件：buyMap中包含指定玩家ID
-        Query query = new Query(Criteria.where("buyMap." + playerId).exists(true));
+        long threeDaysAgo = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(3);
+        Criteria criteria = new Criteria().andOperator(
+                Criteria.where("buyMap." + playerId).exists(true),
+                new Criteria().orOperator(
+                        Criteria.where("startTime").gte(threeDaysAgo),
+                        Criteria.where("endTime").lt(1)
+                )
+        );
+        Query query = new Query(criteria);
 
         // 按开始时间倒序排序
         query.with(Sort.by("startTime").descending());
@@ -77,9 +86,10 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
      * @return 分页结果
      */
     public Page<LuckyTreasure> findAllRewardHistory(Pageable pageable, int limit) {
-        // 构建查询条件：endTime > 0 表示已结束
+        // 构建查询条件：endTime > threeDaysAgo 表示3天内并且已经结束的
+        long threeDaysAgo = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(3);
         Criteria criteria = new Criteria().andOperator(
-                Criteria.where("endTime").gt(0),
+                Criteria.where("endTime").gt(threeDaysAgo),
                 Criteria.where("status").nin(1, 2)
         );
         if (limit > 0) {
