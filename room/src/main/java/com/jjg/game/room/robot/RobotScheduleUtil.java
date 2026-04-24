@@ -28,6 +28,9 @@ public class RobotScheduleUtil {
      */
     public static int getChessExecutionDelay(int id) {
         ChessRobotCfg chessRobotCfg = GameDataManager.getChessRobotCfg(id);
+        if (chessRobotCfg == null) {
+            return 1500;
+        }
         List<List<Integer>> delayTime = chessRobotCfg.getDelayTime();
         WeightRandom<Integer> random = new WeightRandom<>();
         for (int i = 0; i < delayTime.size(); i++) {
