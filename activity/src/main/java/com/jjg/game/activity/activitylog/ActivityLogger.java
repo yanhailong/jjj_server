@@ -670,10 +670,11 @@ public class ActivityLogger extends BaseLogger {
      * @param activityData   活动数据
      * @param operatorResult 操作结果 1成功 0失败
      */
-    public void sendGrandRouletteHelpLog(Player player, ActivityData activityData, int operatorResult, String ip, String mac) {
+    public void sendGrandRouletteHelpLog(Player player, ActivityData activityData, long beneficiaryPlayerId, int operatorResult, String ip, String mac) {
         try {
             JSONObject json = buildBaseInfo(activityData, 1);
             json.put("operatorType", 3);
+            json.put("beneficiaryPlayerId", beneficiaryPlayerId);
             json.put("ip", ip);
             json.put("operatorResult", operatorResult);
             json.put("mac", mac);
