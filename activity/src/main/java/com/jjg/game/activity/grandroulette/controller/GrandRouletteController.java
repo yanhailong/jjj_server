@@ -320,6 +320,7 @@ public class GrandRouletteController extends BaseActivityController implements G
         res.infoList = ItemUtils.buildGoldInfo(getNum.longValue());
         res.currentGold = data.getCumulativeGold();
         res.targetGold = targetNum;
+        res.endTime = data.getEndTime();
         return res;
     }
 

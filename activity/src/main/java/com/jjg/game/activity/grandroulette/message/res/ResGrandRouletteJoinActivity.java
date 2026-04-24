@@ -26,6 +26,8 @@ public class ResGrandRouletteJoinActivity extends AbstractResponse {
     public long currentGold;
     @ProtoDesc("目标金币")
     public long targetGold;
+    @ProtoDesc("结束时间")
+    public long endTime;
     public ResGrandRouletteJoinActivity(int code) {
         super(code);
     }
