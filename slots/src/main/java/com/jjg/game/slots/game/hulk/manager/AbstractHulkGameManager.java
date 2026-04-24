@@ -205,7 +205,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
 
             int times = miniGameInfo.getAwardCList().get(hasSize);
             gold = playerGameData.getOneBetScore() * times;
-            playerGameData.addCarInfo(hasSize, gold);
+            playerGameData.addCarInfo(carIndex, gold);
             gameRunInfo.setAllWinGold(gold);
             if (diff < 2) {
                 playerGameData.setCarOver(true);
