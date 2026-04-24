@@ -8,6 +8,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.game.hulk.HulkConstant;
 import com.jjg.game.slots.game.hulk.data.HulkGameRunInfo;
 import com.jjg.game.slots.game.hulk.pb.*;
 import com.jjg.game.slots.logger.SlotsLogger;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -76,6 +78,22 @@ public class HulkSendMessageManager extends BaseSendMessageManager {
                     res.poolList.add(poolInfo);
                 }
             }
+
+            //添加汽车信息
+            if (res.status == HulkConstant.Status.TRIGGER_MINI) {
+                res.hulkMiniGame = new HulkMiniGame();
+                res.hulkMiniGame.carOver = gameRunInfo.getData().isCarOver();
+
+                if (gameRunInfo.getData().getCarMap() != null && !gameRunInfo.getData().getCarMap().isEmpty()) {
+                    res.hulkMiniGame.miniGameCarList = new ArrayList<>();
+                    for (Map.Entry<Integer, Long> en : gameRunInfo.getData().getCarMap().entrySet()) {
+                        HulkCarInfo carInfo = new HulkCarInfo();
+                        carInfo.index = en.getKey();
+                        carInfo.winGold = en.getValue();
+                        res.hulkMiniGame.miniGameCarList.add(carInfo);
+                    }
+                }
+            }
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -118,10 +136,6 @@ public class HulkSendMessageManager extends BaseSendMessageManager {
             res.freeModeTotalReward = gameRunInfo.getFreeModeTotalReward();
             //剩余免费次数
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
-            //汽车赢取的奖励
-            res.carsWinGold = gameRunInfo.getCarsWinGold();
-            //飞机的倍数
-            res.airplane = gameRunInfo.getAirplane();
 
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
@@ -156,5 +170,55 @@ public class HulkSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
 //        sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回奖池结果", true);
+    }
+
+    /**
+     * 汽车小游戏
+     *
+     * @param playerController
+     * @param gameRunInfo
+     */
+    public void sendCarMessage(PlayerController playerController, HulkGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+
+        ResHulkMiniGameCar res = new ResHulkMiniGameCar(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+            //玩家当前金币
+            res.gold = gameRunInfo.getAllWinGold();
+            //是否进入飞机小游戏
+            res.toAirPlane = gameRunInfo.isCarOver();
+        } else {
+            log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回汽车小游戏结果", false);
+    }
+
+    /**
+     * 飞机小游戏
+     *
+     * @param playerController
+     * @param gameRunInfo
+     */
+    public void sendAirPlaneMessage(PlayerController playerController, HulkGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+
+        ResHulkMiniGameAirPlane res = new ResHulkMiniGameAirPlane(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+            //玩家当前金币
+            res.times = gameRunInfo.getAirplane();
+            //中奖金额
+            res.allWinGold = gameRunInfo.getAllWinGold();
+            //当前金额
+            res.allGold = gameRunInfo.getAfterGold();
+        } else {
+            log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回飞机小游戏结果", false);
     }
 }

@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.hulk.manager;
 
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -22,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -135,6 +137,175 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
     }
 
     /**
+     * 汽车小游戏
+     *
+     * @param playerController
+     * @param carIndex
+     * @return
+     */
+    public HulkGameRunInfo miniGameCar(PlayerController playerController, int carIndex) {
+        HulkGameRunInfo gameRunInfo = new HulkGameRunInfo(Code.SUCCESS, playerController.playerId());
+        try {
+            //获取玩家游戏数据
+            HulkPlayerGameData playerGameData = getPlayerGameData(playerController);
+            if (playerGameData == null) {
+                log.debug("获取玩家游戏数据失败，汽车小游戏失败 playerId = {},gameType = {},roomCfgId = {},carIndex = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), carIndex);
+                gameRunInfo.setCode(Code.NOT_FOUND);
+                return gameRunInfo;
+            }
+
+            //获取当前处于哪种状态
+            int status = playerGameData.getStatus();
+            if (status != HulkConstant.Status.TRIGGER_MINI) {
+                log.debug("当前不处于小游戏状态，汽车小游戏失败 playerId = {},gameType = {},roomCfgId = {},carIndex = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), carIndex);
+                gameRunInfo.setCode(Code.NOT_FOUND);
+                return gameRunInfo;
+            }
+
+            //获取缓存的结果库
+            if (playerGameData.getFreeLib() == null) {
+                playerGameData.setStatus(0);
+                log.debug("未获取到结果库，汽车小游戏失败，且恢复状态 playerId = {},gameType = {},roomCfgId = {},carIndex = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), carIndex);
+                gameRunInfo.setCode(Code.NOT_FOUND);
+                return gameRunInfo;
+            }
+
+            int libType = playerGameData.getFreeLib().getLibTypeSet().stream().findFirst().get().intValue();
+            if (libType != HulkConstant.SpecialMode.MINI) {
+                playerGameData.setStatus(0);
+                log.debug("缓存的结果库libType错误，汽车小游戏失败，且恢复状态 playerId = {},gameType = {},roomCfgId = {},carIndex = {},libType = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), carIndex, libType);
+                gameRunInfo.setCode(Code.NOT_FOUND);
+                return gameRunInfo;
+            }
+
+            //获取结果库中的小游戏信息
+            SpecialAuxiliaryAwardInfo miniGameInfo = getMiniGameInfo(playerGameData.getFreeLib());
+            if (miniGameInfo == null || miniGameInfo.getAwardCList() == null || miniGameInfo.getAwardCList().isEmpty()) {
+                playerGameData.setStatus(0);
+                log.debug("获取结果库中的小游戏信息失败，汽车小游戏失败，且恢复状态 playerId = {},gameType = {},roomCfgId = {},carIndex = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), carIndex);
+                gameRunInfo.setCode(Code.NOT_FOUND);
+                return gameRunInfo;
+            }
+
+            Long gold = playerGameData.carByIndex(carIndex);
+            if(gold != null){
+                log.debug("之前已经摧毁过该汽车，汽车小游戏失败 playerId = {},gameType = {},roomCfgId = {},carIndex = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), carIndex);
+                gameRunInfo.setCode(Code.NOT_FOUND);
+                return gameRunInfo;
+            }
+
+            //检查汽车游戏是否结束
+            int hasSize = playerGameData.carSize();
+            int diff = miniGameInfo.getAwardCList().size() - hasSize;
+            if (diff < 1) {
+                log.debug("当前汽车游戏已经结束，汽车小游戏失败 playerId = {},gameType = {},roomCfgId = {},carIndex = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), carIndex);
+                gameRunInfo.setCode(Code.NOT_FOUND);
+                return gameRunInfo;
+            }
+
+            int times = miniGameInfo.getAwardCList().get(hasSize);
+            gold = playerGameData.getOneBetScore() * times;
+            playerGameData.addCarInfo(hasSize, gold);
+            gameRunInfo.setAllWinGold(gold);
+            if (diff < 2) {
+                playerGameData.setCarOver(true);
+                gameRunInfo.setCarOver(true);
+            }
+
+            log.info("汽车小游戏中奖金额 playerId = {},index = {},gold = {},carOver = {}", playerController.playerId(), carIndex, gold, gameRunInfo.isCarOver());
+        } catch (Exception e) {
+            log.error("", e);
+            gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
+    }
+
+    /**
+     * 飞机小游戏
+     *
+     * @param playerController
+     * @return
+     */
+    public HulkGameRunInfo miniGameAirPlane(PlayerController playerController) {
+        HulkGameRunInfo gameRunInfo = new HulkGameRunInfo(Code.SUCCESS, playerController.playerId());
+        try {
+            //获取玩家游戏数据
+            HulkPlayerGameData playerGameData = getPlayerGameData(playerController);
+            if (playerGameData == null) {
+                log.debug("获取玩家游戏数据失败，飞机小游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+                gameRunInfo.setCode(Code.NOT_FOUND);
+                return gameRunInfo;
+            }
+
+            //获取当前处于哪种状态
+            int status = playerGameData.getStatus();
+            if (status != HulkConstant.Status.TRIGGER_MINI) {
+                log.debug("当前不处于小游戏状态，飞机小游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+                gameRunInfo.setCode(Code.NOT_FOUND);
+                return gameRunInfo;
+            }
+
+            //获取缓存的结果库
+            if (playerGameData.getFreeLib() == null) {
+                playerGameData.setStatus(0);
+                log.debug("未获取到结果库，飞机小游戏失败，且恢复状态 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+                gameRunInfo.setCode(Code.NOT_FOUND);
+                return gameRunInfo;
+            }
+
+            int libType = playerGameData.getFreeLib().getLibTypeSet().stream().findFirst().get().intValue();
+            if (libType != HulkConstant.SpecialMode.MINI) {
+                playerGameData.setStatus(0);
+                log.debug("缓存的结果库libType错误，飞机小游戏失败，且恢复状态 playerId = {},gameType = {},roomCfgId = {},libType = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), libType);
+                gameRunInfo.setCode(Code.NOT_FOUND);
+                return gameRunInfo;
+            }
+
+            //获取结果库中的小游戏信息
+            SpecialAuxiliaryAwardInfo miniGameInfo = getMiniGameInfo(playerGameData.getFreeLib());
+            if (miniGameInfo == null || miniGameInfo.getAwardCList() == null || miniGameInfo.getAwardCList().isEmpty()) {
+                playerGameData.setStatus(0);
+                log.debug("获取结果库中的小游戏信息失败，飞机小游戏失败，且恢复状态 playerId = {},gameType = {},roomCfgId = {},", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+                gameRunInfo.setCode(Code.NOT_FOUND);
+                return gameRunInfo;
+            }
+
+            //检查飞机游戏是否结束
+            int hasSize = playerGameData.carSize();
+            if (hasSize < 1) {
+                log.debug("还没有进行汽车游戏，飞机小游戏失败 playerId = {},gameType = {},roomCfgId = {},hasSize = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), hasSize);
+                gameRunInfo.setCode(Code.NOT_FOUND);
+                return gameRunInfo;
+            }
+
+            long allGold = 0;
+            for (Map.Entry<Integer, Long> en : playerGameData.getCarMap().entrySet()) {
+                allGold += en.getValue();
+            }
+
+            long addGold = allGold * miniGameInfo.getAwardD();
+            rewardFromBigPool(gameRunInfo, playerGameData, addGold, AddType.SLOTS_BET_REWARD);
+            if (gameRunInfo.getCode() != Code.SUCCESS) {
+                log.info("飞机小游戏失败 playerId = {},carAllGold = {},times = {},calAddGold={},code = {}", playerController.playerId(), allGold, miniGameInfo.getAwardD(), addGold, gameRunInfo.getCode());
+                return gameRunInfo;
+            }
+            gameRunInfo.setAirplane(miniGameInfo.getAwardD());
+
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getPlayer().getRoomCfgId());
+            gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, playerGameData.getPlayer()));
+            playerGameData.setCarOver(false);
+            playerGameData.setStatus(0);
+            playerGameData.setFreeLib(null);
+            playerGameData.setCarMap(null);
+            log.info("飞机小游戏结束 playerId = {},carAllGold = {},times = {},calAddGold={},realAddGold = {}", playerController.playerId(), allGold, miniGameInfo.getAwardD(), addGold, gameRunInfo.getAllWinGold());
+        } catch (Exception e) {
+            log.error("", e);
+            gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
+    }
+
+    /**
      * 免费模式
      *
      * @param gameRunInfo
@@ -174,32 +345,32 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
         return gameRunInfo;
     }
 
-    private void addMiniGameInfo(HulkGameRunInfo gameRunInfo, HulkPlayerGameData playerGameData, HulkResultLib resultLib) {
-        List<Long> carsWinGold = new ArrayList<>();
+    /**
+     * 获取结果库中的小游戏信息
+     *
+     * @param resultLib
+     * @return
+     */
+    public SpecialAuxiliaryAwardInfo getMiniGameInfo(HulkResultLib resultLib) {
         for (SpecialAuxiliaryInfo info : resultLib.getSpecialAuxiliaryInfoList()) {
             SpecialAuxiliaryCfg cfg = GameDataManager.getSpecialAuxiliaryCfg(info.getCfgId());
             if (cfg.getType() != HulkConstant.SpecialAuxiliary.MINI_GAME) {
                 continue;
             }
-
             if (info.getAwardInfos() == null || info.getAwardInfos().isEmpty()) {
                 continue;
             }
-
             for (SpecialAuxiliaryAwardInfo awardInfo : info.getAwardInfos()) {
                 if (awardInfo.getAwardCList() == null || awardInfo.getAwardCList().isEmpty()) {
                     continue;
                 }
 
-                for (int i : awardInfo.getAwardCList()) {
-                    carsWinGold.add(playerGameData.getOneBetScore() * i);
-                }
-
-                gameRunInfo.setAirplane(awardInfo.getAwardD());
-                gameRunInfo.setCarsWinGold(carsWinGold);
+                return awardInfo;
             }
         }
+        return null;
     }
+
 
     @Override
     protected HulkGameRunInfo normal(HulkGameRunInfo gameRunInfo, HulkPlayerGameData playerGameData, long betValue, HulkResultLib resultLib) {
@@ -219,7 +390,8 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
             log.debug("触发免费  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         } else if (libType == HulkConstant.SpecialMode.MINI) {
             clientShowStatus = HulkConstant.Status.TRIGGER_MINI;
-            addMiniGameInfo(gameRunInfo, playerGameData, resultLib);
+            playerGameData.setStatus(HulkConstant.Status.TRIGGER_MINI);
+            playerGameData.setFreeLib(resultLib);
             times = resultLib.getTriggerTimes();
             log.debug("触发小游戏  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         } else if (libType == HulkConstant.SpecialMode.ONT_WILD) {

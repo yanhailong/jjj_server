@@ -10,9 +10,7 @@ import com.jjg.game.slots.game.hulk.data.HulkGameRunInfo;
 import com.jjg.game.slots.game.hulk.manager.HulkGameManager;
 import com.jjg.game.slots.game.hulk.manager.HulkRoomGameManager;
 import com.jjg.game.slots.game.hulk.manager.HulkSendMessageManager;
-import com.jjg.game.slots.game.hulk.pb.ReqHulkEnterGame;
-import com.jjg.game.slots.game.hulk.pb.ReqHulkPool;
-import com.jjg.game.slots.game.hulk.pb.ReqHulkStartGame;
+import com.jjg.game.slots.game.hulk.pb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,7 +67,7 @@ public class HulkMessageHandler {
     @Command(HulkConstant.MsgBean.REQ_START_GAME)
     public void reqStartGame(PlayerController playerController, ReqHulkStartGame req) {
         try {
-            log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+            log.info("收到玩家开始游戏 playerId={},stakeVlue={}", playerController.playerId(), req.stakeVlue);
             HulkGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
                 gameRunInfo = gameManager.playerStartGame(playerController, req.stakeVlue);
@@ -94,7 +92,7 @@ public class HulkMessageHandler {
     @Command(HulkConstant.MsgBean.REQ_POOL_VALUE)
     public void reqPoolValue(PlayerController playerController, ReqHulkPool req) {
         try {
-            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+//            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             HulkGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
                 gameRunInfo = gameManager.getPoolValue(playerController, req.stakeValue);
@@ -105,6 +103,56 @@ public class HulkMessageHandler {
                 return;
             }
             sendMessageManager.sendPoolValue(playerController, gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 汽车小游戏
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(HulkConstant.MsgBean.REQ_MINI_CAR)
+    public void reqHulkMiniGameCar(PlayerController playerController, ReqHulkMiniGameCar req) {
+        try {
+            log.info("收到绿巨人汽车小游戏 playerId={},carIndex={}", playerController.playerId(), req.index);
+            HulkGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.miniGameCar(playerController, req.index);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.miniGameCar(playerController, req.index);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
+            sendMessageManager.sendCarMessage(playerController, gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 飞机小游戏
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(HulkConstant.MsgBean.REQ_MINI_AIRPLANE)
+    public void reqHulkMiniGameAirPlane(PlayerController playerController, ReqHulkMiniGameAirPlane req) {
+        try {
+            log.info("收到绿巨人飞机小游戏 playerId={}", playerController.playerId());
+            HulkGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.miniGameAirPlane(playerController);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.miniGameAirPlane(playerController);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
+            sendMessageManager.sendAirPlaneMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

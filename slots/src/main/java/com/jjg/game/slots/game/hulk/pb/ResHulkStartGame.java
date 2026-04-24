@@ -33,10 +33,6 @@ public class ResHulkStartGame extends AbstractResponse {
     public long freeModeTotalReward;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
-    @ProtoDesc("汽车赢取的奖励")
-    public List<Long> carsWinGold;
-    @ProtoDesc("飞机的倍数")
-    public int airplane;
 
     public ResHulkStartGame(int code) {
         super(code);

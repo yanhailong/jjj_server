@@ -21,6 +21,14 @@ public interface HulkConstant {
         //请求奖池
         int REQ_POOL_VALUE = BASE_MSG_PREFIX | 0x5;
         int RES_POOL_VALUE = BASE_MSG_PREFIX | 0x6;
+
+        //汽车小游戏
+        int REQ_MINI_CAR = BASE_MSG_PREFIX | 0x7;
+        int RES_MINI_CAR = BASE_MSG_PREFIX | 0x8;
+
+        //飞机小游戏
+        int REQ_MINI_AIRPLANE = BASE_MSG_PREFIX | 0x9;
+        int RES_MINI_AIRPLANE = BASE_MSG_PREFIX | 0xA;
     }
 
     interface Status {
@@ -47,11 +55,11 @@ public interface HulkConstant {
         int MINI_GAME = 303104;
     }
 
-    interface SpecialPlay{
+    interface SpecialPlay {
         int TYPE_ADD_ICON = 6;
     }
 
-    interface SpecialMode{
+    interface SpecialMode {
         int NORMAL = 1;
         int FREE = 2;
         int MINI = 3;
@@ -60,7 +68,7 @@ public interface HulkConstant {
         int THREE_WILD = 6;
     }
 
-    interface BaseElement{
+    interface BaseElement {
 
     }
 }
