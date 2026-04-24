@@ -10,7 +10,6 @@ import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.poker.game.tosouth.message.req.ReqTurnAction;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
-import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import org.slf4j.Logger;
@@ -85,8 +84,13 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
                 // 机器人：使用策略类决策
                 bestCards = ToSouthRobotStrategy.chooseLeaderPlay(handCards, gameDataVo, currentPlayerSeat);
             } else {
-                // 真人超时：出最小牌
-                bestCards = ToSouthHandUtils.findBestPlay(handCards);
+                // 真人超时：仅本局第一个出牌才自动出牌
+                // 新牌局（isFirstRound=true）→ 必须出黑桃3；上把赢家首出 → 出推荐牌
+                // 中途某轮赢家再次首出超时 → 不自动出牌（Pass）
+                if (isFirstPlayOfGame(gameDataVo)) {
+                    bestCards = ToSouthRobotStrategy.chooseLeaderPlay(handCards, gameDataVo, currentPlayerSeat);
+                }
+                // 非本局第一出：bestCards = null → Pass
             }
         } else if (!gameDataVo.getCurRoundPassedPlayerSeats().contains(currentPlayerSeat.getSeatId())) {
             if (isRobot) {
@@ -113,5 +117,16 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
                 reqTurnAction.actionType, reqTurnAction.cards);
         assert controller != null;
         controller.turnAction(getPlayerId(), reqTurnAction);
+    }
+
+    /**
+     * 判断是否为本局第一次出牌（所有在座玩家手牌还是满的）。
+     * 满足则说明还没有人出过牌，此时首出超时才需要自动出牌。
+     */
+    private boolean isFirstPlayOfGame(ToSouthGameDataVo gameDataVo) {
+        int handPoker = gameDataVo.getRoomCfg().getHandPoker();
+        return gameDataVo.getPlayerSeatInfoList().stream()
+                .filter(s -> !s.isDelState() && !s.isOver())
+                .allMatch(s -> s.getCurrentCards().size() == handPoker);
     }
 }

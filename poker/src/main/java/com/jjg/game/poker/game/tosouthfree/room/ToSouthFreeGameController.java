@@ -1030,6 +1030,13 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
 
         int status = req.status; // 1=准备, 2=取消
 
+        // 容错：玩家被踢出通知后（exitPlayerIds），若仍在座位上又点准备，撤销踢出标记让其继续
+        if (status == 1 && gameDataVo.getExitPlayerIds().contains(playerId)) {
+            log.info("玩家 {} 已被踢出通知但仍在座位上，重新点准备，撤销踢出标记", playerId);
+            gameDataVo.getExitPlayerIds().remove(playerId);
+            gameDataVo.getReadyPlayerIds().remove(playerId);
+        }
+
         if (status == 2) {
             // 取消准备
             if (!gameDataVo.getReadyPlayerIds().contains(playerId)) {
@@ -1048,6 +1055,14 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
             if (isOpen()) {
                 // 准备（status == 1 或默认）
                 if (gameDataVo.getReadyPlayerIds().contains(playerId)) {
+                    // 容错：玩家已准备且仍在座位上（未真正退出房间），返回准备成功
+                    if (!gameDataVo.getExitPlayerIds().contains(playerId) && playerSeatInfo != null && playerSeatInfo.isSeatDown()) {
+                        log.info("玩家 {} 重复准备请求，但仍在房间且已准备，容错返回准备成功", playerId);
+                        notify.playerId = playerId;
+                        notify.status = 1;
+                        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+                        return;
+                    }
                     notify.code = Code.REPEAT_OP;
                     broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
                     return;
@@ -1060,17 +1075,17 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
                     long pid = info.getPlayerId();
                     long playerBalance = getTransactionItemNum(pid);
                     if (playerBalance < minBalance) {
-                        RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
+                        RoomPlayer roomPlayer = getRoomController().getRoomPlayer(pid);
                         if (roomPlayer == null || roomPlayer.isOnline()) {
                             NotifyExitRoom exitNotify = new NotifyExitRoom();
                             exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
-                            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
-                            log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
+                            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(pid, exitNotify));
+                            log.info("玩家 {} 余额不足，通知客户端退出房间", pid);
                         } else {
-                            getRoomController().getRoomManager().exitRoom(playerId);
-                            log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
+                            getRoomController().getRoomManager().exitRoom(pid);
+                            log.info("玩家 {} 余额不足且离线，服务端直接退出房间", pid);
                         }
-                        gameDataVo.getReadyTimerVersion().remove(playerId);
+                        gameDataVo.getReadyTimerVersion().remove(pid);
                         return;
                     }
                 }

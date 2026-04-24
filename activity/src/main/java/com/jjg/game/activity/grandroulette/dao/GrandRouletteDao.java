@@ -97,6 +97,10 @@ public class GrandRouletteDao {
                 info = new GrandRouletteSubordinateInfo();
             }
             Map<Long, Integer> subordinateMap = info.getSubordinateMap();
+            if (subordinateMap.containsKey(subordinateId)) {
+                log.error("下级重复成为子级 playerId:{} subordinateId:{}", playerId, subordinateId);
+                return null;
+            }
             subordinateMap.put(subordinateId, time);
             map.put(playerId, info);
             return info;

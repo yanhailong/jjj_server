@@ -2,6 +2,7 @@ package com.jjg.game.poker.game.tosouth.gamephase;
 
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.data.Card;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.gamephase.BaseStartGamePhase;
@@ -42,9 +43,30 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
     private static final boolean BOMB_TEST_MODE = false;
 
     private ToSouthSettlementContext instantWinContext;
+    private final long startPhaseGameId;
 
     public ToSouthStartGamePhase(AbstractPhaseGameController<Room_ChessCfg, ToSouthGameDataVo> gameController, long executionGameId) {
         super(gameController, executionGameId);
+        this.startPhaseGameId = executionGameId;
+    }
+
+    /**
+     * 重写 phaseFinish：
+     * 通杀时 nextPhase() 会触发 settlement.phaseDoAction()，该方法已发送 NotifyPokerPhaseChange，
+     * 无需父类再次发送，否则客户端会收到重复通知。
+     * 普通（非通杀）路径仍走 super.phaseFinish()，由父类统一发送 NotifyPokerPhaseChange(PLAY_CART)。
+     */
+    @Override
+    public void phaseFinish() {
+        if (instantWinContext != null && !instantWinContext.getWinners().isEmpty()) {
+            // 通杀：直接进结算，跳过父类的重复 NotifyPokerPhaseChange
+            if (getGamePhase() != EGamePhase.START_GAME || startPhaseGameId != gameDataVo.getId()) {
+                return;
+            }
+            nextPhase();
+            return;
+        }
+        super.phaseFinish();
     }
 
     @Override
