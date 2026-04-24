@@ -228,15 +228,16 @@ public class ToSouthFreeSettlementPhase extends BaseSettlementPhase<ToSouthFreeG
             addCreateRecord(controller, totalTax, settlementMap2);
 
             // 先通知客户端阶段变更为结算阶段
+            long endtime = System.currentTimeMillis() + getPhaseRunTime();
             NotifyPokerPhaseChange phaseChange = new NotifyPokerPhaseChange();
             phaseChange.phase = EGamePhase.GAME_ROUND_OVER_SETTLEMENT;
-            phaseChange.endTime = -1;
+            phaseChange.endTime = endtime;
             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(phaseChange));
 
             // 发送结算消息给客户端
             NotifyToSouthFreeSettlementInfo notify = new NotifyToSouthFreeSettlementInfo();
             notify.settlementInfos = playerSettlementInfos;
-            notify.endTime = System.currentTimeMillis();
+            notify.endTime = endtime;
             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
             log.info("南方前进-免费结算map: {}", settlementMap2);
 
