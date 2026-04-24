@@ -9,6 +9,8 @@ import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.poker.game.tosouth.data.ToSouthSettlementContext;
 import com.jjg.game.poker.game.tosouth.message.bean.ToSouthPlayerSettlementInfo;
@@ -225,6 +227,12 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             gameDataTracker.addGameLogData("tax", totalTax);
             // 好友房：房主收益记录
             addCreateRecord(controller, totalTax, settlementMap2);
+
+            // 先通知客户端阶段变更为结算阶段
+            NotifyPokerPhaseChange phaseChange = new NotifyPokerPhaseChange();
+            phaseChange.phase = EGamePhase.GAME_ROUND_OVER_SETTLEMENT;
+            phaseChange.endTime = -1;
+            controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(phaseChange));
 
             // 发送结算消息给客户端
             NotifyToSouthSettlementInfo notify = new NotifyToSouthSettlementInfo();

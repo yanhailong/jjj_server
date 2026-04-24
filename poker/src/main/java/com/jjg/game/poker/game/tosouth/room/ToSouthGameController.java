@@ -1097,17 +1097,17 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                     long pid = info.getPlayerId();
                     long playerBalance = getTransactionItemNum(pid);
                     if (playerBalance < minBalance) {
-                        RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
+                        RoomPlayer roomPlayer = getRoomController().getRoomPlayer(pid);
                         if (roomPlayer == null || roomPlayer.isOnline()) {
                             NotifyExitRoom exitNotify = new NotifyExitRoom();
-                            exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
-                            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
-                            log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
+                            exitNotify.langId = Code.USER_NOT_GOLD;
+                            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(pid, exitNotify));
+                            log.info("玩家 {} 余额不足，通知客户端退出房间", pid);
                         } else {
-                            getRoomController().getRoomManager().exitRoom(playerId);
-                            log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
+                            getRoomController().getRoomManager().exitRoom(pid);
+                            log.info("玩家 {} 余额不足且离线，服务端直接退出房间", pid);
                         }
-                        gameDataVo.getReadyTimerVersion().remove(playerId);
+                        gameDataVo.getReadyTimerVersion().remove(pid);
                         return;
                     }
                 }
