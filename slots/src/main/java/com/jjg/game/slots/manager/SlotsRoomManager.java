@@ -1,6 +1,8 @@
 package com.jjg.game.slots.manager;
 
 import com.google.common.util.concurrent.Striped;
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.rpc.RpcCallSetting;
@@ -30,6 +32,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
 @Component
@@ -246,9 +249,11 @@ public class SlotsRoomManager implements HallRoomBridge {
      * @param slotsRoomController
      */
     public boolean autoRenewal(SlotsRoomController slotsRoomController) {
-        long now = System.currentTimeMillis();
         //检查到期时间
-        if (slotsRoomController.getRoom().getOverdueTime() >= now) {
+        long now = System.currentTimeMillis();
+        //提前续费
+        long diff = slotsRoomController.getRoom().getOverdueTime() - now;
+        if (diff > TimeUnit.MINUTES.toMillis(2)) {
             return false;
         }
 
@@ -260,12 +265,15 @@ public class SlotsRoomManager implements HallRoomBridge {
         }
 
         if (slotsRoomController.getRoom().getRoomPlayers().isEmpty()) {
-            List<LanguageParamData> params = new ArrayList<>();
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(slotsRoomController.getRoom().getRoomCfgId());
-            params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
-            params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
-            mailService.addCfgMail(slotsRoomController.getRoom().getCreator(), 2, null, params, AddType.FRIEND_ROOM_NO_PLAYER_PAUSE_RENEWAL);
-            log.info("房间时长到期,没有玩家暂停续费 roomId = {},roomCfgId = {}", roomId, slotsRoomController.getRoom().getRoomCfgId());
+            if (diff < 1 && !slotsRoomController.getRoom().isSendPauseRenewalMail()) {
+                List<LanguageParamData> params = new ArrayList<>();
+                WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(slotsRoomController.getRoom().getRoomCfgId());
+                params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
+                params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
+                mailService.addCfgMail(slotsRoomController.getRoom().getCreator(), 2, null, params, AddType.FRIEND_ROOM_NO_PLAYER_PAUSE_RENEWAL);
+                slotsRoomController.getRoom().setSendPauseRenewalMail(true);
+                log.info("房间时长到期,没有玩家暂停续费 roomId = {},roomCfgId = {}", roomId, slotsRoomController.getRoom().getRoomCfgId());
+            }
             return false;
         }
 
@@ -319,6 +327,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         itemOperationResult.setDiamond(slotsRoomController.getRoom().getPredictCostGoldNum());
         slotsLogger.roomOperate(slotsRoomController.getRoom(), 2, roomExpendCfg.getDurationTime(), itemMap, itemOperationResult);
         log.error("房间自动续费成功, roomId = {},roomCfgId = {},overdueTime={} totalTake={}", roomId, slotsRoomController.getRoom().getRoomCfgId(), overdueTime, totalTake);
+        slotsRoomController.getRoom().setSendPauseRenewalMail(false);
         slotsFriendRoomDao.save(slotsRoomController.getRoom());
         return true;
     }
@@ -438,6 +447,7 @@ public class SlotsRoomManager implements HallRoomBridge {
                 // 房间未过期，续时间
                 friendRoom.setOverdueTime(friendRoom.getOverdueTime() + addTime);
             }
+            friendRoom.setSendPauseRenewalMail(false);
         }
 
         //保存一次房间信息
@@ -503,58 +513,74 @@ public class SlotsRoomManager implements HallRoomBridge {
 
         try {
             //先将所有房间切换
-            Map<Long, SlotsBillInfo> slotsBillInfoMap = new HashMap<>();
+            Map<Long, SlotsBillInfo> slotsBillInfoMap = new ConcurrentHashMap<>();
             for (Map.Entry<Long, SlotsRoomController> en : tmpRoomControllers.entrySet()) {
-                SlotsBillInfo slotsBillInfo = en.getValue().getRoom().toggleFlag();
-                slotsBillInfoMap.put(en.getKey(), slotsBillInfo);
+                long roomId = en.getKey();
+                PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(roomId, 0, new BaseHandler<String>() {
+                    @Override
+                    public void action() throws Exception {
+                        SlotsBillInfo slotsBillInfo = en.getValue().getRoom().toggleFlag();
+                        slotsBillInfoMap.put(roomId, slotsBillInfo);
+                    }
+                });
             }
 
             //等待房间切换完毕
-            Thread.sleep(500);
+            Thread.sleep(1000);
 
             int month = TimeHelper.getMonthNumerical();
 
             for (Map.Entry<Long, SlotsRoomController> en : tmpRoomControllers.entrySet()) {
-                SlotsFriendRoom friendRoom = en.getValue().getRoom();
-                SlotsBillInfo slotsBillInfo = slotsBillInfoMap.get(en.getKey());
+                long roomId = en.getKey();
+                PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(roomId, 0, new BaseHandler<String>() {
+                    @Override
+                    public void action() throws Exception {
+                        SlotsFriendRoom friendRoom = en.getValue().getRoom();
+                        //自动续费检查
+                        autoRenewal(en.getValue());
 
-                WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(friendRoom.getRoomCfgId());
+                        SlotsBillInfo slotsBillInfo = slotsBillInfoMap.get(roomId);
+                        if (slotsBillInfo != null) {
+                            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(friendRoom.getRoomCfgId());
 //                log.debug("开始统计 roomId = {},room = {}", friendRoom.getId(), JSON.toJSONString(friendRoom));
 
-                //查询FriendRoomBillHistoryBean的id
-                long id = friendRoomSlotsBillHistoryDao.queryId(friendRoom.getGameType(), month, friendRoom.getCreator());
+                            //查询FriendRoomBillHistoryBean的id
+                            long id = friendRoomSlotsBillHistoryDao.queryId(friendRoom.getGameType(), month, friendRoom.getCreator());
 
-                FriendRoomBillHistoryBean historyBean = new FriendRoomBillHistoryBean();
-                historyBean.setId(id);
-                historyBean.setRoomCreator(friendRoom.getCreator());
-                historyBean.setTotalFlowing(slotsBillInfo.getTotalFlowing());
-                historyBean.setTotalIncome(slotsBillInfo.getTotalIncome());
+                            FriendRoomBillHistoryBean historyBean = new FriendRoomBillHistoryBean();
+                            historyBean.setId(id);
+                            historyBean.setRoomCreator(friendRoom.getCreator());
+                            historyBean.setTotalFlowing(slotsBillInfo.getTotalFlowing());
+                            historyBean.setTotalIncome(slotsBillInfo.getTotalIncome());
 
-                if (slotsBillInfo.getPartInPlayerIncome() != null && !slotsBillInfo.getPartInPlayerIncome().isEmpty()) {
-                    historyBean.setPartInPlayerIncome(slotsBillInfo.getPartInPlayerIncome());
-                } else {
-                    historyBean.setPartInPlayerIncome(new HashMap<>());
-                }
-                if (slotsBillInfo.getPartInPlayerBet() != null && !slotsBillInfo.getPartInPlayerBet().isEmpty()) {
-                    historyBean.setPartInPlayerBetScore(slotsBillInfo.getPartInPlayerBet());
-                } else {
-                    historyBean.setPartInPlayerBetScore(new HashMap<>());
-                }
-                historyBean.setCreatedAt(System.currentTimeMillis());
-                historyBean.setGameType(friendRoom.getGameType());
-                historyBean.setRoomCreator(friendRoom.getCreator());
-                historyBean.setMonth(month);
-                historyBean.setItemId(warehouseCfg.getTransactionItemId());
-                historyBean.setGameMajorType(CommonUtil.getMajorTypeByGameType(friendRoom.getGameType()));
+                            if (slotsBillInfo.getPartInPlayerIncome() != null && !slotsBillInfo.getPartInPlayerIncome().isEmpty()) {
+                                historyBean.setPartInPlayerIncome(slotsBillInfo.getPartInPlayerIncome());
+                            } else {
+                                historyBean.setPartInPlayerIncome(new HashMap<>());
+                            }
+                            if (slotsBillInfo.getPartInPlayerBet() != null && !slotsBillInfo.getPartInPlayerBet().isEmpty()) {
+                                historyBean.setPartInPlayerBetScore(slotsBillInfo.getPartInPlayerBet());
+                            } else {
+                                historyBean.setPartInPlayerBetScore(new HashMap<>());
+                            }
+                            historyBean.setCreatedAt(System.currentTimeMillis());
+                            historyBean.setGameType(friendRoom.getGameType());
+                            historyBean.setRoomCreator(friendRoom.getCreator());
+                            historyBean.setMonth(month);
+                            historyBean.setItemId(warehouseCfg.getTransactionItemId());
+                            historyBean.setGameMajorType(CommonUtil.getMajorTypeByGameType(friendRoom.getGameType()));
 
-                //保存到数据库
-                friendRoomBillHistoryDao.saveSlotsBillHistory(historyBean);
+                            //保存到数据库
+                            friendRoomBillHistoryDao.saveSlotsBillHistory(historyBean);
 
-                if (friendRoom.getStatus() == 3) {
-                    destroyRoom(friendRoom);
-                } else {
-                    slotsFriendRoomDao.save(friendRoom);
-                }
+                            if (friendRoom.getStatus() == 3) {
+                                destroyRoom(friendRoom);
+                            } else {
+                                slotsFriendRoomDao.save(friendRoom);
+                            }
+                        }
+                    }
+                });
             }
 
         } catch (Exception e) {

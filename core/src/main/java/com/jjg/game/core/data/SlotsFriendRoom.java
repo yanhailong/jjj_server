@@ -41,6 +41,9 @@ public class SlotsFriendRoom extends FriendRoom {
     @Transient
     private transient final AtomicBoolean flag = new AtomicBoolean(false);
 
+    //是否发送暂停续费的邮件
+    private boolean sendPauseRenewalMail;
+
 
     /**
      * 玩家下注后修改信息
@@ -102,5 +105,13 @@ public class SlotsFriendRoom extends FriendRoom {
             this.partInPlayerIncomeB.clear();
         }
         return slotsBillInfo;
+    }
+
+    public boolean isSendPauseRenewalMail() {
+        return sendPauseRenewalMail;
+    }
+
+    public void setSendPauseRenewalMail(boolean sendPauseRenewalMail) {
+        this.sendPauseRenewalMail = sendPauseRenewalMail;
     }
 }

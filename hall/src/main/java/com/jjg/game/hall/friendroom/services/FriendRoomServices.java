@@ -539,6 +539,10 @@ public class FriendRoomServices {
 
             @Override
             public boolean updateDataWithRes(FriendRoom dataEntity) {
+                if(dataEntity instanceof SlotsFriendRoom slotsFriendRoom) {
+                    slotsFriendRoom.setSendPauseRenewalMail(false);
+                }
+
                 dataEntity.setPredictCostGoldNum(friendRoom.getPredictCostGoldNum());
                 dataEntity.setOverdueTime(finalOverdueTime);
                 return true;

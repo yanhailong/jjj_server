@@ -143,6 +143,9 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             });
             return;
         }
+        
+        //设置workId
+        session.setWorkId(slotsRoomController.getRoom().getId());
 
         //放入玩家对应线程中处理避免和回存冲突
         PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
