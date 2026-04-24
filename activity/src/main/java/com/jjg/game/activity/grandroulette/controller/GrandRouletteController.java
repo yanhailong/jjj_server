@@ -403,10 +403,11 @@ public class GrandRouletteController extends BaseActivityController implements G
             GrandRouletteSubordinateInfo subordinateInfo = grandRouletteDao.addSubordinateId(activityId, beneficiaryPlayerId, playerId, TimeHelper.nowInt());
             if (subordinateInfo != null) {
                 //进行绑定和加次数
-                grandRouletteDao.addCumulativeTimes(activityId, beneficiaryPlayerId, 0, 1);
+                long remainTimes = grandRouletteDao.addCumulativeTimes(activityId, beneficiaryPlayerId, 0, 1);
                 //通知变化
                 NotifyBindSubordinatesChange notify = new NotifyBindSubordinatesChange();
                 notify.bindSubordinates = buildSubordinateInfo(subordinateInfo);
+                notify.remainTimes = (int) remainTimes;
                 PFSession session = playerSessionService.getSession(beneficiaryPlayerId);
                 if (session == null) {
                     return;
