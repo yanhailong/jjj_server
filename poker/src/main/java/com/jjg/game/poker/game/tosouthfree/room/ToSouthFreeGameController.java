@@ -123,7 +123,7 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
         boolean changed =
                 roomController.getRoomManager().changeRoom(
                         playerController, room, room.getGameType(), controller.getRoom().getRoomCfgId(), controller.getRoom().getMaxLimit());
-        RespToSouthFreeChangTable res = new RespToSouthFreeChangTable(changed ? Code.SUCCESS : Code.FAIL);
+        RespToSouthFreeChangTable res = new RespToSouthFreeChangTable(changed ? Code.SUCCESS : Code.NO_VACANT_ROOM);
         playerController.send(res);
     }
 
