@@ -646,15 +646,15 @@ public class ActivityLogger extends BaseLogger {
      * @param player       玩家数据
      * @param activityData 活动数据
      * @param id           本轮id
-     * @param type         操作类型 1抽奖 2领奖
+     * @param operatorType         操作类型 1抽奖 2领奖
      * @param getGoldNum   获得金币数量
      * @param afterGoldNum 之后金币数量
      */
-    public void sendGrandRouletteLog(Player player, ActivityData activityData, long id, int type, long getGoldNum, long afterGoldNum) {
+    public void sendGrandRouletteLog(Player player, ActivityData activityData, long id, int operatorType, long getGoldNum, long afterGoldNum) {
         try {
             JSONObject json = buildBaseInfo(activityData, 1);
             json.put("id", id);
-            json.put("type", type);
+            json.put("operatorType", operatorType);
             json.put("getGoldNum", getGoldNum);
             json.put("afterGoldNum", afterGoldNum);
             sendLog(TOPIC, player, json);
