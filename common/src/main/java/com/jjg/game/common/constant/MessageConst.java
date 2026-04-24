@@ -350,5 +350,8 @@ public interface MessageConst {
         int NOTICE_CLEAN_PLAYER = BASE_MSG_PREFIX | 0x15;
         //通知生成南方前进牌库
         int NOTICE_GENERATE_TO_SOUTH_LIB = BASE_MSG_PREFIX | 0x16;
+        //刷新游戏配置
+        int REQ_REFRESH_GLOBAL_CONFIG = BASE_MSG_PREFIX | 0x17;
+
     }
 }

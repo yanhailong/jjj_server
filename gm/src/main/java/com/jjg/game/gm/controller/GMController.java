@@ -3,11 +3,11 @@ package com.jjg.game.gm.controller;
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jjg.game.activity.grandroulette.data.GrandRouletteConditionConfig;
 import com.jjg.game.activity.sharepromote.dao.SharePromoteDao;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterHelper;
 import com.jjg.game.common.cluster.ClusterMessage;
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
@@ -115,7 +115,8 @@ public class GMController extends AbstractController {
     private RedeemCodeInfoDao redeemCodeInfoDao;
     @Autowired
     private RedeemCodeDao redeemCodeDao;
-
+    @Autowired
+    private GlobalConfigDao globalConfigDao;
     @ClusterRpcReference()
     private GmToRechargeBridge gmToRechargeBridge;
     @ClusterRpcReference
@@ -1980,10 +1981,10 @@ public class GMController extends AbstractController {
             }
 
             List<String> codeList = dto.codeList() == null ? Collections.emptyList() : dto.codeList().stream()
-                    .filter(StringUtils::isNotBlank)
-                    .map(String::trim)
-                    .distinct()
-                    .collect(Collectors.toList());
+                                                                                       .filter(StringUtils::isNotBlank)
+                                                                                       .map(String::trim)
+                                                                                       .distinct()
+                                                                                       .collect(Collectors.toList());
 
             Optional<RedeemCodeInfo> redeemCodeInfoOptional = redeemCodeInfoDao.findById(dto.id());
             RedeemCodeInfo redeemCodeInfo;
@@ -2042,6 +2043,37 @@ public class GMController extends AbstractController {
             RedeemCodeInfo redeemCodeInfo = redeemCodeInfoOptional.get();
             redeemCodeInfo.setUse(dto.use());
             redeemCodeInfoDao.save(redeemCodeInfo);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 配置大转盘领奖限制
+     */
+    @RequestMapping(BackendGMCmd.GRAND_ROULETTE_CONDITION_CONFIG)
+    public WebResult<String> grandRouletteConditionConfig(@RequestBody GrandRouletteConditionConfig config) {
+        log.info("配置大转盘领奖限制请求 dto = {}", config);
+        try {
+            if (config == null) {
+                log.warn("配置大转盘参数错误 dto = {}", "null");
+                return fail("common.paramerror");
+            }
+            //拼接参数
+            GlobalConfig globalConfig = new GlobalConfig(GlobalSampleConstantId.GRAND_ROULETTE_128);
+            globalConfig.setValue("%s|%s|%s|%s".formatted(config.getNeedNum(), config.getNeedGoldNum(), config.getNeedRechargeNum(), config.getNeedConcludeNum()));
+            globalConfigDao.save(globalConfig);
+
+            globalConfig = new GlobalConfig(GlobalSampleConstantId.GRAND_ROULETTE_131);
+            globalConfig.setValue(config.getGameTypeLimit());
+            globalConfigDao.save(globalConfig);
+            ReqRefreshGlobalConfig msg = new ReqRefreshGlobalConfig();
+            msg.refreshIds = List.of(GlobalSampleConstantId.GRAND_ROULETTE_128, GlobalSampleConstantId.GRAND_ROULETTE_131);
+            PFMessage pfMessage = MessageUtil.getPFMessage(msg);
+            //通知大厅和游戏节点
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString(), NodeType.GAME.toString())::contains);
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);
