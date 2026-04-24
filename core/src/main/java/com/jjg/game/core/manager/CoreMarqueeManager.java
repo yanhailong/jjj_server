@@ -211,8 +211,8 @@ public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderList
             }
         }
 
-        log.debug("添加跑马灯后打印 sortedMarquees.size = {},playerWinSortedMarquees.size = {},activitySortedMarquees.size = {},map.size = {}",
-                this.sortedMarquees == null ? 0 : this.sortedMarquees.size(), this.playerWinSortedMarquees == null ? 0 : this.playerWinSortedMarquees.size(), this.activitySortedMarquees == null ? 0 : this.activitySortedMarquees.size(), this.marqueeMap.size());
+//        log.debug("添加跑马灯后打印 sortedMarquees.size = {},playerWinSortedMarquees.size = {},activitySortedMarquees.size = {},map.size = {}",
+//                this.sortedMarquees == null ? 0 : this.sortedMarquees.size(), this.playerWinSortedMarquees == null ? 0 : this.playerWinSortedMarquees.size(), this.activitySortedMarquees == null ? 0 : this.activitySortedMarquees.size(), this.marqueeMap.size());
 //        check();
     }
 
@@ -363,7 +363,7 @@ public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderList
     private void notifyClientMarquee(Marquee marquee) {
         NotifyMarquee notify = new NotifyMarquee();
         notify.marqueeInfo = transMarqueeInfo(marquee);
-        log.debug("通知客户端跑马灯 marquee = {}", JSON.toJSONString(notify));
+//        log.debug("通知客户端跑马灯 marquee = {}", JSON.toJSONString(notify));
         // 广播消息
         clusterSystem.broadcastToOnlinePlayer(notify);
     }
