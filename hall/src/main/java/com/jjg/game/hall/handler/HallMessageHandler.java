@@ -819,6 +819,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
         //判断是否检查钻石余额
         boolean checkDiamond = false;
         boolean checkShell = false;
+        boolean checkGold = false;
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         if (warehouseCfg.getTransactionItemId() > 0) {
             ItemCfg itemCfg = GameDataManager.getItemCfg(warehouseCfg.getTransactionItemId());
@@ -827,6 +828,8 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
                     checkDiamond = true;
                 } else if (itemCfg.getType() == GameConstant.Item.TYPE_SHELL) {
                     checkShell = true;
+                }else if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
+                    checkGold = true;
                 }
             }
         }
@@ -841,7 +844,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
                 log.debug("玩家携带货币(贝币)不足 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},shell={},enterLimit = {},checkDiamond = {},checkShell = {}", playerController.playerId(), gameType, roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), player.getShell(), warehouseCfg.getEnterLimit(), checkDiamond, checkShell);
                 return new CommonResult<>(Code.NOT_ENOUGH);
             }
-            if (warehouseCfg.getEnterLimit() > player.getGold()) {
+            if (checkGold && warehouseCfg.getEnterLimit() > player.getGold()) {
                 log.debug("玩家携带货币(金币)不足 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},shell={},enterLimit = {},checkDiamond = {},checkShell = {}", playerController.playerId(), gameType, roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), player.getShell(), warehouseCfg.getEnterLimit(), checkDiamond, checkShell);
                 return new CommonResult<>(Code.NOT_ENOUGH);
             }
