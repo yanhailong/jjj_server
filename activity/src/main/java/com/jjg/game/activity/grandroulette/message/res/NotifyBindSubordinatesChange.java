@@ -18,4 +18,6 @@ import java.util.List;
 public class NotifyBindSubordinatesChange extends AbstractNotice {
     @ProtoDesc("绑定信息")
     public List<GrandRouletteSubordinate> bindSubordinates;
+    @ProtoDesc("剩余次数")
+    public int remainTimes;
 }

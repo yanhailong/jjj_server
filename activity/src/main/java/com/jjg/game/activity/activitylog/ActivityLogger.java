@@ -646,7 +646,7 @@ public class ActivityLogger extends BaseLogger {
      * @param player       玩家数据
      * @param activityData 活动数据
      * @param id           本轮id
-     * @param operatorType         操作类型 1抽奖 2领奖
+     * @param operatorType 操作类型 1抽奖 2领奖
      * @param getGoldNum   获得金币数量
      * @param afterGoldNum 之后金币数量
      */
@@ -657,6 +657,26 @@ public class ActivityLogger extends BaseLogger {
             json.put("operatorType", operatorType);
             json.put("getGoldNum", getGoldNum);
             json.put("afterGoldNum", afterGoldNum);
+            sendLog(TOPIC, player, json);
+        } catch (Exception e) {
+            log.error("sendWealthRouletteLog error:", e);
+        }
+    }
+
+    /**
+     * 大转盘助力成功日志
+     *
+     * @param player         玩家数据
+     * @param activityData   活动数据
+     * @param operatorResult 操作结果 1成功 0失败
+     */
+    public void sendGrandRouletteHelpLog(Player player, ActivityData activityData, int operatorResult, String ip, String mac) {
+        try {
+            JSONObject json = buildBaseInfo(activityData, 1);
+            json.put("operatorType", 3);
+            json.put("ip", ip);
+            json.put("operatorResult", operatorResult);
+            json.put("mac", mac);
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendWealthRouletteLog error:", e);

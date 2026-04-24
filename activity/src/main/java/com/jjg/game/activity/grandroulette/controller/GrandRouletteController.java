@@ -320,6 +320,7 @@ public class GrandRouletteController extends BaseActivityController implements G
         res.infoList = ItemUtils.buildGoldInfo(getNum.longValue());
         res.currentGold = data.getCumulativeGold();
         res.targetGold = targetNum;
+        res.endTime = data.getEndTime();
         return res;
     }
 
@@ -396,23 +397,29 @@ public class GrandRouletteController extends BaseActivityController implements G
             }
             if (!grandRouletteDao.addBindIpInfo(account.getRegisterIp(), account.getRegisterMac())) {
                 log.info("已经存在的ip:{} 或者mac:{} 地址 ", account.getRegisterIp(), account.getRegisterMac());
+                activityLogger.sendGrandRouletteHelpLog(player, openActivityData, 0, account.getRegisterIp(), account.getRegisterMac());
                 return;
             }
             //添加到下级
             GrandRouletteSubordinateInfo subordinateInfo = grandRouletteDao.addSubordinateId(activityId, beneficiaryPlayerId, playerId, TimeHelper.nowInt());
-            if (subordinateInfo != null) {
-                //进行绑定和加次数
-                grandRouletteDao.addCumulativeTimes(activityId, beneficiaryPlayerId, 0, 1);
-                //通知变化
-                NotifyBindSubordinatesChange notify = new NotifyBindSubordinatesChange();
-                notify.bindSubordinates = buildSubordinateInfo(subordinateInfo);
-                PFSession session = playerSessionService.getSession(beneficiaryPlayerId);
-                if (session == null) {
-                    return;
-                }
-                session.send(notify);
-                updateRodDot(beneficiaryPlayerId, openActivityData, false, true);
+            if (subordinateInfo == null) {
+                log.info("添加下级失败:{} 或者mac:{} 地址 ", account.getRegisterIp(), account.getRegisterMac());
+                activityLogger.sendGrandRouletteHelpLog(player, openActivityData, 0, account.getRegisterIp(), account.getRegisterMac());
+                return;
             }
+            //进行绑定和加次数
+            long remainTimes = grandRouletteDao.addCumulativeTimes(activityId, beneficiaryPlayerId, 0, 1);
+            activityLogger.sendGrandRouletteHelpLog(player, openActivityData, 1, account.getRegisterIp(), account.getRegisterMac());
+            //通知变化
+            NotifyBindSubordinatesChange notify = new NotifyBindSubordinatesChange();
+            notify.bindSubordinates = buildSubordinateInfo(subordinateInfo);
+            notify.remainTimes = (int) remainTimes;
+            PFSession session = playerSessionService.getSession(beneficiaryPlayerId);
+            if (session == null) {
+                return;
+            }
+            session.send(notify);
+            updateRodDot(beneficiaryPlayerId, openActivityData, false, true);
         }
     }
 
