@@ -1701,11 +1701,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     protected void checkMarquee(T data, long win) {
         BaseRoomCfg baseRoomCfg = this.roomCfgMap.get(data.getRoomCfgId());
-        if (baseRoomCfg == null || win < baseRoomCfg.getMarqueeTrigger().get(0)) {
+        if (baseRoomCfg == null) {
+            log.warn("发送跑马灯失败 playerId = {},roomCfgId = {}", data.getPlayer().getId(), data.getRoomCfgId());
+            return;
+        }
+        if (win < baseRoomCfg.getMarqueeTrigger().get(0)) {
+            log.warn("发送跑马灯失败 playerId = {},roomCfgId = {},win={},cfgTrigger = {}", data.getPlayer().getId(), data.getRoomCfgId(), win, baseRoomCfg.getMarqueeTrigger().get(0));
             return;
         }
 
-        marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(), baseRoomCfg.getMarqueeTrigger().get(1).intValue(), baseRoomCfg.getNameid(), win, true);
+        marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(), baseRoomCfg.getMarqueeTrigger().get(1).intValue(), baseRoomCfg.getNameid(), win, false);
     }
 
     /**

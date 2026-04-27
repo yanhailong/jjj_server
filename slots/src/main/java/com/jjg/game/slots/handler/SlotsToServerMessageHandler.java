@@ -94,22 +94,26 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
         try {
             log.info("收到生成结果库的请求 list={}", JSON.toJSONString(req.list));
 
+            boolean add = false;
             for (KVInfo info : req.list) {
                 AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(info.key);
                 if (gameManager == null) {
                     log.debug("获取 gameManager 为空，生成结果库失败 gameType = {},count = {}", info.key, info.value);
-                    return;
+                    continue;
                 }
 
                 // 任务入队
                 Map<Integer, Integer> countMap = countMap(info.key, info.value);
                 synchronized (queueLock) {
+                    add = true;
                     generateTaskQueue.offer(new GenerateLibTask(info.key, countMap));
                     log.info("任务已入队，当前队列长度: {}, gameType = {}", generateTaskQueue.size(), info.key);
                 }
             }
             // 尝试启动任务
-            tryStartNextTask();
+            if(add){
+                tryStartNextTask();
+            }
         } catch (Exception e) {
             log.error("", e);
         }
