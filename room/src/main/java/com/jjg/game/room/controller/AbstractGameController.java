@@ -696,7 +696,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                     CoreMarqueeManager manager = getRoomController().getRoomManager().getCoreMarqueeManager();
                     GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
                     if (gamePlayer != null) {
-                        manager.playerWinMarquee(gamePlayer.getNickName(), marqueeTrigger.getLast().intValue(), gameDataVo.getRoomCfg().getNameid(), winValue, true);
+                        manager.playerWinMarquee(gamePlayer.getNickName(), marqueeTrigger.getLast().intValue(), gameDataVo.getRoomCfg().getNameid(), winValue, false);
                     }
                 }
             }
