@@ -9,14 +9,4 @@ import org.springframework.data.mongodb.core.mapping.Document;
  */
 @Document(collection = "PokerFriendRoom")
 public class PokerFriendRoom extends FriendRoom {
-    //是否发送暂停续费的邮件
-    private boolean sendPauseRenewalMail;
-
-    public boolean isSendPauseRenewalMail() {
-        return sendPauseRenewalMail;
-    }
-
-    public void setSendPauseRenewalMail(boolean sendPauseRenewalMail) {
-        this.sendPauseRenewalMail = sendPauseRenewalMail;
-    }
 }
