@@ -175,7 +175,7 @@ public class GrandRouletteDao {
      */
     public void addCumulativeGold(long activityId, long playerId, long goldNum) {
         String key = BASE_GOLD_KEY.formatted(activityId);
-        RMap<Long, Long> map = redissonClient.getMap(key);
+        RMap<Long, Long> map = redissonClient.getMap(key, LongCodec.INSTANCE);
         map.addAndGet(playerId, goldNum);
     }
 
@@ -188,7 +188,7 @@ public class GrandRouletteDao {
      */
     public void addCumulativeRecharge(long activityId, long playerId, BigDecimal rechargeValue) {
         String key = BASE_RECHARGE_KEY.formatted(activityId);
-        RMap<Long, Long> map = redissonClient.getMap(key);
+        RMap<Long, Long> map = redissonClient.getMap(key, LongCodec.INSTANCE);
         map.addAndGet(playerId, RedisUtils.toLong(rechargeValue));
     }
 
@@ -242,7 +242,7 @@ public class GrandRouletteDao {
             return Map.of();
         }
         String key = BASE_GOLD_KEY.formatted(activityId);
-        RMap<Long, Long> map = redissonClient.getMap(key);
+        RMap<Long, Long> map = redissonClient.getMap(key, LongCodec.INSTANCE);
 
         // 批量获取所有玩家的数据，减少与 Redis 的交互次数
         Map<Long, Long> result = map.getAll(playerIds);
@@ -263,7 +263,7 @@ public class GrandRouletteDao {
      */
     public Map<Long, Long> getMultipleCumulativeRecharge(long activityId, Set<Long> playerIds) {
         String key = BASE_RECHARGE_KEY.formatted(activityId);
-        RMap<Long, Long> map = redissonClient.getMap(key);
+        RMap<Long, Long> map = redissonClient.getMap(key, LongCodec.INSTANCE);
 
         // 批量获取所有玩家的数据，减少与 Redis 的交互次数
         Map<Long, Long> result = map.getAll(playerIds);
