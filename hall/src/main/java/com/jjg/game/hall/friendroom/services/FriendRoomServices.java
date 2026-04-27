@@ -539,10 +539,12 @@ public class FriendRoomServices {
 
             @Override
             public boolean updateDataWithRes(FriendRoom dataEntity) {
-                if(dataEntity instanceof SlotsFriendRoom slotsFriendRoom) {
+                if (dataEntity instanceof SlotsFriendRoom slotsFriendRoom) {
                     slotsFriendRoom.setSendPauseRenewalMail(false);
                 }
-
+                if (dataEntity instanceof PokerFriendRoom pokerFriendRoom) {
+                    pokerFriendRoom.setSendPauseRenewalMail(false);
+                }
                 dataEntity.setPredictCostGoldNum(friendRoom.getPredictCostGoldNum());
                 dataEntity.setOverdueTime(finalOverdueTime);
                 return true;
@@ -978,6 +980,9 @@ public class FriendRoomServices {
                         } else {
                             // 房间未过期，续时间
                             dataEntity.setOverdueTime(dataEntity.getOverdueTime() + finalAddTime);
+                        }
+                        if (friendRoom instanceof PokerFriendRoom pokerFriendRoom) {
+                            pokerFriendRoom.setSendPauseRenewalMail(false);
                         }
                     }
                     return true;

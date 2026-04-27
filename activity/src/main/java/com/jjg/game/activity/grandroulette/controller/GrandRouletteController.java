@@ -301,13 +301,17 @@ public class GrandRouletteController extends BaseActivityController implements G
         long cumulativeGold = data.getCumulativeGold() + getNum.longValue();
         //大于次数则检查其他条件
         boolean canGet = checkRewardCondition(activityId, playerId, param);
-        if (!canGet && cumulativeGold >= targetNum) {
-            cumulativeGold = data.getCumulativeGold();
-            getNum = BigDecimal.ZERO;
-            index = DEFAULT_INDEX;
-        }
         if (cumulativeGold >= targetNum) {
-            data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+            if (!canGet) {
+                cumulativeGold = data.getCumulativeGold();
+                getNum = BigDecimal.ZERO;
+                index = DEFAULT_INDEX;
+            } else {
+                data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+                cumulativeGold = targetNum;
+                getNum = BigDecimal.valueOf(targetNum - data.getCumulativeGold());
+            }
+
         }
         //扣除次数
         long remainTimes = grandRouletteDao.addCumulativeTimes(activityData.getId(), playerId, 1, -1);
@@ -441,6 +445,10 @@ public class GrandRouletteController extends BaseActivityController implements G
      * 检查达成条件
      */
     public boolean checkRewardCondition(long activityId, long playerId, ConditionParam param) {
+        //需要0人达成直接返回true
+        if (param.needConcludeNum == 0) {
+            return true;
+        }
         GrandRouletteSubordinateInfo subordinateIds = grandRouletteDao.getSubordinateIds(activityId, playerId);
         if (subordinateIds == null) {
             return false;
