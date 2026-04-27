@@ -436,11 +436,6 @@ public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderList
      * @param value          金额
      */
     public void playerWinMarquee(String playerNickName, int langId, int gameLangId, long value, boolean robot) {
-
-        if(!robot){
-            log.debug("添加玩家中奖的跑马灯 nick = {},langId = {},gameLangId = {},value = {}", playerNickName, langId, gameLangId, value);
-        }
-
         Marquee marquee = new Marquee();
 
         marquee.setType(GameConstant.Marquee.PLAYER_WIN);
@@ -473,6 +468,10 @@ public class CoreMarqueeManager implements TimerListener, IGameClusterLeaderList
                 notify.type = marquee.getType();
                 notifyHallAndGameNodeStartMarquee(notify);
                 addNewMarquee(marquee);
+
+                if (!robot) {
+                    log.debug("添加玩家中奖的跑马灯 id = {},nick = {},langId = {},gameLangId = {},value = {}", marquee.getId(), playerNickName, langId, gameLangId, value);
+                }
                 break;
             }
         }
