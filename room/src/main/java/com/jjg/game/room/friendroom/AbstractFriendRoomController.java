@@ -340,6 +340,9 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
                 @Override
                 public boolean updateDataWithRes(FriendRoom dataEntity) {
+                    if (dataEntity instanceof PokerFriendRoom pokerFriendRoom) {
+                        pokerFriendRoom.setSendPauseRenewalMail(false);
+                    }
                     dataEntity.setOverdueTime(finalOverdueTime);
                     // TODO日志
                     dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum());
@@ -369,7 +372,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     /**
      * 房间自动续费时获取续费配置
      */
-    private RoomExpendCfg getAutoRenewalCfg() {
+    protected RoomExpendCfg getAutoRenewalCfg() {
         for (RoomExpendCfg roomExpendCfg : GameDataManager.getRoomExpendCfgList()) {
             if (roomExpendCfg.getDurationtype() == 1) {
                 return roomExpendCfg;
