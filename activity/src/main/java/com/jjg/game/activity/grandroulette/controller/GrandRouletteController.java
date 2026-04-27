@@ -441,6 +441,10 @@ public class GrandRouletteController extends BaseActivityController implements G
      * 检查达成条件
      */
     public boolean checkRewardCondition(long activityId, long playerId, ConditionParam param) {
+        //需要0人达成直接返回true
+        if (param.needConcludeNum == 0) {
+            return true;
+        }
         GrandRouletteSubordinateInfo subordinateIds = grandRouletteDao.getSubordinateIds(activityId, playerId);
         if (subordinateIds == null) {
             return false;
