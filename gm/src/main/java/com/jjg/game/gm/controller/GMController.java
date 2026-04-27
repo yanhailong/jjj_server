@@ -2082,6 +2082,34 @@ public class GMController extends AbstractController {
     }
 
     /**
+     * 获取大转盘领奖限制配置
+     */
+    @RequestMapping(BackendGMCmd.GET_GRAND_ROULETTE_CONDITION_CONFIG)
+    public WebResult<GrandRouletteConditionConfig> getGrandRouletteConditionConfig() {
+        log.info("收到获取大转盘领奖限制配置请求");
+        try {
+            String value128 = globalConfigDao.findById(GlobalSampleConstantId.GRAND_ROULETTE_128)
+                    .map(GlobalConfig::getValue).orElse(null);
+            String gameTypeLimit = globalConfigDao.findById(GlobalSampleConstantId.GRAND_ROULETTE_131)
+                    .map(GlobalConfig::getValue).orElse(null);
+            if (value128 == null) {
+                return success("common.success", new GrandRouletteConditionConfig());
+            }
+            String[] parts = value128.split("\\|", -1);
+            int needNum = parts.length > 0 ? Integer.parseInt(parts[0]) : 0;
+            long needGoldNum = parts.length > 1 ? Long.parseLong(parts[1]) : 0L;
+            BigDecimal needRechargeNum = parts.length > 2 ? new BigDecimal(parts[2]) : BigDecimal.ZERO;
+            int needConcludeNum = parts.length > 3 ? Integer.parseInt(parts[3]) : 0;
+            GrandRouletteConditionConfig config = new GrandRouletteConditionConfig(
+                    needNum, needGoldNum, needRechargeNum, needConcludeNum, gameTypeLimit);
+            return success("common.success", config);
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
      * 给玩家设置svip
      */
     @RequestMapping(BackendGMCmd.PLAYER_SVIP)

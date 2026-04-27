@@ -110,7 +110,10 @@ public class GrandRouletteController extends BaseActivityController implements G
         if (playerActivityData == null || playerActivityData.getEndTime() < System.currentTimeMillis()) {
             return false;
         }
-
+        GrandRouletteSubordinateInfo subordinateIds = grandRouletteDao.getSubordinateIds(activityData.getId(), beneficiaryPlayerId);
+        if (subordinateIds == null || !subordinateIds.getSubordinateMap().containsKey(player.getId())) {
+            return false;
+        }
         boolean effectiveBet = (activityTargetKey & ActivityTargetType.EFFECTIVE_BET.getTargetKey()) != 0;
         if (effectiveBet) {
             if (canAddProgress(player.getGameType())) {
@@ -280,6 +283,8 @@ public class GrandRouletteController extends BaseActivityController implements G
             return res;
         }
         BigDecimal getNum;
+        //大于次数则检查其他条件
+        boolean canGet = checkRewardCondition(activityId, playerId, param);
         if (index > 0) {
             //添加金币
             FreespinCfg freespinCfg = baseCfgBeanMap.get(index);
@@ -294,15 +299,13 @@ public class GrandRouletteController extends BaseActivityController implements G
             long need = targetNum - data.getCumulativeGold();
             getNum = BigDecimal.valueOf(need)
                     .multiply(BigDecimal.valueOf(ratio))
-                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN);
+                    .divide(BigDecimal.valueOf(10000), 0, RoundingMode.UP);
             index = DEFAULT_INDEX;
-            if (playerTimes.getFirst() > param.needNum()) {
+            if (!canGet && playerTimes.getFirst() > param.needNum()) {
                 getNum = BigDecimal.valueOf(RandomUtil.randomLong(0, need));
             }
         }
         long cumulativeGold = data.getCumulativeGold() + getNum.longValue();
-        //大于次数则检查其他条件
-        boolean canGet = checkRewardCondition(activityId, playerId, param);
         if (cumulativeGold >= targetNum) {
             if (!canGet) {
                 cumulativeGold = data.getCumulativeGold();
