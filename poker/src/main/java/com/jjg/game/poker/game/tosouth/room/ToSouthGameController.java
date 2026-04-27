@@ -1211,12 +1211,12 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
                 if (roomPlayer == null || roomPlayer.isOnline()) {
                     NotifyExitRoom exitNotify = new NotifyExitRoom();
-                    exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
+                    exitNotify.langId = Code.USER_NOT_GOLD;
                     broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
-                    log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
+                    log.info("玩家 {} 余额不足，通知客户端退出房间", playerId);
                 } else {
                     getRoomController().getRoomManager().exitRoom(playerId);
-                    log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
+                    log.info("玩家 {} 余额不足且离线，服务端直接退出房间", playerId);
                 }
                 gameDataVo.getReadyTimerVersion().remove(playerId);
             }
