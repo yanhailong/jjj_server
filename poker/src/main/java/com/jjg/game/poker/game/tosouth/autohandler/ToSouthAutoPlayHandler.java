@@ -80,18 +80,11 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
         List<Card> bestCards = null;
 
         if (isLeader) {
-            if (isRobot) {
-                // 机器人：使用策略类决策
-                bestCards = ToSouthRobotStrategy.chooseLeaderPlay(handCards, gameDataVo, currentPlayerSeat);
-            } else {
-                // 真人超时：仅本局第一个出牌才自动出牌
-                // 新牌局（isFirstRound=true）→ 必须出黑桃3；上把赢家首出 → 出推荐牌
-                // 中途某轮赢家再次首出超时 → 不自动出牌（Pass）
-                if (isFirstPlayOfGame(gameDataVo)) {
-                    bestCards = ToSouthRobotStrategy.chooseLeaderPlay(handCards, gameDataVo, currentPlayerSeat);
-                }
-                // 非本局第一出：bestCards = null → Pass
-            }
+            // 首出（不能pass）：机器人和真人超时都走机器人出牌逻辑
+            // - 新牌局(isFirstRound=true)：必须出黑桃3
+            // - 上把赢家首出：出推荐牌
+            // - 中途被迫首出（其余人全pass后轮回）：出最佳牌
+            bestCards = ToSouthRobotStrategy.chooseLeaderPlay(handCards, gameDataVo, currentPlayerSeat);
         } else if (!gameDataVo.getCurRoundPassedPlayerSeats().contains(currentPlayerSeat.getSeatId())) {
             if (isRobot) {
                 // 机器人：使用策略类决策跟牌
@@ -101,7 +94,7 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
                     bestCards = ToSouthRobotStrategy.chooseFollowPlay(handCards, lastCards, gameDataVo, currentPlayerSeat);
                 }
             }
-            // 真人超时：bestCards=null → 过牌
+            // 真人超时可以pass：bestCards=null → 过牌
         }
 
         if (CollUtil.isNotEmpty(bestCards)) {
@@ -119,14 +112,4 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
         controller.turnAction(getPlayerId(), reqTurnAction);
     }
 
-    /**
-     * 判断是否为本局第一次出牌（所有在座玩家手牌还是满的）。
-     * 满足则说明还没有人出过牌，此时首出超时才需要自动出牌。
-     */
-    private boolean isFirstPlayOfGame(ToSouthGameDataVo gameDataVo) {
-        int handPoker = gameDataVo.getRoomCfg().getHandPoker();
-        return gameDataVo.getPlayerSeatInfoList().stream()
-                .filter(s -> !s.isDelState() && !s.isOver())
-                .allMatch(s -> s.getCurrentCards().size() == handPoker);
-    }
 }
