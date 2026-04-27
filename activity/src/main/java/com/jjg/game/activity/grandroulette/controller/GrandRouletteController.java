@@ -285,17 +285,13 @@ public class GrandRouletteController extends BaseActivityController implements G
             getNum = getGetNumByRatio(randomNum, targetNum);
         } else {
             //没有固定的次数 如果次数小于限制则计算插值倍率
-            if (playerTimes.getFirst() < param.needNum()) {
-                long need = targetNum - data.getCumulativeGold();
-                getNum = BigDecimal.valueOf(need)
-                        .multiply(BigDecimal.valueOf(ratio))
-                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN);
-                index = DEFAULT_INDEX;
-            } else {
-                FreespinCfg freespinCfg = RandomUtil.randomEle(baseCfgBeanMap.values().stream().toList());
-                int randomNum = RandomUtil.randomInt(freespinCfg.getLowerlimit(), freespinCfg.getUpperlimit(), true, true);
-                getNum = getGetNumByRatio(randomNum, targetNum);
-                index = freespinCfg.getId();
+            long need = targetNum - data.getCumulativeGold();
+            getNum = BigDecimal.valueOf(need)
+                    .multiply(BigDecimal.valueOf(ratio))
+                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN);
+            index = DEFAULT_INDEX;
+            if (playerTimes.getFirst() > param.needNum()) {
+                getNum = BigDecimal.valueOf(RandomUtil.randomLong(0, need));
             }
         }
         long cumulativeGold = data.getCumulativeGold() + getNum.longValue();
@@ -526,12 +522,6 @@ public class GrandRouletteController extends BaseActivityController implements G
         if (conditionParam == null) {
             log.error("领奖配置错误 未找到大转盘全局配置128 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
             res.code = Code.SAMPLE_ERROR;
-            return res;
-        }
-        boolean checked = checkRewardCondition(activityId, playerId, conditionParam);
-        if (!checked) {
-            log.error("领奖配置错误 未达成条件领取奖励 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
-            res.code = Code.ERROR_REQ;
             return res;
         }
         //领取奖励 重置数据
