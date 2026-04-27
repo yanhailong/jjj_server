@@ -139,6 +139,22 @@ public class GrandRouletteDao {
 
 
     /**
+     * 删除被绑定人的绑定IP,MAC信息
+     *
+     * @param ip  绑定IP信息
+     * @param mac 绑定MAC信息
+     */
+    public void removeBindIpInfo(String ip, String mac) {
+        String ipKey = BASE_BIND_INFO_KEY.formatted(1);
+        RSet<String> ipSet = redissonClient.getSet(ipKey);
+        ipSet.remove(ip);
+        String macKey = BASE_BIND_INFO_KEY.formatted(2);
+        RSet<String> macSet = redissonClient.getSet(macKey);
+        macSet.remove(mac);
+    }
+
+
+    /**
      * 获取下级信息
      *
      * @param activityId 活动id
@@ -222,6 +238,9 @@ public class GrandRouletteDao {
      * @return 返回一个包含玩家id和金币数的Map
      */
     public Map<Long, Long> getMultipleCumulativeGold(long activityId, Set<Long> playerIds) {
+        if (CollectionUtil.isEmpty(playerIds)) {
+            return Map.of();
+        }
         String key = BASE_GOLD_KEY.formatted(activityId);
         RMap<Long, Long> map = redissonClient.getMap(key);
 
