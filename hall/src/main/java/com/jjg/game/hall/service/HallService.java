@@ -1155,7 +1155,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
                 if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
                     warePoolInfoList.add(warePoolInfo);
-                } else if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START && warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.EXPERIENCE_ROOM_TYPE_START) {
+                } else if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START && warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.EXPERIENCE_ROOM_TYPE_START) {
                     sipWarePoolInfoList.add(warePoolInfo);
                 } else if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.EXPERIENCE_ROOM_TYPE_START) {
                     expeiencePoolInfoList.add(warePoolInfo);
