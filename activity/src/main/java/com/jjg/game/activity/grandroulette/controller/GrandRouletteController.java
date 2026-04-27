@@ -110,7 +110,10 @@ public class GrandRouletteController extends BaseActivityController implements G
         if (playerActivityData == null || playerActivityData.getEndTime() < System.currentTimeMillis()) {
             return false;
         }
-
+        GrandRouletteSubordinateInfo subordinateIds = grandRouletteDao.getSubordinateIds(activityData.getId(), beneficiaryPlayerId);
+        if (subordinateIds == null || !subordinateIds.getSubordinateMap().containsKey(player.getId())) {
+            return false;
+        }
         boolean effectiveBet = (activityTargetKey & ActivityTargetType.EFFECTIVE_BET.getTargetKey()) != 0;
         if (effectiveBet) {
             if (canAddProgress(player.getGameType())) {
