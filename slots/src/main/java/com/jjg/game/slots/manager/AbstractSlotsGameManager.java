@@ -1705,7 +1705,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return;
         }
 
-        marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(), baseRoomCfg.getMarqueeTrigger().get(1).intValue(), baseRoomCfg.getNameid(), win, true);
+        marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(), baseRoomCfg.getMarqueeTrigger().get(1).intValue(), baseRoomCfg.getNameid(), win, false);
     }
 
     /**

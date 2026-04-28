@@ -733,7 +733,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         gameController.stopGame();
     }
 
-    public void cancelWheelTimers() {
+    private void cancelWheelTimers() {
         Timeout checkTimeout = checkNoJoinPlayerTimeout;
         if (checkTimeout != null && !checkTimeout.isCancelled()) {
             checkTimeout.cancel();
