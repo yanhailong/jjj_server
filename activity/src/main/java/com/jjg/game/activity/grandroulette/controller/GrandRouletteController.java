@@ -36,7 +36,6 @@ import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.GlobalConfigDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.core.manager.SnowflakeManager;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.RedisUtils;
@@ -72,20 +71,18 @@ public class GrandRouletteController extends BaseActivityController implements G
     private final int DEFAULT_TIME = 72;
     private final int DEFAULT_INDEX = 1;
     private final PlayerSessionService playerSessionService;
-    private final SnowflakeManager snowflakeManager;
     private final GlobalConfigDao globalConfigDao;
     private ConditionParam conditionParam;
     private String checkAddProgress;
 
     public GrandRouletteController(RecordDao recordDao, GrandRouletteDao grandRouletteDao, AccountDao accountDao,
-                                   SharePromoteDao sharePromoteDao, PlayerSessionService playerSessionService, SnowflakeManager snowflakeManager,
+                                   SharePromoteDao sharePromoteDao, PlayerSessionService playerSessionService,
                                    GlobalConfigDao globalConfigDao) {
         this.recordDao = recordDao;
         this.grandRouletteDao = grandRouletteDao;
         this.accountDao = accountDao;
         this.sharePromoteDao = sharePromoteDao;
         this.playerSessionService = playerSessionService;
-        this.snowflakeManager = snowflakeManager;
         this.globalConfigDao = globalConfigDao;
     }
 
@@ -274,7 +271,6 @@ public class GrandRouletteController extends BaseActivityController implements G
         }
         GrandRouletteRechargeActivityData data = playerActivityData.computeIfAbsent(DEFAULT_ID, key -> new GrandRouletteRechargeActivityData());
         if (data.getEndTime() == 0) {
-            data.setId(snowflakeManager.nextId());
             data.setActivityId(activityData.getId());
             data.setEndTime(getRealEndTime());
         }
@@ -323,7 +319,7 @@ public class GrandRouletteController extends BaseActivityController implements G
         data.setCumulativeGold(cumulativeGold);
         //回存数据
         playerActivityDao.savePlayerActivityData(playerId, ActivityType.GRAND_ROULETTE, activityData.getId(), playerActivityData);
-        activityLogger.sendGrandRouletteLog(player, activityData, data.getId(), 1, getNum.longValue(), 0);
+        activityLogger.sendGrandRouletteLog(player, activityData, data.getRound(), 1, getNum.longValue(), 0);
         res.index = index;
         res.remainTimes = (int) remainTimes;
         res.infoList = ItemUtils.buildGoldInfo(getNum.longValue());
@@ -563,7 +559,7 @@ public class GrandRouletteController extends BaseActivityController implements G
         }
         grandRouletteDao.resetPlayerActivityData(activityId, playerId);
         grandRouletteDao.addCumulativeTimes(activityId, playerId, 0, 1);
-        activityLogger.sendGrandRouletteLog(player, activityData, data.getId(), 2, cumulativeGold, result.data.getGoldNum());
+        activityLogger.sendGrandRouletteLog(player, activityData, data.getRound(), 2, cumulativeGold, result.data.getGoldNum());
         try {
             GrandRouletteRecord grandRouletteRecord = new GrandRouletteRecord();
             grandRouletteRecord.setNum(cumulativeGold);
@@ -797,7 +793,6 @@ public class GrandRouletteController extends BaseActivityController implements G
                 return new CommonResult<>(Code.SUCCESS);
             }
             //需要重置数据
-            data.setId(0);
             data.setEndTime(0);
             data.setCumulativeGold(0);
             data.setClaimStatus(ActivityConstant.ClaimStatus.NOT_CLAIM);
