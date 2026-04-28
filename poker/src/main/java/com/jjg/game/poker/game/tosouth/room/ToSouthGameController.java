@@ -1207,6 +1207,8 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             }
         }
         if (!insufficientPlayerIds.isEmpty()) {
+            // 在线玩家仅发通知，实际断开前仍计入 getSeatDownNum，需手动记录偏差
+            int onlineKickedCount = 0;
             for (Long playerId : insufficientPlayerIds) {
                 RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
                 if (roomPlayer == null || roomPlayer.isOnline()) {
@@ -1214,14 +1216,17 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                     exitNotify.langId = Code.USER_NOT_GOLD;
                     broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
                     log.info("玩家 {} 余额不足，通知客户端退出房间", playerId);
+                    if (roomPlayer != null) {
+                        onlineKickedCount++; // 在线玩家未立即断开，仍占 seatDown 位置
+                    }
                 } else {
                     getRoomController().getRoomManager().exitRoom(playerId);
                     log.info("玩家 {} 余额不足且离线，服务端直接退出房间", playerId);
                 }
                 gameDataVo.getReadyTimerVersion().remove(playerId);
             }
-            // 踢人后重新检查人数是否足够
-            int remaining = gameDataVo.getSeatDownNum();
+            // 踢人后重新检查人数（在线踢人未立即断开，需从统计中扣除）
+            int remaining = gameDataVo.getSeatDownNum() - onlineKickedCount;
             if (remaining < roomCfg.getMinPlayer()) {
                 log.info("资金检查后人数不足 ({}/{}), 无法开局", remaining, roomCfg.getMinPlayer());
                 return false;
