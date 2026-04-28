@@ -1337,6 +1337,32 @@ public class ToSouthFreeGameController extends BasePokerGameController<ToSouthFr
         // 如果在这里再调用 broadcastPlayerLeaveChange，在线场景会导致重复发送两条消息
     }
 
+    /**
+     * 玩家（含机器人）落座完成后回调。
+     * onJoinRoomSuccessAfter 在 seatInfo 填充完毕后才调用此方法，
+     * 此时可以安全地为刚入座的玩家启动准备倒计时或机器人调度。
+     */
+    @Override
+    public void onRobotPlayerJoinRoom(PlayerController playerController, GamePlayer gamePlayer) {
+        super.onRobotPlayerJoinRoom(playerController, gamePlayer);
+        // 仅在等待准备阶段触发；游戏进行中（出牌/结算等阶段）不处理
+        if (getCurrentGamePhase() != EGamePhase.WAIT_READY) {
+            return;
+        }
+        long playerId = gamePlayer.getId();
+        // 已准备或已调度过的玩家不重复处理
+        if (gameDataVo.getReadyPlayerIds().contains(playerId)
+                || gameDataVo.getReadyTimerScheduled().contains(playerId)) {
+            return;
+        }
+        if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+            scheduleRobotReady(robotPlayer);
+        } else {
+            scheduleReadyTimeout(playerId, READY_TIMEOUT);
+            log.info("玩家 {} 入座后启动准备倒计时", playerId);
+        }
+    }
+
     @Override
     public void onPlayerJoinRoomAction(GamePlayer gamePlayer) {
         long playerId = gamePlayer.getId();
