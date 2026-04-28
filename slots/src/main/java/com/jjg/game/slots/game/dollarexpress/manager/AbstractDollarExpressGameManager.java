@@ -213,6 +213,10 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 playerGameData.getAllUnLock().compareAndSet(false, true);
             }
 
+            if(player == null){
+                player = slotsPlayerService.get(playerController.playerId());
+            }
+
             if (playerController != null && player != null) {
                 playerController.setPlayer(player);
             }
