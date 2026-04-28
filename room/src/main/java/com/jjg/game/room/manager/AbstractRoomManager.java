@@ -10,6 +10,7 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
@@ -1277,7 +1278,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         //加入房间
         int joined = joinRoom(playerController, gameType, roomCfgId, roomOtherId);
         if (joined == Code.SUCCESS) {
-            playerController.getSession().setWorkId(roomOtherId);
+            PFSession session = playerController.getSession();
+            if (session != null) {
+                session.setWorkId(roomOtherId);
+            }
             return true;
         }
         return false;
