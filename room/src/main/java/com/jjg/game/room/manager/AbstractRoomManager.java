@@ -1276,7 +1276,11 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         }
         //加入房间
         int joined = joinRoom(playerController, gameType, roomCfgId, roomOtherId);
-        return joined == Code.SUCCESS;
+        if (joined == Code.SUCCESS) {
+            playerController.getSession().setWorkId(roomOtherId);
+            return true;
+        }
+        return false;
     }
 
     /**
