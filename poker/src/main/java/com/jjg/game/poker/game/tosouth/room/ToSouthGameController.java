@@ -135,14 +135,13 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     /**
      * 换桌
      */
-    public void reqChangeTable(PlayerController playerController, ToSouthGameController controller) {
+    public boolean reqChangeTable(PlayerController playerController, ToSouthGameController controller) {
         AbstractRoomController<Room_ChessCfg, ? extends Room> abstractRoomController = controller.getRoomController();
         Room room = abstractRoomController.getRoom();
         boolean changed =
                 roomController.getRoomManager().changeRoom(
                         playerController, room, room.getGameType(), controller.getRoom().getRoomCfgId(), controller.getRoom().getMaxLimit());
-        RespToSouthChangTable res = new RespToSouthChangTable(changed ? Code.SUCCESS : Code.NO_VACANT_ROOM);
-        playerController.send(res);
+        return changed;
     }
 
     @Override

@@ -3,11 +3,13 @@ package com.jjg.game.poker.game.tosouthfree.message.handler;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.poker.game.tosouthfree.constant.ToSouthFreeConstant;
 import com.jjg.game.poker.game.tosouthfree.message.req.ReqToSouthFreeChangeTable;
 import com.jjg.game.poker.game.tosouthfree.message.req.ReqToSouthFreeGoReady;
 import com.jjg.game.poker.game.tosouthfree.message.req.ReqToSouthFreeTurnAction;
+import com.jjg.game.poker.game.tosouthfree.message.resp.RespToSouthFreeChangTable;
 import com.jjg.game.poker.game.tosouthfree.room.ToSouthFreeGameController;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -38,9 +40,12 @@ public class ToSouthFreeMessageHandler {
     public void reqToSouthFreeChangeTable(PlayerController playerController, ReqToSouthFreeChangeTable changeTable) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
+        boolean changed = false;
         if (gameController instanceof ToSouthFreeGameController controller) {
-            controller.reqChangeTable(playerController, controller);
+            changed = controller.reqChangeTable(playerController, controller);
         }
+        RespToSouthFreeChangTable res = new RespToSouthFreeChangTable(changed ? Code.SUCCESS : Code.NO_VACANT_ROOM);
+        playerController.send(res);
     }
 
     @Command(value = ToSouthFreeConstant.MsgBean.REQ_GO_READY)
