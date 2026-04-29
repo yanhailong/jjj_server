@@ -93,6 +93,8 @@ public class HulkSendMessageManager extends BaseSendMessageManager {
                         res.hulkMiniGame.miniGameCarList.add(carInfo);
                     }
                 }
+            }else if(res.status == HulkConstant.Status.FREE){
+                res.hulkFreeGameInfo = gameRunInfo.getHulkFreeGameInfo();
             }
         } else {
             res.code = Code.NOT_FOUND;
@@ -136,6 +138,8 @@ public class HulkSendMessageManager extends BaseSendMessageManager {
             res.freeModeTotalReward = gameRunInfo.getFreeModeTotalReward();
             //剩余免费次数
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
+            //免费中又触发的wild信息
+            res.hulkFreeGameInfo = gameRunInfo.getHulkFreeGameInfo();
 
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {

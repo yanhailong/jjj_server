@@ -31,6 +31,8 @@ public class ResHulkEnterGame extends AbstractResponse {
     public List<HulkPoolInfo> poolList;
     @ProtoDesc("当status值为3时，该值才具有意义。 小游戏信息")
     public HulkMiniGame hulkMiniGame;
+    @ProtoDesc("当status值为2时，该值才具有意义。 免费游戏信息")
+    public HulkFreeGameInfo hulkFreeGameInfo;
 
     public ResHulkEnterGame(int code) {
         super(code);

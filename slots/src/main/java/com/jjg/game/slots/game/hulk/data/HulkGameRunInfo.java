@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.hulk.data;
 
 import com.jjg.game.slots.data.GameRunInfo;
+import com.jjg.game.slots.game.hulk.pb.HulkFreeGameInfo;
 import com.jjg.game.slots.game.hulk.pb.HulkWinIconInfo;
 
 import java.util.List;
@@ -18,9 +19,19 @@ public class HulkGameRunInfo extends GameRunInfo<HulkPlayerGameData> {
     private int airplane;
     //汽车游戏是否结束
     private boolean carOver;
+    //免费中再次触发的wild信息
+    private HulkFreeGameInfo hulkFreeGameInfo;
 
     public HulkGameRunInfo(int code, long playerId) {
         super(code, playerId);
+    }
+
+    public HulkFreeGameInfo getHulkFreeGameInfo() {
+        return hulkFreeGameInfo;
+    }
+
+    public void setHulkFreeGameInfo(HulkFreeGameInfo hulkFreeGameInfo) {
+        this.hulkFreeGameInfo = hulkFreeGameInfo;
     }
 
     public List<HulkWinIconInfo> getAwardLineInfos() {

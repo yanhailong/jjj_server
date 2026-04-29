@@ -68,7 +68,7 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
                 AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(info.key);
                 if (gameManager == null) {
                     log.debug("获取 gameManager 为空，生成结果库失败 gameType = {},count = {}", info.key, info.value);
-                    return;
+                    continue;
                 }
 
                 // 任务入队

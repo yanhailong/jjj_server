@@ -53,6 +53,10 @@ public interface HulkConstant {
     interface SpecialAuxiliary {
         //小游戏类型
         int MINI_GAME = 303104;
+        //免费中再次触发的第3列wild
+        int INNER_ONE_WILD = 303101;
+        //免费中再次触发的第234列wild
+        int INNER_THREE_WILD = 303102;
     }
 
     interface SpecialPlay {

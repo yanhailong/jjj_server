@@ -568,7 +568,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      */
     public void onGameStateSync(GameStateSync msg) {
         try {
-            log.info("收到主节点的游戏状态同步 begin, msg = {}", JSON.toJSONString(msg));
+//            log.info("收到主节点的游戏状态同步 begin, msg = {}", JSON.toJSONString(msg));
             AirRaidPhase newPhase = AirRaidPhase.fromCode(msg.phase);
             int oldRoundId = gameRoom.getRoundId();
             if (!gameRoom.applyAuthoritativeState(msg.roundId, newPhase, msg.phaseStartTime, msg.stopTime, msg.currentMultiplier, msg.crashMultiplier)) {

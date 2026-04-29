@@ -27,12 +27,14 @@ public class ResHulkStartGame extends AbstractResponse {
     public List<HulkWinIconInfo> winIconInfoList;
     @ProtoDesc("从奖池获得的奖励")
     public long rewardPoolValue;
-    @ProtoDesc("状态  0.普通  1.触发免费模式  2.免费模式  3.触发小游戏  4.触发第3列wild  5.第3列wild  6.触发第234列wild  7.第234列wild")
+    @ProtoDesc("状态  0.普通  1.触发免费模式  2.免费模式  3.触发小游戏 4.触发第3列wild  5.第3列wild  6.触发第234列wild  7.第234列wild")
     public int status;
     @ProtoDesc("免费模式累计奖励,免费模式最后一局才赋值")
     public long freeModeTotalReward;
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
+    @ProtoDesc("免费游戏")
+    public HulkFreeGameInfo hulkFreeGameInfo;
 
     public ResHulkStartGame(int code) {
         super(code);
