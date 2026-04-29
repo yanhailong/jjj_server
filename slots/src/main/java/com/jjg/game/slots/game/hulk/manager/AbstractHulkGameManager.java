@@ -16,10 +16,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.slots.game.hulk.HulkConstant;
 import com.jjg.game.slots.game.hulk.dao.HulkResultLibDao;
-import com.jjg.game.slots.game.hulk.data.HulkAwardLineInfo;
-import com.jjg.game.slots.game.hulk.data.HulkGameRunInfo;
-import com.jjg.game.slots.game.hulk.data.HulkPlayerGameData;
-import com.jjg.game.slots.game.hulk.data.HulkResultLib;
+import com.jjg.game.slots.game.hulk.data.*;
 import com.jjg.game.slots.game.hulk.pb.HulkFreeGameInfo;
 import com.jjg.game.slots.game.hulk.pb.HulkWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
@@ -61,25 +58,18 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
         resetFreeStateIfInvalid(playerGameData, HulkConstant.Status.FREE, HulkConstant.Status.NORMAL, "hulk");
         resetFreeStateIfInvalid(playerGameData, HulkConstant.Status.ONE_WILD, HulkConstant.Status.NORMAL, "hulk");
         resetFreeStateIfInvalid(playerGameData, HulkConstant.Status.THREE_WILD, HulkConstant.Status.NORMAL, "hulk");
-        if (playerGameData.getStatus() == HulkConstant.Status.NORMAL && playerGameData.isInnerFreeGame()) {
-            playerGameData.clearInnerFree();
+        if (playerGameData.getStatus() == HulkConstant.Status.NORMAL && playerGameData.inInnerGame()) {
+            playerGameData.setInnerData(null);
             log.info("hulk内层免费状态异常，重置 playerId = {}", playerGameData.getPlayerId());
         }
 
         HulkGameRunInfo gameRunInfo = new HulkGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
 
-        if (playerGameData.isInnerFreeGame()) {
-            Pair<HulkResultLib, SpecialAuxiliaryInfo> pair = getInnerResultLib(playerGameData);
-            if (pair == null) {
-                playerGameData.clearInnerFree();
-            } else {
-                SpecialAuxiliaryInfo innerSpecialAuxiliaryInfo = pair.getSecond();
-
-                HulkFreeGameInfo hulkFreeGameInfo = new HulkFreeGameInfo();
-                hulkFreeGameInfo.status = getInnerOngoingStatus(innerSpecialAuxiliaryInfo.getCfgId());
-                hulkFreeGameInfo.remainFreeCount = innerSpecialAuxiliaryInfo.getFreeGames().size() - playerGameData.getInnerFreeGameIdex();
-                gameRunInfo.setHulkFreeGameInfo(hulkFreeGameInfo);
-            }
+        if (playerGameData.inInnerGame()) {
+            HulkFreeGameInfo hulkFreeGameInfo = new HulkFreeGameInfo();
+            hulkFreeGameInfo.status = playerGameData.getInnerData().getInnerStatus();
+            hulkFreeGameInfo.remainFreeCount = playerGameData.getInnerData().getInnerRemainFreeCount();
+            gameRunInfo.setHulkFreeGameInfo(hulkFreeGameInfo);
         }
         gameRunInfo.setData(playerGameData);
         return gameRunInfo;
@@ -336,7 +326,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
      */
     protected HulkGameRunInfo free(HulkGameRunInfo gameRunInfo, HulkPlayerGameData playerGameData, int libType) {
         //内层免费进行中：直接消费内层freeGames，不调用freeGetLib，外层remainFreeCount不动
-        if (playerGameData.isInnerFreeGame()) {
+        if (playerGameData.inInnerGame()) {
             return innerFree(gameRunInfo, playerGameData);
         }
 
@@ -348,7 +338,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
         HulkResultLib freeGame = libResult.data;
 
         //检查是不是免费中又触发免费(第3列wild或第234列wild)
-        int innerTriggerIdx = findInnerTriggerIndex(freeGame);
+        int innerTriggerIdx = findInnerTriggerIndex(freeGame, libType);
         long times = freeGame.getTimes();
         if (innerTriggerIdx >= 0) {
             //触发局金额
@@ -364,20 +354,24 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
         if (innerTriggerIdx >= 0) {
             SpecialAuxiliaryInfo trigger = freeGame.getSpecialAuxiliaryInfoList().get(innerTriggerIdx);
             int innerCount = trigger.getFreeGames().size();
-            playerGameData.setInnerFreeGame(true);
-            playerGameData.setInnerAuxiliaryIdex(innerTriggerIdx);
-            playerGameData.setInnerFreeGameIdex(0);
 
             HulkFreeGameInfo innerInfo = new HulkFreeGameInfo();
             innerInfo.status = getInnerTriggerStatus(trigger.getCfgId());
             innerInfo.remainFreeCount = innerCount;
             gameRunInfo.setHulkFreeGameInfo(innerInfo);
 
+            HulkInnerData innerData = new HulkInnerData();
+            innerData.setInnerAuxiliaryIdex(innerTriggerIdx);
+            innerData.setInnerFreeGameIdex(0);
+            innerData.setInnerStatus(innerInfo.status);
+            innerData.setInnerRemainFreeCount(innerInfo.remainFreeCount);
+            playerGameData.setInnerData(innerData);
+
             log.debug("免费中触发免费 playerId = {},cfgId = {},innerCount = {}", playerGameData.getPlayerId(), trigger.getCfgId(), innerCount);
         }
 
         //外层结束条件：外层次数耗完且没有触发内层
-        if (afterCount < 1 && !playerGameData.isInnerFreeGame()) {
+        if (afterCount < 1 && !playerGameData.inInnerGame()) {
             playerGameData.setStatus(HulkConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
             playerGameData.getFreeIndex().set(0);
@@ -402,7 +396,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
     protected HulkGameRunInfo innerFree(HulkGameRunInfo gameRunInfo, HulkPlayerGameData playerGameData) {
         Pair<HulkResultLib, SpecialAuxiliaryInfo> pair = getInnerResultLib(playerGameData);
         if (pair == null) {
-            playerGameData.clearInnerFree();
+            playerGameData.setInnerData(null);
             gameRunInfo.setCode(Code.NOT_FOUND);
             return gameRunInfo;
         }
@@ -413,8 +407,8 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
         //累计免费奖金(共用外层freeAllWin)
         playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * innerLib.getTimes());
 
-        playerGameData.setInnerFreeGameIdex(playerGameData.getInnerFreeGameIdex() + 1);
-        int innerRemain = innerSpecialAuxiliaryInfo.getFreeGames().size() - playerGameData.getInnerFreeGameIdex();
+        playerGameData.getInnerData().setInnerFreeGameIdex(playerGameData.getInnerData().getInnerFreeGameIdex() + 1);
+        int innerRemain = innerSpecialAuxiliaryInfo.getFreeGames().size() - playerGameData.getInnerData().getInnerFreeGameIdex();
 
         //外层status保持FREE，内层进行状态通过hulkFreeGameInfo传给客户端
         gameRunInfo.setStatus(playerGameData.getStatus());
@@ -424,9 +418,11 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
         innerInfo.remainFreeCount = innerRemain;
         gameRunInfo.setHulkFreeGameInfo(innerInfo);
 
+        log.debug("内层免费旋转 playerId = {},status = {}", playerGameData.getPlayerId(), innerInfo.status);
+
         //内层结束：清掉内层标志；如果外层也耗尽，则结束外层
         if (innerRemain < 1) {
-            playerGameData.clearInnerFree();
+            playerGameData.setInnerData(null);
             log.debug("内层免费结束 playerId = {},cfgId = {}", playerGameData.getPlayerId(), innerSpecialAuxiliaryInfo.getCfgId());
 
             if (playerGameData.getRemainFreeCount().get() < 1) {
@@ -437,6 +433,9 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
                 playerGameData.setFreeAllWin(0);
                 log.debug("内层结束且外层已耗尽，回归正常状态 playerId = {}", playerGameData.getPlayerId());
             }
+        } else {
+            playerGameData.getInnerData().setInnerStatus(innerInfo.status);
+            playerGameData.getInnerData().setInnerRemainFreeCount(innerInfo.remainFreeCount);
         }
 
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(innerLib.getAwardLineInfoList(), playerGameData.getOneBetScore(), true));
@@ -482,13 +481,13 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
             return null;
         }
 
-        SpecialAuxiliaryInfo innerSpecialAuxiliaryInfo = outLib.getSpecialAuxiliaryInfoList().get(playerGameData.getInnerAuxiliaryIdex());
+        SpecialAuxiliaryInfo innerSpecialAuxiliaryInfo = outLib.getSpecialAuxiliaryInfoList().get(playerGameData.getInnerData().getInnerAuxiliaryIdex());
         if (innerSpecialAuxiliaryInfo == null || innerSpecialAuxiliaryInfo.getFreeGames() == null || innerSpecialAuxiliaryInfo.getFreeGames().isEmpty()) {
             log.warn("获取内层免费游戏时，innerSpecialAuxiliaryInfo 为空，重置 playerId = {}", playerGameData.getPlayerId());
             return null;
         }
 
-        int idx = playerGameData.getInnerFreeGameIdex();
+        int idx = playerGameData.getInnerData().getInnerFreeGameIdex();
         if (idx >= innerSpecialAuxiliaryInfo.getFreeGames().size()) {
             log.warn("内层免费下标越界，重置 playerId = {},idx = {}", playerGameData.getPlayerId(), idx);
             return null;
@@ -502,13 +501,12 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
     /**
      * 在freeGame结果中查找触发内层免费的SpecialAuxiliaryInfo下标
      */
-    private int findInnerTriggerIndex(HulkResultLib freeGame) {
+    private int findInnerTriggerIndex(HulkResultLib freeGame, int libType) {
         if (freeGame.getSpecialAuxiliaryInfoList() == null || freeGame.getSpecialAuxiliaryInfoList().isEmpty()) {
             return -1;
         }
 
-        int libType = freeGame.getLibTypeSet().stream().findFirst().get().intValue();
-        if(libType != HulkConstant.SpecialMode.FREE){
+        if (libType != HulkConstant.SpecialMode.FREE) {
             return -1;
         }
 

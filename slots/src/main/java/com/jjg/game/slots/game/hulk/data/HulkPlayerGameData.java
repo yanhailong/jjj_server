@@ -16,12 +16,8 @@ public class HulkPlayerGameData extends SlotsPlayerGameData {
     private Map<Integer, Long> carMap;
     //汽车小游戏是否结束
     private boolean carOver;
-    //是否在免费又触发免费的游戏中
-    private boolean innerFreeGame;
-    private int innerAuxiliaryIdex;
-    //内层免费局的下标
-    private int innerFreeGameIdex;
-
+    //内层免费游戏数据
+    private HulkInnerData innerData;
 
     public Map<Integer, Long> getCarMap() {
         return carMap;
@@ -60,33 +56,21 @@ public class HulkPlayerGameData extends SlotsPlayerGameData {
         this.carOver = carOver;
     }
 
-    public boolean isInnerFreeGame() {
-        return innerFreeGame;
+    public HulkInnerData getInnerData() {
+        return innerData;
     }
 
-    public void setInnerFreeGame(boolean innerFreeGame) {
-        this.innerFreeGame = innerFreeGame;
+    public void setInnerData(HulkInnerData innerData) {
+        this.innerData = innerData;
     }
 
-    public int getInnerAuxiliaryIdex() {
-        return innerAuxiliaryIdex;
-    }
-
-    public void setInnerAuxiliaryIdex(int innerAuxiliaryIdex) {
-        this.innerAuxiliaryIdex = innerAuxiliaryIdex;
-    }
-
-    public int getInnerFreeGameIdex() {
-        return innerFreeGameIdex;
-    }
-
-    public void setInnerFreeGameIdex(int innerFreeGameIdex) {
-        this.innerFreeGameIdex = innerFreeGameIdex;
-    }
-
-    public void clearInnerFree() {
-        this.innerFreeGame = false;
-        this.innerAuxiliaryIdex = 0;
-        this.innerFreeGameIdex = 0;
+    public boolean inInnerGame(){
+        if(this.innerData == null){
+            return false;
+        }
+        if(this.innerData.getInnerStatus() < 1){
+            return false;
+        }
+        return true;
     }
 }

@@ -287,6 +287,13 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
         }
 
         int index = playerGameData.getFreeIndex().getAndAdd(1);
+        if(index >= specialAuxiliaryInfo.getFreeGames().size()){
+            resetFreeState(playerGameData);
+            result.code = Code.FAIL;
+            log.error("免费游戏中的下标值越界 playerId = {},index = {},freeGameSize = {}",playerGameData.getPlayerId(),index,specialAuxiliaryInfo.getFreeGames().size());
+            return result;
+        }
+
         JSONObject jsonObject = specialAuxiliaryInfo.getFreeGames().get(index);
         log.debug("获取免费游戏的下标 index = {},allLen = {}", index, specialAuxiliaryInfo.getFreeGames().size());
         ThorResultLib freeGame = JSON.parseObject(jsonObject.toJSONString(), this.libClass);
