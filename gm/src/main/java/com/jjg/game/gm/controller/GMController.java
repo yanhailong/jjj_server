@@ -1141,7 +1141,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if (NodeType.HALL.toString().equals(clusterClient.getType()) && dto.whiteIdList() != null && dto.whiteIdList().isEmpty()) {
+            if (NodeType.HALL.toString().equals(clusterClient.getType()) && dto.whiteIdList() != null && !dto.whiteIdList().isEmpty()) {
                 log.debug("hall节点无法更改id白名单 dto = {}", dto);
                 return fail("common.paramerror");
             }

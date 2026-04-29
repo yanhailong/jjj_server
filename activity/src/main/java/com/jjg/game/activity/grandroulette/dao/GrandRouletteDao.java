@@ -215,7 +215,8 @@ public class GrandRouletteDao {
     }
 
     /**
-     * 获取玩家的当前抽取次数（低32位）和剩余次数（高32位）
+     * 获取玩家的当前抽取次数（低32位）和剩余次数（高32位）。
+     * 纯读方法，没有记录时返回0，不初始化Redis数据。
      *
      * @param activityId 活动id
      * @param playerId   玩家id
@@ -224,7 +225,26 @@ public class GrandRouletteDao {
     public Pair<Long, Long> getPlayerTimes(long activityId, long playerId) {
         String key = BASE_TIMES_KEY.formatted(activityId);
         RMap<Long, Long> map = redissonClient.getMap(key, LongCodec.INSTANCE);
+        Long data = map.get(playerId);
+        return parseTimes(data == null ? 1L << 32 : data);
+    }
+
+    /**
+     * 获取玩家次数，没有记录时初始化为1次剩余次数。
+     * 只用于真实参与/写流程，避免展示和红点纯读时重新创建已清理的Redis key。
+     *
+     * @param activityId 活动id
+     * @param playerId   玩家id
+     * @return 参加次数,剩余次数
+     */
+    public Pair<Long, Long> getOrCreatePlayerTimes(long activityId, long playerId) {
+        String key = BASE_TIMES_KEY.formatted(activityId);
+        RMap<Long, Long> map = redissonClient.getMap(key, LongCodec.INSTANCE);
         long data = map.computeIfAbsent(playerId, addKey -> 1L << 32);
+        return parseTimes(data);
+    }
+
+    private Pair<Long, Long> parseTimes(long data) {
         long currentDrawTimes = data & 0xFFFFFFFFL;  // 获取低32位，即当前抽取次数
         long remainingTimes = data >> 32;  // 获取高32位，即剩余次数
         return Pair.newPair(currentDrawTimes, remainingTimes);
