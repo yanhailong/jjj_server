@@ -74,6 +74,7 @@ public class GrandRouletteController extends BaseActivityController implements G
     private final GlobalConfigDao globalConfigDao;
     private ConditionParam conditionParam;
     private String checkAddProgress;
+    private final Pair<Integer, Integer> DEFAULT_RATIO_CONFIG = Pair.newPair(8000, 9000);
 
     public GrandRouletteController(RecordDao recordDao, GrandRouletteDao grandRouletteDao, AccountDao accountDao,
                                    SharePromoteDao sharePromoteDao, PlayerSessionService playerSessionService,
@@ -211,14 +212,15 @@ public class GrandRouletteController extends BaseActivityController implements G
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        Pair<Long, Long> playerTimes = grandRouletteDao.getPlayerTimes(activityId, playerId);
+        Pair<Long, Long> playerTimes = grandRouletteDao.getOrCreatePlayerTimes(activityId, playerId);
         if (playerTimes.getSecond() <= 0) {
             res.code = Code.ERROR_REQ;
             return res;
         }
         //判断玩家是否绑定手机
         Account account = accountDao.queryAccountByPlayerId(playerId);
-        if (account == null || (playerTimes.getFirst() >= 1 && StringUtils.isEmpty(account.getThirdAccount(LoginType.PHONE)))) {
+        boolean first = playerTimes.getFirst() == 0;
+        if (account == null || (!first && StringUtils.isEmpty(account.getThirdAccount(LoginType.PHONE)))) {
             res.code = Code.ERROR_REQ;
             return res;
         }
@@ -238,7 +240,7 @@ public class GrandRouletteController extends BaseActivityController implements G
         //目标金币数量
         long targetNum = targetCfg.getIntValue();
         int ratio = 0;
-        Map<Long, Integer> timesConfig = Map.of();
+        Pair<Integer, Integer> ratioConfig = DEFAULT_RATIO_CONFIG;
         //获取配置
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(127);
         if (globalConfigCfg != null) {
@@ -251,17 +253,13 @@ public class GrandRouletteController extends BaseActivityController implements G
                     } else if (configArr.length == 2) {
                         ratio = Integer.parseInt(configArr[1]);
                         String[] timesCfg = StringUtils.split(configArr[0], "_");
-                        timesConfig = new HashMap<>(timesCfg.length);
-                        for (int i = 0; i < timesCfg.length; i++) {
-                            timesConfig.put((long) i, Integer.parseInt(timesCfg[i]));
+                        if (timesCfg.length == 2) {
+                            ratioConfig = new Pair<>(Integer.parseInt(timesCfg[0]), Integer.parseInt(timesCfg[1]));
                         }
                     }
                 }
             }
         }
-
-        //根据玩家次数计算金币数量
-        Integer index = timesConfig.getOrDefault(playerTimes.getFirst(), 0);
         //修改金币
         Map<Integer, GrandRouletteRechargeActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId,
                 ActivityType.GRAND_ROULETTE, activityData.getId());
@@ -279,24 +277,30 @@ public class GrandRouletteController extends BaseActivityController implements G
             return res;
         }
         BigDecimal getNum;
+        int index = DEFAULT_INDEX;
         //大于次数则检查其他条件
         boolean canGet = checkRewardCondition(activityId, playerId, param);
-        if (index > 0) {
+        if (first) {
             //添加金币
-            FreespinCfg freespinCfg = baseCfgBeanMap.get(index);
-            if (freespinCfg == null) {
-                res.code = Code.SAMPLE_ERROR;
-                return res;
+            int randomNum = RandomUtil.randomInt(ratioConfig.getFirst(), ratioConfig.getSecond(), true, true);
+            getNum = BigDecimal.valueOf(randomNum)
+                    .multiply(BigDecimal.valueOf(targetNum))
+                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN);
+            for (FreespinCfg cfg : baseCfgBeanMap.values()) {
+                if (cfg.getLowerlimit() == cfg.getUpperlimit()) {
+                    BigDecimal num = getGetNumByRatio(cfg.getLowerlimit(), targetNum);
+                    if (num.longValue() == getNum.longValue()) {
+                        index = cfg.getId();
+                        break;
+                    }
+                }
             }
-            int randomNum = RandomUtil.randomInt(freespinCfg.getLowerlimit(), freespinCfg.getUpperlimit(), true, true);
-            getNum = getGetNumByRatio(randomNum, targetNum);
         } else {
             //没有固定的次数 如果次数小于限制则计算插值倍率
             long need = targetNum - data.getCumulativeGold();
             getNum = BigDecimal.valueOf(need)
                     .multiply(BigDecimal.valueOf(ratio))
                     .divide(BigDecimal.valueOf(10000), 0, RoundingMode.UP);
-            index = DEFAULT_INDEX;
             if (!canGet && playerTimes.getFirst() > param.needNum()) {
                 getNum = BigDecimal.valueOf(RandomUtil.randomLong(0, need));
             }
@@ -712,6 +716,9 @@ public class GrandRouletteController extends BaseActivityController implements G
 
     @Override
     public boolean hasRedDot(long playerId, ActivityData activityData) {
+        if (!activityData.canRun()) {
+            return false;
+        }
         Pair<Long, Long> playerTimes = grandRouletteDao.getPlayerTimes(activityData.getId(), playerId);
         if (playerTimes.getSecond() > 0) {
             return true;
