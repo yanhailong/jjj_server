@@ -70,7 +70,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
             gamePlayer.getPokerPlayerGameData().setInit(true);
             respRoomInitInfoAction(playerController);
-            log.info("重连进入 playerId:{}",playerController.playerId());
+            log.info("重连进入 playerId:{}", playerController.playerId());
         } catch (Exception e) {
             log.error("重连进入主动推送基础信息失败 playerId:{}", playerController.playerId());
         }
@@ -365,6 +365,9 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                     gameRobotPlayer.setActionId(cfg.getId());
                     break;
                 }
+            }
+            if (gameRobotPlayer.getActionId() == 0) {
+                log.error("未找到对应的actionId robotPlayerId:{} strategyId:{} roomCfgId:{}", gameRobotPlayer.getId(), strategyId, getRoom().getRoomCfgId());
             }
             switch (this) {
                 case TexasGameController controller -> {
