@@ -393,6 +393,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             AtomicBoolean reconnect = new AtomicBoolean(false);
             CommonResult<R> addResult = roomController.joinRoom(playerController, reconnect);
             if (!addResult.success()) {
+                if (playerController.isRobotPlayer()) {
+                    return addResult.code;
+                }
                 return Code.JOIN_ROOM_FAILED;
             }
             //断线重连加载离线充值数据

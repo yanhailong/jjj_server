@@ -40,6 +40,8 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
 
     //机器人缓存 金币数量,配置表id
     private TreeMap<Long, RobotCfg> shellRobotCache = new TreeMap<>();
+    // 已经分配到房间流程中的机器人ID，由 lock 保护。
+    private final Set<Long> activeRobotIds = new HashSet<>();
     //线程锁
     private final ReentrantLock lock = new ReentrantLock();
     private final RobotUtil robotUtil;
@@ -100,8 +102,13 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
                     if (checkNum < enterLimit || warehouseCfg.getEnterMax() != -1 && checkNum > warehouseCfg.getEnterMax()) {
                         continue;
                     }
+                    long robotId = getRobotId(robotCfg);
+                    if (activeRobotIds.contains(robotId)) {
+                        it.remove();
+                        continue;
+                    }
                     it.remove();
-                    return createRobot(robotCfg, gold, 0, roomId, roomCfg);
+                    return createActiveRobot(robotCfg, gold, 0, roomId, roomCfg);
                 }
                 //贝币
             } else if (warehouseCfg.getTransactionItemId() == ItemUtils.getShellItemId()) {
@@ -126,8 +133,13 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
                     if (checkNum < enterLimit || warehouseCfg.getEnterMax() != -1 && checkNum > warehouseCfg.getEnterMax()) {
                         continue;
                     }
+                    long robotId = getRobotId(robotCfg);
+                    if (activeRobotIds.contains(robotId)) {
+                        it.remove();
+                        continue;
+                    }
                     it.remove();
-                    return createRobot(robotCfg, 0, shell, roomId, roomCfg);
+                    return createActiveRobot(robotCfg, 0, shell, roomId, roomCfg);
                 }
             }
         } catch (Exception e) {
@@ -165,6 +177,12 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
         robotPlayer.setShell(shell);
         robotPlayer.setGameType(roomCfg.getGameID());
         robotPlayer.setRoomCfgId(roomCfg.getId());
+        return robotPlayer;
+    }
+
+    private RobotPlayer createActiveRobot(RobotCfg robotCfg, long gold, long shell, long roomId, RoomCfg roomCfg) {
+        RobotPlayer robotPlayer = createRobot(robotCfg, gold, shell, roomId, roomCfg);
+        activeRobotIds.add(robotPlayer.getId());
         return robotPlayer;
     }
 
@@ -230,18 +248,23 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
         //机器人id 机器人最少金币
         TreeMap<Long, RobotCfg> tempRobotCache = new TreeMap<>();
         TreeMap<Long, RobotCfg> tempConchRobotCache = new TreeMap<>();
-        List<RobotCfg> robotCfgList = GameDataManager.getRobotCfgList();
-        for (RobotCfg robotCfg : robotCfgList) {
-            if (robotCfg.getAvailable() != 0) {
-                continue;
+        lock.lock();
+        try {
+            List<RobotCfg> robotCfgList = GameDataManager.getRobotCfgList();
+            for (RobotCfg robotCfg : robotCfgList) {
+                if (robotCfg.getAvailable() != 0 || activeRobotIds.contains(getRobotId(robotCfg))) {
+                    continue;
+                }
+                long robotRealMoney = getRobotRealMoney(robotCfg);
+                tempRobotCache.put(robotRealMoney, robotCfg);
+                long robotRealConchMoney = getRobotRealConchMoney(robotCfg);
+                tempConchRobotCache.put(robotRealConchMoney, robotCfg);
             }
-            long robotRealMoney = getRobotRealMoney(robotCfg);
-            tempRobotCache.put(robotRealMoney, robotCfg);
-            long robotRealConchMoney = getRobotRealConchMoney(robotCfg);
-            tempConchRobotCache.put(robotRealConchMoney, robotCfg);
+            robotCache = tempRobotCache;
+            shellRobotCache = tempConchRobotCache;
+        } finally {
+            lock.unlock();
         }
-        robotCache = tempRobotCache;
-        shellRobotCache = tempConchRobotCache;
     }
 
     /**
@@ -253,6 +276,9 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
         lock.lock();
         try {
             for (Long robotId : robotIds) {
+                if (robotId == null || !activeRobotIds.remove(robotId)) {
+                    continue;
+                }
                 int configId = (int) (robotId - robotStartId) / GameConstant.ROBOT_ID_PRIME_NUMBER;
                 RobotCfg robotCfg = GameDataManager.getRobotCfg(configId);
                 if (robotCfg == null) {
@@ -277,12 +303,15 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
         //重新放入
         long robotStartId = robotUtil.getRobotStartId();
         int configId = (int) (robotId - robotStartId) / GameConstant.ROBOT_ID_PRIME_NUMBER;
-        RobotCfg robotCfg = GameDataManager.getRobotCfg(configId);
-        if (robotCfg == null) {
-            return;
-        }
         lock.lock();
         try {
+            if (!activeRobotIds.remove(robotId)) {
+                return;
+            }
+            RobotCfg robotCfg = GameDataManager.getRobotCfg(configId);
+            if (robotCfg == null) {
+                return;
+            }
             long robotRealMoney = getRobotRealMoney(robotCfg);
             robotCache.put(robotRealMoney, robotCfg);
             long robotRealConchMoney = getRobotRealConchMoney(robotCfg);
@@ -297,6 +326,11 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
     public RobotCfg getRobotCfg(long robotId) {
         return robotUtil.getRobotCfg(robotId);
     }
+
+    private long getRobotId(RobotCfg robotCfg) {
+        return robotUtil.getId(robotCfg.getId());
+    }
+
 
     @Override
     public void shutdown() {

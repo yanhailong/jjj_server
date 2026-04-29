@@ -156,6 +156,10 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 reconnect.set(true);
             } else {
                 log.error("玩家已经在房间中 roomId = {},playerId = {}", room.getId(), playerController.playerId());
+                if (playerController.isRobotPlayer()) {
+                    result.code = Code.REPEAT_JOIN_ROOM;
+                    return result;
+                }
             }
             gameController.onPlayerJoinRoom(playerController, reconnect);
             playerControllers.put(playerController.playerId(), playerController);
@@ -501,7 +505,14 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 int code = roomManager.joinRoom(robotPlayerController, room.getGameType(), roomCfgId, room.getId());
                 // 如果加入失败则走一次退出房间逻辑
                 if (code != Code.SUCCESS) {
+                    if (code == Code.REPEAT_JOIN_ROOM) {
+                        roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(),
+                                room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, 0, room.getPath());
+                    } else {
+                        roomManager.robotPlayerExitRoom(List.of(robotPlayerController));
+                    }
                     log.debug("机器人加入房间失败, code : {} {}", code, room.logStr());
+
                 }
             }
         }.setHandlerParamWithSelf("room tick robot join"));
