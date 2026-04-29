@@ -105,9 +105,9 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
             reqTurnAction.actionType = 1; // Pass
         }
 
-        log.info("玩家/机器人 {} 首轮 {} 首出 {} 自动操作: type={}, cards={}",
-                getPlayerId(), gameDataVo.isFirstRound(), isLeader,
-                reqTurnAction.actionType, reqTurnAction.cards);
+        //log.info("玩家/机器人 {} 首轮 {} 首出 {} 自动操作: type={}, cards={}",
+        //        getPlayerId(), gameDataVo.isFirstRound(), isLeader,
+        //        reqTurnAction.actionType, reqTurnAction.cards);
         assert controller != null;
         controller.turnAction(getPlayerId(), reqTurnAction);
     }

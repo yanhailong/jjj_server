@@ -71,7 +71,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             long playerId = gamePlayer.getId();
             RoomPlayer roomPlayer = controller.getRoom().getRoomPlayers().get(playerId);
             if (roomPlayer != null && !roomPlayer.isOnline()) {
-                log.info("南方前进结算后：玩家 {} 离线，踢出房间", playerId);
+                //log.info("南方前进结算后：玩家 {} 离线，踢出房间", playerId);
                 controller.getRoomController().getRoomManager().exitRoom(playerId);
             }
         }
@@ -240,7 +240,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             notify.settlementInfos = playerSettlementInfos;
             notify.endTime = endtime;
             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
-            log.info("南方前进结算map: {}", settlementMap2);
+            //log.info("南方前进结算map: {}", settlementMap2);
 
             // ========== 记录最终结算到一局日志，并打印流程日志和结算日志 ==========
             ToSouthGameLog gameLog = gameDataVo.getGameLog();
@@ -300,7 +300,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             log.error("结算没有赢家，请检查出牌逻辑！");
             return;
         }
-        log.debug("开始结算 - 赢家数量: {}, 底注: {}", winners.size(), baseBet);
+        //log.debug("开始结算 - 赢家数量: {}, 底注: {}", winners.size(), baseBet);
 
         // 1. 找出赢家 (手牌为0)
         List<PlayerSeatInfo> losers = new ArrayList<>();
@@ -310,7 +310,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 losers.add(seat);
             }
         }
-        log.debug("结算玩家分布 - 赢家: {}, 输家: {}", winners.stream().map(PlayerSeatInfo::getPlayerId).collect(Collectors.toList()), losers.stream().map(PlayerSeatInfo::getPlayerId).collect(Collectors.toList()));
+        //log.debug("结算玩家分布 - 赢家: {}, 输家: {}", winners.stream().map(PlayerSeatInfo::getPlayerId).collect(Collectors.toList()), losers.stream().map(PlayerSeatInfo::getPlayerId).collect(Collectors.toList()));
 
         long totalWinScore = 0;
         Map<Integer, PokerCard> cardMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
@@ -320,13 +320,13 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             List<Card> handCards = loser.getCurrentCards().stream().map(cardMap::get).collect(Collectors.toList());
             int cardCount = handCards.size();
             handCards.sort(ToSouthHandUtils.CARD_COMPARATOR);
-            log.debug("计算输家 {} 分数 - 剩余手牌: {}", loser.getPlayerId(), ToSouthHandUtils.cardListToString(handCards));
+            //log.debug("计算输家 {} 分数 - 剩余手牌: {}", loser.getPlayerId(), ToSouthHandUtils.cardListToString(handCards));
 
             int totalMulti;
             if (context.isInstantWin()) {
                 // 通杀：只算张数，一张没出翻倍（13 * 2 = 26），不计算炸弹/红2/黑2
                 totalMulti = cardCount * 2;
-                log.debug("被通杀的输家 {} - 张数: {}, 翻倍后总倍数: {}", loser.getPlayerId(), cardCount, totalMulti);
+                //log.debug("被通杀的输家 {} - 张数: {}, 翻倍后总倍数: {}", loser.getPlayerId(), cardCount, totalMulti);
 
             } else {
                 // 正常结算：张数 + 红2/黑2 + 最优炸弹倍数（四条与连对共用牌时取最大方案）
@@ -353,17 +353,17 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                         + countBlackTwo * blackTwoMulti
                         + optimalBombMulti;
 
-                log.debug("输家 {} - 张数: {}({}倍), 红2: {}x{}, 黑2: {}x{}, 最优炸弹倍数: {}, 总倍数: {}",
-                        loser.getPlayerId(), cardCount, cardMulti,
-                        countRedTwo, redTwoMulti, countBlackTwo, blackTwoMulti,
-                        optimalBombMulti, totalMulti);
+                //log.debug("输家 {} - 张数: {}({}倍), 红2: {}x{}, 黑2: {}x{}, 最优炸弹倍数: {}, 总倍数: {}",
+                //        loser.getPlayerId(), cardCount, cardMulti,
+                //        countRedTwo, redTwoMulti, countBlackTwo, blackTwoMulti,
+                //        optimalBombMulti, totalMulti);
             }
             long loseScore = (long) totalMulti * baseBet;
             // 记录输分 (负数)
             settlementMap.put(loser.getPlayerId(), -loseScore * winners.size());
             totalWinScore += loseScore;
         }
-        log.debug("结算总输分: {}, 分配给赢家每人: {}", totalWinScore, totalWinScore);
+        //log.debug("结算总输分: {}, 分配给赢家每人: {}", totalWinScore, totalWinScore);
 
         // 4. 赢家获得总分
         for (PlayerSeatInfo winner : winners) {
@@ -420,8 +420,8 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 }
             }
         }
-        log.info("玩家连赢/连输更新: {}", streakMap);
-        log.info("玩家总盈亏更新: {}", profitMap);
+        //log.info("玩家连赢/连输更新: {}", streakMap);
+        //log.info("玩家总盈亏更新: {}", profitMap);
     }
 
     /**
@@ -455,7 +455,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
         if (poolChange != 0) {
             int roomCfgId = controller.getRoom().getRoomCfgId();
             long afterBalance = cardLibManager.addPoolBalance(roomCfgId, poolChange);
-            log.info("水池余额更新 roomCfgId={}, poolChange={}, afterBalance={}", roomCfgId, poolChange, afterBalance);
+            //log.info("水池余额更新 roomCfgId={}, poolChange={}, afterBalance={}", roomCfgId, poolChange, afterBalance);
         }
     }
 
