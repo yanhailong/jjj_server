@@ -218,7 +218,7 @@ public class GrandRouletteController extends BaseActivityController implements G
         }
         //判断玩家是否绑定手机
         Account account = accountDao.queryAccountByPlayerId(playerId);
-        if (account == null || StringUtils.isEmpty(account.getThirdAccount(LoginType.PHONE))) {
+        if (account == null || (playerTimes.getFirst() >= 1 && StringUtils.isEmpty(account.getThirdAccount(LoginType.PHONE)))) {
             res.code = Code.ERROR_REQ;
             return res;
         }
