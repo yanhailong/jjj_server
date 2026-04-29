@@ -72,8 +72,8 @@ public class BlackJackRobotHandler extends BasePokerRobotProcessorHandler<BlackJ
             final long playerId = robotPlayer.getId();
             switch (getType()) {
                 case BET -> {
-                    if (CollectionUtil.isEmpty(chessRobotCfg.getBlackjackBet())) {
-                        log.debug("机器人:{} 进行下注为空 pro:{}", playerId, betPro);
+                    if (chessRobotCfg == null || CollectionUtil.isEmpty(chessRobotCfg.getBlackjackBet())) {
+                        log.error("机器人:{} actionId:{} 进行下注为空 pro:{}", playerId, robotPlayer.getActionId(), betPro);
                         return;
                     }
                     if (controller.getCurrentGamePhase() == EGamePhase.BET && betPro > RandomUtil.randomInt(10000)) {
@@ -154,8 +154,6 @@ public class BlackJackRobotHandler extends BasePokerRobotProcessorHandler<BlackJ
         //判断是否能分牌
         return firstCard == secondCard;
     }
-
-
 
 
 }
