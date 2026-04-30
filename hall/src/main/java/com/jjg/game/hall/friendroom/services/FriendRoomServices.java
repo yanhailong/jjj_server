@@ -8,7 +8,6 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
-import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedissonLock;
 import com.jjg.game.common.rpc.ClusterRpcReference;
@@ -48,7 +47,10 @@ import com.jjg.game.hall.friendroom.message.struct.*;
 import com.jjg.game.hall.friendroom.message.struct.RoomFriendEnum.ERoomFriendListOperate;
 import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import com.jjg.game.sampledata.bean.PlayerLevelConfigCfg;
+import com.jjg.game.sampledata.bean.RoomExpendCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -183,7 +185,13 @@ public class FriendRoomServices {
             res.invitationCode = invitationCode;
         }
         // 向游戏节点发送初始化房间指令
-        initFriendRoomInGameNode(roomCfgId, friendRoom);
+        boolean created = initFriendRoomInGameNode(roomCfgId, friendRoom);
+        if (!created) {
+            playerPackService.addItems(player.getId(), itemMap, AddType.CREATE_FRIEND_FAIL_CALLBACK, roomIdStr);
+            Long removed = friendRoomDao.removeRoom(warehouseCfg.getGameID(), friendRoom.getId(), friendRoom.getRoomCfgId());
+            log.warn("创建房间失败 roomId = {},playerId = {},roomCfgId = {},removed = {}", friendRoom.getId(), friendRoom.getCreator(), friendRoom.getRoomCfgId(), removed);
+            return Code.FAIL;
+        }
         // 构建好友房基础数据
         res.roomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
         if (res.roomBaseData == null) {
@@ -201,16 +209,19 @@ public class FriendRoomServices {
     /**
      * 向游戏节点发送初始化好友房创建指令
      */
-    private void initFriendRoomInGameNode(int roomCfgId, FriendRoom friendRoom) {
+    private boolean initFriendRoomInGameNode(int roomCfgId, FriendRoom friendRoom) {
         ClusterClient client = clusterSystem.getClusterByPath(friendRoom.getPath());
         log.debug("client: {}", (client == null ? "null" : friendRoom));
         try {
             GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
             // 向目标节点发送，创建好友房指令
-            hallRoomBridge.createFriendRoom(roomCfgId, friendRoom.getId());
+            return hallRoomBridge.createFriendRoom(roomCfgId, friendRoom.getId());
+        } catch (Exception e) {
+            log.error("发送初始化好友房创建指令失败 roomCfgId:{} roomId:{}", roomCfgId, friendRoom.getId(), e);
         } finally {
             GameRpcContext.getContext().clearRpcBuilderData();
         }
+        return false;
     }
 
     /**
@@ -405,7 +416,7 @@ public class FriendRoomServices {
         // 房间信息
         friendRoomList.sort((o1, o2) -> Long.compare(o2.getCreateTime(), o1.getCreateTime()));
         //构建房间基础数据
-        List<FriendRoomBaseData> friendRoomBaseDataList = buildFriendRoomInfos(friendRoomList, true);
+        List<FriendRoomBaseData> friendRoomBaseDataList = buildFriendRoomInfos(playerController, friendRoomList, true);
 
         notifyFriendRoomPanelData.roomBaseDataList = friendRoomBaseDataList;
         notifyFriendRoomPanelData.invitationCode = playerController.getPlayer().getFriendRoomInvitationCode();
@@ -431,24 +442,23 @@ public class FriendRoomServices {
         playerController.send(notifyFriendRoomPanelData);
     }
 
-    private List<FriendRoomBaseData> buildFriendRoomInfos(List<FriendRoom> friendRoomList, boolean isSelf) {
+    private List<FriendRoomBaseData> buildFriendRoomInfos(PlayerController playerController, List<FriendRoom> friendRoomList, boolean isSelf) {
         Map<Long, Long> bigPoolByRoomIds = getSlotsRoomPool(friendRoomList);
         List<FriendRoomBaseData> dataArrayList = new ArrayList<>(friendRoomList.size());
         for (FriendRoom friendRoom : friendRoomList) {
+            // 检查房间的自动续费
+            if (friendRoom.getStatus() != 3 && isSelf) {
+                autoRenewalRoomInHall(playerController, friendRoom, bigPoolByRoomIds);
+            }
             FriendRoomBaseData friendRoomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
             if (friendRoomBaseData == null) {
                 log.warn("构建房间信息返回空 roomId = {},playerId = {},roomCfgId = {}", friendRoom.getId(), friendRoom.getCreator(), friendRoom.getRoomCfgId());
                 continue;
             }
-
             if (friendRoom instanceof SlotsFriendRoom) {
                 friendRoomBaseData.predictCostGoldNum = bigPoolByRoomIds.getOrDefault(friendRoom.getId(), 0L);
             }
             dataArrayList.add(friendRoomBaseData);
-            // 检查房间的自动续费
-            if (friendRoom.getStatus() != 3 && isSelf) {
-                autoRenewalRoomInHall(friendRoom);
-            }
         }
         return dataArrayList;
     }
@@ -475,16 +485,8 @@ public class FriendRoomServices {
     /**
      * 在大厅给房间自动续费
      */
-    private void autoRenewalRoomInHall(FriendRoom friendRoom) {
-        ClusterClient client = getRoomNode(friendRoom);
-        if (client == null) {
-            return;
-        }
-        MarsNode node = client.marsNode;
-        //待关服的不管
-        if (node == null || node.getNodeConfig().waitClose()) {
-            return;
-        }
+    private void autoRenewalRoomInHall(PlayerController playerController, FriendRoom friendRoom, Map<Long, Long> slotsRoomPoolByRoomIds) {
+
         // 如果房间不在游戏中或者没有开启自动续费
         if (friendRoom.isInGaming() || !friendRoom.isAutoRenewal()) {
             return;
@@ -508,50 +510,51 @@ public class FriendRoomServices {
         int itemNum = requiredMoney.get(1);
         // 时长，毫秒
         long durationTime = (long) roomExpendCfg.getDurationTime() * TimeHelper.ONE_MINUTE_OF_MILLIS;
+        if (itemNum < 0 || durationTime <= 0) {
+            return;
+        }
+        long predictCostGoldNum = friendRoom.getPredictCostGoldNum();
+        if (friendRoom instanceof SlotsFriendRoom) {
+            predictCostGoldNum = slotsRoomPoolByRoomIds.getOrDefault(friendRoom.getId(), 0L);
+            friendRoom.setPredictCostGoldNum(predictCostGoldNum);
+        }
         // 从房间底庄中扣除金币，如果不足直接暂停游戏
-        if (itemNum > friendRoom.getPredictCostGoldNum() || itemNum <= 0) {
+        if (itemNum > predictCostGoldNum) {
             // 自动续费失败，房间准备金不足
-            log.info("自动续费失败，房间准备金不足: roomId: {},gameType = {},need: {} rest: {}", friendRoom.getId(), friendRoom.getGameType(), itemNum, friendRoom.getPredictCostGoldNum());
+            log.info("自动续费失败，房间准备金不足: roomId: {},gameType = {},need: {} rest: {}", friendRoom.getId(), friendRoom.getGameType(), itemNum, predictCostGoldNum);
             return;
         }
-        long overdueTime = friendRoom.getOverdueTime();
-        long curTime = System.currentTimeMillis();
-        long totalTake = 0;
-        while (itemNum <= friendRoom.getPredictCostGoldNum()) {
-            friendRoom.setPredictCostGoldNum(friendRoom.getPredictCostGoldNum() - itemNum);
-            totalTake += itemNum;
-            overdueTime += durationTime;
-            if (overdueTime > curTime) {
-                break;
-            }
-        }
-        // 如果时间没有改变，说明准备金不足
-        if (overdueTime == friendRoom.getOverdueTime()) {
+        ClusterClient client = getFriendRoomNode(playerController, friendRoom);
+        if (client == null) {
             return;
         }
-        log.info("玩家：{} 房间: {} 在大厅进行自动续费，续费时长：{} 消耗准备金：{}", friendRoom.getCreator(), friendRoom.getId(), overdueTime - friendRoom.getOverdueTime(), totalTake);
-        long finalOverdueTime = overdueTime;
-        friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
-            @Override
-            public void updateData(FriendRoom dataEntity) {
-
-            }
-
-            @Override
-            public boolean updateDataWithRes(FriendRoom dataEntity) {
-                if(dataEntity instanceof SlotsFriendRoom slotsFriendRoom) {
-                    slotsFriendRoom.setSendPauseRenewalMail(false);
+        MarsNode node = client.marsNode;
+        //待关服的不管
+        if (node == null || node.getNodeConfig().waitClose()) {
+            return;
+        }
+        CommonResult<FriendRoom> save;
+        try {
+            GameRpcContext.getContext().setReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
+            // 好友房自动续费时间
+            save = hallRoomBridge.friendRoomAutoRenewal(friendRoom.getId(), friendRoom.getRoomCfgId(), friendRoom.getGameType());
+            if (save.success()) {
+                friendRoom.setOverdueTime(save.data.getOverdueTime());
+                friendRoom.setPredictCostGoldNum(save.data.getPredictCostGoldNum());
+                if (friendRoom instanceof SlotsFriendRoom) {
+                    slotsRoomPoolByRoomIds.put(friendRoom.getId(), save.data.getPredictCostGoldNum());
                 }
-
-                dataEntity.setPredictCostGoldNum(friendRoom.getPredictCostGoldNum());
-                dataEntity.setOverdueTime(finalOverdueTime);
-                return true;
+                return;
+            } else {
+                log.info("自动续费失败，远程调用结果:{} roomId: {},gameType:{}", save.code, friendRoom.getId(), friendRoom.getGameType());
             }
-        });
-        Map<Integer, Long> itemMap = Map.of(requiredMoney.getFirst(), (long) itemNum);
-        ItemOperationResult itemOperationResult = new ItemOperationResult();
-        itemOperationResult.setDiamond(friendRoom.getPredictCostGoldNum());
-        coreLogger.roomOperate(friendRoom, 2, roomExpendCfg.getDurationTime(), itemMap, itemOperationResult);
+
+        } catch (Exception e) {
+            log.error("reqUpdateFriendRoomData operateFriendRoom", e);
+        } finally {
+            GameRpcContext.getContext().clearRpcBuilderData();
+        }
+
     }
 
     /**
@@ -709,7 +712,7 @@ public class FriendRoomServices {
         friendRoomList.sort((o1, o2) -> Long.compare(o2.getCreateTime(), o1.getCreateTime()));
         // 房间信息
         boolean isSelf = req.playerId == playerController.playerId();
-        res.roomList = buildFriendRoomInfos(friendRoomList, isSelf);
+        res.roomList = buildFriendRoomInfos(playerController, friendRoomList, isSelf);
         res.code = Code.SUCCESS;
         res.playerId = req.playerId;
         log.debug("返回好友房列表： {}", JSON.toJSONString(res));
@@ -903,15 +906,7 @@ public class FriendRoomServices {
             return Code.ROOM_RENEW_TIME_LIMIT;
         }
 
-        ClusterClient client;
-        if (StringUtils.isEmpty(friendRoom.getPath())) {
-            client = randomNode(playerController, friendRoom, playerController.playerId());
-        } else {
-            client = clusterSystem.getClusterByPath(friendRoom.getPath());
-            if (client == null) {
-                client = randomNode(playerController, friendRoom, playerController.playerId());
-            }
-        }
+        ClusterClient client = getFriendRoomNode(playerController, friendRoom);
         // 被操作的房间不能为空
         if (client == null) {
             // 房间对应的节点找不到
@@ -922,20 +917,20 @@ public class FriendRoomServices {
             return Code.WAIT_CLOSE_NOT_MODIFICATION;
         }
 
-
         RoomExpendCfg roomExpendCfg = null;
         Map<Integer, Long> itemMap = null;
         CommonResult<ItemOperationResult> removeItem = null;
         // 添加时间
         int addTime = 0;
-        if (updateFriendRoom.timeOfOpenRoom != 0 || updateFriendRoom.predictCostGoldNum > 0) {
+        boolean predictCostChanged = updateFriendRoom.predictCostGoldNum > 0;
+        if (updateFriendRoom.timeOfOpenRoom != 0 || predictCostChanged) {
             itemMap = new HashMap<>();
             roomExpendCfg = GameDataManager.getRoomExpendCfg(updateFriendRoom.timeOfOpenRoom);
             if (roomExpendCfg != null) {
                 List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
                 itemMap.put(requiredMoney.getFirst(), Long.valueOf(requiredMoney.get(1)));
             }
-            if (updateFriendRoom.predictCostGoldNum > 0) {
+            if (predictCostChanged) {
                 int diamondItemId = ItemUtils.getDiamondItemId();
                 itemMap.put(diamondItemId, itemMap.getOrDefault(diamondItemId, 0L) + updateFriendRoom.predictCostGoldNum);
             }
@@ -952,72 +947,25 @@ public class FriendRoomServices {
                 addTime = roomExpendCfg.getDurationTime() * TimeHelper.ONE_MINUTE_OF_MILLIS;
             }
         }
-        int finalAddTime = addTime;
-        boolean isSlotsRoom = friendRoom instanceof SlotsFriendRoom;
-        CommonResult<FriendRoom> result;
-        if (!isSlotsRoom) {
-            result = friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
-                @Override
-                public void updateData(FriendRoom dataEntity) {
-                }
-
-                @Override
-                public boolean updateDataWithRes(FriendRoom dataEntity) {
-                    if (!StringUtils.isEmpty(updateFriendRoom.roomAliasName)) {
-                        dataEntity.setAliasName(updateFriendRoom.roomAliasName);
-                    }
-                    dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum() + updateFriendRoom.predictCostGoldNum);
-                    dataEntity.setPool(dataEntity.getPool() + updateFriendRoom.predictCostGoldNum);
-                    dataEntity.setAutoRenewal(updateFriendRoom.autoRenewal);
-                    if (finalAddTime > 0) {
-                        long curTime = System.currentTimeMillis();
-                        // 不管时间是否暂停，都只需要给原有的过期时间加上增量时间
-                        if (dataEntity.getOverdueTime() < curTime) {
-                            // 房间已经过期，续时间
-                            dataEntity.setOverdueTime(curTime + finalAddTime);
-                        } else {
-                            // 房间未过期，续时间
-                            dataEntity.setOverdueTime(dataEntity.getOverdueTime() + finalAddTime);
-                        }
-                    }
-                    return true;
-                }
-            });
-            if (!result.success()) {
-                return result.code;
-            }
-            if (result.success() && updateFriendRoom.predictCostGoldNum > 0 && friendRoom instanceof BetFriendRoom) {
-                friendRoomDao.modifyRoomPool(result.data.getGameType(), result.data.getId(), updateFriendRoom.predictCostGoldNum);
-            }
-            if ((addTime > 0 || updateFriendRoom.predictCostGoldNum > 0) && friendRoom.isInGaming()) {
-                try {
-                    GameRpcContext.getContext().setReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
-                    // 单房间，直接等返回
-                    // 请求尝试开启游戏，如果游戏处于暂停状态，可以考虑异步请求开启游戏
-                    hallRoomBridge.operateFriendRoom(player.getId(), friendRoom.getId(), 1, friendRoom.getRoomCfgId());
-                } catch (Exception e) {
-                    log.error("reqUpdateFriendRoomData operateFriendRoom", e);
-                    return Code.EXCEPTION;
-                } finally {
-                    GameRpcContext.getContext().clearRpcBuilderData();
-                }
-            }
-        } else {
-            try {
-                GameRpcContext.getContext().setReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
-                result = hallRoomBridge.updateFriendRoom(player.getId(), friendRoom.getRoomCfgId(), friendRoom.getId(), addTime, updateFriendRoom.autoRenewal, updateFriendRoom.predictCostGoldNum, updateFriendRoom.roomAliasName);
-            } catch (Exception e) {
-                log.error("reqUpdateFriendRoomData updateFriendRoom", e);
-                return Code.EXCEPTION;
-            } finally {
-                GameRpcContext.getContext().clearRpcBuilderData();
-            }
+        boolean overTimeChanged = addTime > 0;
+        CommonResult<FriendRoom> result = null;
+        try {
+            GameRpcContext.getContext().setReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
+            result = hallRoomBridge.updateFriendRoom(player.getId(), friendRoom.getRoomCfgId(), friendRoom.getId(), addTime, updateFriendRoom.autoRenewal,
+                    updateFriendRoom.predictCostGoldNum, updateFriendRoom.roomAliasName);
+        } catch (Exception e) {
+            log.error("reqUpdateFriendRoomData updateFriendRoom", e);
+        } finally {
+            GameRpcContext.getContext().clearRpcBuilderData();
         }
-        if (result == null) {
-            return Code.UNKNOWN_ERROR;
-        }
-        if (!result.success()) {
-            return result.code;
+        if (result == null || !result.success()) {
+            if (CollectionUtil.isNotEmpty(itemMap)) {
+                CommonResult<ItemOperationResult> addItems = playerPackService.addItems(player.getId(), itemMap, AddType.MANAGE_FRIEND_ROOM);
+                if (!addItems.success()) {
+                    log.error("好友房更新失败 回退addItems failed roomId = {},playerId = {},roomCfgId = {}", friendRoom.getId(), player.getId(), friendRoom.getRoomCfgId());
+                }
+            }
+            return result == null ? Code.UNKNOWN_ERROR : result.code;
         }
         res.code = Code.SUCCESS;
         res.roomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(result.data);
@@ -1028,10 +976,26 @@ public class FriendRoomServices {
         playerController.send(res);
         log.info("请求更新房间数据成功，req: {} roomData: {}", JSON.toJSONString(updateFriendRoom), JSON.toJSONString(result.data));
 
-        if (addTime > 0) {
+        if (overTimeChanged) {
             coreLogger.roomOperate(friendRoom, 3, roomExpendCfg.getDurationTime(), itemMap, removeItem == null ? null : removeItem.data);
         }
         return Code.SUCCESS;
+    }
+
+    /**
+     * 获取好友房所在节点
+     */
+    public ClusterClient getFriendRoomNode(PlayerController playerController, FriendRoom friendRoom) {
+        ClusterClient client;
+        if (StringUtils.isEmpty(friendRoom.getPath())) {
+            client = randomNode(playerController, friendRoom, playerController.playerId());
+        } else {
+            client = clusterSystem.getClusterByPath(friendRoom.getPath());
+            if (client == null) {
+                client = randomNode(playerController, friendRoom, playerController.playerId());
+            }
+        }
+        return client;
     }
 
     /**
@@ -1316,15 +1280,7 @@ public class FriendRoomServices {
             playerController.send(res);
             return;
         }
-        ClusterClient client;
-        if (StringUtils.isEmpty(friendRoom.getPath())) {
-            client = randomNode(playerController, friendRoom, playerId);
-        } else {
-            client = clusterSystem.getClusterByPath(friendRoom.getPath());
-            if (client == null) {
-                client = randomNode(playerController, friendRoom, playerId);
-            }
-        }
+        ClusterClient client = getFriendRoomNode(playerController, friendRoom);
         // 被操作的房间不能为空
         if (client == null) {
             // 房间对应的节点找不到
@@ -1332,8 +1288,6 @@ public class FriendRoomServices {
             playerController.send(res);
             return;
         }
-        long coolDownTime = getCoolDownTime();
-        boolean isNotSlotsRoom = !(friendRoom instanceof SlotsFriendRoom);
         switch (req.operateCode) {
             // 开始
             case 1:
@@ -1342,20 +1296,6 @@ public class FriendRoomServices {
                     res.code = Code.ERROR_REQ;
                     playerController.send(res);
                     return;
-                }
-                if (isNotSlotsRoom) {
-                    friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
-                        @Override
-                        public void updateData(FriendRoom dataEntity) {
-                        }
-
-                        @Override
-                        public boolean updateDataWithRes(FriendRoom dataEntity) {
-                            dataEntity.setStatus(1);
-                            dataEntity.setOperationCoolingTime(coolDownTime);
-                            return true;
-                        }
-                    });
                 }
                 log.info("玩家：{} 请求开启房间：{}", playerId, req.roomId);
                 // 操作房间
@@ -1370,43 +1310,13 @@ public class FriendRoomServices {
                     playerController.send(res);
                     return;
                 }
-                if (isNotSlotsRoom) {
-                    // 暂停游戏
-                    friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
-                        @Override
-                        public void updateData(FriendRoom dataEntity) {
-                        }
-
-                        @Override
-                        public boolean updateDataWithRes(FriendRoom dataEntity) {
-                            dataEntity.setStatus(2);
-                            dataEntity.setPauseTime(System.currentTimeMillis());
-                            dataEntity.setOperationCoolingTime(coolDownTime);
-                            return true;
-                        }
-                    });
-                }
                 log.info("玩家：{} 请求暂停房间：{}", playerId, req.roomId);
                 // 操作房间
                 operateFriendRoom(playerController, client, req, friendRoom);
                 break;
             // 解散
             case 3:
-                // 解散房间，如果房间不在游戏中，直接删除
-                if (isNotSlotsRoom) {
-                    friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
-                        @Override
-                        public void updateData(FriendRoom dataEntity) {
-                        }
-
-                        @Override
-                        public boolean updateDataWithRes(FriendRoom dataEntity) {
-                            dataEntity.setStatus(3);
-                            dataEntity.setPauseTime(System.currentTimeMillis());
-                            return true;
-                        }
-                    });
-                }
+                // 解散房间
                 log.info("玩家：{} 请求解散房间：{}", playerId, req.roomId);
                 // 操作房间
                 operateFriendRoom(playerController, client, req, friendRoom);
@@ -1421,7 +1331,7 @@ public class FriendRoomServices {
         MarsNode targetNode = nodeManager.getGameNodeByWeight(friendRoom.getGameType(), playerId, playerController.ipAddress());
         if (targetNode != null) {
             path = targetNode.getNodePath();
-            String finalPath = path;
+            friendRoom.setPath(path);
             CommonResult<FriendRoom> result = friendRoomDao.doSave(friendRoom, new DataSaveCallback<>() {
                 @Override
                 public void updateData(FriendRoom dataEntity) {
@@ -1429,17 +1339,35 @@ public class FriendRoomServices {
 
                 @Override
                 public boolean updateDataWithRes(FriendRoom dataEntity) {
-                    dataEntity.setPath(finalPath);
+                    dataEntity.setPath(friendRoom.getPath());
                     return true;
                 }
             });
             if (!result.success()) {
                 log.error("未找到节点时，随机节点保存失败 playerId:{} roomId:{}", playerId, friendRoom.getId());
+                friendRoom.setPath(null);
                 return null;
             }
-            log.info("随机节点创建房间 playerId:{} roomId:{} oldPath:{} path:{}", playerId, friendRoom.getId(), friendRoom.getPath(), path);
-            friendRoom.setPath(result.data.getPath());
-            initFriendRoomInGameNode(friendRoom.getRoomCfgId(), friendRoom);
+            boolean created = initFriendRoomInGameNode(friendRoom.getRoomCfgId(), friendRoom);
+            if (!created) {
+                result = friendRoomDao.doSave(friendRoom, new DataSaveCallback<>() {
+                    @Override
+                    public void updateData(FriendRoom dataEntity) {
+                    }
+
+                    @Override
+                    public boolean updateDataWithRes(FriendRoom dataEntity) {
+                        dataEntity.setPath(null);
+                        return true;
+                    }
+                });
+                if (!result.success()) {
+                    log.error("未找到节点时，回滚节点信息失败 playerId:{} roomId:{}", playerId, friendRoom.getId());
+                }
+                friendRoom.setPath(null);
+                return null;
+            }
+            log.info("随机节点创建房间 playerId:{} roomId:{}  path:{}", playerId, friendRoom.getId(), friendRoom.getPath());
             return clusterSystem.getClusterByPath(path);
         }
         return null;
@@ -1468,15 +1396,6 @@ public class FriendRoomServices {
         } finally {
             GameRpcContext.getContext().clearRpcBuilderData();
         }
-    }
-
-    public long getCoolDownTime() {
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
-        long timeMillis = System.currentTimeMillis();
-        if (globalConfigCfg != null) {
-            return timeMillis + (long) globalConfigCfg.getIntValue() * TimeHelper.ONE_MINUTE_OF_MILLIS;
-        }
-        return timeMillis + TimeHelper.ONE_MINUTE_OF_MILLIS;
     }
 
     /**
@@ -1522,54 +1441,4 @@ public class FriendRoomServices {
         playerController.send(res);
     }
 
-    /**
-     * 获取房间节点
-     *
-     * @param friendRoom
-     * @return
-     */
-    public ClusterClient getRoomNode(FriendRoom friendRoom) {
-        if (friendRoom.getPath() != null) {
-            ClusterClient client = clusterSystem.getClusterByPath(friendRoom.getPath());
-            if (client != null) {
-                return client;
-            }
-        }
-
-        //TODO 押注类和百人场是否要做同样的处理
-        if (CommonUtil.getMajorTypeByGameType(friendRoom.getGameType()) != CoreConst.GameMajorType.SLOTS) {
-            return null;
-        }
-
-        List<ClusterClient> clusterList = clusterSystem.getNodesByType(NodeType.GAME, friendRoom.getGameType());
-        if (clusterList == null || clusterList.isEmpty()) {
-            return null;
-        }
-
-        for (ClusterClient cc : clusterList) {
-            if (cc.nodeConfig.waitClose()) {
-                continue;
-            }
-            if (cc.nodeConfig.getWhiteIpList() != null && cc.nodeConfig.getWhiteIpList().length > 0) {
-                continue;
-            }
-            if (cc.nodeConfig.getWhiteIdList() != null && cc.nodeConfig.getWhiteIdList().length > 0) {
-                continue;
-            }
-            friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
-                @Override
-                public void updateData(FriendRoom dataEntity) {
-                }
-
-                @Override
-                public boolean updateDataWithRes(FriendRoom dataEntity) {
-                    dataEntity.setPath(cc.marsNode.getNodePath());
-                    return true;
-                }
-            });
-            friendRoom.setPath(cc.marsNode.getNodePath());
-            return cc;
-        }
-        return null;
-    }
 }

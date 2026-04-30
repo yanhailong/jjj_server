@@ -65,6 +65,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     // 房间级周期定时任务句柄，房间销毁时必须取消
     private volatile Timeout checkNoJoinPlayerTimeout;
     private volatile Timeout roomTickTimeout;
+
     // 游戏控制器
     protected AbstractGameController<RC, ? extends GameDataVo<RC>> gameController;
     // 房间配置
@@ -744,7 +745,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         gameController.stopGame();
     }
 
-    private void cancelWheelTimers() {
+    protected void cancelWheelTimers() {
         Timeout checkTimeout = checkNoJoinPlayerTimeout;
         if (checkTimeout != null && !checkTimeout.isCancelled()) {
             checkTimeout.cancel();
@@ -802,4 +803,5 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     public void onFriendRoomCreate() {
 
     }
+
 }
