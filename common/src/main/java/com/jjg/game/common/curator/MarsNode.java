@@ -178,9 +178,6 @@ public class MarsNode {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        } else {
-            this.nodeConfig = null;
-            getNodeConfig();
         }
     }
 
