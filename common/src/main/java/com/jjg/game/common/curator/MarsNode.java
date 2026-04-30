@@ -4,6 +4,7 @@ import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterHelper;
 import com.jjg.game.common.config.NodeConfig;
+import org.springframework.beans.BeanUtils;
 
 import java.util.*;
 
@@ -169,8 +170,18 @@ public class MarsNode {
 
     public void updateData(String data) {
         this.nodeData = data;
-        nodeConfig = null;
-        getNodeConfig();
+        if (this.nodeConfig != null && data != null && data.length() > 50) {
+            try {
+                // 把新数据反序列化到现有对象，保留外部引用
+                NodeConfig fresh = JSON.parseObject(data, NodeConfig.class);
+                BeanUtils.copyProperties(fresh, this.nodeConfig);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            this.nodeConfig = null;
+            getNodeConfig();
+        }
     }
 
     @Override
