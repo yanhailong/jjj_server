@@ -5,6 +5,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -419,8 +420,8 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                             break;
                     }
                     if (settlementData == null) {
-                        BigDecimal multiAdd = BigDecimal.valueOf(areaTotal).multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getWinRatio())))
-                                .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
+                        BigDecimal multiAdd = BigDecimal.valueOf(areaTotal).multiply(BigDecimal.valueOf((GameConstant.TEN_THOUSAND - gameDataVo.getRoomCfg().getWinRatio())))
+                                .divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.DOWN);
                         totalWin += multiAdd.longValue();
                     } else {
                         totalLose += settlementData.getBetWin();

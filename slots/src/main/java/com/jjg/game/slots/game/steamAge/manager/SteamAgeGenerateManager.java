@@ -3,6 +3,7 @@ package com.jjg.game.slots.game.steamAge.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -376,7 +377,7 @@ public class SteamAgeGenerateManager extends AbstractSlotsGenerateManager<SteamA
         }
         //根据权重是否中奖
         int weight = steamAgeExpandRollerInfo.getWeight();
-        int randomNumber = RandomUtils.nextInt(10000);
+        int randomNumber = RandomUtils.nextInt(GameConstant.TEN_THOUSAND);
 
         //100次确认是否权重中奖，权重不一致弹出
         for (int i = 0; i < 1000; i++) {

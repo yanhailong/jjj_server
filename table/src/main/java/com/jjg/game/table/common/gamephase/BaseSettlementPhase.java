@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.data.FriendRoom;
@@ -102,13 +103,13 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
                 .multiply(BigDecimal.valueOf(odds))
                 .divide(BigDecimal.valueOf(100), 4, RoundingMode.DOWN);
 
-        BigDecimal multiAdd = totalGet.multiply(BigDecimal.valueOf((10000 - (weightCfg.getIsRatio() == 1 ? winRatio : 0))))
-                .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
+        BigDecimal multiAdd = totalGet.multiply(BigDecimal.valueOf((GameConstant.TEN_THOUSAND - (weightCfg.getIsRatio() == 1 ? winRatio : 0))))
+                .divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.DOWN);
 
         // 赢的总值
         long totalWin = multiAdd.longValue() + BigDecimal.valueOf(betValue)
                 .multiply(BigDecimal.valueOf(returnRate))
-                .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN)
+                .divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.DOWN)
                 .longValue();
         if (gamePlayer != null && !(gamePlayer instanceof GameRobotPlayer)) {
             log.info("玩家：{} {} 在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{}",
@@ -173,7 +174,7 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
         if (roomType == RoomType.POKER_TEAM_UP_ROOM || roomType == RoomType.BET_TEAM_UP_ROOM) {
             // 庄家扣税比例
             int bankerIncomeRatio = SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.CREATE_ROOM_FUNC_INCOME_RATIO);
-            bankerIncome = totalTaxRevenue * bankerIncomeRatio / 10000;
+            bankerIncome = totalTaxRevenue * bankerIncomeRatio / GameConstant.TEN_THOUSAND;
             log.info("房主：{} 收益：{}", gameController.getRoom().getCreator(), bankerIncome);
         }
         return bankerIncome;
@@ -186,7 +187,7 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
         long totalGet = 0;
         for (Map.Entry<Integer, Map<Long, Long>> entry : param.getBankerChangeMap().entrySet()) {
             long sum = entry.getValue().values().stream().mapToLong(Long::longValue).sum();
-            long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
+            long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / GameConstant.TEN_THOUSAND;
             param.addTotalTaxRevenue(sum - realGet);
             totalGet += realGet;
         }
@@ -274,8 +275,8 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
         if (roomPool == null) {
             return null;
         }
-        int pro = BigDecimal.valueOf(10000)
-                .subtract(BigDecimal.valueOf(10000)
+        int pro = GameConstant.TEN_THOUSAND_BD
+                .subtract(GameConstant.TEN_THOUSAND_BD
                         .multiply(BigDecimal.valueOf(Math.max(roomPool, 1)))
                         .divide(BigDecimal.valueOf(Math.max(basePool, 1)), 0, RoundingMode.DOWN))
                 .intValue();
@@ -315,8 +316,8 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
                     .sum());
             totalLose += playerSettlementData.getTotalWin() + playerSettlementData.getTaxation();
             BigDecimal totalGet = BigDecimal.valueOf(playerSettlementData.getBetTotal() - playerSettlementData.getBankerWind())
-                    .multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getWinRatio())))
-                    .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
+                    .multiply(BigDecimal.valueOf((GameConstant.TEN_THOUSAND - gameDataVo.getRoomCfg().getWinRatio())))
+                    .divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.DOWN);
             totalWin += playerSettlementData.getBankerWind() + totalGet.longValue();
         }
         return Pair.newPair(totalWin, totalLose);

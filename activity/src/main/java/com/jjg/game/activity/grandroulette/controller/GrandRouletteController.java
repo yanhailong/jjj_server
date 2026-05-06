@@ -31,6 +31,7 @@ import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.GlobalConfigDao;
@@ -279,7 +280,7 @@ public class GrandRouletteController extends BaseActivityController implements G
             int randomNum = RandomUtil.randomInt(ratioConfig.getFirst(), ratioConfig.getSecond(), true, true);
             getNum = BigDecimal.valueOf(randomNum)
                     .multiply(BigDecimal.valueOf(targetNum))
-                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN);
+                    .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN);
             for (FreespinCfg cfg : baseCfgBeanMap.values()) {
                 if (cfg.getLowerlimit() == cfg.getUpperlimit()) {
                     BigDecimal num = getGetNumByRatio(cfg.getLowerlimit(), targetNum);
@@ -294,7 +295,7 @@ public class GrandRouletteController extends BaseActivityController implements G
             long need = targetNum - data.getCumulativeGold();
             getNum = BigDecimal.valueOf(need)
                     .multiply(BigDecimal.valueOf(ratio))
-                    .divide(BigDecimal.valueOf(10000), 0, RoundingMode.UP);
+                    .divide(GameConstant.TEN_THOUSAND_BD, 0, RoundingMode.UP);
             if (!canGet && playerTimes.getFirst() > param.needNum()) {
                 getNum = BigDecimal.valueOf(RandomUtil.randomLong(0, need));
             }

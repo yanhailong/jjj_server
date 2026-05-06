@@ -29,8 +29,6 @@ public class SlotsPoolDao extends AbstractPoolDao {
     @Autowired
     private SlotsPlayerService slotsPlayerService;
 
-    protected BigDecimal tenThousandBigDecimal = BigDecimal.valueOf(10000);
-
     //奖池冷却时间
     private final String POOL_CD_TABLE_NAME = "poolCD";
 
@@ -90,14 +88,14 @@ public class SlotsPoolDao extends AbstractPoolDao {
 
             long poolDiff = fakePoolValue.longValue() - poolValue;
             if (poolDiff > baseRoomCfg.getFakeCommissionProp().get(0)) {
-                BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(1)).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+                BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(1)).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.HALF_UP);
                 long addToFakeValue = BigDecimal.valueOf(value).multiply(prop).longValue();
                 if (addToFakeValue > 0) {
                     long afterValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, addToFakeValue);
                     log.info("添加到假奖池1 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {},afterValue = {}", gameType, roomCfgId, value, addToFakeValue, afterValue);
                 }
             } else {
-                BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(2)).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+                BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(2)).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.HALF_UP);
                 long addToFakeValue = BigDecimal.valueOf(value).multiply(prop).longValue();
                 if (addToFakeValue > 0) {
                     long afterValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, addToFakeValue);

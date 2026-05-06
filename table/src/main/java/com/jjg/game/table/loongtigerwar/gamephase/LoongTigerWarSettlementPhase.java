@@ -5,6 +5,7 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -188,7 +189,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                 //不算税收
                 totalGet += sum;
             } else {
-                long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
+                long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / GameConstant.TEN_THOUSAND;
                 param.addTotalTaxRevenue(sum - realGet);
                 totalGet += realGet;
             }

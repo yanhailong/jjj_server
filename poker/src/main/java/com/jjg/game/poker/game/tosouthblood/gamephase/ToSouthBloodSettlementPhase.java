@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.tosouthblood.gamephase;
 import cn.hutool.core.collection.CollUtil;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.RoomPlayer;
@@ -157,7 +158,7 @@ public class ToSouthBloodSettlementPhase extends BaseSettlementPhase<ToSouthBloo
                     // 扣除抽水
                     long tax = BigDecimal.valueOf(change)
                             .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getWinRatio()))
-                            .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                            .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
 
                     totalTax += tax;
                     finalWinScore = change - tax;
@@ -497,7 +498,7 @@ public class ToSouthBloodSettlementPhase extends BaseSettlementPhase<ToSouthBloo
                 if (change > 0) {
                     tax = BigDecimal.valueOf(change)
                             .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getWinRatio()))
-                            .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                            .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
                 }
                 settlementDataMap.put(playerId, new SettlementData(betWin, totalWin, betTotal, tax));
             }

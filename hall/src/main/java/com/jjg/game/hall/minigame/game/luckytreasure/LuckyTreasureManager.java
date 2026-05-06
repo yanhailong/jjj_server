@@ -12,10 +12,7 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.config.ConfigChangeState;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.config.bean.LuckyTreasureConfig;
-import com.jjg.game.core.constant.AddType;
-import com.jjg.game.core.constant.AwardCodeType;
-import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.LuckyTreasureConstant;
+import com.jjg.game.core.constant.*;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
 import com.jjg.game.core.data.Item;
@@ -268,7 +265,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         // 当前售出的数量
         int soldCount = activeTreasure.getSoldCount();
         //库存限制 机器人不能在低于这个库存的时候再进行购买逻辑
-        int limitCount = (int) (((double) robotHaveMax / 10000) * total);
+        int limitCount = (int) (((double) robotHaveMax / GameConstant.TEN_THOUSAND) * total);
         //不买了
         return soldCount <= limitCount;
     }
@@ -304,11 +301,11 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         //机器人购买上限万分比
         int robotHaveMax = config.getRobotHaveMax();
         //库存限制 机器人不能在低于这个库存的时候再进行购买逻辑
-        int limitCount = (int) (((double) robotHaveMax / 10000) * total);
+        int limitCount = (int) (((double) robotHaveMax / GameConstant.TEN_THOUSAND) * total);
         //随机购买数量万分比
         int buyCountPr = RandomUtils.randomMinMax(robotSinglePurchase.getFirst(), robotSinglePurchase.getLast());
         //当前总购买数量
-        int totalBuy = (int) (((double) buyCountPr / 10000) * total);
+        int totalBuy = (int) (((double) buyCountPr / GameConstant.TEN_THOUSAND) * total);
         //已经购买数
         int soldCount = treasureDetails.getSoldCount();
         if (soldCount + totalBuy > limitCount) {

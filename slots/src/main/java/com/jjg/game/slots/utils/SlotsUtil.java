@@ -1,7 +1,7 @@
 package com.jjg.game.slots.utils;
 
-import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.slots.data.PropInfo;
 
 import java.math.BigDecimal;
@@ -13,9 +13,6 @@ import java.util.Map;
  * @date 2025/7/22 17:41
  */
 public class SlotsUtil {
-    private static final int TEN_THOUSAND = 10000;
-    private static final BigDecimal TEN_THOUSAND_BIGDECIMAL = BigDecimal.valueOf(TEN_THOUSAND);
-
     /**
      * 将 <值,权重>格式的map转化为PropInfo
      * @param map
@@ -74,11 +71,11 @@ public class SlotsUtil {
             return 0;
         }
 
-        if(prop == TEN_THOUSAND) {
+        if(prop == GameConstant.TEN_THOUSAND) {
             return all;
         }
         BigDecimal propValue = BigDecimal.valueOf(prop);
-        BigDecimal divide = propValue.divide(TEN_THOUSAND_BIGDECIMAL, 4, BigDecimal.ROUND_HALF_UP);
+        BigDecimal divide = propValue.divide(GameConstant.TEN_THOUSAND_BD, 4, BigDecimal.ROUND_HALF_UP);
         BigDecimal multiply = BigDecimal.valueOf(all).multiply(divide);
         return multiply.intValue();
     }
@@ -94,11 +91,11 @@ public class SlotsUtil {
             return 0;
         }
 
-        if(prop == TEN_THOUSAND) {
+        if(prop == GameConstant.TEN_THOUSAND) {
             return all;
         }
         BigDecimal propValue = BigDecimal.valueOf(prop);
-        BigDecimal divide = propValue.divide(TEN_THOUSAND_BIGDECIMAL, 4, BigDecimal.ROUND_HALF_UP);
+        BigDecimal divide = propValue.divide(GameConstant.TEN_THOUSAND_BD, 4, BigDecimal.ROUND_HALF_UP);
         BigDecimal multiply = BigDecimal.valueOf(all).multiply(divide);
         return multiply.longValue();
     }
@@ -113,11 +110,11 @@ public class SlotsUtil {
             return false;
         }
 
-        if(prop == TEN_THOUSAND) {
+        if(prop == GameConstant.TEN_THOUSAND) {
             return true;
         }
 
-        int rand = RandomUtils.randomMinMax(1,TEN_THOUSAND);
+        int rand = RandomUtils.randomMinMax(1,GameConstant.TEN_THOUSAND);
         return rand <= prop;
     }
 }

@@ -4,6 +4,7 @@ import cn.hutool.core.lang.WeightRandom;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
@@ -373,19 +374,19 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                 case TexasGameController controller -> {
                     respRoomInitInfo(playerController);
                     int chessExecutionDelay = RobotScheduleUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
-                    TexasRobotHandler handler = new TexasRobotHandler(gameRobotPlayer, TexasRobotHandler.GO_READY, controller, 10000);
+                    TexasRobotHandler handler = new TexasRobotHandler(gameRobotPlayer, TexasRobotHandler.GO_READY, controller, GameConstant.TEN_THOUSAND);
                     RobotScheduleUtil.schedule(getRoomController(), handler, chessExecutionDelay);
                 }
                 case BlackJackGameController controller -> {
                     respRoomInitInfo(playerController);
                     int chessExecutionDelay = RobotScheduleUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
-                    BlackJackRobotHandler handler = new BlackJackRobotHandler(gameRobotPlayer, BlackJackRobotHandler.BET, controller, 10000);
+                    BlackJackRobotHandler handler = new BlackJackRobotHandler(gameRobotPlayer, BlackJackRobotHandler.BET, controller, GameConstant.TEN_THOUSAND);
                     RobotScheduleUtil.schedule(getRoomController(), handler, chessExecutionDelay);
                 }
                 case ToSouthGameController controller -> {
                     respRoomInitInfo(playerController);
                     int southDelay = RobotScheduleUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
-                    ToSouthRobotHandler southHandler = new ToSouthRobotHandler(gameRobotPlayer, ToSouthRobotHandler.GO_READY, controller, 10000);
+                    ToSouthRobotHandler southHandler = new ToSouthRobotHandler(gameRobotPlayer, ToSouthRobotHandler.GO_READY, controller, GameConstant.TEN_THOUSAND);
                     RobotScheduleUtil.schedule(getRoomController(), southHandler, southDelay);
                     // 标记已调度，防止 tryStartGame 重复调度
                     controller.getGameDataVo().getReadyTimerScheduled().add(gameRobotPlayer.getId());
@@ -393,7 +394,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                 case ToSouthFreeGameController controller -> {
                     respRoomInitInfo(playerController);
                     int freeDelay = RobotScheduleUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
-                    ToSouthFreeRobotHandler freeHandler = new ToSouthFreeRobotHandler(gameRobotPlayer, ToSouthFreeRobotHandler.GO_READY, controller, 10000);
+                    ToSouthFreeRobotHandler freeHandler = new ToSouthFreeRobotHandler(gameRobotPlayer, ToSouthFreeRobotHandler.GO_READY, controller, GameConstant.TEN_THOUSAND);
                     RobotScheduleUtil.schedule(getRoomController(), freeHandler, freeDelay);
                     // 标记已调度，防止 tryStartGame 重复调度
                     controller.getGameDataVo().getReadyTimerScheduled().add(gameRobotPlayer.getId());

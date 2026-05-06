@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.tosouthfree.gamephase;
 import cn.hutool.core.collection.CollUtil;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.RoomPlayer;
@@ -11,17 +12,17 @@ import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.poker.game.tosouthfree.cardlib.ToSouthFreeCardLibManager;
 import com.jjg.game.poker.game.tosouthfree.data.ToSouthFreeDataHelper;
 import com.jjg.game.poker.game.tosouthfree.data.ToSouthFreeSettlementContext;
 import com.jjg.game.poker.game.tosouthfree.message.bean.ToSouthFreePlayerSettlementInfo;
-import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.poker.game.tosouthfree.message.notify.NotifyToSouthFreeSettlementInfo;
-import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.poker.game.tosouthfree.room.ToSouthFreeGameController;
 import com.jjg.game.poker.game.tosouthfree.room.data.ToSouthFreeGameDataVo;
 import com.jjg.game.poker.game.tosouthfree.room.data.ToSouthFreeGameLog;
 import com.jjg.game.poker.game.tosouthfree.util.ToSouthFreeHandUtils;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -172,7 +173,7 @@ public class ToSouthFreeSettlementPhase extends BaseSettlementPhase<ToSouthFreeG
                     // 扣除抽水
                     long tax = BigDecimal.valueOf(change)
                             .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getWinRatio()))
-                            .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                            .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
 
                     totalTax += tax;
                     finalWinScore = change - tax;
@@ -519,7 +520,7 @@ public class ToSouthFreeSettlementPhase extends BaseSettlementPhase<ToSouthFreeG
                 if (change > 0) {
                     tax = BigDecimal.valueOf(change)
                             .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getWinRatio()))
-                            .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                            .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
                 }
                 settlementDataMap.put(playerId, new SettlementData(betWin, totalWin, betTotal, tax));
             }

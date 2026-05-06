@@ -1,7 +1,7 @@
 package com.jjg.game.core.service;
 
-import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.redis.PlayerKeyIndex;
+import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -16,6 +16,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.*;
+
+port java.math.BigDecimal;
 import java.util.*;
 
 /**
@@ -35,8 +38,6 @@ public class PlayerBuffService {
     protected RedisLock redisLock;
     @Autowired
     protected PlayerKeyIndex playerKeyIndex;
-
-    protected BigDecimal tenThousandBigDecimal = BigDecimal.valueOf(10000);
 
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
@@ -146,7 +147,7 @@ public class PlayerBuffService {
                 allProp += d.getValue();
             }
         }
-        return BigDecimal.valueOf(allProp).divide(tenThousandBigDecimal, 2, BigDecimal.ROUND_HALF_UP);
+        return BigDecimal.valueOf(allProp).divide(GameConstant.TEN_THOUSAND_BD, 2, BigDecimal.ROUND_HALF_UP);
     }
 
     public BigDecimal calProp(BigDecimal beforeProp, int addProp) {
@@ -154,6 +155,6 @@ public class PlayerBuffService {
             return beforeProp;
         }
 
-        return beforeProp.add(BigDecimal.valueOf(addProp).divide(tenThousandBigDecimal, 2, BigDecimal.ROUND_HALF_UP));
+        return beforeProp.add(BigDecimal.valueOf(addProp).divide(GameConstant.TEN_THOUSAND_BD, 2, BigDecimal.ROUND_HALF_UP));
     }
 }

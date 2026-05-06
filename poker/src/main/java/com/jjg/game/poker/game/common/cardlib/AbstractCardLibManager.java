@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.common.cardlib;
 
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolResultsCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -34,8 +35,6 @@ import java.util.stream.Collectors;
 public abstract class AbstractCardLibManager<T extends CardLibEntry, D extends AbstractCardLibDao<T>> {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
-
-    private static final BigDecimal TEN_THOUSAND = BigDecimal.valueOf(10000);
 
     /** 每批写入 Redis 的阈值 */
     private static final int BATCH_SAVE_THRESHOLD = 500;
@@ -141,7 +140,7 @@ public abstract class AbstractCardLibManager<T extends CardLibEntry, D extends A
         long poolValue = getPoolBalance(roomCfgId);
         return BigDecimal.valueOf(poolValue - poolInit)
                 .divide(BigDecimal.valueOf(poolInit), 6, RoundingMode.HALF_UP)
-                .multiply(TEN_THOUSAND)
+                .multiply(GameConstant.TEN_THOUSAND_BD)
                 .setScale(0, RoundingMode.HALF_UP)
                 .longValue();
     }

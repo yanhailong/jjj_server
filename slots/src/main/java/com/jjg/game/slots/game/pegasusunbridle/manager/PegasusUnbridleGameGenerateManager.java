@@ -5,6 +5,7 @@ import cn.hutool.core.lang.WeightRandom;
 import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
@@ -112,8 +113,8 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
             if (maxRandomNum == createElementCount) {
                 return new RandomIconResult(changeCount, createElementCount);
             }
-            if (weight > RandomUtil.randomInt(10000)) {
-                temp[i] = wildChance > RandomUtil.randomInt(10000) ? PegasusUnbridleConstant.ElementId.WILD : icon;
+            if (weight > RandomUtil.randomInt(GameConstant.TEN_THOUSAND)) {
+                temp[i] = wildChance > RandomUtil.randomInt(GameConstant.TEN_THOUSAND) ? PegasusUnbridleConstant.ElementId.WILD : icon;
                 changeCount++;
                 createElementCount++;
             } else {
@@ -121,7 +122,7 @@ public class PegasusUnbridleGameGenerateManager extends AbstractSlotsGenerateMan
             }
         }
         if (changeCount == 0 && createElementCount < minIconCount) {
-            temp[index] = wildChance > RandomUtil.randomInt(10000) ? PegasusUnbridleConstant.ElementId.WILD : icon;
+            temp[index] = wildChance > RandomUtil.randomInt(GameConstant.TEN_THOUSAND) ? PegasusUnbridleConstant.ElementId.WILD : icon;
             changeCount++;
             createElementCount++;
         }

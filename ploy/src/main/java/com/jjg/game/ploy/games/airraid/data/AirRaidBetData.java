@@ -1,5 +1,7 @@
 package com.jjg.game.ploy.games.airraid.data;
 
+import com.jjg.game.core.constant.GameConstant;
+
 /**
  * 空袭游戏单个注单
  * 每个玩家最多持有2个注单(betIndex 0/1)
@@ -30,7 +32,7 @@ public class AirRaidBetData {
     public void cashOut(int multiplier) {
         this.cashedOut = true;
         this.cashOutMultiplier = multiplier;
-        this.winAmount = betAmount * multiplier / 10000;
+        this.winAmount = betAmount * multiplier / GameConstant.TEN_THOUSAND;
     }
 
     public long getBetAmount() {
