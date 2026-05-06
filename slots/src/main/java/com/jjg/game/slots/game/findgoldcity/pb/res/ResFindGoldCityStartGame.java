@@ -14,7 +14,7 @@ import java.util.List;
  * @author 11
  * @date 2025/8/1 17:50
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.FIND_GOLD_CITY, cmd = FindGoldCityConstant.MsgBean.RES_FIND_GOLD_CITY_START_GAME,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.FIND_GOLD_CITY, cmd = FindGoldCityConstant.MsgBean.RES_FIND_GOLD_CITY_START_GAME, resp = true)
 @ProtoDesc("开始游戏结果返回")
 public class ResFindGoldCityStartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")
@@ -31,10 +31,13 @@ public class ResFindGoldCityStartGame extends AbstractResponse {
     public int level;
     @ProtoDesc("经验")
     public long exp;
+    @ProtoDesc("剩余免费次数")
+    public int remainFreeTimes;
     @ProtoDesc("中奖图标信息")
     public FindGoldCityWinIconInfo rewardIconInfo;
     @ProtoDesc("消除后添加图标的信息")
     public List<FindGoldCityCascade> addIconInfoList;
+
     public ResFindGoldCityStartGame(int code) {
         super(code);
     }
