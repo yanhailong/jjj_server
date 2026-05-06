@@ -2,6 +2,7 @@ package com.jjg.game.hall.vip.data;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -188,7 +189,7 @@ public enum VipGift {
                     yield 0;
                 }
                 ViplevelCfg viplevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
-                yield (viplevelCfg.getViplevelUpExp() - player.getVipExp()) * viplevelCfg.getRecharge() / 10000;
+                yield (viplevelCfg.getViplevelUpExp() - player.getVipExp()) * viplevelCfg.getRecharge() / GameConstant.TEN_THOUSAND;
             }
             case CUSTOMIZED -> {
                 if (time) {

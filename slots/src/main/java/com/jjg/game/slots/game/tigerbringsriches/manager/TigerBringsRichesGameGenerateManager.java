@@ -5,6 +5,7 @@ import cn.hutool.core.lang.WeightRandom;
 import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.game.tigerbringsriches.constant.TigerBringsRichesConstant;
@@ -112,8 +113,8 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
             if (maxRandomNum == createElementCount) {
                 return new TigerBringsRichesGameGenerateManager.RandomIconResult(changeCount, createElementCount);
             }
-            if (weight > RandomUtil.randomInt(10000)) {
-                temp[i] = wildChance > RandomUtil.randomInt(10000) ? TigerBringsRichesConstant.ElementId.WILD : icon;
+            if (weight > RandomUtil.randomInt(GameConstant.TEN_THOUSAND)) {
+                temp[i] = wildChance > RandomUtil.randomInt(GameConstant.TEN_THOUSAND) ? TigerBringsRichesConstant.ElementId.WILD : icon;
                 changeCount++;
                 createElementCount++;
             } else {
@@ -121,7 +122,7 @@ public class TigerBringsRichesGameGenerateManager extends AbstractSlotsGenerateM
             }
         }
         if (changeCount == 0 && createElementCount < minIconCount) {
-            temp[index] = wildChance > RandomUtil.randomInt(10000) ? TigerBringsRichesConstant.ElementId.WILD : icon;
+            temp[index] = wildChance > RandomUtil.randomInt(GameConstant.TEN_THOUSAND) ? TigerBringsRichesConstant.ElementId.WILD : icon;
             changeCount++;
             createElementCount++;
         }

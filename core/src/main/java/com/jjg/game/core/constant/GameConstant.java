@@ -2,6 +2,7 @@ package com.jjg.game.core.constant;
 
 import com.jjg.game.common.utils.CommonUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,6 +18,10 @@ public class GameConstant {
     //游戏主分类 -> 游戏列表
     public static final Map<Integer, List<EGameType>> MAJOR_TYPE_ID_SET = new HashMap<>();
     public static final int ROBOT_ID_PRIME_NUMBER = 17;
+    public static final int TEN_THOUSAND = 10000;
+    public static final double TEN_THOUSAND_DOUBLE = 10000d;
+    public static final BigDecimal TEN_THOUSAND_BD = BigDecimal.valueOf(TEN_THOUSAND);
+
 
     static {
         for (EGameType value : EGameType.values()) {
@@ -69,8 +74,6 @@ public class GameConstant {
     public interface Redis {
         //游戏状态rediskey
         String GAME_STATUS_KEY = "gm:gamelistconfig";
-        //任务redis等待时间
-        int TASK_TIME = 10000;
         //通用redis等待时间
         int TIME = 500;
     }
@@ -171,7 +174,7 @@ public class GameConstant {
         int CODE_MAX = 999999;
     }
 
-    public interface CommonDaoId{
+    public interface CommonDaoId {
         //客服链接
         int CUSTOMER_TABLE_ID = 1;
         //积分大奖URL ID

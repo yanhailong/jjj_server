@@ -1,87 +1,69 @@
 package com.jjg.game.poker.game.tosouth.room;
 
-import com.jjg.game.core.constant.Code;
+import cn.hutool.core.collection.CollUtil;
+import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
+import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
-import com.jjg.game.poker.game.common.message.reps.NotifyPokerPlayerChange;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPlayerChange;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
-import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
+import com.jjg.game.poker.game.tosouth.autohandler.ToSouthAutoPlayHandler;
+import com.jjg.game.poker.game.tosouth.autohandler.ToSouthReadyTimeoutHandler;
+import com.jjg.game.poker.game.tosouth.autohandler.ToSouthRobotHandler;
+import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLibManager;
 import com.jjg.game.poker.game.tosouth.constant.ToSouthConstant;
+import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.poker.game.tosouth.data.ToSouthSettlementContext;
 import com.jjg.game.poker.game.tosouth.gamephase.ToSouthSettlementPhase;
 import com.jjg.game.poker.game.tosouth.gamephase.ToSouthStartGamePhase;
 import com.jjg.game.poker.game.tosouth.message.bean.*;
+import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthBombSettlement;
+import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthPlayerReady;
+import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthTurnActionInfo;
 import com.jjg.game.poker.game.tosouth.message.req.ReqToSouthGoReady;
 import com.jjg.game.poker.game.tosouth.message.req.ReqTurnAction;
-import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthChangTable;
 import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthRoomBaseInfo;
 import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthSendCardsInfo;
-import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthTurnActionInfo;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
-import com.jjg.game.poker.game.tosouthfree.message.bean.ToSouthFreeActionInfo;
-import com.jjg.game.poker.game.tosouthfree.message.notify.NotifyToSouthFreeTurnActionInfo;
-import com.jjg.game.room.base.BaseGameTickTask;
+import com.jjg.game.poker.game.tosouth.room.data.ToSouthRoundRecord;
+import com.jjg.game.poker.game.tosouth.util.ToSouthCardType;
+import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.manager.RoomManager;
-import com.jjg.game.room.robot.RobotScheduleUtil;
-import com.jjg.game.room.message.BaseRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.timer.RoomTimerEvent;
+import com.jjg.game.room.robot.RobotScheduleUtil;
+import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ChessRobotCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.SouthernMoneyCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 
-import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthBombSettlement;
-import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthPlayerReady;
-import com.jjg.game.poker.game.tosouth.room.data.ToSouthRoundRecord;
-
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
-
-import cn.hutool.core.collection.CollUtil;
-import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.poker.game.common.data.PokerCard;
-import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
-import com.jjg.game.poker.game.tosouth.util.ToSouthCardType;
-import com.jjg.game.sampledata.bean.SouthernMoneyCfg;
-import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
-
 import java.util.stream.Collectors;
 
-import com.jjg.game.room.data.robot.GameRobotPlayer;
-import com.jjg.game.room.timer.RoomEventType;
-import com.jjg.game.common.concurrent.IProcessorHandler;
-import com.jjg.game.common.timer.TimerEvent;
-import com.jjg.game.core.pb.NotifyExitRoom;
-import com.jjg.game.poker.game.tosouth.autohandler.ToSouthAutoPlayHandler;
-import com.jjg.game.poker.game.tosouth.autohandler.ToSouthReadyTimeoutHandler;
-import com.jjg.game.poker.game.tosouth.autohandler.ToSouthRobotHandler;
-import com.jjg.game.sampledata.bean.ChessRobotCfg;
-import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLibManager;
-import com.jjg.game.common.utils.CommonUtil;
-
-import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.DIAMOND_SUIT;
-import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.HEART_SUIT;
-import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_2;
-import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.RANK_3;
-import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.SPADE_SUIT;
+import static com.jjg.game.poker.game.tosouth.constant.ToSouthConstant.*;
 
 @GameController(gameType = EGameType.TO_SOUTH, roomType = RoomType.POKER_ROOM)
 public class ToSouthGameController extends BasePokerGameController<ToSouthGameDataVo> {
@@ -541,7 +523,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         long tax = BigDecimal.valueOf(score)
                 .multiply(BigDecimal.valueOf(roomCfg.getWinRatio()))
-                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
         gameDataTracker.addGameLogData("tax", tax);
         long finalWinScore = score - tax;
 
@@ -1275,12 +1257,12 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         int pro;
         if (robotPlayer.getLastWin() == 0 || cfg == null) {
             // 首次进入房间 或 无配置 → 100%准备
-            pro = 10000;
+            pro = GameConstant.TEN_THOUSAND;
         } else {
             List<Integer> continueList = robotPlayer.getLastWin() == 1
                     ? cfg.getContinueAfterVictory()
                     : cfg.getContinueAfterFail();
-            pro = (continueList != null && !continueList.isEmpty()) ? continueList.getFirst() : 10000;
+            pro = (continueList != null && !continueList.isEmpty()) ? continueList.getFirst() : GameConstant.TEN_THOUSAND;
         }
         ToSouthRobotHandler handler = new ToSouthRobotHandler(robotPlayer, ToSouthRobotHandler.GO_READY, this, pro);
         RobotScheduleUtil.schedule(getRoomController(), handler, delay);

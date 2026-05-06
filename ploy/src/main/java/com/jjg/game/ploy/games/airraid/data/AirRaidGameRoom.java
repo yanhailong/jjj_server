@@ -1,5 +1,6 @@
 package com.jjg.game.ploy.games.airraid.data;
 
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.ploy.data.PloyGameRoom;
 
 import java.util.ArrayList;
@@ -32,7 +33,7 @@ public class AirRaidGameRoom extends PloyGameRoom {
     //本局坠毁倍率(万分比, 在飞行开始前确定)
     private volatile int crashMultiplier;
     //当前实时倍率(万分比, 飞行期间持续增长, 起始 10000 即 1.00x)
-    private volatile int currentMultiplier = 10000;
+    private volatile int currentMultiplier = GameConstant.TEN_THOUSAND;
 
     public FixedSizeQueue<Integer> getRoundHistoryQueue() {
         return roundHistoryQueue;
@@ -99,7 +100,7 @@ public class AirRaidGameRoom extends PloyGameRoom {
      */
     public void startNewRound() {
         this.phase = AirRaidPhase.BETTING;
-        this.currentMultiplier = 10000;
+        this.currentMultiplier = GameConstant.TEN_THOUSAND;
         this.crashMultiplier = 0;
         this.phaseStartTime = System.currentTimeMillis();
         this.phaseStopTime = 0;
@@ -116,7 +117,7 @@ public class AirRaidGameRoom extends PloyGameRoom {
     public void startFlying(int crashMultiplier, int crashTimeSec) {
         this.phase = AirRaidPhase.FLYING;
         this.crashMultiplier = crashMultiplier;
-        this.currentMultiplier = 10000;
+        this.currentMultiplier = GameConstant.TEN_THOUSAND;
         this.phaseStartTime = System.currentTimeMillis();
         this.phaseStopTime = this.phaseStartTime + crashTimeSec * 1000L;
         this.notifyPhase = false;

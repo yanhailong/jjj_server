@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
 import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
@@ -76,7 +77,7 @@ public class BlackJackRobotHandler extends BasePokerRobotProcessorHandler<BlackJ
                         log.error("机器人:{} actionId:{} 进行下注为空 pro:{}", playerId, robotPlayer.getActionId(), betPro);
                         return;
                     }
-                    if (controller.getCurrentGamePhase() == EGamePhase.BET && betPro > RandomUtil.randomInt(10000)) {
+                    if (controller.getCurrentGamePhase() == EGamePhase.BET && betPro > RandomUtil.randomInt(GameConstant.TEN_THOUSAND)) {
                         int random = RandomUtils.randomByWeight(chessRobotCfg.getBlackjackBet()) - 1;
                         BlackjackCfg blackjackCfg = BlackJackDataHelper.getBlackjackCfg(gameDataVo);
                         if (random >= 0 && random < blackjackCfg.getBetList().size()) {

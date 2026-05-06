@@ -6,6 +6,7 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -168,8 +169,8 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
                         .sum());
                 totalLose += settlementData.getTotalWin() + settlementData.getTaxation();
                 BigDecimal totalGet = BigDecimal.valueOf(settlementData.getBetTotal() - settlementData.getBankerWind())
-                        .multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getWinRatio())))
-                        .divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
+                        .multiply(BigDecimal.valueOf((GameConstant.TEN_THOUSAND - gameDataVo.getRoomCfg().getWinRatio())))
+                        .divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.DOWN);
                 totalWin += settlementData.getBankerWind() + totalGet.longValue();
             }
             if (totalWin > 0 && totalWin >= totalLose) {

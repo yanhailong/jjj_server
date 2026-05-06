@@ -23,6 +23,7 @@ import com.jjg.game.core.base.condition.event.BetEvent;
 import com.jjg.game.core.base.condition.event.PlayerRechargeEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.ConditionManager;
@@ -197,7 +198,7 @@ public class SharePromoteController extends BaseActivityController {
             //计算本次添加的进度
             long addValue = realProgress.multiply(BigDecimal.valueOf(proportion))
                     .multiply(magnification)
-                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
+                    .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN)
                     .longValue();
             if (addValue > 0) {
                 //添加充值计数

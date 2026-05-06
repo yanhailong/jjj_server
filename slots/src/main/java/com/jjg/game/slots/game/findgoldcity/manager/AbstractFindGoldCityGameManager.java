@@ -43,7 +43,7 @@ public abstract class AbstractFindGoldCityGameManager extends AbstractSlotsGameM
      * 免费游戏
      *
      */
-    protected void free(FindGoldCityGameRunInfo gameRunInfo, FindGoldCityPlayerGameData playerGameData) {
+    private void free(FindGoldCityGameRunInfo gameRunInfo, FindGoldCityPlayerGameData playerGameData) {
         CommonResult<FindGoldCityResultLib> libResult = freeGetLib(playerGameData, FindGoldCityConstant.SpecialMode.FREE);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
@@ -84,13 +84,10 @@ public abstract class AbstractFindGoldCityGameManager extends AbstractSlotsGameM
         FindGoldCityGameRunInfo gameRunInfo = new FindGoldCityGameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
-
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.getPlayerId());
             playerController.setPlayer(player);
-
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
-
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
 
             //获取当前处于哪种状态
@@ -148,6 +145,7 @@ public abstract class AbstractFindGoldCityGameManager extends AbstractSlotsGameM
             playerGameData.setStatus(FindGoldCityConstant.Status.FREE);
             playerGameData.setFreeLib(resultLib);
             playerGameData.getRemainFreeCount().set(resultLib.getAddFreeCount());
+            gameRunInfo.setRemainFreeCount(resultLib.getAddFreeCount());
             long times = gameGenerateManager.calLineTimes(resultLib.getAwardLineInfoList());
             times += gameGenerateManager.calAfterAddIcons(resultLib.getAddIconInfos());
             gameRunInfo.addBigPoolTimes(times);

@@ -24,10 +24,6 @@ public interface FindGoldCityConstant {
         int RES_FIND_GOLD_CITY_POOL_VALUE = BASE_MSG_PREFIX | 0x8;
     }
 
-    interface ElementId {
-
-    }
-
     interface Status {
         int NORMAL = SlotsConst.Status.NORMAL;
         int FREE = SlotsConst.Status.FREE;

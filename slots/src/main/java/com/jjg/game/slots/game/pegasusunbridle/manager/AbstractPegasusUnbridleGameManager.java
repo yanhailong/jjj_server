@@ -5,6 +5,7 @@ import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -217,7 +218,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
         //检查是否触发假福马
         if (gameGenerateManager.getModelRandom() != null) {
             if (typeSet != null && typeSet.size() == 1 && typeSet.contains(gameGenerateManager.getModelRandom().getFirst())) {
-                if (RandomUtil.randomInt(10000) < gameGenerateManager.getModelRandom().getSecond()) {
+                if (RandomUtil.randomInt(GameConstant.TEN_THOUSAND) < gameGenerateManager.getModelRandom().getSecond()) {
                     gameRunInfo.setStatus(PegasusUnbridleConstant.Status.FAKE_FU_MA);
                 }
             }

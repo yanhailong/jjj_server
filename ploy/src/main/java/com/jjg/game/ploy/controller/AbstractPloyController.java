@@ -10,6 +10,7 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.Player;
@@ -72,10 +73,6 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
 
     protected int gameType;
     protected int roomCfgId;
-
-
-    protected final int tenThousand = 10000;
-    protected final BigDecimal tenThousandBigDecimal = BigDecimal.valueOf(tenThousand);
 
     public AbstractPloyController(Logger log, Class<T> playerGameDataClass) {
         this.log = log;
@@ -258,7 +255,7 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
         BigDecimal bet = BigDecimal.valueOf(betValue);
         PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
         //给标准池子加钱
-        BigDecimal toBigPoolProp = BigDecimal.valueOf(cfg.getInitBasePoolProportion()).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+        BigDecimal toBigPoolProp = BigDecimal.valueOf(cfg.getInitBasePoolProportion()).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.HALF_UP);
         long toBigPoolGold = bet.multiply(toBigPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
         if (toBigPoolGold > 0) {
             long poolCoin = poolDao.add(playerGameData.getGameType(), playerGameData.getRoomCfgId(), toBigPoolGold);
@@ -295,11 +292,11 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
         long addToPlayer = value;
         if (tax > 0) {
             //计算出给玩家加的钱
-            int addRate = this.tenThousand - tax;
+            int addRate = GameConstant.TEN_THOUSAND - tax;
             if (addRate > 0) {
                 //扣税
                 addToPlayer = BigDecimal.valueOf(addRate).multiply(BigDecimal.valueOf(value)).setScale(0, RoundingMode.FLOOR)
-                        .divide(BigDecimal.valueOf(this.tenThousand), RoundingMode.DOWN).longValue();
+                        .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
             }
         }
         CommonResult<Pair<Player, Long>> playerCommonResult = poolToPlayer(playerGameData, value, addToPlayer, AddType.PLOY_REWARD);

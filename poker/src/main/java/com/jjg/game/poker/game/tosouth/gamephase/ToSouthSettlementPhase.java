@@ -1,8 +1,11 @@
 package com.jjg.game.poker.game.tosouth.gamephase;
 
 import cn.hutool.core.collection.CollUtil;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Card;
+import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
@@ -10,7 +13,7 @@ import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
-import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLibManager;
 import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.poker.game.tosouth.data.ToSouthSettlementContext;
 import com.jjg.game.poker.game.tosouth.message.bean.ToSouthPlayerSettlementInfo;
@@ -19,7 +22,7 @@ import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameLog;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
-import com.jjg.game.core.data.FriendRoom;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -28,8 +31,6 @@ import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLibManager;
-import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import com.jjg.game.sampledata.bean.SouthernMoneyCfg;
 import org.slf4j.Logger;
@@ -172,7 +173,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                     // 扣除抽水
                     long tax = BigDecimal.valueOf(change)
                             .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getWinRatio()))
-                            .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                            .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
 
                     totalTax += tax;
 
@@ -518,16 +519,16 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             for (Map.Entry<Long, Long> entry : settlementMap2.entrySet()) {
                 long playerId = entry.getKey();
                 long change = entry.getValue();
-                long betWin = change;          // 净赢值
+                // 净赢值
                 long totalWin = Math.max(change, 0); // 赢的总值
                 long betTotal = Math.abs(change);    // 下注总值（用绝对值代表参与金额）
                 long tax = 0;
                 if (change > 0) {
                     tax = BigDecimal.valueOf(change)
                             .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getWinRatio()))
-                            .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                            .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
                 }
-                settlementDataMap.put(playerId, new SettlementData(betWin, totalWin, betTotal, tax));
+                settlementDataMap.put(playerId, new SettlementData(change, totalWin, betTotal, tax));
             }
             RoomBankerChangeParam roomBankerChangeParam = new RoomBankerChangeParam();
             roomBankerChangeParam.addRoomCreatorTotalIncome(calcRoomCreatorIncome(totalTax));

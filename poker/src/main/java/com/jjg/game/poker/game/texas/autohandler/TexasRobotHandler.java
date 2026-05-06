@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.WeightRandom;
 import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
@@ -70,7 +71,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
             //handler类型
             switch (getType()) {
                 case GO_READY -> {
-                    if (controller.getCurrentGamePhase() == EGamePhase.START_GAME && readyPro > RandomUtil.randomInt(10000)) {
+                    if (controller.getCurrentGamePhase() == EGamePhase.START_GAME && readyPro > RandomUtil.randomInt(GameConstant.TEN_THOUSAND)) {
                         //机器人进行准备
                         controller.reqTexasGoReady(getPlayerId());
                     }
@@ -100,7 +101,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                     }
                     //根据权重值抽取行为时，需要做一次数据处理，加注的权重 = 加注权重 × 权重放大万分比 ÷ 10000
                     int raise = strategyDataMap.getOrDefault(RAISE, 0);
-                    raise = raise * chessRobotCfg.getAddProactiveWeight() / 10000;
+                    raise = raise * chessRobotCfg.getAddProactiveWeight() / GameConstant.TEN_THOUSAND;
                     //随机策略
                     WeightRandom<Integer> random = new WeightRandom<>();
                     random.add(RAISE, raise);
@@ -116,7 +117,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                         case RAISE -> {
                             if (gameDataVo.getRound() == TexasConstant.Common.MAX_ROUND) {
                                 //计算all_in
-                                if (chessRobotCfg.getAllinWeight() > RandomUtil.randomInt(10000)) {
+                                if (chessRobotCfg.getAllinWeight() > RandomUtil.randomInt(GameConstant.TEN_THOUSAND)) {
                                     ReqPokerBet reqPokerBet = new ReqPokerBet();
                                     reqPokerBet.betType = PokerConstant.PlayerOperation.ALL_IN;
                                     controller.dealBet(robotPlayer.getId(), reqPokerBet);
@@ -129,7 +130,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                             long currentBet = gameDataVo.getBaseBetInfo().getOrDefault(robotPlayer.getId(), 0L);
                             //总下注
                             long sum = gameDataVo.getBaseBetInfo().values().stream().mapToLong(Long::longValue).sum();
-                            long proportion = sum * 10000 / ((long) gameDataVo.getBaseBetInfo().size() * texasCfg.getCoinsNum());
+                            long proportion = sum * GameConstant.TEN_THOUSAND / ((long) gameDataVo.getBaseBetInfo().size() * texasCfg.getCoinsNum());
                             // 	要求平均下注量百分比 取值 ÷ 10000，取值在chessTexasStrategy表中对应行为字段中类型为4的值
                             //大于等于【要求平均下注量百分比】，执行【跟注】行为，反之执行【加注】，
                             if (proportion >= strategyDataMap.getOrDefault(TARGET_CHIP, 0) || CollectionUtil.isEmpty(chessRobotCfg.getAddBetMultiple())) {
@@ -166,7 +167,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                     if (chessRobotCfg == null) {
                         return;
                     }
-                    if (chessRobotCfg.getContinueAfterFail().getLast() > RandomUtil.randomInt(10000)) {
+                    if (chessRobotCfg.getContinueAfterFail().getLast() > RandomUtil.randomInt(GameConstant.TEN_THOUSAND)) {
                         controller.reqShowCard(robotPlayer.getId(), controller);
                     }
                 }

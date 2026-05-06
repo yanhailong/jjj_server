@@ -18,6 +18,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
@@ -39,8 +40,6 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
@@ -81,8 +80,6 @@ public class ContinuousRechargeController extends BaseActivityController impleme
     //GM调试用：时间(毫秒)
     private long debugMills = 0;
 
-    private BigDecimal TEN_THOUSAND = BigDecimal.valueOf(10000);
-
     /**
      * 获取当前时间毫秒数（GM可覆盖）
      */
@@ -96,7 +93,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
     private int getToday() {
         if (this.debugMills > 0) {
             LocalDate date = LocalDate.ofInstant(java.time.Instant.ofEpochMilli(this.debugMills), ZoneId.systemDefault());
-            return date.getYear() * 10000 + date.getMonthValue() * 100 + date.getDayOfMonth();
+            return date.getYear() * GameConstant.TEN_THOUSAND + date.getMonthValue() * 100 + date.getDayOfMonth();
         }
         return TimeHelper.getDayNumerical();
     }
@@ -1166,7 +1163,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
         }
 
         //累计比例
-        BigDecimal rate = BigDecimal.valueOf(data.getTotalRebateRate()).divide(TEN_THOUSAND, 4, RoundingMode.HALF_EVEN);
+        BigDecimal rate = BigDecimal.valueOf(data.getTotalRebateRate()).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.HALF_EVEN);
         //累计充值
         BigDecimal totalRecharge = data.getContinuousTotalRecharge();
         //返利的价值(预算价值)

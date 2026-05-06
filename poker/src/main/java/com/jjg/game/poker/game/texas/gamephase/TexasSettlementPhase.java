@@ -1,6 +1,7 @@
 package com.jjg.game.poker.game.texas.gamephase;
 
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.utils.RobotUtil;
@@ -215,8 +216,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 //扣税
                 Long bet = baseBetInfo.getOrDefault(playerId, 0L);
                 BigDecimal tempTotalGet = BigDecimal.valueOf(totalGet - bet);
-                long afterRatio = tempTotalGet.multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getWinRatio())))
-                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                long afterRatio = tempTotalGet.multiply(BigDecimal.valueOf((GameConstant.TEN_THOUSAND - gameDataVo.getRoomCfg().getWinRatio())))
+                        .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
                 totalGet = bet + afterRatio;
                 //增加金币
                 controller.changePlayerGold(gamePlayer, totalGet);
@@ -369,7 +370,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         //增加金币
         Long allBet = baseBetInfo.getOrDefault(playerId, 0L);
         long beforeRatio = total - allBet;
-        long get = beforeRatio * (10000 - gameDataVo.getRoomCfg().getWinRatio()) / 10000;
+        long get = beforeRatio * (GameConstant.TEN_THOUSAND - gameDataVo.getRoomCfg().getWinRatio()) / GameConstant.TEN_THOUSAND;
         //添加记录
         TexasSaveHistory texasHistory = gameDataVo.getTexasHistory();
         texasHistory.addTotalTax(playerId, beforeRatio - get);

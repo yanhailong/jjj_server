@@ -7,6 +7,7 @@ import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
@@ -326,12 +327,12 @@ public class ShopService implements OrderGenerate {
                             if (magnification > 0) {
                                 BigDecimal addNum = shopProduct.getMoney().multiply(BigDecimal.valueOf(add))
                                         .multiply(BigDecimal.valueOf(magnification)
-                                                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN));
+                                                .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN));
                                 if (addNum.longValue() > 0) {
                                     List<LanguageParamData> languageParamData = new ArrayList<>();
                                     languageParamData.add(new LanguageParamData(0, shopProduct.getMoney().toPlainString()));
                                     languageParamData.add(new LanguageParamData(0, String.valueOf(player.getVipLevel())));
-                                    languageParamData.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(add).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN))));
+                                    languageParamData.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(add).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.DOWN))));
                                     languageParamData.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addNum))));
                                     mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum.longValue())), languageParamData, addType);
                                 }

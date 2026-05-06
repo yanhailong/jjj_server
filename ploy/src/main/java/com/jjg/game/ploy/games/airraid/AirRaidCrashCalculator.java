@@ -1,8 +1,7 @@
 package com.jjg.game.ploy.games.airraid;
 
 import com.jjg.game.common.utils.RandomUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.jjg.game.core.constant.GameConstant;
 
 /**
  * 空袭坠毁倍率计算器
@@ -29,13 +28,13 @@ public final class AirRaidCrashCalculator {
      * @return 坠毁时间(秒), 最小为0
      */
     public static int generateCrashTime(int p0, int k) {
-        for (int t = 0; t < 10000; t++) {
+        for (int t = 0; t < GameConstant.TEN_THOUSAND; t++) {
             int pt = p0 + t * k;
             // 概率 >= 100% 必然坠毁
-            if (pt >= 10000) {
+            if (pt >= GameConstant.TEN_THOUSAND) {
                 return Math.max(t, 0);
             }
-            int roll = RandomUtils.nextIntInclude(1, 10000);
+            int roll = RandomUtils.nextIntInclude(1, GameConstant.TEN_THOUSAND);
             if (roll <= pt) {
                 return Math.max(t, 0);
             }
@@ -55,9 +54,9 @@ public final class AirRaidCrashCalculator {
      * @return 坠毁倍率(万分比), 最低10000(1.00x)
      */
     public static int calculateCrashMultiplier(int crashTimeSec, int growthRate) {
-        double r = growthRate / 10000.0;
+        double r = growthRate / GameConstant.TEN_THOUSAND_DOUBLE;
         double multiplier = Math.pow(1 + r, crashTimeSec);
-        return Math.max((int) (multiplier * 10000), 10000);
+        return Math.max((int) (multiplier * GameConstant.TEN_THOUSAND), GameConstant.TEN_THOUSAND);
     }
 
     /**
@@ -71,10 +70,10 @@ public final class AirRaidCrashCalculator {
      * @return 当前倍率(万分比)
      */
     public static int calculateCurrentMultiplier(long elapsedMs, int growthRate) {
-        double r = growthRate / 10000.0;
+        double r = growthRate / GameConstant.TEN_THOUSAND_DOUBLE;
         double t = elapsedMs / 1000.0;
         double multiplier = Math.pow(1 + r, t);
-        return (int) (multiplier * 10000);
+        return (int) (multiplier * GameConstant.TEN_THOUSAND);
     }
 
     /**
@@ -88,11 +87,11 @@ public final class AirRaidCrashCalculator {
      * @return 飞行持续时间(毫秒)
      */
     public static long calculateFlyDuration(int crashMultiplier, int growthRate) {
-        double r = growthRate / 10000.0;
+        double r = growthRate / GameConstant.TEN_THOUSAND_DOUBLE;
         if (r <= 0) {
             r = 0.12;
         }
-        double targetMultiplier = crashMultiplier / 10000.0;
+        double targetMultiplier = crashMultiplier / GameConstant.TEN_THOUSAND_DOUBLE;
         double seconds = Math.log(targetMultiplier) / Math.log(1 + r);
         return (long) (seconds * 1000);
     }

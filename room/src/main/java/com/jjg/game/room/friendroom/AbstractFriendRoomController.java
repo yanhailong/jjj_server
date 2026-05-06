@@ -8,6 +8,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.utils.SampleDataUtils;
@@ -420,7 +421,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             int gameTransactionItemId = gameController.getGameTransactionItemId();
             int gainRatio = SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.FRIEND_ROOM_DESTROY_GAIN_RATIO);
             if (room.getPredictCostGoldNum() > 0) {
-                long gainGold = (long) (room.getPredictCostGoldNum() * (Math.clamp(gainRatio, 0, 10000) / 10000.0));
+                long gainGold = (long) (room.getPredictCostGoldNum() * (Math.clamp(gainRatio, 0, GameConstant.TEN_THOUSAND) / GameConstant.TEN_THOUSAND_DOUBLE));
                 log.info("房间：{} 销毁返回准备金币：{} {}", room.logStr(), gainGold, room.getPredictCostGoldNum());
                 sendDisbandRoomBack(room.getCreator(), gameTransactionItemId, gainGold);
             }

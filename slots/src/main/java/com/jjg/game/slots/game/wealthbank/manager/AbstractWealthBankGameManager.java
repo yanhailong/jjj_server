@@ -4,6 +4,7 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -187,7 +188,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
 
             //3次全部中奖的金火车
             if (winCount >= this.wealthBankCollectDollarConfig.getAllWinCount()) {
-                int rand = RandomUtils.randomMinMax(0, 10000);
+                int rand = RandomUtils.randomMinMax(0, GameConstant.TEN_THOUSAND);
                 if (rand < this.wealthBankCollectDollarConfig.getAllWinCountProp()) {
                     SpecialAuxiliaryCfg allWinSpecialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(this.wealthBankCollectDollarConfig.getAllWinCountAuxiliaryId());
                     int goldTrainCount = generateManager.inversAllWinGoldTrainCount(allWinSpecialAuxiliaryCfg);
@@ -699,7 +700,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
                     continue;
                 }
 
-                int rand = RandomUtils.randomMinMax(0, 10000);
+                int rand = RandomUtils.randomMinMax(0, GameConstant.TEN_THOUSAND);
                 if (rand < this.wealthBankCollectDollarConfig.getProp()) {
                     collect = true;
                     wealthBankDollarsInfo.collectDollarIndexIds.add(index);
