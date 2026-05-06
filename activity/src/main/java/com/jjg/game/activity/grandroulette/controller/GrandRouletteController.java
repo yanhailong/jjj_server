@@ -43,7 +43,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.FreespinCfg;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
-import jakarta.annotation.PostConstruct;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +86,6 @@ public class GrandRouletteController extends BaseActivityController implements G
         this.globalConfigDao = globalConfigDao;
     }
 
-    @PostConstruct
     public void init() {
         reloadConfig();
     }
@@ -134,11 +132,7 @@ public class GrandRouletteController extends BaseActivityController implements G
     private boolean canAddProgress(int gameType) {
         String checkString = checkAddProgress;
         if (StringUtils.isEmpty(checkString)) {
-            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.GRAND_ROULETTE_131);
-            if (globalConfigCfg == null) {
-                return false;
-            }
-            checkString = globalConfigCfg.getValue();
+            checkString = "1_-1";
         }
         try {
             if (StringUtils.isNotEmpty(checkString)) {
@@ -353,11 +347,7 @@ public class GrandRouletteController extends BaseActivityController implements G
         if (conditionParam != null) {
             return conditionParam;
         }
-        GlobalConfigCfg limitCfg = GameDataManager.getGlobalConfigCfg(128);
-        if (limitCfg == null) {
-            return null;
-        }
-        return analysisParam(limitCfg.getValue());
+        return new ConditionParam(6, 179000, BigDecimal.ONE, 1);
     }
 
     private ConditionParam analysisParam(String limitCfg) {
