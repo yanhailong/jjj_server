@@ -25,4 +25,8 @@ public interface GlobalSampleConstantId {
     int FRIEND_ROOM_DESTROY_GAIN_RATIO = 27;
     // 分享推广
     int SHARE_PROMOTE = 113;
+    //大转盘 免费旋转分享转盘人数、游戏流水（游戏下注）、充值金额与人数要求（达到充值金额）
+    int GRAND_ROULETTE_128 = 128;
+    //大转盘 免费旋转活动被推广用户的流水游戏范围
+    int GRAND_ROULETTE_131 = 131;
 }

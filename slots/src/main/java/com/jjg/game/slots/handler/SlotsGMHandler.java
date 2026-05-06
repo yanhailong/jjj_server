@@ -1,11 +1,15 @@
 package com.jjg.game.slots.handler;
 
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.manager.SlotsFactoryManager;
+import com.jjg.game.slots.manager.SlotsRoomManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +29,8 @@ public class SlotsGMHandler implements GmListener {
     private SlotsFactoryManager slotsFactoryManager;
     @Autowired
     private SlotsPoolDao slotsPoolDao;
+    @Autowired
+    private SlotsRoomManager slotsRoomManager;
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
@@ -75,6 +81,16 @@ public class SlotsGMHandler implements GmListener {
                     res.code = Code.FAIL;
                     return res;
                 }
+            } else if ("changeRoomEndTime".equalsIgnoreCase(gmOrders[0])) {
+                long endTime = Long.parseLong(gmOrders[1]);
+                PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerController.getPlayer().getRoomId(), 0, new BaseHandler<String>() {
+                    @Override
+                    public void action() throws Exception {
+                        if (playerController.getScene() instanceof SlotsRoomController slotsRoomController) {
+                            slotsRoomController.getRoom().setOverdueTime(endTime);
+                        }
+                    }
+                });
             } else {
                 res.code = Code.NOT_FOUND;
             }

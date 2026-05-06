@@ -182,7 +182,7 @@ public class WealthBankSendMessageManager extends BaseSendMessageManager {
                 res.allWinWealthBankTrainInfo = goldTrain(gameRunInfo.getInvestRewardGoldTrainCount(), gameRunInfo.getInvestRewardGold());
             }
             res.allAreaUnLock = gameRunInfo.isAllAreaUnLock();
-            res.allGold = playerController.getPlayer().getGold();
+            res.allGold = gameRunInfo.getAfterGold();
         } else {
             log.debug("[Wealth Bank] 投资游戏结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }

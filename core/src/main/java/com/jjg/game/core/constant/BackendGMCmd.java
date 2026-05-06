@@ -109,6 +109,10 @@ public interface BackendGMCmd {
     String MODIFY_REDEEM_CODE = "modifyRedeemCode";
     //启用/禁用礼包码
     String CHANGE_REDEEM_CODE_STATUS = "changeRedeemCodeStatus";
+    //配置大转盘领奖限制
+    String GRAND_ROULETTE_CONDITION_CONFIG = "grandRouletteConditionConfig";
+    //获取大转盘领奖限制配置
+    String GET_GRAND_ROULETTE_CONDITION_CONFIG = "getGrandRouletteConditionConfig";
 
     //给玩家设置svip
     String PLAYER_SVIP = "playerSvip";

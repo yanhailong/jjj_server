@@ -145,9 +145,9 @@ public class CoreConst {
         public static final int VEGAS_THREE = 300300;
         //南方前进
         public static final int TO_SOUTH = 300400;
-        //南方前进-血战
+        //南方前进_血战
         public static final int TO_SOUTH_BLOOD = 300401;
-        //南方前进-免费
+        //南方前进_免费版本
         public static final int TO_SOUTH_FREE = 300402;
         //幸运3d
         public static final int LUCKY_3D = 400100;

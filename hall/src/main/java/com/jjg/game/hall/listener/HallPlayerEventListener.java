@@ -224,6 +224,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.gender = player.getGender();
             res.gold = player.getGold();
             res.diamond = player.getDiamond();
+            res.shell = player.getShell();
             res.vipLevel = player.getVipLevel();
             res.headImgId = player.getHeadImgId();
             res.headFrameId = player.getHeadFrameId();

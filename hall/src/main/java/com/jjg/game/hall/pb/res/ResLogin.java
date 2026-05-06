@@ -72,6 +72,8 @@ public class ResLogin extends AbstractResponse {
     public String moneySymbol;
     @ProtoDesc("客服链接")
     public String customerUrl;
+    @ProtoDesc("贝币")
+    public long shell;
 
     public ResLogin(int code) {
         super(code);

@@ -131,8 +131,15 @@ public class SlotsRoomController {
     public void continueGame() {
         if (this.room.getStatus() == 2) {
             this.room.setStatus(1);
-            this.room.setPauseTime(0);
+            // 动态加上时间
+            long resetTime = 0;
+            if (this.room.getPauseTime() > 0) {
+                resetTime = this.room.getOverdueTime() - this.room.getPauseTime();
+            }
+            long curTime = System.currentTimeMillis();
+            this.room.setOverdueTime(curTime + resetTime);
             this.room.setOperationCoolingTime(getCoolDownTime());
+            this.room.setPauseTime(0);
         }
     }
 }

@@ -76,6 +76,8 @@ public class Player {
     private String subChannel;
     //svip
     private int svip;
+    //贝币
+    private long shell;
 
     public long getId() {
         return id;
@@ -328,6 +330,14 @@ public class Player {
         this.svip = svip;
     }
 
+    public long getShell() {
+        return shell;
+    }
+
+    public void setShell(long shell) {
+        this.shell = shell;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
@@ -375,5 +385,6 @@ public class Player {
         newPlayer.setLoginType(this.getLoginType());
         newPlayer.setSubChannel(this.getSubChannel());
         newPlayer.setSvip(this.getSvip());
+        newPlayer.setShell(this.getShell());
     }
 }

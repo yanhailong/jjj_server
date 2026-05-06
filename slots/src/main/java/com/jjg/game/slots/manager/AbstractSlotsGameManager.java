@@ -53,6 +53,7 @@ import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -95,6 +96,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected PlayerGameDataDao playerGameDataDao;
     @Autowired
     protected PlayerAllSlotsDataDao playerAllSlotsDataDao;
+
+    protected AtomicBoolean open = new AtomicBoolean(false);
 
     //游戏类型
     protected int gameType;
@@ -352,6 +355,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     public G playerStartGame(PlayerController playerController, long betValue) throws Exception {
+        //检查游戏是否开启
+        if (!this.open.get()) {
+            return createGameRunInfo(playerController.playerId(), Code.GAME_IS_MAINTAIN);
+        }
         //获取玩家游戏数据
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
@@ -1770,7 +1777,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return;
         }
 
-        marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(), baseRoomCfg.getMarqueeTrigger().get(1).intValue(), baseRoomCfg.getNameid(), win);
+        marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(), baseRoomCfg.getMarqueeTrigger().get(1).intValue(), baseRoomCfg.getNameid(), win, false);
     }
 
     /**
@@ -2041,6 +2048,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     public long getMoneyByItemId(WarehouseCfg warehouseCfg, Player player) {
         if (warehouseCfg.getTransactionItemId() == ItemUtils.getDiamondItemId()) {
             return player.getDiamond();
+        }
+        if (warehouseCfg.getTransactionItemId() == ItemUtils.getShellItemId()) {
+            return player.getShell();
         }
         return player.getGold();
     }
@@ -2437,5 +2447,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.getPlayerAllSlotsData().setPrizelessCount(prizelessCount);
         }
         return true;
+    }
+
+    public AtomicBoolean getOpen() {
+        return open;
     }
 }

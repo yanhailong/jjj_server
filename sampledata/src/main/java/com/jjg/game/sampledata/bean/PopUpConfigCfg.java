@@ -45,6 +45,8 @@ public class PopUpConfigCfg extends BaseCfgBean {
   protected String strarTime;
   /** 弹窗类型值 */
   protected List<List<Integer>> typeValue;
+  /** 宣传弹窗界面名称 */
+  protected List<String> web_imgName;
 
   /** 返回每次登入弹出 */
   public boolean getBoolLogin() {
@@ -109,6 +111,11 @@ public class PopUpConfigCfg extends BaseCfgBean {
   /** 返回弹窗类型值 */
   public List<List<Integer>> getTypeValue() {
     return typeValue;
+  }
+
+  /** 返回宣传弹窗界面名称 */
+  public List<String> getWeb_imgName() {
+    return web_imgName;
   }
 
   @Override

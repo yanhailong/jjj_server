@@ -33,6 +33,8 @@ public class PointsAwardRankingCfg extends BaseCfgBean {
   protected String time;
   /** 排行类型 */
   protected int type;
+  /** 图片资源 */
+  protected String web_picRes;
 
   /** 返回奖励类型 */
   public int getAwardType() {
@@ -67,6 +69,11 @@ public class PointsAwardRankingCfg extends BaseCfgBean {
   /** 返回排行类型 */
   public int getType() {
     return type;
+  }
+
+  /** 返回图片资源 */
+  public String getWeb_picRes() {
+    return web_picRes;
   }
 
   @Override

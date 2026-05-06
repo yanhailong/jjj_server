@@ -6,6 +6,7 @@ import com.jjg.game.activity.continuousRecharge.ContinuousRechargeController;
 import com.jjg.game.activity.dailylogin.controller.DailyLoginController;
 import com.jjg.game.activity.dailyrecharge.controller.DailyRechargeController;
 import com.jjg.game.activity.firstpayment.controller.FirstPaymentController;
+import com.jjg.game.activity.grandroulette.controller.GrandRouletteController;
 import com.jjg.game.activity.growthfund.controller.GrowthFundController;
 import com.jjg.game.activity.officialawards.controller.OfficialAwardsController;
 import com.jjg.game.activity.piggybank.controller.PiggyBankController;
@@ -51,7 +52,10 @@ public enum ActivityType {
             ActivityTargetType.LEVEL.getTargetKey(), false, false, false),
     //连续充值
     CONTINUOUS_RECHARGE(21, ContinuousRechargeController.class, false, false,
-            ActivityTargetType.NONE.getTargetKey(), true, false, true);
+            ActivityTargetType.NONE.getTargetKey(), true, false, true),
+    //大轮盘
+    GRAND_ROULETTE(22, GrandRouletteController.class, true, false,
+            ActivityTargetType.getTagetKey(ActivityTargetType.RECHARGE, ActivityTargetType.EFFECTIVE_BET), true, false, true);;
     //活动类型
     private final int type;
     //活动控制器的class

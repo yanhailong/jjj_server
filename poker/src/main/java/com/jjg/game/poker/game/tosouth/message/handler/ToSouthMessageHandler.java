@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.tosouth.message.handler;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.message.req.ReqTexasChangeTable;
@@ -11,7 +12,9 @@ import com.jjg.game.poker.game.tosouth.constant.ToSouthConstant;
 import com.jjg.game.poker.game.tosouth.message.req.ReqToSouthChangeTable;
 import com.jjg.game.poker.game.tosouth.message.req.ReqToSouthGoReady;
 import com.jjg.game.poker.game.tosouth.message.req.ReqTurnAction;
+import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthChangTable;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
+import com.jjg.game.poker.game.tosouthfree.message.resp.RespToSouthFreeChangTable;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.manager.RoomManager;
@@ -41,9 +44,12 @@ public class ToSouthMessageHandler {
     public void reqToSouthChangeTable(PlayerController playerController, ReqToSouthChangeTable changeTable) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
+        boolean changed = false;
         if (gameController instanceof ToSouthGameController controller) {
-            controller.reqChangeTable(playerController, controller);
+             changed = controller.reqChangeTable(playerController, controller);
         }
+        RespToSouthChangTable res = new RespToSouthChangTable(changed ? Code.SUCCESS : Code.NO_VACANT_ROOM);
+        playerController.send(res);
     }
 
     @Command(value = ToSouthConstant.MsgBean.REQ_GO_READY)

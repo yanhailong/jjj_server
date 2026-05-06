@@ -190,5 +190,9 @@ public interface Code {
     //未检测到角色信息,请进入游戏绑定登录方式后重试
     int THIRD_NOT_BIND_FORBID_LOGIN = 462;
     //南方前进 用户金额不足
-    int USER_NOT_GOLD  =  300401040;
+    int USER_NOT_GOLD = 300401040;
+    //游戏正在维护中
+    int GAME_IS_MAINTAIN = 9002;
+    //无空闲房间，换房失败
+    int NO_VACANT_ROOM = 300400068;
 }

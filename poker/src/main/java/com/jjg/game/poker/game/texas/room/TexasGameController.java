@@ -950,6 +950,11 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
      */
     public void reqTexasGoReady(long playerId) {
         NotifyTexasPlayerReady notify = new NotifyTexasPlayerReady();
+        if (!isOpen()) {
+            notify.code = Code.GAME_IS_MAINTAIN;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+            return;
+        }
         TreeMap<Integer, SeatInfo> seatInfo = gameDataVo.getSeatInfo();
         SeatInfo playerSeatInfo = null;
         for (SeatInfo info : seatInfo.values()) {

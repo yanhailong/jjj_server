@@ -96,7 +96,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //svip场次缓存信息
     private Map<Integer, List<WareHouseConfigInfo>> svipWareHouseConfigMap = new HashMap<>();
-
+    //体验场次缓存信息
+    private Map<Integer, List<WareHouseConfigInfo>> experienceWareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
     private Map<Integer, GameStatus> gameStatusesMap;
     //排序后的gameList
@@ -107,6 +108,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private Map<Integer, List<WarePoolInfo>> poolMap;
     //svip游戏倍场界面的奖池
     private Map<Integer, List<WarePoolInfo>> svipPoolMap;
+    //体验场次游戏倍场界面的奖池
+    private Map<Integer, List<WarePoolInfo>> expeiencePoolMap;
 
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
@@ -185,6 +188,10 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return list;
             }
         }
+        List<WareHouseConfigInfo>  list = this.experienceWareHouseConfigMap.get(gameType);
+        if (list != null && !list.isEmpty()) {
+            return list;
+        }
         return wareHouseConfigMap.get(gameType);
     }
 
@@ -201,6 +208,11 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             if (svipPool != null && !svipPool.isEmpty()) {
                 return svipPool;
             }
+
+        }
+        List<WarePoolInfo> expeiencePool = this.expeiencePoolMap.get(gameType);
+        if (expeiencePool != null && !expeiencePool.isEmpty()) {
+            return expeiencePool;
         }
         // fallback 到普通 poolMap
         if (this.poolMap == null || this.poolMap.isEmpty()) {
@@ -836,6 +848,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 deductResult = hallPlayerService.deductGold(playerId, avatarCfg.getBuyItem().get(1), addType, id + "", true);
             } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
                 deductResult = hallPlayerService.deductDiamond(playerId, avatarCfg.getBuyItem().get(1), addType, id + "", true);
+            } else if (itemCfg.getType() == GameConstant.Item.TYPE_SHELL) {
+                deductResult = hallPlayerService.deductShell(playerId, avatarCfg.getBuyItem().get(1), addType, id + "", true);
             } else {
                 log.debug("该配置的buyItem配置错误，配置的itemIdc错误，id = {},itemCfgId = {}", id, moneyId);
                 result.code = Code.SAMPLE_ERROR;
@@ -894,10 +908,12 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private void initWareHouseConfigData() {
         Map<Integer, List<WareHouseConfigInfo>> tempwareHouseConfigMap = new HashMap<>();
         Map<Integer, List<WareHouseConfigInfo>> tempvipWareHouseConfigMap = new HashMap<>();
-
+        Map<Integer, List<WareHouseConfigInfo>> tempExperienceWareHouseConfigMap = new HashMap<>();
         for (WarehouseCfg c : GameDataManager.getWarehouseCfgList()) {
             List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameID(), k -> new ArrayList<>());
             List<WareHouseConfigInfo> tempVipList = tempvipWareHouseConfigMap.computeIfAbsent(c.getGameID(), k -> new ArrayList<>());
+            List<WareHouseConfigInfo> tempExperienceList = tempExperienceWareHouseConfigMap.computeIfAbsent(c.getGameID(), k -> new ArrayList<>());
+
             if (c.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
                 WareHouseConfigInfo info = new WareHouseConfigInfo();
                 info.wareId = c.getId();
@@ -905,22 +921,31 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 info.limitPlayerLevelMin = c.getPlayerLvLimit();
                 info.betShow = c.getBetShow();
                 tempList.add(info);
-            } else if (c.getRoomType() >= GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
+            } else if (c.getRoomType() >= GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START && c.getRoomType() <= GameConstant.RoomTypeCons.EXPERIENCE_ROOM_TYPE_START) {
                 WareHouseConfigInfo info = new WareHouseConfigInfo();
                 info.wareId = c.getId();
                 info.limitGoldMin = c.getEnterLimit();
                 info.limitPlayerLevelMin = c.getPlayerLvLimit();
                 info.betShow = c.getBetShow();
                 tempVipList.add(info);
+            } else if (c.getRoomType() >= GameConstant.RoomTypeCons.EXPERIENCE_ROOM_TYPE_START) {
+                WareHouseConfigInfo info = new WareHouseConfigInfo();
+                info.wareId = c.getId();
+                info.limitGoldMin = c.getEnterLimit();
+                info.limitPlayerLevelMin = c.getPlayerLvLimit();
+                info.betShow = c.getBetShow();
+                tempExperienceList.add(info);
             }
         }
 
         //根据场次id，从小到大排序
         tempwareHouseConfigMap.replaceAll((key, list) -> list.stream().sorted(Comparator.comparingInt(wh -> wh.wareId)).collect(Collectors.toList()));
         tempvipWareHouseConfigMap.replaceAll((key, list) -> list.stream().sorted(Comparator.comparingInt(wh -> wh.wareId)).collect(Collectors.toList()));
+        tempExperienceWareHouseConfigMap.replaceAll((key, list) -> list.stream().sorted(Comparator.comparingInt(wh -> wh.wareId)).collect(Collectors.toList()));
 
         this.wareHouseConfigMap = tempwareHouseConfigMap;
         this.svipWareHouseConfigMap = tempvipWareHouseConfigMap;
+        this.experienceWareHouseConfigMap = tempExperienceWareHouseConfigMap;
     }
 
     /**
@@ -1097,7 +1122,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
         Map<Integer, List<WarePoolInfo>> tmpPoolMap = new HashMap<>();
         Map<Integer, List<WarePoolInfo>> tmpSvipPoolMap = new HashMap<>();
-
+        Map<Integer, List<WarePoolInfo>> tmpExpeiencePoolMap = new HashMap<>();
         gameTypeList.forEach(gameType -> {
             //获取对应游戏的奖池；smallPool 是主数据源，缺失则跳过；fakeSmallPool 为可选增强，缺失不影响下发
             Map<Integer, Long> smallPool = smallPoolMap.get(gameType);
@@ -1108,6 +1133,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
             List<WarePoolInfo> warePoolInfoList = new ArrayList<>();
             List<WarePoolInfo> sipWarePoolInfoList = new ArrayList<>();
+            List<WarePoolInfo> expeiencePoolInfoList = new ArrayList<>();
             for (Map.Entry<Integer, Long> en : smallPool.entrySet()) {
                 int roomCfgId = en.getKey();
                 WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
@@ -1129,17 +1155,21 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
                 if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
                     warePoolInfoList.add(warePoolInfo);
-                } else if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START) {
+                } else if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START && warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.EXPERIENCE_ROOM_TYPE_START) {
                     sipWarePoolInfoList.add(warePoolInfo);
+                } else if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.EXPERIENCE_ROOM_TYPE_START) {
+                    expeiencePoolInfoList.add(warePoolInfo);
                 }
             }
 
             tmpPoolMap.put(gameType, warePoolInfoList);
             tmpSvipPoolMap.put(gameType, sipWarePoolInfoList);
+            tmpExpeiencePoolMap.put(gameType, expeiencePoolInfoList);
         });
 
         this.poolMap = tmpPoolMap;
         this.svipPoolMap = tmpSvipPoolMap;
+        this.expeiencePoolMap = tmpExpeiencePoolMap;
     }
 
     /**

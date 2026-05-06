@@ -5,7 +5,10 @@ import com.jjg.game.common.listener.OnServerAutoShutDown;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.FriendRoom;
+import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.Room;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.rpc.HallRoomBridge;
 import com.jjg.game.core.utils.SampleDataUtils;
@@ -143,16 +146,17 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
      * 先创建好空的好友房
      *
      * @param roomId 房间ID
+     * @return
      */
     @Override
     @RpcCallSetting(processorModKey = "#arg1")
-    public void createFriendRoom(int roomCfgId, long roomId) {
+    public boolean createFriendRoom(int roomCfgId, long roomId) {
         // 获取配置
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         if (warehouseCfg == null) {
             // 配置异常
             log.error("通过rpc调用好友房创建时异常，找不到WarehouseCfg配置， {}", roomCfgId);
-            return;
+            return false;
         }
         Tuple2<Integer, Integer> tuples = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
         try {
@@ -160,16 +164,20 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
                     initExistEmptyRoomByRoomId(warehouseCfg.getGameID(), roomCfgId, tuples.getT2(), roomId);
             if (roomController == null) {
                 log.warn("通过cfgId: {} roomId: {} 初始化房间失败", roomCfgId, roomId);
+                return false;
             } else {
                 if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
                     friendRoomController.onFriendRoomCreate();
                     log.warn("通过cfgId: {} roomId: {} 初始化房间成功", roomCfgId, roomId);
                 }
             }
+            return true;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            log.error("通过cfgId: {} roomId: {} 初始化房间异常", roomCfgId, roomId, e);
         }
+        return false;
     }
+
 
     /**
      * 操作好友房
@@ -191,7 +199,8 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
         }
         if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
             // 房主
-            long roomCreator = friendRoomController.getRoom().getCreator();
+            FriendRoom friendRoom = friendRoomController.getRoom();
+            long roomCreator = friendRoom.getCreator();
             if (roomCreator != playerId) {
                 log.error("操作异常，玩家：{} 请求操作房间，但房间房主ID为：{}", playerId, roomCreator);
                 return;
@@ -206,8 +215,10 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
                 case 1: {
                     log.info("收到请求继续房间：{} 的请求", roomId);
                     // 继续游戏
-                    friendRoomController.tryContinueGame();
-                    friendRoomController.getGameController().onContinueGameAction();
+                    if (friendRoomController.continueRoom() == Code.SUCCESS) {
+                        friendRoomController.tryContinueGame();
+                        friendRoomController.getGameController().onContinueGameAction();
+                    }
                     break;
                 }
                 case 3: {
@@ -218,6 +229,21 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
                 }
             }
         }
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<FriendRoom> friendRoomAutoRenewal(long roomId, int roomCfgId, int gameType) {
+        // 获取房间控制器
+        AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = getRoomController(gameType, roomId);
+        if (!(roomController instanceof AbstractFriendRoomController<? extends RoomCfg, ?> friendRoomController)) {
+            log.debug("操作房间，但找不到指定的房间：{}", roomId);
+            return new CommonResult<>(Code.NOT_FOUND);
+        }
+        int code = friendRoomController.renewalOverTime();
+        CommonResult<FriendRoom> result = new CommonResult<>(code);
+        result.data = friendRoomController.getRoom();
+        return result;
     }
 
     @Override
@@ -233,8 +259,19 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
     }
 
     @Override
-    public CommonResult<FriendRoom> updateFriendRoom(long playerId, int roomCfgId, long roomId, int roomExpendCfgId, boolean autoRenewal, long predictCostGoldNum, String roomAliasName) {
-        return new CommonResult<>(Code.ERROR_REQ);
+    @RpcCallSetting(processorModKey = "#arg2")
+    public CommonResult<FriendRoom> updateFriendRoom(long playerId, int roomCfgId, long roomId, int addTime, boolean autoRenewal, long predictCostGoldNum, String roomAliasName) {
+        AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = getRoomControllerByRoomId(roomId);
+        if (!(roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController)) {
+            log.debug("修改好友房失败,找不到指定房间 roomId:{}", roomId);
+            return new CommonResult<>(Code.NOT_FOUND);
+        }
+        FriendRoom friendRoom = friendRoomController.getRoom();
+        if (friendRoom.getRoomCfgId() != roomCfgId) {
+            log.warn("修改好友房失败,配置不匹配 playerId:{},roomId:{},reqRoomCfgId:{},roomCfgId:{}", playerId, roomId, roomCfgId, friendRoom.getRoomCfgId());
+            return new CommonResult<>(Code.PARAM_ERROR);
+        }
+        return friendRoomController.updateFriendRoom(playerId, addTime, autoRenewal, predictCostGoldNum, roomAliasName);
     }
 
     @Override

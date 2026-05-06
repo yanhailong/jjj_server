@@ -15,17 +15,28 @@ public interface HallRoomBridge extends IGameRpc {
      * 在节点中，创建一个好友房，空房间，但是需要走时间
      *
      * @param roomId 房间ID
+     * @return true 创建成功
      */
-    void createFriendRoom(int roomCfgId, long roomId);
+    boolean createFriendRoom(int roomCfgId, long roomId);
 
     /**
      * 操作好友房
      *
-     * @param playerId    玩家ID
-     * @param roomId      房间ID
+     * @param playerId        玩家ID
+     * @param roomId          房间ID
      * @param operateCode 操作码 1. 重新开启 2. 暂停 3. 解散
      */
     void operateFriendRoom(long playerId, long roomId, int operateCode, int roomCfgId);
+
+
+    /**
+     * 好友房自动续费
+     *
+     * @param roomId    房间ID
+     * @param roomCfgId 配置id
+     * @param gameType 游戏类型
+     */
+    CommonResult<FriendRoom> friendRoomAutoRenewal(long roomId, int roomCfgId, int gameType);
 
     /**
      * 获取好友房信息
@@ -40,7 +51,7 @@ public interface HallRoomBridge extends IGameRpc {
      *
      * @param playerId
      * @param roomId
-     * @param addTime    增加时长
+     * @param addTime            增加时长
      * @param autoRenewal
      * @param predictCostGoldNum 添加的庄家准备金
      * @param roomAliasName

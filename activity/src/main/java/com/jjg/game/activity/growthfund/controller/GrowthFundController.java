@@ -217,9 +217,9 @@ public class GrowthFundController extends BaseActivityController implements Orde
         }
         ResGrowthFundClaimRewards res = new ResGrowthFundClaimRewards(Code.SUCCESS);
         List<Pair<GrowthFundCfg, PlayerActivityData>> dataPair = new ArrayList<>();
-        CommonResult<ItemOperationResult> addedItems = null;
+        CommonResult<ItemOperationResult> addedItems;
         Map<Integer, Long> rewards = new HashMap<>();
-        Map<Integer, PlayerActivityData> dataMap = new HashMap<>();
+        Map<Integer, PlayerActivityData> dataMap;
         //记录日志
         List<Integer> levels = new ArrayList<>();
         try {

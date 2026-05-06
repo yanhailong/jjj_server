@@ -41,7 +41,6 @@ public class SlotsFriendRoom extends FriendRoom {
     @Transient
     private transient final AtomicBoolean flag = new AtomicBoolean(false);
 
-
     /**
      * 玩家下注后修改信息
      * @param playerId
@@ -103,4 +102,5 @@ public class SlotsFriendRoom extends FriendRoom {
         }
         return slotsBillInfo;
     }
+
 }

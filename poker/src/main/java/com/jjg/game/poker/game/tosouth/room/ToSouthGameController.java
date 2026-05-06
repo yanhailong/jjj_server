@@ -32,6 +32,8 @@ import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthRoomBaseInfo;
 import com.jjg.game.poker.game.tosouth.message.resp.RespToSouthSendCardsInfo;
 import com.jjg.game.poker.game.tosouth.message.notify.NotifyToSouthTurnActionInfo;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
+import com.jjg.game.poker.game.tosouthfree.message.bean.ToSouthFreeActionInfo;
+import com.jjg.game.poker.game.tosouthfree.message.notify.NotifyToSouthFreeTurnActionInfo;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
@@ -133,14 +135,13 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     /**
      * 换桌
      */
-    public void reqChangeTable(PlayerController playerController, ToSouthGameController controller) {
+    public boolean reqChangeTable(PlayerController playerController, ToSouthGameController controller) {
         AbstractRoomController<Room_ChessCfg, ? extends Room> abstractRoomController = controller.getRoomController();
         Room room = abstractRoomController.getRoom();
         boolean changed =
                 roomController.getRoomManager().changeRoom(
                         playerController, room, room.getGameType(), controller.getRoom().getRoomCfgId(), controller.getRoom().getMaxLimit());
-        RespToSouthChangTable res = new RespToSouthChangTable(changed ? Code.SUCCESS : Code.FAIL);
-        playerController.send(res);
+        return changed;
     }
 
     @Override
@@ -161,7 +162,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
         int actionType = reqTurnAction.actionType; // 0: Play, 1: Pass
 
-        if (log.isDebugEnabled()) {
+        /*if (log.isDebugEnabled()) {
             String cardStr = "无";
             if (actionType == 0 && CollUtil.isNotEmpty(reqTurnAction.cards)) {
                 Map<Integer, PokerCard> cardMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
@@ -178,8 +179,8 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 c.sort(ToSouthHandUtils.CARD_COMPARATOR);
                 cardStr = ToSouthHandUtils.cardListToString(c);
             }
-            log.debug("玩家操作 - ID: {}, 动作: {}, 牌: {}", playerId, actionType == 1 ? "过" : "出", cardStr);
-        }
+            //log.debug("玩家操作 - ID: {}, 动作: {}, 牌: {}", playerId, actionType == 1 ? "过" : "出", cardStr);
+        }*/
 
         // 检查玩家是否在本轮已过牌
         if (actionType == 0 && gameDataVo.getCurRoundPassedPlayerSeats().contains(info.getSeatId())) {
@@ -198,7 +199,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             // 过牌成功
             gameDataVo.getCurRoundPassedPlayerSeats().add(info.getSeatId());
             gameDataVo.setPassCount(gameDataVo.getPassCount() + 1);
-            log.debug("玩家 {} 过牌，当前连续过牌数: {}", info.getPlayerId(), gameDataVo.getPassCount());
+            //log.debug("玩家 {} 过牌，当前连续过牌数: {}", info.getPlayerId(), gameDataVo.getPassCount());
             gameDataVo.getGameLog().recordPass(info.getPlayerId(), info.getSeatId());
             checkNextTurn(info.getPlayerId());
             return;
@@ -249,8 +250,8 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                     playerId, info.getSeatId(), ToSouthHandUtils.cardListToString(playCards));
             return;
         }
-        log.info("[南方前进][出牌] 玩家: {}, 座位: {}, 牌型: {}, 牌: {}",
-                playerId, info.getSeatId(), type, ToSouthHandUtils.cardListToString(playCards));
+        //log.info("[南方前进][出牌] 玩家: {}, 座位: {}, 牌型: {}, 牌: {}",
+        //        playerId, info.getSeatId(), type, ToSouthHandUtils.cardListToString(playCards));
 
         // 确定出牌子类型（在 lastPlayCards 更新前判断）：首出 / 跟牌 / 新一轮出牌
         boolean isFirstPlayerNow = isFirstPlayer(info.getSeatId());
@@ -261,9 +262,9 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             List<Integer> lastCardIds = gameDataVo.getLastPlayCards();
             List<Card> lastCards = playCardsIdsToCards(lastCardIds, cardMap);
             ToSouthCardType lastType = ToSouthHandUtils.getCardType(lastCards);
-            log.info("[南方前进][比牌] 上家牌型: {}, 上家牌: {} | 当前牌型: {}, 当前牌: {}",
-                    lastType, ToSouthHandUtils.cardListToString(lastCards),
-                    type, ToSouthHandUtils.cardListToString(playCards));
+            //log.info("[南方前进][比牌] 上家牌型: {}, 上家牌: {} | 当前牌型: {}, 当前牌: {}",
+            //        lastType, ToSouthHandUtils.cardListToString(lastCards),
+            //        type, ToSouthHandUtils.cardListToString(playCards));
             if (!ToSouthHandUtils.compare(lastCards, playCards)) {
                 log.warn("[南方前进][比牌] 管不上 - 玩家: {}, {} [{}] 无法压过 {} [{}]",
                         playerId,
@@ -271,13 +272,13 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                         ToSouthHandUtils.cardListToString(lastCards), lastType);
                 return;
             }
-            log.info("[南方前进][比牌] 管牌成功 - 玩家: {}, {} [{}] 压过 {} [{}]",
-                    playerId,
-                    ToSouthHandUtils.cardListToString(playCards), type,
-                    ToSouthHandUtils.cardListToString(lastCards), lastType);
+            //log.info("[南方前进][比牌] 管牌成功 - 玩家: {}, {} [{}] 压过 {} [{}]",
+            //        playerId,
+            //        ToSouthHandUtils.cardListToString(playCards), type,
+            //        ToSouthHandUtils.cardListToString(lastCards), lastType);
         } else {
-            log.info("[南方前进][首出] 玩家: {}, 座位: {}, 牌型: {}, 牌: {}",
-                    playerId, info.getSeatId(), type, ToSouthHandUtils.cardListToString(playCards));
+            //log.info("[南方前进][首出] 玩家: {}, 座位: {}, 牌型: {}, 牌: {}",
+            //        playerId, info.getSeatId(), type, ToSouthHandUtils.cardListToString(playCards));
         }
 
         info.getCurrentCards().removeAll(realPlayCardIds);
@@ -322,11 +323,11 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         } else {
             gameDataVo.getGameLog().recordFollowPlay(info.getPlayerId(), info.getSeatId(), type.name(), cardsStr, remain);
         }
-        if (log.isDebugEnabled()) {
-            log.debug("玩家 {} 出牌成功 - 类型: {}, 牌: {}, 剩余手牌: {}", info.getPlayerId(), type, ToSouthHandUtils.cardListToString(playCards), info.getCurrentCards().size());
-        }
+        /*if (log.isDebugEnabled()) {
+            //log.debug("玩家 {} 出牌成功 - 类型: {}, 牌: {}, 剩余手牌: {}", info.getPlayerId(), type, ToSouthHandUtils.cardListToString(playCards), info.getCurrentCards().size());
+        }*/
         if (info.getCurrentCards().isEmpty()) {
-            log.info("玩家 {} 胜利 (出完手牌)，游戏结束", info.getPlayerId());
+//            log.info("玩家 {} 胜利 (出完手牌)，游戏结束", info.getPlayerId());
             info.setOver(true);
 
             // 先广播最后一手出牌信息给所有玩家，再进行结算
@@ -371,7 +372,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         }
 
         // 打印本轮完整出牌记录
-        if (log.isDebugEnabled()) {
+        /*if (log.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder("[南方前进][炸弹结算] 开始处理 - 赢家座位: ")
                     .append(winnerSeatId).append(", 最后牌型: ").append(lastPlay.cardType)
                     .append("\n  本轮plays(共").append(plays.size()).append("条):");
@@ -382,7 +383,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                         .append(" cards=").append(r.cards);
             }
             log.debug(sb.toString());
-        }
+        }*/
 
         // 炸弹链
         List<ToSouthRoundRecord> bombChain = new ArrayList<>();
@@ -403,7 +404,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         }
 
         // 打印扫描结果
-        if (log.isDebugEnabled()) {
+        /*if (log.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder("[南方前进][炸弹结算] 扫描结果 - victimIndex=")
                     .append(victimIndex).append(", bombChain(共").append(bombChain.size()).append("条):");
             for (int i = 0; i < bombChain.size(); i++) {
@@ -416,7 +417,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 sb.append("\n  被炸牌: seat=").append(v.seatId).append(" type=").append(v.cardType);
             }
             log.debug(sb.toString());
-        }
+        }*/
 
         if (bombChain.isEmpty()) return;
 
@@ -614,7 +615,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
     }
 
     private void checkNextTurn(long passerPlayerId) {
-        log.debug("检查下家 - 当前索引: {}", gameDataVo.getIndex());
+        //log.debug("检查下家 - 当前索引: {}", gameDataVo.getIndex());
 
         PlayerSeatInfo nextPlayer = getNextExePlayer();
 
@@ -624,7 +625,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             PlayerSeatInfo nextLeader = getPlayerBySeatId(winnerSeatId);
 
             if (nextLeader != null) {
-                log.debug("一轮结束，玩家 {} 获得球权，新一轮开始", nextLeader.getPlayerId());
+                //log.debug("一轮结束，玩家 {} 获得球权，新一轮开始", nextLeader.getPlayerId());
                 gameDataVo.setRoundLeaderSeatId(nextLeader.getSeatId());
                 gameDataVo.setLastPlayCards(null);
                 gameDataVo.setFirstRound(false);
@@ -642,7 +643,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             }
         } else {
             // 继续当前轮，找下家
-            log.debug("当前轮继续，下家 {} 出牌", nextPlayer.getPlayerId());
+            //log.debug("当前轮继续，下家 {} 出牌", nextPlayer.getPlayerId());
             broadcastNextTurn(nextPlayer.getPlayerId(), true, passerPlayerId);
             gameDataVo.setIndex(nextPlayer.getSeatId());
             addNextTimer(nextPlayer, 0);
@@ -663,9 +664,58 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         broadcastNextTurn(waitPlayerId, true, 0);
     }
 
-    public void broadcastNextTurn(long waitPlayerId, boolean canPass) {
-        broadcastNextTurn(waitPlayerId, canPass, 0);
+    /**
+     * 广播第一手牌的出牌信息（游戏结束前，通知所有玩家最终出牌动作）
+     * 与 broadcastNextTurn 不同
+     * lastPlaySeatId = -1
+     *
+     * @param
+     */
+    public void broadcastFirstTurn(long waitPlayerId, boolean canPass) {
+//        broadcastNextTurn(waitPlayerId, canPass, 0);
+        NotifyToSouthTurnActionInfo notify = new NotifyToSouthTurnActionInfo();
+        ToSouthActionInfo actionInfo = new ToSouthActionInfo();
+        actionInfo.lastpassUserId = 0;
+        actionInfo.waitPlayerId = waitPlayerId;
+        actionInfo.canPass = canPass;
+        fillCommonActionInfo(actionInfo);
+        // 计算等待时间
+        long currentTime = System.currentTimeMillis();
+        long duration = PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.PLAY_CARDS);
+        actionInfo.waitEndTime = currentTime + duration;
+        // 1. 发给其他人,不携带推荐牌组（非等待玩家不能出牌）
+        actionInfo.recommendCardsList = null;
+        actionInfo.lastPlaySeatId = -1;
+//        actionInfo.canPlay = false;
+        notify.actionInfo = actionInfo;
+
+        for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+            if (info.getPlayerId() == waitPlayerId) continue;
+            actionInfo.canPlay = false;
+            // 为每个接收者设置其自己的手牌
+            // 在 Netty/Protobuf 场景下，通常在 write 时会序列化，如果是同步序列化，那么可以复用对象。
+            // 但为了绝对安全，这里使用 clone
+            ToSouthActionInfo playerActionInfo = cloneActionInfo(actionInfo);
+            playerActionInfo.selfHandCards = PokerDataHelper.getClientId(gameDataVo, info.getCurrentCards());
+            playerActionInfo.selfHighlightCards = gameDataVo.getPlayerHighlightCards().get(info.getPlayerId());
+            playerActionInfo.lastPlaySeatId = -1;
+            notify.actionInfo = playerActionInfo;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), notify));
+        }
+        Map<Long, PlayerSeatInfo> playerSeatInfoMap = gameDataVo.getPlayerSeatInfoMap();
+        PlayerSeatInfo waitPlayer = playerSeatInfoMap.get(waitPlayerId);
+        // 计算推荐出牌 (仅针对等待玩家) 发给当前操作玩家 (带 recommend)
+        fillRecommendCards(actionInfo, waitPlayer);
+
+        ToSouthActionInfo waitPlayerActionInfo = cloneActionInfo(actionInfo);
+        waitPlayerActionInfo.selfHandCards = PokerDataHelper.getClientId(gameDataVo, waitPlayer.getCurrentCards());
+        waitPlayerActionInfo.selfHighlightCards = gameDataVo.getPlayerHighlightCards().get(waitPlayerId);
+
+        notify.actionInfo = waitPlayerActionInfo;
+
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(waitPlayerId, notify));
     }
+
 
     public void broadcastNextTurn(long waitPlayerId, boolean canPass, long passerPlayerId) {
         NotifyToSouthTurnActionInfo notify = new NotifyToSouthTurnActionInfo();
@@ -902,7 +952,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
     @Override
     public void respRoomInitInfoAction(PlayerController playerController) {
-        log.debug("响应南方前进房间信息 - 玩家: {}", playerController.playerId());
+        //log.debug("响应南方前进房间信息 - 玩家: {}", playerController.playerId());
         RespToSouthRoomBaseInfo baseInfo = new RespToSouthRoomBaseInfo(Code.SUCCESS);
         baseInfo.phase = getCurrentGamePhase();
         if (playerController.getPlayer().getRoomId() > 0 && playerController.getScene() instanceof AbstractRoomController<?, ?> roomController) {
@@ -960,6 +1010,8 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             baseInfo.readyPlayerIds = gameDataVo.getReadyPlayerIds();
         }
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), baseInfo));
+        //log.info("playerId:{} 发送RespToSouthRoomBaseInfo消息", playerController.playerId());
+
         // START_GAME 阶段：已发牌但出牌阶段尚未开始，重连时需补发手牌数据
         if (baseInfo.phase == EGamePhase.START_GAME && selfPlayerInfo != null && !selfPlayerInfo.isDelState()) {
             List<Integer> sortedHandCards = PokerDataHelper.getClientId(gameDataVo, selfPlayerInfo.getCurrentCards());
@@ -998,6 +1050,14 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
 
         int status = req.status; // 1=准备, 2=取消
 
+        // 容错：玩家被踢出通知后（exitPlayerIds），若仍在座位上又点准备，撤销踢出标记让其继续
+        if (status == 1 && gameDataVo.getExitPlayerIds().contains(playerId)) {
+            //log.info("玩家 {} 已被踢出通知但仍在座位上，重新点准备，撤销踢出标记", playerId);
+            gameDataVo.getExitPlayerIds().remove(playerId);
+            // 重置准备状态，下方正常流程重新加入 readyPlayerIds
+            gameDataVo.getReadyPlayerIds().remove(playerId);
+        }
+
         if (status == 2) {
             // 取消准备
             if (!gameDataVo.getReadyPlayerIds().contains(playerId)) {
@@ -1006,49 +1066,64 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 return;
             }
             gameDataVo.getReadyPlayerIds().remove(playerId);
-            log.info("玩家 {} 取消准备，当前准备人数: {}", playerId, gameDataVo.getReadyPlayerIds().size());
+            //log.info("玩家 {} 取消准备，当前准备人数: {}", playerId, gameDataVo.getReadyPlayerIds().size());
             notify.playerId = playerId;
             notify.status = 2;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
             //取消准备加入准备倒计时
             scheduleReadyTimeout(playerId, READY_TIMEOUT);
         } else {
-            // 准备（status == 1 或默认）
-            if (gameDataVo.getReadyPlayerIds().contains(playerId)) {
-                notify.code = Code.REPEAT_OP;
+            if (isOpen()) {
+                // 准备（status == 1 或默认）
+                if (gameDataVo.getReadyPlayerIds().contains(playerId)) {
+                    // 容错：玩家已准备且仍在座位上（未真正退出房间），返回准备成功
+                    if (!gameDataVo.getExitPlayerIds().contains(playerId) && playerSeatInfo != null && playerSeatInfo.isSeatDown()) {
+                        //log.info("玩家 {} 重复准备请求，但仍在房间且已准备，容错返回准备成功", playerId);
+                        notify.playerId = playerId;
+                        notify.status = 1;
+                        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+                        return;
+                    }
+                    notify.code = Code.REPEAT_OP;
+                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+                    return;
+                }
+                WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(getRoom().getRoomCfgId());
+                long minBalance = warehouseCfg.getEnterLimit();
+                List<Long> insufficientPlayerIds = new ArrayList<>();
+                for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
+                    if (!info.isSeatDown()) continue;
+                    long pid = info.getPlayerId();
+                    long playerBalance = getTransactionItemNum(pid);
+                    if (playerBalance < minBalance) {
+                        RoomPlayer roomPlayer = getRoomController().getRoomPlayer(pid);
+                        if (roomPlayer == null || roomPlayer.isOnline()) {
+                            NotifyExitRoom exitNotify = new NotifyExitRoom();
+                            exitNotify.langId = Code.USER_NOT_GOLD;
+                            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(pid, exitNotify));
+                            //log.info("玩家 {} 余额不足，通知客户端退出房间", pid);
+                        } else {
+                            getRoomController().getRoomManager().exitRoom(pid);
+                            //log.info("玩家 {} 余额不足且离线，服务端直接退出房间", pid);
+                        }
+                        gameDataVo.getReadyTimerVersion().remove(pid);
+                        return;
+                    }
+                }
+                gameDataVo.getReadyPlayerIds().add(playerId);
+                //log.info("玩家 {} 准备完成，当前准备人数: {}", playerId, gameDataVo.getReadyPlayerIds().size());
+                notify.playerId = playerId;
+                notify.status = 1;
+                broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
+                // 检查是否满足开局条件（人数足够 + 全部准备）
+                tryStartGame();
+            } else {
+                //没开放
+                notify.code = Code.GAME_IS_MAINTAIN;
                 broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
                 return;
             }
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(getRoom().getRoomCfgId());
-            long minBalance = warehouseCfg.getEnterLimit();
-            List<Long> insufficientPlayerIds = new ArrayList<>();
-            for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
-                if (!info.isSeatDown()) continue;
-                long pid = info.getPlayerId();
-                long playerBalance = getTransactionItemNum(pid);
-                if (playerBalance < minBalance) {
-                    RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
-                    if (roomPlayer == null || roomPlayer.isOnline()) {
-                        NotifyExitRoom exitNotify = new NotifyExitRoom();
-                        exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
-                        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
-                        log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
-                    } else {
-                        getRoomController().getRoomManager().exitRoom(playerId);
-                        log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
-                    }
-                    gameDataVo.getReadyTimerVersion().remove(playerId);
-                    return;
-                }
-            }
 
-            gameDataVo.getReadyPlayerIds().add(playerId);
-            log.info("玩家 {} 准备完成，当前准备人数: {}", playerId, gameDataVo.getReadyPlayerIds().size());
-            notify.playerId = playerId;
-            notify.status = 1;
-            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
-            // 检查是否满足开局条件（人数足够 + 全部准备）
-            tryStartGame();
         }
     }
 
@@ -1062,7 +1137,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             // 1. 先广播阶段变化，客户端收到后展示准备界面
             NotifyPokerPhaseChange phaseChange = PokerBuilder.buildNotifyPhaseChange(EGamePhase.WAIT_READY, -1);
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(phaseChange));
-            log.info("广播阶段变化：WAIT_READY，等待玩家准备");
+            //log.info("广播阶段变化：WAIT_READY，等待玩家准备");
 
             // 2. 机器人按 delayTime 延迟调度准备（不再自动准备）
             for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
@@ -1126,34 +1201,39 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             long pid = info.getPlayerId();
             long playerBalance = getTransactionItemNum(pid);
             if (playerBalance < minBalance) {
-                log.info("玩家 {} 资金不足，当前: {}, 需要: {}, 踢出房间", pid, playerBalance, minBalance);
+                //log.info("玩家 {} 资金不足，当前: {}, 需要: {}, 踢出房间", pid, playerBalance, minBalance);
                 insufficientPlayerIds.add(pid);
             }
         }
         if (!insufficientPlayerIds.isEmpty()) {
+            // 在线玩家仅发通知，实际断开前仍计入 getSeatDownNum，需手动记录偏差
+            int onlineKickedCount = 0;
             for (Long playerId : insufficientPlayerIds) {
                 RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
                 if (roomPlayer == null || roomPlayer.isOnline()) {
                     NotifyExitRoom exitNotify = new NotifyExitRoom();
-                    exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
+                    exitNotify.langId = Code.USER_NOT_GOLD;
                     broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
-                    log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
+                    //log.info("玩家 {} 余额不足，通知客户端退出房间", playerId);
+                    if (roomPlayer != null) {
+                        onlineKickedCount++; // 在线玩家未立即断开，仍占 seatDown 位置
+                    }
                 } else {
                     getRoomController().getRoomManager().exitRoom(playerId);
-                    log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
+                    //log.info("玩家 {} 余额不足且离线，服务端直接退出房间", playerId);
                 }
                 gameDataVo.getReadyTimerVersion().remove(playerId);
             }
-            // 踢人后重新检查人数是否足够
-            int remaining = gameDataVo.getSeatDownNum();
+            // 踢人后重新检查人数（在线踢人未立即断开，需从统计中扣除）
+            int remaining = gameDataVo.getSeatDownNum() - onlineKickedCount;
             if (remaining < roomCfg.getMinPlayer()) {
-                log.info("资金检查后人数不足 ({}/{}), 无法开局", remaining, roomCfg.getMinPlayer());
+                //log.info("资金检查后人数不足 ({}/{}), 无法开局", remaining, roomCfg.getMinPlayer());
                 return false;
             }
         }
 
         addPokerPhaseTimer(new ToSouthStartGamePhase(this, gameDataVo.getId()));
-        log.info("全部玩家已准备，开始游戏 当前id{} roomId:{}", gameDataVo.getId(), roomController.getRoom().getId());
+        //log.info("全部玩家已准备，开始游戏 当前id{} roomId:{}", gameDataVo.getId(), roomController.getRoom().getId());
         return true;
     }
 
@@ -1168,7 +1248,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         ToSouthReadyTimeoutHandler handler = new ToSouthReadyTimeoutHandler(playerId, gameDataVo.getId(), exeTime, roomController);
         TimerEvent<IProcessorHandler> timerEvent = new TimerEvent<>(this, exeTime, handler);
         addGameTimeEvent(timerEvent, RoomEventType.ROOM_PHASE_RUN_EVENT);
-        log.info("玩家 {} 准备倒计时开始 ({}秒), exeTime={}", playerId, timeOut / 1000, exeTime);
+        //log.info("玩家 {} 准备倒计时开始 ({}秒), exeTime={}", playerId, timeOut / 1000, exeTime);
     }
 
     /**
@@ -1205,7 +1285,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         ToSouthRobotHandler handler = new ToSouthRobotHandler(robotPlayer, ToSouthRobotHandler.GO_READY, this, pro);
         RobotScheduleUtil.schedule(getRoomController(), handler, delay);
         gameDataVo.getReadyTimerScheduled().add(pid);
-        log.info("机器人 {} 调度准备/退出 delay={}ms, pro={}, lastWin={}, actionId={}", pid, delay, pro, robotPlayer.getLastWin(), actionId);
+        //log.info("机器人 {} 调度准备/退出 delay={}ms, pro={}, lastWin={}, actionId={}", pid, delay, pro, robotPlayer.getLastWin(), actionId);
     }
 
     /**
@@ -1227,7 +1307,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
         int readyCount = gameDataVo.getReadyPlayerIds().size();
         int seatDownCount = gameDataVo.getSeatDownNum();
-        log.info("机器人 {} 准备完成，广播 NotifyToSouthPlayerReady(playerId={}, status=1)，当前准备人数: {}/{}", playerId, playerId, readyCount, seatDownCount);
+        //log.info("机器人 {} 准备完成，广播 NotifyToSouthPlayerReady(playerId={}, status=1)，当前准备人数: {}/{}", playerId, playerId, readyCount, seatDownCount);
         tryStartGame();
     }
 
@@ -1242,7 +1322,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
             PlayerController pc = getRoomController().getPlayerController(playerId);
             if (pc != null) {
                 getRoomController().getRoomManager().robotPlayerExitRoom(List.of(pc));
-                log.info("机器人 {} 退出房间（continueAfter概率未通过）", playerId);
+                //log.info("机器人 {} 退出房间（continueAfter概率未通过）", playerId);
             }
         }
     }
@@ -1257,25 +1337,51 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
         if (gameDataVo.getExitPlayerIds().contains(playerId)) {
             getRoomController().getRoomManager().exitRoom(playerId);
-            log.info("玩家 {} 离线且未准备，服务端强制退出房间", playerId);
+            //log.info("玩家 {} 离线且未准备，服务端强制退出房间", playerId);
             return;
         }
         if (roomPlayer == null || roomPlayer.isOnline()) {
             NotifyExitRoom exitNotify = new NotifyExitRoom();
             exitNotify.langId = gameDataVo.getRoomCfg().getEscTipText();
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, exitNotify));
-            log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
+            //log.info("玩家 {} 因未准备，通知客户端退出房间", playerId);
             gameDataVo.getExitPlayerIds().add(playerId);
 //            getRoomController().getRoomManager().exitRoom(playerId);
         } else {
             getRoomController().getRoomManager().exitRoom(playerId);
-            log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
+            //log.info("玩家 {} 离线且未准备，服务端直接退出房间", playerId);
         }
         gameDataVo.getReadyTimerVersion().remove(playerId);
         // 不在此处广播 NotifyPokerPlayerChange：
         // - 在线玩家：客户端收到 NotifyExitRoom 断连后，基类 onPlayerLeaveRoom 会自动广播
         // - 离线玩家：上面 exitRoom 已触发基类 onPlayerLeaveRoom 广播
         // 如果在这里再调用 broadcastPlayerLeaveChange，在线场景会导致重复发送两条消息
+    }
+
+    /**
+     * 玩家（含机器人）落座完成后回调。
+     * onJoinRoomSuccessAfter 在 seatInfo 填充完毕后才调用此方法，
+     * 此时可以安全地为刚入座的玩家启动准备倒计时或机器人调度。
+     */
+    @Override
+    public void onRobotPlayerJoinRoom(PlayerController playerController, GamePlayer gamePlayer) {
+        super.onRobotPlayerJoinRoom(playerController, gamePlayer);
+        // 仅在等待准备阶段触发；游戏进行中（出牌/结算等阶段）不处理
+        if (getCurrentGamePhase() != EGamePhase.WAIT_READY) {
+            return;
+        }
+        long playerId = gamePlayer.getId();
+        // 已准备或已调度过的玩家不重复处理
+        if (gameDataVo.getReadyPlayerIds().contains(playerId)
+                || gameDataVo.getReadyTimerScheduled().contains(playerId)) {
+            return;
+        }
+        if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+            scheduleRobotReady(robotPlayer);
+        } else {
+            scheduleReadyTimeout(playerId, READY_TIMEOUT);
+            //log.info("玩家 {} 入座后启动准备倒计时", playerId);
+        }
     }
 
     @Override
@@ -1294,7 +1400,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
                 long totalProfit = cardLibManager.getPlayerTotalProfit(playerId);
                 gameDataVo.getPlayerWinStreakMap().put(playerId, streak);
                 gameDataVo.getPlayerTotalProfitMap().put(playerId, totalProfit);
-                log.info("玩家 {} 进入房间，加载统计数据 streak={}, totalProfit={}", playerId, streak, totalProfit);
+                //log.info("玩家 {} 进入房间，加载统计数据 streak={}, totalProfit={}", playerId, streak, totalProfit);
             } catch (Exception e) {
                 log.error("加载玩家统计数据异常 playerId={}", playerId, e);
             }
@@ -1316,7 +1422,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         // 其中 playerStatus = seatInfo.isJoinGame()，这样基类广播的 playerStatus 就是 false
         remove.setJoinGame(false);
 
-        log.info("玩家 {} 离开房间，已清除准备状态和续局状态", playerId);
+        //log.info("玩家 {} 离开房间，已清除准备状态和续局状态", playerId);
     }
 
     /**
@@ -1345,7 +1451,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         playerChange.totalNum = gameDataVo.getGamePlayerMap().size();
         broadcastToPlayers(RoomMessageBuilder.newBuilder()
                 .sendAllPlayer(playerChange).exceptPlayer(playerId));
-        log.info("已广播玩家 {} 加入状态变化给其他玩家", playerId);
+        //log.info("已广播玩家 {} 加入状态变化给其他玩家", playerId);
     }
 
     /**
@@ -1387,7 +1493,7 @@ public class ToSouthGameController extends BasePokerGameController<ToSouthGameDa
         broadcastToPlayers(RoomMessageBuilder.newBuilder()
                 .sendAllPlayer(playerChange)
                 .exceptPlayer(playerId));
-        log.info("已广播玩家 {} 离开状态变化给其他玩家", playerId);
+        //log.info("已广播玩家 {} 离开状态变化给其他玩家", playerId);
     }
 
     @Override
