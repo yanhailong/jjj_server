@@ -194,9 +194,8 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                     int goldTrainCount = generateManager.inversAllWinGoldTrainCount(allWinSpecialAuxiliaryCfg);
                     if (goldTrainCount > 0) {
                         long addGold = allAddGold * goldTrainCount;
-                        CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_INVEST_REWARD);
-                        if (!result.success()) {
-                            rewardFromBigPool(gameRunInfo, playerGameData, addGold, AddType.SLOTS_INVEST_REWARD);
+                        rewardFromBigPool(gameRunInfo, playerGameData, addGold, AddType.SLOTS_INVEST_REWARD);
+                        if (!gameRunInfo.success()) {
                             log.warn("投资游戏金火车给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
                             return gameRunInfo;
                         }
@@ -254,51 +253,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
         }
         return invest(playerController, playerGameData, areaId);
     }
-
-//    /**
-//     * 系统自动二选一
-//     *
-//     * @param playerGameData
-//     */
-//    public void autoChooseFreeModelType(DollarExpressPlayerGameData playerGameData) {
-//        try {
-//            int chooseStatus;
-//            if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD) {
-//                chooseStatus = RandomUtils.randomInt(2) == 0 ? DollarExpressConstant.Status.ALL_BOARD_TRAIN : DollarExpressConstant.Status.ALL_BOARD_FREE;
-//            } else {
-//                chooseStatus = RandomUtils.randomInt(2) == 0 ? DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN : DollarExpressConstant.Status.ALL_BOARD_FREE;
-//            }
-//
-//            int code = chooseFreeGameType(playerGameData, chooseStatus);
-//            if (code != Code.SUCCESS) {
-//                log.debug("系统自动二选一失败 playerId = {},chooseStatus = {}", playerGameData.getPlayerId(), chooseStatus);
-//                return;
-//            }
-//            log.info("系统自动进行二选一 playerId = {},chooseStatus = {}", playerGameData.getPlayerId(), chooseStatus);
-//        } catch (Exception e) {
-//            log.error("", e);
-//        }
-//    }
-
-//    /**
-//     * 系统选择小地区
-//     *
-//     * @param playerGameData
-//     */
-//    public void autoInvest(DollarExpressPlayerGameData playerGameData) {
-//        try {
-//            List<Integer> choosableAreas = getChoosableAreas(playerGameData);
-//            if (choosableAreas.isEmpty()) {
-//                log.debug("系统自动投资游戏选择小地区失败，获取的可选区域为空 getPlayerId = {}", playerGameData.getPlayerId());
-//                return;
-//            }
-//            int areaId = choosableAreas.get(RandomUtils.randomInt(choosableAreas.size()));
-//            invest(null, playerGameData, areaId);
-//            log.info("系统自动投资游戏选择小地区结束 playerId = {},areaId = {}", playerGameData.getPlayerId(), areaId);
-//        } catch (Exception e) {
-//            log.error("", e);
-//        }
-//    }
 
     /**
      * 二选一选哪个？？？
