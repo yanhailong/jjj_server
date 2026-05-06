@@ -3,7 +3,6 @@ package com.jjg.game.room.services;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RobotPlayer;
 import com.jjg.game.core.data.Room;
@@ -11,6 +10,9 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.room.listener.IRoomStartListener;
+import com.jjg.game.room.robot.RobotAcquireRequest;
+import com.jjg.game.room.robot.RobotPool;
+import com.jjg.game.room.robot.RobotPoolEntry;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
@@ -22,7 +24,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.ObjLongConsumer;
+import java.util.function.ToLongFunction;
 
 /**
  * 机器人处理逻辑，目前将机器人数据放在redis中，如果后续redis数据的IO过于频繁，考虑将机器人放入内存中管理
@@ -35,15 +38,8 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
     private final Logger log = LoggerFactory.getLogger(RobotService.class);
     // 不同时间段房间创建机器人的人数限制
     private final Map<Integer, TreeMap<Integer, Integer>> roomRobotCreateLimit = new HashMap<>();
-    //机器人缓存 贝币数量,配置表id
-    private TreeMap<Long, RobotCfg> robotCache = new TreeMap<>();
-
-    //机器人缓存 金币数量,配置表id
-    private TreeMap<Long, RobotCfg> shellRobotCache = new TreeMap<>();
-    // 已经分配到房间流程中的机器人ID，由 lock 保护。
-    private final Set<Long> activeRobotIds = new HashSet<>();
-    //线程锁
-    private final ReentrantLock lock = new ReentrantLock();
+    //机器人池
+    private final RobotPool robotPool = new RobotPool();
     private final RobotUtil robotUtil;
     private final MarsCurator marsCurator;
 
@@ -72,80 +68,24 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
         if (warehouseCfg == null || roomCfg == null) {
             return null;
         }
-        long expend = 1;
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(111);
-        if (globalConfigCfg != null) {
-            expend = globalConfigCfg.getIntValue();
-        }
-        lock.lock();
+        int itemId = warehouseCfg.getTransactionItemId();
+        long enterLimit = getRealEnterLimit(warehouseCfg);
         try {
-            //金币配置
-            if (warehouseCfg.getTransactionItemId() == ItemUtils.getGoldItemId()) {
-                long enterLimit = warehouseCfg.getEnterLimit() * expend;
-                NavigableMap<Long, RobotCfg> subbedMap = robotCache.subMap(enterLimit, true, Long.MAX_VALUE, true);
-                if (subbedMap == null || subbedMap.isEmpty()) {
-                    return null;
-                }
-                for (Iterator<Map.Entry<Long, RobotCfg>> it = subbedMap.entrySet().iterator(); it.hasNext(); ) {
-                    Map.Entry<Long, RobotCfg> entry = it.next();
-                    RobotCfg robotCfg = entry.getValue();
-                    Long gold = entry.getKey();
-                    //等级检查
-                    if (robotCfg.getPlayerLevel() < warehouseCfg.getPlayerLvLimit()) {
-                        continue;
-                    }
-                    long checkNum = 0;
-                    if (warehouseCfg.getTransactionItemId() == ItemUtils.getGoldItemId()) {
-                        checkNum = gold;
-                    }
-                    //货币检查
-                    if (checkNum < enterLimit || warehouseCfg.getEnterMax() != -1 && checkNum > warehouseCfg.getEnterMax()) {
-                        continue;
-                    }
-                    long robotId = getRobotId(robotCfg);
-                    if (activeRobotIds.contains(robotId)) {
-                        it.remove();
-                        continue;
-                    }
-                    it.remove();
-                    return createActiveRobot(robotCfg, gold, 0, roomId, roomCfg);
-                }
-                //贝币
-            } else if (warehouseCfg.getTransactionItemId() == ItemUtils.getShellItemId()) {
-                long enterLimit = warehouseCfg.getEnterLimit();
-                NavigableMap<Long, RobotCfg> subbedMap = shellRobotCache.subMap(enterLimit, true, Long.MAX_VALUE, true);
-                if (subbedMap == null || subbedMap.isEmpty()) {
-                    return null;
-                }
-                for (Iterator<Map.Entry<Long, RobotCfg>> it = subbedMap.entrySet().iterator(); it.hasNext(); ) {
-                    Map.Entry<Long, RobotCfg> entry = it.next();
-                    RobotCfg robotCfg = entry.getValue();
-                    Long shell = entry.getKey();
-                    //等级检查
-                    if (robotCfg.getPlayerLevel() < warehouseCfg.getPlayerLvLimit()) {
-                        continue;
-                    }
-                    long checkNum = 0;
-                    if (warehouseCfg.getTransactionItemId() == ItemUtils.getShellItemId()) {
-                        checkNum = shell;
-                    }
-                    //货币检查
-                    if (checkNum < enterLimit || warehouseCfg.getEnterMax() != -1 && checkNum > warehouseCfg.getEnterMax()) {
-                        continue;
-                    }
-                    long robotId = getRobotId(robotCfg);
-                    if (activeRobotIds.contains(robotId)) {
-                        it.remove();
-                        continue;
-                    }
-                    it.remove();
-                    return createActiveRobot(robotCfg, 0, shell, roomId, roomCfg);
-                }
+            // 获取条件只描述房间限制，实际的池索引和借出状态由 RobotPool 维护。
+            RobotAcquireRequest request = new RobotAcquireRequest(itemId, enterLimit, warehouseCfg.getEnterMax(), warehouseCfg.getPlayerLvLimit());
+            RobotPoolEntry robotPoolEntry = robotPool.acquire(request);
+            if (robotPoolEntry == null) {
+                return null;
+            }
+            try {
+                return createRobot(robotPoolEntry, itemId, roomId, roomCfg);
+            } catch (Exception e) {
+                // 池已经完成借出标记；后续创建失败必须立即回收，避免机器人丢失。
+                robotPool.recycle(robotPoolEntry);
+                throw e;
             }
         } catch (Exception e) {
             log.error("获取机器人异常 roomCfgId:{} roomId:{}", roomCfgId, roomId, e);
-        } finally {
-            lock.unlock();
         }
         return null;
     }
@@ -167,32 +107,29 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
 
 
     /**
-     * 初始化机器人数据
+     * 根据池条目创建房间内使用的机器人玩家数据。
      */
-    private RobotPlayer createRobot(RobotCfg robotCfg, long gold, long shell, long roomId, RoomCfg roomCfg) {
-        RobotPlayer robotPlayer = robotUtil.initRobotPlayer(robotCfg);
+    private RobotPlayer createRobot(RobotPoolEntry robotPoolEntry, int itemId, long roomId, RoomCfg roomCfg) {
+        RobotPlayer robotPlayer = robotUtil.initRobotPlayer(robotPoolEntry.robotCfg());
         robotPlayer.setRoomId(roomId);
         robotPlayer.setRoomCfgId(roomCfg.getId());
-        robotPlayer.setGold(gold);
-        robotPlayer.setShell(shell);
+        setRobotCurrency(robotPlayer, itemId, robotPoolEntry.getAmount(itemId));
         robotPlayer.setGameType(roomCfg.getGameID());
         robotPlayer.setRoomCfgId(roomCfg.getId());
         return robotPlayer;
     }
 
-    private RobotPlayer createActiveRobot(RobotCfg robotCfg, long gold, long shell, long roomId, RoomCfg roomCfg) {
-        RobotPlayer robotPlayer = createRobot(robotCfg, gold, shell, roomId, roomCfg);
-        activeRobotIds.add(robotPlayer.getId());
-        return robotPlayer;
-    }
-
 
     /**
-     * 检查是否可以创建机器人
+     * 检查当前房间是否还能创建机器人。
+     * 同时受时间段人数上限、池内可用机器人、房间已有机器人数量限制。
      */
     public boolean checkCanCreateRobot(int roomCfgId, Room room) {
         // 检查当前游戏的人数是否达到上限
         TreeMap<Integer, Integer> createLimitByTime = roomRobotCreateLimit.get(roomCfgId);
+        if (createLimitByTime == null || createLimitByTime.isEmpty()) {
+            return false;
+        }
         Calendar calendar = DateUtils.toCalendar(new Date(System.currentTimeMillis()));
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
         int robotLimit = 0;
@@ -204,13 +141,16 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
             }
         }
         // 获取当前机器人数量
-        long curRobotNum = robotCache.size();
-        if (curRobotNum == 0) {
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
+        if (warehouseCfg == null) {
+            return false;
+        }
+        if (!robotPool.hasAvailableRobot(warehouseCfg.getTransactionItemId())) {
             // 如果没有机器人可以创建,所有的机器人都已被分配完
             return false;
         }
         // 获取房间中机器人数量
-        curRobotNum = room.countRobots();
+        long curRobotNum = room.countRobots();
         return curRobotNum < robotLimit;
     }
 
@@ -225,6 +165,7 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
         for (RoomCfg roomCfg : roomCfgList) {
             List<List<Integer>> robotNumList = roomCfg.getRobot_num();
             for (List<Integer> robotNumConf : robotNumList) {
+                // robot_num 配置格式：[序号, 结束小时, 机器人上限]。
                 roomRobotCreateLimit
                         .computeIfAbsent(roomCfg.getId(), k -> new TreeMap<>())
                         .put(robotNumConf.get(1), robotNumConf.get(2));
@@ -233,93 +174,61 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
     }
 
 
+    /**
+     * 随机生成机器人本次携带的金币数量。
+     */
     private long getRobotRealMoney(RobotCfg cfg) {
         return RandomUtils.randomWeightList(cfg.getAddMoney());
     }
 
+    /**
+     * 随机生成机器人本次携带的贝币数量。
+     */
     private long getRobotRealConchMoney(RobotCfg cfg) {
         return RandomUtils.randomWeightList(cfg.getAddMoney1());
     }
 
     /**
-     * 缓存机器人信息
+     * 按最新 robot.xlsx 配置重建机器人池。
+     * RobotPool 会跳过已经借出的机器人，避免热加载导致重复分配。
      */
     public void initRobotPool() {
-        //机器人id 机器人最少金币
-        TreeMap<Long, RobotCfg> tempRobotCache = new TreeMap<>();
-        TreeMap<Long, RobotCfg> tempConchRobotCache = new TreeMap<>();
-        lock.lock();
-        try {
-            List<RobotCfg> robotCfgList = GameDataManager.getRobotCfgList();
-            for (RobotCfg robotCfg : robotCfgList) {
-                if (robotCfg.getAvailable() != 0 || activeRobotIds.contains(getRobotId(robotCfg))) {
-                    continue;
-                }
-                long robotRealMoney = getRobotRealMoney(robotCfg);
-                tempRobotCache.put(robotRealMoney, robotCfg);
-                long robotRealConchMoney = getRobotRealConchMoney(robotCfg);
-                tempConchRobotCache.put(robotRealConchMoney, robotCfg);
+        List<RobotPoolEntry> robotPoolEntries = new ArrayList<>();
+        List<RobotCfg> robotCfgList = GameDataManager.getRobotCfgList();
+        for (RobotCfg robotCfg : robotCfgList) {
+            // available != 0 表示该机器人不进入匹配池。
+            if (robotCfg.getAvailable() != 0) {
+                continue;
             }
-            robotCache = tempRobotCache;
-            shellRobotCache = tempConchRobotCache;
-        } finally {
-            lock.unlock();
+            robotPoolEntries.add(createRobotPoolEntry(robotCfg));
         }
+        robotPool.reload(robotPoolEntries);
     }
 
     /**
-     * 回收机器人
+     * 批量回收离开房间的机器人。
      */
     public void recycleRobotPlayers(List<Long> robotIds) {
-        //重新放入
-        long robotStartId = robotUtil.getRobotStartId();
-        lock.lock();
         try {
             for (Long robotId : robotIds) {
-                if (robotId == null || !activeRobotIds.remove(robotId)) {
+                if (robotId == null) {
                     continue;
                 }
-                int configId = (int) (robotId - robotStartId) / GameConstant.ROBOT_ID_PRIME_NUMBER;
-                RobotCfg robotCfg = GameDataManager.getRobotCfg(configId);
-                if (robotCfg == null) {
-                    continue;
-                }
-                long robotRealMoney = getRobotRealMoney(robotCfg);
-                robotCache.put(robotRealMoney, robotCfg);
-                long robotRealConchMoney = getRobotRealConchMoney(robotCfg);
-                shellRobotCache.put(robotRealConchMoney, robotCfg);
+                recycleRobot(robotId);
             }
         } catch (Exception e) {
             log.error("recycleRobotPlayer error robotId:{}", robotIds, e);
-        } finally {
-            lock.unlock();
         }
     }
 
     /**
-     * 回收机器人
+     * 回收单个离开房间的机器人。
      */
     public void recycleRobotPlayer(long robotId) {
-        //重新放入
-        long robotStartId = robotUtil.getRobotStartId();
-        int configId = (int) (robotId - robotStartId) / GameConstant.ROBOT_ID_PRIME_NUMBER;
-        lock.lock();
         try {
-            if (!activeRobotIds.remove(robotId)) {
-                return;
-            }
-            RobotCfg robotCfg = GameDataManager.getRobotCfg(configId);
-            if (robotCfg == null) {
-                return;
-            }
-            long robotRealMoney = getRobotRealMoney(robotCfg);
-            robotCache.put(robotRealMoney, robotCfg);
-            long robotRealConchMoney = getRobotRealConchMoney(robotCfg);
-            shellRobotCache.put(robotRealConchMoney, robotCfg);
+            recycleRobot(robotId);
         } catch (Exception e) {
             log.error("recycleRobotPlayer error robotId:{}", robotId, e);
-        } finally {
-            lock.unlock();
         }
     }
 
@@ -327,8 +236,91 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
         return robotUtil.getRobotCfg(robotId);
     }
 
+    /**
+     * 将机器人配置ID转换为当前节点的真实机器人ID。
+     */
     private long getRobotId(RobotCfg robotCfg) {
         return robotUtil.getId(robotCfg.getId());
+    }
+
+    /**
+     * 计算房间真实入场限制。
+     * 金币房需要按全局配置111放大，其他货币直接使用房间配置。
+     */
+    private long getRealEnterLimit(WarehouseCfg warehouseCfg) {
+        long enterLimit = warehouseCfg.getEnterLimit();
+        if (warehouseCfg.getTransactionItemId() != ItemUtils.getGoldItemId()) {
+            return enterLimit;
+        }
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(111);
+        if (globalConfigCfg == null) {
+            return enterLimit;
+        }
+        return enterLimit * globalConfigCfg.getIntValue();
+    }
+
+    /**
+     * 创建机器人入池快照。
+     * 每次入池都会重新随机携带货币，回收后再次入池也会生成新的携带数量。
+     */
+    private RobotPoolEntry createRobotPoolEntry(RobotCfg robotCfg) {
+        Map<Integer, Long> itemAmounts = new HashMap<>();
+        for (RobotCurrencyDefinition definition : getRobotCurrencyDefinitions()) {
+            itemAmounts.put(definition.itemId(), definition.amountGetter().applyAsLong(robotCfg));
+        }
+        return new RobotPoolEntry(getRobotId(robotCfg), robotCfg, Map.copyOf(itemAmounts));
+    }
+
+    /**
+     * 当前机器人支持的货币定义。
+     * 后续新增货币时，只需在这里加入 itemId 和金额生成方式。
+     */
+    private List<RobotCurrencyDefinition> getRobotCurrencyDefinitions() {
+        List<RobotCurrencyDefinition> definitions = new ArrayList<>(2);
+        int goldItemId = ItemUtils.getGoldItemId();
+        if (goldItemId > 0) {
+            definitions.add(new RobotCurrencyDefinition(goldItemId, this::getRobotRealMoney, RobotPlayer::setGold));
+        }
+        int shellItemId = ItemUtils.getShellItemId();
+        if (shellItemId > 0) {
+            definitions.add(new RobotCurrencyDefinition(shellItemId, this::getRobotRealConchMoney, RobotPlayer::setShell));
+        }
+        return definitions;
+    }
+
+    /**
+     * 按当前配置回收机器人。
+     * 配置缺失或已禁用时只释放借出状态，不重新进入可匹配池。
+     */
+    private void recycleRobot(long robotId) {
+        RobotCfg robotCfg = robotUtil.getRobotCfg(robotId);
+        if (robotCfg == null || robotCfg.getAvailable() != 0) {
+            robotPool.discard(robotId);
+            return;
+        }
+        robotPool.recycle(createRobotPoolEntry(robotCfg));
+    }
+
+    /**
+     * 将机器人本次匹配使用的货币数量写入 Player 字段。
+     */
+    private void setRobotCurrency(RobotPlayer robotPlayer, int itemId, long amount) {
+        for (RobotCurrencyDefinition definition : getRobotCurrencyDefinitions()) {
+            if (definition.itemId() == itemId) {
+                definition.amountSetter().accept(robotPlayer, amount);
+                return;
+            }
+        }
+    }
+
+    /**
+     * 机器人货币定义。
+     *
+     * @param itemId       货币道具ID
+     * @param amountGetter 从 RobotCfg 随机生成携带数量的方法
+     * @param amountSetter 将匹配货币写入 RobotPlayer 的方法
+     */
+    private record RobotCurrencyDefinition(int itemId, ToLongFunction<RobotCfg> amountGetter, ObjLongConsumer<RobotPlayer> amountSetter) {
     }
 
 
