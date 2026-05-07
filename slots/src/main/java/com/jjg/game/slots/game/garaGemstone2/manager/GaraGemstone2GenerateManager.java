@@ -37,6 +37,15 @@ public class GaraGemstone2GenerateManager extends AbstractSlotsGenerateManager<G
      */
     private int multiplyAxisWeightTotal;
 
+    /**
+     * wheel模式倍数配置列表，从 SpecialAuxiliary 30550101 的 awardTypeC 加载
+     */
+    private List<GaraGemstone2MultiplyAxisInfo> wheelAxisInfoList;
+    /**
+     * wheel模式倍数权重总和，用于加权随机
+     */
+    private int wheelAxisWeightTotal;
+
     @Override
     protected GaraGemstone2AwardLineInfo getAwardLineInfo() {
         return new GaraGemstone2AwardLineInfo();
@@ -45,6 +54,7 @@ public class GaraGemstone2GenerateManager extends AbstractSlotsGenerateManager<G
     @Override
     protected void specialPlayConfig() {
         loadMultiplyAxisConfig();
+        loadWheelAxisConfig();
     }
 
     /**
@@ -80,6 +90,32 @@ public class GaraGemstone2GenerateManager extends AbstractSlotsGenerateManager<G
         this.multiplyAxisInfoList = list;
         this.multiplyAxisWeightTotal = weightTotal;
         log.info("倍数轴配置加载完成，共{}条，总权重={}", list.size(), weightTotal);
+    }
+
+    /**
+     * 从 SpecialAuxiliary 30550101 的 awardTypeC 加载 wheel 模式倍数配置。
+     * awardTypeC 格式：[[单线押分倍数, 中奖权重, ...], ...]
+     */
+    private void loadWheelAxisConfig() {
+        SpecialAuxiliaryCfg wheelCfg = GameDataManager.getSpecialAuxiliaryCfg(GaraGemstone2Constant.BaseRollerGroup.WHEEL_SPECIALAUXILIARY_ID);
+        if (wheelCfg == null || CollUtil.isEmpty(wheelCfg.getAwardTypeC())) {
+            log.warn("wheel倍数配置为空，gameType={}, cfgId={}", this.gameType, GaraGemstone2Constant.BaseRollerGroup.WHEEL_SPECIALAUXILIARY_ID);
+            return;
+        }
+        List<GaraGemstone2MultiplyAxisInfo> list = new ArrayList<>(wheelCfg.getAwardTypeC().size());
+        int weightTotal = 0;
+        for (List<Integer> entry : wheelCfg.getAwardTypeC()) {
+            if (entry.size() < 2) continue;
+            GaraGemstone2MultiplyAxisInfo info = new GaraGemstone2MultiplyAxisInfo();
+            info.setIconId(GaraGemstone2Constant.BaseElement.ID_WHEEL);
+            info.setTimes(entry.get(0));
+            info.setWeight(entry.get(1));
+            weightTotal += info.getWeight();
+            list.add(info);
+        }
+        this.wheelAxisInfoList = list;
+        this.wheelAxisWeightTotal = weightTotal;
+        log.info("wheel倍数配置加载完成，共{}条，总权重={}", list.size(), weightTotal);
     }
 
     // -------------------------------------------------------------------------
@@ -129,34 +165,13 @@ public class GaraGemstone2GenerateManager extends AbstractSlotsGenerateManager<G
             selectedInfo.setTimes(0);
             selectedInfo.setIconId(GaraGemstone2Constant.BaseElement.ID_JACKPOOL);
         } else if (lib.getLibTypeSet() != null && lib.getLibTypeSet().contains(GaraGemstone2Constant.SpecialMode.WHEEL)) {
-            selectedInfo = new GaraGemstone2MultiplyAxisInfo();
-            selectedInfo.setTimes(0);
-            selectedInfo.setIconId(GaraGemstone2Constant.BaseElement.ID_WHEEL);
-            // 从 SpecialAuxiliary 30550101 的 awardTypeC 加权随机出本次 wheel 倍数
-            // awardTypeC 格式：[[单线押分倍数, 中奖权重, ...], ...]
-            SpecialAuxiliaryCfg wheelCfg = GameDataManager.getSpecialAuxiliaryCfg(GaraGemstone2Constant.BaseRollerGroup.WHEEL_SPECIALAUXILIARY_ID);
-            if (wheelCfg != null && CollUtil.isNotEmpty(wheelCfg.getAwardTypeC())) {
-                int totalWeight = 0;
-                for (List<Integer> entry : wheelCfg.getAwardTypeC()) {
-                    if (entry.size() >= 2) {
-                        totalWeight += entry.get(1);
-                    }
-                }
-                if (totalWeight > 0) {
-                    int rand = RandomUtils.nextInt(totalWeight);
-                    int cumulative = 0;
-                    for (List<Integer> entry : wheelCfg.getAwardTypeC()) {
-                        if (entry.size() < 2) {
-                            continue;
-                        }
-                        cumulative += entry.get(1);
-                        if (rand < cumulative) {
-                            lib.setWheelTimes(entry.get(0));
-                            break;
-                        }
-                    }
-                }
+            selectedInfo = randomSelectWheelAxisInfo();
+            if (selectedInfo == null) {
+                selectedInfo = new GaraGemstone2MultiplyAxisInfo();
+                selectedInfo.setIconId(GaraGemstone2Constant.BaseElement.ID_WHEEL);
+                selectedInfo.setTimes(0);
             }
+            lib.setWheelTimes(selectedInfo.getTimes());
         } else {
             selectedInfo = randomSelectAxisInfo();
             if (selectedInfo == null) {
@@ -246,6 +261,24 @@ public class GaraGemstone2GenerateManager extends AbstractSlotsGenerateManager<G
     }
 
     /**
+     * 按权重随机选出一条 wheel 模式倍数配置。
+     */
+    private GaraGemstone2MultiplyAxisInfo randomSelectWheelAxisInfo() {
+        if (CollUtil.isEmpty(wheelAxisInfoList) || wheelAxisWeightTotal <= 0) {
+            return null;
+        }
+        int rand = RandomUtils.nextInt(wheelAxisWeightTotal);
+        int cumulative = 0;
+        for (GaraGemstone2MultiplyAxisInfo info : wheelAxisInfoList) {
+            cumulative += info.getWeight();
+            if (rand < cumulative) {
+                return info;
+            }
+        }
+        return wheelAxisInfoList.get(wheelAxisInfoList.size() - 1);
+    }
+
+    /**
      * 按权重随机选出一条倍数轴配置。
      */
     private GaraGemstone2MultiplyAxisInfo randomSelectAxisInfo() {
@@ -308,5 +341,9 @@ public class GaraGemstone2GenerateManager extends AbstractSlotsGenerateManager<G
     public void calTimes(GaraGemstone2ResultLib lib) throws Exception {
         //第4列中间图标 倍数 * 中奖线 + wheel模式倍数
         lib.addTimes(lib.getMultiplyAxisTimes() * calLineTimes(lib.getAwardLineInfoList()) + lib.getWheelTimes());
+    }
+
+    public List<GaraGemstone2MultiplyAxisInfo> getSpinMultiplierList() {
+        return wheelAxisInfoList;
     }
 }

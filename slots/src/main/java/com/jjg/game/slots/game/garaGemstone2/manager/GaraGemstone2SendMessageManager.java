@@ -10,6 +10,7 @@ import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.garaGemstone2.data.GaraGemstone2GameRunInfo;
+import com.jjg.game.slots.game.garaGemstone2.data.GaraGemstone2MultiplyAxisInfo;
 import com.jjg.game.slots.game.garaGemstone2.pb.GaraGemstone2PoolInfo;
 import com.jjg.game.slots.game.garaGemstone2.pb.ResGaraGemstone2EnterGame;
 import com.jjg.game.slots.game.garaGemstone2.pb.ResGaraGemstone2PoolValue;
@@ -56,6 +57,9 @@ public class GaraGemstone2SendMessageManager extends BaseSendMessageManager {
             res.poolValue = gameManager.getPoolValueByRoomCfgId(config.getId());
             res.status = gameRunInfo.getData() == null ? 0 : gameRunInfo.getData().getStatus();
             res.remainFreeCount = gameRunInfo.getData() == null ? 0 :gameRunInfo.getData().getRemainFreeCount().get();
+            res.SpinMultiplierList = generateManager.getSpinMultiplierList().stream()
+                    .map(GaraGemstone2MultiplyAxisInfo::getTimes)
+                    .collect(Collectors.toList());
             // 奖池信息
             if (CollUtil.isNotEmpty(prizePoolIdList)) {
                 res.poolList = new ArrayList<>();
