@@ -54,8 +54,8 @@ public class GaraGemstone3SendMessageManager extends BaseSendMessageManager {
 
             res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             res.poolValue = gameManager.getPoolValueByRoomCfgId(config.getId());
-            res.status = gameRunInfo.getData().getStatus();
-            res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
+            res.status = gameRunInfo.getData() == null ? 0 : gameRunInfo.getData().getStatus();
+            res.remainFreeCount = gameRunInfo.getData() == null ? 0 :gameRunInfo.getData().getRemainFreeCount().get();
             // 奖池信息
             if (CollUtil.isNotEmpty(prizePoolIdList)) {
                 res.poolList = new ArrayList<>();
