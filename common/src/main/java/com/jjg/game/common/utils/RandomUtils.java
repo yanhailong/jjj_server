@@ -440,6 +440,9 @@ public class RandomUtils {
      * @return 随机元素
      */
     public static <T> T randomEle(final List<T> list, int limit) {
+        if(list == null || list.isEmpty()){
+            return null;
+        }
         if (list.size() < limit) {
             limit = list.size();
         }

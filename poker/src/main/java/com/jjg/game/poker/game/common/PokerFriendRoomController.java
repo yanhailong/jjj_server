@@ -18,6 +18,7 @@ public class PokerFriendRoomController extends AbstractFriendRoomController<Room
         super(roomPlayerClazz, room);
     }
 
+
     @Override
     protected boolean checkBankerCanNextRound() {
         return switch (room.getGameType()) {

@@ -4,6 +4,7 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -57,7 +58,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
                 gameRunInfo.setCode(Code.FAIL);
                 return gameRunInfo;
             }
-            resetFreeStateIfInvalid(playerGameData,WealthBankConstant.Status.ALL_BOARD_FREE,WealthBankConstant.Status.NORMAL,"Wealth Bank");
+            resetFreeStateIfInvalid(playerGameData, WealthBankConstant.Status.ALL_BOARD_FREE, WealthBankConstant.Status.NORMAL, "Wealth Bank");
             gameRunInfo.setData(playerGameData);
             gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
             gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
@@ -137,6 +138,8 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
                 return gameRunInfo;
             }
 
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getRoomCfgId());
+
             playerGameData.addSelectedArea(areaId);
 
             //中奖的次数
@@ -185,23 +188,20 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
 
             //3次全部中奖的金火车
             if (winCount >= this.wealthBankCollectDollarConfig.getAllWinCount()) {
-                int rand = RandomUtils.randomMinMax(0, 10000);
+                int rand = RandomUtils.randomMinMax(0, GameConstant.TEN_THOUSAND);
                 if (rand < this.wealthBankCollectDollarConfig.getAllWinCountProp()) {
                     SpecialAuxiliaryCfg allWinSpecialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(this.wealthBankCollectDollarConfig.getAllWinCountAuxiliaryId());
                     int goldTrainCount = generateManager.inversAllWinGoldTrainCount(allWinSpecialAuxiliaryCfg);
                     if (goldTrainCount > 0) {
                         long addGold = allAddGold * goldTrainCount;
-                        CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_INVEST_REWARD);
-                        if (!result.success()) {
-                            log.warn("[Wealth Bank] 投资游戏金火车给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                            gameRunInfo.setCode(result.code);
+                        rewardFromBigPool(gameRunInfo, playerGameData, addGold, AddType.SLOTS_INVEST_REWARD);
+                        if (!gameRunInfo.success()) {
+                            log.warn("投资游戏金火车给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
                             return gameRunInfo;
                         }
-                        gameRunInfo.addAllWinGold(addGold);
-
                         gameRunInfo.setInvestRewardGoldTrainCount(goldTrainCount);
                         gameRunInfo.setInvestRewardGold(allAddGold);
-                        player = result.data;
+                        player = playerGameData.getPlayer();
                         log.debug("[Wealth Bank] 小地图3次都中奖，添加金火车的金币 gameType = {},roomCfgId = {},addGold = {}", this.gameType, playerGameData.getRoomCfgId(), addGold);
                     }
                 }
@@ -213,10 +213,16 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
                 playerGameData.getAllUnLock().compareAndSet(false, true);
             }
 
+            if (player == null) {
+                player = slotsPlayerService.get(playerController.playerId());
+            }
+
             if (playerController != null && player != null) {
                 playerController.setPlayer(player);
             }
             playerGameData.clearInvers();
+
+            gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
         } catch (Exception e) {
             log.error("[Wealth Bank] ", e);
             gameRunInfo.setCode(Code.EXCEPTION);
@@ -694,7 +700,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
                     continue;
                 }
 
-                int rand = RandomUtils.randomMinMax(0, 10000);
+                int rand = RandomUtils.randomMinMax(0, GameConstant.TEN_THOUSAND);
                 if (rand < this.wealthBankCollectDollarConfig.getProp()) {
                     collect = true;
                     wealthBankDollarsInfo.collectDollarIndexIds.add(index);

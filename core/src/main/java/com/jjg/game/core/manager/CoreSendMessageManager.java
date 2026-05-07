@@ -83,7 +83,7 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
      *
      * @param player
      */
-    public void buildMoneyChangeMessage(Player player, long goldChangeValue, long diamondChangeValue) {
+    public void buildMoneyChangeMessage(Player player, long goldChangeValue, long diamondChangeValue, long shellChangeValue) {
         PFSession session = playerSessionService.getSession(player.getId());
         if (session == null) {
             return;
@@ -94,6 +94,9 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
         }
         if (diamondChangeValue != 0) {
             moneyChangeInfoList.add(buildMoneyChangeInfo(GameConstant.Item.TYPE_DIAMOND, diamondChangeValue, player.getDiamond()));
+        }
+        if (shellChangeValue != 0) {
+            moneyChangeInfoList.add(buildMoneyChangeInfo(GameConstant.Item.TYPE_SHELL, shellChangeValue, player.getShell()));
         }
         buildMoneyChangeInfoMessage(session, moneyChangeInfoList);
     }
@@ -138,6 +141,27 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
      */
     public void buildDiamondChangeMessage(PFSession session, long changeValue, long afterValue) {
         buildMoneyChangeMessage(session, GameConstant.Item.TYPE_DIAMOND, changeValue, afterValue);
+    }
+
+    /**
+     * 推送玩家货币变化信息
+     *
+     */
+    public void buildShellChangeMessage(Player player, long changeValue) {
+        PFSession session = playerSessionService.getSession(player.getId());
+        if (session == null) {
+            return;
+        }
+        buildMoneyChangeMessage(session, GameConstant.Item.TYPE_SHELL, changeValue, player.getShell());
+    }
+
+    /**
+     * 推送玩家货币变化信息
+     *
+     * @param session
+     */
+    public void buildShellChangeMessage(PFSession session, long changeValue, long afterValue) {
+        buildMoneyChangeMessage(session, GameConstant.Item.TYPE_SHELL, changeValue, afterValue);
     }
 
     /**

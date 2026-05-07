@@ -42,6 +42,8 @@ public class FriendRoom extends Room {
     protected long pool;
     //操作时间冷却时间
     protected long operationCoolingTime;
+    // 是否已发送暂停续费邮件
+    protected boolean sendPauseRenewalMail;
 
     public long getOperationCoolingTime() {
         return operationCoolingTime;
@@ -49,6 +51,14 @@ public class FriendRoom extends Room {
 
     public void setOperationCoolingTime(long operationCoolingTime) {
         this.operationCoolingTime = operationCoolingTime;
+    }
+
+    public boolean isSendPauseRenewalMail() {
+        return sendPauseRenewalMail;
+    }
+
+    public void setSendPauseRenewalMail(boolean sendPauseRenewalMail) {
+        this.sendPauseRenewalMail = sendPauseRenewalMail;
     }
 
     /**

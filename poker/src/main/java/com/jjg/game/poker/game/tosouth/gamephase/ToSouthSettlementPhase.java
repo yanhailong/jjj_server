@@ -1,14 +1,19 @@
 package com.jjg.game.poker.game.tosouth.gamephase;
 
 import cn.hutool.core.collection.CollUtil;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Card;
+import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
+import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLibManager;
 import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.poker.game.tosouth.data.ToSouthSettlementContext;
 import com.jjg.game.poker.game.tosouth.message.bean.ToSouthPlayerSettlementInfo;
@@ -17,7 +22,7 @@ import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameLog;
 import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
-import com.jjg.game.core.data.FriendRoom;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -26,8 +31,6 @@ import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLibManager;
-import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import com.jjg.game.sampledata.bean.SouthernMoneyCfg;
 import org.slf4j.Logger;
@@ -69,7 +72,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             long playerId = gamePlayer.getId();
             RoomPlayer roomPlayer = controller.getRoom().getRoomPlayers().get(playerId);
             if (roomPlayer != null && !roomPlayer.isOnline()) {
-                log.info("南方前进结算后：玩家 {} 离线，踢出房间", playerId);
+                //log.info("南方前进结算后：玩家 {} 离线，踢出房间", playerId);
                 controller.getRoomController().getRoomManager().exitRoom(playerId);
             }
         }
@@ -111,6 +114,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                     int transactionItemId = controller.getGameTransactionItemId();
                     int goldCfgId = ItemUtils.getGoldItemId();
                     int diamondCfgId = ItemUtils.getDiamondItemId();
+                    int shellCfgId = ItemUtils.getShellItemId();
                     Map<Long, Long> positiveMap = settlementMap.entrySet().stream()
                             .filter(entry2 -> entry2.getValue() != null && entry2.getValue() > 0)
                             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -122,7 +126,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                             long l1 = loseAmount / positiveMap.size();
                             settlementMap2.put(playerId, -gold);
                             positiveMap.forEach((k, v) -> {
-                                settlementMap2.put(k,v-l1+l);
+                                settlementMap2.put(k, v - l1 + l);
                             });
 
                         }
@@ -132,10 +136,22 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                             long l = diamond / positiveMap.size();
 //                          18000 - 26000 = -8000
                             long l1 = l - loseAmount;
-                            settlementMap2.put(playerId, diamond);
+                            settlementMap2.put(playerId, -diamond);
                             positiveMap.forEach((k, v) -> {
 //                                26000 - 8000
-                                settlementMap2.put(k,v-l1+l);
+                                settlementMap2.put(k, v - l1 + l);
+                            });
+                        }
+                    } else if (transactionItemId == shellCfgId) {
+                        long shell = gamePlayer.getShell();
+                        if (shell < loseAmount) {
+                            long l = shell / positiveMap.size();
+//                          18000 - 26000 = -8000
+                            long l1 = loseAmount / positiveMap.size();
+                            settlementMap2.put(playerId, -shell);
+                            positiveMap.forEach((k, v) -> {
+//                                26000 - 8000
+                                settlementMap2.put(k, v - l1 + l);
                             });
                         }
                     }
@@ -157,9 +173,10 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                     // 扣除抽水
                     long tax = BigDecimal.valueOf(change)
                             .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getWinRatio()))
-                            .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                            .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
 
                     totalTax += tax;
+
                     finalWinScore = change - tax;
                     controller.addItem(playerId, finalWinScore, AddType.GAME_SETTLEMENT);
                     if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
@@ -208,16 +225,23 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 }
                 playerSettlementInfos.add(info);
             }
-
+            gameDataTracker.addGameLogData("tax", totalTax);
             // 好友房：房主收益记录
             addCreateRecord(controller, totalTax, settlementMap2);
+
+            // 先通知客户端阶段变更为结算阶段
+            NotifyPokerPhaseChange phaseChange = new NotifyPokerPhaseChange();
+            phaseChange.phase = EGamePhase.GAME_ROUND_OVER_SETTLEMENT;
+            long endtime = System.currentTimeMillis() + getPhaseRunTime();
+            phaseChange.endTime = endtime;
+            controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(phaseChange));
 
             // 发送结算消息给客户端
             NotifyToSouthSettlementInfo notify = new NotifyToSouthSettlementInfo();
             notify.settlementInfos = playerSettlementInfos;
-            notify.endTime = System.currentTimeMillis();
+            notify.endTime = endtime;
             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
-            log.info("南方前进结算map: {}", settlementMap2);
+            //log.info("南方前进结算map: {}", settlementMap2);
 
             // ========== 记录最终结算到一局日志，并打印流程日志和结算日志 ==========
             ToSouthGameLog gameLog = gameDataVo.getGameLog();
@@ -277,7 +301,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             log.error("结算没有赢家，请检查出牌逻辑！");
             return;
         }
-        log.debug("开始结算 - 赢家数量: {}, 底注: {}", winners.size(), baseBet);
+        //log.debug("开始结算 - 赢家数量: {}, 底注: {}", winners.size(), baseBet);
 
         // 1. 找出赢家 (手牌为0)
         List<PlayerSeatInfo> losers = new ArrayList<>();
@@ -287,7 +311,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 losers.add(seat);
             }
         }
-        log.debug("结算玩家分布 - 赢家: {}, 输家: {}", winners.stream().map(PlayerSeatInfo::getPlayerId).collect(Collectors.toList()), losers.stream().map(PlayerSeatInfo::getPlayerId).collect(Collectors.toList()));
+        //log.debug("结算玩家分布 - 赢家: {}, 输家: {}", winners.stream().map(PlayerSeatInfo::getPlayerId).collect(Collectors.toList()), losers.stream().map(PlayerSeatInfo::getPlayerId).collect(Collectors.toList()));
 
         long totalWinScore = 0;
         Map<Integer, PokerCard> cardMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
@@ -297,13 +321,13 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             List<Card> handCards = loser.getCurrentCards().stream().map(cardMap::get).collect(Collectors.toList());
             int cardCount = handCards.size();
             handCards.sort(ToSouthHandUtils.CARD_COMPARATOR);
-            log.debug("计算输家 {} 分数 - 剩余手牌: {}", loser.getPlayerId(), ToSouthHandUtils.cardListToString(handCards));
+            //log.debug("计算输家 {} 分数 - 剩余手牌: {}", loser.getPlayerId(), ToSouthHandUtils.cardListToString(handCards));
 
             int totalMulti;
             if (context.isInstantWin()) {
                 // 通杀：只算张数，一张没出翻倍（13 * 2 = 26），不计算炸弹/红2/黑2
                 totalMulti = cardCount * 2;
-                log.debug("被通杀的输家 {} - 张数: {}, 翻倍后总倍数: {}", loser.getPlayerId(), cardCount, totalMulti);
+                //log.debug("被通杀的输家 {} - 张数: {}, 翻倍后总倍数: {}", loser.getPlayerId(), cardCount, totalMulti);
 
             } else {
                 // 正常结算：张数 + 红2/黑2 + 最优炸弹倍数（四条与连对共用牌时取最大方案）
@@ -330,17 +354,17 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                         + countBlackTwo * blackTwoMulti
                         + optimalBombMulti;
 
-                log.debug("输家 {} - 张数: {}({}倍), 红2: {}x{}, 黑2: {}x{}, 最优炸弹倍数: {}, 总倍数: {}",
-                        loser.getPlayerId(), cardCount, cardMulti,
-                        countRedTwo, redTwoMulti, countBlackTwo, blackTwoMulti,
-                        optimalBombMulti, totalMulti);
+                //log.debug("输家 {} - 张数: {}({}倍), 红2: {}x{}, 黑2: {}x{}, 最优炸弹倍数: {}, 总倍数: {}",
+                //        loser.getPlayerId(), cardCount, cardMulti,
+                //        countRedTwo, redTwoMulti, countBlackTwo, blackTwoMulti,
+                //        optimalBombMulti, totalMulti);
             }
             long loseScore = (long) totalMulti * baseBet;
             // 记录输分 (负数)
             settlementMap.put(loser.getPlayerId(), -loseScore * winners.size());
             totalWinScore += loseScore;
         }
-        log.debug("结算总输分: {}, 分配给赢家每人: {}", totalWinScore, totalWinScore);
+        //log.debug("结算总输分: {}, 分配给赢家每人: {}", totalWinScore, totalWinScore);
 
         // 4. 赢家获得总分
         for (PlayerSeatInfo winner : winners) {
@@ -397,8 +421,8 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
                 }
             }
         }
-        log.info("玩家连赢/连输更新: {}", streakMap);
-        log.info("玩家总盈亏更新: {}", profitMap);
+        //log.info("玩家连赢/连输更新: {}", streakMap);
+        //log.info("玩家总盈亏更新: {}", profitMap);
     }
 
     /**
@@ -432,7 +456,7 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
         if (poolChange != 0) {
             int roomCfgId = controller.getRoom().getRoomCfgId();
             long afterBalance = cardLibManager.addPoolBalance(roomCfgId, poolChange);
-            log.info("水池余额更新 roomCfgId={}, poolChange={}, afterBalance={}", roomCfgId, poolChange, afterBalance);
+            //log.info("水池余额更新 roomCfgId={}, poolChange={}, afterBalance={}", roomCfgId, poolChange, afterBalance);
         }
     }
 
@@ -474,6 +498,11 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, totalWin);
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, income);
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, totalBet);
+
+            // 活动进度
+            controller.dealBet(gamePlayer, totalBet);
+            controller.dealEffectiveBet(gamePlayer, totalBet);
+            controller.triggerSettlementAction(playerId, controller.getRoom().getGameType(), 0, totalWin, controller.getGameTransactionItemId());
         }
 
         // 3. 发送到 Kafka（topic: game_bet_settlement）
@@ -490,16 +519,16 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             for (Map.Entry<Long, Long> entry : settlementMap2.entrySet()) {
                 long playerId = entry.getKey();
                 long change = entry.getValue();
-                long betWin = change;          // 净赢值
+                // 净赢值
                 long totalWin = Math.max(change, 0); // 赢的总值
                 long betTotal = Math.abs(change);    // 下注总值（用绝对值代表参与金额）
                 long tax = 0;
                 if (change > 0) {
                     tax = BigDecimal.valueOf(change)
                             .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getWinRatio()))
-                            .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                            .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
                 }
-                settlementDataMap.put(playerId, new SettlementData(betWin, totalWin, betTotal, tax));
+                settlementDataMap.put(playerId, new SettlementData(change, totalWin, betTotal, tax));
             }
             RoomBankerChangeParam roomBankerChangeParam = new RoomBankerChangeParam();
             roomBankerChangeParam.addRoomCreatorTotalIncome(calcRoomCreatorIncome(totalTax));

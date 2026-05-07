@@ -152,6 +152,34 @@ public class BaseLogger {
     }
 
     /**
+     * 贝币变化
+     *
+     * @param player
+     * @param beforeShell
+     * @param changeShell
+     * @param addType
+     */
+    public void useShell(Player player, long beforeShell, long changeShell, AddType addType, String desc) {
+        try {
+            if (RobotUtil.isRobot(player.getId())) {
+                return;
+            }
+
+            JSONObject json = new JSONObject();
+
+            json = addShellCoinChange(json, beforeShell, changeShell, player.getShell());
+
+            json.put("addType", addType.getValue());
+            json.put("desc", desc);
+            json.put("deviceType", player.getDeviceType());
+            json.put("subChannel", player.getSubChannel());
+            sendLog("shellChange", player, json);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
      * 保险箱钻石和携带钻石互转
      *
      * @param player
@@ -535,6 +563,18 @@ public class BaseLogger {
         json.put("beforeDiamond", beforeDiamond);
         json.put("diamondChange", diamondChange);
         json.put("afterDiamond", afterDiamond);
+        return json;
+    }
+
+    /**
+     * 贝币变化字段
+     *
+     * @return
+     */
+    private JSONObject addShellCoinChange(JSONObject json, long beforeShellCoin, long shellCoinChange, long afterShellCoin) {
+        json.put("beforeShellCoin", beforeShellCoin);
+        json.put("shellCoinChange", shellCoinChange);
+        json.put("afterShellCoin", afterShellCoin);
         return json;
     }
 

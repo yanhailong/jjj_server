@@ -1,7 +1,9 @@
 package com.jjg.game.hall.casino.pb;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.hall.casino.data.CasinoEmployment;
 import com.jjg.game.hall.casino.data.CasinoInfo;
@@ -10,7 +12,6 @@ import com.jjg.game.hall.casino.data.TimeNodeData;
 import com.jjg.game.hall.casino.pb.bean.CasinoFloorInfo;
 import com.jjg.game.hall.casino.pb.bean.CasinoMachineShowInfo;
 import com.jjg.game.hall.casino.pb.bean.CasinoSimpleInfo;
-import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.hall.utils.GlobalDataCache;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingFunctionCfg;
@@ -160,7 +161,7 @@ public class CasinoBuilder {
      */
     public static int getTotalNum(Map<Integer, Integer> casinoMaxProfitBonus, int base) {
         Integer addRatio = casinoMaxProfitBonus.getOrDefault(2, 0);
-        base = base * (10000 + addRatio) / 10000;
+        base = base * (GameConstant.TEN_THOUSAND + addRatio) / GameConstant.TEN_THOUSAND;
         Integer add = casinoMaxProfitBonus.getOrDefault(12, 0);
         base += add;
         return base;
@@ -175,7 +176,7 @@ public class CasinoBuilder {
      */
     public static int getInstantaneousNum(Map<Integer, Integer> casinoMaxProfitBonus, int base) {
         Integer addRatio = casinoMaxProfitBonus.getOrDefault(1, 0);
-        base = base * (10000 + addRatio) / 10000;
+        base = base * (GameConstant.TEN_THOUSAND + addRatio) / GameConstant.TEN_THOUSAND;
         Integer add = casinoMaxProfitBonus.getOrDefault(11, 0);
         base += add;
         return base;

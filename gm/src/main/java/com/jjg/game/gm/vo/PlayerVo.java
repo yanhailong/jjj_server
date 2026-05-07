@@ -9,6 +9,7 @@ public class PlayerVo {
     private String nickName;
     private long gold;
     private long diamond;
+    private long shell;
     private int vipLevel;
     private String ip;
     private int createTime;
@@ -52,6 +53,14 @@ public class PlayerVo {
 
     public void setDiamond(long diamond) {
         this.diamond = diamond;
+    }
+
+    public long getShell() {
+        return shell;
+    }
+
+    public void setShell(long shell) {
+        this.shell = shell;
     }
 
     public int getVipLevel() {

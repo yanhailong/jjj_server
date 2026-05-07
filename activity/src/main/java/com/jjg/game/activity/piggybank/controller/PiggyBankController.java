@@ -18,6 +18,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Order;
@@ -142,7 +143,7 @@ public class PiggyBankController extends BaseActivityController implements Order
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.PiggyBank.INCOME_PER_TEN_THOUSAND);
         BigDecimal baseAdd = BigDecimal.valueOf(progress)
                 .multiply(BigDecimal.valueOf(globalConfigCfg.getIntValue()))
-                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN);
+                .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN);
 
         long activityId = activityData.getId();
         Map<Integer, PiggyBankCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
@@ -165,7 +166,7 @@ public class PiggyBankController extends BaseActivityController implements Order
 
                 // 计算加成值
                 long addValue = baseAdd.multiply(BigDecimal.valueOf(cfg.getWeight()))
-                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
+                        .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN)
                         .longValue();
 
                 // 更新进度

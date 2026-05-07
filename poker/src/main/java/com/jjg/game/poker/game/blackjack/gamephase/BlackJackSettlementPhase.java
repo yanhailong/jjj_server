@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.blackjack.gamephase;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.utils.RobotUtil;
@@ -318,8 +319,8 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
     private long getGetRadioAfterValue(long playerId, Map<Long, Long> totalTax, long betValue, long get) {
         long beforeCalculation = get - betValue;
         long realGetValue = BigDecimal.valueOf(beforeCalculation)
-                .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getWinRatio()))
-                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                .multiply(BigDecimal.valueOf(GameConstant.TEN_THOUSAND - gameDataVo.getRoomCfg().getWinRatio()))
+                .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
         totalTax.merge(playerId, beforeCalculation - realGetValue, Long::sum);
         return realGetValue + betValue;
     }

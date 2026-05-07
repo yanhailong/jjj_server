@@ -147,7 +147,12 @@ public class CoreMessageHandler {
                 long diamondNum = Long.parseLong(arr[2]);
                 int vip = Integer.parseInt(arr[3]);
                 int level = Integer.parseInt(arr[4]);
-                init(res, playerController, req.order, goldNum, diamondNum, vip, level);
+
+                long shellNum = 0;
+                if (arr.length > 5) {
+                    shellNum = Long.parseLong(arr[5]);
+                }
+                init(res, playerController, req.order, goldNum, diamondNum, shellNum, vip, level);
                 return;
             }
 
@@ -158,6 +163,11 @@ public class CoreMessageHandler {
 
             if ("addDiamond".equalsIgnoreCase(cmd)) {
                 addDiamond(res, playerController, req.order, params);
+                return;
+            }
+
+            if ("addShell".equalsIgnoreCase(cmd)) {
+                addShell(res, playerController, req.order, params);
                 return;
             }
 
@@ -177,7 +187,7 @@ public class CoreMessageHandler {
             }
 
             if ("playerWinMarquee".equalsIgnoreCase(cmd)) {
-                marqueeManager.playerWinMarquee("shiyi", 17001, 100100026, 500000);
+                marqueeManager.playerWinMarquee("shiyi", 17001, 100100026, 500000,false);
                 return;
             }
 
@@ -233,8 +243,8 @@ public class CoreMessageHandler {
     /**
      * gm玩家初始化
      */
-    private void init(ResGm res, PlayerController playerController, String order, long goldNum, long diamongNum, int vip, int level) throws Exception {
-        CommonResult<Player> result = playerService.gmPlayerInit(playerController.playerId(), goldNum, diamongNum, vip, level, AddType.GM_OPERATOR, null);
+    private void init(ResGm res, PlayerController playerController, String order, long goldNum, long diamongNum, long shellNum, int vip, int level) throws Exception {
+        CommonResult<Player> result = playerService.gmPlayerInit(playerController.playerId(), goldNum, diamongNum, shellNum, vip, level, AddType.GM_OPERATOR, null);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
@@ -251,6 +261,9 @@ public class CoreMessageHandler {
         }
         if (diamongNum > 0) {
             moneyChangeInfoList.add(coreSendMessageManager.buildMoneyChangeInfo(GameConstant.Item.TYPE_DIAMOND, diamongNum, result.data.getDiamond()));
+        }
+        if (shellNum > 0) {
+            moneyChangeInfoList.add(coreSendMessageManager.buildMoneyChangeInfo(GameConstant.Item.TYPE_SHELL, shellNum, result.data.getShell()));
         }
         coreSendMessageManager.buildMoneyChangeInfoMessage(playerController.getSession(), moneyChangeInfoList);
     }
@@ -299,8 +312,30 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setDiamond(result.data.getDiamond());
-//        coreSendMessageManager.buildBaseInfoChangeMessage(playerController, result.data);
         coreSendMessageManager.buildDiamondChangeMessage(playerController.getSession(), num, result.data.getDiamond());
+    }
+
+    /**
+     * gm修改贝币
+     */
+    private void addShell(ResGm res, PlayerController playerController, String order, String params) throws Exception {
+        if (params == null || params.isEmpty()) {
+            res.code = Code.PARAM_ERROR;
+            log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(), order);
+            playerController.send(res);
+            return;
+        }
+
+        long num = Long.parseLong(params);
+        CommonResult<Player> result = playerService.addShell(playerController.playerId(), num, AddType.GM_OPERATOR, null);
+        if (!result.success()) {
+            res.code = result.code;
+            log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
+            playerController.send(res);
+            return;
+        }
+        playerController.getPlayer().setShell(result.data.getShell());
+        coreSendMessageManager.buildShellChangeMessage(playerController.getSession(), num, result.data.getShell());
     }
 
     /**
@@ -552,6 +587,7 @@ public class CoreMessageHandler {
 
             res.gold = player.getGold();
             res.diamond = player.getDiamond();
+            res.shell = player.getShell();
             res.safeBoxGold = player.getSafeBoxGold();
             res.safeBoxDiamond = player.getSafeBoxDiamond();
             log.debug("返回玩家账户信息 resp = {}", JSON.toJSONString(res));

@@ -8,6 +8,7 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.poker.game.common.BasePokerGameController;
@@ -524,7 +525,7 @@ public class ToSouthBloodGameController extends BasePokerGameController<ToSouthB
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         long tax = BigDecimal.valueOf(score)
                 .multiply(BigDecimal.valueOf(roomCfg.getWinRatio()))
-                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
         gameDataTracker.addGameLogData("tax", tax);
         long finalWinScore = score - tax;
 
@@ -1179,12 +1180,12 @@ public class ToSouthBloodGameController extends BasePokerGameController<ToSouthB
         int pro;
         if (robotPlayer.getLastWin() == 0 || cfg == null) {
             // 首次进入房间 或 无配置 → 100%准备
-            pro = 10000;
+            pro = GameConstant.TEN_THOUSAND;
         } else {
             List<Integer> continueList = robotPlayer.getLastWin() == 1
                     ? cfg.getContinueAfterVictory()
                     : cfg.getContinueAfterFail();
-            pro = (continueList != null && !continueList.isEmpty()) ? continueList.getFirst() : 10000;
+            pro = (continueList != null && !continueList.isEmpty()) ? continueList.getFirst() : GameConstant.TEN_THOUSAND;
         }
         ToSouthBloodRobotHandler handler = new ToSouthBloodRobotHandler(robotPlayer, ToSouthBloodRobotHandler.GO_READY, this, pro);
         RobotScheduleUtil.schedule(getRoomController(), handler, delay);

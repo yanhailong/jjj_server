@@ -32,6 +32,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
@@ -163,7 +164,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         // 计算真实增加的数量：progress * config / 10000，向下取整
         long realProgress = BigDecimal.valueOf(progress)
                 .multiply(BigDecimal.valueOf(globalConfigCfg.getIntValue()))
-                .divide(BigDecimal.valueOf(10000), RoundingMode.FLOOR)
+                .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.FLOOR)
                 .longValue();
         // 对活动的奖池进行增加
         cashCowDao.addActivityPool(activityData.getId(), realProgress);
@@ -282,7 +283,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                             // 按万分比概率判断是否中奖
                             Integer probability = list.getLast();
                             boolean isFix = false;
-                            if (RandomUtil.randomInt(10000) < probability) {
+                            if (RandomUtil.randomInt(GameConstant.TEN_THOUSAND) < probability) {
                                 // 从奖池中扣除 cfg.getDistribution() 并返回实际发奖数量（DAO 负责判空/原子减）
                                 int distribution = getRealDistribution(cfg);
                                 get = cashCowDao.reduceActivityPool(activityId, distribution);
@@ -348,7 +349,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             long totalPool = cashCowDao.getSpecifiedActivityPool(activityId);
             res.pool = BigDecimal.valueOf(totalPool)
                     .multiply(BigDecimal.valueOf(cfg.getDistribution()))
-                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                    .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
             res.totalPool = totalPool;
         } catch (
                 Exception e) {
@@ -395,7 +396,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 continue;
             }
             if (count > weightCfg.getFirst() && count <= weightCfg.get(1)) {
-                if (RandomUtil.randomInt(10000) < weightCfg.getLast()) {
+                if (RandomUtil.randomInt(GameConstant.TEN_THOUSAND) < weightCfg.getLast()) {
                     cashCowDao.addActivityPool(activityId, -cfg.getDistributionQuota());
                     return cfg.getDistributionQuota();
                 }
@@ -419,7 +420,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             if (add > 0) {
                 long addValue = BigDecimal.valueOf(get)
                         .multiply(BigDecimal.valueOf(add))
-                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
+                        .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN)
                         .longValue();
                 if (addValue > 0) {
                     return Pair.newPair(add, addValue);
@@ -432,7 +433,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
     private void sendMail(Player player, Pair<Integer, Long> addValue) {
         List<LanguageParamData> arrayList = new ArrayList<>();
         arrayList.add(new LanguageParamData(0, String.valueOf(player.getVipLevel())));
-        arrayList.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(addValue.getFirst()).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN))));
+        arrayList.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(addValue.getFirst()).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.DOWN))));
         arrayList.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addValue.getSecond()))));
         mailService.addCfgMail(player.getId(), 38, List.of(new Item(ItemUtils.getGoldItemId(), addValue.getSecond())), arrayList, AddType.VIP_REWARDS_CASHCOW);
     }
@@ -558,7 +559,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                     //按配置比例计算下一轮底池（万分比）
                     nextPoll += BigDecimal.valueOf(pool)
                             .multiply(BigDecimal.valueOf(configCfg.getIntValue()))
-                            .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
+                            .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN)
                             .longValue();
                 }
                 totalPool += nextPoll;
@@ -596,7 +597,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             // 如果是 targetRewards（表示此时需要尝试触发机器人中奖）
             if (targetRewards) {
                 // 以万分比概率判断是否触发机器人中奖
-                if (probabilityList.get(4) > RandomUtil.randomInt(10000)) {
+                if (probabilityList.get(4) > RandomUtil.randomInt(GameConstant.TEN_THOUSAND)) {
                     // 随机选一个机器人（机器人配置由 GameDataManager 提供）
                     RobotPlayer robotPlayer = robotUtil.randomRobotPlayer();
                     // 从奖池中扣除分配额度（DAO 负责原子检查与扣减）
@@ -655,7 +656,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 info.costItems = ItemUtils.buildItemInfo(cfg.getNeedItem());
                 long totalPool = cashCowDao.getSpecifiedActivityPool(activityData.getId());
                 totalPool = BigDecimal.valueOf(totalPool).multiply(BigDecimal.valueOf(cfg.getDistribution()))
-                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                        .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
                 info.pool = totalPool;
             }
             return info;
@@ -805,7 +806,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                             if (lastRobotAddTime == 0 || lastRobotAddTime + Long.parseLong(cfg[0]) * TimeHelper.ONE_SECOND_OF_MILLIS < timeMillis) {
                                 lastRobotAddTime = timeMillis;
                                 // 触发中奖
-                                if (Integer.parseInt(cfg[1]) > RandomUtil.randomInt(10000)) {
+                                if (Integer.parseInt(cfg[1]) > RandomUtil.randomInt(GameConstant.TEN_THOUSAND)) {
                                     // 触发自动增加：根据另一个配置 CASH_COW_ROBOT_ADD_VALUE 获取按小时段的增加区间
                                     GlobalConfigCfg addCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ROBOT_ADD_VALUE);
                                     List<List<Integer>> cfgAdd = getCfgAdd(addCfg.getValue());

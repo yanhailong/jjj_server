@@ -130,6 +130,9 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
      */
     protected boolean isNeedRobotPlayerExitRoom(GameRobotPlayer gameRobotPlayer, RobotCfg robotCfg, int maxBetOnTable) {
         boolean needExit = false;
+        if (!isOpen()) {
+            return true;
+        }
         int exitMultiplier = robotCfg.getExitMultiplier();
         int playerMulti = BigDecimal.valueOf(getTransactionItemNum(gameRobotPlayer.getId()))
                 .multiply(BigDecimal.valueOf(100))

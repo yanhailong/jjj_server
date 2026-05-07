@@ -5,6 +5,7 @@ import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -87,7 +88,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
             //发送剩余牌数
             res.remainCardNum = playerGameData.getCard().size() - playerGameData.getCurrentIndex() - 1;
             //发送每个选择区域的赔率
-            BigDecimal returnRate = BigDecimal.valueOf(cfg.getRewardRate()).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
+            BigDecimal returnRate = BigDecimal.valueOf(cfg.getRewardRate()).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.DOWN);
             res.chooseRate = highLowUtil.calculateAllChooseRate(playerGameData.getCard(), playerGameData.getCurrentIndex(), returnRate);
             //发送当前牌
             res.currentCard = playerGameData.getCard().get(playerGameData.getCurrentIndex());
@@ -121,7 +122,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
         //发送剩余牌数
         res.remainCardNum = playerGameData.getCard().size() - playerGameData.getCurrentIndex() - 1;
         //发送每个选择区域的赔率
-        BigDecimal returnRate = BigDecimal.valueOf(cfg.getRewardRate()).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
+        BigDecimal returnRate = BigDecimal.valueOf(cfg.getRewardRate()).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.DOWN);
         res.chooseRate = highLowUtil.calculateAllChooseRate(playerGameData.getCard(), playerGameData.getCurrentIndex(), returnRate);
         //发送当前牌
         res.currentCard = playerGameData.getCard().get(playerGameData.getCurrentIndex());
@@ -158,7 +159,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
             res.code = Code.ERROR_REQ;
             return res;
         }
-        BigDecimal returnRate = BigDecimal.valueOf(cfg.getRewardRate()).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN);
+        BigDecimal returnRate = BigDecimal.valueOf(cfg.getRewardRate()).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.DOWN);
         List<String> chooseRate = highLowUtil.calculateAllChooseRate(card, playerGameData.getCurrentIndex(), returnRate);
         //获取下一张牌，获取玩家的选择，进行判断
         int nextIndex = playerGameData.getCurrentIndex() + 1;

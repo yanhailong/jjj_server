@@ -62,7 +62,7 @@ public class FriendRoomMessageBuilder {
     public static FriendRoomBaseData buildFriendRoomBaseData(FriendRoom friendRoom) {
         FriendRoomBaseData friendRoomBaseData = new FriendRoomBaseData();
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(friendRoom.getRoomCfgId());
-        if(warehouseCfg == null){
+        if (warehouseCfg == null) {
             return null;
         }
         friendRoomBaseData.roomId = friendRoom.getId();

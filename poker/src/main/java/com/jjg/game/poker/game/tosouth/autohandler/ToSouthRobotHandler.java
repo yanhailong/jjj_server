@@ -1,6 +1,7 @@
 package com.jjg.game.poker.game.tosouth.autohandler;
 
 import cn.hutool.core.util.RandomUtil;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.gamephase.BasePokerRobotProcessorHandler;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
@@ -44,7 +45,7 @@ public class ToSouthRobotHandler extends BasePokerRobotProcessorHandler<ToSouthG
                         log.debug("机器人 {} GO_READY 触发时不在 WAIT_READY 阶段，跳过", getPlayerId());
                         return;
                     }
-                    if (readyPro > RandomUtil.randomInt(10000)) {
+                    if (readyPro > RandomUtil.randomInt(GameConstant.TEN_THOUSAND) && gameController.isOpen()) {
                         // 概率通过 → 机器人准备
                         controller.robotGoReady(getPlayerId());
                     } else {

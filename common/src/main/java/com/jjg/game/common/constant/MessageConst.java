@@ -166,7 +166,7 @@ public interface MessageConst {
         int HULK = 0x42;
         //恶魔之子
         int DEMON_CHILD = 0x43;
-
+        //南方前进
         int TO_SOUTH = 0x44;
         //愤怒的小鸟
         int ANGRY_BIRDS = 0x45;
@@ -375,5 +375,8 @@ public interface MessageConst {
         int NOTICE_CLEAN_PLAYER = BASE_MSG_PREFIX | 0x15;
         //通知生成南方前进牌库
         int NOTICE_GENERATE_TO_SOUTH_LIB = BASE_MSG_PREFIX | 0x16;
+        //刷新游戏配置
+        int REQ_REFRESH_GLOBAL_CONFIG = BASE_MSG_PREFIX | 0x17;
+
     }
 }

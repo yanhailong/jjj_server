@@ -4,6 +4,7 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -58,7 +59,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 return gameRunInfo;
             }
 
-            resetFreeStateIfInvalid(playerGameData,DollarExpressConstant.Status.ALL_BOARD_FREE,DollarExpressConstant.Status.NORMAL,"DollarExpress");
+            resetFreeStateIfInvalid(playerGameData, DollarExpressConstant.Status.ALL_BOARD_FREE, DollarExpressConstant.Status.NORMAL, "DollarExpress");
 
             gameRunInfo.setData(playerGameData);
             gameRunInfo.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
@@ -138,6 +139,8 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 return gameRunInfo;
             }
 
+            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getRoomCfgId());
+
             playerGameData.addSelectedArea(areaId);
 
             //中奖的次数
@@ -186,23 +189,20 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
 
             //3次全部中奖的金火车
             if (winCount >= this.dollarExpressCollectDollarConfig.getAllWinCount()) {
-                int rand = RandomUtils.randomMinMax(0, 10000);
+                int rand = RandomUtils.randomMinMax(0, GameConstant.TEN_THOUSAND);
                 if (rand < this.dollarExpressCollectDollarConfig.getAllWinCountProp()) {
                     SpecialAuxiliaryCfg allWinSpecialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(this.dollarExpressCollectDollarConfig.getAllWinCountAuxiliaryId());
                     int goldTrainCount = generateManager.inversAllWinGoldTrainCount(allWinSpecialAuxiliaryCfg);
                     if (goldTrainCount > 0) {
                         long addGold = allAddGold * goldTrainCount;
-                        CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_INVEST_REWARD);
-                        if (!result.success()) {
+                        rewardFromBigPool(gameRunInfo, playerGameData, addGold, AddType.SLOTS_INVEST_REWARD);
+                        if (!gameRunInfo.success()) {
                             log.warn("投资游戏金火车给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                            gameRunInfo.setCode(result.code);
                             return gameRunInfo;
                         }
-                        gameRunInfo.addAllWinGold(addGold);
-
                         gameRunInfo.setInvestRewardGoldTrainCount(goldTrainCount);
                         gameRunInfo.setInvestRewardGold(allAddGold);
-                        player = result.data;
+                        player = playerGameData.getPlayer();
                         log.debug("小地图3次都中奖，添加金火车的金币 gameType = {},roomCfgId = {},addGold = {}", this.gameType, playerGameData.getRoomCfgId(), addGold);
                     }
                 }
@@ -214,10 +214,16 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                 playerGameData.getAllUnLock().compareAndSet(false, true);
             }
 
+            if(player == null){
+                player = slotsPlayerService.get(playerController.playerId());
+            }
+
             if (playerController != null && player != null) {
                 playerController.setPlayer(player);
             }
             playerGameData.clearInvers();
+
+            gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
         } catch (Exception e) {
             log.error("", e);
             gameRunInfo.setCode(Code.EXCEPTION);
@@ -248,51 +254,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
         }
         return invest(playerController, playerGameData, areaId);
     }
-
-//    /**
-//     * 系统自动二选一
-//     *
-//     * @param playerGameData
-//     */
-//    public void autoChooseFreeModelType(DollarExpressPlayerGameData playerGameData) {
-//        try {
-//            int chooseStatus;
-//            if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD) {
-//                chooseStatus = RandomUtils.randomInt(2) == 0 ? DollarExpressConstant.Status.ALL_BOARD_TRAIN : DollarExpressConstant.Status.ALL_BOARD_FREE;
-//            } else {
-//                chooseStatus = RandomUtils.randomInt(2) == 0 ? DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN : DollarExpressConstant.Status.ALL_BOARD_FREE;
-//            }
-//
-//            int code = chooseFreeGameType(playerGameData, chooseStatus);
-//            if (code != Code.SUCCESS) {
-//                log.debug("系统自动二选一失败 playerId = {},chooseStatus = {}", playerGameData.getPlayerId(), chooseStatus);
-//                return;
-//            }
-//            log.info("系统自动进行二选一 playerId = {},chooseStatus = {}", playerGameData.getPlayerId(), chooseStatus);
-//        } catch (Exception e) {
-//            log.error("", e);
-//        }
-//    }
-
-//    /**
-//     * 系统选择小地区
-//     *
-//     * @param playerGameData
-//     */
-//    public void autoInvest(DollarExpressPlayerGameData playerGameData) {
-//        try {
-//            List<Integer> choosableAreas = getChoosableAreas(playerGameData);
-//            if (choosableAreas.isEmpty()) {
-//                log.debug("系统自动投资游戏选择小地区失败，获取的可选区域为空 getPlayerId = {}", playerGameData.getPlayerId());
-//                return;
-//            }
-//            int areaId = choosableAreas.get(RandomUtils.randomInt(choosableAreas.size()));
-//            invest(null, playerGameData, areaId);
-//            log.info("系统自动投资游戏选择小地区结束 playerId = {},areaId = {}", playerGameData.getPlayerId(), areaId);
-//        } catch (Exception e) {
-//            log.error("", e);
-//        }
-//    }
 
     /**
      * 二选一选哪个？？？
@@ -694,7 +655,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
                     continue;
                 }
 
-                int rand = RandomUtils.randomMinMax(0, 10000);
+                int rand = RandomUtils.randomMinMax(0, GameConstant.TEN_THOUSAND);
                 if (rand < this.dollarExpressCollectDollarConfig.getProp()) {
                     collect = true;
                     dollarsInfo.collectDollarIndexIds.add(index);

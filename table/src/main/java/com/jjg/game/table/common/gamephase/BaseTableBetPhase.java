@@ -74,8 +74,13 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
 
     @Override
     public void dealMsg(PlayerController playerController, ReqBet reqBet) {
-        List<ReqBetBean> reqBetBeans = reqBet.reqBetBeans;
         NotifyPlayerBet notifyPlayerBet = new NotifyPlayerBet(Code.SUCCESS);
+        if (!gameController.isOpen()) {
+            notifyPlayerBet.code = Code.GAME_IS_MAINTAIN;
+            playerController.send(notifyPlayerBet);
+            return;
+        }
+        List<ReqBetBean> reqBetBeans = reqBet.reqBetBeans;
         notifyPlayerBet.playerId = playerController.playerId();
         if (reqBetBeans == null || reqBetBeans.isEmpty()) {
             notifyPlayerBet.code = Code.FAIL;
@@ -184,6 +189,9 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
      * 机器人押注行为
      */
     protected void robotBetAction(GameRobotPlayer gameRobotPlayer) {
+        if (!gameController.isOpen()) {
+            return;
+        }
         BetRobotCfg betRobotCfg = getRobotBetActionCfg(gameRobotPlayer);
         if (betRobotCfg == null) {
             return;

@@ -154,6 +154,7 @@ public class FindGoldCityGameSendMessageManager extends BaseSendMessageManager {
             if (gameRunInfo.getResultLib() instanceof FindGoldCityResultLib lib) {
                 res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData());
                 res.addIconInfoList = addIconInfos(lib, gameRunInfo);
+                res.remainFreeTimes = gameRunInfo.getRemainFreeCount();
             }
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {

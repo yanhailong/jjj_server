@@ -1,14 +1,19 @@
 package com.jjg.game.slots.handler;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.activity.grandroulette.controller.GrandRouletteController;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.core.constant.BackendGMCmd;
+import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.handler.CoreToServerMessageHandler;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.NotifyAllNodesCleanPlayer;
 import com.jjg.game.core.pb.gm.NotifyGenrateLib;
+import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
+import com.jjg.game.core.pb.gm.ReqRefreshGlobalConfig;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
 import com.jjg.game.slots.dao.PlayerAllSlotsDataDao;
@@ -42,6 +47,21 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
     private PlayerAllSlotsDataDao playerAllSlotsDataDao;
     @Autowired
     private MarsCurator marsCurator;
+    @Autowired
+    private GrandRouletteController grandRouletteController;
+
+    @Command(MessageConst.ToServer.REQ_REFRESH_GLOBAL_CONFIG)
+    public void reqRefreshGameConfig(ReqRefreshGlobalConfig req) {
+        log.info("收到刷新游戏全部配置命令: {}", JSON.toJSONString(req));
+        try {
+            if (req.refreshIds.contains(GlobalSampleConstantId.GRAND_ROULETTE_128) ||
+                    req.refreshIds.contains(GlobalSampleConstantId.GRAND_ROULETTE_131)) {
+                grandRouletteController.reloadConfig();
+            }
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
 
     // 生成任务队列（包含gameType和count信息）
     private final Queue<GenerateLibTask> generateTaskQueue = new LinkedList<>();
@@ -54,6 +74,16 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
     // 锁
     private final Object queueLock = new Object();
 
+    @Command(MessageConst.ToServer.REQ_REFRESH_GAME_STATUS)
+    public void reqRefreshGameStatus(ReqRefreshGameStatus req) {
+        log.info("收到刷新游戏状态命令: {}", JSON.toJSONString(req));
+        try {
+            slotsFactoryManager.refreshGameStatus();
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
     /**
      * 生成结果库
      *
@@ -64,6 +94,7 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
         try {
             log.info("收到生成结果库的请求 list={}", JSON.toJSONString(req.list));
 
+            boolean add = false;
             for (KVInfo info : req.list) {
                 AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(info.key);
                 if (gameManager == null) {
@@ -74,12 +105,15 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
                 // 任务入队
                 Map<Integer, Integer> countMap = countMap(info.key, info.value);
                 synchronized (queueLock) {
+                    add = true;
                     generateTaskQueue.offer(new GenerateLibTask(info.key, countMap));
                     log.info("任务已入队，当前队列长度: {}, gameType = {}", generateTaskQueue.size(), info.key);
                 }
             }
             // 尝试启动任务
-            tryStartNextTask();
+            if(add){
+                tryStartNextTask();
+            }
         } catch (Exception e) {
             log.error("", e);
         }

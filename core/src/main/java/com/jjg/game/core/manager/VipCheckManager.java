@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.base.gameevent.*;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
@@ -130,7 +131,7 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
                 break;
             }
             long needEffectiveWaterFlow = BigDecimal.valueOf(viplevelCfg.getViplevelUpExp() - newExp)
-                    .multiply(BigDecimal.valueOf(10000))
+                    .multiply(GameConstant.TEN_THOUSAND_BD)
                     .divide(BigDecimal.valueOf(coefficient), RoundingMode.DOWN).longValue();
             if (addValue >= needEffectiveWaterFlow) {
                 addValue -= needEffectiveWaterFlow;
@@ -140,7 +141,7 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
             } else {
                 newExp += BigDecimal.valueOf(addValue)
                         .multiply(BigDecimal.valueOf(coefficient))
-                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                        .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
                 addValue = 0;
             }
             if (addValue == 0) {

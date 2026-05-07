@@ -57,7 +57,7 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
 
     @Override
     public void robotPhaseScheduleAction(GameRobotPlayer robotPlayer, int chessExecutionDelay, int pro) {
-        if (gameController instanceof BlackJackGameController controller) {
+        if (gameController.isOpen() && gameController instanceof BlackJackGameController controller) {
             BlackJackRobotHandler handler = new BlackJackRobotHandler(robotPlayer, BlackJackRobotHandler.BET, controller, pro);
             RobotScheduleUtil.schedule(controller.getRoomController(), handler, chessExecutionDelay);
         }

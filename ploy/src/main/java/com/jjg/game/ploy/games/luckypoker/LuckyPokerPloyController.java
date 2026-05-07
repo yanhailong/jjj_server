@@ -7,6 +7,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -168,7 +169,7 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         CommonResult<Pair<Integer, Integer>> result = new CommonResult<>(Code.SUCCESS);
         PloyBetDivideInfo ployBetDivideInfo = playerGameData.getPloyBetDivideInfo();
         //计算偏差范围
-        long diff = BigDecimal.valueOf(ployBetDivideInfo.getPoolAfterValue() - gameRoomCfg.getInitBasePool()).divide(BigDecimal.valueOf(gameRoomCfg.getInitBasePool()), 6, RoundingMode.HALF_UP).multiply(tenThousandBigDecimal).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
+        long diff = BigDecimal.valueOf(ployBetDivideInfo.getPoolAfterValue() - gameRoomCfg.getInitBasePool()).divide(BigDecimal.valueOf(gameRoomCfg.getInitBasePool()), 6, RoundingMode.HALF_UP).multiply(GameConstant.TEN_THOUSAND_BD).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
         PoolResultLibCfg libCfg = getLibCfgByPoolDiff(diff);
         if (libCfg == null) {
             log.warn("获取结果库配置失败,下注失败 playerId = {},roomCfgId = {},betValue = {},poolValue = {},diff = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), betValue, ployBetDivideInfo.getPoolAfterValue(), diff);

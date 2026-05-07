@@ -3,11 +3,11 @@ package com.jjg.game.gm.controller;
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jjg.game.activity.grandroulette.data.GrandRouletteConditionConfig;
 import com.jjg.game.activity.sharepromote.dao.SharePromoteDao;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterHelper;
 import com.jjg.game.common.cluster.ClusterMessage;
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
@@ -115,7 +115,8 @@ public class GMController extends AbstractController {
     private RedeemCodeInfoDao redeemCodeInfoDao;
     @Autowired
     private RedeemCodeDao redeemCodeDao;
-
+    @Autowired
+    private GlobalConfigDao globalConfigDao;
     @ClusterRpcReference()
     private GmToRechargeBridge gmToRechargeBridge;
     @ClusterRpcReference
@@ -174,8 +175,6 @@ public class GMController extends AbstractController {
                 log.info("修改游戏状态失败,无法保存到Redis , dto = {}", dtoList);
                 return fail("common.fail");
             }
-            //获取大厅节点
-            List<ClusterClient> nodesByType = ClusterSystem.system.getNodesByType(NodeType.HALL);
             //构建请求消息
             ReqRefreshGameStatus msg = new ReqRefreshGameStatus();
 
@@ -183,15 +182,9 @@ public class GMController extends AbstractController {
 
             byte[] data = ProtostuffUtil.serialize(msg);
             PFMessage pfMessage = new PFMessage(MessageConst.ToServer.REQ_REFRESH_GAME_STATUS, data);
-            ClusterMessage clusterMessage = new ClusterMessage(pfMessage);
-            for (ClusterClient clusterClient : nodesByType) {
-                try {
-                    //通知大厅节点修改游戏状态
-                    clusterClient.write(clusterMessage);
-                } catch (Exception e) {
-                    log.error("请求改变游戏状态时发送失败", e);
-                }
-            }
+
+            //通知大厅和游戏节点
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString(), NodeType.GAME.toString())::contains);
             //返回修改结果
             return success("common.success");
         } catch (Exception e) {
@@ -339,6 +332,7 @@ public class GMController extends AbstractController {
             vo.setNickName(p.getNickName());
             vo.setGold(p.getGold());
             vo.setDiamond(p.getDiamond());
+            vo.setShell(p.getShell());
             vo.setVipLevel(p.getVipLevel());
             vo.setIp(p.getIp());
             vo.setCreateTime(account.getCreateTime());
@@ -426,7 +420,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if (dto.currency_id() != GameConstant.Item.TYPE_DIAMOND && dto.currency_id() != GameConstant.Item.TYPE_GOLD) {
+            if (dto.currency_id() != GameConstant.Item.TYPE_DIAMOND && dto.currency_id() != GameConstant.Item.TYPE_GOLD && dto.currency_id() != GameConstant.Item.TYPE_SHELL) {
                 log.debug("修改货币时，货币类型错误 currency_type = {}", dto.currency_id());
                 return fail("common.paramerror");
             }
@@ -454,26 +448,32 @@ public class GMController extends AbstractController {
 
             long beforeGold = player.getGold();
             long beforeDiamond = player.getDiamond();
+            long beforeShell = player.getShell();
+
             long beforeSafeGold = player.getSafeBoxGold();
             long beforeSafeDiamond = player.getSafeBoxDiamond();
 
             boolean notifyNode = false;
             AddType addType = AddType.BACKEND_CHANGE_MONEY;
-            CommonResult<Player> result;
+            CommonResult<Player> result = new CommonResult<>(Code.NOT_FOUND);
             if (dto.operator_type() == 1) {  //账户
                 PlayerSessionInfo info = playerSessionService.getInfo(player.getId());
                 if (info == null || info.getGameType() == CoreConst.GameMajorType.SLOTS) {
                     if (dto.type() == 1) { //增加
                         if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
                             result = playerService.addGold(dto.playerId(), dto.quantity(), addType, dto.remark());
-                        } else {  //钻石
+                        } else if (dto.currency_id() == GameConstant.Item.TYPE_DIAMOND) {  //钻石
                             result = playerService.addDiamond(dto.playerId(), dto.quantity(), addType, dto.remark());
+                        } else {
+                            result = playerService.addShell(dto.playerId(), dto.quantity(), addType, dto.remark());
                         }
                     } else {
                         if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
                             result = playerService.deductGold(dto.playerId(), dto.quantity(), addType, dto.remark());
-                        } else {  //钻石
+                        } else if (dto.currency_id() == GameConstant.Item.TYPE_DIAMOND) { //钻石
                             result = playerService.deductDiamond(dto.playerId(), dto.quantity(), addType, dto.remark());
+                        } else {
+                            result = playerService.deductShell(dto.playerId(), dto.quantity(), addType, dto.remark());
                         }
                     }
                 } else {
@@ -495,7 +495,7 @@ public class GMController extends AbstractController {
                     PFMessage pfMessage = MessageUtil.getPFMessage(notify);
                     ClusterMessage msg = new ClusterMessage(pfMessage);
                     clusterClient.write(msg);
-                    result = new CommonResult<>(Code.SUCCESS);
+                    result.code = Code.SUCCESS;
                     notifyNode = true;
                     log.debug("通知节点修改玩家账户 node = {},notify = {}", info.getCurrentNode(), JSON.toJSONString(notify));
                 }
@@ -503,13 +503,13 @@ public class GMController extends AbstractController {
                 if (dto.type() == 1) { //增加
                     if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
                         result = playerService.addSafeBoxGold(dto.playerId(), dto.quantity(), addType, dto.remark());
-                    } else {  //钻石
+                    } else if (dto.currency_id() == GameConstant.Item.TYPE_DIAMOND) {  //钻石
                         result = playerService.addSafeBoxDiamond(dto.playerId(), dto.quantity(), addType, dto.remark());
                     }
                 } else {
                     if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
                         result = playerService.deductSafeBoxGold(dto.playerId(), dto.quantity(), addType, dto.remark());
-                    } else {  //钻石
+                    } else if (dto.currency_id() == GameConstant.Item.TYPE_DIAMOND) { //钻石
                         result = playerService.deductSafeBoxDiamond(dto.playerId(), dto.quantity(), addType, dto.remark());
                     }
                 }
@@ -524,12 +524,15 @@ public class GMController extends AbstractController {
 //                coreSendMessageManager.buildBaseInfoChangeMessage(result.data);
                 if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
                     coreSendMessageManager.buildGoldChangeMessage(result.data, dto.type() == 1 ? dto.quantity() : -dto.quantity());
-                } else {
+                } else if (dto.currency_id() == GameConstant.Item.TYPE_DIAMOND) {
                     coreSendMessageManager.buildDiamondChangeMessage(result.data, dto.type() == 1 ? dto.quantity() : -dto.quantity());
+                } else {
+                    coreSendMessageManager.buildShellChangeMessage(result.data, dto.type() == 1 ? dto.quantity() : -dto.quantity());
                 }
             }
 
-            log.info("后台修改玩家货币成功 playerId = {},beforeGold={},beforeDiamond={},beforeSafeGold={},beforeSafeDiamond={},afterGold={},afterDiamond={},afterSafeGold={},afterSafeDiamond={}", player.getId(), beforeGold, beforeDiamond, beforeSafeGold, beforeSafeDiamond, player.getGold(), player.getDiamond(), player.getSafeBoxGold(), player.getSafeBoxDiamond());
+            log.info("后台修改玩家货币成功 playerId = {},beforeGold={},beforeDiamond={},beforeShell={},beforeSafeGold={},beforeSafeDiamond={},afterGold={},afterDiamond={},afterShell={},afterSafeGold={},afterSafeDiamond={}",
+                    player.getId(), beforeGold, beforeDiamond, beforeShell, beforeSafeGold, beforeSafeDiamond, player.getGold(), player.getDiamond(), player.getShell(), player.getSafeBoxGold(), player.getSafeBoxDiamond());
             //返回修改结果
             return success("common.success");
         } catch (Exception e) {
@@ -763,6 +766,7 @@ public class GMController extends AbstractController {
                     vo.setCreateTime(player.getCreateTime());
                     vo.setGold(player.getGold());
                     vo.setDiamond(player.getDiamond());
+                    vo.setShell(player.getShell());
                     vo.setGameType(player.getGameType());
                     vo.setRoomCfgId(player.getRoomCfgId());
                 } else {
@@ -889,7 +893,7 @@ public class GMController extends AbstractController {
             List<KVInfo> pokerList = new ArrayList<>();
             List<KVInfo> slotsList = new ArrayList<>();
             for (KVInfo kv : allList) {
-                if (kv.key == CoreConst.GameType.TO_SOUTH) {
+                if (kv.key == CoreConst.GameType.TO_SOUTH || kv.key == CoreConst.GameType.TO_SOUTH_BLOOD || kv.key == CoreConst.GameType.TO_SOUTH_FREE) {
                     pokerList.add(kv);
                 } else {
                     slotsList.add(kv);
@@ -1137,7 +1141,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if (NodeType.HALL.toString().equals(clusterClient.getType()) && dto.whiteIdList() != null && dto.whiteIdList().isEmpty()) {
+            if (NodeType.HALL.toString().equals(clusterClient.getType()) && dto.whiteIdList() != null && !dto.whiteIdList().isEmpty()) {
                 log.debug("hall节点无法更改id白名单 dto = {}", dto);
                 return fail("common.paramerror");
             }
@@ -1977,10 +1981,10 @@ public class GMController extends AbstractController {
             }
 
             List<String> codeList = dto.codeList() == null ? Collections.emptyList() : dto.codeList().stream()
-                    .filter(StringUtils::isNotBlank)
-                    .map(String::trim)
-                    .distinct()
-                    .collect(Collectors.toList());
+                                                                                       .filter(StringUtils::isNotBlank)
+                                                                                       .map(String::trim)
+                                                                                       .distinct()
+                                                                                       .collect(Collectors.toList());
 
             Optional<RedeemCodeInfo> redeemCodeInfoOptional = redeemCodeInfoDao.findById(dto.id());
             RedeemCodeInfo redeemCodeInfo;
@@ -2040,6 +2044,65 @@ public class GMController extends AbstractController {
             redeemCodeInfo.setUse(dto.use());
             redeemCodeInfoDao.save(redeemCodeInfo);
             return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 配置大转盘领奖限制
+     */
+    @RequestMapping(BackendGMCmd.GRAND_ROULETTE_CONDITION_CONFIG)
+    public WebResult<String> grandRouletteConditionConfig(@RequestBody GrandRouletteConditionConfig config) {
+        log.info("配置大转盘领奖限制请求 dto = {}", config);
+        try {
+            if (config == null) {
+                log.warn("配置大转盘参数错误 dto = {}", "null");
+                return fail("common.paramerror");
+            }
+            //拼接参数
+            GlobalConfig globalConfig = new GlobalConfig(GlobalSampleConstantId.GRAND_ROULETTE_128);
+            globalConfig.setValue("%s|%s|%s|%s".formatted(config.getNeedNum(), config.getNeedGoldNum(), config.getNeedRechargeNum(), config.getNeedConcludeNum()));
+            globalConfigDao.save(globalConfig);
+
+            globalConfig = new GlobalConfig(GlobalSampleConstantId.GRAND_ROULETTE_131);
+            globalConfig.setValue(config.getGameTypeLimit());
+            globalConfigDao.save(globalConfig);
+            ReqRefreshGlobalConfig msg = new ReqRefreshGlobalConfig();
+            msg.refreshIds = List.of(GlobalSampleConstantId.GRAND_ROULETTE_128, GlobalSampleConstantId.GRAND_ROULETTE_131);
+            PFMessage pfMessage = MessageUtil.getPFMessage(msg);
+            //通知大厅和游戏节点
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString(), NodeType.GAME.toString())::contains);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 获取大转盘领奖限制配置
+     */
+    @RequestMapping(BackendGMCmd.GET_GRAND_ROULETTE_CONDITION_CONFIG)
+    public WebResult<GrandRouletteConditionConfig> getGrandRouletteConditionConfig() {
+        log.info("收到获取大转盘领奖限制配置请求");
+        try {
+            String value128 = globalConfigDao.findById(GlobalSampleConstantId.GRAND_ROULETTE_128)
+                    .map(GlobalConfig::getValue).orElse(null);
+            String gameTypeLimit = globalConfigDao.findById(GlobalSampleConstantId.GRAND_ROULETTE_131)
+                    .map(GlobalConfig::getValue).orElse(null);
+            if (value128 == null) {
+                return success("common.success", new GrandRouletteConditionConfig());
+            }
+            String[] parts = value128.split("\\|", -1);
+            int needNum = parts.length > 0 ? Integer.parseInt(parts[0]) : 0;
+            long needGoldNum = parts.length > 1 ? Long.parseLong(parts[1]) : 0L;
+            BigDecimal needRechargeNum = parts.length > 2 ? new BigDecimal(parts[2]) : BigDecimal.ZERO;
+            int needConcludeNum = parts.length > 3 ? Integer.parseInt(parts[3]) : 0;
+            GrandRouletteConditionConfig config = new GrandRouletteConditionConfig(
+                    needNum, needGoldNum, needRechargeNum, needConcludeNum, gameTypeLimit);
+            return success("common.success", config);
         } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");

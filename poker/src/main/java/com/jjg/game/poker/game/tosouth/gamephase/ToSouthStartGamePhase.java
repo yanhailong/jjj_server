@@ -2,6 +2,7 @@ package com.jjg.game.poker.game.tosouth.gamephase;
 
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.data.Card;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.gamephase.BaseStartGamePhase;
@@ -42,9 +43,30 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
     private static final boolean BOMB_TEST_MODE = false;
 
     private ToSouthSettlementContext instantWinContext;
+    private final long startPhaseGameId;
 
     public ToSouthStartGamePhase(AbstractPhaseGameController<Room_ChessCfg, ToSouthGameDataVo> gameController, long executionGameId) {
         super(gameController, executionGameId);
+        this.startPhaseGameId = executionGameId;
+    }
+
+    /**
+     * 重写 phaseFinish：
+     * 通杀时 nextPhase() 会触发 settlement.phaseDoAction()，该方法已发送 NotifyPokerPhaseChange，
+     * 无需父类再次发送，否则客户端会收到重复通知。
+     * 普通（非通杀）路径仍走 super.phaseFinish()，由父类统一发送 NotifyPokerPhaseChange(PLAY_CART)。
+     */
+    @Override
+    public void phaseFinish() {
+        if (instantWinContext != null && !instantWinContext.getWinners().isEmpty()) {
+            // 通杀：直接进结算，跳过父类的重复 NotifyPokerPhaseChange
+            if (getGamePhase() != EGamePhase.START_GAME || startPhaseGameId != gameDataVo.getId()) {
+                return;
+            }
+            nextPhase();
+            return;
+        }
+        super.phaseFinish();
     }
 
     @Override
@@ -56,16 +78,16 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             // 确保 playerSeatInfoList 已初始化
             if (gameDataVo.getPlayerSeatInfoList().isEmpty()) {
                 controller.genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
-                log.info("初始化玩家列表完成，人数: {}", gameDataVo.getPlayerSeatInfoList().size());
+                //log.info("初始化玩家列表完成，人数: {}", gameDataVo.getPlayerSeatInfoList().size());
             }
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(controller.getRoom().getRoomCfgId());
             gameDataVo.setRoomBet(warehouseCfg.getBetShow());
-            log.debug("南方前进开始游戏，房间底注为：{}", warehouseCfg.getBetShow());
+            //log.debug("南方前进开始游戏，房间底注为：{}", warehouseCfg.getBetShow());
 
             // 1. 洗牌发牌
             Map<Integer, PokerCard> cardListMap = ToSouthDataHelper.getCardListMap(ToSouthDataHelper.getPoolId(gameDataVo));
             if (BOMB_TEST_MODE) {
-                log.info("炸弹测试模式已开启，跳过随机发牌，改为发炸弹牌");
+                //log.info("炸弹测试模式已开启，跳过随机发牌，改为发炸弹牌");
                 sendBombTestCards(cardListMap, gameDataVo);
             } else {
                 sendCards(cardListMap, gameDataVo);
@@ -93,7 +115,7 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                     gameDataVo.setIndex(firstPlayer.getSeatId());
                     gameDataVo.setRoundLeaderSeatId(firstPlayer.getSeatId());
                     gameDataVo.setFirstRound(false); // 非首局，无需出黑桃3
-                    log.info("同桌续局，上局赢家 {} 先出", lastWinner);
+                    //log.info("同桌续局，上局赢家 {} 先出", lastWinner);
                 } else {
                     // 赢家异常，回退到黑桃3
                     firstPlayer = findSeatWithSpecifyCard(gameDataVo, cardListMap, RANK_3, SPADE_SUIT);
@@ -140,9 +162,9 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                 return; // 牌库发牌成功，跳过正常发牌
             }
         } else if (hasGmCommand) {
-            log.info("[牌库] 检测到GM发牌命令，跳过牌库抽牌");
+            //log.info("[牌库] 检测到GM发牌命令，跳过牌库抽牌");
         } else {
-            log.info("[牌库] 牌库发牌开关已关闭(CARD_LIB_ENABLED=false)，使用正常随机发牌");
+            //log.info("[牌库] 牌库发牌开关已关闭(CARD_LIB_ENABLED=false)，使用正常随机发牌");
         }
 
         List<Integer> list = new ArrayList<>(cardListMap.keySet());
@@ -169,7 +191,7 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                 List<Integer> preAssignedIds = resolveGmCards(cardListMap, gmCards, list, info.getPlayerId());
                 if (!preAssignedIds.isEmpty()) {
                     gmPreAssigned.put(info.getPlayerId(), preAssignedIds);
-                    log.info("GM发牌 - 玩家: {}, 预分配手牌数: {}", info.getPlayerId(), preAssignedIds.size());
+                    //log.info("GM发牌 - 玩家: {}, 预分配手牌数: {}", info.getPlayerId(), preAssignedIds.size());
                 }
             }
 
@@ -191,8 +213,8 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
                             old.addAll(add);
                             return old;
                         });
-                        log.info("GM机器人发牌 - 机器人编号: {}, 玩家: {}, 预分配手牌数: {}",
-                                robotIndex, robotSeat.getPlayerId(), preAssignedIds.size());
+                        //log.info("GM机器人发牌 - 机器人编号: {}, 玩家: {}, 预分配手牌数: {}",
+                        //        robotIndex, robotSeat.getPlayerId(), preAssignedIds.size());
                     }
                 }
             }
@@ -248,12 +270,12 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             info.setCards(new ArrayList<>());
             info.getCards().add(playCard);
 
-            if (log.isDebugEnabled()) {
+            /*if (log.isDebugEnabled()) {
                  // 此时 playCard 已经排序
                 log.debug("发牌 - 玩家: {}, 座位: {}, 手牌: {}{}", info.getPlayerId(), info.getSeatId(),
                         gmPreAssigned.containsKey(info.getPlayerId()) ? "[GM] " : "",
                         ToSouthHandUtils.cardListToString(handCards));
-            }
+            }*/
             // 记录发牌到一局日志
             gameDataVo.getGameLog().recordDeal(info.getPlayerId(), info.getSeatId(),
                     ToSouthHandUtils.cardListToString(handCards));
@@ -458,7 +480,7 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
         // ====== 从Redis抽取牌库 ======
         ToSouthCardLib cardLib = cardLibManager.getCardLib(selectedSectionKey);
         if (cardLib == null) {
-            log.info("[牌库] 分区{}牌库为空，回退正常发牌", selectedSectionKey);
+            //log.info("[牌库] 分区{}牌库为空，回退正常发牌", selectedSectionKey);
             return false;
         }
 
@@ -487,10 +509,10 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
 
         int playerStreak = streakMap.getOrDefault(targetPlayer.getPlayerId(), 0);
         long poolDiff = cardLibManager.getPoolDiff(roomCfgId);
-        log.info("[牌库] 触发牌库发牌 玩家={}, streak={}, streakKey={}, poolDiff={}, modelId={}, 选中分区={}, 倍数={}, 权重总和={}",
-                targetPlayer.getPlayerId(), playerStreak, matchedStreakKey,
-                poolDiff, poolCfg.getModelId(),
-                selectedSectionKey, cardLib.getMultiplier(), totalWeight);
+        //log.info("[牌库] 触发牌库发牌 玩家={}, streak={}, streakKey={}, poolDiff={}, modelId={}, 选中分区={}, 倍数={}, 权重总和={}",
+        //        targetPlayer.getPlayerId(), playerStreak, matchedStreakKey,
+        //        poolDiff, poolCfg.getModelId(),
+        //        selectedSectionKey, cardLib.getMultiplier(), totalWeight);
 
         // ====== 分配手牌：目标玩家拿playerCards，其余3人拿robotCards ======
         int robotIdx = 0;
@@ -538,8 +560,8 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             info.setCards(new ArrayList<>());
             info.getCards().add(playCard);
 
-            log.debug("[牌库] 发牌 - 玩家: {}, 座位: {}, 手牌: {}", info.getPlayerId(), info.getSeatId(),
-                    ToSouthHandUtils.cardListToString(handCards));
+            //log.debug("[牌库] 发牌 - 玩家: {}, 座位: {}, 手牌: {}", info.getPlayerId(), info.getSeatId(),
+            //        ToSouthHandUtils.cardListToString(handCards));
 
             // 记录发牌到一局日志
             gameDataVo.getGameLog().recordDeal(info.getPlayerId(), info.getSeatId(),
@@ -693,10 +715,10 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
             info.setCards(new ArrayList<>());
             info.getCards().add(playCard);
 
-            if (log.isDebugEnabled()) {
+            /*if (log.isDebugEnabled()) {
                 log.debug("炸弹测试发牌 - 玩家: {}, 座位: {}, 手牌: {}", info.getPlayerId(), info.getSeatId(),
                         ToSouthHandUtils.cardListToString(handCards));
-            }
+            }*/
             // 记录发牌到一局日志
             gameDataVo.getGameLog().recordDeal(info.getPlayerId(), info.getSeatId(),
                     ToSouthHandUtils.cardListToString(handCards));
@@ -733,15 +755,15 @@ public class ToSouthStartGamePhase extends BaseStartGamePhase<ToSouthGameDataVo>
         for (PlayerSeatInfo seatInfo : gameDataVo.getPlayerSeatInfoList()) {
             List<Integer> handCardIds = seatInfo.getCurrentCards();
             List<Card> handCards = handCardIds.stream().map(cardMap::get).collect(Collectors.toList());
-            if (log.isDebugEnabled()) {
+            /*if (log.isDebugEnabled()) {
                 List<Card> sorted = new ArrayList<>(handCards);
                 sorted.sort(ToSouthHandUtils.CARD_COMPARATOR);
                 log.debug("通杀检查 - 玩家: {}, 手牌: {}", seatInfo.getPlayerId(), ToSouthHandUtils.cardListToString(sorted));
-            }
+            }*/
             Pair<Integer, List<Integer>> instantWinCards = ToSouthHandUtils.getInstantWinCards(handCards);
             if (instantWinCards != null) {
                 winnerMap.put(seatInfo, instantWinCards);
-                log.info("玩家 {} 触发通杀！类型: {}", seatInfo.getPlayerId(), instantWinCards.getFirst());
+                //log.info("玩家 {} 触发通杀！类型: {}", seatInfo.getPlayerId(), instantWinCards.getFirst());
                 // 记录通杀到一局日志
                 List<Card> sorted = new ArrayList<>(handCards);
                 sorted.sort(ToSouthHandUtils.CARD_COMPARATOR);

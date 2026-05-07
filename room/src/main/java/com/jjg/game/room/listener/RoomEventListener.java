@@ -362,6 +362,19 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                     }
                 }
             }
+            if (entry.getKey() == ItemUtils.getShellItemId()) {
+                if (changeValue > 0) {
+                    CommonResult<Player> result = playerService.addShell(playerId, changeValue, addType, "", true);
+                    if (!result.success()) {
+                        log.error("房间内添加贝币失败 playerId:{} num:{}", playerId, changeValue);
+                    }
+                } else {
+                    CommonResult<Player> result = playerService.deductShell(playerId, Math.abs(changeValue), addType, "", true);
+                    if (!result.success()) {
+                        log.error("房间内删除贝币失败 playerId:{} num:{}", playerId, Math.abs(changeValue));
+                    }
+                }
+            }
         }
     }
 

@@ -5,6 +5,7 @@ import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.hall.dao.HallPoolDao;
+import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureService;
 import com.jjg.game.hall.service.HallPlayerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,8 @@ public class HallSchedulManager {
     private OrderService orderService;
     @Autowired
     private HallPoolDao hallPoolDao;
+    @Autowired
+    private LuckyTreasureService luckyTreasureService;
 
     /**
      * 每天凌晨4点半定时执行
@@ -45,6 +48,7 @@ public class HallSchedulManager {
             hallPlayerService.clean();
             mailService.cleanMails();
             orderService.clean();
+            luckyTreasureService.clean();
         }
     }
 

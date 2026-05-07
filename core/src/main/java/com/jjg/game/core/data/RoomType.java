@@ -57,7 +57,9 @@ public enum RoomType {
             } else if (gameType == CoreConst.GameMajorType.SLOTS) {
                 roomType = RoomType.SLOTS_TEAM_UP_ROOM;
             }
-        } else {
+        } else if (warehouseCfg.getRoomType() > GameConstant.RoomTypeCons.EXPERIENCE_ROOM_TYPE_START) {
+            roomType = eGameType.getDefualtRoomType();
+        }else {
             roomType = eGameType.getDefualtRoomType();
         }
         return roomType;

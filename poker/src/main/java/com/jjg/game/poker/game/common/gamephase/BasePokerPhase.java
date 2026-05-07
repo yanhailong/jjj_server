@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.common.gamephase;
 
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.room.base.AbstractRoomPhase;
@@ -47,7 +48,7 @@ public abstract class BasePokerPhase<T extends BasePokerGameDataVo> extends Abst
                 int pro;
                 if (robotPlayer.getLastWin() == 0) {
                     //刚刚加入房间
-                    pro = 10000;
+                    pro = GameConstant.TEN_THOUSAND;
                 } else {
                     pro = robotPlayer.getLastWin() == 1 ? chessRobotCfg.getContinueAfterVictory().getFirst() : chessRobotCfg.getContinueAfterFail().getFirst();
                 }

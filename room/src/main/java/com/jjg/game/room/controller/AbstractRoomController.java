@@ -65,6 +65,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     // 房间级周期定时任务句柄，房间销毁时必须取消
     private volatile Timeout checkNoJoinPlayerTimeout;
     private volatile Timeout roomTickTimeout;
+
     // 游戏控制器
     protected AbstractGameController<RC, ? extends GameDataVo<RC>> gameController;
     // 房间配置
@@ -156,6 +157,10 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 reconnect.set(true);
             } else {
                 log.error("玩家已经在房间中 roomId = {},playerId = {}", room.getId(), playerController.playerId());
+                if (playerController.isRobotPlayer()) {
+                    result.code = Code.REPEAT_JOIN_ROOM;
+                    return result;
+                }
             }
             gameController.onPlayerJoinRoom(playerController, reconnect);
             playerControllers.put(playerController.playerId(), playerController);
@@ -456,6 +461,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         baseFuncProcessor.tryPublish(0, new BaseHandler<String>() {
             @Override
             public void action() {
+                if (!gameController.isOpen()) {
+                    return;
+                }
                 // 创建人数达到上限
                 if (room.getRoomPlayers() != null && room.getRoomPlayers().size() >= room.getMaxLimit() || !checkRobotJoinRoomCondition()) {
                     return;
@@ -498,7 +506,14 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 int code = roomManager.joinRoom(robotPlayerController, room.getGameType(), roomCfgId, room.getId());
                 // 如果加入失败则走一次退出房间逻辑
                 if (code != Code.SUCCESS) {
+                    if (code == Code.REPEAT_JOIN_ROOM) {
+                        roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(),
+                                room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, 0, room.getPath());
+                    } else {
+                        roomManager.robotPlayerExitRoom(List.of(robotPlayerController));
+                    }
                     log.debug("机器人加入房间失败, code : {} {}", code, room.logStr());
+
                 }
             }
         }.setHandlerParamWithSelf("room tick robot join"));
@@ -730,7 +745,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         gameController.stopGame();
     }
 
-    private void cancelWheelTimers() {
+    protected void cancelWheelTimers() {
         Timeout checkTimeout = checkNoJoinPlayerTimeout;
         if (checkTimeout != null && !checkTimeout.isCancelled()) {
             checkTimeout.cancel();
@@ -788,4 +803,5 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     public void onFriendRoomCreate() {
 
     }
+
 }

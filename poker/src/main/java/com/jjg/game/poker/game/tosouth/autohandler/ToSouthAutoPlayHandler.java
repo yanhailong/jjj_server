@@ -10,7 +10,6 @@ import com.jjg.game.poker.game.tosouth.data.ToSouthDataHelper;
 import com.jjg.game.poker.game.tosouth.message.req.ReqTurnAction;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
 import com.jjg.game.poker.game.tosouth.room.data.ToSouthGameDataVo;
-import com.jjg.game.poker.game.tosouth.util.ToSouthHandUtils;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import org.slf4j.Logger;
@@ -81,13 +80,11 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
         List<Card> bestCards = null;
 
         if (isLeader) {
-            if (isRobot) {
-                // 机器人：使用策略类决策
-                bestCards = ToSouthRobotStrategy.chooseLeaderPlay(handCards, gameDataVo, currentPlayerSeat);
-            } else {
-                // 真人超时：出最小牌
-                bestCards = ToSouthHandUtils.findBestPlay(handCards);
-            }
+            // 首出（不能pass）：机器人和真人超时都走机器人出牌逻辑
+            // - 新牌局(isFirstRound=true)：必须出黑桃3
+            // - 上把赢家首出：出推荐牌
+            // - 中途被迫首出（其余人全pass后轮回）：出最佳牌
+            bestCards = ToSouthRobotStrategy.chooseLeaderPlay(handCards, gameDataVo, currentPlayerSeat);
         } else if (!gameDataVo.getCurRoundPassedPlayerSeats().contains(currentPlayerSeat.getSeatId())) {
             if (isRobot) {
                 // 机器人：使用策略类决策跟牌
@@ -97,7 +94,7 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
                     bestCards = ToSouthRobotStrategy.chooseFollowPlay(handCards, lastCards, gameDataVo, currentPlayerSeat);
                 }
             }
-            // 真人超时：bestCards=null → 过牌
+            // 真人超时可以pass：bestCards=null → 过牌
         }
 
         if (CollUtil.isNotEmpty(bestCards)) {
@@ -108,10 +105,11 @@ public class ToSouthAutoPlayHandler extends BasePokerProcessorHandler<ToSouthGam
             reqTurnAction.actionType = 1; // Pass
         }
 
-        log.info("玩家/机器人 {} 首轮 {} 首出 {} 自动操作: type={}, cards={}",
-                getPlayerId(), gameDataVo.isFirstRound(), isLeader,
-                reqTurnAction.actionType, reqTurnAction.cards);
+        //log.info("玩家/机器人 {} 首轮 {} 首出 {} 自动操作: type={}, cards={}",
+        //        getPlayerId(), gameDataVo.isFirstRound(), isLeader,
+        //        reqTurnAction.actionType, reqTurnAction.cards);
         assert controller != null;
         controller.turnAction(getPlayerId(), reqTurnAction);
     }
+
 }

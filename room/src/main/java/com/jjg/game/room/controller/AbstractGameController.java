@@ -260,6 +260,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 //金币和钻石取少的,其他的用redis的
                 latestPlayer.setDiamond(Math.min(latestPlayer.getDiamond(), finalPlayer.getDiamond()));
                 latestPlayer.setGold(Math.min(latestPlayer.getGold(), finalPlayer.getGold()));
+                latestPlayer.setShell(Math.min(latestPlayer.getShell(), finalPlayer.getShell()));
                 return;
             }
             finalPlayer.copy(latestPlayer);
@@ -440,6 +441,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         int transactionItemId = getGameTransactionItemId();
         int goldCfgId = ItemUtils.getGoldItemId();
         int diamondCfgId = ItemUtils.getDiamondItemId();
+        int shellCfgId = ItemUtils.getShellItemId();
         GamePlayer gamePlayer = getGamePlayer(playerId);
         if (gamePlayer == null) {
             log.error("gamePlayer is null playerId:{}", playerId);
@@ -447,12 +449,15 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         }
         if (transactionItemId == goldCfgId) {
             return gamePlayer.getGold();
-        } else if (transactionItemId == diamondCfgId) {
-            return gamePlayer.getDiamond();
-        } else {
-            log.error("游戏：{} 获取道具 暂不支持其他道具ID：{} 进行交易", getRoom().logStr(), transactionItemId);
-            return 0;
         }
+        if (transactionItemId == diamondCfgId) {
+            return gamePlayer.getDiamond();
+        }
+        if (transactionItemId == shellCfgId) {
+            return gamePlayer.getShell();
+        }
+        log.error("游戏：{} 获取道具 暂不支持其他道具ID：{} 进行交易", getRoom().logStr(), transactionItemId);
+        return 0;
     }
 
     /**
@@ -483,14 +488,18 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         int transactionItemId = getGameTransactionItemId();
         int goldCfgId = ItemUtils.getGoldItemId();
         int diamondCfgId = ItemUtils.getDiamondItemId();
+        int shellCfgId = ItemUtils.getShellItemId();
         if (transactionItemId == goldCfgId) {
             return deductGold(playerId, num, deductType, desc, isNotify);
-        } else if (transactionItemId == diamondCfgId) {
-            return deductDiamond(playerId, num, deductType, desc, isNotify);
-        } else {
-            log.error("游戏：{} 扣除道具 暂不支持其他道具ID：{} 进行交易", getRoom().logStr(), transactionItemId);
-            return Code.FAIL;
         }
+        if (transactionItemId == diamondCfgId) {
+            return deductDiamond(playerId, num, deductType, desc, isNotify);
+        }
+        if (transactionItemId == shellCfgId) {
+            return deductShell(playerId, num, deductType, desc, isNotify);
+        }
+        log.error("游戏：{} 扣除道具 暂不支持其他道具ID：{} 进行交易", getRoom().logStr(), transactionItemId);
+        return Code.FAIL;
     }
 
     /**
@@ -578,6 +587,43 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     /**
+     * 扣除贝币，不要将此方法设置为public，游戏的交易道具是配置的道具ID写入
+     */
+    private int deductShell(long playerId, long num, AddType deductType, String desc, boolean isNotify) {
+        CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
+        LongRef beforeUpdateShell = PrimitiveRef.ofLong(0);
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        if (gamePlayer == null) {
+            log.error("异常操作，不能扣除非游戏好友的贝币");
+            throw new RuntimeException("异常操作，不能扣除非游戏好友的贝币");
+        }
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            log.info("玩家：{} 扣除贝币数量：{}", playerId, num);
+        }
+        Supplier<GamePlayer> supplier = () -> {
+            beforeUpdateShell.value = gamePlayer.getShell();
+            long afterShell = gamePlayer.getShell() - num;
+            if (afterShell < 0) {
+                return null;
+            }
+            gamePlayer.setShell(afterShell);
+            return gamePlayer;
+        };
+        // 机器人直接扣除
+        if (gamePlayer instanceof GameRobotPlayer) {
+            supplier.get();
+            return Code.SUCCESS;
+        }
+        CommonResult<GamePlayer> result = playerService.deductShell(playerId, num, deductType, desc, isNotify, supplier, beforeUpdateShell);
+        if (result.data == null) {
+            return Code.NOT_ENOUGH;
+        }
+        //放入已经改变的gamePlayer列表
+        gameDataVo.getHasChangeGamePlayerIds().add(gamePlayer.getId());
+        return result.code;
+    }
+
+    /**
      * 添加金币
      */
     public int addItem(long playerId, long num, AddType addType) {
@@ -608,6 +654,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         int transactionItemId = getGameTransactionItemId();
         int goldCfgId = ItemUtils.getGoldItemId();
         int diamondCfgId = ItemUtils.getDiamondItemId();
+        int shellCfgId = ItemUtils.getShellItemId();
 
         //添加金币或钻石后，返回的错误码
         int resAddCode = Code.FAIL;
@@ -615,6 +662,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             resAddCode = addGold(playerId, num, addType, desc, isNotify);
         } else if (transactionItemId == diamondCfgId) {
             resAddCode = addDiamond(playerId, num, addType, desc, isNotify);
+        } else if (transactionItemId == shellCfgId) {
+            resAddCode = addShell(playerId, num, addType, desc, isNotify);
         } else {
             log.error("游戏：{} 添加道具 暂不支持其他道具ID：{} 进行交易", getRoom().logStr(), transactionItemId);
         }
@@ -647,7 +696,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                     CoreMarqueeManager manager = getRoomController().getRoomManager().getCoreMarqueeManager();
                     GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
                     if (gamePlayer != null) {
-                        manager.playerWinMarquee(gamePlayer.getNickName(), marqueeTrigger.getLast().intValue(), gameDataVo.getRoomCfg().getNameid(), winValue);
+                        manager.playerWinMarquee(gamePlayer.getNickName(), marqueeTrigger.getLast().intValue(), gameDataVo.getRoomCfg().getNameid(), winValue, false);
                     }
                 }
             }
@@ -666,7 +715,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     /**
-     * 修改金币，钻石
+     * 修改金币，钻石，贝币
      *
      * @param player      需要更新数据的player
      * @param currencyMap 货币数量
@@ -716,6 +765,23 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
                 if (gamePlayer != null) {
                     player.setDiamond(gamePlayer.getDiamond());
+                }
+            }
+            if (entry.getKey() == ItemUtils.getShellItemId()) {
+                if (changeValue > 0) {
+                    if (addShell(playerId, changeValue, addType, desc, isNotify) != Code.SUCCESS) {
+                        log.error("房间内添加贝币失败 playerId:{} num:{}", playerId, changeValue);
+                        continue;
+                    }
+                } else {
+                    if (deductShell(playerId, Math.abs(changeValue), addType, desc, isNotify) != Code.SUCCESS) {
+                        log.error("房间内删除贝币失败 playerId:{} num:{}", playerId, Math.abs(changeValue));
+                        continue;
+                    }
+                }
+                GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+                if (gamePlayer != null) {
+                    player.setShell(gamePlayer.getShell());
                 }
             }
         }
@@ -805,6 +871,58 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             log.error("异常操作，room: {} 不能添加非游戏好友: {} 的钻石：{} {}", gameDataVo.roomLogInfo(), playerId, num, ExceptionUtils.currentThreadTraces());
         }
         return result.code;
+    }
+
+    /**
+     * 添加贝币，不要将此方法设置为public，游戏的交易道具是配置的道具ID写入
+     *
+     * @param playerId 玩家ID
+     * @param num      贝币数量
+     * @param addType  添加类型
+     * @param desc     描述
+     * @param isNotify 是否通知
+     * @return 扣除结果
+     */
+    private int addShell(long playerId, long num, AddType addType, String desc, boolean isNotify) {
+        CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
+        LongRef beforeUpdateShell = PrimitiveRef.ofLong(0);
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
+        if (gamePlayer != null) {
+            if (!(gamePlayer instanceof GameRobotPlayer)) {
+                log.info("玩家：{} 添加贝币数量：{}", playerId, num);
+            }
+            Supplier<Player> supplier = () -> {
+                beforeUpdateShell.value = gamePlayer.getShell();
+                gamePlayer.setShell(Math.min(Long.MAX_VALUE, gamePlayer.getShell() + num));
+                return gamePlayer;
+            };
+            // 机器人直接扣除
+            if (gamePlayer instanceof GameRobotPlayer) {
+                supplier.get();
+                return Code.SUCCESS;
+            }
+            result = playerService.addShell(playerId, num, addType, desc, isNotify, supplier, beforeUpdateShell);
+            if (result.data == null) {
+                return Code.FAIL;
+            }
+            //放入已经改变的gamePlayer列表
+            gameDataVo.getHasChangeGamePlayerIds().add(gamePlayer.getId());
+        } else {
+            log.error("异常操作，room: {} 不能添加非游戏好友: {} 的贝币：{} {}", gameDataVo.roomLogInfo(), playerId, num, ExceptionUtils.currentThreadTraces());
+        }
+        return result.code;
+    }
+
+    /**
+     * 游戏是否开启
+     *
+     * @return 游戏是否开启
+     */
+    public boolean isOpen() {
+        Map<Integer, Boolean> gameOpenMap = getRoomController().roomManager.getGameOpenMap();
+        int gameID = gameDataVo.getRoomCfg().getGameID();
+        return gameOpenMap.getOrDefault(gameID, false);
     }
 
     public GameEventManager getGameEventManager() {

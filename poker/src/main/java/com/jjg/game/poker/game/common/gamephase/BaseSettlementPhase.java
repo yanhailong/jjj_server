@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.common.gamephase;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.data.FriendRoom;
@@ -67,7 +68,7 @@ public abstract class BaseSettlementPhase<T extends BasePokerGameDataVo> extends
             int bankerIncomeRatio =
                     SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.CREATE_ROOM_FUNC_INCOME_RATIO);
             bankerIncome =
-                    (long) Math.floor((betValue) * bankerIncomeRatio / 10000.0);
+                    (long) Math.floor((betValue) * bankerIncomeRatio / GameConstant.TEN_THOUSAND_DOUBLE);
         }
         return bankerIncome;
     }
@@ -105,8 +106,8 @@ public abstract class BaseSettlementPhase<T extends BasePokerGameDataVo> extends
         if (roomPool == null) {
             return null;
         }
-        int pro = BigDecimal.valueOf(10000)
-                .subtract(BigDecimal.valueOf(10000)
+        int pro = GameConstant.TEN_THOUSAND_BD
+                .subtract(GameConstant.TEN_THOUSAND_BD
                         .multiply(BigDecimal.valueOf(Math.max(roomPool, 1)))
                         .divide(BigDecimal.valueOf(Math.max(basePool, 1)), 0, RoundingMode.DOWN))
                 .intValue();
@@ -124,7 +125,7 @@ public abstract class BaseSettlementPhase<T extends BasePokerGameDataVo> extends
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         long changeValue = BigDecimal.valueOf(poolWinValue)
                 .multiply(BigDecimal.valueOf(roomCfg.getEffectiveRatio()))
-                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
+                .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN)
                 .subtract(BigDecimal.valueOf(poolLoseValue))
                 .longValue();
 

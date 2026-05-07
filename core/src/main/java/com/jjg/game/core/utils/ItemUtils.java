@@ -18,8 +18,12 @@ import java.util.*;
  */
 public class ItemUtils {
 
+    //金币
     private static int GOLD_ITEM_ID = 0;
+    //钻石
     private static int DIAMOND_ITEM_ID = 0;
+    //贝币
+    private static int SHELL_ITEM_ID = 0;
 
     /**
      * 获取金币道具ID
@@ -43,6 +47,18 @@ public class ItemUtils {
             ).map(ItemCfg::getId).findFirst().orElse(0);
         }
         return DIAMOND_ITEM_ID;
+    }
+
+    /**
+     * 获取贝币道具ID
+     */
+    public static int getShellItemId() {
+        if (SHELL_ITEM_ID < 1) {
+            SHELL_ITEM_ID = GameDataManager.getItemCfgList().stream().filter(
+                    itemCfg -> itemCfg.getType() == GameConstant.Item.TYPE_SHELL
+            ).map(ItemCfg::getId).findFirst().orElse(0);
+        }
+        return SHELL_ITEM_ID;
     }
 
     public static List<ItemInfo> buildItemInfo(Map<Integer, Long> itemInfo) {
@@ -222,7 +238,7 @@ public class ItemUtils {
         for (Integer itemId : itemsMap.keySet()) {
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
             if (itemCfg == null || (itemCfg.getType() != GameConstant.Item.TYPE_GOLD
-                    && itemCfg.getType() != GameConstant.Item.TYPE_DIAMOND)) {
+                    && itemCfg.getType() != GameConstant.Item.TYPE_DIAMOND && itemCfg.getType() != GameConstant.Item.TYPE_SHELL)) {
                 return 0;
             }
         }

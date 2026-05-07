@@ -53,6 +53,7 @@ import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -96,14 +97,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     @Autowired
     protected PlayerAllSlotsDataDao playerAllSlotsDataDao;
 
+    protected AtomicBoolean open = new AtomicBoolean(false);
+
     //游戏类型
     protected int gameType;
 
     //roomCfgId -> roomId -> playerId -> gameData
     protected Map<Integer, Map<Long, Map<Long, T>>> gameDataMap = new ConcurrentHashMap<>();
 
-    protected final int tenThousand = 10000;
-    protected BigDecimal tenThousandBigDecimal = BigDecimal.valueOf(tenThousand);
     protected int oneHundredMillion = 100000000;
     protected BigDecimal oneHundredMillionBigDecimal = BigDecimal.valueOf(oneHundredMillion);
 
@@ -352,6 +353,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     public G playerStartGame(PlayerController playerController, long betValue) throws Exception {
+        //检查游戏是否开启
+        if (!this.open.get()) {
+            return createGameRunInfo(playerController.playerId(), Code.GAME_IS_MAINTAIN);
+        }
         //获取玩家游戏数据
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
@@ -598,7 +603,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
             BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(gameData.getRoomCfgId());
             //给标准池子加钱
-            BigDecimal toBigPoolProp = BigDecimal.valueOf(baseRoomCfg.getInitBasePoolProportion()).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+            BigDecimal toBigPoolProp = BigDecimal.valueOf(baseRoomCfg.getInitBasePoolProportion()).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.HALF_UP);
             long toBigPoolGold = bet.multiply(toBigPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
             if (toBigPoolGold > 0) {
                 long poolCoin = slotsPoolDao.addToBigPool(this.gameType, gameData.getRoomCfgId(), toBigPoolGold);
@@ -606,7 +611,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
 
             //给小池子加钱
-            BigDecimal toSmallPoolProp = BigDecimal.valueOf(baseRoomCfg.getCommissionProp()).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+            BigDecimal toSmallPoolProp = BigDecimal.valueOf(baseRoomCfg.getCommissionProp()).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.HALF_UP);
             long toSmallPoolGold = bet.multiply(toSmallPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
             if (toSmallPoolGold > 0) {
                 long poolCoin = slotsPoolDao.addToSmallPool(this.gameType, gameData.getRoomCfgId(), toSmallPoolGold);
@@ -662,7 +667,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             BigDecimal bet = BigDecimal.valueOf(betValue);
             BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(gameData.getRoomCfgId());
             //给标准池子加钱
-            BigDecimal toBigPoolProp = BigDecimal.valueOf(baseRoomCfg.getInitBasePoolProportion()).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+            BigDecimal toBigPoolProp = BigDecimal.valueOf(baseRoomCfg.getInitBasePoolProportion()).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.HALF_UP);
             long toBigPoolGold = bet.multiply(toBigPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
             if (toBigPoolGold > 0) {
                 long poolCoin = roomSlotsPoolDao.addToBigPool(gameData.getRoomId(), toBigPoolGold);
@@ -679,7 +684,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             long roomCreatorIncome = 0;
             if (globalConfigCfg.getIntValue() > 0) {
                 //房主收益
-                BigDecimal roomCreatorIncomeBigDecimal = BigDecimal.valueOf(systemIncomeBigDecimal).multiply(BigDecimal.valueOf(globalConfigCfg.getIntValue())).divide(tenThousandBigDecimal, 2, RoundingMode.HALF_UP);
+                BigDecimal roomCreatorIncomeBigDecimal = BigDecimal.valueOf(systemIncomeBigDecimal).multiply(BigDecimal.valueOf(globalConfigCfg.getIntValue())).divide(GameConstant.TEN_THOUSAND_BD, 2, RoundingMode.HALF_UP);
                 roomCreatorIncome = roomCreatorIncomeBigDecimal.longValue();
             }
 
@@ -829,7 +834,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 }
 
                 //计算偏差范围
-                long diff = BigDecimal.valueOf(poolValue.longValue() - poolInit).divide(BigDecimal.valueOf(poolInit), 6, RoundingMode.HALF_UP).multiply(tenThousandBigDecimal).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
+                long diff = BigDecimal.valueOf(poolValue.longValue() - poolInit).divide(BigDecimal.valueOf(poolInit), 6, RoundingMode.HALF_UP).multiply(GameConstant.TEN_THOUSAND_BD).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
                 SpecialResultLibCfg libCfg = getLibCfgByPoolDiff(diff);
                 if (libCfg == null) {
                     log.warn("获取结果库配置失败 playerId = {},gameType = {},roomCfgId = {},diff = {}", gameData.getPlayerId(), gameData.getGameType(), gameData.getRoomCfgId(), diff);
@@ -850,7 +855,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 poolInit = roomController.getRoom().getPool();
 
                 //计算偏差范围
-                long diff = BigDecimal.valueOf(poolResult.data - poolInit).divide(BigDecimal.valueOf(poolInit), 6, RoundingMode.HALF_UP).multiply(tenThousandBigDecimal).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
+                long diff = BigDecimal.valueOf(poolResult.data - poolInit).divide(BigDecimal.valueOf(poolInit), 6, RoundingMode.HALF_UP).multiply(GameConstant.TEN_THOUSAND_BD).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
                 SpecialResultLibCfg libCfg = getLibCfgByPoolDiff(diff);
                 if (libCfg == null) {
                     log.warn("好友房获取结果库配置失败 playerId = {},gameType = {},roomCfgId = {},roomId = {},diff = {}", gameData.getPlayerId(), gameData.getGameType(), gameData.getRoomCfgId(), gameData.getRoomId(), diff);
@@ -1343,7 +1348,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         //增加万分比
         int propValue = growthRate.get(1);
-        BigDecimal prop = BigDecimal.valueOf(propValue).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+        BigDecimal prop = BigDecimal.valueOf(propValue).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.HALF_UP);
 
         //循环时间
         BigDecimal circulTimeBigDecimal = BigDecimal.ONE.divide(prop, 4, RoundingMode.HALF_UP).multiply(intervalTime);
@@ -1770,7 +1775,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return;
         }
 
-        marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(), baseRoomCfg.getMarqueeTrigger().get(1).intValue(), baseRoomCfg.getNameid(), win);
+        marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(), baseRoomCfg.getMarqueeTrigger().get(1).intValue(), baseRoomCfg.getNameid(), win, false);
     }
 
     /**
@@ -2042,6 +2047,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (warehouseCfg.getTransactionItemId() == ItemUtils.getDiamondItemId()) {
             return player.getDiamond();
         }
+        if (warehouseCfg.getTransactionItemId() == ItemUtils.getShellItemId()) {
+            return player.getShell();
+        }
         return player.getGold();
     }
 
@@ -2222,7 +2230,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //中奖概率,这里保留了8位
             // 按需求将原始概率放大 10000 倍，命中上限后再由奖池值和冷却控制实际放奖频率。
             int propV = BigDecimal.valueOf(contribt).divide(pool, 8, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(poolCfg.getPoolProp()), 8, BigDecimal.ROUND_HALF_UP).multiply(oneHundredMillionBigDecimal).intValue();
-            int rand = RandomUtils.randomInt(tenThousand);
+            int rand = RandomUtils.randomInt(GameConstant.TEN_THOUSAND);
             if (rand >= propV) {
                 log.debug("随机概率，未中奖 rand = {},propV = {}", rand, propV);
             } else {
@@ -2437,5 +2445,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.getPlayerAllSlotsData().setPrizelessCount(prizelessCount);
         }
         return true;
+    }
+
+    public AtomicBoolean getOpen() {
+        return open;
     }
 }

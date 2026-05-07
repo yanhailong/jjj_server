@@ -4,6 +4,7 @@ import cn.hutool.core.lang.WeightRandom;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
@@ -21,6 +22,8 @@ import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.tosouth.autohandler.ToSouthRobotHandler;
 import com.jjg.game.poker.game.tosouth.room.ToSouthGameController;
+import com.jjg.game.poker.game.tosouthfree.autohandler.ToSouthFreeRobotHandler;
+import com.jjg.game.poker.game.tosouthfree.room.ToSouthFreeGameController;
 import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
@@ -68,7 +71,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
             gamePlayer.getPokerPlayerGameData().setInit(true);
             respRoomInitInfoAction(playerController);
-            log.info("重连进入 playerId:{}",playerController.playerId());
+            log.info("重连进入 playerId:{}", playerController.playerId());
         } catch (Exception e) {
             log.error("重连进入主动推送基础信息失败 playerId:{}", playerController.playerId());
         }
@@ -348,7 +351,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         if (gamePlayer instanceof GameRobotPlayer gameRobotPlayer) {
             RobotCfg robotCfg = getRoomController().getRoomManager().getRobotService().getRobotCfg(gameRobotPlayer.getId());
             List<List<Integer>> robotIdList;
-            if (this instanceof ToSouthGameController) {
+            if (this instanceof ToSouthGameController || this instanceof ToSouthFreeGameController) {
                 robotIdList = robotCfg.getSouthRobotID();
             } else {
                 robotIdList = robotCfg.getChessRobotID();
@@ -364,24 +367,35 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                     break;
                 }
             }
+            if (gameRobotPlayer.getActionId() == 0) {
+                log.error("未找到对应的actionId robotPlayerId:{} strategyId:{} roomCfgId:{}", gameRobotPlayer.getId(), strategyId, getRoom().getRoomCfgId());
+            }
             switch (this) {
                 case TexasGameController controller -> {
                     respRoomInitInfo(playerController);
                     int chessExecutionDelay = RobotScheduleUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
-                    TexasRobotHandler handler = new TexasRobotHandler(gameRobotPlayer, TexasRobotHandler.GO_READY, controller, 10000);
+                    TexasRobotHandler handler = new TexasRobotHandler(gameRobotPlayer, TexasRobotHandler.GO_READY, controller, GameConstant.TEN_THOUSAND);
                     RobotScheduleUtil.schedule(getRoomController(), handler, chessExecutionDelay);
                 }
                 case BlackJackGameController controller -> {
                     respRoomInitInfo(playerController);
                     int chessExecutionDelay = RobotScheduleUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
-                    BlackJackRobotHandler handler = new BlackJackRobotHandler(gameRobotPlayer, BlackJackRobotHandler.BET, controller, 10000);
+                    BlackJackRobotHandler handler = new BlackJackRobotHandler(gameRobotPlayer, BlackJackRobotHandler.BET, controller, GameConstant.TEN_THOUSAND);
                     RobotScheduleUtil.schedule(getRoomController(), handler, chessExecutionDelay);
                 }
                 case ToSouthGameController controller -> {
                     respRoomInitInfo(playerController);
                     int southDelay = RobotScheduleUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
-                    ToSouthRobotHandler southHandler = new ToSouthRobotHandler(gameRobotPlayer, ToSouthRobotHandler.GO_READY, controller, 10000);
+                    ToSouthRobotHandler southHandler = new ToSouthRobotHandler(gameRobotPlayer, ToSouthRobotHandler.GO_READY, controller, GameConstant.TEN_THOUSAND);
                     RobotScheduleUtil.schedule(getRoomController(), southHandler, southDelay);
+                    // 标记已调度，防止 tryStartGame 重复调度
+                    controller.getGameDataVo().getReadyTimerScheduled().add(gameRobotPlayer.getId());
+                }
+                case ToSouthFreeGameController controller -> {
+                    respRoomInitInfo(playerController);
+                    int freeDelay = RobotScheduleUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
+                    ToSouthFreeRobotHandler freeHandler = new ToSouthFreeRobotHandler(gameRobotPlayer, ToSouthFreeRobotHandler.GO_READY, controller, GameConstant.TEN_THOUSAND);
+                    RobotScheduleUtil.schedule(getRoomController(), freeHandler, freeDelay);
                     // 标记已调度，防止 tryStartGame 重复调度
                     controller.getGameDataVo().getReadyTimerScheduled().add(gameRobotPlayer.getId());
                 }

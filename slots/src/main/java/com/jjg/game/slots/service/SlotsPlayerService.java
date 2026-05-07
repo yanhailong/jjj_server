@@ -24,6 +24,9 @@ public class SlotsPlayerService extends AbstractPlayerService {
         if (currentId == ItemUtils.getDiamondItemId()) {
             return deductDiamond(playerId, deductNum, addType, desc, isNotify);
         }
+        if (currentId == ItemUtils.getShellItemId()) {
+            return deductShell(playerId, deductNum, addType, desc, isNotify);
+        }
         return new CommonResult<>(Code.FAIL);
     }
 
@@ -33,6 +36,9 @@ public class SlotsPlayerService extends AbstractPlayerService {
         }
         if (currentId == ItemUtils.getDiamondItemId()) {
             return addDiamond(playerId, addNum, addType, desc, isNotify);
+        }
+        if (currentId == ItemUtils.getShellItemId()) {
+            return addShell(playerId, addNum, addType, desc, isNotify);
         }
         return new CommonResult<>(Code.FAIL);
     }
