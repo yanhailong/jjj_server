@@ -23,6 +23,8 @@ public class ResGaraGemstone2EnterGame extends AbstractResponse {
     public int remainFreeCount;
     @ProtoDesc("奖池配置信息")
     public List<GaraGemstone2PoolInfo> poolList;
+    @ProtoDesc("转盘倍数列表")
+    public List<Integer> SpinMultiplierList;
 
     public ResGaraGemstone2EnterGame(int code) {
         super(code);
