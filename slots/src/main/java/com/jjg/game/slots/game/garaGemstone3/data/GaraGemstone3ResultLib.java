@@ -1,8 +1,8 @@
-package com.jjg.game.slots.game.garaGemstone1.data;
+package com.jjg.game.slots.game.garaGemstone3.data;
 
 import com.jjg.game.slots.data.SlotsResultLib;
 
-public class GaraGemstone1ResultLib extends SlotsResultLib<GaraGemstone1AwardLineInfo> {
+public class GaraGemstone3ResultLib extends SlotsResultLib<GaraGemstone3AwardLineInfo> {
 
     private int jackpotId;
 

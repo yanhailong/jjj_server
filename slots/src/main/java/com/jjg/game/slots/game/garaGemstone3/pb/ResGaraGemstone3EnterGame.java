@@ -1,16 +1,16 @@
-package com.jjg.game.slots.game.garaGemstone1.pb;
+package com.jjg.game.slots.game.garaGemstone3.pb;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.slots.game.garaGemstone1.GaraGemstone1Constant;
+import com.jjg.game.slots.game.garaGemstone3.GaraGemstone3Constant;
 
 import java.util.List;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.GARA_GEMSTONE_1, cmd = GaraGemstone1Constant.MsgBean.RES_GARA_GEMSTONE_1_CONFIG_INFO, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.GARA_GEMSTONE_3, cmd = GaraGemstone3Constant.MsgBean.RES_GARA_GEMSTONE_3_CONFIG_INFO, resp = true)
 @ProtoDesc("进入游戏，返回配置信息")
-public class ResGaraGemstone1EnterGame extends AbstractResponse {
+public class ResGaraGemstone3EnterGame extends AbstractResponse {
     @ProtoDesc("押注列表")
     public List<Long> stakeList;
     @ProtoDesc("默认押注")
@@ -22,9 +22,9 @@ public class ResGaraGemstone1EnterGame extends AbstractResponse {
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
     @ProtoDesc("奖池配置信息")
-    public List<GaraGemstone1PoolInfo> poolList;
+    public List<GaraGemstone3PoolInfo> poolList;
 
-    public ResGaraGemstone1EnterGame(int code) {
+    public ResGaraGemstone3EnterGame(int code) {
         super(code);
     }
 }

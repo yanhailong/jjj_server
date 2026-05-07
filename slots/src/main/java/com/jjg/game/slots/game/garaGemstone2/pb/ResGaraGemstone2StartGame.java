@@ -1,16 +1,16 @@
-package com.jjg.game.slots.game.garaGemstone1.pb;
+package com.jjg.game.slots.game.garaGemstone2.pb;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.slots.game.garaGemstone1.GaraGemstone1Constant;
+import com.jjg.game.slots.game.garaGemstone2.GaraGemstone2Constant;
 
 import java.util.List;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.GARA_GEMSTONE_1, cmd = GaraGemstone1Constant.MsgBean.RES_GARA_GEMSTONE_1_START_GAME, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.GARA_GEMSTONE_2, cmd = GaraGemstone2Constant.MsgBean.RES_GARA_GEMSTONE_2_START_GAME, resp = true)
 @ProtoDesc("返回开始游戏信息")
-public class ResGaraGemstone1StartGame extends AbstractResponse {
+public class ResGaraGemstone2StartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")
     public List<Integer> iconList;
     @ProtoDesc("累计中奖金币")
@@ -30,11 +30,12 @@ public class ResGaraGemstone1StartGame extends AbstractResponse {
     @ProtoDesc("经验")
     public long exp;
     @ProtoDesc("中奖图标信息")
-    public List<GaraGemstone1WinIconInfo> winIconInfoList;
+    public List<GaraGemstone2WinIconInfo> winIconInfoList;
     @ProtoDesc("第四轴倍数值")
     public long multiplyAxisTimes;
-
-    public ResGaraGemstone1StartGame(int code) {
+    @ProtoDesc("第四轴转出wheel的额外倍数")
+    public long wheelTimes;
+    public ResGaraGemstone2StartGame(int code) {
         super(code);
     }
 }

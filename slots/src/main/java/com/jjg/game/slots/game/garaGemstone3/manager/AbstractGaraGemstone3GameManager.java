@@ -1,4 +1,4 @@
-package com.jjg.game.slots.game.garaGemstone1.manager;
+package com.jjg.game.slots.game.garaGemstone3.manager;
 
 import cn.hutool.core.collection.CollUtil;
 import com.alibaba.fastjson.JSON;
@@ -14,42 +14,42 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.game.garaGemstone1.GaraGemstone1Constant;
-import com.jjg.game.slots.game.garaGemstone1.dao.GaraGemstone1GameDataDao;
-import com.jjg.game.slots.game.garaGemstone1.dao.GaraGemstone1ResultLibDao;
-import com.jjg.game.slots.game.garaGemstone1.data.*;
-import com.jjg.game.slots.game.garaGemstone1.pb.GaraGemstone1WinIconInfo;
+import com.jjg.game.slots.game.garaGemstone3.GaraGemstone3Constant;
+import com.jjg.game.slots.game.garaGemstone3.dao.GaraGemstone3GameDataDao;
+import com.jjg.game.slots.game.garaGemstone3.dao.GaraGemstone3ResultLibDao;
+import com.jjg.game.slots.game.garaGemstone3.data.*;
+import com.jjg.game.slots.game.garaGemstone3.pb.GaraGemstone3WinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGameManager<GaraGemstone1PlayerGameData, GaraGemstone1ResultLib, GaraGemstone1GameRunInfo> {
+public abstract class AbstractGaraGemstone3GameManager extends AbstractSlotsGameManager<GaraGemstone3PlayerGameData, GaraGemstone3ResultLib, GaraGemstone3GameRunInfo> {
     @Autowired
-    private GaraGemstone1ResultLibDao libDao;
+    private GaraGemstone3ResultLibDao libDao;
     @Autowired
-    private GaraGemstone1GenerateManager gameGenerateManager;
+    private GaraGemstone3GenerateManager gameGenerateManager;
     @Autowired
     private SlotsPoolDao slotsPoolDao;
     @Autowired
-    private GaraGemstone1GameDataDao gameDataDao;
+    private GaraGemstone3GameDataDao gameDataDao;
 
-    public AbstractGaraGemstone1GameManager() {
-        super(GaraGemstone1PlayerGameData.class, GaraGemstone1ResultLib.class, GaraGemstone1GameRunInfo.class);
+    public AbstractGaraGemstone3GameManager() {
+        super(GaraGemstone3PlayerGameData.class, GaraGemstone3ResultLib.class, GaraGemstone3GameRunInfo.class);
     }
 
     @Override
     public void init() {
-        log.info("启动伽罗宝石1游戏管理器...");
+        log.info("启动伽罗宝石31游戏管理器...");
         super.init();
         addUpdatePoolEvent();
         gameUpdatePool();
     }
 
     @Override
-    protected GaraGemstone1GameRunInfo startGame(PlayerController playerController, GaraGemstone1PlayerGameData playerGameData, long stake, boolean auto) {
-        GaraGemstone1GameRunInfo gameRunInfo = new GaraGemstone1GameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
+    protected GaraGemstone3GameRunInfo startGame(PlayerController playerController, GaraGemstone3PlayerGameData playerGameData, long stake, boolean auto) {
+        GaraGemstone3GameRunInfo gameRunInfo = new GaraGemstone3GameRunInfo(Code.SUCCESS, playerGameData.getPlayerId());
         try {
             gameRunInfo.setAuto(auto);
             WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerController.getPlayer().getRoomCfgId());
@@ -57,7 +57,7 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
             playerController.setPlayer(player);
             gameRunInfo.setBeforeGold(getMoneyByItemId(warehouseCfg, player));
             int status = playerGameData.getStatus();
-            if (status == GaraGemstone1Constant.Status.NORMAL) {
+            if (status == GaraGemstone3Constant.Status.NORMAL) {
                 normal(gameRunInfo, playerGameData, stake);
             } else {
                 gameRunInfo.setCode(Code.FAIL);
@@ -95,7 +95,7 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
     }
 
     @Override
-    public GaraGemstone1GameRunInfo normal(GaraGemstone1GameRunInfo gameRunInfo, GaraGemstone1PlayerGameData playerGameData, long betValue, GaraGemstone1ResultLib resultLib) {
+    public GaraGemstone3GameRunInfo normal(GaraGemstone3GameRunInfo gameRunInfo, GaraGemstone3PlayerGameData playerGameData, long betValue, GaraGemstone3ResultLib resultLib) {
         // 游戏时动态生成第四轴图标，写入 resultLib.iconArr 并设置 multiplyAxisTimes/axisJackpotId
         gameGenerateManager.generateAxisIcons(resultLib);
 
@@ -103,7 +103,7 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
         long axisMultiplier = resultLib.getMultiplyAxisTimes() > 0 ? resultLib.getMultiplyAxisTimes() : 1;
         long addTimes = lineTimes * axisMultiplier;
 
-        gameRunInfo.setStatus(GaraGemstone1Constant.Status.NORMAL);
+        gameRunInfo.setStatus(GaraGemstone3Constant.Status.NORMAL);
         log.debug("id={},data={}", resultLib.getId(), JSON.toJSONString(resultLib));
         gameRunInfo.setIconArr(resultLib.getIconArr());
         if (gameRunInfo.getBigPoolTimes() < 1) {
@@ -130,16 +130,17 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
         return gameRunInfo;
     }
 
-    protected List<GaraGemstone1WinIconInfo> transAwardLinePbInfo(List<GaraGemstone1AwardLineInfo> infoList, long oneBetScore) {
+    protected List<GaraGemstone3WinIconInfo> transAwardLinePbInfo(List<GaraGemstone3AwardLineInfo> infoList, long oneBetScore) {
         if (CollUtil.isEmpty(infoList)) {
             return null;
         }
-        List<GaraGemstone1WinIconInfo> list = new ArrayList<>(infoList.size());
-        for (GaraGemstone1AwardLineInfo lineInfo : infoList) {
-            GaraGemstone1WinIconInfo resultLineInfo = new GaraGemstone1WinIconInfo();
+        List<GaraGemstone3WinIconInfo> list = new ArrayList<>(infoList.size());
+        for (GaraGemstone3AwardLineInfo lineInfo : infoList) {
+            GaraGemstone3WinIconInfo resultLineInfo = new GaraGemstone3WinIconInfo();
             resultLineInfo.id = lineInfo.getId();
             resultLineInfo.iconIndexs = getIconIndexsByLineId(lineInfo.getId()).subList(0, lineInfo.getSameCount());
-            resultLineInfo.winGold = oneBetScore * lineInfo.getBaseTimes();
+            resultLineInfo.baseWinGold = oneBetScore * lineInfo.getBaseTimes();
+            resultLineInfo.winGold = oneBetScore * lineInfo.getTotalTimes();
             list.add(resultLineInfo);
         }
         return list;
@@ -148,8 +149,8 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
     /**
      * 获取奖池信息
      */
-    public GaraGemstone1GameRunInfo getPoolValue(PlayerController playerController, long stake) {
-        GaraGemstone1GameRunInfo gameRunInfo = new GaraGemstone1GameRunInfo(Code.SUCCESS, playerController.playerId());
+    public GaraGemstone3GameRunInfo getPoolValue(PlayerController playerController, long stake) {
+        GaraGemstone3GameRunInfo gameRunInfo = new GaraGemstone3GameRunInfo(Code.SUCCESS, playerController.playerId());
         try {
             int roomCfgId = playerController.getPlayer().getRoomCfgId();
             long poolValue = getPoolValueByRoomCfgId(roomCfgId);
@@ -174,35 +175,35 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
     }
 
     @Override
-    protected GaraGemstone1ResultLibDao getResultLibDao() {
+    protected GaraGemstone3ResultLibDao getResultLibDao() {
         return this.libDao;
     }
 
     @Override
-    protected GaraGemstone1GameDataDao getGameDataDao() {
+    protected GaraGemstone3GameDataDao getGameDataDao() {
         return this.gameDataDao;
     }
 
     @Override
-    protected GaraGemstone1GenerateManager getGenerateManager() {
+    protected GaraGemstone3GenerateManager getGenerateManager() {
         return this.gameGenerateManager;
     }
 
     @Override
     protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return GaraGemstone1PlayerGameDataDTO.class;
+        return GaraGemstone3PlayerGameDataDTO.class;
     }
 
     @Override
     public int getGameType() {
-        return CoreConst.GameType.GARA_GEMSTONE_1;
+        return CoreConst.GameType.GARA_GEMSTONE_3;
     }
 
     @Override
     public void shutdown() {
         try {
             super.shutdown();
-            log.info("已关闭伽罗宝石1游戏管理器");
+            log.info("已关闭伽罗宝石31游戏管理器");
         } catch (Exception e) {
             log.error("", e);
         }

@@ -1,4 +1,4 @@
-package com.jjg.game.slots.game.garaGemstone1;
+package com.jjg.game.slots.game.garaGemstone3;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.MessageConst;
@@ -6,29 +6,29 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.controller.SlotsRoomController;
-import com.jjg.game.slots.game.garaGemstone1.data.GaraGemstone1GameRunInfo;
-import com.jjg.game.slots.game.garaGemstone1.manager.GaraGemstone1GameManager;
-import com.jjg.game.slots.game.garaGemstone1.manager.GaraGemstone1RoomGameManager;
-import com.jjg.game.slots.game.garaGemstone1.manager.GaraGemstone1SendMessageManager;
-import com.jjg.game.slots.game.garaGemstone1.pb.ReqGaraGemstone1EnterGame;
-import com.jjg.game.slots.game.garaGemstone1.pb.ReqGaraGemstone1PoolValue;
-import com.jjg.game.slots.game.garaGemstone1.pb.ReqGaraGemstone1StartGame;
+import com.jjg.game.slots.game.garaGemstone3.data.GaraGemstone3GameRunInfo;
+import com.jjg.game.slots.game.garaGemstone3.manager.GaraGemstone3GameManager;
+import com.jjg.game.slots.game.garaGemstone3.manager.GaraGemstone3RoomGameManager;
+import com.jjg.game.slots.game.garaGemstone3.manager.GaraGemstone3SendMessageManager;
+import com.jjg.game.slots.game.garaGemstone3.pb.ReqGaraGemstone3EnterGame;
+import com.jjg.game.slots.game.garaGemstone3.pb.ReqGaraGemstone3PoolValue;
+import com.jjg.game.slots.game.garaGemstone3.pb.ReqGaraGemstone3StartGame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-@MessageType(MessageConst.MessageTypeDef.GARA_GEMSTONE_1)
-public class GaraGemstone1MessageHandler {
+@MessageType(MessageConst.MessageTypeDef.GARA_GEMSTONE_3)
+public class GaraGemstone3MessageHandler {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private GaraGemstone1GameManager gameManager;
+    private GaraGemstone3GameManager gameManager;
     @Autowired
-    private GaraGemstone1RoomGameManager roomGameManager;
+    private GaraGemstone3RoomGameManager roomGameManager;
     @Autowired
-    private GaraGemstone1SendMessageManager sendMessageManager;
+    private GaraGemstone3SendMessageManager sendMessageManager;
 
     /**
      * 请求配置信息
@@ -36,11 +36,11 @@ public class GaraGemstone1MessageHandler {
      * @param playerController
      * @param req
      */
-    @Command(GaraGemstone1Constant.MsgBean.REQ_GARA_GEMSTONE_1_CONFIG_INFO)
-    public void reqConfigInfo(PlayerController playerController, ReqGaraGemstone1EnterGame req) {
+    @Command(GaraGemstone3Constant.MsgBean.REQ_GARA_GEMSTONE_3_CONFIG_INFO)
+    public void reqConfigInfo(PlayerController playerController, ReqGaraGemstone3EnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
-            GaraGemstone1GameRunInfo gameRunInfo;
+            GaraGemstone3GameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
                 gameRunInfo = gameManager.enterGame(playerController);
             } else if (playerController.getScene() instanceof SlotsRoomController) {
@@ -61,11 +61,11 @@ public class GaraGemstone1MessageHandler {
      * @param playerController
      * @param req
      */
-    @Command(GaraGemstone1Constant.MsgBean.REQ_GARA_GEMSTONE_1_START_GAME)
-    public void reqStartGame(PlayerController playerController, ReqGaraGemstone1StartGame req) {
+    @Command(GaraGemstone3Constant.MsgBean.REQ_GARA_GEMSTONE_3_START_GAME)
+    public void reqStartGame(PlayerController playerController, ReqGaraGemstone3StartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            GaraGemstone1GameRunInfo gameRunInfo;
+            GaraGemstone3GameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
                 gameRunInfo = gameManager.playerStartGame(playerController, req.stakeValue);
             } else if (playerController.getScene() instanceof SlotsRoomController) {
@@ -86,10 +86,10 @@ public class GaraGemstone1MessageHandler {
      * @param playerController
      * @param req
      */
-    @Command(GaraGemstone1Constant.MsgBean.REQ_GARA_GEMSTONE_1_POOL_INFO)
-    public void reqGaraGemstone1PoolValue(PlayerController playerController, ReqGaraGemstone1PoolValue req) {
+    @Command(GaraGemstone3Constant.MsgBean.REQ_GARA_GEMSTONE_3_POOL_INFO)
+    public void reqGaraGemstone3PoolValue(PlayerController playerController, ReqGaraGemstone3PoolValue req) {
         try {
-            GaraGemstone1GameRunInfo gameRunInfo;
+            GaraGemstone3GameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
                 gameRunInfo = gameManager.getPoolValue(playerController,req.stakeValue);
             } else if (playerController.getScene() instanceof SlotsRoomController) {
