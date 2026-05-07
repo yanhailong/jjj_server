@@ -73,6 +73,7 @@ public class LuckyPokerUtils {
 
     /**
      * 根据传入的牌列表，检查是什么牌型
+     *
      * @param cards
      * @return
      */
@@ -169,10 +170,11 @@ public class LuckyPokerUtils {
 
     /**
      * 将cards对象列表转为id列表
+     *
      * @param cards
      * @return
      */
-    public static List<Integer> card2Ids(List<PloyCard> cards){
+    public static List<Integer> card2Ids(List<PloyCard> cards) {
         return cards.stream().map(PloyCard::getClientCardId).collect(Collectors.toList());
     }
 
@@ -822,6 +824,10 @@ public class LuckyPokerUtils {
      * 判断5个点数是否构成顺子
      */
     private static boolean isStraightPoints(List<Integer> points) {
+        // A高顺子: 1,10,11,12,13（仅 5 张点数时适用）
+        if (points.size() != 5) {
+            return false;
+        }
         List<Integer> sorted = new ArrayList<>(points);
         Collections.sort(sorted);
         // 普通顺子
@@ -835,7 +841,6 @@ public class LuckyPokerUtils {
         if (normal) {
             return true;
         }
-        // A高顺子: 1,10,11,12,13
         return sorted.get(0) == 1 && sorted.get(1) == 10
                 && sorted.get(2) == 11 && sorted.get(3) == 12 && sorted.get(4) == 13;
     }
