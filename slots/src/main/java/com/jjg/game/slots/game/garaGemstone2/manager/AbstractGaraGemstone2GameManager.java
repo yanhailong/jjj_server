@@ -198,7 +198,7 @@ public abstract class AbstractGaraGemstone2GameManager extends AbstractSlotsGame
 
     @Override
     public int getGameType() {
-        return CoreConst.GameType.GARA_GEMSTONE_1;
+        return CoreConst.GameType.GARA_GEMSTONE_2;
     }
 
     @Override
