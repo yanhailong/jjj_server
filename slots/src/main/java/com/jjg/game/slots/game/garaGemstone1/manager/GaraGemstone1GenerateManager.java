@@ -8,12 +8,11 @@ import com.jjg.game.sampledata.bean.BaseRollerCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.garaGemstone1.GaraGemstone1Constant;
 import com.jjg.game.slots.game.garaGemstone1.data.GaraGemstone1AwardLineInfo;
 import com.jjg.game.slots.game.garaGemstone1.data.GaraGemstone1MultiplyAxisInfo;
 import com.jjg.game.slots.game.garaGemstone1.data.GaraGemstone1ResultLib;
-import com.jjg.game.slots.game.luckymouse.LuckyMouseConstant;
-import com.jjg.game.slots.game.luckymouse.data.LuckyMouseResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import jodd.util.StringUtil;
 import org.springframework.stereotype.Component;
@@ -121,14 +120,20 @@ public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<G
      */
     private int[] appendMultiplyAxisIcons(int[] originalArr, GaraGemstone1ResultLib lib) {
         // --- 1. 加权随机选出倍数轴符号 ---
-        GaraGemstone1MultiplyAxisInfo selectedInfo = randomSelectAxisInfo();
-        if (selectedInfo == null) {
-            lib.setMultiplyAxisTimes(1);
-            int[] newArr = new int[originalArr.length + 3];
-            System.arraycopy(originalArr, 0, newArr, 0, originalArr.length);
-            return newArr;
+        GaraGemstone1MultiplyAxisInfo selectedInfo;
+        if (lib.getLibTypeSet() != null && lib.getLibTypeSet().contains(GaraGemstone1Constant.SpecialMode.JACKPOOL)) {
+            selectedInfo = new GaraGemstone1MultiplyAxisInfo();
+            selectedInfo.setTimes(0);
+            selectedInfo.setIconId(GaraGemstone1Constant.BaseElement.ID_JACKPOOL);
+        } else {
+            selectedInfo = randomSelectAxisInfo();
+            if (selectedInfo == null) {
+                lib.setMultiplyAxisTimes(1);
+                int[] newArr = new int[originalArr.length + 3];
+                System.arraycopy(originalArr, 0, newArr, 0, originalArr.length);
+                return newArr;
+            }
         }
-
         // --- 2. 记录倍数（奖金符号倍数取1，奖池奖励另外处理）---
         long axisMultiplyTimes = selectedInfo.getTimes() > 0 ? selectedInfo.getTimes() : 1;
         lib.setMultiplyAxisTimes(axisMultiplyTimes);
@@ -139,8 +144,9 @@ public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<G
             if (initCfg != null && initCfg.getPrizePoolIdList() != null) {
                 for (int poolId : initCfg.getPrizePoolIdList()) {
                     PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
-                    if (poolCfg != null && poolCfg.getTruePool() == selectedInfo.getIconId()) {
-                        lib.setAxisJackpotId(poolId);
+                    if (poolCfg != null) {
+                        lib.setJackpotId(poolId);
+                        lib.addJackpotId(poolId);
                         break;
                     }
                 }
@@ -196,8 +202,12 @@ public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<G
         newArr[originalArr.length + 1] = centerIcon;  // index 11: 第四轴中格（倍数选定格）
         newArr[originalArr.length + 2] = nextIcon;    // index 12: 第四轴下格
 
+        if (selectedInfo.getIconId() == GaraGemstone1Constant.BaseElement.ID_JACKPOOL) {
+            newArr[originalArr.length + 1] = GaraGemstone1Constant.BaseElement.ID_JACKPOOL;  // index 11: 第四轴中格（倍数选定格）
+        }
+
         log.debug("倍数轴生成完毕 iconId={} times={} axisJackpotId={} axisIcons=[{},{},{}]",
-                selectedInfo.getIconId(), axisMultiplyTimes, lib.getAxisJackpotId(),
+                selectedInfo.getIconId(), axisMultiplyTimes, lib.getJackpotId(),
                 prevIcon, centerIcon, nextIcon);
         return newArr;
     }

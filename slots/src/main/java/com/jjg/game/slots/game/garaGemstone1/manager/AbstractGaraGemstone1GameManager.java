@@ -9,6 +9,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
@@ -43,6 +44,7 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
         log.info("启动伽罗宝石1游戏管理器...");
         super.init();
         addUpdatePoolEvent();
+        gameUpdatePool();
     }
 
     @Override
@@ -119,19 +121,8 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
                 }
             }
         }
-        // 检查第四轴（倍数轴）奖金符号触发的奖池
-        if (resultLib.getAxisJackpotId() > 0) {
-            PoolCfg axisPoolCfg = GameDataManager.getPoolCfg(resultLib.getAxisJackpotId());
-            if (axisPoolCfg != null) {
-                CommonResult<Long> axisResult = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
-                        axisPoolCfg.getTruePool(), axisPoolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
-                if (axisResult.success()) {
-                    gameRunInfo.addSmallPoolGold(axisResult.data);
-                    log.debug("触发倍数轴奖金符号奖池 playerId={} poolId={} reward={}",
-                            playerGameData.getPlayerId(), resultLib.getAxisJackpotId(), axisResult.data);
-                }
-            }
-        }
+        // 检查第四轴（倍数轴）奖金符号触发的奖池（JACKPOOL模式）
+        rewardFromSmallPool2(gameRunInfo, playerGameData, resultLib.getJackpotIds());
         gameRunInfo.setMultiplyAxisTimes(resultLib.getMultiplyAxisTimes());
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setStake(betValue);
@@ -160,7 +151,22 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
     public GaraGemstone1GameRunInfo getPoolValue(PlayerController playerController, long stake) {
         GaraGemstone1GameRunInfo gameRunInfo = new GaraGemstone1GameRunInfo(Code.SUCCESS, playerController.playerId());
         try {
-            gameRunInfo.setMajor(getPoolValueByRoomCfgId(playerController.getPlayer().getRoomCfgId()));
+            int roomCfgId = playerController.getPlayer().getRoomCfgId();
+            long poolValue = getPoolValueByRoomCfgId(roomCfgId);
+            // 若奖池仍为 0（如配置未初始化或尚无玩家下注），使用时间加权公式计算假奖池显示值
+            if (poolValue <= 0 && stake > 0) {
+                BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
+                if (baseInitCfg != null && CollUtil.isNotEmpty(baseInitCfg.getPrizePoolIdList())) {
+                    for (int poolId : baseInitCfg.getPrizePoolIdList()) {
+                        PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+                        if (poolCfg != null && CollUtil.isNotEmpty(poolCfg.getGrowthRate()) && poolCfg.getGrowthRate().size() >= 2) {
+                            poolValue = calPoolValue(stake, poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax());
+                            break;
+                        }
+                    }
+                }
+            }
+            gameRunInfo.setMajor(poolValue);
         } catch (Exception e) {
             log.error("", e);
         }

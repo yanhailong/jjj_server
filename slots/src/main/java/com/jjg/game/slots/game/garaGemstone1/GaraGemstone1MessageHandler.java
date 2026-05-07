@@ -36,7 +36,7 @@ public class GaraGemstone1MessageHandler {
      * @param playerController
      * @param req
      */
-    @Command(GaraGemstone1Constant.MsgBean.REQ_LUCKY_MOUSE_CONFIG_INFO)
+    @Command(GaraGemstone1Constant.MsgBean.REQ_GARA_GEMSTONE_1_CONFIG_INFO)
     public void reqConfigInfo(PlayerController playerController, ReqGaraGemstone1EnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
@@ -61,7 +61,7 @@ public class GaraGemstone1MessageHandler {
      * @param playerController
      * @param req
      */
-    @Command(GaraGemstone1Constant.MsgBean.REQ_LUCKY_MOUSE_START_GAME)
+    @Command(GaraGemstone1Constant.MsgBean.REQ_GARA_GEMSTONE_1_START_GAME)
     public void reqStartGame(PlayerController playerController, ReqGaraGemstone1StartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
@@ -86,7 +86,7 @@ public class GaraGemstone1MessageHandler {
      * @param playerController
      * @param req
      */
-    @Command(GaraGemstone1Constant.MsgBean.REQ_LUCKY_MOUSE_POOL_INFO)
+    @Command(GaraGemstone1Constant.MsgBean.REQ_GARA_GEMSTONE_1_POOL_INFO)
     public void reqGaraGemstone1PoolValue(PlayerController playerController, ReqGaraGemstone1PoolValue req) {
         try {
             GaraGemstone1GameRunInfo gameRunInfo;

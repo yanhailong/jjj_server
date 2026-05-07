@@ -8,7 +8,7 @@ import com.jjg.game.slots.game.garaGemstone1.GaraGemstone1Constant;
 
 import java.util.List;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.GARA_GEMSTONE_1, cmd = GaraGemstone1Constant.MsgBean.RES_LUCKY_MOUSE_START_GAME, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.GARA_GEMSTONE_1, cmd = GaraGemstone1Constant.MsgBean.RES_GARA_GEMSTONE_1_START_GAME, resp = true)
 @ProtoDesc("返回开始游戏信息")
 public class ResGaraGemstone1StartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")
