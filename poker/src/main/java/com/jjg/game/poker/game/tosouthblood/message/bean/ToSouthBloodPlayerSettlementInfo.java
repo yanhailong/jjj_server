@@ -24,6 +24,8 @@ public class ToSouthBloodPlayerSettlementInfo {
     public List<Integer> instantWinCards;
     @ProtoDesc("通杀类型 (0:无, 1:4个2, 2:一条龙, 3:同色, 4:6个对, 5:5连对  6:6连对 7:3连三张  8: 4连三张 )")
     public int instantWinType;
+    @ProtoDesc("名次 (1:第一名, 2:第二名, 3:第三名, 4:第四名/最后)")
+    public int rank;
 
     public ToSouthBloodPlayerSettlementInfo() {
     }
@@ -41,6 +43,7 @@ public class ToSouthBloodPlayerSettlementInfo {
         private boolean isInstantWin;
         private List<Integer> instantWinCards;
         private int instantWinType;
+        private int rank;
 
         public Builder playerId(long playerId) {
             this.playerId = playerId;
@@ -82,6 +85,11 @@ public class ToSouthBloodPlayerSettlementInfo {
             return this;
         }
 
+        public Builder rank(int rank) {
+            this.rank = rank;
+            return this;
+        }
+
         public ToSouthBloodPlayerSettlementInfo build() {
             ToSouthBloodPlayerSettlementInfo info = new ToSouthBloodPlayerSettlementInfo();
             info.playerId = this.playerId;
@@ -92,6 +100,7 @@ public class ToSouthBloodPlayerSettlementInfo {
             info.isInstantWin = this.isInstantWin;
             info.instantWinCards = this.instantWinCards;
             info.instantWinType = this.instantWinType;
+            info.rank = this.rank;
             return info;
         }
     }

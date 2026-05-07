@@ -12,6 +12,11 @@ import java.util.List;
 public class ToSouthBloodSettlementContext {
     private boolean isInstantWin;
     private final List<SettlementItem> settlementItems = new ArrayList<>();
+    /**
+     * 血战最终结算标志：true 时结算金额已在游戏过程中实时扣/加，
+     * 结算阶段只需发通知、更新统计，不再重复计算扣款。
+     */
+    private boolean isBloodFinalSettlement;
 
     public ToSouthBloodSettlementContext() {
     }
@@ -32,6 +37,14 @@ public class ToSouthBloodSettlementContext {
         this.settlementItems.add(item);
     }
     
+    public boolean isBloodFinalSettlement() {
+        return isBloodFinalSettlement;
+    }
+
+    public void setBloodFinalSettlement(boolean bloodFinalSettlement) {
+        isBloodFinalSettlement = bloodFinalSettlement;
+    }
+
     public List<PlayerSeatInfo> getWinners() {
         List<PlayerSeatInfo> winners = new ArrayList<>();
         for (SettlementItem item : settlementItems) {

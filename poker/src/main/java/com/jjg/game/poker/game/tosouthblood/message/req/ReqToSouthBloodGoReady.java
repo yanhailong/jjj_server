@@ -6,7 +6,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.poker.game.tosouthblood.constant.ToSouthBloodConstant;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthBloodConstant.MsgBean.REQ_GO_READY)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH_BLOOD, cmd = ToSouthBloodConstant.MsgBean.REQ_GO_READY)
 @ProtoDesc("南方前进-血战玩家请求进行准备")
 public class ReqToSouthBloodGoReady extends AbstractMessage {
     @ProtoDesc("1准备 2取消")

@@ -8,7 +8,7 @@ import com.jjg.game.poker.game.tosouthblood.constant.ToSouthBloodConstant;
 
 import java.util.List;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthBloodConstant.MsgBean.RESP_SEND_CARDS_INFO, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH_BLOOD, cmd = ToSouthBloodConstant.MsgBean.RESP_SEND_CARDS_INFO, resp = true)
 @ProtoDesc("响应南方前进-血战房间基本信息")
 public class RespToSouthBloodSendCardsInfo extends AbstractNotice {
     @ProtoDesc("玩家原始手牌")
