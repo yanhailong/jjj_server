@@ -19,6 +19,8 @@ public class ResLuckyPokerEnterGame extends AbstractResponse {
     public List<Integer> stakeList;
     @ProtoDesc("默认押注")
     public long defaultBet;
+    @ProtoDesc("当前状态 0.可以请求bet  1.可以请求发牌")
+    public int status;
 
     public ResLuckyPokerEnterGame(int code) {
         super(code);

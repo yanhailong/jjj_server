@@ -90,6 +90,10 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
         res.stakeList = cfg.getLineBetScore();
         res.defaultBet = cfg.getDefaultBet();
+
+        if (playerGameData.getFirstCardList() != null && !playerGameData.getFirstCardList().isEmpty() && playerGameData.getSecondCardList() != null && !playerGameData.getSecondCardList().isEmpty()) {
+            res.defaultBet = 1;
+        }
         return res;
     }
 
