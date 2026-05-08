@@ -69,6 +69,12 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
         return lib;
     }
 
+
+    @Override
+    public boolean autoSetFreeModelLibType() {
+        return true;
+    }
+
     @Override
     public void onMergeFreeResults(MahjiongWin2ResultLib lib, int addCount) {
         lib.setAddFreeCount(addCount);
