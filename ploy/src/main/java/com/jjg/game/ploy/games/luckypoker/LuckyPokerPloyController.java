@@ -92,7 +92,10 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         res.defaultBet = cfg.getDefaultBet();
 
         if (playerGameData.getFirstCardList() != null && !playerGameData.getFirstCardList().isEmpty() && playerGameData.getSecondCardList() != null && !playerGameData.getSecondCardList().isEmpty()) {
-            res.defaultBet = 1;
+            res.pokerIds = LuckyPokerUtils.card2Ids(playerGameData.getFirstCardList());
+        }else {
+            playerGameData.setFinalCardList(null);
+            playerGameData.setSecondCardList(null);
         }
         return res;
     }

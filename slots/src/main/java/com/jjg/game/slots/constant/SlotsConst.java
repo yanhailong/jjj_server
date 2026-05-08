@@ -108,6 +108,10 @@ public class SlotsConst {
         //因为SpecialResultLibCfg.getSectionProp()的之，在所有的modelId中都是一样的，所以服务器只会读取默认的modelId对应的sectionProp
         public static final int DEFAULT_SPECIAL_RESULT_LIB_MODELID = 1;
 
+        //单次结果库生成中，免费局总数的硬上限。防止嵌套触发免费时无限膨胀导致内存溢出
+        public static final int MAX_FREE_GAME_TOTAL = 100;
+        //单次结果库生成中，免费中免费的总层数。防止嵌套触发免费时无限膨胀导致内存溢出
+        public static final int MAX_FREE_DEEP_TOTAL = 3;
     }
 
     //结果库变更类型

@@ -241,30 +241,53 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
         }
         superiorLib.setAddFreeCount(freeCount);
         log.debug("增加免费游戏次数 addCount = {}", freeCount);
-        for (int i = 0; i < freeCount; i++) {
-            //检查是否有修改图案策略组id
-            int specialGroupGirdID = 0;
-            if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
-                Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
-                if (randKey != null && randKey > 0) {
-                    specialGroupGirdID = randKey;
+
+        //防止嵌套触发免费时总局数无限膨胀导致内存溢出。同一根 checkAward 调用链共享一个累计计数器
+        int[] guard = freeGenTotalGuard.get();
+        boolean isRoot = (guard == null);
+        if (isRoot) {
+            guard = new int[]{0, 0};
+            freeGenTotalGuard.set(guard);
+        }
+
+        guard[1]++;
+        try {
+            for (int i = 0; i < freeCount; i++) {
+                if (guard[0] >= SlotsConst.Common.MAX_FREE_GAME_TOTAL || guard[1] > SlotsConst.Common.MAX_FREE_DEEP_TOTAL) {
+                    log.error("免费生成达到硬上限，跳过剩余触发 gameType={},miniGameId={},specialModeType={},guard[0]={},guard[1]={},剩余请求={}", this.gameType, specialAuxiliaryCfg.getId(), specialModeType, guard[0], guard[1], freeCount - i);
+                    break;
                 }
-            }
-            CaptainJackResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
-            List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = lib.getSpecialAuxiliaryInfoList();
-            if (lib.getLibTypeSet() == null && CollectionUtil.isNotEmpty(specialAuxiliaryInfoList)) {
-                lib.setSpecialAuxiliaryInfoList(null);
-                specialAuxiliaryInfoList = List.copyOf(specialAuxiliaryInfoList);
-                specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
-                for (SpecialAuxiliaryInfo auxiliaryInfo : specialAuxiliaryInfoList) {
-                    if (CollectionUtil.isNotEmpty(auxiliaryInfo.getFreeGames())) {
-                        for (JSONObject freeGame : auxiliaryInfo.getFreeGames()) {
-                            specialAuxiliaryInfo.addFreeGame(freeGame);
-                        }
+                guard[0]++;
+
+                //检查是否有修改图案策略组id
+                int specialGroupGirdID = 0;
+                if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
+                    Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
+                    if (randKey != null && randKey > 0) {
+                        specialGroupGirdID = randKey;
                     }
                 }
-            } else {
-                specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
+                CaptainJackResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+                List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = lib.getSpecialAuxiliaryInfoList();
+                if (lib.getLibTypeSet() == null && CollectionUtil.isNotEmpty(specialAuxiliaryInfoList)) {
+                    lib.setSpecialAuxiliaryInfoList(null);
+                    specialAuxiliaryInfoList = List.copyOf(specialAuxiliaryInfoList);
+                    specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
+                    for (SpecialAuxiliaryInfo auxiliaryInfo : specialAuxiliaryInfoList) {
+                        if (CollectionUtil.isNotEmpty(auxiliaryInfo.getFreeGames())) {
+                            for (JSONObject freeGame : auxiliaryInfo.getFreeGames()) {
+                                specialAuxiliaryInfo.addFreeGame(freeGame);
+                            }
+                        }
+                    }
+                } else {
+                    specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
+                }
+            }
+        } finally {
+            guard[1]--;
+            if (isRoot) {
+                freeGenTotalGuard.remove();
             }
         }
 
@@ -536,7 +559,7 @@ public class CaptainJackGameGenerateManager extends AbstractSlotsGenerateManager
         if (specialPlayCfg == null || StringUtil.isEmpty(specialPlayCfg.getValue())) {
             return;
         }
-        String[] split = StringUtils.split(specialPlayCfg.getValue(),"_");
+        String[] split = StringUtils.split(specialPlayCfg.getValue(), "_");
         if (split.length != 2) {
             return;
         }

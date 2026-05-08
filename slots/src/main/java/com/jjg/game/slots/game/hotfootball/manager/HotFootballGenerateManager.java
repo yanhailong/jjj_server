@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.*;
 import com.jjg.game.slots.game.acedj.AceDjConstant;
 import com.jjg.game.slots.game.hotfootball.HotFootballConstant;
@@ -135,22 +136,44 @@ public class HotFootballGenerateManager extends AbstractSlotsGenerateManager<Hot
 
         int remainFreeCount = freeCount;
 
-        while (remainFreeCount > 0) {
-            //检查是否有修改图案策略组id
-            int specialGroupGirdID = 0;
-            if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
-                Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
-                if (randKey != null && randKey > 0) {
-                    specialGroupGirdID = randKey;
-                }
-            }
+        //防止嵌套触发免费时总局数无限膨胀导致内存溢出。同一根 checkAward 调用链共享一个累计计数器
+        int[] guard = freeGenTotalGuard.get();
+        boolean isRoot = (guard == null);
+        if (isRoot) {
+            guard = new int[]{0, 0};
+            freeGenTotalGuard.set(guard);
+        }
 
-            HotFootballResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
-            int addCount = checkAddFreeCount(lib);
-            lib.setAddFreeCount(addCount);
-            remainFreeCount += addCount;
-            specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
-            remainFreeCount--;
+        guard[1]++;
+        try {
+            while (remainFreeCount > 0) {
+                if (guard[0] >= SlotsConst.Common.MAX_FREE_GAME_TOTAL || guard[1] > SlotsConst.Common.MAX_FREE_DEEP_TOTAL) {
+                    log.error("免费生成达到硬上限，跳过剩余触发 gameType={},miniGameId={},specialModeType={},guard[0]={},guard[1]={},剩余请求={}", this.gameType, specialAuxiliaryCfg.getId(), specialModeType, guard[0], guard[1], remainFreeCount);
+                    break;
+                }
+                guard[0]++;
+
+                //检查是否有修改图案策略组id
+                int specialGroupGirdID = 0;
+                if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
+                    Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
+                    if (randKey != null && randKey > 0) {
+                        specialGroupGirdID = randKey;
+                    }
+                }
+
+                HotFootballResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+                int addCount = checkAddFreeCount(lib);
+                lib.setAddFreeCount(addCount);
+                remainFreeCount += addCount;
+                specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
+                remainFreeCount--;
+            }
+        } finally {
+            guard[1]--;
+            if (isRoot) {
+                freeGenTotalGuard.remove();
+            }
         }
     }
 
