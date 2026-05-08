@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.mahjiongwin.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -38,7 +39,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
     @Override
     public MahjiongWinResultLib checkAward(int[] arr, MahjiongWinResultLib lib, boolean freeModel) throws Exception {
-        if(freeModel){
+        if (freeModel) {
             lib.setGameType(this.gameType);
             lib.setIconArr(arr);
 
@@ -66,7 +67,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
             calTimes(lib);
             return lib;
-        }else {
+        } else {
             lib.setGameType(this.gameType);
             lib.setIconArr(arr);
 
@@ -85,7 +86,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
             int[] newArr = new int[arr.length];
             System.arraycopy(arr, 0, newArr, 0, arr.length);
 
-            if(lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
+            if (lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
                 lib.getLibTypeSet().forEach(type -> {
                     //是否有消除
                     repairIcons(type, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
@@ -100,6 +101,12 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
             return lib;
         }
     }
+
+    @Override
+    public Pair<Integer, Integer> getFreeGameLimitConfig() {
+        return Pair.newPair(MahjiongWinConstant.Common.MAX_FREE_GAME_TOTAL, MahjiongWinConstant.Common.MAX_FREE_DEEP_TOTAL);
+    }
+
     @Override
     protected MahjiongWinAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg, int[] arr) {
         MahjiongWinAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg, arr);
@@ -373,10 +380,10 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
     @Override
     public void calTimes(MahjiongWinResultLib lib) throws Exception {
-        if(triggerFreeLib(lib,MahjiongWinConstant.SpecialMode.FREE)){
+        if (triggerFreeLib(lib, MahjiongWinConstant.SpecialMode.FREE)) {
             //免费
             lib.addTimes(calFree(lib));
-        }else {
+        } else {
             //中奖线
             lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
             //消除后新增图标
