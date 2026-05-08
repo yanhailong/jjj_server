@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.luckymouse.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.luckymouse.data.LuckyMousePlayerGameData;
 import com.jjg.game.slots.game.luckymouse.data.LuckyMousePlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.luckymouse.data.LuckyMouseResultLib;

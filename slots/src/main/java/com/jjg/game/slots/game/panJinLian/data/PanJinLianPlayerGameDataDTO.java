@@ -1,8 +1,6 @@
 package com.jjg.game.slots.game.panJinLian.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -13,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 
 @Document
-public class PanJinLianPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
+public class PanJinLianPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
     // 缓存免费的结果库
     private PanJinLianResultLib freeLib;
     // 剩余的免费次数

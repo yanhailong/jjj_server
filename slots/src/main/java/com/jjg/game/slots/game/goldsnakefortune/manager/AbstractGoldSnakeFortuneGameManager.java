@@ -9,7 +9,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.goldsnakefortune.GoldSnakeFortuneConstant;
 import com.jjg.game.slots.game.goldsnakefortune.dao.GoldSnakeFortuneGameDataDao;

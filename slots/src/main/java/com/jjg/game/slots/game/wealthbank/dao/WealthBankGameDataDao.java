@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.wealthbank.dao;
 
-import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.game.wealthbank.data.WealthBankPlayerGameDataDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;

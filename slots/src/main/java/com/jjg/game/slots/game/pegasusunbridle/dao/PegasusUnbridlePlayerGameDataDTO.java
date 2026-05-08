@@ -1,8 +1,6 @@
 package com.jjg.game.slots.game.pegasusunbridle.dao;
 
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleResultLib;
-import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
@@ -10,7 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * @date 2025/8/5 14:11
  */
 @Document
-public class PegasusUnbridlePlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
+public class PegasusUnbridlePlayerGameDataDTO extends SlotsPlayerGameDataDTO {
     private int currentRandomIndex;
     private PegasusUnbridleResultLib fuMa;
 

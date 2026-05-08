@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.garaGemstone2.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.garaGemstone2.data.GaraGemstone2PlayerGameData;
 import com.jjg.game.slots.game.garaGemstone2.data.GaraGemstone2PlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.garaGemstone2.data.GaraGemstone2ResultLib;

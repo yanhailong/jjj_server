@@ -1,8 +1,6 @@
 package com.jjg.game.slots.game.steamAge.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -12,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2025/8/5 16:14
  */
 @Document
-public class SteamAgePlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
+public class SteamAgePlayerGameDataDTO extends SlotsPlayerGameDataDTO {
     //缓存免费的结果库
     private SteamAgeResultLib freeLib;
     //剩余的免费次数

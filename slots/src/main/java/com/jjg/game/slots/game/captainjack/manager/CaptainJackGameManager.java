@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.captainjack.manager;
 
 
-import com.jjg.game.slots.game.captainjack.dao.CaptainJackGameDataDao;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackResultLibDao;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

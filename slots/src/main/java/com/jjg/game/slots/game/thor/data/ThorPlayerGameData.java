@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.thor.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
@@ -18,25 +17,5 @@ public class ThorPlayerGameData extends SlotsPlayerGameData {
 
     public void setFreeStart(boolean freeStart) {
         isFreeStart = freeStart;
-    }
-
-    @Override
-    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
-        T dto = super.converToDto(cla);
-        if (dto instanceof ThorPlayerGameDataDTO gameDataDTO) {
-            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
-            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
-            ThorResultLib freeLib = this.freeLib instanceof ThorResultLib lib ? lib : null;
-            gameDataDTO.setFreeLib(freeLib);
-            gameDataDTO.setFreeStart(this.isFreeStart);
-        }
-        if (dto instanceof ThorPlayerGameDataRoomDTO gameDataDTO) {
-            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
-            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
-            ThorResultLib freeLib = this.freeLib instanceof ThorResultLib lib ? lib : null;
-            gameDataDTO.setFreeLib(freeLib);
-            gameDataDTO.setFreeStart(this.isFreeStart);
-        }
-        return dto;
     }
 }

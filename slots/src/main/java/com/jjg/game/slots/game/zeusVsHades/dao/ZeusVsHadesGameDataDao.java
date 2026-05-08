@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.zeusVsHades.dao;
 
-import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.game.zeusVsHades.data.ZeusVsHadesPlayerGameDataDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;

@@ -1,14 +1,12 @@
 package com.jjg.game.slots.game.moneyrabbit.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Document
-public class MoneyRabbitPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
+public class MoneyRabbitPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
     //缓存免费的结果库
     private MoneyRabbitResultLib freeLib;
     //剩余的免费次数

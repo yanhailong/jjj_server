@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.thor.dao;
 
-import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.game.thor.data.ThorPlayerGameDataDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;

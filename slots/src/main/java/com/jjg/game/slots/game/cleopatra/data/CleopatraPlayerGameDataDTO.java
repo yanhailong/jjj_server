@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.cleopatra.data;
 
-import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
@@ -9,5 +8,5 @@ import org.springframework.data.mongodb.core.mapping.Document;
  */
 
 @Document
-public class CleopatraPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
+public class CleopatraPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
 }

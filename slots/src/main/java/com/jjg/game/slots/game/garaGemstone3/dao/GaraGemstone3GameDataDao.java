@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.garaGemstone3.dao;
 
-import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.game.garaGemstone3.data.GaraGemstone3PlayerGameDataDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;

@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.panJinLian.dao;
 
-import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.game.panJinLian.data.PanJinLianPlayerGameDataDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;

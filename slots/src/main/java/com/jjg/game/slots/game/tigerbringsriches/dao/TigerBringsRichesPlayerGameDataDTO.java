@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.tigerbringsriches.dao;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
 import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesPlayerGameData;
 import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesResultLib;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -11,7 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * @date 2025/8/5 14:11
  */
 @Document
-public class TigerBringsRichesPlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
+public class TigerBringsRichesPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
     private int currentRandomIndex;
     private TigerBringsRichesResultLib specialLib;
 

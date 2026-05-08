@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.hotfootball.dao;
 
-import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.game.hotfootball.data.HotFootballPlayerGameDataDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;

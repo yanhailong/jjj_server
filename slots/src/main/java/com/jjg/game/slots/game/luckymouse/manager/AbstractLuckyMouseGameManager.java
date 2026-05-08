@@ -13,7 +13,6 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.luckymouse.LuckyMouseConstant;
 import com.jjg.game.slots.game.luckymouse.dao.LuckyMouseGameDataDao;
 import com.jjg.game.slots.game.luckymouse.dao.LuckyMouseResultLibDao;

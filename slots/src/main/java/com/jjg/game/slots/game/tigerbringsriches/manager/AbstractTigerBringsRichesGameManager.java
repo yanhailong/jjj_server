@@ -14,7 +14,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.tigerbringsriches.constant.TigerBringsRichesConstant;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesGameDataDao;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesPlayerGameDataDTO;

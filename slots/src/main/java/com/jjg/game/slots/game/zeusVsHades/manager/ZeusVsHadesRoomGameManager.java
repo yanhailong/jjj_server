@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.zeusVsHades.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.zeusVsHades.data.ZeusVsHadesPlayerGameData;
 import com.jjg.game.slots.game.zeusVsHades.data.ZeusVsHadesPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.zeusVsHades.data.ZeusVsHadesResultLib;

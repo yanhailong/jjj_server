@@ -447,13 +447,7 @@ public class SlotsRoomManager implements HallRoomBridge {
         if (gameManager == null) {
             return;
         }
-        Class<?> dto = gameManager.getSlotsPlayerGameDataDTOCla();
         playerGameDataDao.deletePlayerGameDataRoomOnDisband(room.getId(), gameManager.playerGameDataClass);
-        AbstractGameDataDao<?> gameDataDao = gameManager.getGameDataDao();
-        if (gameDataDao != null) {
-            gameDataDao.deletePlayerGameDataRoomOnDisband(dto, room.getId());
-        }
-
     }
 
     @Override

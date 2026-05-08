@@ -1,13 +1,12 @@
 package com.jjg.game.slots.game.luckymouse.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataIndexedDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Document
-public class LuckyMousePlayerGameDataDTO extends SlotsPlayerGameDataIndexedDTO {
+public class LuckyMousePlayerGameDataDTO extends SlotsPlayerGameDataDTO {
     //缓存免费的结果库
     private LuckyMouseResultLib freeLib;
     //剩余的免费次数

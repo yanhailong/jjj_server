@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.demonchild.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.demonchild.dao.DemonChildGameDataDao;
 import com.jjg.game.slots.game.demonchild.dao.DemonChildPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.demonchild.dao.DemonChildResultLibDao;

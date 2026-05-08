@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.tigerbringsriches.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesGameDataDao;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesResultLibDao;
