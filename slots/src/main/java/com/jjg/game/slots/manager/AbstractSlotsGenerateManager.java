@@ -3,6 +3,7 @@ package com.jjg.game.slots.manager;
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
@@ -1323,8 +1324,9 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
         guard[1]++;
         try {
+            Pair<Integer, Integer> config = getFreeGameLimitConfig();
             for (int i = 0; i < freeCount; i++) {
-                if (guard[0] >= SlotsConst.Common.MAX_FREE_GAME_TOTAL || guard[1] > SlotsConst.Common.MAX_FREE_DEEP_TOTAL) {
+                if (guard[0] >= config.getFirst() || guard[1] > config.getSecond()) {
                     log.error("免费生成达到硬上限，跳过剩余触发 gameType={},miniGameId={},specialModeType={},guard[0]={},guard[1]={},剩余请求={}", this.gameType, specialAuxiliaryCfg.getId(), specialModeType, guard[0], guard[1], freeCount - i);
                     break;
                 }
@@ -1348,6 +1350,15 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 freeGenTotalGuard.remove();
             }
         }
+    }
+
+    /**
+     * 获取免费游戏限制
+     *
+     * @return
+     */
+    public Pair<Integer, Integer> getFreeGameLimitConfig() {
+        return Pair.newPair(SlotsConst.Common.MAX_FREE_GAME_TOTAL, SlotsConst.Common.MAX_FREE_DEEP_TOTAL);
     }
 
     /**
