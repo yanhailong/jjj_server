@@ -55,8 +55,8 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
 
         log.debug("检查全局分散");
 
-        //检查第三列是否有wild
-        boolean haveSpecialWild = haveWild(lib.getIconArr());
+        //有多少列有wild
+        int specialWildColumCount = wildColumCount(lib.getIconArr());
 
         //小游戏
         List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = new ArrayList<>();
@@ -80,7 +80,7 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
             }
 
             if (wildIcon) {
-                if (!haveSpecialWild) {
+                if (specialWildColumCount != cfg.getRewardNum()) {
                     continue;
                 }
             } else {
@@ -133,17 +133,35 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
      * @param arr
      * @return
      */
-    private boolean haveWild(int[] arr) {
+    private int wildColumCount(int[] arr) {
         if (arr == null || arr.length < 1) {
-            return false;
+            return 0;
         }
 
+        int count = 0;
         for (int i = 7; i <= 9; i++) {
             if (arr[i] == HulkConstant.BaseElement.SPECIAL_WILD) {
-                return true;
+                count = 1;
+                break;
             }
         }
-        return false;
+
+        if (count > 0) {
+            for (int i = 4; i <= 6; i++) {
+                if (arr[i] == HulkConstant.BaseElement.SPECIAL_WILD) {
+                    count++;
+                    break;
+                }
+            }
+
+            for (int i = 10; i <= 12; i++) {
+                if (arr[i] == HulkConstant.BaseElement.SPECIAL_WILD) {
+                    count++;
+                    break;
+                }
+            }
+        }
+        return count;
     }
 
     @Override
@@ -217,7 +235,7 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
             }
             if (init) {
                 auxiliaryInfo.setFreeGames(freeGames);
-            }else {
+            } else {
                 auxiliaryInfos.remove(i);
             }
         }

@@ -213,6 +213,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             int currentForCount = 0;
             //累计保存到数据库的条数
             int saveCount = 0;
+            //每个libtype对应的实际的条数
+            Map<Integer, Integer> realLibTypeCountMap = new HashMap<>();
 
             List<SlotsResultLib> libList = new ArrayList<>();
 
@@ -270,21 +272,21 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         if (currentCount == null) {
                             temMap.merge(index, 1, Integer::sum);
                             libList.add(lib);
+                            realLibTypeCountMap.merge(libType, 1, Integer::sum);
                             continue;
                         }
 
                         if (currentCount < exceptCount) {
                             temMap.merge(index, 1, Integer::sum);
                             libList.add(lib);
+                            realLibTypeCountMap.merge(libType, 1, Integer::sum);
                         } else {
                             exceptGenSectionCountMap.remove(index);
                         }
                     }
 
                     if (libList.size() >= this.batchSaveCount) {
-//                        System.out.println("保存这里的111");
                         if (saveToDB) {
-//                            saveCount += getResultLibDao().batchSave(libList, newDocName);
                             getResultLibDao().batchSaveToRedis(redisTableName, libList, getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionMap());
                         }
                         saveCount += libList.size();
@@ -295,11 +297,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
             if (saveToDB) {
                 if (!libList.isEmpty()) {
-//                  saveCount += getResultLibDao().batchSave(libList, newDocName);
                     getResultLibDao().batchSaveToRedis(redisTableName, libList, getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionMap());
                 }
                 getResultLibDao().afterSave(redisTableName);
-                getResultLibDao().addGenerateTime(this.gameType);
+                logger.addGenSlotsLib(this.gameType, realLibTypeCountMap);
                 log.info("生成结果库结束，gameType = {},实际循环次数 = {},成功保存到数据库 {} 条,redisName = {}", this.gameType, currentForCount, saveCount, redisTableName);
 
                 this.clearAllLibEvent = new TimerEvent<>(this, 1, "clearLibEvent").withTimeUnit(TimeUnit.MINUTES);
@@ -1616,7 +1617,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 小游戏配置
      */
-    protected void specialAuxiliaryConfig(){
+    protected void specialAuxiliaryConfig() {
 
     }
 

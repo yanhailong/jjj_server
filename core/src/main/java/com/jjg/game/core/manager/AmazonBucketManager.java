@@ -1,6 +1,7 @@
 package com.jjg.game.core.manager;
 
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.core.logger.CoreLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,9 @@ public class AmazonBucketManager {
 
     @Autowired(required = false)
     private S3Client s3Client;
+
+    @Autowired
+    private CoreLogger logger;
 
     /**
      * 下载并替换配置文件
@@ -103,6 +107,7 @@ public class AmazonBucketManager {
             Path tempPath = Paths.get(tmpPath);
             Path targetPath = Paths.get(localPath);
             Files.move(tempPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            logger.addExcelConfigUpdate(originFileName);
 
             log.debug("替换文件成功  originFileName = {},replaceFileName = {}", originFileName, replaceFileName);
         } catch (Exception e) {

@@ -1,12 +1,15 @@
 package com.jjg.game.slots.logger;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
 import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.slots.data.GameRunInfo;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * @author 11
@@ -40,7 +43,7 @@ public class SlotsLogger extends BaseLogger {
             json.put("income", gameRunInfo.getBetDivideInfo().getInCome());
         }
 
-        if(gameRunInfo.getData() != null){
+        if (gameRunInfo.getData() != null) {
             //房间id
             json.put("roomId", gameRunInfo.getData().getRoomId());
         }
@@ -57,7 +60,7 @@ public class SlotsLogger extends BaseLogger {
      */
     public void gameResult(Player player, GameRunInfo gameRunInfo, Object res) {
         try {
-            if(RobotUtil.isRobot(player.getId())){
+            if (RobotUtil.isRobot(player.getId())) {
                 return;
             }
 
@@ -72,6 +75,29 @@ public class SlotsLogger extends BaseLogger {
 //            log.debug("打印游戏结果日志 json = {}", json.toJSONString());
         } catch (Exception e) {
             log.error("", e);
+        }
+    }
+
+    /**
+     * 结果库更新记录
+     */
+    public void addGenSlotsLib(int gameType, Map<Integer, Integer> libTypeCountMap) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("genGameType", gameType);
+            if (libTypeCountMap != null && !libTypeCountMap.isEmpty()) {
+                JSONArray jsonArray = new JSONArray();
+                libTypeCountMap.forEach((k, v) -> {
+                    JSONObject tmpJson = new JSONObject();
+                    tmpJson.put("libType", k);
+                    tmpJson.put("count", v);
+                    jsonArray.add(tmpJson);
+                });
+                json.put("libTypeCount", jsonArray);
+            }
+            sendLog("genSlotsLib", null, json);
+        } catch (Exception e) {
+            log.error("addGenSlotsLib", e);
         }
     }
 }

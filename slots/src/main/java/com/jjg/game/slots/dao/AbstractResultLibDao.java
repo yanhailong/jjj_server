@@ -37,9 +37,6 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> {
     //生成结果集的时候要加锁
     protected String generateLock = "generateLock:";
 
-    //记录最后一次生成结果库的时间
-    protected String lastGenLibTime = "lastGenLibTime";
-
     @Autowired
     protected RedisTemplate redisTemplate;
     @Autowired
@@ -258,14 +255,5 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> {
 
     public void removeGenerateLock(int gameType) {
         this.redisTemplate.delete(generateLockTableName(gameType));
-    }
-
-    /**
-     * 修改最后一次生成结果库的时间
-     *
-     * @param gameType
-     */
-    public void addGenerateTime(int gameType) {
-        this.redisTemplate.opsForHash().put(lastGenLibTime, gameType, System.currentTimeMillis());
     }
 }

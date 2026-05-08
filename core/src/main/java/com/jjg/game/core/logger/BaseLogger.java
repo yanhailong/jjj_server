@@ -773,4 +773,17 @@ public class BaseLogger {
             log.error("sendVipLog", e);
         }
     }
+
+    /**
+     * 配置表更新记录
+     */
+    public void addExcelConfigUpdate(String configName) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("configName", configName);
+            sendLog("excelConfigUpdate", null, json);
+        } catch (Exception e) {
+            log.error("addExcelConfigUpdate", e);
+        }
+    }
 }
