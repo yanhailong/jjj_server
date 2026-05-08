@@ -2,9 +2,11 @@ package com.jjg.game.slots.game.mahjiongwin.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
@@ -37,7 +39,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
     @Override
     public MahjiongWinResultLib checkAward(int[] arr, MahjiongWinResultLib lib, boolean freeModel) throws Exception {
-        if(freeModel){
+        if (freeModel) {
             lib.setGameType(this.gameType);
             lib.setIconArr(arr);
 
@@ -65,7 +67,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
             calTimes(lib);
             return lib;
-        }else {
+        } else {
             lib.setGameType(this.gameType);
             lib.setIconArr(arr);
 
@@ -84,7 +86,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
             int[] newArr = new int[arr.length];
             System.arraycopy(arr, 0, newArr, 0, arr.length);
 
-            if(lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
+            if (lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
                 lib.getLibTypeSet().forEach(type -> {
                     //是否有消除
                     repairIcons(type, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
@@ -99,6 +101,12 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
             return lib;
         }
     }
+
+    @Override
+    public Pair<Integer, Integer> getFreeGameLimitConfig() {
+        return Pair.newPair(MahjiongWinConstant.Common.MAX_FREE_GAME_TOTAL, MahjiongWinConstant.Common.MAX_FREE_DEEP_TOTAL);
+    }
+
     @Override
     protected MahjiongWinAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg, int[] arr) {
         MahjiongWinAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg, arr);
@@ -128,22 +136,44 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
         int remainFreeCount = freeCount;
 
-        while (remainFreeCount > 0) {
-            //检查是否有修改图案策略组id
-            int specialGroupGirdID = 0;
-            if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
-                Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
-                if (randKey != null && randKey > 0) {
-                    specialGroupGirdID = randKey;
-                }
-            }
+        //防止嵌套触发免费时总局数无限膨胀导致内存溢出。同一根 checkAward 调用链共享一个累计计数器
+        int[] guard = freeGenTotalGuard.get();
+        boolean isRoot = (guard == null);
+        if (isRoot) {
+            guard = new int[]{0, 0};
+            freeGenTotalGuard.set(guard);
+        }
 
-            MahjiongWinResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
-            int addCount = checkAddFreeCount(lib);
-            lib.setAddFreeCount(addCount);
-            remainFreeCount += addCount;
-            specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
-            remainFreeCount--;
+        guard[1]++;
+        try {
+            while (remainFreeCount > 0) {
+                if (guard[0] >= SlotsConst.Common.MAX_FREE_GAME_TOTAL || guard[1] > SlotsConst.Common.MAX_FREE_DEEP_TOTAL) {
+                    log.error("免费生成达到硬上限，跳过剩余触发 gameType={},miniGameId={},specialModeType={},guard[0]={},guard[1]={},剩余请求={}", this.gameType, specialAuxiliaryCfg.getId(), specialModeType, guard[0], guard[1], remainFreeCount);
+                    break;
+                }
+                guard[0]++;
+
+                //检查是否有修改图案策略组id
+                int specialGroupGirdID = 0;
+                if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
+                    Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
+                    if (randKey != null && randKey > 0) {
+                        specialGroupGirdID = randKey;
+                    }
+                }
+
+                MahjiongWinResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+                int addCount = checkAddFreeCount(lib);
+                lib.setAddFreeCount(addCount);
+                remainFreeCount += addCount;
+                specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
+                remainFreeCount--;
+            }
+        } finally {
+            guard[1]--;
+            if (isRoot) {
+                freeGenTotalGuard.remove();
+            }
         }
     }
 
@@ -350,10 +380,10 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
     @Override
     public void calTimes(MahjiongWinResultLib lib) throws Exception {
-        if(triggerFreeLib(lib,MahjiongWinConstant.SpecialMode.FREE)){
+        if (triggerFreeLib(lib, MahjiongWinConstant.SpecialMode.FREE)) {
             //免费
             lib.addTimes(calFree(lib));
-        }else {
+        } else {
             //中奖线
             lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
             //消除后新增图标

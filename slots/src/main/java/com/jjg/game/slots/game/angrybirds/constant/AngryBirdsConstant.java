@@ -25,6 +25,10 @@ public interface AngryBirdsConstant {
 
     }
 
+    interface ElementId {
+        int CHANGE_ID = 5;
+    }
+
     interface Status {
         int NORMAL = SlotsConst.Status.NORMAL;
         //免费

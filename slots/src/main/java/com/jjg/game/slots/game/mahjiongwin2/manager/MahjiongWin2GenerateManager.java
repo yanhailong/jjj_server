@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.mahjiongwin2.manager;
 
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
@@ -69,6 +70,12 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
         return lib;
     }
 
+
+    @Override
+    public boolean autoSetFreeModelLibType() {
+        return true;
+    }
+
     @Override
     public void onMergeFreeResults(MahjiongWin2ResultLib lib, int addCount) {
         lib.setAddFreeCount(addCount);
@@ -77,7 +84,7 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
     @Override
     protected MahjiongWin2AwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg, int[] arr) {
         MahjiongWin2AwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg, arr);
-        info.setSameIcon(cfg.getElementId().getFirst() % 10);
+        info.setSameIcon(cfg.getElementId().getFirst());
         return info;
     }
 
@@ -86,6 +93,10 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
         return new MahjiongWin2AwardLineInfo();
     }
 
+    @Override
+    public Pair<Integer, Integer> getFreeGameLimitConfig() {
+        return Pair.newPair(MahjiongWin2Constant.Common.MAX_FREE_GAME_TOTAL, MahjiongWin2Constant.Common.MAX_FREE_DEEP_TOTAL);
+    }
 
     /**
      * 修补图标

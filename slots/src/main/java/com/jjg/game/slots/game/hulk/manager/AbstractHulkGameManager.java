@@ -37,6 +37,8 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
     @Autowired
     protected HulkGenerateManager generateManager;
 
+    private int freeGameCount;
+
     public AbstractHulkGameManager() {
         super(HulkPlayerGameData.class, HulkResultLib.class, HulkGameRunInfo.class);
     }
@@ -349,6 +351,10 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
         gameRunInfo.setStatus(playerGameData.getStatus());
 
         int afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
+        if (freeGame.getAddFreeCount() > 0) {
+            afterCount = playerGameData.getRemainFreeCount().addAndGet(freeGame.getAddFreeCount());
+            log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(), afterCount);
+        }
 
         //触发内层免费：标记状态、给客户端hulkFreeGameInfo，外层不结束等内层跑完
         if (innerTriggerIdx >= 0) {
@@ -588,7 +594,7 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
             clientShowStatus = HulkConstant.Status.TRIGGER_FREE;
             playerGameData.setStatus(HulkConstant.Status.FREE);
             playerGameData.setFreeLib(resultLib);
-            playerGameData.setRemainFreeCount(new AtomicInteger(resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames().size()));
+            playerGameData.setRemainFreeCount(new AtomicInteger(this.freeGameCount));
             times = resultLib.getTriggerTimes();
             log.debug("触发免费  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         } else if (libType == HulkConstant.SpecialMode.MINI) {
@@ -667,5 +673,22 @@ public abstract class AbstractHulkGameManager extends AbstractSlotsGameManager<H
     @Override
     public int getGameType() {
         return CoreConst.GameType.HULK;
+    }
+
+    @Override
+    protected void specialAuxiliaryConfig() {
+        for (Map.Entry<Integer, SpecialAuxiliaryCfg> en : GameDataManager.getSpecialAuxiliaryCfgMap().entrySet()) {
+            SpecialAuxiliaryCfg cfg = en.getValue();
+            if (cfg.getGameType() != this.gameType) {
+                continue;
+            }
+
+            if (cfg.getType() != HulkConstant.SpecialAuxiliary.FREE_SPIN) {
+                continue;
+            }
+
+            this.freeGameCount = cfg.getTriggerCount().keySet().stream().findFirst().get();
+            break;
+        }
     }
 }

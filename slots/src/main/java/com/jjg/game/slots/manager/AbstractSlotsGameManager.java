@@ -749,6 +749,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         baseRoomConfig();
         baseLineConfig();
         specialPlayConfig();
+        specialAuxiliaryConfig();
 
         globalConfig();
         calAllLineStake();
@@ -1612,6 +1613,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     }
 
+    /**
+     * 小游戏配置
+     */
+    protected void specialAuxiliaryConfig(){
+
+    }
+
     protected void globalConfig() {
         Map<Integer, int[]> tmpBigWinShowMap = new HashMap<>();
 
@@ -1684,7 +1692,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         addChangeSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> {
             baseRoomConfig();
             calAllLineStake();
-        }).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig()).addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig()).addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, () -> specialPlayConfig());
+        }).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig())
+                .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig())
+                .addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, () -> specialPlayConfig())
+                .addChangeSampleFileObserveWithCallBack(SpecialAuxiliaryCfg.EXCEL_NAME, () -> specialAuxiliaryConfig());
     }
 
     /**

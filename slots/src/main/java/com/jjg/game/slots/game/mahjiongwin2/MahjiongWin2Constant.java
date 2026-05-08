@@ -22,9 +22,16 @@ public interface MahjiongWin2Constant {
 
     interface BaseElement {
         //金色图标最小id
-        int GOLD_MIN = 11;
+        int GOLD_MIN = 12;
         //金色图标最大id
-        int GOLD_MAX = 18;
+        int GOLD_MAX = 20;
+    }
+
+    interface Common {
+        //单次结果库生成中，免费局总数的硬上限。防止嵌套触发免费时无限膨胀导致内存溢出
+        int MAX_FREE_GAME_TOTAL = 100;
+        //单次结果库生成中，免费中免费的总层数。防止嵌套触发免费时无限膨胀导致内存溢出
+        int MAX_FREE_DEEP_TOTAL = 10;
     }
 
     interface Status {

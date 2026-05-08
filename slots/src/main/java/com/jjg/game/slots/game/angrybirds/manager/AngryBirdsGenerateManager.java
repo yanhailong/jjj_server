@@ -90,8 +90,14 @@ public class AngryBirdsGenerateManager extends AbstractSlotsGenerateManager<Angr
                     elementsCount += count;
                 }
             }
-            if (elementsCount != cfg.getRewardNum()) {
-                continue;
+            if (cfg.getElementId().contains(AngryBirdsConstant.ElementId.CHANGE_ID)) {
+                if (elementsCount < cfg.getRewardNum()) {
+                    continue;
+                }
+            } else {
+                if (elementsCount != cfg.getRewardNum()) {
+                    continue;
+                }
             }
             if (cfg.getJackpotID() > 0) {
                 lib.addJackpotId(cfg.getJackpotID());
