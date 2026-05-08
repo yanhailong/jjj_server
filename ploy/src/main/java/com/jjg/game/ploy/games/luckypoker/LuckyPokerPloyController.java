@@ -228,7 +228,8 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
             }
 
             // 检查当前牌
-            PokerRank pokerRank = LuckyPokerUtils.checkPokerRank(drawResult.data.getFirst());
+            Pair<PokerRank, List<Integer>> rankResult = LuckyPokerUtils.checkPokerRank(drawResult.data.getFirst());
+            PokerRank pokerRank = rankResult.getFirst();
             //获取牌型对应的赔率
             PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
             Integer times = cfg.getOdds().get(pokerRank.rank);
@@ -266,6 +267,7 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
             res.allGold = player.getGold();
             res.pokerIds = drawResult.data.getSecond();
             res.pokerRank = pokerRank.rank;
+            res.pokerRankPokerIds = rankResult.getSecond();
 
             //发送日志
             logger.luckpoker(player, playerGameData);

@@ -1,5 +1,6 @@
 package com.jjg.game.ploy.games.luckypoker.utils;
 
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.utils.PokerCardUtils.EPokerSuit;
 import com.jjg.game.ploy.data.PloyCard;
@@ -77,7 +78,7 @@ public class LuckyPokerUtils {
      * @param cards
      * @return
      */
-    public static PokerRank checkPokerRank(List<PloyCard> cards) {
+    public static Pair<PokerRank,List<Integer>> checkPokerRank(List<PloyCard> cards) {
         List<Integer> ranks = new ArrayList<>();
         int firstSuit = cards.get(0).getSuit();
         boolean isFlush = true;
@@ -88,9 +89,10 @@ public class LuckyPokerUtils {
             }
         }
         boolean isStraight = isStraightPoints(ranks);
+        List<Integer> allCardIds = card2Ids(cards);
 
-        if (isFlush && isRoyalStraightPoints(ranks)) return PokerRank.ROYAL_FLUSH;
-        if (isFlush && isStraight) return PokerRank.STRAIGHT_FLUSH;
+        if (isFlush && isRoyalStraightPoints(ranks)) return Pair.newPair(PokerRank.ROYAL_FLUSH, allCardIds);
+        if (isFlush && isStraight) return Pair.newPair(PokerRank.STRAIGHT_FLUSH, allCardIds);
 
         // 统计点数频次
         Map<Integer, Integer> freq = new HashMap<>();
@@ -100,24 +102,50 @@ public class LuckyPokerUtils {
         List<Integer> counts = new ArrayList<>(freq.values());
         counts.sort(Collections.reverseOrder());
 
-        if (counts.get(0) == 4) return PokerRank.FOUR_OF_A_KIND;
-        if (counts.get(0) == 3 && counts.get(1) == 2) return PokerRank.FULL_HOUSE;
-        if (isFlush) return PokerRank.FLUSH;
-        if (isStraight) return PokerRank.STRAIGHT;
-        if (counts.get(0) == 3) return PokerRank.THREE_OF_A_KIND;
-        if (counts.get(0) == 2 && counts.get(1) == 2) return PokerRank.TWO_PAIR;
+        if (counts.get(0) == 4) {
+            return Pair.newPair(PokerRank.FOUR_OF_A_KIND, collectIdsByRanks(cards, findRanksByCount(freq, 4)));
+        }
+        if (counts.get(0) == 3 && counts.get(1) == 2) return Pair.newPair(PokerRank.FULL_HOUSE, allCardIds);
+        if (isFlush) return Pair.newPair(PokerRank.FLUSH, allCardIds);
+        if (isStraight) return Pair.newPair(PokerRank.STRAIGHT, allCardIds);
+        if (counts.get(0) == 3) {
+            return Pair.newPair(PokerRank.THREE_OF_A_KIND, collectIdsByRanks(cards, findRanksByCount(freq, 3)));
+        }
+        if (counts.get(0) == 2 && counts.get(1) == 2) {
+            return Pair.newPair(PokerRank.TWO_PAIR, collectIdsByRanks(cards, findRanksByCount(freq, 2)));
+        }
         if (counts.get(0) == 2) {
             // 检查对子是否是J或更大（J/Q/K/A）
             for (Map.Entry<Integer, Integer> entry : freq.entrySet()) {
                 if (entry.getValue() == 2) {
                     int pairRank = entry.getKey();
                     if (pairRank == 1 || pairRank >= 11) {
-                        return PokerRank.ONE_PAIR_OR_BETTER;
+                        return Pair.newPair(PokerRank.ONE_PAIR_OR_BETTER, collectIdsByRanks(cards, Set.of(pairRank)));
                     }
                 }
             }
         }
-        return PokerRank.HIGH_CARD;
+        return Pair.newPair(PokerRank.HIGH_CARD, Collections.emptyList());
+    }
+
+    private static Set<Integer> findRanksByCount(Map<Integer, Integer> freq, int count) {
+        Set<Integer> result = new HashSet<>();
+        for (Map.Entry<Integer, Integer> entry : freq.entrySet()) {
+            if (entry.getValue() == count) {
+                result.add(entry.getKey());
+            }
+        }
+        return result;
+    }
+
+    private static List<Integer> collectIdsByRanks(List<PloyCard> cards, Set<Integer> targetRanks) {
+        List<Integer> result = new ArrayList<>();
+        for (PloyCard card : cards) {
+            if (targetRanks.contains(card.getRank())) {
+                result.add(card.getClientCardId());
+            }
+        }
+        return result;
     }
 
     /**
@@ -197,7 +225,7 @@ public class LuckyPokerUtils {
      * 查找已经成型且值得直接保留的强牌组合。
      */
     private static List<PloyCard> findStrongMadeHand(List<PloyCard> cards) {
-        PokerRank pokerRank = checkPokerRank(cards);
+        PokerRank pokerRank = checkPokerRank(cards).getFirst();
         return switch (pokerRank) {
             case STRAIGHT, FLUSH, FULL_HOUSE, FOUR_OF_A_KIND, STRAIGHT_FLUSH, ROYAL_FLUSH -> cards;
             default -> Collections.emptyList();
@@ -401,7 +429,7 @@ public class LuckyPokerUtils {
     private static double calculateExpectedRankValue(List<PloyCard> holdCards, List<PloyCard> remainingDeck) {
         int drawCount = HAND_SIZE - holdCards.size();
         if (drawCount == 0) {
-            return checkPokerRank(holdCards).rank;
+            return checkPokerRank(holdCards).getFirst().rank;
         }
 
         long[] sumAndCount = new long[2];
@@ -413,7 +441,7 @@ public class LuckyPokerUtils {
 
     private static void enumerateDrawCombinations(List<PloyCard> remainingDeck, int start, int drawCount, List<PloyCard> currentHand, long[] sumAndCount) {
         if (drawCount == 0) {
-            sumAndCount[0] += checkPokerRank(currentHand).rank;
+            sumAndCount[0] += checkPokerRank(currentHand).getFirst().rank;
             sumAndCount[1]++;
             return;
         }

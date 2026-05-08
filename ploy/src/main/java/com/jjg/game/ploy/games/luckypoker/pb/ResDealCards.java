@@ -27,6 +27,8 @@ public class ResDealCards extends AbstractResponse {
     public List<Integer> pokerIds;
     @ProtoDesc("牌型  0.散牌  1.对J或者更大  2.两对  3.三张  4.顺子  5.同花  6.葫芦  7.四条  8.同花顺  9.皇家同花顺")
     public int pokerRank;
+    @ProtoDesc("中奖的牌id")
+    public List<Integer> pokerRankPokerIds;
 
     public ResDealCards(int code) {
         super(code);
