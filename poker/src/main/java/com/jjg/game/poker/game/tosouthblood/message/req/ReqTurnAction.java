@@ -7,7 +7,7 @@ import com.jjg.game.poker.game.tosouthblood.constant.ToSouthBloodConstant;
 
 import java.util.List;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthBloodConstant.MsgBean.REQ_TURN_ACTION)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH_BLOOD, cmd = ToSouthBloodConstant.MsgBean.REQ_TURN_ACTION)
 @ProtoDesc("轮到指定玩家回合，玩家的操作")
 public class ReqTurnAction {
     @ProtoDesc("0 出牌  1 pass")

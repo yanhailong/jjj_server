@@ -39,4 +39,8 @@ public class ToSouthBloodActionInfo {
     public List<Integer> selfHighlightCards;
     @ProtoDesc("刚刚过牌的玩家座位ID，0表示本次通知不是由过牌触发")
     public long  lastpassUserId;
+    @ProtoDesc("本次出牌的玩家是否已出完所有手牌（血战模式：出完后游戏继续）")
+    public boolean isOver;
+    @ProtoDesc("出完牌玩家的名次（1:第一名, 2:第二名, 3:第三名），未出完时为0")
+    public int finishRank;
 }

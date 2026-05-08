@@ -311,27 +311,44 @@ public class ToSouthBloodGameController extends BasePokerGameController<ToSouthB
             log.debug("玩家 {} 出牌成功 - 类型: {}, 牌: {}, 剩余手牌: {}", info.getPlayerId(), type, ToSouthBloodHandUtils.cardListToString(playCards), info.getCurrentCards().size());
         }
         if (info.getCurrentCards().isEmpty()) {
-            log.info("玩家 {} 胜利 (出完手牌)，游戏结束", info.getPlayerId());
             info.setOver(true);
 
-            // 先广播最后一手出牌信息给所有玩家，再进行结算
-            broadcastLastAction(info.getPlayerId());
+            int finishRank = gameDataVo.addFinishedPlayer(info.getPlayerId());
+            log.info("[血战] 玩家 {} 出完手牌，名次：第{}名", info.getPlayerId(), finishRank);
 
-            // 如果最后一手牌是炸弹，需要先处理炸弹结算
+            // 广播含出完标志的最后出牌通知（先广播，再做炸弹/血战结算）
+            broadcastLastAction(info.getPlayerId(), true, finishRank);
+
+            // 最后一手是炸弹：先做炸弹结算（炸弹结算不计入最终血战结算）
             if (isBomb(type)) {
                 processBombSettlement(info.getSeatId());
             }
 
-            // 触发结算逻辑
-            ToSouthBloodSettlementContext context = new ToSouthBloodSettlementContext();
-            context.setInstantWin(false);
-            context.addItem(new ToSouthBloodSettlementContext.SettlementItem(
-                    info,
-                    true,
-                    0,
-                    null
-            ));
-            addPokerPhaseTimer(new ToSouthBloodSettlementPhase(this, context));
+            if (finishRank <= 2) {
+                // 第1或第2名出完：中间结算（剩余玩家赔付），游戏继续
+                processBloodIntermediateSettlement(info.getPlayerId(), finishRank);
+
+                // 清除本轮状态，让下一个活跃玩家领出
+                gameDataVo.setLastPlayCards(null);
+                gameDataVo.setPassCount(0);
+                gameDataVo.getCurRoundPassedPlayerSeats().clear();
+                gameDataVo.getCurrentRoundPlays().clear();
+
+                PlayerSeatInfo nextLeader = findNextActivePlayer(info.getSeatId());
+                if (nextLeader == null) {
+                    log.error("[血战] 找不到下一个活跃玩家，强制触发最终结算");
+                    triggerBloodFinalSettlement();
+                    return;
+                }
+                gameDataVo.setRoundLeaderSeatId(nextLeader.getSeatId());
+                broadcastNextTurn(nextLeader.getPlayerId(), false, 0);
+                gameDataVo.setIndex(nextLeader.getSeatId());
+                addNextTimer(nextLeader, 0);
+            } else {
+                // 第3名出完：最后一人赔付，牌局结束，进入最终结算
+                processBloodIntermediateSettlement(info.getPlayerId(), finishRank);
+                triggerBloodFinalSettlement();
+            }
             return;
         }
 
@@ -586,6 +603,98 @@ public class ToSouthBloodGameController extends BasePokerGameController<ToSouthB
     }
 
     /**
+     * 血战中间结算：winnerId 出完牌时，剩余活跃玩家按剩余手牌赔付给 winnerId。
+     * 金额实时扣/加，并记录到 bloodWinSettlementMap 供最终通知展示。
+     * 炸弹已在出牌阶段单独结算，不重复计算。
+     */
+    private void processBloodIntermediateSettlement(long winnerId, int finishRank) {
+        SouthernMoneyCfg moneyCfg = ToSouthBloodDataHelper.getSouthernMoneyCfg(gameDataVo);
+        if (moneyCfg == null) {
+            log.error("[血战] 缺少SouthernMoneyCfg配置，跳过中间结算");
+            return;
+        }
+        Map<Integer, PokerCard> cardMap = ToSouthBloodDataHelper.getCardListMap(ToSouthBloodDataHelper.getPoolId(gameDataVo));
+        long baseBet = gameDataVo.getRoomBet();
+
+        List<PlayerSeatInfo> losers = gameDataVo.getPlayerSeatInfoList().stream()
+                .filter(s -> !s.isOver() && !s.isDelState())
+                .collect(Collectors.toList());
+
+        long totalWin = 0;
+        for (PlayerSeatInfo loser : losers) {
+            List<Card> handCards = loser.getCurrentCards().stream().map(cardMap::get).collect(Collectors.toList());
+            int cardCount = handCards.size();
+            handCards.sort(ToSouthBloodHandUtils.CARD_COMPARATOR);
+
+            int countTwo = ToSouthBloodHandUtils.countTwo(handCards);
+            int countRedTwo = ToSouthBloodHandUtils.countRedTwo(handCards);
+            int countBlackTwo = countTwo - countRedTwo;
+            int cardMulti = (cardCount == 13) ? cardCount * 2 : cardCount;
+            int optimalBombMulti = ToSouthBloodHandUtils.calcOptimalBombMultiplier(
+                    handCards, moneyCfg.getFourkindboom1(), moneyCfg.getRemainBoom1(), moneyCfg.getFourpairsboom1());
+            int totalMulti = cardMulti
+                    + countRedTwo * moneyCfg.getRemainred2()
+                    + countBlackTwo * moneyCfg.getRemainblack2()
+                    + optimalBombMulti;
+
+            long loseScore = (long) totalMulti * baseBet;
+            deductItem(loser.getPlayerId(), loseScore, AddType.GAME_SETTLEMENT, "ToSouthBlood blood loses", false);
+            gameDataVo.addBloodSettlement(loser.getPlayerId(), -loseScore);
+            totalWin += loseScore;
+            log.info("[血战][中间结算] 第{}名出完，输家:{} 赔付:{} (牌数:{}, 倍数:{})",
+                    finishRank, loser.getPlayerId(), loseScore, cardCount, totalMulti);
+        }
+
+        Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
+        long tax = BigDecimal.valueOf(totalWin)
+                .multiply(BigDecimal.valueOf(roomCfg.getWinRatio()))
+                .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
+        gameDataTracker.addGameLogData("tax", tax);
+        long finalWinScore = totalWin - tax;
+        addItem(winnerId, finalWinScore, AddType.GAME_SETTLEMENT);
+        gameDataVo.addBloodSettlement(winnerId, finalWinScore);
+        log.info("[血战][中间结算] 第{}名出完，赢家:{} 赢得:{} (税前:{}, 税:{}, 共{}名输家)",
+                finishRank, winnerId, finalWinScore, totalWin, tax, losers.size());
+    }
+
+    /**
+     * 找从 fromSeatId 开始（不含自身）的下一个活跃（未出完、未删除）玩家。
+     */
+    private PlayerSeatInfo findNextActivePlayer(int fromSeatId) {
+        List<PlayerSeatInfo> list = gameDataVo.getPlayerSeatInfoList();
+        int fromIdx = -1;
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).getSeatId() == fromSeatId) {
+                fromIdx = i;
+                break;
+            }
+        }
+        if (fromIdx == -1) return null;
+        for (int i = 1; i < list.size(); i++) {
+            int idx = (fromIdx + i) % list.size();
+            PlayerSeatInfo s = list.get(idx);
+            if (!s.isOver() && !s.isDelState()) {
+                return s;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 触发血战最终结算阶段：所有中间结算已实时完成，此阶段仅发通知并更新统计。
+     */
+    private void triggerBloodFinalSettlement() {
+        ToSouthBloodSettlementContext context = new ToSouthBloodSettlementContext();
+        context.setInstantWin(false);
+        context.setBloodFinalSettlement(true);
+        for (PlayerSeatInfo seat : gameDataVo.getPlayerSeatInfoList()) {
+            context.addItem(new ToSouthBloodSettlementContext.SettlementItem(
+                    seat, seat.isOver(), 0, null));
+        }
+        addPokerPhaseTimer(new ToSouthBloodSettlementPhase(this, context));
+    }
+
+    /**
      * 是否为第一个打牌的
      *
      * @return
@@ -606,24 +715,30 @@ public class ToSouthBloodGameController extends BasePokerGameController<ToSouthB
         // 如果没有下家，或者下家就是上一个出牌的人（说明其他人都过了/出局），一轮结束
         if (nextPlayer == null || nextPlayer.getSeatId() == gameDataVo.getLastPlaySeatId()) {
             int winnerSeatId = gameDataVo.getLastPlaySeatId();
-            PlayerSeatInfo nextLeader = getPlayerBySeatId(winnerSeatId);
+            PlayerSeatInfo roundWinner = getPlayerBySeatId(winnerSeatId);
+
+            // 处理炸弹结算
+            processBombSettlement(winnerSeatId);
+            gameDataVo.getCurrentRoundPlays().clear();
+
+            gameDataVo.setLastPlayCards(null);
+            gameDataVo.setFirstRound(false);
+            gameDataVo.setPassCount(0);
+            gameDataVo.getCurRoundPassedPlayerSeats().clear();
+
+            // 血战：若本轮赢家已出完牌（isOver），找下一个活跃玩家领出
+            PlayerSeatInfo nextLeader = (roundWinner != null && roundWinner.isOver())
+                    ? findNextActivePlayer(winnerSeatId)
+                    : roundWinner;
 
             if (nextLeader != null) {
                 log.debug("一轮结束，玩家 {} 获得球权，新一轮开始", nextLeader.getPlayerId());
                 gameDataVo.setRoundLeaderSeatId(nextLeader.getSeatId());
-                gameDataVo.setLastPlayCards(null);
-                gameDataVo.setFirstRound(false);
-                gameDataVo.setPassCount(0);
-                gameDataVo.getCurRoundPassedPlayerSeats().clear();
-
-                // 处理炸弹结算 (如果有的话)
-                processBombSettlement(winnerSeatId);
-                // 清空本轮出牌记录
-                gameDataVo.getCurrentRoundPlays().clear();
-
                 broadcastNextTurn(nextLeader.getPlayerId(), false, passerPlayerId);
                 gameDataVo.setIndex(nextLeader.getSeatId());
                 addNextTimer(nextLeader, 0);
+            } else {
+                log.warn("[血战] 一轮结束后找不到可领出的活跃玩家");
             }
         } else {
             // 继续当前轮，找下家
@@ -696,12 +811,14 @@ public class ToSouthBloodGameController extends BasePokerGameController<ToSouthB
     }
 
     /**
-     * 广播最后一手牌的出牌信息（游戏结束前，通知所有玩家最终出牌动作）
+     * 广播最后一手牌的出牌信息（游戏结束前 / 血战出完牌时，通知所有玩家最终出牌动作）
      * 与 broadcastNextTurn 不同：没有下一个等待玩家，不需要推荐牌组
      *
-     * @param winnerPlayerId 赢家玩家ID，用作 waitPlayerId 让前端正常展示出牌信息
+     * @param winnerPlayerId 出完牌的玩家ID，用作 waitPlayerId 让前端正常展示出牌信息
+     * @param isOver         是否出完手牌（血战模式下为 true，游戏继续）
+     * @param finishRank     出完牌名次（血战：1/2/3，未出完为 0）
      */
-    private void broadcastLastAction(long winnerPlayerId) {
+    private void broadcastLastAction(long winnerPlayerId, boolean isOver, int finishRank) {
         NotifyToSouthBloodTurnActionInfo notify = new NotifyToSouthBloodTurnActionInfo();
         ToSouthBloodActionInfo actionInfo = new ToSouthBloodActionInfo();
         actionInfo.lastpassUserId = 0;
@@ -709,6 +826,8 @@ public class ToSouthBloodGameController extends BasePokerGameController<ToSouthB
         actionInfo.canPass = false;
         actionInfo.canPlay = false;
         actionInfo.waitEndTime = -1;
+        actionInfo.isOver = isOver;
+        actionInfo.finishRank = finishRank;
         fillCommonActionInfo(actionInfo);
         actionInfo.recommendCardsList = null;
 
@@ -723,12 +842,16 @@ public class ToSouthBloodGameController extends BasePokerGameController<ToSouthB
 
     // 当前轮玩家公开信息
     private void fillCurRoundPlayerInfos(ToSouthBloodActionInfo actionInfo) {
+        List<Long> finishedOrder = gameDataVo.getFinishedPlayerOrder();
         for (PlayerSeatInfo playerSeatInfo : gameDataVo.getPlayerSeatInfoList()) {
             ToSouthBloodCurRoundPlayerInfo curRoundPlayerInfo = new ToSouthBloodCurRoundPlayerInfo();
             curRoundPlayerInfo.playerId = playerSeatInfo.getPlayerId();
             curRoundPlayerInfo.seatId = playerSeatInfo.getSeatId();
             curRoundPlayerInfo.passed = gameDataVo.getCurRoundPassedPlayerSeats().contains(curRoundPlayerInfo.seatId);
             curRoundPlayerInfo.cardCount = playerSeatInfo.getCurrentCards().size();
+            curRoundPlayerInfo.isOver = playerSeatInfo.isOver();
+            int idx = finishedOrder.indexOf(playerSeatInfo.getPlayerId());
+            curRoundPlayerInfo.finishRank = idx >= 0 ? idx + 1 : 0;
             actionInfo.curRoundPlayerInfos.add(curRoundPlayerInfo);
         }
     }
@@ -850,6 +973,8 @@ public class ToSouthBloodGameController extends BasePokerGameController<ToSouthB
         target.selfHandCards = source.selfHandCards;
         target.selfHighlightCards = source.selfHighlightCards;
         target.lastpassUserId = source.lastpassUserId;
+        target.isOver = source.isOver;
+        target.finishRank = source.finishRank;
         return target;
     }
 

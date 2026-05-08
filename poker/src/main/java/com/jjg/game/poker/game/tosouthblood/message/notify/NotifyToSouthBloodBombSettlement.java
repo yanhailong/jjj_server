@@ -9,7 +9,7 @@ import com.jjg.game.poker.game.tosouthblood.message.bean.ToSouthBloodBombDetail;
 
 import java.util.List;
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH, cmd = ToSouthBloodConstant.MsgBean.NOTIFY_BOMB_SETTLEMENT, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SOUTH_BLOOD, cmd = ToSouthBloodConstant.MsgBean.NOTIFY_BOMB_SETTLEMENT, resp = true)
 @ProtoDesc("南方前进-血战炸弹结算通知")
 public class NotifyToSouthBloodBombSettlement extends AbstractNotice {
     @ProtoDesc("炸弹赔付明细列表")

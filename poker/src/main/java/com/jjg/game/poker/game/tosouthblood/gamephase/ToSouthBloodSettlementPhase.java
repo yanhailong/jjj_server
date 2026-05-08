@@ -81,192 +81,270 @@ public class ToSouthBloodSettlementPhase extends BaseSettlementPhase<ToSouthBloo
         super.phaseDoAction();
         if (gameController instanceof ToSouthBloodGameController controller) {
             ToSouthBloodGameDataVo gameDataVo = controller.getGameDataVo();
-            SouthernMoneyCfg moneyCfg = ToSouthBloodDataHelper.getSouthernMoneyCfg(gameDataVo);
-            if (moneyCfg == null) {
-                log.error("缺少SouthernMoneyCfg配置: {}", gameDataVo.getRoomCfg().getId());
-                return;
+            if (context.isBloodFinalSettlement()) {
+                // 血战最终结算：金额已在游戏过程中实时结算，此处只发通知、更新统计
+                doBloodFinalSettlement(controller, gameDataVo);
+            } else {
+                // 通杀结算（原有逻辑）
+                doInstantWinSettlement(controller, gameDataVo);
             }
-
-            Map<Long, Long> settlementMap = new HashMap<>(); // playerId -> score change
-            long baseBet = getBaseBet(gameDataVo); // 获取房间底注
-
-            calSettlement(gameDataVo, settlementMap, baseBet, moneyCfg);
-
-            // 记录本局赢家，供下局判断首出玩家
-            if (!winners.isEmpty()) {
-                gameDataVo.setLastGameWinnerPlayerId(winners.getFirst().getPlayerId());
-            }
-
-            // 应用结算结果
-            long totalTax = 0;
-            List<ToSouthBloodPlayerSettlementInfo> playerSettlementInfos = new ArrayList<>();
-
-            Map<Long, Long> settlementMap2 = new HashMap<>(settlementMap);
-            //重新计算结算
-            for (Map.Entry<Long, Long> entry : settlementMap.entrySet()) {
-                long playerId = entry.getKey();
-                long change = entry.getValue();
-                GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-                if (change < 0) {
-                    long loseAmount = -change;
-                    int transactionItemId = controller.getGameTransactionItemId();
-                    int goldCfgId = ItemUtils.getGoldItemId();
-                    int diamondCfgId = ItemUtils.getDiamondItemId();
-                    Map<Long, Long> positiveMap = settlementMap.entrySet().stream()
-                            .filter(entry2 -> entry2.getValue() != null && entry2.getValue() > 0)
-                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-                    if (transactionItemId == goldCfgId) {
-                        long gold = gamePlayer.getGold();
-                        if (gold < loseAmount) {
-                            //只有三家的时候才会复现
-                            long l = gold / positiveMap.size();
-                            long l1 = loseAmount / positiveMap.size();
-                            settlementMap2.put(playerId, -gold);
-                            positiveMap.forEach((k, v) -> {
-                                settlementMap2.put(k,v-l1+l);
-                            });
-
-                        }
-                    } else if (transactionItemId == diamondCfgId) {
-                        long diamond = gamePlayer.getDiamond();
-                        if (diamond < loseAmount) {
-                            long l = diamond / positiveMap.size();
-//                          18000 - 26000 = -8000
-                            long l1 = l - loseAmount;
-                            settlementMap2.put(playerId, diamond);
-                            positiveMap.forEach((k, v) -> {
-//                                26000 - 8000
-                                settlementMap2.put(k,v-l1+l);
-                            });
-                        }
-                    }
-                }
-            }
-
-            for (Map.Entry<Long, Long> entry : settlementMap2.entrySet()) {
-                long playerId = entry.getKey();
-                long change = entry.getValue();
-                GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-                if (gamePlayer == null) {
-                    log.error("南方前进-血战结算时 gamePlayer=null playerId:{}", playerId);
-                    continue;
-                }
-
-                long finalWinScore = change;
-
-                if (change > 0) {
-                    // 扣除抽水
-                    long tax = BigDecimal.valueOf(change)
-                            .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getWinRatio()))
-                            .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
-
-                    totalTax += tax;
-                    finalWinScore = change - tax;
-                    controller.addItem(playerId, finalWinScore, AddType.GAME_SETTLEMENT);
-                    if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
-                        robotPlayer.setLastWin(1);
-                    } else {
-                        controller.dealIncome(gamePlayer, finalWinScore);
-                    }
-                } else {
-                    long loseAmount = -change;
-
-                    if (loseAmount > 0) {
-                        //南方前进-血战输钱
-                        controller.deductItem(playerId, loseAmount, AddType.GAME_SETTLEMENT, "ToSouthBlood loses money", false);
-                    }
-
-                    if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
-                        robotPlayer.setLastWin(2);
-                    } else {
-                        controller.dealIncome(gamePlayer, change);
-                    }
-
-                }
-
-
-                // 构建玩家结算信息
-                ToSouthBloodPlayerSettlementInfo info = new ToSouthBloodPlayerSettlementInfo();
-                info.playerId = playerId;
-                info.winScore = finalWinScore;
-                info.currentScore = controller.getTransactionItemNum(playerId);
-
-                PlayerSeatInfo seatInfo = gameDataVo.getPlayerSeatInfoMap().get(playerId);
-                if (seatInfo != null) {
-                    info.handCards = PokerDataHelper.getClientId(gameDataVo, seatInfo.getCurrentCards());
-                    info.isWinner = winners.contains(seatInfo);
-                    // 检查是否通杀
-                    if (context.isInstantWin()) {
-                        for (ToSouthBloodSettlementContext.SettlementItem item : context.getSettlementItems()) {
-                            if (item.seatInfo.getPlayerId() == playerId) {
-                                info.isInstantWin = true;
-                                info.instantWinCards = item.instantWinCards;
-                                info.instantWinType = item.instantWinType;
-                                break;
-                            }
-                        }
-                    }
-                }
-                playerSettlementInfos.add(info);
-            }
-
-            // 好友房：房主收益记录
-            addCreateRecord(controller, totalTax, settlementMap2);
-
-            // 发送结算消息给客户端
-            NotifyToSouthBloodSettlementInfo notify = new NotifyToSouthBloodSettlementInfo();
-            notify.settlementInfos = playerSettlementInfos;
-            notify.endTime = System.currentTimeMillis();
-            controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
-            log.info("南方前进-血战结算map: {}", settlementMap2);
-
-            // ========== 记录最终结算到一局日志，并打印流程日志和结算日志 ==========
-            ToSouthBloodGameLog gameLog = gameDataVo.getGameLog();
-            Map<Integer, PokerCard> cardMapForLog = ToSouthBloodDataHelper.getCardListMap(ToSouthBloodDataHelper.getPoolId(gameDataVo));
-            for (ToSouthBloodPlayerSettlementInfo sInfo : playerSettlementInfos) {
-                // 计算剩余手牌数
-                PlayerSeatInfo seat = gameDataVo.getPlayerSeatInfoMap().get(sInfo.playerId);
-                int remainCards = seat != null ? seat.getCurrentCards().size() : 0;
-
-                // 构建结算明细描述
-                String detail = "";
-                if (!sInfo.isWinner && !context.isInstantWin() && seat != null) {
-                    List<Card> handCards = seat.getCurrentCards().stream().map(cardMapForLog::get).collect(Collectors.toList());
-                    int cardCount = handCards.size();
-                    int countTwo = ToSouthBloodHandUtils.countTwo(handCards);
-                    int countRedTwo = ToSouthBloodHandUtils.countRedTwo(handCards);
-                    int countBlackTwo = countTwo - countRedTwo;
-                    int cardMulti = (cardCount == 13) ? cardCount * 2 : cardCount;
-                    int redTwoMulti = moneyCfg.getRemainred2();
-                    int blackTwoMulti = moneyCfg.getRemainblack2();
-                    int optimalBombMulti = ToSouthBloodHandUtils.calcOptimalBombMultiplier(
-                            handCards, moneyCfg.getFourkindboom1(), moneyCfg.getRemainBoom1(), moneyCfg.getFourpairsboom1());
-                    int totalMulti = cardMulti + countRedTwo * redTwoMulti + countBlackTwo * blackTwoMulti + optimalBombMulti;
-                    //牌倍:%d, 红2:%dx%d, 黑2:%dx%d, 炸弹倍:%d, 总倍数:%d
-                    detail = String.format("Multiplier: %d, Red 2: %dx%d, Black 2: %dx%d, Bomb Multiplier: %d, Total Multiplier: %d",
-                            cardMulti, countRedTwo, redTwoMulti, countBlackTwo, blackTwoMulti, optimalBombMulti, totalMulti);
-                } else if (!sInfo.isWinner && context.isInstantWin() && seat != null) {
-                    int cardCount = seat.getCurrentCards().size();
-                    //通杀翻倍, 总倍数:%d
-                    detail = String.format("Sweep Multiplier, Total Multiplier: %d", cardCount * 2);
-                }
-                gameLog.recordFinalSettlement(sInfo.playerId, sInfo.winScore, sInfo.isWinner, remainCards, detail);
-            }
-
-            // ========== 更新玩家连赢/连输计数（跨局保留） ==========
-            updatePlayerWinStreak(gameDataVo, settlementMap2);
-
-            // ========== 更新水池余额（参考slots水池控制） ==========
-            updatePoolBalance(gameDataVo, settlementMap2);
-
-            // 打印流程日志和结算日志
-            String roomInfo = "房间:" + gameDataVo.getRoomCfg().getId() + " 底注:" + baseBet;
-            log.info(gameLog.buildFlowLog(roomInfo));
-            log.info(gameLog.buildSettlementLog(roomInfo));
-
-            // ========== 发送 Kafka 日志（参考 Texas/BlackJack 的 addLog） ==========
-            addLog(controller, gameDataVo, settlementMap2, playerSettlementInfos);
         }
+    }
+
+    /**
+     * 血战最终结算：使用 bloodWinSettlementMap 中已累积的净值，构建通知并更新统计。
+     */
+    private void doBloodFinalSettlement(ToSouthBloodGameController controller, ToSouthBloodGameDataVo gameDataVo) {
+        Map<Long, Long> bloodMap = gameDataVo.getBloodWinSettlementMap();
+        long baseBet = getBaseBet(gameDataVo);
+
+        List<Long> finishedOrder = gameDataVo.getFinishedPlayerOrder();
+        // 第4名（最后一名）= 未出完的玩家
+        List<PlayerSeatInfo> allSeats = gameDataVo.getPlayerSeatInfoList();
+
+        // 记录本局赢家（第1名），供下局判断首出
+        if (!finishedOrder.isEmpty()) {
+            gameDataVo.setLastGameWinnerPlayerId(finishedOrder.getFirst());
+        }
+
+        long totalTax = 0;
+        List<ToSouthBloodPlayerSettlementInfo> playerSettlementInfos = new ArrayList<>();
+
+        for (PlayerSeatInfo seat : allSeats) {
+            long playerId = seat.getPlayerId();
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+            if (gamePlayer == null) {
+                log.error("南方前进-血战最终结算时 gamePlayer=null playerId:{}", playerId);
+                continue;
+            }
+
+            long netChange = bloodMap.getOrDefault(playerId, 0L);
+
+            // 统计税：从中间结算已经处理过税，这里只统计正向收入用于好友房统计
+            if (netChange > 0) {
+                // 近似还原税额（实际税已在中间结算时逐步扣除）
+                long approxTax = BigDecimal.valueOf(netChange)
+                        .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getWinRatio()))
+                        .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
+                totalTax += approxTax;
+
+                if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+                    robotPlayer.setLastWin(1);
+                } else {
+                    controller.dealIncome(gamePlayer, netChange);
+                }
+            } else if (netChange < 0) {
+                if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+                    robotPlayer.setLastWin(2);
+                } else {
+                    controller.dealIncome(gamePlayer, netChange);
+                }
+            }
+
+            // 构建玩家结算信息
+            ToSouthBloodPlayerSettlementInfo info = new ToSouthBloodPlayerSettlementInfo();
+            info.playerId = playerId;
+            info.winScore = netChange;
+            info.currentScore = controller.getTransactionItemNum(playerId);
+            info.handCards = PokerDataHelper.getClientId(gameDataVo, seat.getCurrentCards());
+            info.isWinner = seat.isOver();
+            // 计算名次
+            int rankIdx = finishedOrder.indexOf(playerId);
+            info.rank = rankIdx >= 0 ? rankIdx + 1 : allSeats.size(); // 未出完 → 末位
+            playerSettlementInfos.add(info);
+        }
+
+        // 好友房收益
+        addCreateRecord(controller, totalTax, bloodMap);
+
+        // 发送结算通知
+        NotifyToSouthBloodSettlementInfo notify = new NotifyToSouthBloodSettlementInfo();
+        notify.settlementInfos = playerSettlementInfos;
+        notify.endTime = System.currentTimeMillis();
+        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
+        log.info("南方前进-血战（血战模式）最终结算: {}", bloodMap);
+
+        // 记录日志
+        ToSouthBloodGameLog gameLog = gameDataVo.getGameLog();
+        for (ToSouthBloodPlayerSettlementInfo sInfo : playerSettlementInfos) {
+            PlayerSeatInfo seat = gameDataVo.getPlayerSeatInfoMap().get(sInfo.playerId);
+            int remainCards = seat != null ? seat.getCurrentCards().size() : 0;
+            String detail = String.format("血战最终结算, 名次:%d", sInfo.rank);
+            gameLog.recordFinalSettlement(sInfo.playerId, sInfo.winScore, sInfo.isWinner, remainCards, detail);
+        }
+
+        updatePlayerWinStreak(gameDataVo, bloodMap);
+        updatePoolBalance(gameDataVo, bloodMap);
+
+        String roomInfo = "房间:" + gameDataVo.getRoomCfg().getId() + " 底注:" + baseBet;
+        log.info(gameLog.buildFlowLog(roomInfo));
+        log.info(gameLog.buildSettlementLog(roomInfo));
+
+        addLog(controller, gameDataVo, bloodMap, playerSettlementInfos);
+    }
+
+    /**
+     * 通杀结算（原有逻辑，保持不变）。
+     */
+    private void doInstantWinSettlement(ToSouthBloodGameController controller, ToSouthBloodGameDataVo gameDataVo) {
+        SouthernMoneyCfg moneyCfg = ToSouthBloodDataHelper.getSouthernMoneyCfg(gameDataVo);
+        if (moneyCfg == null) {
+            log.error("缺少SouthernMoneyCfg配置: {}", gameDataVo.getRoomCfg().getId());
+            return;
+        }
+
+        Map<Long, Long> settlementMap = new HashMap<>();
+        long baseBet = getBaseBet(gameDataVo);
+
+        calSettlement(gameDataVo, settlementMap, baseBet, moneyCfg);
+
+        if (!winners.isEmpty()) {
+            gameDataVo.setLastGameWinnerPlayerId(winners.getFirst().getPlayerId());
+        }
+
+        long totalTax = 0;
+        List<ToSouthBloodPlayerSettlementInfo> playerSettlementInfos = new ArrayList<>();
+
+        Map<Long, Long> settlementMap2 = new HashMap<>(settlementMap);
+        for (Map.Entry<Long, Long> entry : settlementMap.entrySet()) {
+            long playerId = entry.getKey();
+            long change = entry.getValue();
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+            if (change < 0) {
+                long loseAmount = -change;
+                int transactionItemId = controller.getGameTransactionItemId();
+                int goldCfgId = ItemUtils.getGoldItemId();
+                int diamondCfgId = ItemUtils.getDiamondItemId();
+                Map<Long, Long> positiveMap = settlementMap.entrySet().stream()
+                        .filter(entry2 -> entry2.getValue() != null && entry2.getValue() > 0)
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                if (transactionItemId == goldCfgId) {
+                    long gold = gamePlayer.getGold();
+                    if (gold < loseAmount) {
+                        long l = gold / positiveMap.size();
+                        long l1 = loseAmount / positiveMap.size();
+                        settlementMap2.put(playerId, -gold);
+                        positiveMap.forEach((k, v) -> {
+                            settlementMap2.put(k, v - l1 + l);
+                        });
+                    }
+                } else if (transactionItemId == diamondCfgId) {
+                    long diamond = gamePlayer.getDiamond();
+                    if (diamond < loseAmount) {
+                        long l = diamond / positiveMap.size();
+                        long l1 = l - loseAmount;
+                        settlementMap2.put(playerId, diamond);
+                        positiveMap.forEach((k, v) -> {
+                            settlementMap2.put(k, v - l1 + l);
+                        });
+                    }
+                }
+            }
+        }
+
+        for (Map.Entry<Long, Long> entry : settlementMap2.entrySet()) {
+            long playerId = entry.getKey();
+            long change = entry.getValue();
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+            if (gamePlayer == null) {
+                log.error("南方前进-血战结算时 gamePlayer=null playerId:{}", playerId);
+                continue;
+            }
+
+            long finalWinScore = change;
+
+            if (change > 0) {
+                long tax = BigDecimal.valueOf(change)
+                        .multiply(BigDecimal.valueOf(gameDataVo.getRoomCfg().getWinRatio()))
+                        .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
+                totalTax += tax;
+                finalWinScore = change - tax;
+                controller.addItem(playerId, finalWinScore, AddType.GAME_SETTLEMENT);
+                if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+                    robotPlayer.setLastWin(1);
+                } else {
+                    controller.dealIncome(gamePlayer, finalWinScore);
+                }
+            } else {
+                long loseAmount = -change;
+                if (loseAmount > 0) {
+                    controller.deductItem(playerId, loseAmount, AddType.GAME_SETTLEMENT, "ToSouthBlood loses money", false);
+                }
+                if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+                    robotPlayer.setLastWin(2);
+                } else {
+                    controller.dealIncome(gamePlayer, change);
+                }
+            }
+
+            ToSouthBloodPlayerSettlementInfo info = new ToSouthBloodPlayerSettlementInfo();
+            info.playerId = playerId;
+            info.winScore = finalWinScore;
+            info.currentScore = controller.getTransactionItemNum(playerId);
+
+            PlayerSeatInfo seatInfo = gameDataVo.getPlayerSeatInfoMap().get(playerId);
+            if (seatInfo != null) {
+                info.handCards = PokerDataHelper.getClientId(gameDataVo, seatInfo.getCurrentCards());
+                info.isWinner = winners.contains(seatInfo);
+                if (context.isInstantWin()) {
+                    for (ToSouthBloodSettlementContext.SettlementItem item : context.getSettlementItems()) {
+                        if (item.seatInfo.getPlayerId() == playerId) {
+                            info.isInstantWin = true;
+                            info.instantWinCards = item.instantWinCards;
+                            info.instantWinType = item.instantWinType;
+                            break;
+                        }
+                    }
+                }
+                // 通杀：赢家排第1，输家按座位顺序
+                info.rank = info.isWinner ? 1 : 0;
+            }
+            playerSettlementInfos.add(info);
+        }
+
+        addCreateRecord(controller, totalTax, settlementMap2);
+
+        NotifyToSouthBloodSettlementInfo notify = new NotifyToSouthBloodSettlementInfo();
+        notify.settlementInfos = playerSettlementInfos;
+        notify.endTime = System.currentTimeMillis();
+        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
+        log.info("南方前进-血战结算map: {}", settlementMap2);
+
+        ToSouthBloodGameLog gameLog = gameDataVo.getGameLog();
+        Map<Integer, PokerCard> cardMapForLog = ToSouthBloodDataHelper.getCardListMap(ToSouthBloodDataHelper.getPoolId(gameDataVo));
+        for (ToSouthBloodPlayerSettlementInfo sInfo : playerSettlementInfos) {
+            PlayerSeatInfo seat = gameDataVo.getPlayerSeatInfoMap().get(sInfo.playerId);
+            int remainCards = seat != null ? seat.getCurrentCards().size() : 0;
+            String detail = "";
+            if (!sInfo.isWinner && !context.isInstantWin() && seat != null) {
+                List<Card> handCards = seat.getCurrentCards().stream().map(cardMapForLog::get).collect(Collectors.toList());
+                int cardCount = handCards.size();
+                int countTwo = ToSouthBloodHandUtils.countTwo(handCards);
+                int countRedTwo = ToSouthBloodHandUtils.countRedTwo(handCards);
+                int countBlackTwo = countTwo - countRedTwo;
+                int cardMulti = (cardCount == 13) ? cardCount * 2 : cardCount;
+                int redTwoMulti = moneyCfg.getRemainred2();
+                int blackTwoMulti = moneyCfg.getRemainblack2();
+                int optimalBombMulti = ToSouthBloodHandUtils.calcOptimalBombMultiplier(
+                        handCards, moneyCfg.getFourkindboom1(), moneyCfg.getRemainBoom1(), moneyCfg.getFourpairsboom1());
+                int totalMulti = cardMulti + countRedTwo * redTwoMulti + countBlackTwo * blackTwoMulti + optimalBombMulti;
+                detail = String.format("Multiplier: %d, Red 2: %dx%d, Black 2: %dx%d, Bomb Multiplier: %d, Total Multiplier: %d",
+                        cardMulti, countRedTwo, redTwoMulti, countBlackTwo, blackTwoMulti, optimalBombMulti, totalMulti);
+            } else if (!sInfo.isWinner && context.isInstantWin() && seat != null) {
+                int cardCount = seat.getCurrentCards().size();
+                detail = String.format("Sweep Multiplier, Total Multiplier: %d", cardCount * 2);
+            }
+            gameLog.recordFinalSettlement(sInfo.playerId, sInfo.winScore, sInfo.isWinner, remainCards, detail);
+        }
+
+        updatePlayerWinStreak(gameDataVo, settlementMap2);
+        updatePoolBalance(gameDataVo, settlementMap2);
+
+        String roomInfo = "房间:" + gameDataVo.getRoomCfg().getId() + " 底注:" + baseBet;
+        log.info(gameLog.buildFlowLog(roomInfo));
+        log.info(gameLog.buildSettlementLog(roomInfo));
+
+        addLog(controller, gameDataVo, settlementMap2, playerSettlementInfos);
     }
 
     private long getBaseBet(ToSouthBloodGameDataVo gameDataVo) {

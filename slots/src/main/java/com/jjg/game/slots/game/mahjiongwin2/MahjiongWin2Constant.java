@@ -22,9 +22,9 @@ public interface MahjiongWin2Constant {
 
     interface BaseElement {
         //金色图标最小id
-        int GOLD_MIN = 11;
+        int GOLD_MIN = 12;
         //金色图标最大id
-        int GOLD_MAX = 18;
+        int GOLD_MAX = 20;
     }
 
     interface Status {

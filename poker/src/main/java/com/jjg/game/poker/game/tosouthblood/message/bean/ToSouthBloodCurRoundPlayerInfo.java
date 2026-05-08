@@ -13,4 +13,8 @@ public class ToSouthBloodCurRoundPlayerInfo {
     public boolean passed;
     @ProtoDesc("本轮中牌的剩余数量")
     public int cardCount;
+    @ProtoDesc("是否已出完所有手牌（血战：出完后继续打）")
+    public boolean isOver;
+    @ProtoDesc("出完牌的名次（1:第一名 2:第二名 3:第三名），未出完时为0")
+    public int finishRank;
 }

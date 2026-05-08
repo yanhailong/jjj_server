@@ -54,12 +54,41 @@ public class ToSouthBloodGameDataVo extends BasePokerGameDataVo {
 
     private Set<Long> exitPlayerIds = new HashSet<>();
 
+    // ========== 血战专用字段（每局重置） ==========
+    // 按出完牌顺序记录玩家ID，第1个出完的排第0，第3个出完后牌局结束
+    private final List<Long> finishedPlayerOrder = new ArrayList<>();
+    // 血战中间结算累计净值（playerId -> 累计净赢/净输），不含炸弹结算
+    private final Map<Long, Long> bloodWinSettlementMap = new HashMap<>();
+
     public Set<Long> getExitPlayerIds() {
         return exitPlayerIds;
     }
 
     public void setExitPlayerIds(Set<Long> exitPlayerIds) {
         this.exitPlayerIds = exitPlayerIds;
+    }
+
+    public List<Long> getFinishedPlayerOrder() {
+        return finishedPlayerOrder;
+    }
+
+    /**
+     * 记录玩家出完牌，返回其名次（1、2、3）
+     */
+    public int addFinishedPlayer(long playerId) {
+        finishedPlayerOrder.add(playerId);
+        return finishedPlayerOrder.size();
+    }
+
+    public Map<Long, Long> getBloodWinSettlementMap() {
+        return bloodWinSettlementMap;
+    }
+
+    /**
+     * 累加血战中间结算金额
+     */
+    public void addBloodSettlement(long playerId, long delta) {
+        bloodWinSettlementMap.merge(playerId, delta, Long::sum);
     }
 
     /**
@@ -229,5 +258,7 @@ public class ToSouthBloodGameDataVo extends BasePokerGameDataVo {
         this.readyTimerVersion.clear();
         this.instantWinContext = null;
         this.gameLog = new ToSouthBloodGameLog();
+        this.finishedPlayerOrder.clear();
+        this.bloodWinSettlementMap.clear();
     }
 }
