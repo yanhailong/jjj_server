@@ -57,6 +57,8 @@ public interface HulkConstant {
         int INNER_ONE_WILD = 303101;
         //免费中再次触发的第234列wild
         int INNER_THREE_WILD = 303102;
+        //免费旋转
+        int FREE_SPIN = 303103;
     }
 
     interface SpecialPlay {
@@ -73,6 +75,7 @@ public interface HulkConstant {
     }
 
     interface BaseElement {
-
+        int SCATTER = 12;
+        int SPECIAL_WILD = 18;
     }
 }

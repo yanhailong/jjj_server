@@ -116,9 +116,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
             lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
 
             //存储 Wild 中奖倍数
-            lib.setWildTimes(wildTimesList.stream()
-                    .limit(4)
-                    .collect(Collectors.toList()));
+            lib.setWildTimes(wildTimesList.stream().limit(4).collect(Collectors.toList()));
 
             //存储消除后添加的图标
             List<AceDjAddIconInfo> addIconInfoList = new ArrayList<>();
@@ -149,9 +147,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
             lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
 
             //存储 Wild 中奖倍数
-            lib.setWildTimes(wildTimesList.stream()
-                    .limit(4)
-                    .collect(Collectors.toList()));
+            lib.setWildTimes(wildTimesList.stream().limit(4).collect(Collectors.toList()));
 
             //存储消除后添加的图标
             List<AceDjAddIconInfo> addIconInfoList = new ArrayList<>();
@@ -226,24 +222,46 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
 
         int remainFreeCount = freeCount;
 
-        while (remainFreeCount > 0) {
-            //检查是否有修改图案策略组id
-            int specialGroupGirdID = 0;
-            if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
-                Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
-                if (randKey != null && randKey > 0) {
-                    specialGroupGirdID = randKey;
-                }
-            }
-
-            AceDjResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
-            int addCount = checkAddFreeCount(lib);
-            lib.setAddFreeCount(addCount);
-            remainFreeCount += addCount;
-            specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
-            log.debug("--------------{}------------", remainFreeCount);
-            remainFreeCount--;
+        //防止嵌套触发免费时总局数无限膨胀导致内存溢出。同一根 checkAward 调用链共享一个累计计数器
+        int[] guard = freeGenTotalGuard.get();
+        boolean isRoot = (guard == null);
+        if (isRoot) {
+            guard = new int[]{0, 0};
+            freeGenTotalGuard.set(guard);
         }
+
+        guard[1]++;
+        try {
+            while (remainFreeCount > 0) {
+                if (guard[0] >= SlotsConst.Common.MAX_FREE_GAME_TOTAL || guard[1] > SlotsConst.Common.MAX_FREE_DEEP_TOTAL) {
+                    log.error("免费生成达到硬上限，跳过剩余触发 gameType={},miniGameId={},specialModeType={},guard[0]={},guard[1]={},剩余请求={}", this.gameType, specialAuxiliaryCfg.getId(), specialModeType, guard[0], guard[1], remainFreeCount);
+                    break;
+                }
+                guard[0]++;
+
+                //检查是否有修改图案策略组id
+                int specialGroupGirdID = 0;
+                if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
+                    Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
+                    if (randKey != null && randKey > 0) {
+                        specialGroupGirdID = randKey;
+                    }
+                }
+
+                AceDjResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+                int addCount = checkAddFreeCount(lib);
+                lib.setAddFreeCount(addCount);
+                remainFreeCount += addCount;
+                specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
+                remainFreeCount--;
+            }
+        } finally {
+            guard[1]--;
+            if (isRoot) {
+                freeGenTotalGuard.remove();
+            }
+        }
+
     }
 
     /**
@@ -287,9 +305,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
 
         List<Integer> wildTimes;
         if (addIconInfoList == null || addIconInfoList.isEmpty()) {
-            wildTimes =wildTimesList.stream()
-                    .limit(4)
-                    .collect(Collectors.toList());
+            wildTimes = wildTimesList.stream().limit(4).collect(Collectors.toList());
             wildNum = 4;
         } else {
             AceDjAddIconInfo aceDjAddIconInfo = addIconInfoList.getLast();
@@ -361,9 +377,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
         Set<Integer> colsSet = new HashSet<>();
         for (AceDjAwardLineInfo lineInfo : newAwardInfoList) {
             for (Integer set : lineInfo.getSameIconSet()) {
-                List<Integer> wildList = Arrays.stream(AceDjConstant.BaseElement.ID_WILD_ARR)
-                        .boxed()
-                        .collect(Collectors.toList());
+                List<Integer> wildList = Arrays.stream(AceDjConstant.BaseElement.ID_WILD_ARR).boxed().collect(Collectors.toList());
                 if (wildList.contains(arr[set])) {
                     int cols = set % baseInitCfg.getRows() > 0 ? set / baseInitCfg.getRows() - 1 : set / baseInitCfg.getRows() - 2;
                     winTimes.put(cols, wildTimes.get(cols));
@@ -375,7 +389,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
         addIconInfo.setWinTimes(winTimes);
 
         for (Integer cols : colsSet) {
-            wildTimes.remove((int)cols);
+            wildTimes.remove((int) cols);
             wildNum++;
             if (wildNum >= wildTimesList.size()) {
                 wildTimes.add(wildTimesList.get(wildTimesList.getLast()));
@@ -398,9 +412,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
             Map<Integer, Integer> wildTimesMap = new HashMap<>();
             for (int i = 0; i < arr.length; i++) {
                 int finalI = i;
-                List<Integer> wildList = Arrays.stream(AceDjConstant.BaseElement.ID_WILD_ARR)
-                        .boxed()
-                        .collect(Collectors.toList());
+                List<Integer> wildList = Arrays.stream(AceDjConstant.BaseElement.ID_WILD_ARR).boxed().collect(Collectors.toList());
                 if (wildList.contains(arr[i])) {
                     int cols = finalI % baseInitCfg.getRows() > 0 ? finalI / baseInitCfg.getRows() - 1 : finalI / baseInitCfg.getRows() - 2;
                     wildTimesMap.put(cols, wildTimes.get(cols));
@@ -684,9 +696,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
             int newIcon = girdUpdatePropConfig.getShowIconPropInfo().getRandKey();
             log.debug("修改格子 girdId = {}, oldIcon = {}, newIcon = {}", girdId, arr[girdId], newIcon);
 
-            if (cfgId == AceDjConstant.SpecialGird.GRID_TWO
-                    || cfgId == AceDjConstant.SpecialGird.GRID_THERE
-                    || cfgId == AceDjConstant.SpecialGird.GRID_FOUR) {
+            if (cfgId == AceDjConstant.SpecialGird.GRID_TWO || cfgId == AceDjConstant.SpecialGird.GRID_THERE || cfgId == AceDjConstant.SpecialGird.GRID_FOUR) {
                 BaseElementCfg baseElement = baseElementCfgMap.get(newIcon);
                 if (baseElement != null && baseElement.getSpace() > 1) {
                     Map<Integer, Integer> updateMap = new HashMap<>();
@@ -694,7 +704,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
                     for (int i1 = 1; i1 < baseElement.getSpace(); i1++) {
                         //把向上的格子配成 0
                         BaseElementCfg baseElementI1 = baseElementCfgMap.get(arr[girdId - i1]);
-                        if (baseElementI1 != null && baseElementI1.getSpace() ==0) {
+                        if (baseElementI1 != null && baseElementI1.getSpace() == 0) {
                             updateMap.put(girdId - i1, AceDjConstant.BaseElement.ID_NULL);
                         } else {
                             isUpdate = false;

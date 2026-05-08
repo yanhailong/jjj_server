@@ -26,6 +26,9 @@ import java.util.*;
 public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends SlotsResultLib<A>> implements ConfigExcelChangeListener {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
+    //单次结果库生成中累计的免费局总数和层数，用于嵌套触发免费时的内存兜底  0.总局数  1.总层数
+    protected static final ThreadLocal<int[]> freeGenTotalGuard = new ThreadLocal<>();
+
     protected Class<T> resultLibClazz;
     //游戏类型
     protected int gameType;
@@ -233,8 +236,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * 初始化和 BaseElementRewardCfg 热更后各执行一次，避免每次判奖重复解析配置。
      */
     protected void reloadAssignPatternConfig() {
-        Map<Integer, BaseElementRewardCfg> rewardCfgMap =
-                this.baseElementRewardCfgMap == null ? null : this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISTRIBUTED_CONNECTION);
+        Map<Integer, BaseElementRewardCfg> rewardCfgMap = this.baseElementRewardCfgMap == null ? null : this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISTRIBUTED_CONNECTION);
         if (CollectionUtil.isEmpty(rewardCfgMap)) {
             this.assignPatternTargetCountMap = Map.of();
             this.assignPatternEquivalentIconsMap = Map.of();
@@ -307,8 +309,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      *
      * @param sameIconSet 为 null 时只做 visited 标记，用于跳过不在目标配置里的图标，减少额外集合创建
      */
-    private void traverseConnectedIcons(int[] arr, int rows, int cols, int paddingOffset,
-                                        int startIndex, boolean[] visited, Set<Integer> equivalentIcons, Set<Integer> sameIconSet) {
+    private void traverseConnectedIcons(int[] arr, int rows, int cols, int paddingOffset, int startIndex, boolean[] visited, Set<Integer> equivalentIcons, Set<Integer> sameIconSet) {
         ArrayDeque<Integer> queue = new ArrayDeque<>();
         queue.offer(startIndex);
         visited[startIndex] = true;
@@ -333,8 +334,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     /**
      * 邻居坐标符合条件时入队。
      */
-    private void addNeighbor(int[] arr, int rows, int cols, int paddingOffset, int row, int col, Set<Integer> equivalentIcons,
-                             boolean[] visited, ArrayDeque<Integer> queue) {
+    private void addNeighbor(int[] arr, int rows, int cols, int paddingOffset, int row, int col, Set<Integer> equivalentIcons, boolean[] visited, ArrayDeque<Integer> queue) {
         if (row < 0 || row >= rows || col < 0 || col >= cols) {
             return;
         }
@@ -1313,18 +1313,40 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             return;
         }
 
-        for (int i = 0; i < freeCount; i++) {
-            //检查是否有修改图案策略组id
-            int specialGroupGirdID = 0;
-            if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
-                Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
-                if (randKey != null && randKey > 0) {
-                    specialGroupGirdID = randKey;
-                }
-            }
+        //防止嵌套触发免费时总局数无限膨胀导致内存溢出。同一根 checkAward 调用链共享一个累计计数器
+        int[] guard = freeGenTotalGuard.get();
+        boolean isRoot = (guard == null);
+        if (isRoot) {
+            guard = new int[]{0, 0};
+            freeGenTotalGuard.set(guard);
+        }
 
-            T t = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
-            specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(t));
+        guard[1]++;
+        try {
+            for (int i = 0; i < freeCount; i++) {
+                if (guard[0] >= SlotsConst.Common.MAX_FREE_GAME_TOTAL || guard[1] > SlotsConst.Common.MAX_FREE_DEEP_TOTAL) {
+                    log.error("免费生成达到硬上限，跳过剩余触发 gameType={},miniGameId={},specialModeType={},guard[0]={},guard[1]={},剩余请求={}", this.gameType, specialAuxiliaryCfg.getId(), specialModeType, guard[0], guard[1], freeCount - i);
+                    break;
+                }
+                guard[0]++;
+
+                //检查是否有修改图案策略组id
+                int specialGroupGirdID = 0;
+                if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
+                    Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
+                    if (randKey != null && randKey > 0) {
+                        specialGroupGirdID = randKey;
+                    }
+                }
+
+                T t = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
+                specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(t));
+            }
+        } finally {
+            guard[1]--;
+            if (isRoot) {
+                freeGenTotalGuard.remove();
+            }
         }
     }
 

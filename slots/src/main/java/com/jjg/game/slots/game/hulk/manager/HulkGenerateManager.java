@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.hulk.manager;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.sampledata.GameDataManager;
@@ -14,10 +15,7 @@ import com.jjg.game.slots.game.hulk.data.HulkResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author 11
@@ -41,6 +39,11 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
     }
 
     @Override
+    public void onMergeFreeResults(HulkResultLib lib, int addCount) {
+        lib.setAddFreeCount(addCount);
+    }
+
+    @Override
     protected List<SpecialAuxiliaryInfo> overallDisperse(HulkResultLib lib) {
         //获取全局分散图案的配置
         Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE_GLOBAL);
@@ -52,6 +55,9 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
 
         log.debug("检查全局分散");
 
+        //检查第三列是否有wild
+        boolean haveSpecialWild = haveWild(lib.getIconArr());
+
         //小游戏
         List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = new ArrayList<>();
 
@@ -60,14 +66,27 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
 
             //检查出现的个数是否满足
             int elementsCount = 0;
+
+            boolean wildIcon = false;
             for (int iconId : cfg.getElementId()) {
                 Integer count = showCountMap.get(iconId);
                 if (count != null) {
                     elementsCount += count;
                 }
+
+                if (!wildIcon) {
+                    wildIcon = (iconId == HulkConstant.BaseElement.SPECIAL_WILD);
+                }
             }
-            if (elementsCount != cfg.getRewardNum()) {
-                continue;
+
+            if (wildIcon) {
+                if (!haveSpecialWild) {
+                    continue;
+                }
+            } else {
+                if (elementsCount != cfg.getRewardNum()) {
+                    continue;
+                }
             }
 
             //是否触发小游戏
@@ -108,14 +127,101 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
         return specialAuxiliaryInfoList;
     }
 
+    /**
+     * 检查第三列是否有wild
+     *
+     * @param arr
+     * @return
+     */
+    private boolean haveWild(int[] arr) {
+        if (arr == null || arr.length < 1) {
+            return false;
+        }
+
+        for (int i = 7; i <= 9; i++) {
+            if (arr[i] == HulkConstant.BaseElement.SPECIAL_WILD) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public void calTimes(HulkResultLib lib) throws Exception {
+        //把嵌套的免费结果拍平到最外层 freeGames，并通过 onMergeFreeResults 给触发免费的那条结果赋 addFreeCount
+        List<JSONObject> freeGames = new ArrayList<>();
+        mergeFreeResults(lib, freeGames, true);
+
         //中奖线
         lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
         //小游戏
         lib.addTimes(miniGame(lib));
         //免费
         lib.addTimes(calFree(lib));
+    }
+
+    @Override
+    public void mergeFreeResults(HulkResultLib lib, List<JSONObject> freeGames, boolean init) {
+        if (lib == null) {
+            return;
+        }
+
+        if (init && (lib.getLibTypeSet() == null || !lib.getLibTypeSet().contains(HulkConstant.SpecialMode.FREE))) {
+            return;
+        }
+
+        List<SpecialAuxiliaryInfo> auxiliaryInfos = lib.getSpecialAuxiliaryInfoList();
+        if (CollectionUtil.isEmpty(auxiliaryInfos)) {
+            return;
+        }
+        for (int i = auxiliaryInfos.size() - 1; i >= 0; i--) {
+            SpecialAuxiliaryInfo auxiliaryInfo = auxiliaryInfos.get(i);
+            if (CollectionUtil.isEmpty(auxiliaryInfo.getFreeGames())) {
+                continue;
+            }
+
+            SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(auxiliaryInfo.getCfgId());
+            if (specialAuxiliaryCfg == null || specialAuxiliaryCfg.getType() != HulkConstant.SpecialAuxiliary.FREE_SPIN) {
+                continue;
+            }
+
+            if (!init) {
+                onMergeFreeResults(lib, auxiliaryInfo.getFreeGames().size());
+            }
+            //将免费结果库添加到最开始的lib中 通用自动addFreeCount
+            for (JSONObject freeGame : auxiliaryInfo.getFreeGames()) {
+                HulkResultLib freeLib = freeGame.toJavaObject(lib.getClass());
+                if (CollectionUtil.isNotEmpty(freeLib.getSpecialAuxiliaryInfoList())) {
+                    boolean hasNestedFree = false;
+                    for (SpecialAuxiliaryInfo info : freeLib.getSpecialAuxiliaryInfoList()) {
+                        if (CollectionUtil.isEmpty(info.getFreeGames())) {
+                            continue;
+                        }
+
+                        SpecialAuxiliaryCfg tmpSpecialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(info.getCfgId());
+                        if (tmpSpecialAuxiliaryCfg == null || tmpSpecialAuxiliaryCfg.getType() != HulkConstant.SpecialAuxiliary.FREE_SPIN) {
+                            continue;
+                        }
+                        hasNestedFree = true;
+                        break;
+                    }
+                    if (hasNestedFree) {
+                        List<JSONObject> nestedFreeGames = new ArrayList<>();
+                        mergeFreeResults(freeLib, nestedFreeGames, false);
+                        freeGames.add((JSONObject) JSON.toJSON(freeLib));
+                        freeGames.addAll(nestedFreeGames);
+                        continue;
+                    }
+                }
+                freeGames.add((JSONObject) JSON.toJSON(freeLib));
+            }
+            if (init) {
+                auxiliaryInfo.setFreeGames(freeGames);
+            }else {
+                auxiliaryInfos.remove(i);
+            }
+        }
+
     }
 
     /**
@@ -178,13 +284,41 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
         lib.setTriggerTimes(lib.getTriggerTimes() + calLineTimes(lib.getAwardLineInfoList()));
 
         long times = lib.getTriggerTimes();
-        for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
-            if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
-                continue;
+
+        //触发了免费后，倍数*3
+        if (lib.getLibTypeSet() != null && lib.getLibTypeSet().contains(HulkConstant.SpecialMode.FREE)) {
+            for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+                if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
+                    continue;
+                }
+
+                //免费局的总倍数，无翻倍
+//                long tmpFreeAllTimes = 0;
+
+                List<JSONObject> newFreeGames = new ArrayList<>();
+                for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
+                    HulkResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), this.resultLibClazz);
+//                    tmpFreeAllTimes += tmpLib.getTimes();
+                    if (tmpLib.getTimes() > 0) {
+                        tmpLib.setTimes(tmpLib.getTimes() * 3);
+                        newFreeGames.add((JSONObject) JSON.toJSON(tmpLib));
+                    } else {
+                        newFreeGames.add(jsonObject);
+                    }
+                    times += tmpLib.getTimes();
+                }
+                specialAuxiliaryInfo.setFreeGames(newFreeGames);
             }
-            for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
-                HulkResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), this.resultLibClazz);
-                times += tmpLib.getTimes();
+
+        } else {
+            for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
+                if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
+                    continue;
+                }
+                for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
+                    HulkResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), this.resultLibClazz);
+                    times += tmpLib.getTimes();
+                }
             }
         }
         return times;
