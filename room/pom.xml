@@ -32,11 +32,6 @@
             <artifactId>activity</artifactId>
             <version>3.0.0-JJG-RELEASES</version>
         </dependency>
-        <dependency>
-            <groupId>com.jjg.game</groupId>
-            <artifactId>ploy</artifactId>
-            <version>3.0.0-JJG-RELEASES</version>
-        </dependency>
     </dependencies>
     <build>
         <plugins>

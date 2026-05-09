@@ -5,7 +5,6 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.listener.ChooseWareListener;
@@ -14,7 +13,6 @@ import com.jjg.game.core.pb.ReqChooseWare;
 import com.jjg.game.core.pb.ReqExitGame;
 import com.jjg.game.core.pb.ResChooseWare;
 import com.jjg.game.core.pb.ResExitGame;
-import com.jjg.game.ploy.controller.AbstractPloyController;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -77,13 +75,6 @@ public class RoomMessageHandler implements ChooseWareListener {
                 }
             }
             int code = playerEventListener.exitGame(playerController);
-
-            //退出策略游戏
-            if (playerController.getSubScene() instanceof AbstractPloyController<?> ployController) {
-                ployController.exitGame(playerController.getPlayer(), ExitType.INITIATIVE);
-                playerController.setSubScene(null);
-            }
-
             playerController.send(new ResExitGame(code));
         } catch (Exception e) {
             log.error("玩家退出房间异常 msg: {}", e.getMessage(), e);

@@ -31,6 +31,10 @@ public class PlayerPloyGameData {
     protected long win;
     //中奖倍数
     protected int winTimes;
+    //创建该对象的时间(及进入游戏的时间)
+    protected int createTime;
+    //离线时间
+    protected long offlineTime;
     //最近一次活跃时间
     @Transient
     @JsonIgnore
@@ -105,6 +109,22 @@ public class PlayerPloyGameData {
         this.winTimes = winTimes;
     }
 
+    public int getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(int createTime) {
+        this.createTime = createTime;
+    }
+
+    public long getOfflineTime() {
+        return offlineTime;
+    }
+
+    public void setOfflineTime(long offlineTime) {
+        this.offlineTime = offlineTime;
+    }
+
     public long getLastActiveTime() {
         return lastActiveTime;
     }
@@ -139,8 +159,8 @@ public class PlayerPloyGameData {
         this.playerController.setPlayer(player);
     }
 
-    public void changePlayerLastMoney(long money){
-        if(this.ployBetDivideInfo != null){
+    public void changePlayerLastMoney(long money) {
+        if (this.ployBetDivideInfo != null) {
             this.ployBetDivideInfo.setPlayerAfterMoney(money);
         }
     }

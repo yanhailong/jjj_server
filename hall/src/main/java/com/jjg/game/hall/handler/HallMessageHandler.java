@@ -828,7 +828,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
                     checkDiamond = true;
                 } else if (itemCfg.getType() == GameConstant.Item.TYPE_SHELL) {
                     checkShell = true;
-                }else if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
+                } else if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
                     checkGold = true;
                 }
             }
@@ -1265,11 +1265,13 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
             //是不是slots游戏
             int majorType = CommonUtil.getMajorTypeByGameType(req.gameType);
             if (majorType == CoreConst.GameMajorType.SLOTS) {
-                res.code = hallRoomService.enterSlotsNode(playerController, req.wareId);
+                res.code = hallRoomService.enterGameNode(playerController, req.wareId);
             } else if (majorType == CoreConst.GameMajorType.TABLE || majorType == CoreConst.GameMajorType.POKER) {
                 // 进入大厅加入房间的逻辑
-                res.code = hallRoomService.hallJoinRoom(playerController, req.wareId);
-            }else {
+                res.code = hallRoomService.enterRoomNode(playerController, req.wareId);
+            } else if (majorType == CoreConst.GameMajorType.PLOY) {
+                res.code = hallRoomService.enterGameNode(playerController, req.wareId);
+            } else {
                 res.code = Code.PARAM_ERROR;
             }
             log.info("玩家选择场次，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));

@@ -36,7 +36,6 @@ import com.jjg.game.hall.pb.res.ResLogin;
 import com.jjg.game.hall.pb.struct.GameWareInfo;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
-import com.jjg.game.ploy.controller.AbstractPloyController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
@@ -343,13 +342,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
     @Override
     public void sessionClose(PFSession session) {
-        if(session.getReference() instanceof PlayerController playerController){
-            if(playerController.getSubScene() instanceof AbstractPloyController<?> ployController){
-                ployController.exitGame(playerController.getPlayer(), ExitType.DROPPED);
-                playerController.setSubScene(null);
-            }
-        }
-
         session.setReference(null);
         if (session.getPlayerId() > 0) {
             taskManager.onExit(session.getPlayerId());

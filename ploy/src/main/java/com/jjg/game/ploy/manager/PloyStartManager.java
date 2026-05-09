@@ -1,4 +1,4 @@
-package com.jjg.game.slots.manager;
+package com.jjg.game.ploy.manager;
 
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.service.MarsCoreStartService;
@@ -15,15 +15,12 @@ import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 
-
 /**
- * slots类游戏启动总线类
- *
  * @author 11
- * @date 2025/6/10 16:37
+ * @date 2026/5/9
  */
 @Component
-public class SlotsStartManager implements SmartLifecycle, ApplicationContextAware {
+public class PloyStartManager implements SmartLifecycle, ApplicationContextAware {
     @Autowired
     private MarsCoreStartService marsCoreStartService;
     @Autowired
@@ -31,13 +28,13 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
     @Autowired
     private CoreMarqueeManager marqueeManager;
     @Autowired
-    private SlotsFactoryManager slotsFactoryManager;
-    @Autowired
     private ActivityManager activityManager;
     @Autowired
     private TaskManager taskManager;
     @Autowired
     private CoreMessageHandler coreMessageHandler;
+    @Autowired
+    private PloyFactoryManager ployFactoryManager;
 
     //上下文
     private ApplicationContext context;
@@ -50,8 +47,6 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
         this.marsCoreStartService.init(this.context, Collections.emptySet());
         //启动core模块
         this.coreStartService.init(this.context);
-        //slots 工厂
-        this.slotsFactoryManager.init(this.context);
         //跑马灯
         this.marqueeManager.init();
         //加载活动数据
@@ -59,18 +54,18 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
         //加载任务管理器
         taskManager.init();
         coreMessageHandler.init();
+        //初始化策略游戏
+        this.ployFactoryManager.init(context);
         running = true;
     }
 
     @Override
     public void stop() {
-        //关闭工厂
-        this.slotsFactoryManager.shutdown();
+        ployFactoryManager.shutdown();
         //关闭core模块
         coreStartService.shutdown();
         //关闭基础设施
         marsCoreStartService.shutdown();
-
         running = false;
     }
 

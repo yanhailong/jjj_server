@@ -16,7 +16,6 @@ import com.jjg.game.hall.minigame.MinigameManager;
 import com.jjg.game.hall.pointsaward.PointsAwardManager;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.hall.service.NoticeService;
-import com.jjg.game.ploy.manager.PloyManager;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -68,8 +67,6 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private SmsService smsService;
     @Autowired
     private CommonDao commonDao;
-    @Autowired
-    private PloyManager ployManager;
 
     private ApplicationContext context;
 
@@ -91,14 +88,12 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         coreMessageHandler.init();
         smsService.init();
         commonDao.init();
-        ployManager.init();
 
         running = true;
     }
 
     @Override
     public void stop() {
-        ployManager.shutdown();
         marsCoreStartService.shutdown();
         coreStartService.shutdown();
         casinoManager.shutdown();

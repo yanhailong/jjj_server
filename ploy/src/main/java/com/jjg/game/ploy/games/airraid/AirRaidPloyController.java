@@ -1,6 +1,7 @@
 package com.jjg.game.ploy.games.airraid;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
@@ -82,13 +83,13 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
     }
 
     @Override
-    public void init(int gameType) {
-        super.init(gameType);
+    public void init() {
+        super.init();
         init.compareAndSet(false, true);
-        if (NodeType.HALL.name().equals(this.clusterSystem.nodeConfig.getType()) && this.marsCurator.isMaster()) {
+        if (this.marsCurator.isMaster()) {
             start();
         }
-
+        log.info("初始化空袭控制器");
 //        start();
     }
 
@@ -119,8 +120,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
     @Override
     public void isLeader() {
-        // 必须是大厅主节点才参与计算
-        if (init.get() && NodeType.HALL.name().equals(this.clusterSystem.nodeConfig.getType())) {
+        // 必须是主节点才参与计算
+        if (init.get()) {
             log.info("AirRaid 当选为主节点，启动游戏循环");
             start();
         }
@@ -237,12 +238,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 已兑现的玩家: 奖金已在兑现时发放
      */
     private void doSettle() {
-        Map<Long, AirRaidPlayerPloyGameData> playerMap = this.gameDataMap.get(this.roomCfgId);
-        if (playerMap == null || playerMap.isEmpty()) {
-            return;
-        }
-
-        for (AirRaidPlayerPloyGameData playerData : playerMap.values()) {
+        for (AirRaidPlayerPloyGameData playerData : this.gameDataMap.values()) {
             for (Map.Entry<Integer, AirRaidBetData> betEntry : playerData.getAirRaidBetDataMap().entrySet()) {
                 AirRaidBetData betData = betEntry.getValue();
                 try {
@@ -276,14 +272,11 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 清空本节点所有玩家的当局投注数据
      */
     private void clearLocalPlayerBets() {
-        Map<Long, AirRaidPlayerPloyGameData> playerMap = this.gameDataMap.get(this.roomCfgId);
-        if (playerMap != null) {
-            playerMap.values().forEach(p -> p.getAirRaidBetDataMap().clear());
-        }
+        this.gameDataMap.values().forEach(p -> p.getAirRaidBetDataMap().clear());
     }
 
     @Override
-    protected AbstractResponse buildResEnterGameMessage(int code, int gameType, int roomCfgId, AirRaidPlayerPloyGameData playerGameData) {
+    protected AbstractResponse buildResPloyConfigMessage(int code, int gameType, int roomCfgId, AirRaidPlayerPloyGameData playerGameData) {
         ResAirRaidEnterGame res = new ResAirRaidEnterGame(code);
         if (code != Code.SUCCESS || playerGameData == null) {
             return res;
@@ -361,7 +354,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             }
 
             // 验证押分值是否在配置列表中
-            PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(this.roomCfgId);
+            PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerController.getPlayer().getRoomCfgId());
             if (cfg == null || cfg.getLineBetScore() == null) {
                 res.code = Code.SAMPLE_ERROR;
                 return res;
@@ -374,7 +367,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             }
 
             // 获取玩家游戏数据
-            AirRaidPlayerPloyGameData playerGameData = getPlayerGameData(playerController.playerId(), this.roomCfgId);
+            AirRaidPlayerPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
             if (playerGameData == null) {
                 res.code = Code.FAIL;
                 log.warn("AirRaid playerGameData为空 playerId={}", playerController.playerId());
@@ -451,7 +444,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             }
 
             // 获取玩家游戏数据
-            AirRaidPlayerPloyGameData playerGameData = getPlayerGameData(playerController.playerId(), this.roomCfgId);
+            AirRaidPlayerPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
             if (playerGameData == null) {
                 res.code = Code.FAIL;
                 log.warn("AirRaid playerGameData为空 playerId={}", playerController.playerId());
@@ -656,7 +649,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         NotifyAirRaidGameState res = new NotifyAirRaidGameState();
         res.phase = msg.phase;
         res.crashMultiplier = msg.crashMultiplier;
-        res.stopTime = (int)(msg.stopTime / 1000);
+        res.stopTime = (int) (msg.stopTime / 1000);
         return res;
     }
 
@@ -685,25 +678,32 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
     @Override
     protected void loadPloyGameRoomCfg() {
-        PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(this.roomCfgId);
-        if (cfg == null) {
-            log.error("AirRaid 配置加载失败 roomCfgId={}", this.roomCfgId);
-            return;
+        for (Map.Entry<Integer, PloygameRoomCfg> en : GameDataManager.getPloygameRoomCfgMap().entrySet()) {
+            PloygameRoomCfg cfg = en.getValue();
+            if (cfg.getGameType() != getGameType()) {
+                continue;
+            }
+
+            // 加载公式参数(从 odds 字段)
+            Map<Integer, Integer> odds = cfg.getOdds();
+
+            this.growthRate = odds.getOrDefault(AirRaidConstant.Odds.GROWTH, 1200);
+            this.riskK = odds.getOrDefault(AirRaidConstant.Odds.RISK, 60);
+            this.crashP0 = odds.getOrDefault(AirRaidConstant.Odds.CRASH, 300);
+
+            // 加载阶段时长(从 information 字段)
+            List<Integer> info = cfg.getInformation();
+            this.bettingDurationMs = info.get(0);
+            this.stopBetDurationMs = info.get(1);
+            this.settleDurationMs = info.get(2);
+            log.info("AirRaid 配置加载完成: growthRate={}, riskK={}, crashP0={}, betting={}ms, stopBet={}ms, settle={}ms", growthRate, riskK, crashP0, bettingDurationMs, stopBetDurationMs, settleDurationMs);
+            break;
         }
+    }
 
-        // 加载公式参数(从 odds 字段)
-        Map<Integer, Integer> odds = cfg.getOdds();
-
-        this.growthRate = odds.getOrDefault(AirRaidConstant.Odds.GROWTH, 1200);
-        this.riskK = odds.getOrDefault(AirRaidConstant.Odds.RISK, 60);
-        this.crashP0 = odds.getOrDefault(AirRaidConstant.Odds.CRASH, 300);
-
-        // 加载阶段时长(从 information 字段)
-        List<Integer> info = cfg.getInformation();
-        this.bettingDurationMs = info.get(0);
-        this.stopBetDurationMs = info.get(1);
-        this.settleDurationMs = info.get(2);
-        log.info("AirRaid 配置加载完成: growthRate={}, riskK={}, crashP0={}, betting={}ms, stopBet={}ms, settle={}ms", growthRate, riskK, crashP0, bettingDurationMs, stopBetDurationMs, settleDurationMs);
+    @Override
+    public int getGameType() {
+        return CoreConst.GameType.AIR_STRIKE;
     }
 
     @Override

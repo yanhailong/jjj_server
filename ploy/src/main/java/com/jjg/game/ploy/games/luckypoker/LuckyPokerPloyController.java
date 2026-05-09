@@ -2,6 +2,7 @@ package com.jjg.game.ploy.games.luckypoker;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSONArray;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
@@ -51,15 +52,15 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
     }
 
     @Override
-    public void init(int gameType) {
-        super.init(gameType);
+    public void init() {
+        super.init();
         log.info("初始化鸿运扑克控制器");
     }
 
     @Override
     public AbstractMessage reqPloyRecord(PlayerController playerController, ReqPloyRecord req) {
         ResLuckyPokerPloyRecord res = new ResLuckyPokerPloyRecord(Code.SUCCESS);
-        List<LuckyPokerRecord> list = recordDao.findLastRecords(playerController.playerId(), this.roomCfgId, LuckyPokerRecord.class);
+        List<LuckyPokerRecord> list = recordDao.findLastRecords(playerController.playerId(), playerController.getPlayer().getRoomCfgId(), LuckyPokerRecord.class);
         if (list == null || list.isEmpty()) {
             return res;
         }
@@ -82,7 +83,7 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
      * @return
      */
     @Override
-    protected AbstractResponse buildResEnterGameMessage(int code, int gameType, int roomCfgId, LuckyPokerPlayerPloyGameData playerGameData) {
+    protected AbstractResponse buildResPloyConfigMessage(int code, int gameType, int roomCfgId, LuckyPokerPlayerPloyGameData playerGameData) {
         ResLuckyPokerEnterGame res = new ResLuckyPokerEnterGame(code);
         if (code != Code.SUCCESS) {
             return res;
@@ -207,7 +208,7 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
     public ResDealCards dealCards(PlayerController playerController, List<Integer> cardIds) {
         ResDealCards res = new ResDealCards(Code.SUCCESS);
         try {
-            LuckyPokerPlayerPloyGameData playerGameData = getPlayerGameData(playerController.playerId(), this.roomCfgId);
+            LuckyPokerPlayerPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
             if (playerGameData == null) {
                 res.code = Code.NOT_FOUND;
                 log.warn("未找到玩家的 playerGameData ，故发牌失败 playerId = {}", playerController.playerId());
@@ -368,5 +369,10 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         log.info("补发 playerId = {},tmpDdealtCards = {}", playerController.playerId(), tmpDdealtCards);
         log.info("最终手牌 playerId = {},finalCardList = {}", playerController.playerId(), finalCardList);
         return result;
+    }
+
+    @Override
+    public int getGameType() {
+        return CoreConst.GameType.LUCKY_POKER;
     }
 }

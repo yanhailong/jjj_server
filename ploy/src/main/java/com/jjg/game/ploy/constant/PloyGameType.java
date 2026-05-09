@@ -57,7 +57,7 @@ public enum PloyGameType {
         for (PloyGameType type : values()) {
             gameTypeMap.put(type.gameType, type);
             type.controller = CommonUtil.getContext().getBean(type.controllerClass);
-            type.controller.init(type.gameType);
+            type.controller.init();
         }
     }
 

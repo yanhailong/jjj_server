@@ -11,8 +11,6 @@ public class PlayerController extends AbsReferenceObject {
     private PFSession session;
     private Player player;
     private Object scene;
-    //子场景
-    private Object subScene;
 
     public PlayerController(PFSession session, Player player) {
         this.session = session;
@@ -66,14 +64,6 @@ public class PlayerController extends AbsReferenceObject {
 
     public void setPlayer(Player player) {
         this.player = player;
-    }
-
-    public Object getSubScene() {
-        return subScene;
-    }
-
-    public void setSubScene(Object subScene) {
-        this.subScene = subScene;
     }
 
     public boolean isOnline() {

@@ -54,7 +54,14 @@ public class HallRoomService implements IConsoleReceiver {
     @Autowired
     private MatchDataDao matchDataDao;
 
-    public int enterSlotsNode(PlayerController playerController, int roomCfgId) {
+    /**
+     * 进入游戏节点
+     *
+     * @param playerController
+     * @param roomCfgId
+     * @return
+     */
+    public int enterGameNode(PlayerController playerController, int roomCfgId) {
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         if (warehouseCfg == null) {
             log.error("配置表异常，未在房间表（warehouse.xlsx）中找到房间配置表ID: {}", roomCfgId);
@@ -75,12 +82,12 @@ public class HallRoomService implements IConsoleReceiver {
     }
 
     /**
-     * 大厅的加入房间
+     * 进入房间节点(table,poker)
      *
      * @param playerController player控制器
      * @param roomCfgId        大厅房间默认配置ID
      */
-    public int hallJoinRoom(PlayerController playerController, int roomCfgId) {
+    public int enterRoomNode(PlayerController playerController, int roomCfgId) {
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         if (warehouseCfg == null) {
             log.error("加入房间时 配置表异常，未在房间表（warehouse.xlsx）中找到房间配置表ID: {}", roomCfgId);
@@ -88,12 +95,12 @@ public class HallRoomService implements IConsoleReceiver {
         }
         int gameType = warehouseCfg.getGameID();
         // 特殊逻辑，百家乐需要将玩家直接传送到游戏服，但是又不进游戏
-        if (gameType == EGameType.BACCARAT.getGameTypeId() ) {
+        if (gameType == EGameType.BACCARAT.getGameTypeId()) {
             // 将玩家切换到某个游戏类型的master游戏服,
             handleBaccaratJoinGame(playerController, roomCfgId);
             // 直接返回成功
             return Code.SUCCESS;
-        } else if ( gameType == EGameType.RUSSIAN_ROULETTE.getGameTypeId()) {
+        } else if (gameType == EGameType.RUSSIAN_ROULETTE.getGameTypeId()) {
             // 将玩家切换到某个游戏类型的master游戏服,
             handleRussianRouletteJoinGame(playerController, roomCfgId);
             // 直接返回成功
@@ -155,6 +162,7 @@ public class HallRoomService implements IConsoleReceiver {
         //切换节点
         clusterSystem.switchNode(playerController.getSession(), marsNode);
     }
+
     /**
      * 俄罗斯转盘玩家进入游戏特殊处理,需要先将玩家传到俄罗斯转盘游戏类型的主节点上,再获取所有同类型游戏节点的房间摘要信息,当玩家进入某个
      * 节点的游戏时，还需要将当前节点切换到对应的节点上，再开始游戏

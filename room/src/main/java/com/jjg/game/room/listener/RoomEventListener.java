@@ -21,10 +21,8 @@ import com.jjg.game.core.manager.VipCheckManager;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
-import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.MessageBuildUtil;
-import com.jjg.game.ploy.controller.AbstractPloyController;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -144,13 +142,6 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             log.warn("玩家退出游戏服务器时未找到 playerRoomEventListener, playerId = {},gameType = {}",
                     playerController.playerId(), gameType);
         }
-
-        //退出策略游戏
-        if (playerController.getSubScene() instanceof AbstractPloyController<?> ployController) {
-            ployController.exitGame(playerController.getPlayer(), exit ? ExitType.INITIATIVE : ExitType.DROPPED);
-            playerController.setSubScene(null);
-        }
-
         log.info("房间 session close 成功 player: {}", playerController.playerId());
         session.setReference(null);
     }

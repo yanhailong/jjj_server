@@ -50,6 +50,17 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
     @Autowired
     private GrandRouletteController grandRouletteController;
 
+    // 生成任务队列（包含gameType和count信息）
+    private final Queue<GenerateLibTask> generateTaskQueue = new LinkedList<>();
+    // 每个 gameType 是否正在执行
+    private final Set<Integer> runningGameTypes = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    // 正在执行的任务计数
+    private final AtomicInteger runningTasks = new AtomicInteger(0);
+    private final int MAX_CONCURRENT_TASKS = 2;
+
+    // 锁
+    private final Object queueLock = new Object();
+
     @Command(MessageConst.ToServer.REQ_REFRESH_GLOBAL_CONFIG)
     public void reqRefreshGameConfig(ReqRefreshGlobalConfig req) {
         log.info("收到刷新游戏全部配置命令: {}", JSON.toJSONString(req));
@@ -62,17 +73,6 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
             log.error("", e);
         }
     }
-
-    // 生成任务队列（包含gameType和count信息）
-    private final Queue<GenerateLibTask> generateTaskQueue = new LinkedList<>();
-    // 每个 gameType 是否正在执行
-    private final Set<Integer> runningGameTypes = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    // 正在执行的任务计数
-    private final AtomicInteger runningTasks = new AtomicInteger(0);
-    private final int MAX_CONCURRENT_TASKS = 2;
-
-    // 锁
-    private final Object queueLock = new Object();
 
     @Command(MessageConst.ToServer.REQ_REFRESH_GAME_STATUS)
     public void reqRefreshGameStatus(ReqRefreshGameStatus req) {
@@ -111,7 +111,7 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
                 }
             }
             // 尝试启动任务
-            if(add){
+            if (add) {
                 tryStartNextTask();
             }
         } catch (Exception e) {

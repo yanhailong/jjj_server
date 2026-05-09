@@ -1,6 +1,7 @@
 package com.jjg.game.ploy.games.highlowpoker;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
@@ -41,18 +42,23 @@ import java.util.List;
  */
 @Component
 public class HighLowPokerController extends AbstractSinglePloyController<HighLowPokerPloyGameData> {
-    private final static Logger log = LoggerFactory.getLogger(HighLowPokerController.class);
     private final HighLowUtil highLowUtil;
 
     public HighLowPokerController(HighLowUtil highLowUtil) {
-        super(log, HighLowPokerPloyGameData.class);
+        super(LoggerFactory.getLogger(HighLowPokerController.class), HighLowPokerPloyGameData.class);
         this.highLowUtil = highLowUtil;
+    }
+
+    @Override
+    public void init() {
+        super.init();
+        log.info("初始化高低扑克控制器");
     }
 
     @Override
     public AbstractMessage reqPloyRecord(PlayerController playerController, ReqPloyRecord req) {
         ResHighLowPokerRecord res = new ResHighLowPokerRecord(Code.SUCCESS);
-        HighLowPokerPloyGameData playerGameData = getPlayerGameData(playerController.playerId(), roomCfgId);
+        HighLowPokerPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
         if (playerGameData == null) {
             res.code = Code.NOT_FOUND;
             log.warn("未找到玩家的 playerGameData,查看记录失败 playerId = {}", playerController.playerId());
@@ -72,7 +78,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
     }
 
     @Override
-    protected AbstractResponse buildResEnterGameMessage(int code, int gameType, int roomCfgId, HighLowPokerPloyGameData playerGameData) {
+    protected AbstractResponse buildResPloyConfigMessage(int code, int gameType, int roomCfgId, HighLowPokerPloyGameData playerGameData) {
         ResHighLowPokerEnterGame res = new ResHighLowPokerEnterGame(code);
         if (code != Code.SUCCESS) {
             return res;
@@ -142,7 +148,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        HighLowPokerPloyGameData playerGameData = getPlayerGameData(playerController.playerId(), roomCfgId);
+        HighLowPokerPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
         if (playerGameData == null) {
             res.code = Code.NOT_FOUND;
             log.warn("未找到玩家的 playerGameData,选择失败 playerId = {}", playerController.playerId());
@@ -233,7 +239,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
      */
     public AbstractResponse exchange(PlayerController playerController, ReqHighLowPokerExchange req) {
         ResHighLowPokerExchange res = new ResHighLowPokerExchange(Code.SUCCESS);
-        HighLowPokerPloyGameData playerGameData = getPlayerGameData(playerController.playerId(), roomCfgId);
+        HighLowPokerPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
         if (playerGameData == null) {
             res.code = Code.NOT_FOUND;
             log.warn("未找到玩家的 playerGameData,兑换金币 playerId = {}", playerController.playerId());
@@ -261,5 +267,10 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
         res.getGoldNum = playerGameData.getCurrentCoin() - tax;
         resetData(playerGameData, tax);
         return res;
+    }
+
+    @Override
+    public int getGameType() {
+        return CoreConst.GameType.HIGH_LOW_POKER;
     }
 }

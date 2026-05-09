@@ -43,11 +43,6 @@
             <version>3.0.0-JJG-RELEASES</version>
         </dependency>
         <dependency>
-            <groupId>com.jjg.game</groupId>
-            <artifactId>ploy</artifactId>
-            <version>3.0.0-JJG-RELEASES</version>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>

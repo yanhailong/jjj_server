@@ -8,6 +8,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -17,6 +18,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.ploy.dao.PlayerPloyGameDataDao;
 import com.jjg.game.ploy.dao.PloyPoolDao;
 import com.jjg.game.ploy.dao.PloyRecordDao;
@@ -38,6 +40,7 @@ import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 策略游戏抽象控制器
@@ -59,10 +62,14 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     @Autowired
     protected PloyRecordDao recordDao;
     @Autowired
+    protected TaskManager taskManager;
+    @Autowired
     protected PloyLogger logger;
 
+    protected AtomicBoolean open = new AtomicBoolean(false);
+
     //roomCfgId -> playerId ->gameData
-    protected Map<Integer, Map<Long, T>> gameDataMap = new ConcurrentHashMap<>();
+    protected Map<Long, T> gameDataMap = new ConcurrentHashMap<>();
 
     protected Class<T> playerGameDataClass;
 
@@ -70,9 +77,6 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     protected Map<Integer, PoolResultLibCfg> poolResultLibCfgMap;
     //PoolResultLibCfg 权重类型  modelId -> PropInfo
     protected Map<Integer, PropInfo> poolResultLibPropMap;
-
-    protected int gameType;
-    protected int roomCfgId;
 
     public AbstractPloyController(Logger log, Class<T> playerGameDataClass) {
         this.log = log;
@@ -82,10 +86,7 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     /**
      * 初始化
      */
-    public void init(int gameType) {
-        this.gameType = gameType;
-        this.roomCfgId = gameType * 10 + 4;
-
+    public void init() {
         loadConfig();
     }
 
@@ -95,29 +96,25 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     }
 
     /**
-     * 进入游戏
+     * 进入游戏时获取配置
      *
      * @param playerController 玩家数据
      * @return 响应数据
      */
-    public AbstractMessage enterGame(PlayerController playerController, int gameType, int roomCfgId) {
+    public AbstractMessage ployConfig(PlayerController playerController) {
         try {
-            T playerGameData = createPlayerGameData(playerController, gameType, roomCfgId);
+            T playerGameData = getPlayerGameData(playerController.playerId());
             if (playerGameData == null) {
-                log.warn("创建 playerGameData 失败，进入游戏失败 playerId = {},roomCfgId = {}", playerController.playerId(), roomCfgId);
-                return buildResEnterGameMessage(Code.FAIL, gameType, roomCfgId, null);
+                log.warn("创建 playerGameData 失败，进入游戏获取配置失败 playerId = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+                return buildResPloyConfigMessage(Code.FAIL, playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), null);
             }
 
-            AbstractResponse res = buildResEnterGameMessage(Code.SUCCESS, gameType, roomCfgId, playerGameData);
-            if (res.code == Code.SUCCESS) {
-                playerController.setSubScene(this);
-            }
-
-            log.info("进入策略游戏返回 playerId = {},gameType = {},roomCfgId = {},res = {}", playerController.playerId(), gameType, roomCfgId, JSON.toJSONString(res));
+            AbstractResponse res = buildResPloyConfigMessage(Code.SUCCESS, playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), playerGameData);
+            log.info("进入策略游戏获取配置返回 playerId = {},gameType = {},roomCfgId = {},res = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), JSON.toJSONString(res));
             return res;
         } catch (Exception e) {
             log.error("", e);
-            return buildResEnterGameMessage(Code.EXCEPTION, gameType, roomCfgId, null);
+            return buildResPloyConfigMessage(Code.EXCEPTION, playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), null);
         }
     }
 
@@ -130,14 +127,19 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
      */
     public AbstractMessage bet(PlayerController playerController, long betValue, int value) {
         try {
-            T playerGameData = getPlayerGameData(playerController.playerId(), this.roomCfgId);
+            //检查游戏是否开启
+            if (!this.open.get()) {
+                return buildResBetMessage(Code.GAME_IS_MAINTAIN, null, 0, 0);
+            }
+
+            T playerGameData = getPlayerGameData(playerController.playerId());
             if (playerGameData == null) {
-                log.warn("获取 playerGameData 失败，下注失败 playerId = {},roomCfgId = {}", playerController.playerId(), this.roomCfgId);
+                log.warn("获取 playerGameData 失败，下注失败 playerId = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
                 return buildResBetMessage(Code.FAIL, null, 0, 0);
             }
 
             //检查押分值
-            PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(this.roomCfgId);
+            PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerController.getPlayer().getRoomCfgId());
             boolean match = cfg.getLineBetScore().stream().anyMatch(b -> b == betValue);
             if (!match) {
                 log.warn("下注额错误，下注失败 playerId = {},roomCfgId = {},betValue = {}", playerController.playerId(), playerGameData.getRoomCfgId(), betValue);
@@ -177,26 +179,6 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     }
 
     /**
-     * 退出游戏
-     *
-     * @param player
-     * @return
-     */
-    public int exitGame(Player player, ExitType exitType) {
-        try {
-            T playerGameData = removePlayerGameData(player.getId(), roomCfgId);
-            if (playerGameData == null) {
-                return Code.SUCCESS;
-            }
-            gameDataDao.saveGameData(playerGameData);
-            return Code.SUCCESS;
-        } catch (Exception e) {
-            log.error("", e);
-            return Code.EXCEPTION;
-        }
-    }
-
-    /**
      * 在玩家扣钱之前检查
      *
      * @return
@@ -215,13 +197,13 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     public abstract AbstractMessage reqPloyRecord(PlayerController playerController, ReqPloyRecord req);
 
     /**
-     * 构建玩家进入游戏时的返回消息
+     * 进入策略游戏获取配置返回
      *
      * @param code
      * @param playerGameData
      * @return
      */
-    protected abstract AbstractResponse buildResEnterGameMessage(int code, int gameType, int roomCfgId, T playerGameData);
+    protected abstract AbstractResponse buildResPloyConfigMessage(int code, int gameType, int roomCfgId, T playerGameData);
 
     /**
      * 构建玩家下注后的返回消息
@@ -343,44 +325,38 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
      * @param playerController
      * @return
      */
-    protected T createPlayerGameData(PlayerController playerController, int gameType, int roomCfgId) throws Exception {
+    public T createPlayerGameData(PlayerController playerController) throws Exception {
         //1.从内存获取
-        T playerGameData = getPlayerGameData(playerController.playerId(), roomCfgId);
+        T playerGameData = getPlayerGameData(playerController.playerId());
         if (playerGameData != null) {
+            playerGameData.setCreateTime(TimeHelper.nowInt());
             playerGameData.setPlayerController(playerController);
             return playerGameData;
         }
 
         //2.从数据库获取
-        playerGameData = gameDataDao.findOne(playerController.playerId(), roomCfgId, this.playerGameDataClass);
+        playerGameData = gameDataDao.findOne(playerController.playerId(), playerController.getPlayer().getRoomCfgId(), this.playerGameDataClass);
         if (playerGameData == null) {
             Constructor<T> constructor = this.playerGameDataClass.getConstructor();
             playerGameData = constructor.newInstance();
-            playerGameData.setId(PlayerPloyGameData.buildId(playerController.playerId(), roomCfgId));
+            playerGameData.setId(PlayerPloyGameData.buildId(playerController.playerId(), playerController.getPlayer().getRoomCfgId()));
             playerGameData.setPlayerController(playerController);
-            playerGameData.setGameType(gameType);
-            playerGameData.setRoomCfgId(roomCfgId);
+            playerGameData.setGameType(playerController.getPlayer().getGameType());
+            playerGameData.setRoomCfgId(playerController.getPlayer().getRoomCfgId());
         }
 
+        playerGameData.setCreateTime(TimeHelper.nowInt());
         playerGameData.setPlayerController(playerController);
-        this.gameDataMap.computeIfAbsent(roomCfgId, k -> new ConcurrentHashMap<>()).put(playerController.playerId(), playerGameData);
+        this.gameDataMap.put(playerController.playerId(), playerGameData);
         return playerGameData;
     }
 
-    public T getPlayerGameData(long playerId, int roomCfgId) {
-        Map<Long, T> temMap = this.gameDataMap.get(roomCfgId);
-        if (temMap == null || temMap.isEmpty()) {
-            return null;
-        }
-        return temMap.get(playerId);
+    public T getPlayerGameData(long playerId) {
+        return this.gameDataMap.get(playerId);
     }
 
-    public T removePlayerGameData(long playerId, int roomCfgId) {
-        Map<Long, T> temMap = this.gameDataMap.get(roomCfgId);
-        if (temMap == null || temMap.isEmpty()) {
-            return null;
-        }
-        return temMap.remove(playerId);
+    public T removePlayerGameData(long playerId) {
+        return this.gameDataMap.remove(playerId);
     }
 
     /**
@@ -397,6 +373,27 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
             }
         }
         return null;
+    }
+
+    /**
+     * 处理玩家退出游戏事件
+     *
+     * @param playerController
+     * @param exitType
+     * @return
+     */
+    public T exit(PlayerController playerController, ExitType exitType) {
+        T playerGameData = getPlayerGameData(playerController.playerId());
+        if (playerGameData == null) {
+            return null;
+        }
+
+        long now = System.currentTimeMillis();
+        playerGameData.setOfflineTime(now);
+        gameDataDao.saveGameData(playerGameData);
+        removePlayerGameData(playerController.playerId());
+        taskManager.onExit(playerController.playerId());
+        return playerGameData;
     }
 
     //----------------------------------------------------------------------------------------
@@ -416,7 +413,7 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
 
         for (Map.Entry<Integer, PoolResultLibCfg> en : GameDataManager.getPoolResultLibCfgMap().entrySet()) {
             PoolResultLibCfg cfg = en.getValue();
-            if (this.gameType != cfg.getGameType()) {
+            if (getGameType() != cfg.getGameType()) {
                 continue;
             }
             tmpPoolResultLibCfgMap.put(cfg.getModelId(), cfg);
@@ -438,17 +435,16 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
             return;
         }
         //保存玩家数据
-        for (Map.Entry<Integer, Map<Long, T>> entry : gameDataMap.entrySet()) {
-            if (CollectionUtil.isEmpty(entry.getValue())) {
-                continue;
-            }
-            for (Map.Entry<Long, T> playerGameDataEntry : entry.getValue().entrySet()) {
-                log.info("关服保存策略游戏玩家数据 playerId:{}", playerGameDataEntry.getKey());
-                gameDataDao.saveGameData(playerGameDataEntry.getValue());
-                log.info("关服保存策略游戏玩家数据完成 playerId:{}", playerGameDataEntry.getKey());
-            }
+        for (Map.Entry<Long, T> playerGameDataEntry : gameDataMap.entrySet()) {
+            log.info("关服保存策略游戏玩家数据 playerId:{}", playerGameDataEntry.getKey());
+            gameDataDao.saveGameData(playerGameDataEntry.getValue());
+            log.info("关服保存策略游戏玩家数据完成 playerId:{}", playerGameDataEntry.getKey());
         }
     }
 
+    public abstract int getGameType();
 
+    public AtomicBoolean getOpen() {
+        return open;
+    }
 }
