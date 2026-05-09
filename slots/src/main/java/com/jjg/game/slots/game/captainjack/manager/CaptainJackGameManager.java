@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class CaptainJackGameManager extends AbstractCaptainJackGameManager {
     public CaptainJackGameManager(CaptainJackGameGenerateManager gameGenerateManager,
-                                  CaptainJackGameDataDao gameDataDao, CaptainJackResultLibDao captainJackResultLibDao) {
-        super(gameGenerateManager, gameDataDao, captainJackResultLibDao);
+                                  CaptainJackResultLibDao captainJackResultLibDao) {
+        super(gameGenerateManager, captainJackResultLibDao);
         this.log = LoggerFactory.getLogger(getClass());
     }
 }

@@ -2,7 +2,6 @@ package com.jjg.game.slots.game.zeusVsHades.manager;
 
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.zeusVsHades.data.ZeusVsHadesPlayerGameData;
-import com.jjg.game.slots.game.zeusVsHades.data.ZeusVsHadesPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.zeusVsHades.data.ZeusVsHadesResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -32,10 +31,5 @@ public class ZeusVsHadesRoomGameManager extends AbstractZeusVsHadesGameManager {
     @Override
     protected List<Integer> checkLibPool(ZeusVsHadesResultLib resultLib, ZeusVsHadesPlayerGameData playerGameData) {
         return List.of();
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return ZeusVsHadesPlayerGameDataRoomDTO.class;
     }
 }

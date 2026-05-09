@@ -11,7 +11,6 @@ import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.moneyrabbit.MoneyRabbitConstant;
-import com.jjg.game.slots.game.moneyrabbit.dao.MoneyRabbitGameDataDao;
 import com.jjg.game.slots.game.moneyrabbit.dao.MoneyRabbitResultLibDao;
 import com.jjg.game.slots.game.moneyrabbit.data.*;
 import com.jjg.game.slots.game.moneyrabbit.pb.MoneyRabbitCoinInfo;
@@ -31,8 +30,6 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
     protected MoneyRabbitResultLibDao libDao;
     @Autowired
     protected MoneyRabbitGenerateManager generateManager;
-    @Autowired
-    protected MoneyRabbitGameDataDao gameDataDao;
 
     //假免费的概率
     private int fake_free_prop = 0;
@@ -269,18 +266,8 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
     }
 
     @Override
-    protected MoneyRabbitGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
     protected MoneyRabbitGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return MoneyRabbitPlayerGameDataDTO.class;
     }
 
     @Override

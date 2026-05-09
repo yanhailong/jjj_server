@@ -1,8 +1,6 @@
 package com.jjg.game.slots.game.pegasusunbridle.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleGameDataDao;
-import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridlePlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleResultLibDao;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridlePlayerGameData;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleResultLib;
@@ -18,8 +16,8 @@ import java.util.List;
  */
 @Component
 public class PegasusUnbridleRoomGameManager extends AbstractPegasusUnbridleGameManager{
-    public PegasusUnbridleRoomGameManager(PegasusUnbridleGameGenerateManager gameGenerateManager, PegasusUnbridleGameDataDao gameDataDao, PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao) {
-        super(gameGenerateManager, gameDataDao, PegasusUnbridleResultLibDao);
+    public PegasusUnbridleRoomGameManager(PegasusUnbridleGameGenerateManager gameGenerateManager, PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao) {
+        super(gameGenerateManager, PegasusUnbridleResultLibDao);
         this.log =  LoggerFactory.getLogger(getClass());
     }
 
@@ -31,10 +29,5 @@ public class PegasusUnbridleRoomGameManager extends AbstractPegasusUnbridleGameM
     @Override
     protected List<Integer> checkLibPool(PegasusUnbridleResultLib resultLib, PegasusUnbridlePlayerGameData playerGameData) {
         return Collections.emptyList();
-    }
-
-    @Override
-    protected Class<PegasusUnbridlePlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
-        return PegasusUnbridlePlayerGameDataRoomDTO.class;
     }
 }

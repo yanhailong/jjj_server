@@ -15,7 +15,6 @@ import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
-import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressGameDataDao;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressResultLibDao;
 import com.jjg.game.slots.game.dollarexpress.data.*;
 import com.jjg.game.slots.game.dollarexpress.pb.DollarsInfo;
@@ -31,8 +30,6 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     protected DollarExpressResultLibDao libDao;
     @Autowired
     protected DollarExpressGenerateManager generateManager;
-    @Autowired
-    protected DollarExpressGameDataDao gameDataDao;
 
     protected DollarExpressCollectDollarConfig dollarExpressCollectDollarConfig;
 
@@ -812,18 +809,8 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
     }
 
     @Override
-    protected DollarExpressGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
     protected DollarExpressGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return DollarExpressPlayerGameDataDTO.class;
     }
 
     /**

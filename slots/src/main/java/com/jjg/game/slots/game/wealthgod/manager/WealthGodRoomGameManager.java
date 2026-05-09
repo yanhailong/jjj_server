@@ -2,7 +2,6 @@ package com.jjg.game.slots.game.wealthgod.manager;
 
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.wealthgod.data.WealthGodPlayerGameData;
-import com.jjg.game.slots.game.wealthgod.data.WealthGodPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.wealthgod.data.WealthGodResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -25,10 +24,5 @@ public class WealthGodRoomGameManager extends AbstractWealthGodGameManager{
     @Override
     protected List<Integer> checkLibPool(WealthGodResultLib resultLib, WealthGodPlayerGameData playerGameData) {
         return Collections.emptyList();
-    }
-
-    @Override
-    protected Class<WealthGodPlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
-        return WealthGodPlayerGameDataRoomDTO.class;
     }
 }

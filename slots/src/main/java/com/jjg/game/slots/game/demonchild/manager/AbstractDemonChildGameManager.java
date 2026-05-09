@@ -9,8 +9,6 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.game.demonchild.constant.DemonChildConstant;
-import com.jjg.game.slots.game.demonchild.dao.DemonChildGameDataDao;
-import com.jjg.game.slots.game.demonchild.dao.DemonChildPlayerGameDataDTO;
 import com.jjg.game.slots.game.demonchild.dao.DemonChildResultLibDao;
 import com.jjg.game.slots.game.demonchild.data.DemonChildAwardLineInfo;
 import com.jjg.game.slots.game.demonchild.data.DemonChildGameRunInfo;
@@ -24,14 +22,12 @@ import java.util.List;
 
 public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameManager<DemonChildPlayerGameData, DemonChildResultLib, DemonChildGameRunInfo> {
     protected final DemonChildGameGenerateManager gameGenerateManager;
-    protected final DemonChildGameDataDao gameDataDao;
     protected final DemonChildResultLibDao demonChildResultLibDao;
 
     public AbstractDemonChildGameManager(DemonChildGameGenerateManager gameGenerateManager,
-                                         DemonChildGameDataDao gameDataDao, DemonChildResultLibDao demonChildResultLibDao) {
+                                         DemonChildResultLibDao demonChildResultLibDao) {
         super(DemonChildPlayerGameData.class, DemonChildResultLib.class, DemonChildGameRunInfo.class);
         this.gameGenerateManager = gameGenerateManager;
-        this.gameDataDao = gameDataDao;
         this.demonChildResultLibDao = demonChildResultLibDao;
     }
 
@@ -193,16 +189,6 @@ public abstract class AbstractDemonChildGameManager extends AbstractSlotsGameMan
     @Override
     protected DemonChildGameGenerateManager getGenerateManager() {
         return this.gameGenerateManager;
-    }
-
-    @Override
-    protected DemonChildGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return DemonChildPlayerGameDataDTO.class;
     }
 
     @Override

@@ -10,11 +10,9 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.steamAge.SteamAgeConstant;
-import com.jjg.game.slots.game.steamAge.dao.SteamAgeGameDataDao;
 import com.jjg.game.slots.game.steamAge.dao.SteamAgeResultLibDao;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeGameRunInfo;
 import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameData;
-import com.jjg.game.slots.game.steamAge.data.SteamAgePlayerGameDataDTO;
 import com.jjg.game.slots.game.steamAge.data.SteamAgeResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +24,6 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
     private SteamAgeResultLibDao libDao;
     @Autowired
     private SteamAgeGenerateManager generateManager;
-    @Autowired
-    private SteamAgeGameDataDao gameDataDao;
 
     public AbstractSteamAgeGameManager() {
         super(SteamAgePlayerGameData.class, SteamAgeResultLib.class, SteamAgeGameRunInfo.class);
@@ -208,16 +204,6 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
     @Override
     protected SteamAgeGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected SteamAgeGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return SteamAgePlayerGameDataDTO.class;
     }
 
     @Override

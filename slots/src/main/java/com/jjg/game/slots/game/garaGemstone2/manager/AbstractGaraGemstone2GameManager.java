@@ -12,7 +12,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.game.garaGemstone2.GaraGemstone2Constant;
 import com.jjg.game.slots.game.garaGemstone2.dao.GaraGemstone2ResultLibDao;
 import com.jjg.game.slots.game.garaGemstone2.data.*;
@@ -28,8 +27,6 @@ public abstract class AbstractGaraGemstone2GameManager extends AbstractSlotsGame
     private GaraGemstone2ResultLibDao libDao;
     @Autowired
     private GaraGemstone2GenerateManager gameGenerateManager;
-    @Autowired
-    private SlotsPoolDao slotsPoolDao;
 
     public AbstractGaraGemstone2GameManager() {
         super(GaraGemstone2PlayerGameData.class, GaraGemstone2ResultLib.class, GaraGemstone2GameRunInfo.class);

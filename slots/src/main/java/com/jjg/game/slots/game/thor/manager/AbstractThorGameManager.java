@@ -12,7 +12,6 @@ import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.thor.ThorConstant;
-import com.jjg.game.slots.game.thor.dao.ThorGameDataDao;
 import com.jjg.game.slots.game.thor.dao.ThorResultLibDao;
 import com.jjg.game.slots.game.thor.data.*;
 import com.jjg.game.slots.game.thor.pb.ThorWinIconInfo;
@@ -28,8 +27,6 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
     protected ThorResultLibDao libDao;
     @Autowired
     protected ThorGenerateManager generateManager;
-    @Autowired
-    protected ThorGameDataDao gameDataDao;
 
     public AbstractThorGameManager() {
         super(ThorPlayerGameData.class, ThorResultLib.class, ThorGameRunInfo.class);
@@ -344,18 +341,8 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
     }
 
     @Override
-    protected ThorGameDataDao getGameDataDao() {
-        return gameDataDao;
-    }
-
-    @Override
     protected ThorGenerateManager getGenerateManager() {
         return generateManager;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return ThorPlayerGameDataDTO.class;
     }
 
     @Override

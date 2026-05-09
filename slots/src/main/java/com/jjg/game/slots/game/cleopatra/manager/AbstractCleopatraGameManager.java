@@ -12,11 +12,9 @@ import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.TestLibData;
-import com.jjg.game.slots.game.cleopatra.dao.CleopatraGameDataDao;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraResultLibDao;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
-import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameDataDTO;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,8 +27,6 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
     protected CleopatraResultLibDao libDao;
     @Autowired
     protected CleopatraGenerateManager generateManager;
-    @Autowired
-    protected CleopatraGameDataDao gameDataDao;
 
     public AbstractCleopatraGameManager() {
         super(CleopatraPlayerGameData.class, CleopatraResultLib.class, CleopatraGameRunInfo.class);
@@ -206,18 +202,8 @@ public abstract class AbstractCleopatraGameManager extends AbstractSlotsGameMana
     }
 
     @Override
-    protected CleopatraGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
     protected CleopatraGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return CleopatraPlayerGameDataDTO.class;
     }
 
     @Override

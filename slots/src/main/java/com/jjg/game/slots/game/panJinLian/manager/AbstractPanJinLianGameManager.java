@@ -10,11 +10,9 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.panJinLian.PanJinLianConstant;
-import com.jjg.game.slots.game.panJinLian.dao.PanJinLianGameDataDao;
 import com.jjg.game.slots.game.panJinLian.dao.PanJinLianResultLibDao;
 import com.jjg.game.slots.game.panJinLian.data.PanJinLianGameRunInfo;
 import com.jjg.game.slots.game.panJinLian.data.PanJinLianPlayerGameData;
-import com.jjg.game.slots.game.panJinLian.data.PanJinLianPlayerGameDataDTO;
 import com.jjg.game.slots.game.panJinLian.data.PanJinLianResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +24,6 @@ public abstract class AbstractPanJinLianGameManager extends AbstractSlotsGameMan
     private PanJinLianResultLibDao libDao;
     @Autowired
     private PanJinLianGenerateManager generateManager;
-    @Autowired
-    private PanJinLianGameDataDao gameDataDao;
 
     public AbstractPanJinLianGameManager() {
         super(PanJinLianPlayerGameData.class, PanJinLianResultLib.class, PanJinLianGameRunInfo.class);
@@ -190,16 +186,6 @@ public abstract class AbstractPanJinLianGameManager extends AbstractSlotsGameMan
     @Override
     protected PanJinLianGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected PanJinLianGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return PanJinLianPlayerGameDataDTO.class;
     }
 
     @Override

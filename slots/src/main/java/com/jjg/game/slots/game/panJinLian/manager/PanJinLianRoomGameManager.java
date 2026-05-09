@@ -2,7 +2,6 @@ package com.jjg.game.slots.game.panJinLian.manager;
 
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.game.panJinLian.data.PanJinLianPlayerGameData;
-import com.jjg.game.slots.game.panJinLian.data.PanJinLianPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.panJinLian.data.PanJinLianResultLib;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -32,10 +31,5 @@ public class PanJinLianRoomGameManager extends AbstractPanJinLianGameManager {
     @Override
     protected List<Integer> checkLibPool(PanJinLianResultLib resultLib, PanJinLianPlayerGameData playerGameData) {
         return Collections.emptyList();
-    }
-
-    @Override
-    protected Class<PanJinLianPlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
-        return PanJinLianPlayerGameDataRoomDTO.class;
     }
 }

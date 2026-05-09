@@ -11,18 +11,14 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.BetDivideInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.thor.ThorConstant;
 import com.jjg.game.slots.game.zeusVsHades.ZeusVsHadesConstant;
-import com.jjg.game.slots.game.zeusVsHades.dao.ZeusVsHadesGameDataDao;
 import com.jjg.game.slots.game.zeusVsHades.dao.ZeusVsHadesResultLibDao;
 import com.jjg.game.slots.game.zeusVsHades.data.ZeusVsHadesGameRunInfo;
 import com.jjg.game.slots.game.zeusVsHades.data.ZeusVsHadesPlayerGameData;
-import com.jjg.game.slots.game.zeusVsHades.data.ZeusVsHadesPlayerGameDataDTO;
 import com.jjg.game.slots.game.zeusVsHades.data.ZeusVsHadesResultLib;
-import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,12 +34,6 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
     private ZeusVsHadesResultLibDao libDao;
     @Autowired
     private ZeusVsHadesGenerateManager generateManager;
-    @Autowired
-    private SlotsPoolDao slotsPoolDao;
-    @Autowired
-    private SlotsLogger logger;
-    @Autowired
-    private ZeusVsHadesGameDataDao gameDataDao;
 
     public AbstractZeusVsHadesGameManager() {
         super(ZeusVsHadesPlayerGameData.class, ZeusVsHadesResultLib.class, ZeusVsHadesGameRunInfo.class);
@@ -288,11 +278,6 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
     }
 
     @Override
-    protected ZeusVsHadesGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
     public void shutdown() {
         try {
             super.shutdown();
@@ -300,11 +285,6 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
         } catch (Exception e) {
             log.error("", e);
         }
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return ZeusVsHadesPlayerGameDataDTO.class;
     }
 
     @Override

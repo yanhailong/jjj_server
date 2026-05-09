@@ -13,8 +13,8 @@ import java.util.List;
 @Component
 public class CaptainJackRoomGameManager extends AbstractCaptainJackGameManager{
     public CaptainJackRoomGameManager(CaptainJackGameGenerateManager gameGenerateManager,
-                                  CaptainJackGameDataDao gameDataDao, CaptainJackResultLibDao captainJackResultLibDao) {
-        super(gameGenerateManager, gameDataDao, captainJackResultLibDao);
+                                  CaptainJackResultLibDao captainJackResultLibDao) {
+        super(gameGenerateManager, captainJackResultLibDao);
         this.log = LoggerFactory.getLogger(getClass());
     }
 
@@ -26,10 +26,5 @@ public class CaptainJackRoomGameManager extends AbstractCaptainJackGameManager{
     @Override
     protected List<Integer> checkLibPool(CaptainJackResultLib resultLib, CaptainJackPlayerGameData playerGameData) {
         return Collections.emptyList();
-    }
-
-    @Override
-    protected Class<CaptainJackPlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
-        return CaptainJackPlayerGameDataRoomDTO.class;
     }
 }

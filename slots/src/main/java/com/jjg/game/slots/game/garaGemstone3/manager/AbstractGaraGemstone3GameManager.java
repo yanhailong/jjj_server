@@ -14,7 +14,6 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.game.garaGemstone3.GaraGemstone3Constant;
-import com.jjg.game.slots.game.garaGemstone3.dao.GaraGemstone3GameDataDao;
 import com.jjg.game.slots.game.garaGemstone3.dao.GaraGemstone3ResultLibDao;
 import com.jjg.game.slots.game.garaGemstone3.data.*;
 import com.jjg.game.slots.game.garaGemstone3.pb.GaraGemstone3WinIconInfo;
@@ -29,10 +28,6 @@ public abstract class AbstractGaraGemstone3GameManager extends AbstractSlotsGame
     private GaraGemstone3ResultLibDao libDao;
     @Autowired
     private GaraGemstone3GenerateManager gameGenerateManager;
-    @Autowired
-    private SlotsPoolDao slotsPoolDao;
-    @Autowired
-    private GaraGemstone3GameDataDao gameDataDao;
 
     public AbstractGaraGemstone3GameManager() {
         super(GaraGemstone3PlayerGameData.class, GaraGemstone3ResultLib.class, GaraGemstone3GameRunInfo.class);
@@ -179,18 +174,8 @@ public abstract class AbstractGaraGemstone3GameManager extends AbstractSlotsGame
     }
 
     @Override
-    protected GaraGemstone3GameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
     protected GaraGemstone3GenerateManager getGenerateManager() {
         return this.gameGenerateManager;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return GaraGemstone3PlayerGameDataDTO.class;
     }
 
     @Override

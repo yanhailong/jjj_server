@@ -982,7 +982,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     @SuppressWarnings("unchecked")
-    public <DT extends SlotsPlayerGameDataDTO> T createPlayerGameData(PlayerController playerController) throws Exception {
+    public T createPlayerGameData(PlayerController playerController) throws Exception {
         PlayerAllSlotsData playerAllSlotsData = playerAllSlotsDataDao.getFromAllDB(playerController.playerId());
         if (playerAllSlotsData == null) {
             playerAllSlotsData = new PlayerAllSlotsData();
@@ -1481,11 +1481,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected abstract <D extends AbstractResultLibDao> D getResultLibDao();
 
     protected abstract <D extends AbstractSlotsGenerateManager> D getGenerateManager();
-
-    @Deprecated
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return null;
-    }
 
     /**
      * 更新奖池

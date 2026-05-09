@@ -17,7 +17,6 @@ import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SlotsResultLib;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.TestLibData;
-import com.jjg.game.slots.game.wealthgod.dao.WealthGodGameDataDao;
 import com.jjg.game.slots.game.wealthgod.dao.WealthGodResultLibDao;
 import com.jjg.game.slots.game.wealthgod.data.*;
 import com.jjg.game.slots.game.wealthgod.pb.WealthGodIconChangeInfo;
@@ -37,8 +36,6 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
     protected WealthGodGenerateManager generateManager;
     @Autowired
     protected WealthGodResultLibDao wealthGodResultLibDao;
-    @Autowired
-    protected WealthGodGameDataDao gameDataDao;
 
     public AbstractWealthGodGameManager() {
         super(WealthGodPlayerGameData.class, WealthGodResultLib.class, WealthGodGameRunInfo.class);
@@ -62,18 +59,8 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
     }
 
     @Override
-    protected WealthGodGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
     protected WealthGodGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return WealthGodPlayerGameDataDTO.class;
     }
 
     /**

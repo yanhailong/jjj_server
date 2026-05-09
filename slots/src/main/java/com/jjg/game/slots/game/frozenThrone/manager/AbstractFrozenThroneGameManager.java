@@ -10,11 +10,9 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.frozenThrone.FrozenThroneConstant;
-import com.jjg.game.slots.game.frozenThrone.dao.FrozenThroneGameDataDao;
 import com.jjg.game.slots.game.frozenThrone.dao.FrozenThroneResultLibDao;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneGameRunInfo;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThronePlayerGameData;
-import com.jjg.game.slots.game.frozenThrone.data.FrozenThronePlayerGameDataDTO;
 import com.jjg.game.slots.game.frozenThrone.data.FrozenThroneResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +24,6 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
     private FrozenThroneResultLibDao libDao;
     @Autowired
     private FrozenThroneGenerateManager generateManager;
-    @Autowired
-    private FrozenThroneGameDataDao gameDataDao;
 
     public AbstractFrozenThroneGameManager() {
         super(FrozenThronePlayerGameData.class, FrozenThroneResultLib.class, FrozenThroneGameRunInfo.class);
@@ -214,16 +210,6 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
     @Override
     protected FrozenThroneGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected FrozenThroneGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return FrozenThronePlayerGameDataDTO.class;
     }
 
     @Override

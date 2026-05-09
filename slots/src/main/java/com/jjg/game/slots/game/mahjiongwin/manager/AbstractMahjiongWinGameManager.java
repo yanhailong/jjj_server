@@ -10,11 +10,9 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
-import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinGameDataDao;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinResultLibDao;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameData;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameDataDTO;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +24,6 @@ public abstract class AbstractMahjiongWinGameManager extends AbstractSlotsGameMa
     protected MahjiongWinResultLibDao libDao;
     @Autowired
     protected MahjiongWinGenerateManager generateManager;
-    @Autowired
-    protected MahjiongWinGameDataDao gameDataDao;
 
     public AbstractMahjiongWinGameManager() {
         super(MahjiongWinPlayerGameData.class, MahjiongWinResultLib.class, MahjiongWinGameRunInfo.class);
@@ -211,16 +207,6 @@ public abstract class AbstractMahjiongWinGameManager extends AbstractSlotsGameMa
     @Override
     protected MahjiongWinGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected MahjiongWinGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return MahjiongWinPlayerGameDataDTO.class;
     }
 
     @Override

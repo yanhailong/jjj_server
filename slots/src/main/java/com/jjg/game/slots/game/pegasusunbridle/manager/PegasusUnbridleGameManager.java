@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.pegasusunbridle.manager;
 
-import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleGameDataDao;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleResultLibDao;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -11,8 +10,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class PegasusUnbridleGameManager extends AbstractPegasusUnbridleGameManager{
-    public PegasusUnbridleGameManager(PegasusUnbridleGameGenerateManager gameGenerateManager, PegasusUnbridleGameDataDao gameDataDao, PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao) {
-        super(gameGenerateManager, gameDataDao, PegasusUnbridleResultLibDao);
+    public PegasusUnbridleGameManager(PegasusUnbridleGameGenerateManager gameGenerateManager, PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao) {
+        super(gameGenerateManager, PegasusUnbridleResultLibDao);
         this.log =  LoggerFactory.getLogger(getClass());
     }
 }
