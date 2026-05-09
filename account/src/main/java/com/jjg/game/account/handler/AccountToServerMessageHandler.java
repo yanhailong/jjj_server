@@ -4,7 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.handler.CoreToServerMessageHandler;
-import com.jjg.game.core.pb.gm.NotifyLoadBlackList;
+import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.BlackListService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -27,10 +27,10 @@ public class AccountToServerMessageHandler extends CoreToServerMessageHandler {
         try {
             log.info("收到gm推送重新加载黑名单");
 
-            if(notify.loadId){
+            if (notify.loadId) {
                 blackListService.loadAllBlackId();
             }
-            if(notify.loadIp){
+            if (notify.loadIp) {
                 blackListService.loadAllBlackIp();
             }
         } catch (Exception e) {
