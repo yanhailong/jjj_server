@@ -2,7 +2,6 @@ package com.jjg.game.hall.pointsaward.leaderboard;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.RandomUtil;
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.curator.MarsCurator;
@@ -16,7 +15,7 @@ import com.jjg.game.core.constant.AwardCodeType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.core.manager.AwardCodeManager;
+import com.jjg.game.hall.manager.AwardCodeManager;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.RankService;
 import com.jjg.game.core.utils.ItemUtils;

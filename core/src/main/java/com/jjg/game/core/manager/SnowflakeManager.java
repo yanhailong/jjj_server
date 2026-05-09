@@ -93,7 +93,6 @@ public class SnowflakeManager implements TimerListener<String> {
         this.clusterSystem = clusterSystem;
         this.timerCenter = timerCenter;
         this.marsCurator = marsCurator;
-        init();
     }
 
     /**

@@ -3,6 +3,7 @@ package com.jjg.game.core.service;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.manager.SampleDataManager;
+import com.jjg.game.core.manager.SnowflakeManager;
 import com.jjg.game.core.task.manager.TaskManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -27,6 +28,8 @@ public class CoreStartService {
     private ConfigManager configManager;
     @Autowired
     private TaskManager taskManager;
+    @Autowired
+    private SnowflakeManager snowflakeManager;
 
     /**
      * 启动时初始化
@@ -34,6 +37,7 @@ public class CoreStartService {
      * @param context
      */
     public void init(ApplicationContext context) {
+        snowflakeManager.init();
         playerSessionService.init();
         sampleDataManager.init();
         gameEventManager.initEventListener();

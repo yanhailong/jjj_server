@@ -5,7 +5,7 @@ import com.jjg.game.common.utils.PageUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.RankEntry;
-import com.jjg.game.core.manager.AwardCodeManager;
+import com.jjg.game.hall.manager.AwardCodeManager;
 import com.jjg.game.core.service.RankService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardData;

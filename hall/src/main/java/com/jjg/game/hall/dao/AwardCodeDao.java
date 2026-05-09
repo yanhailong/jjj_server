@@ -1,6 +1,7 @@
-package com.jjg.game.core.dao;
+package com.jjg.game.hall.dao;
 
-import com.jjg.game.core.data.AwardCode;
+import com.jjg.game.core.dao.MongoBaseDao;
+import com.jjg.game.hall.data.AwardCode;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Repository;
 

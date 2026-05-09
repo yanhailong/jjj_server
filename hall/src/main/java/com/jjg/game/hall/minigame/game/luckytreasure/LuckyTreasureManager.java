@@ -18,7 +18,7 @@ import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.LuckyTreasure;
 import com.jjg.game.core.data.Player;
-import com.jjg.game.core.manager.AwardCodeManager;
+import com.jjg.game.hall.manager.AwardCodeManager;
 import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;

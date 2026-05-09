@@ -1,4 +1,4 @@
-package com.jjg.game.core.data;
+package com.jjg.game.hall.data;
 
 import com.jjg.game.core.constant.AwardCodeType;
 import org.springframework.data.annotation.Id;

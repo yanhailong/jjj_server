@@ -1,13 +1,13 @@
-package com.jjg.game.core.manager;
+package com.jjg.game.hall.manager;
 
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.core.constant.AwardCodeType;
-import com.jjg.game.core.dao.AwardCodeDao;
-import com.jjg.game.core.data.AwardCode;
+import com.jjg.game.hall.dao.AwardCodeDao;
+import com.jjg.game.hall.data.AwardCode;
+import com.jjg.game.core.manager.SnowflakeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.sqids.Sqids;
 
@@ -47,11 +47,10 @@ public class AwardCodeManager {
      */
     private final AwardCodeDao awardCodeDao;
 
-    public AwardCodeManager(AwardCodeDao awardCodeDao, @Lazy SnowflakeManager snowflakeManager) {
+    public AwardCodeManager(AwardCodeDao awardCodeDao, SnowflakeManager snowflakeManager) {
         this.awardCodeDao = awardCodeDao;
         this.snowflakeManager = snowflakeManager;
         this.sqids = createSqidsEncoder();
-        log.info("领奖码管理器初始化成功");
     }
 
     /**
