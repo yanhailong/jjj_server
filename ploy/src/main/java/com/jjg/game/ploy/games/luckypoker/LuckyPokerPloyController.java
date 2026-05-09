@@ -258,6 +258,8 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
             record.setPlayerId(player.getId());
             record.setRoomCfgId(playerGameData.getRoomCfgId());
             record.setFinalCardIds(LuckyPokerUtils.card2Ids(drawResult.data.getFirst()));
+            record.setPokerRank(pokerRank);
+            record.setTimes(times);
             recordDao.saveRecord(record);
 
             //组装返回消息
