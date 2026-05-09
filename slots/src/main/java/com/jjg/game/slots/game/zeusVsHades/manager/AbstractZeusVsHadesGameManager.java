@@ -263,11 +263,6 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
     }
 
     @Override
-    protected void offlineSaveGameDataDto(ZeusVsHadesPlayerGameData gameData) {
-        super.offlineSaveGameDataDto(gameData);
-    }
-
-    @Override
     protected ZeusVsHadesResultLibDao getResultLibDao() {
         return this.libDao;
     }

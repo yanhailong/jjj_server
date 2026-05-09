@@ -738,7 +738,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         en.getValue().setAction(true);
                     }
                 }
-                offlineSaveGameDataDto(v2);
+                offlineSaveGameData(v2);
                 taskManager.onExit(v2.getPlayerId());
             } catch (Exception e) {
                 log.error("", e);
@@ -970,7 +970,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (playerController != null) {
             slotsRoomManager.exitRoom(playerController);
         }
-        offlineSaveGameDataDto(playerGameData);
+        offlineSaveGameData(playerGameData);
         removePlayerGameData(playerId, playerGameData.getRoomCfgId(), playerGameData.getRoomId());
         playerAllSlotsDataDao.saveToRedis(playerGameData.getPlayerAllSlotsData());
     }
@@ -1453,7 +1453,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     return;
                 }
                 slotsRoomManager.exitRoom(playerController);
-                offlineSaveGameDataDto(playerGameData);
+                offlineSaveGameData(playerGameData);
                 removePlayerGameData(playerGameData.getPlayerId(), playerGameData.getRoomCfgId(), playerGameData.getRoomId());
                 log.debug("保存离线玩家数据 playerId = {}", playerController.playerId());
             }
@@ -1509,9 +1509,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
-     * 玩家离线保存gameDataDto
+     * 玩家离线保存gameData
      */
-    protected void offlineSaveGameDataDto(T gameData) {
+    protected void offlineSaveGameData(T gameData) {
         playerGameDataDao.savePlayerGameData(gameData);
     }
 
