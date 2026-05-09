@@ -102,8 +102,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     //游戏类型
     protected int gameType;
 
-    //roomCfgId -> roomId -> playerId -> gameData
-    protected Map<Integer, Map<Long, Map<Long, T>>> gameDataMap = new ConcurrentHashMap<>();
+    //playerId -> gameData
+    protected Map<Long, T> gameDataMap = new ConcurrentHashMap<>();
 
     protected int oneHundredMillion = 100000000;
     protected BigDecimal oneHundredMillionBigDecimal = BigDecimal.valueOf(oneHundredMillion);
@@ -725,25 +725,25 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             checkPlayerStatusTimeout.cancel();
         }
         checkPlayerStatusTimeout = null;
-        this.gameDataMap.forEach((k, v) -> v.forEach((k1, v1) -> v1.forEach((k2, v2) -> {
+        this.gameDataMap.forEach((k, v) -> {
             try {
-                if (v2.getOfflineEventMap() != null && !v2.getOfflineEventMap().isEmpty()) {
-                    for (Map.Entry<Integer, OffLineEventData> en : v2.getOfflineEventMap().entrySet()) {
+                if (v.getOfflineEventMap() != null && !v.getOfflineEventMap().isEmpty()) {
+                    for (Map.Entry<Integer, OffLineEventData> en : v.getOfflineEventMap().entrySet()) {
                         //检查该事件是否已经执行
                         if (en.getValue().isAction()) {
                             continue;
                         }
                         //开始执行
-                        onAutoExitAction(v2, en.getKey());
+                        onAutoExitAction(v, en.getKey());
                         en.getValue().setAction(true);
                     }
                 }
-                offlineSaveGameData(v2);
-                taskManager.onExit(v2.getPlayerId());
+                offlineSaveGameData(v);
+                taskManager.onExit(v.getPlayerId());
             } catch (Exception e) {
                 log.error("", e);
             }
-        })));
+        });
     }
 
     protected void initConfig() {
@@ -881,65 +881,41 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     public T getPlayerGameData(PlayerController playerController) {
-        Map<Long, Map<Long, T>> roomMap = this.gameDataMap.get(playerController.getPlayer().getRoomCfgId());
-        if (roomMap == null || roomMap.isEmpty()) {
+        T playerGameData = getPlayerGameData(playerController.playerId());
+        if (playerGameData == null) {
             return null;
         }
-        Map<Long, T> temMap = roomMap.get(playerController.roomId());
-        if (temMap == null || temMap.isEmpty()) {
-            return null;
+
+        if(playerGameData.getRoomCfgId() != playerController.getPlayer().getRoomCfgId()) {
+            log.warn("玩家 gameData 不匹配当前 PlayerController, playerId={}, playerGameData.roomCfgId={}, playerController.roomCfgId={}",playerController.playerId(),playerGameData.getRoomCfgId(),playerController.getPlayer().getRoomCfgId());
         }
-        T playerGameData = temMap.get(playerController.playerId());
-        if (playerGameData != null) {
-            playerGameData.setLastActiveTime(System.currentTimeMillis());
-        }
+        playerGameData.setLastActiveTime(System.currentTimeMillis());
         return playerGameData;
     }
 
-    public T getPlayerGameData(long playerId, int roomCfgId, long roomId) {
-        Map<Long, Map<Long, T>> roomMap = this.gameDataMap.get(roomCfgId);
-        if (roomMap == null || roomMap.isEmpty()) {
-            return null;
-        }
-        Map<Long, T> temMap = roomMap.get(roomId);
-        if (temMap != null && !temMap.isEmpty()) {
-            return temMap.get(playerId);
-        }
-        return null;
+    public T getPlayerGameData(long playerId) {
+        return this.gameDataMap.get(playerId);
     }
 
-    public void removePlayerGameData(long playerId, int roomCfgId, long roomId) {
-        Map<Long, Map<Long, T>> roomMap = this.gameDataMap.get(roomCfgId);
-        if (roomMap == null || roomMap.isEmpty()) {
-            return;
-        }
-        Map<Long, T> playerDataMap = roomMap.get(roomId);
-        if (CollectionUtil.isEmpty(playerDataMap)) {
-            return;
-        }
-        playerDataMap.remove(playerId);
-        if (playerDataMap.isEmpty()) {
-            roomMap.remove(roomId);
-        }
-        if (roomMap.isEmpty()) {
-            this.gameDataMap.remove(roomCfgId);
-        }
+    public void removePlayerGameData(long playerId) {
+        this.gameDataMap.remove(playerId);
         taskManager.onExit(playerId);
     }
 
     public void exitOldPlayerGameDataOnEnter(long playerId, int roomCfgId, long roomId) {
-        for (Map.Entry<Integer, Map<Long, Map<Long, T>>> en1 : this.gameDataMap.entrySet()) {
-            for (Map.Entry<Long, Map<Long, T>> en2 : en1.getValue().entrySet()) {
-                T playerGameData = en2.getValue().get(playerId);
-                if (playerGameData == null || isCurrentEnterGameData(en1.getKey(), playerGameData, roomCfgId, roomId)) {
-                    continue;
-                }
-                Player player = playerGameData.getPlayer();
-                log.info("slots清除老数据 playerId:{} gameType:{} roomConfigId:{} roomId:{}", playerId, playerGameData.getGameType(), playerGameData.getRoomCfgId(),
-                        player == null ? "null" : player.getRoomId());
-                exitPlayerGameData(playerId, playerGameData);
-            }
+        T playerGameData = getPlayerGameData(playerId);
+        if (playerGameData == null) {
+            return;
         }
+
+        if (isCurrentEnterGameData(playerGameData.getRoomCfgId(), playerGameData, roomCfgId, roomId)) {
+            return;
+        }
+
+        Player player = playerGameData.getPlayer();
+        log.info("slots清除老数据 playerId:{} gameType:{} roomConfigId:{} roomId:{}", playerId, playerGameData.getGameType(), playerGameData.getRoomCfgId(),
+                player == null ? "null" : player.getRoomId());
+        exitPlayerGameData(playerId, playerGameData);
     }
 
     private boolean isCurrentEnterGameData(int cacheRoomCfgId, T playerGameData, int enterRoomCfgId, long enterRoomId) {
@@ -971,7 +947,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             slotsRoomManager.exitRoom(playerController);
         }
         offlineSaveGameData(playerGameData);
-        removePlayerGameData(playerId, playerGameData.getRoomCfgId(), playerGameData.getRoomId());
+        removePlayerGameData(playerId);
         playerAllSlotsDataDao.saveToRedis(playerGameData.getPlayerAllSlotsData());
     }
 
@@ -1028,14 +1004,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setPlayerController(playerController);
         playerGameData.setOfflineEventMap(initOffLineEvent());
         playerGameData.setPlayerAllSlotsData(playerAllSlotsData);
-        return putGameData(playerController, playerGameData);
-    }
 
-    protected T putGameData(PlayerController playerController, T gameData) {
-        this.gameDataMap.computeIfAbsent(playerController.getPlayer().getRoomCfgId(), k -> new ConcurrentHashMap<>())
-                .computeIfAbsent(gameData.getRoomId(), k -> new ConcurrentHashMap<>())
-                .put(playerController.playerId(), gameData);
-        return gameData;
+        //保存到缓存中
+        this.gameDataMap.put(playerId, playerGameData);
+        return playerGameData;
     }
 
     /**
@@ -1362,34 +1334,29 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     private void checkPlayerStatus() {
         long timeMillis = System.currentTimeMillis();
-        HashMap<Integer, Map<Long, Map<Long, T>>> tempGameDataMap = new HashMap<>(this.gameDataMap);
-        for (Map<Long, Map<Long, T>> roomGameDataMap : tempGameDataMap.values()) {
-            for (Map<Long, T> playerGameDataMap : roomGameDataMap.values()) {
-                for (Map.Entry<Long, T> gameData : playerGameDataMap.entrySet()) {
-                    T gameDataValue = gameData.getValue();
-                    //是否需要回存
-                    if (gameDataValue.isOnline()) {
-                        //检查slots房间中，在线玩家是否活跃
-                        checkActive(gameDataValue, timeMillis);
+        for (Map.Entry<Long, T> gameData : this.gameDataMap.entrySet()) {
+            T gameDataValue = gameData.getValue();
+            //是否需要回存
+            if (gameDataValue.isOnline()) {
+                //检查slots房间中，在线玩家是否活跃
+                checkActive(gameDataValue, timeMillis);
+                continue;
+            }
+
+            if (gameDataValue.getOfflineTime() + getOfflineDeleteMills() <= timeMillis) {  //离线多少秒执行数据删除
+                offlineDelete(gameDataValue, gameDataValue.getPlayerController(), timeMillis);
+            } else if (gameDataValue.getOfflineEventMap() != null && !gameDataValue.getOfflineEventMap().isEmpty()) {  //离线多少秒执行特殊处理
+                for (Map.Entry<Integer, OffLineEventData> en : gameDataValue.getOfflineEventMap().entrySet()) {
+                    //检查该事件是否已经执行
+                    if (en.getValue().isAction()) {
                         continue;
                     }
-
-                    if (gameDataValue.getOfflineTime() + getOfflineDeleteMills() <= timeMillis) {  //离线多少秒执行数据删除
-                        offlineDelete(gameDataValue, gameDataValue.getPlayerController(), timeMillis);
-                    } else if (gameDataValue.getOfflineEventMap() != null && !gameDataValue.getOfflineEventMap().isEmpty()) {  //离线多少秒执行特殊处理
-                        for (Map.Entry<Integer, OffLineEventData> en : gameDataValue.getOfflineEventMap().entrySet()) {
-                            //检查该事件是否已经执行
-                            if (en.getValue().isAction()) {
-                                continue;
-                            }
-                            //检查时间
-                            if (en.getValue().getActionMills() > timeMillis) {
-                                continue;
-                            }
-                            //开始执行
-                            offlineImplement(gameDataValue, en.getValue());
-                        }
+                    //检查时间
+                    if (en.getValue().getActionMills() > timeMillis) {
+                        continue;
                     }
+                    //开始执行
+                    offlineImplement(gameDataValue, en.getValue());
                 }
             }
         }
@@ -1454,7 +1421,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 }
                 slotsRoomManager.exitRoom(playerController);
                 offlineSaveGameData(playerGameData);
-                removePlayerGameData(playerGameData.getPlayerId(), playerGameData.getRoomCfgId(), playerGameData.getRoomId());
+                removePlayerGameData(playerGameData.getPlayerId());
                 log.debug("保存离线玩家数据 playerId = {}", playerController.playerId());
             }
         }.setHandlerParamWithSelf("slots offlineDelete"));
@@ -2295,7 +2262,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     @SuppressWarnings("unchecked")
     public void cleanStatus(long playerId, int roomCfgId) {
-        T playerGameData = getPlayerGameData(playerId, roomCfgId, 0);
+        T playerGameData = getPlayerGameData(playerId);
         if (playerGameData != null) {
             playerGameData.setStatus(0);
             playerGameData.getRemainFreeCount().set(0);
