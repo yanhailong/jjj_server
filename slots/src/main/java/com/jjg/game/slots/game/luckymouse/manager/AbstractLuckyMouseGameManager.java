@@ -13,9 +13,7 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.luckymouse.LuckyMouseConstant;
-import com.jjg.game.slots.game.luckymouse.dao.LuckyMouseGameDataDao;
 import com.jjg.game.slots.game.luckymouse.dao.LuckyMouseResultLibDao;
 import com.jjg.game.slots.game.luckymouse.data.*;
 import com.jjg.game.slots.game.luckymouse.pb.LuckyMouseWinIconInfo;
@@ -33,10 +31,6 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
     private LuckyMouseResultLibDao libDao;
     @Autowired
     private LuckyMouseGenerateManager gameGenerateManager;
-    @Autowired
-    private SlotsPoolDao slotsPoolDao;
-    @Autowired
-    private LuckyMouseGameDataDao gameDataDao;
 
     private int fake_fu_shu_prop = 0;
 
@@ -237,18 +231,8 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
     }
 
     @Override
-    protected LuckyMouseGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
     protected LuckyMouseGenerateManager getGenerateManager() {
         return this.gameGenerateManager;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return LuckyMousePlayerGameDataDTO.class;
     }
 
     @Override

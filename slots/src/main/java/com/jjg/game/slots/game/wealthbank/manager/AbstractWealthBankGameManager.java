@@ -11,13 +11,11 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.wealthbank.WealthBankConstant;
-import com.jjg.game.slots.game.wealthbank.dao.WealthBankGameDataDao;
 import com.jjg.game.slots.game.wealthbank.dao.WealthBankResultLibDao;
 import com.jjg.game.slots.game.wealthbank.data.*;
 import com.jjg.game.slots.game.wealthbank.pb.WealthBankDollarsInfo;
@@ -33,8 +31,6 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
     protected WealthBankResultLibDao libDao;
     @Autowired
     protected WealthBankGenerateManager generateManager;
-    @Autowired
-    protected WealthBankGameDataDao gameDataDao;
 
     protected WealthBankCollectDollarConfig wealthBankCollectDollarConfig;
 
@@ -837,18 +833,8 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
     }
 
     @Override
-    protected WealthBankGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
     protected WealthBankGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return WealthBankPlayerGameDataDTO.class;
     }
 
     /**

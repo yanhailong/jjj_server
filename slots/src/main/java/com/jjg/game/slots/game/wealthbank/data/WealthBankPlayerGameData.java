@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.wealthbank.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.HashSet;
@@ -118,37 +117,5 @@ public class WealthBankPlayerGameData extends SlotsPlayerGameData {
 
     public void setAllUnLock(AtomicBoolean allUnLock) {
         this.allUnLock = allUnLock;
-    }
-
-    @Override
-    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
-        T dto = super.converToDto(cla);
-        if (dto instanceof WealthBankPlayerGameDataDTO dollarDto) {
-            dollarDto.setInvers(this.invers.get());
-            dollarDto.setTotalDollars(this.totalDollars);
-            dollarDto.setAddDollarsCount(this.addDollarsCount);
-            dollarDto.setAddDollarsTotalStake(this.addDollarsTotalStake);
-            dollarDto.setSelectedAreaSet(this.selectedAreaSet);
-            dollarDto.setAllUnLock(this.allUnLock.get());
-            dollarDto.setRemainFreeCount(this.getRemainFreeCount().get());
-            dollarDto.setFreeIndex(this.getFreeIndex().get());
-            if (freeLib instanceof WealthBankResultLib lib) {
-                dollarDto.setFreeLib(lib);
-            }
-        }
-        if (dto instanceof WealthBankPlayerGameDataRoomDTO dollarDto) {
-            dollarDto.setInvers(this.invers.get());
-            dollarDto.setTotalDollars(this.totalDollars);
-            dollarDto.setAddDollarsCount(this.addDollarsCount);
-            dollarDto.setAddDollarsTotalStake(this.addDollarsTotalStake);
-            dollarDto.setSelectedAreaSet(this.selectedAreaSet);
-            dollarDto.setAllUnLock(this.allUnLock.get());
-            dollarDto.setRemainFreeCount(this.getRemainFreeCount().get());
-            dollarDto.setFreeIndex(this.getFreeIndex().get());
-            if (freeLib instanceof WealthBankResultLib lib) {
-                dollarDto.setFreeLib(lib);
-            }
-        }
-        return dto;
     }
 }

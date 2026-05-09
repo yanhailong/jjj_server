@@ -4,11 +4,9 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.slots.controller.SlotsRoomController;
-import org.springframework.beans.BeanUtils;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 
-import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -24,8 +22,6 @@ public class SlotsPlayerGameData {
     protected String id;
     @Transient
     protected transient PlayerController playerController;
-    @Transient
-    protected transient boolean fromOldData;
     protected long playerId;
     //房间id
     protected long roomId;
@@ -389,22 +385,5 @@ public class SlotsPlayerGameData {
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    public boolean isFromOldData() {
-        return fromOldData;
-    }
-
-    public void setFromOldData(boolean fromOldData) {
-        this.fromOldData = fromOldData;
-    }
-
-    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
-        Constructor<T> constructor = cla.getConstructor();
-        T t = constructor.newInstance();
-        BeanUtils.copyProperties(this, t);
-        t.setPlayerId(this.getPlayerId());
-        t.setRoomCfgId(this.getRoomCfgId());
-        return t;
     }
 }

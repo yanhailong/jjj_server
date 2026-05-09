@@ -13,11 +13,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.tigerbringsriches.constant.TigerBringsRichesConstant;
-import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesGameDataDao;
-import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesPlayerGameDataDTO;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesResultLibDao;
 import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesAwardLineInfo;
 import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesGameRunInfo;
@@ -25,7 +21,6 @@ import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesPlayerGam
 import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesResultLib;
 import com.jjg.game.slots.game.tigerbringsriches.pb.bean.TigerBringsRichesWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,16 +33,12 @@ import java.util.Set;
  */
 public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlotsGameManager<TigerBringsRichesPlayerGameData, TigerBringsRichesResultLib, TigerBringsRichesGameRunInfo> {
     private final TigerBringsRichesGameGenerateManager gameGenerateManager;
-    private final TigerBringsRichesGameDataDao gameDataDao;
     private final TigerBringsRichesResultLibDao TigerBringsRichesResultLibDao;
-    @Autowired
-    protected SlotsPoolDao slotsPoolDao;
 
     public AbstractTigerBringsRichesGameManager(TigerBringsRichesGameGenerateManager gameGenerateManager,
-                                                TigerBringsRichesGameDataDao gameDataDao, TigerBringsRichesResultLibDao TigerBringsRichesResultLibDao) {
+                                                TigerBringsRichesResultLibDao TigerBringsRichesResultLibDao) {
         super(TigerBringsRichesPlayerGameData.class, TigerBringsRichesResultLib.class, TigerBringsRichesGameRunInfo.class);
         this.gameGenerateManager = gameGenerateManager;
-        this.gameDataDao = gameDataDao;
         this.TigerBringsRichesResultLibDao = TigerBringsRichesResultLibDao;
     }
 
@@ -278,16 +269,6 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
     @Override
     protected TigerBringsRichesGameGenerateManager getGenerateManager() {
         return this.gameGenerateManager;
-    }
-
-    @Override
-    protected TigerBringsRichesGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return TigerBringsRichesPlayerGameDataDTO.class;
     }
 
     @Override

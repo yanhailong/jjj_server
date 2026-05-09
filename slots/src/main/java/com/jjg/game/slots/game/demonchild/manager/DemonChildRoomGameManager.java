@@ -1,9 +1,6 @@
 package com.jjg.game.slots.game.demonchild.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.game.demonchild.dao.DemonChildGameDataDao;
-import com.jjg.game.slots.game.demonchild.dao.DemonChildPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.demonchild.dao.DemonChildResultLibDao;
 import com.jjg.game.slots.game.demonchild.data.DemonChildPlayerGameData;
 import com.jjg.game.slots.game.demonchild.data.DemonChildResultLib;
@@ -16,8 +13,8 @@ import java.util.List;
 @Component
 public class DemonChildRoomGameManager extends AbstractDemonChildGameManager {
     public DemonChildRoomGameManager(DemonChildGameGenerateManager gameGenerateManager,
-                                     DemonChildGameDataDao gameDataDao, DemonChildResultLibDao demonChildResultLibDao) {
-        super(gameGenerateManager, gameDataDao, demonChildResultLibDao);
+                                     DemonChildResultLibDao demonChildResultLibDao) {
+        super(gameGenerateManager, demonChildResultLibDao);
         this.log = LoggerFactory.getLogger(getClass());
     }
 
@@ -29,10 +26,5 @@ public class DemonChildRoomGameManager extends AbstractDemonChildGameManager {
     @Override
     protected List<Integer> checkLibPool(DemonChildResultLib resultLib, DemonChildPlayerGameData playerGameData) {
         return Collections.emptyList();
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return DemonChildPlayerGameDataRoomDTO.class;
     }
 }

@@ -9,10 +9,8 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.goldsnakefortune.GoldSnakeFortuneConstant;
-import com.jjg.game.slots.game.goldsnakefortune.dao.GoldSnakeFortuneGameDataDao;
 import com.jjg.game.slots.game.goldsnakefortune.dao.GoldSnakeFortuneResultLibDao;
 import com.jjg.game.slots.game.goldsnakefortune.data.*;
 import com.jjg.game.slots.game.goldsnakefortune.pb.GoldSnakeFortuneCoinInfo;
@@ -32,8 +30,6 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
     protected GoldSnakeFortuneResultLibDao libDao;
     @Autowired
     protected GoldSnakeFortuneGenerateManager generateManager;
-    @Autowired
-    protected GoldSnakeFortuneGameDataDao gameDataDao;
 
     //假免费的概率
     private int fake_free_prop = 0;
@@ -267,18 +263,8 @@ public abstract class AbstractGoldSnakeFortuneGameManager extends AbstractSlotsG
     }
 
     @Override
-    protected GoldSnakeFortuneGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
     protected GoldSnakeFortuneGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return GoldSnakeFortunePlayerGameDataDTO.class;
     }
 
     @Override

@@ -1,9 +1,6 @@
 package com.jjg.game.slots.game.captainjack.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.game.captainjack.dao.CaptainJackPlayerGameDataDTO;
-import com.jjg.game.slots.game.captainjack.dao.CaptainJackPlayerGameDataRoomDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,27 +37,5 @@ public class CaptainJackPlayerGameData extends SlotsPlayerGameData {
 
     public void setResultLib(CaptainJackResultLib resultLib) {
         this.resultLib = resultLib;
-    }
-
-    @Override
-    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
-        T dto = super.converToDto(cla);
-        if (dto instanceof CaptainJackPlayerGameDataDTO gameDataDTO) {
-            gameDataDTO.setAlreadyDigCount(this.alreadyDigCount == null ? 0 : this.alreadyDigCount.get());
-            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
-            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
-            gameDataDTO.setResultLib(this.resultLib);
-            CaptainJackResultLib freeLib = this.freeLib instanceof CaptainJackResultLib lib ? lib : null;
-            gameDataDTO.setFreeLib(freeLib);
-        }
-        if (dto instanceof CaptainJackPlayerGameDataRoomDTO gameDataDTO) {
-            gameDataDTO.setAlreadyDigCount(this.alreadyDigCount == null ? 0 : this.alreadyDigCount.get());
-            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
-            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
-            gameDataDTO.setResultLib(this.resultLib);
-            CaptainJackResultLib freeLib = this.freeLib instanceof CaptainJackResultLib lib ? lib : null;
-            gameDataDTO.setFreeLib(freeLib);
-        }
-        return dto;
     }
 }

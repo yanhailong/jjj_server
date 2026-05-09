@@ -1,9 +1,6 @@
 package com.jjg.game.slots.game.tigerbringsriches.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesGameDataDao;
-import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.tigerbringsriches.dao.TigerBringsRichesResultLibDao;
 import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesPlayerGameData;
 import com.jjg.game.slots.game.tigerbringsriches.data.TigerBringsRichesResultLib;
@@ -18,8 +15,8 @@ import java.util.List;
  */
 @Component
 public class TigerBringsRichesRoomGameManager extends AbstractTigerBringsRichesGameManager {
-    public TigerBringsRichesRoomGameManager(TigerBringsRichesGameGenerateManager gameGenerateManager, TigerBringsRichesGameDataDao gameDataDao, TigerBringsRichesResultLibDao TigerBringsRichesResultLibDao) {
-        super(gameGenerateManager, gameDataDao, TigerBringsRichesResultLibDao);
+    public TigerBringsRichesRoomGameManager(TigerBringsRichesGameGenerateManager gameGenerateManager, TigerBringsRichesResultLibDao TigerBringsRichesResultLibDao) {
+        super(gameGenerateManager, TigerBringsRichesResultLibDao);
         this.log = LoggerFactory.getLogger(getClass());
     }
 
@@ -31,10 +28,5 @@ public class TigerBringsRichesRoomGameManager extends AbstractTigerBringsRichesG
     @Override
     protected List<Integer> checkLibPool(TigerBringsRichesResultLib resultLib, TigerBringsRichesPlayerGameData playerGameData) {
         return List.of();
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return TigerBringsRichesPlayerGameDataRoomDTO.class;
     }
 }

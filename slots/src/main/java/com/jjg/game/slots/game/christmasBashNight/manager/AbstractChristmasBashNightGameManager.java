@@ -8,14 +8,11 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.christmasBashNight.ChristmasBashNightConstant;
-import com.jjg.game.slots.game.christmasBashNight.dao.ChristmasBashNightGameDataDao;
 import com.jjg.game.slots.game.christmasBashNight.dao.ChristmasBashNightResultLibDao;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightGameRunInfo;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightPlayerGameData;
-import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightPlayerGameDataDTO;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +24,6 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
     protected ChristmasBashNightResultLibDao libDao;
     @Autowired
     protected ChristmasBashNightGenerateManager generateManager;
-    @Autowired
-    protected ChristmasBashNightGameDataDao gameDataDao;
 
     public AbstractChristmasBashNightGameManager() {
         super(ChristmasBashNightPlayerGameData.class, ChristmasBashNightResultLib.class, ChristmasBashNightGameRunInfo.class);
@@ -209,16 +204,6 @@ public abstract class AbstractChristmasBashNightGameManager extends AbstractSlot
     @Override
     protected ChristmasBashNightGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected ChristmasBashNightGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return ChristmasBashNightPlayerGameDataDTO.class;
     }
 
     @Override

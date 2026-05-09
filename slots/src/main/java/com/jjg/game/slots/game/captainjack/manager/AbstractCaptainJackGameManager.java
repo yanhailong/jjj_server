@@ -8,10 +8,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.captainjack.constant.CaptainJackConstant;
-import com.jjg.game.slots.game.captainjack.dao.CaptainJackGameDataDao;
-import com.jjg.game.slots.game.captainjack.dao.CaptainJackPlayerGameDataDTO;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackResultLibDao;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackGameRunInfo;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackPlayerGameData;
@@ -21,14 +18,12 @@ import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 
 public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameManager<CaptainJackPlayerGameData, CaptainJackResultLib, CaptainJackGameRunInfo> {
     protected final CaptainJackGameGenerateManager gameGenerateManager;
-    protected final CaptainJackGameDataDao gameDataDao;
     protected final CaptainJackResultLibDao captainJackResultLibDao;
 
     public AbstractCaptainJackGameManager(CaptainJackGameGenerateManager gameGenerateManager,
-                                          CaptainJackGameDataDao gameDataDao, CaptainJackResultLibDao captainJackResultLibDao) {
+                                          CaptainJackResultLibDao captainJackResultLibDao) {
         super(CaptainJackPlayerGameData.class, CaptainJackResultLib.class, CaptainJackGameRunInfo.class);
         this.gameGenerateManager = gameGenerateManager;
-        this.gameDataDao = gameDataDao;
         this.captainJackResultLibDao = captainJackResultLibDao;
     }
 
@@ -281,16 +276,6 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
     @Override
     protected CaptainJackGameGenerateManager getGenerateManager() {
         return this.gameGenerateManager;
-    }
-
-    @Override
-    protected CaptainJackGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return CaptainJackPlayerGameDataDTO.class;
     }
 
     @Override

@@ -13,10 +13,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
-import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleGameDataDao;
-import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridlePlayerGameDataDTO;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleResultLibDao;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleAwardLineInfo;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleGameRunInfo;
@@ -37,16 +34,12 @@ import java.util.Set;
  */
 public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGameManager<PegasusUnbridlePlayerGameData, PegasusUnbridleResultLib, PegasusUnbridleGameRunInfo> {
     private final PegasusUnbridleGameGenerateManager gameGenerateManager;
-    private final PegasusUnbridleGameDataDao gameDataDao;
     private final PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao;
-    @Autowired
-    protected SlotsPoolDao slotsPoolDao;
 
     public AbstractPegasusUnbridleGameManager(PegasusUnbridleGameGenerateManager gameGenerateManager,
-                                              PegasusUnbridleGameDataDao gameDataDao, PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao) {
+                                              PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao) {
         super(PegasusUnbridlePlayerGameData.class, PegasusUnbridleResultLib.class, PegasusUnbridleGameRunInfo.class);
         this.gameGenerateManager = gameGenerateManager;
-        this.gameDataDao = gameDataDao;
         this.PegasusUnbridleResultLibDao = PegasusUnbridleResultLibDao;
     }
 
@@ -271,16 +264,6 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
     @Override
     protected PegasusUnbridleGameGenerateManager getGenerateManager() {
         return this.gameGenerateManager;
-    }
-
-    @Override
-    protected PegasusUnbridleGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return PegasusUnbridlePlayerGameDataDTO.class;
     }
 
     @Override

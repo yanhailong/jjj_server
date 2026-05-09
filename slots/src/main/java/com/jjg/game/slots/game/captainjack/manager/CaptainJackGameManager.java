@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.captainjack.manager;
 
 
-import com.jjg.game.slots.game.captainjack.dao.CaptainJackGameDataDao;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackResultLibDao;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -13,8 +12,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class CaptainJackGameManager extends AbstractCaptainJackGameManager {
     public CaptainJackGameManager(CaptainJackGameGenerateManager gameGenerateManager,
-                                  CaptainJackGameDataDao gameDataDao, CaptainJackResultLibDao captainJackResultLibDao) {
-        super(gameGenerateManager, gameDataDao, captainJackResultLibDao);
+                                  CaptainJackResultLibDao captainJackResultLibDao) {
+        super(gameGenerateManager, captainJackResultLibDao);
         this.log = LoggerFactory.getLogger(getClass());
     }
 }

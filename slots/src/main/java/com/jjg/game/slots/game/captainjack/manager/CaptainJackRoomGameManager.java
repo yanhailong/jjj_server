@@ -1,8 +1,6 @@
 package com.jjg.game.slots.game.captainjack.manager;
 
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.slots.game.captainjack.dao.CaptainJackGameDataDao;
-import com.jjg.game.slots.game.captainjack.dao.CaptainJackPlayerGameDataRoomDTO;
 import com.jjg.game.slots.game.captainjack.dao.CaptainJackResultLibDao;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackPlayerGameData;
 import com.jjg.game.slots.game.captainjack.data.CaptainJackResultLib;
@@ -15,8 +13,8 @@ import java.util.List;
 @Component
 public class CaptainJackRoomGameManager extends AbstractCaptainJackGameManager{
     public CaptainJackRoomGameManager(CaptainJackGameGenerateManager gameGenerateManager,
-                                  CaptainJackGameDataDao gameDataDao, CaptainJackResultLibDao captainJackResultLibDao) {
-        super(gameGenerateManager, gameDataDao, captainJackResultLibDao);
+                                  CaptainJackResultLibDao captainJackResultLibDao) {
+        super(gameGenerateManager, captainJackResultLibDao);
         this.log = LoggerFactory.getLogger(getClass());
     }
 
@@ -28,10 +26,5 @@ public class CaptainJackRoomGameManager extends AbstractCaptainJackGameManager{
     @Override
     protected List<Integer> checkLibPool(CaptainJackResultLib resultLib, CaptainJackPlayerGameData playerGameData) {
         return Collections.emptyList();
-    }
-
-    @Override
-    protected Class<CaptainJackPlayerGameDataRoomDTO> getSlotsPlayerGameDataDTOCla() {
-        return CaptainJackPlayerGameDataRoomDTO.class;
     }
 }

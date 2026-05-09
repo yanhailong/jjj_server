@@ -7,14 +7,12 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.game.findgoldcity.constant.FindGoldCityConstant;
 import com.jjg.game.slots.game.findgoldcity.dao.FindGoldCityResultLibDao;
 import com.jjg.game.slots.game.findgoldcity.data.FindGoldCityGameRunInfo;
 import com.jjg.game.slots.game.findgoldcity.data.FindGoldCityPlayerGameData;
 import com.jjg.game.slots.game.findgoldcity.data.FindGoldCityResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author lm
@@ -23,8 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 public abstract class AbstractFindGoldCityGameManager extends AbstractSlotsGameManager<FindGoldCityPlayerGameData, FindGoldCityResultLib, FindGoldCityGameRunInfo> {
     private final FindGoldCityGameGenerateManager gameGenerateManager;
     private final FindGoldCityResultLibDao FindGoldCityResultLibDao;
-    @Autowired
-    protected SlotsPoolDao slotsPoolDao;
 
     public AbstractFindGoldCityGameManager(FindGoldCityGameGenerateManager gameGenerateManager, FindGoldCityResultLibDao FindGoldCityResultLibDao) {
         super(FindGoldCityPlayerGameData.class, FindGoldCityResultLib.class, FindGoldCityGameRunInfo.class);

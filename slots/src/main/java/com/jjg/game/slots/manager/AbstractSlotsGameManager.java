@@ -738,7 +738,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         en.getValue().setAction(true);
                     }
                 }
-                offlineSaveGameDataDto(v2);
+                offlineSaveGameData(v2);
                 taskManager.onExit(v2.getPlayerId());
             } catch (Exception e) {
                 log.error("", e);
@@ -970,7 +970,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (playerController != null) {
             slotsRoomManager.exitRoom(playerController);
         }
-        offlineSaveGameDataDto(playerGameData);
+        offlineSaveGameData(playerGameData);
         removePlayerGameData(playerId, playerGameData.getRoomCfgId(), playerGameData.getRoomId());
         playerAllSlotsDataDao.saveToRedis(playerGameData.getPlayerAllSlotsData());
     }
@@ -982,7 +982,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     @SuppressWarnings("unchecked")
-    public <DT extends SlotsPlayerGameDataDTO> T createPlayerGameData(PlayerController playerController) throws Exception {
+    public T createPlayerGameData(PlayerController playerController) throws Exception {
         PlayerAllSlotsData playerAllSlotsData = playerAllSlotsDataDao.getFromAllDB(playerController.playerId());
         if (playerAllSlotsData == null) {
             playerAllSlotsData = new PlayerAllSlotsData();
@@ -1004,26 +1004,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         int roomCfgId = playerController.getPlayer().getRoomCfgId();
         log.debug("从db中获取的 getPlayerId = {}", playerId);
         playerGameData = (T) playerGameDataDao.getPlayerGameDataByPlayerId(playerId, roomCfgId, playerController.roomId(), playerGameDataClass);
-        if (playerGameData == null) {
-            DT playerGameDataDTO;
-            AbstractGameDataDao gameDataDao = getGameDataDao();
-            if (gameDataDao != null) {
-                if (isRoomGame() && SlotsPlayerGameDataRoomDTO.class.isAssignableFrom(getSlotsPlayerGameDataDTOCla())) {
-                    long roomId = playerController.roomId();
-                    playerGameDataDTO = (DT) gameDataDao.getRoomGameDataByPlayerId(getSlotsPlayerGameDataDTOCla(), playerId, roomCfgId, roomId);
-                } else {
-                    playerGameDataDTO = (DT) gameDataDao.getGameDataByPlayerId(playerId, roomCfgId);
-                }
-                if (playerGameDataDTO != null) {
-                    playerGameData = playerGameDataDTO.converToGameData(this.playerGameDataClass);
-                    playerGameData.getHasPlaySlots().set(true);
-                    playerGameData.setCreateTime(TimeHelper.nowInt());
-                    playerGameData.setRoomId(playerController.roomId());
-                    playerGameData.setPlayerId(playerController.playerId());
-                    playerGameData.setFromOldData(true);
-                }
-            }
-        }
         if (playerGameData == null) {
             Constructor<T> constructor = this.playerGameDataClass.getConstructor();
             playerGameData = constructor.newInstance();
@@ -1473,7 +1453,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     return;
                 }
                 slotsRoomManager.exitRoom(playerController);
-                offlineSaveGameDataDto(playerGameData);
+                offlineSaveGameData(playerGameData);
                 removePlayerGameData(playerGameData.getPlayerId(), playerGameData.getRoomCfgId(), playerGameData.getRoomId());
                 log.debug("保存离线玩家数据 playerId = {}", playerController.playerId());
             }
@@ -1500,17 +1480,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     protected abstract <D extends AbstractResultLibDao> D getResultLibDao();
 
-    @Deprecated
-    protected <D extends AbstractGameDataDao> D getGameDataDao() {
-        return null;
-    }
-
     protected abstract <D extends AbstractSlotsGenerateManager> D getGenerateManager();
-
-    @Deprecated
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return null;
-    }
 
     /**
      * 更新奖池
@@ -1539,34 +1509,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
-     * 玩家离线保存gameDataDto
+     * 玩家离线保存gameData
      */
-    protected void offlineSaveGameDataDto(T gameData) {
+    protected void offlineSaveGameData(T gameData) {
         playerGameDataDao.savePlayerGameData(gameData);
-        if (gameData.isFromOldData()) {
-            AbstractGameDataDao<?> gameDataDao = getGameDataDao();
-            if (gameDataDao == null) {
-                return;
-            }
-            //放在虚拟线程中执行,避免卡在这儿
-            Thread.ofVirtual().start(() -> {
-                try {
-                    SlotsPlayerGameDataDTO dto = gameData.converToDto(getSlotsPlayerGameDataDTOCla());
-                    long deleteCount;
-                    if (isRoomGame() && dto instanceof SlotsPlayerGameDataRoomDTO roomDto) {
-                        roomDto.setRoomId(gameData.getRoomId());
-                        roomDto.buildRoomKey();
-                        deleteCount = getGameDataDao().deleteGameDataByPlayerId(roomDto);
-                    } else {
-                        deleteCount = getGameDataDao().deleteGameDataByPlayerId(dto.getPlayerId(), dto.getRoomCfgId());
-                    }
-                    log.info("删除slots老数据  deleteCount = {} data:{}", deleteCount, JSON.toJSONString(dto));
-                } catch (
-                        Exception e) {
-                    log.error("", e);
-                }
-            });
-        }
     }
 
 /*****************************************************************************************************************************/
@@ -2358,22 +2304,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setTestLibDataList(null);
         } else {
             SlotsPlayerGameData data = playerGameDataDao.getPlayerGameDataByPlayerId(playerId, roomCfgId, 0, playerGameDataClass);
-            if (data == null) {
-                AbstractGameDataDao gameDataDao = getGameDataDao();
-                if (gameDataDao != null) {
-                    SlotsPlayerGameDataDTO dto = gameDataDao.getGameDataByPlayerId(playerId, roomCfgId);
-                    if (dto != null) {
-                        dto.setStatus(0);
-                        dto.setFreeAllWin(0);
-                        gameDataDao.saveGameData(dto);
-                    }
-                }
-            } else {
+            if (data != null) {
                 data.setStatus(0);
                 data.setFreeAllWin(0);
                 playerGameDataDao.savePlayerGameData(data);
             }
-
         }
     }
 

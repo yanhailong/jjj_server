@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.zeusVsHades.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
@@ -21,19 +20,6 @@ public class ZeusVsHadesPlayerGameData extends SlotsPlayerGameData {
 
     public void setIsCount(boolean isCount) {
        this.isCount = isCount;
-    }
-
-    @Override
-    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
-        T dto = super.converToDto(cla);
-        if (dto instanceof ZeusVsHadesPlayerGameDataDTO gameDataDTO) {
-            gameDataDTO.setFreeIndex(this.freeIndex == null ? 0 : this.freeIndex.get());
-            gameDataDTO.setRemainFreeCount(this.remainFreeCount == null ? 0 : this.remainFreeCount.get());
-            ZeusVsHadesResultLib freeLib = this.freeLib instanceof ZeusVsHadesResultLib lib ? lib : null;
-            gameDataDTO.setFreeLib(freeLib);
-            gameDataDTO.setIsCount(isCount);
-        }
-        return dto;
     }
 }
 

@@ -9,14 +9,11 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.acedj.AceDjConstant;
-import com.jjg.game.slots.game.acedj.dao.AceDjGameDataDao;
 import com.jjg.game.slots.game.acedj.dao.AceDjResultLibDao;
 import com.jjg.game.slots.game.acedj.data.AceDjGameRunInfo;
 import com.jjg.game.slots.game.acedj.data.AceDjPlayerGameData;
-import com.jjg.game.slots.game.acedj.data.AceDjPlayerGameDataDTO;
 import com.jjg.game.slots.game.acedj.data.AceDjResultLib;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
@@ -31,8 +28,6 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
     protected AceDjGenerateManager generateManager;
     @Autowired
     protected SlotsLogger logger;
-    @Autowired
-    protected AceDjGameDataDao gameDataDao;
 
     public AbstractAceDjGameManager() {
         super(AceDjPlayerGameData.class, AceDjResultLib.class, AceDjGameRunInfo.class);
@@ -226,16 +221,6 @@ public abstract class AbstractAceDjGameManager extends AbstractSlotsGameManager<
     @Override
     protected AceDjGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected AceDjGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return AceDjPlayerGameDataDTO.class;
     }
 
     @Override

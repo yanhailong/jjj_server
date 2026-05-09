@@ -8,14 +8,11 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.hotfootball.HotFootballConstant;
-import com.jjg.game.slots.game.hotfootball.dao.HotFootballGameDataDao;
 import com.jjg.game.slots.game.hotfootball.dao.HotFootballResultLibDao;
 import com.jjg.game.slots.game.hotfootball.data.HotFootballGameRunInfo;
 import com.jjg.game.slots.game.hotfootball.data.HotFootballPlayerGameData;
-import com.jjg.game.slots.game.hotfootball.data.HotFootballPlayerGameDataDTO;
 import com.jjg.game.slots.game.hotfootball.data.HotFootballResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +24,6 @@ public abstract class AbstractHotFootballGameManager extends AbstractSlotsGameMa
     protected HotFootballResultLibDao libDao;
     @Autowired
     protected HotFootballGenerateManager generateManager;
-    @Autowired
-    protected HotFootballGameDataDao gameDataDao;
 
     public AbstractHotFootballGameManager() {
         super(HotFootballPlayerGameData.class, HotFootballResultLib.class, HotFootballGameRunInfo.class);
@@ -226,16 +221,6 @@ public abstract class AbstractHotFootballGameManager extends AbstractSlotsGameMa
     @Override
     protected HotFootballGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected HotFootballGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return HotFootballPlayerGameDataDTO.class;
     }
 
     @Override

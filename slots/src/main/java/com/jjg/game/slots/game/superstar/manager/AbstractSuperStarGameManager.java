@@ -6,8 +6,6 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.game.superstar.dao.SuperStarGameDataDao;
 import com.jjg.game.slots.game.superstar.dao.SuperStarResultLibDao;
 import com.jjg.game.slots.game.superstar.data.*;
 import com.jjg.game.slots.game.superstar.pb.SuperStarResultLineInfo;
@@ -23,11 +21,7 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
     @Autowired
     protected SuperStarResultLibDao superStarResultLibDao;
     @Autowired
-    protected SuperStarGameDataDao superStarGameDataDao;
-    @Autowired
     protected SuperStarGenerateManager superStarGenerateManager;
-    @Autowired
-    protected SuperStarGameDataDao gameDataDao;
 
     public AbstractSuperStarGameManager() {
         super(SuperStarPlayerGameData.class, SuperStarResultLib.class, SuperStarGameRunInfo.class);
@@ -45,18 +39,8 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
     }
 
     @Override
-    protected SuperStarGameDataDao getGameDataDao() {
-        return superStarGameDataDao;
-    }
-
-    @Override
     protected SuperStarGenerateManager getGenerateManager() {
         return superStarGenerateManager;
-    }
-
-    @Override
-    protected Class<? extends SlotsPlayerGameDataDTO> getSlotsPlayerGameDataDTOCla() {
-        return SuperStarPlayerGameDataDTO.class;
     }
 
     @Override

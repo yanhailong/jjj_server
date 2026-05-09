@@ -13,7 +13,6 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.game.tenfoldgoldenbull.constant.TenFoldGoldenBullConstant;
 import com.jjg.game.slots.game.tenfoldgoldenbull.dao.TenFoldGoldenBullResultLibDao;
 import com.jjg.game.slots.game.tenfoldgoldenbull.data.TenFoldGoldenBullAwardLineInfo;
@@ -22,7 +21,6 @@ import com.jjg.game.slots.game.tenfoldgoldenbull.data.TenFoldGoldenBullPlayerGam
 import com.jjg.game.slots.game.tenfoldgoldenbull.data.TenFoldGoldenBullResultLib;
 import com.jjg.game.slots.game.tenfoldgoldenbull.pb.bean.TenFoldGoldenBullWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,8 +34,6 @@ import java.util.Set;
 public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlotsGameManager<TenFoldGoldenBullPlayerGameData, TenFoldGoldenBullResultLib, TenFoldGoldenBullGameRunInfo> {
     private final TenFoldGoldenBullGameGenerateManager gameGenerateManager;
     private final TenFoldGoldenBullResultLibDao TenFoldGoldenBullResultLibDao;
-    @Autowired
-    protected SlotsPoolDao slotsPoolDao;
 
     public AbstractTenFoldGoldenBullGameManager(TenFoldGoldenBullGameGenerateManager gameGenerateManager,TenFoldGoldenBullResultLibDao TenFoldGoldenBullResultLibDao) {
         super(TenFoldGoldenBullPlayerGameData.class, TenFoldGoldenBullResultLib.class, TenFoldGoldenBullGameRunInfo.class);
