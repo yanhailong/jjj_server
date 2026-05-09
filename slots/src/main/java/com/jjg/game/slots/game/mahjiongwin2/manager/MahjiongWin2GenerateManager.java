@@ -4,10 +4,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
-import com.jjg.game.sampledata.bean.BaseInitCfg;
-import com.jjg.game.sampledata.bean.BaseRollerCfg;
-import com.jjg.game.sampledata.bean.SpecialPlayCfg;
+import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.mahjiongwin2.MahjiongWin2Constant;
 import com.jjg.game.slots.game.mahjiongwin2.data.MahjiongWin2AddIconInfo;
@@ -70,7 +68,6 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
         return lib;
     }
 
-
     @Override
     public boolean autoSetFreeModelLibType() {
         return true;
@@ -96,6 +93,16 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
     @Override
     public Pair<Integer, Integer> getFreeGameLimitConfig() {
         return Pair.newPair(MahjiongWin2Constant.Common.MAX_FREE_GAME_TOTAL, MahjiongWin2Constant.Common.MAX_FREE_DEEP_TOTAL);
+    }
+
+    @Override
+    public List<MahjiongWin2AwardLineInfo> fullLine(int[] arr) {
+        //拷贝数组
+        int[] newArr = new int[arr.length];
+        System.arraycopy(arr, 0, newArr, 0, arr.length);
+        newArr[1] = SlotsConst.Common.IMMUTABLE_ELEMENTS;
+        newArr[21] = SlotsConst.Common.IMMUTABLE_ELEMENTS;
+        return super.fullLine(newArr);
     }
 
     /**
@@ -221,7 +228,12 @@ public class MahjiongWin2GenerateManager extends AbstractSlotsGenerateManager<Ma
                     }
                 }
             } else {
-                validIndexes.add(icon);
+                //pos1(第一列顶) / pos21(第五列顶) 的特殊图标存活后，下落时显示为 oldArr 中对应位置的原始图标
+                if (i == 1 || i == 21) {
+                    validIndexes.add(arr[i]);
+                } else {
+                    validIndexes.add(icon);
+                }
             }
             arr[i] = -1;
         }

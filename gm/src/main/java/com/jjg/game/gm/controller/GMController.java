@@ -1959,16 +1959,6 @@ public class GMController extends AbstractController {
     }
 
     /**
-     * 获取最后一次生成结果库的时间
-     *
-     * @return
-     */
-    @RequestMapping(BackendGMCmd.GET_GENERATE_LIB_LAST_TIME)
-    public WebResult<Map<Integer, Long>> getGenerateLibLastTime() {
-        return success("common.success", slotsLibDao.getGenerateTime());
-    }
-
-    /**
      * 修改礼包码
      */
     @RequestMapping(BackendGMCmd.MODIFY_REDEEM_CODE)

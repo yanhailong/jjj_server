@@ -102,9 +102,6 @@ public interface BackendGMCmd {
     //积分大奖修改数据
     String POINTS_REWARD_CHANGE = "pointsRewardChange";
 
-    //获取最后一次生成结果库的时间
-    String GET_GENERATE_LIB_LAST_TIME = "getGenerateLibLastTime";
-
     //修改礼包码
     String MODIFY_REDEEM_CODE = "modifyRedeemCode";
     //启用/禁用礼包码
