@@ -4,9 +4,7 @@ import com.jjg.game.hall.vip.dao.VipDao;
 import com.jjg.game.hall.vip.data.Vip;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -19,12 +17,12 @@ import java.util.Optional;
 public class VipService {
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private final String tableName = "vip:";
-    private final RedisTemplate<String, Vip> redisTemplate;
+    private final String tableName = "playervip";
+
+    private final RedisTemplate redisTemplate;
     private final VipDao vipDao;
 
-    public VipService(@Autowired RedisTemplate<String, Vip> redisTemplate,
-                      @Autowired VipDao vipDao) {
+    public VipService(RedisTemplate redisTemplate, VipDao vipDao) {
         this.redisTemplate = redisTemplate;
         this.vipDao = vipDao;
     }
@@ -63,16 +61,12 @@ public class VipService {
         }
     }
 
-    private String getKey(long playerId) {
-        return tableName + playerId;
-    }
-
 
     /**
      * 保存整个对象
      */
     public void redisSave(long playerId, Vip vip) {
-        redisTemplate.opsForValue().set(getKey(playerId), vip);
+        redisTemplate.opsForHash().put(tableName, playerId, vip);
     }
 
 
@@ -80,7 +74,7 @@ public class VipService {
      * 删除整个对象
      */
     public void redisDel(long playerId) {
-        redisTemplate.delete(getKey(playerId));
+        redisTemplate.opsForHash().delete(tableName, playerId);
     }
 
 
@@ -91,9 +85,6 @@ public class VipService {
      * @return vip信息
      */
     public Optional<Vip> redisGet(long playerId) {
-        ValueOperations<String, Vip> opsForValue = redisTemplate.opsForValue();
-        return Optional.ofNullable(opsForValue.get(getKey(playerId)));
+        return Optional.ofNullable((Vip)redisTemplate.opsForHash().get(tableName, playerId));
     }
-
-
 }
