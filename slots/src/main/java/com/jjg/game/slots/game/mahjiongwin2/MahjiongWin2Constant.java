@@ -46,7 +46,9 @@ public interface MahjiongWin2Constant {
 
     interface SpecialPlay {
         //连续中奖倍数
-        int TYPE_CONSECUTIVE_WINS_ID = 5053001;
+        int TYPE_CONSECUTIVE_WINS = 4;
+        //增加免费次数
+        int TYPE_ADD_FREE_COUNT = 5;
 
     }
 }
