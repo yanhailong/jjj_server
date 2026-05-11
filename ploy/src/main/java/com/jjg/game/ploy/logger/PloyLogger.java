@@ -24,7 +24,6 @@ public class PloyLogger extends BaseLogger {
      */
     private JSONObject buildBaseInfo(PlayerPloyGameData gameData) {
         JSONObject json = new JSONObject();
-        json.put("ployGameType", gameData.getGameType());
         json.put("bet", gameData.getLastBet());
         json.put("betTime", gameData.getLastBetTime());
         if (gameData.getPloyBetDivideInfo() != null) {
