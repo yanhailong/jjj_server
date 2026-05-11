@@ -577,11 +577,6 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
     }
 
     @Override
-    public void changeSampleCallbackCollector() {
-        log.warn("王牌Dj游戏 无法重载配置表");
-    }
-
-    @Override
     protected void specialPlayConfig() {
         //初始化元素
         Map<Integer, BaseElementCfg> tmpBaseElementCfgMap = new HashMap<>();

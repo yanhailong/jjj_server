@@ -33,11 +33,6 @@ public class ElephantGodGenerateManager extends AbstractSlotsGenerateManager<Ele
     }
 
     @Override
-    public void changeSampleCallbackCollector() {
-        log.warn("象财神 无法重载配置表");
-    }
-
-    @Override
     public ElephantGodResultLib checkAward(int[] arr, ElephantGodResultLib lib, boolean freeModel) throws Exception {
         lib.setGameType(this.gameType);
         lib.setIconArr(arr);

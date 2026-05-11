@@ -38,7 +38,6 @@ public abstract class AbstractGaraGemstone3GameManager extends AbstractSlotsGame
         log.info("启动伽罗宝石31游戏管理器...");
         super.init();
         addUpdatePoolEvent();
-        gameUpdatePool();
     }
 
     @Override

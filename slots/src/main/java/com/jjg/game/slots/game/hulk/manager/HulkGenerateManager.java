@@ -29,11 +29,6 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
     }
 
     @Override
-    public void changeSampleCallbackCollector() {
-        log.warn("绿巨人 无法重载配置表");
-    }
-
-    @Override
     protected HulkAwardLineInfo getAwardLineInfo() {
         return new HulkAwardLineInfo();
     }
