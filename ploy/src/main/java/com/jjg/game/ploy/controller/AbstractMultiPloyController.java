@@ -1,24 +1,21 @@
 package com.jjg.game.ploy.controller;
 
-import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.cluster.ClusterClient;
+import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.protostuff.MessageUtil;
-import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.ploy.data.PlayerMultiPloyGameData;
 import com.jjg.game.ploy.data.PloyGameRoom;
-import com.jjg.game.ploy.games.airraid.data.AirRaidPlayerPloyGameData;
-import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.PloygameRoomCfg;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -65,8 +62,19 @@ public abstract class AbstractMultiPloyController<T extends PlayerMultiPloyGameD
      * @param msg 要同步的消息
      */
     protected void messageSync(AbstractMessage msg) {
-        PFMessage pfMessage = MessageUtil.getPFMessage(msg);
-        clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString(), NodeType.GAME.toString())::contains);
+        try {
+            List<ClusterClient> nodes = ClusterSystem.system.getNodesByTypeExcludeSelf(NodeType.GAME, CoreConst.GameType.AIR_STRIKE);
+            if (nodes == null || nodes.isEmpty()) {
+                return;
+            }
+            ClusterMessage clusterMessage = new ClusterMessage(MessageUtil.getPFMessage(msg));
+            for (ClusterClient node : nodes) {
+                node.write(clusterMessage);
+            }
+        } catch (Exception e) {
+            log.error("", e);
+        }
+
     }
 
     /**
