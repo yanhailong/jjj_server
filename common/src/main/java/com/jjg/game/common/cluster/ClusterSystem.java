@@ -444,34 +444,33 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String>, O
      * 获取该类型的所有节点
      *
      * @param nodeType 节点类型
-     * @param gameType 游戏类型
+     * @param gameMajorType 游戏主类型
      */
-    public List<ClusterClient> getNodesByType(NodeType nodeType, int gameType) {
-        return getNodesByType(nodeType, gameType, false);
+    public List<ClusterClient> getNodesByType(NodeType nodeType, int gameMajorType) {
+        return getNodesByType(nodeType, gameMajorType, false);
     }
 
     /**
      * 获取该类型的所有节点
      *
      * @param nodeType 节点类型
-     * @param gameType 游戏类型
+     * @param gameMajorType 游戏主类型
      */
-    public List<ClusterClient> getNodesByTypeExcludeSelf(NodeType nodeType, int gameType) {
-        return getNodesByType(nodeType, gameType, true);
+    public List<ClusterClient> getNodesByTypeExcludeSelf(NodeType nodeType, int gameMajorType) {
+        return getNodesByType(nodeType, gameMajorType, true);
     }
 
     /**
      * 获取该类型的所有节点
      *
      * @param nodeType    节点类型
-     * @param gameType    游戏类型
+     * @param gameMajorType    游戏主类型
      * @param excludeSelf 是否排除本节点
      */
-    public List<ClusterClient> getNodesByType(NodeType nodeType, int gameType, boolean excludeSelf) {
+    public List<ClusterClient> getNodesByType(NodeType nodeType, int gameMajorType, boolean excludeSelf) {
         List<ClusterClient> clusterClients = new ArrayList<>();
         String name = nodeType.toString();
 
-        int gameMajorType = CommonUtil.getMajorTypeByGameType(gameType);
         for (Map.Entry<MarsNode, ClusterClient> en : clusterClientMap.entrySet()) {
             ClusterClient client = en.getValue();
             if (!name.equals(client.getType())) {

@@ -172,7 +172,7 @@ public class HallPlayerService extends AbstractPlayerService implements ConfigEx
         //通知其他游戏节点，清除该玩家信息
         if (!playerIds.isEmpty()) {
             //获取slots节点
-            List<ClusterClient> clusterClients = ClusterSystem.system.getNodesByType(NodeType.GAME, CoreConst.GameType.DOLLAR_EXPRESS);
+            List<ClusterClient> clusterClients = ClusterSystem.system.getNodesByType(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
             if (clusterClients != null && !clusterClients.isEmpty()) {
                 NotifyAllNodesCleanPlayer notify = new NotifyAllNodesCleanPlayer();
                 notify.playerIds = playerIds;

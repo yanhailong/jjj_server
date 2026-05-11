@@ -63,7 +63,7 @@ public abstract class AbstractMultiPloyController<T extends PlayerMultiPloyGameD
      */
     protected void messageSync(AbstractMessage msg) {
         try {
-            List<ClusterClient> nodes = ClusterSystem.system.getNodesByTypeExcludeSelf(NodeType.GAME, CoreConst.GameType.AIR_STRIKE);
+            List<ClusterClient> nodes = ClusterSystem.system.getNodesByTypeExcludeSelf(NodeType.GAME, CoreConst.GameMajorType.PLOY);
             if (nodes == null || nodes.isEmpty()) {
                 return;
             }

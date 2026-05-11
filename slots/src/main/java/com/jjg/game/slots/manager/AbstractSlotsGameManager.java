@@ -11,6 +11,7 @@ import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.MessageUtil;
@@ -1708,7 +1709,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     protected void noticeNodeLibChange(int changeType, List<SpecialResultLibCfg> cfgList) {
         try {
-            List<ClusterClient> nodes = ClusterSystem.system.getNodesByTypeExcludeSelf(NodeType.GAME, this.gameType);
+            List<ClusterClient> nodes = ClusterSystem.system.getNodesByTypeExcludeSelf(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
             if (nodes.isEmpty()) {
                 return;
             }
