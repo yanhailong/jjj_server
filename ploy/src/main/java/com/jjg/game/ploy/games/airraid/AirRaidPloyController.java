@@ -2,7 +2,6 @@ package com.jjg.game.ploy.games.airraid;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
@@ -21,7 +20,9 @@ import com.jjg.game.ploy.games.airraid.pb.cluster.CashOutSync;
 import com.jjg.game.ploy.games.airraid.pb.cluster.GameStateSync;
 import com.jjg.game.ploy.pb.ReqPloyRecord;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.AirstrikeRobotCfg;
 import com.jjg.game.sampledata.bean.PloygameRoomCfg;
+import com.jjg.game.sampledata.bean.PoolResultLibCfg;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -59,6 +60,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
     //游戏循环定时器引用
     private TimerEvent<String> event;
+    //机器人定时器
+    private TimerEvent<String> robotEvent;
 
     //已完成本地结算的回合号，避免 crash 同步重复记账
     private volatile int lastSettledRoundId;
@@ -104,17 +107,17 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
                 startNewRound();
             } else {
                 long diff = gameRoom.getPhaseStopTime() - System.currentTimeMillis();
-                addEvent(AirRaidPhase.BETTING_END_BET, diff < 0 ? 0 : (int) diff);
+                addPhaseEvent(AirRaidPhase.BETTING_END_BET, diff < 0 ? 0 : (int) diff);
             }
         } else if (phase == AirRaidPhase.BETTING_END_BET) {
             long diff = gameRoom.getPhaseStopTime() - System.currentTimeMillis();
-            addEvent(AirRaidPhase.FLYING, diff < 0 ? 0 : (int) diff);
+            addPhaseEvent(AirRaidPhase.FLYING, diff < 0 ? 0 : (int) diff);
         } else if (phase == AirRaidPhase.FLYING) {
             long diff = gameRoom.getPhaseStopTime() - System.currentTimeMillis();
-            addEvent(AirRaidPhase.CRASHED, diff < 0 ? 0 : (int) diff);
+            addPhaseEvent(AirRaidPhase.CRASHED, diff < 0 ? 0 : (int) diff);
         } else {
             long diff = gameRoom.getPhaseStopTime() - System.currentTimeMillis();
-            addEvent(AirRaidPhase.BETTING, diff < 0 ? 0 : (int) diff);
+            addPhaseEvent(AirRaidPhase.BETTING, diff < 0 ? 0 : (int) diff);
         }
     }
 
@@ -139,7 +142,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
     /**
      * 添加定时器
      */
-    private void addEvent(AirRaidPhase phase, int initTime) {
+    private void addPhaseEvent(AirRaidPhase phase, int initTime) {
         TimerEvent<String> previousEvent = this.event;
         if (previousEvent != null) {
             this.timerCenter.remove(previousEvent);
@@ -147,21 +150,32 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         // 创建定时器
         this.event = new TimerEvent<>(this, initTime, phase.name()).withTimeUnit(TimeUnit.MILLISECONDS);
         timerCenter.add(this.event);
+
+        //如果是下注阶段
+        if (phase == AirRaidPhase.BETTING) {
+            // 创建定时器
+            this.robotEvent = new TimerEvent<>(this, initTime, phase.name()).setIntervalTime(950).withTimeUnit(TimeUnit.MILLISECONDS);
+            timerCenter.add(this.robotEvent);
+        }
     }
 
     @Override
     public void onTimer(TimerEvent<String> e) {
-        String param = e.getParameter();
-        if (AirRaidPhase.BETTING.name().equals(param)) {
-            startNewRound();
-        } else if (AirRaidPhase.BETTING_END_BET.name().equals(param)) {
-            handleStopBetPhaseTimerEvent();
-        } else if (AirRaidPhase.FLYING.name().equals(param)) {
-            handleFlyingPhaseTimerEvent();
-        } else if (AirRaidPhase.CRASHED.name().equals(param)) {
-            handleCrashedPhaseTimerEvent();
-        } else {
-            log.warn("AirRaid unknown timer phase={}", param);
+        if (e == this.event) {
+            String param = e.getParameter();
+            if (AirRaidPhase.BETTING.name().equals(param)) {
+                startNewRound();
+            } else if (AirRaidPhase.BETTING_END_BET.name().equals(param)) {
+                handleStopBetPhaseTimerEvent();
+            } else if (AirRaidPhase.FLYING.name().equals(param)) {
+                handleFlyingPhaseTimerEvent();
+            } else if (AirRaidPhase.CRASHED.name().equals(param)) {
+                handleCrashedPhaseTimerEvent();
+            } else {
+                log.warn("AirRaid unknown timer phase={}", param);
+            }
+        }else if(e == this.robotEvent){
+            handleRobotBetEvent();
         }
     }
 
@@ -174,7 +188,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         gameRoom.setPhaseStopTime(gameRoom.getPhaseStartTime() + bettingDurationMs);
         gameRoom.setNotifyPhase(true);
         broadcastPhaseChange(bettingDurationMs);
-        addEvent(AirRaidPhase.BETTING_END_BET, bettingDurationMs);
+        addPhaseEvent(AirRaidPhase.BETTING_END_BET, bettingDurationMs);
         // 清空所有本节点玩家的投注数据
         clearLocalPlayerBets();
         log.info("新回合开始 round={}", gameRoom.getRoundCounter().get());
@@ -184,13 +198,19 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 停止下注阶段
      */
     private void handleStopBetPhaseTimerEvent() {
+        //移除机器人的定时器
+        if(this.robotEvent != null){
+            this.timerCenter.remove(this.robotEvent);
+            this.robotEvent = null;
+        }
+
         long now = System.currentTimeMillis();
         gameRoom.setPhase(AirRaidPhase.BETTING_END_BET);
         gameRoom.setPhaseStartTime(now);
         gameRoom.setPhaseStopTime(now + stopBetDurationMs);
         gameRoom.setNotifyPhase(true);
         broadcastPhaseChange(stopBetDurationMs);
-        addEvent(AirRaidPhase.FLYING, stopBetDurationMs);
+        addPhaseEvent(AirRaidPhase.FLYING, stopBetDurationMs);
         log.debug("停止下注");
     }
 
@@ -205,7 +225,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         gameRoom.startFlying(crashMultiplier, crashTimeSec);
         gameRoom.setNotifyPhase(true);
         broadcastPhaseChange(0);
-        addEvent(AirRaidPhase.CRASHED, crashTimeSec * 1000);
+        addPhaseEvent(AirRaidPhase.CRASHED, crashTimeSec * 1000);
         log.info("飞行阶段， 坠毁时间 = {},坠毁倍率 ={}", crashTimeSec, crashMultiplier / 10000.0);
     }
 
@@ -220,7 +240,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         //广播阶段变化
         broadcastPhaseChange(settleDurationMs);
 //        broadcastCrash();
-        addEvent(AirRaidPhase.BETTING, settleDurationMs);
+        addPhaseEvent(AirRaidPhase.BETTING, settleDurationMs);
         log.debug("坠毁结算阶段");
     }
 
@@ -266,6 +286,13 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         }
         doSettle();
         lastSettledRoundId = roundId;
+    }
+
+    /**
+     * 处理机器人下注事件
+     */
+    private void handleRobotBetEvent(){
+
     }
 
     /**
@@ -323,18 +350,18 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 验证流程: 阶段检查 → 索引检查 → 重复下注检查 → 押分值检查 → 扣款 → 记录 → 广播
      * </p>
      *
-     * @param playerController 玩家控制器
-     * @param bet              下注金额
-     * @param betIndex         注单索引(0或1，每人最多2注)
+     * @param playerGameData 玩家控制器
+     * @param bet            下注金额
+     * @param betIndex       注单索引(0或1，每人最多2注)
      * @return 下注响应
      */
     @Override
-    public ResAirRaidBet bet(PlayerController playerController, long bet, int betIndex) {
+    public ResAirRaidBet bet(AirRaidPlayerPloyGameData playerGameData, long bet, int betIndex) {
         ResAirRaidBet res = new ResAirRaidBet(Code.SUCCESS);
         try {
             if (clusterSystem.nodeConfig.weight < 1) {
                 res.code = Code.FAIL;
-                log.warn("该节点准备关闭，无法下注 playerId={}", playerController.playerId());
+                log.warn("该节点准备关闭，无法下注 playerId={}", playerGameData.playerId());
                 return res;
             }
 
@@ -342,19 +369,19 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             // 验证游戏阶段: 仅下注阶段可投注
             if (!this.gameRoom.canBet(now)) {
                 res.code = Code.FAIL;
-                log.warn("AirRaid 非下注阶段 playerId={}, phase={}", playerController.playerId(), this.gameRoom.getPhase());
+                log.warn("AirRaid 非下注阶段 playerId={}, phase={}", playerGameData.playerId(), this.gameRoom.getPhase());
                 return res;
             }
 
             // 验证注单索引: 仅允许0和1
             if (betIndex < 0 || betIndex > 1) {
                 res.code = Code.PARAM_ERROR;
-                log.warn("AirRaid 注单索引错误 playerId={}, betIndex={}", playerController.playerId(), betIndex);
+                log.warn("AirRaid 注单索引错误 playerId={}, betIndex={}", playerGameData.playerId(), betIndex);
                 return res;
             }
 
             // 验证押分值是否在配置列表中
-            PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerController.getPlayer().getRoomCfgId());
+            PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
             if (cfg == null || cfg.getLineBetScore() == null) {
                 res.code = Code.SAMPLE_ERROR;
                 return res;
@@ -362,15 +389,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             boolean match = cfg.getLineBetScore().stream().anyMatch(b -> b == bet);
             if (!match) {
                 res.code = Code.PARAM_ERROR;
-                log.warn("AirRaid 下注额不在配置中 playerId={}, bet={}", playerController.playerId(), bet);
-                return res;
-            }
-
-            // 获取玩家游戏数据
-            AirRaidPlayerPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
-            if (playerGameData == null) {
-                res.code = Code.FAIL;
-                log.warn("AirRaid playerGameData为空 playerId={}", playerController.playerId());
+                log.warn("AirRaid 下注额不在配置中 playerId={}, bet={}", playerGameData.playerId(), bet);
                 return res;
             }
 
@@ -378,7 +397,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             AirRaidBetData existingBet = playerGameData.getAirRaidBetDataMap().get(betIndex);
             if (existingBet != null) {
                 res.code = Code.REPEAT_OP;
-                log.warn("AirRaid 重复下注 playerId={}, betIndex={}", playerController.playerId(), betIndex);
+                log.warn("AirRaid 重复下注 playerId={}, betIndex={}", playerGameData.playerId(), betIndex);
                 return res;
             }
 
@@ -394,7 +413,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             playerGameData.addBetValue(bet, betIndex);
 
             // 更新本回合展示簿
-            roundBetBook.recordBet(playerController.playerId(), playerController.getPlayer().getHeadImgId(), betIndex, bet);
+            roundBetBook.recordBet(playerGameData.playerId(), playerGameData.getPlayerController().getPlayer().getHeadImgId(), betIndex, bet);
 
             // 构建响应
             res.gold = moneyResult.data.getPlayerAfterMoney();
@@ -402,12 +421,12 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             // 通过集群消息同步到其他节点，本节点玩家单独推送正式协议消息
             BetSync syncMsg = new BetSync();
             syncMsg.roundId = gameRoom.getRoundId();
-            syncMsg.playerId = playerController.playerId();
-            syncMsg.headImgId = playerController.getPlayer().getHeadImgId();
+            syncMsg.playerId = playerGameData.playerId();
+            syncMsg.headImgId = playerGameData.getPlayerController().getPlayer().getHeadImgId();
             syncMsg.betAmount = bet;
             syncMsg.betIndex = betIndex;
             messageSync(syncMsg);
-            log.info("AirRaid 下注成功 playerId={}, bet={}, betIndex={}", playerController.playerId(), bet, betIndex);
+            log.info("AirRaid 下注成功 playerId={}, bet={}, betIndex={}", playerGameData.playerId(), bet, betIndex);
         } catch (Exception e) {
             log.error("AirRaid 下注异常", e);
             res.code = Code.EXCEPTION;
@@ -699,6 +718,20 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             log.info("AirRaid 配置加载完成: growthRate={}, riskK={}, crashP0={}, betting={}ms, stopBet={}ms, settle={}ms", growthRate, riskK, crashP0, bettingDurationMs, stopBetDurationMs, settleDurationMs);
             break;
         }
+    }
+
+    @Override
+    public void initSampleCallbackCollector() {
+        addInitSampleFileObserveWithCallBack(PoolResultLibCfg.EXCEL_NAME, this::loadPloyGameRoomCfg);
+        addInitSampleFileObserveWithCallBack(PoolResultLibCfg.EXCEL_NAME, this::loadPoolResultLibCfg);
+        addInitSampleFileObserveWithCallBack(AirstrikeRobotCfg.EXCEL_NAME, this::loadAirstrikeRobotConfig);
+    }
+
+    /**
+     * 加载机器人配置
+     */
+    private void loadAirstrikeRobotConfig() {
+        log.info("加载空袭机器人配置");
     }
 
     @Override

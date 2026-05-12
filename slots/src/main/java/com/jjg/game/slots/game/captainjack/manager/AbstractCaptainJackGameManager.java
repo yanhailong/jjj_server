@@ -302,23 +302,4 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         }
         return startGame(playerController, playerGameData, playerGameData.getAllBetScore(), false);
     }
-
-
-    /**
-     * 自动执行探宝
-     *
-     * @param gameData 游戏数据
-     */
-    private void autoRunTreasureChest(CaptainJackPlayerGameData gameData) {
-        if (gameData.getStatus() == CaptainJackConstant.Status.TREASURE_CHEST) {
-            CaptainJackResultLib resultLib = gameData.getResultLib();
-            if (resultLib == null) {
-                return;
-            }
-            int remainCount = resultLib.getDigTimes() - gameData.getAlreadyDigCount();
-            for (int i = 0; i < remainCount; i++) {
-                startGame(new PlayerController(null, null), gameData, gameData.getAllBetScore(), true);
-            }
-        }
-    }
 }

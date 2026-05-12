@@ -221,15 +221,4 @@ public abstract class AbstractFrozenThroneGameManager extends AbstractSlotsGameM
             log.error("", e);
         }
     }
-
-    /**
-     * 自动玩游戏
-     *
-     * @param betValue
-     * @return
-     */
-    public FrozenThroneGameRunInfo autoStartGame(FrozenThronePlayerGameData playerGameData, long betValue) {
-        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.getPlayerId());
-        return startGame(null,playerGameData, betValue, true);
-    }
 }

@@ -215,15 +215,4 @@ public abstract class AbstractSteamAgeGameManager extends AbstractSlotsGameManag
             log.error("", e);
         }
     }
-
-    /**
-     * 自动玩游戏
-     *
-     * @param betValue
-     * @return
-     */
-    public SteamAgeGameRunInfo autoStartGame(SteamAgePlayerGameData playerGameData, long betValue) {
-        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.getPlayerId());
-        return startGame(null, playerGameData, betValue, true);
-    }
 }

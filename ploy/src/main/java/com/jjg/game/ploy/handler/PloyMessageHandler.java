@@ -59,7 +59,7 @@ public class PloyMessageHandler implements GmListener, ChooseWareListener {
     public void reqPloyBet(PlayerController playerController, ReqPloyBet req) {
         Object scene = playerController.getScene();
         if (scene instanceof AbstractPloyController<?> ployController) {
-            AbstractMessage res = ployController.bet(playerController, req.bet, req.value);
+            AbstractMessage res = ployController.reqBet(playerController, req.bet, req.value);
             if (res != null) {
                 playerController.send(res);
             }

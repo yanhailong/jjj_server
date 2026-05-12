@@ -87,13 +87,13 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
      * 初始化
      */
     public void init() {
-        loadConfig();
+//        loadConfig();
     }
 
-    protected void loadConfig() {
-        loadPloyGameRoomCfg();
-        loadPoolResultLibCfg();
-    }
+//    protected void loadConfig() {
+//        loadPloyGameRoomCfg();
+//        loadPoolResultLibCfg();
+//    }
 
     /**
      * 进入游戏时获取配置
@@ -123,9 +123,10 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
      *
      * @param playerController
      * @param betValue
+     * @param value
      * @return
      */
-    public AbstractMessage bet(PlayerController playerController, long betValue, int value) {
+    public AbstractMessage reqBet(PlayerController playerController, long betValue, int value) {
         try {
             //检查游戏是否开启
             if (!this.open.get()) {
@@ -137,45 +138,54 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
                 log.warn("获取 playerGameData 失败，下注失败 playerId = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
                 return buildResBetMessage(Code.FAIL, null, 0, 0);
             }
-
-            //检查押分值
-            PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerController.getPlayer().getRoomCfgId());
-            boolean match = cfg.getLineBetScore().stream().anyMatch(b -> b == betValue);
-            if (!match) {
-                log.warn("下注额错误，下注失败 playerId = {},roomCfgId = {},betValue = {}", playerController.playerId(), playerGameData.getRoomCfgId(), betValue);
-                return buildResBetMessage(Code.PARAM_ERROR, playerGameData, 0, 0);
-            }
-
-            //前置检查
-            int beforeCode = beforeMoneyToPoolCheck(playerGameData);
-            if (beforeCode != Code.SUCCESS) {
-                log.warn("扣钱前置检查失败，下注失败 playerId = {},roomCfgId = {},betValue = {},code = {}", playerController.playerId(), playerGameData.getRoomCfgId(), betValue, beforeCode);
-                return buildResBetMessage(beforeCode, playerGameData, 0, 0);
-            }
-
-            //玩家扣除下注金额，并加入标准池
-            CommonResult<PloyBetDivideInfo> moneyResult = moneyToPool(playerGameData, betValue);
-            if (!moneyResult.success()) {
-                return buildResBetMessage(moneyResult.code, playerGameData, 0, 0);
-            }
-            playerGameData.setLastBet(betValue);
-            playerGameData.setLastBetTime(playerGameData.getLastActiveTime());
-            playerGameData.setPloyBetDivideInfo(moneyResult.data);
-
-            //构建返回消息
-            AbstractResponse res = buildResBetMessage(Code.SUCCESS, playerGameData, betValue, value);
-            if (res.code != Code.SUCCESS) {
-                poolToPlayer(playerGameData, moneyResult.data.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
-                return res;
-            }
-            //更新数据
-            playerGameData.setLastActiveTime(System.currentTimeMillis());
-            log.info("策略游戏下注返回 playerId = {},gameType = {},res = {}", playerController.playerId(), playerGameData.getGameType(), JSON.toJSONString(res));
-            return res;
+            return bet(playerGameData, betValue, value);
         } catch (Exception e) {
             log.error("", e);
             return buildResBetMessage(Code.EXCEPTION, null, 0, 0);
         }
+    }
+
+    /**
+     * 下注
+     *
+     * @param playerGameData
+     * @param betValue
+     * @return
+     */
+    protected AbstractMessage bet(T playerGameData, long betValue, int value) {
+        //检查押分值
+        PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
+        if (betValue < cfg.getLineBetScore().get(0) || betValue > cfg.getLineBetScore().get(1)) {
+            log.warn("下注额错误，下注失败 playerId = {},roomCfgId = {},betValue = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), betValue);
+            return buildResBetMessage(Code.PARAM_ERROR, playerGameData, 0, 0);
+        }
+
+        //前置检查
+        int beforeCode = beforeMoneyToPoolCheck(playerGameData);
+        if (beforeCode != Code.SUCCESS) {
+            log.warn("扣钱前置检查失败，下注失败 playerId = {},roomCfgId = {},betValue = {},code = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), betValue, beforeCode);
+            return buildResBetMessage(beforeCode, playerGameData, 0, 0);
+        }
+
+        //玩家扣除下注金额，并加入标准池
+        CommonResult<PloyBetDivideInfo> moneyResult = moneyToPool(playerGameData, betValue);
+        if (!moneyResult.success()) {
+            return buildResBetMessage(moneyResult.code, playerGameData, 0, 0);
+        }
+        playerGameData.setLastBet(betValue);
+        playerGameData.setLastBetTime(playerGameData.getLastActiveTime());
+        playerGameData.setPloyBetDivideInfo(moneyResult.data);
+
+        //构建返回消息
+        AbstractResponse res = buildResBetMessage(Code.SUCCESS, playerGameData, betValue, value);
+        if (res.code != Code.SUCCESS) {
+            poolToPlayer(playerGameData, moneyResult.data.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
+            return res;
+        }
+        //更新数据
+        playerGameData.setLastActiveTime(System.currentTimeMillis());
+        log.info("策略游戏下注返回 playerId = {},gameType = {},res = {}", playerGameData.playerId(), playerGameData.getGameType(), JSON.toJSONString(res));
+        return res;
     }
 
     /**
@@ -400,8 +410,8 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
 
     @Override
     public void initSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(PoolResultLibCfg.EXCEL_NAME, this::loadPloyGameRoomCfg);
-        addChangeSampleFileObserveWithCallBack(PoolResultLibCfg.EXCEL_NAME, this::loadPoolResultLibCfg);
+        addInitSampleFileObserveWithCallBack(PoolResultLibCfg.EXCEL_NAME, this::loadPloyGameRoomCfg);
+        addInitSampleFileObserveWithCallBack(PoolResultLibCfg.EXCEL_NAME, this::loadPoolResultLibCfg);
     }
 
     protected void loadPloyGameRoomCfg() {
