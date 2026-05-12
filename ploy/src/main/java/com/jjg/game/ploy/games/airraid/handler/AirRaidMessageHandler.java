@@ -12,7 +12,6 @@ import com.jjg.game.ploy.games.airraid.data.AirRaidConstant;
 import com.jjg.game.ploy.games.airraid.pb.ReqAirRaidCashOut;
 import com.jjg.game.ploy.games.airraid.pb.cluster.BetSync;
 import com.jjg.game.ploy.games.airraid.pb.cluster.CashOutSync;
-import com.jjg.game.ploy.games.airraid.pb.cluster.CrashSync;
 import com.jjg.game.ploy.games.airraid.pb.cluster.GameStateSync;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

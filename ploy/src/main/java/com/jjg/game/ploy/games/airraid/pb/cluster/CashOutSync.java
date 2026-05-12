@@ -5,6 +5,9 @@ import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.ploy.games.airraid.data.AirRaidConstant;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 兑现同步 — 有玩家兑现时主节点广播给所有从节点
  *
@@ -16,12 +19,6 @@ import com.jjg.game.ploy.games.airraid.data.AirRaidConstant;
 public class CashOutSync extends AbstractMessage {
     //当前回合号
     public int roundId;
-    //玩家ID
-    public long playerId;
-    //兑现倍率(万分比)
-    public int cashOutMultiplier;
-    //赢得金额
-    public long winAmount;
-    //注单索引(0或1)
-    public int betIndex;
+    //兑现列表
+    public List<PlayerCashOut> playerCashOuts = new ArrayList<>();
 }

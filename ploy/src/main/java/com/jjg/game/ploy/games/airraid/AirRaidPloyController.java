@@ -1,34 +1,39 @@
 package com.jjg.game.ploy.games.airraid;
 
+import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.RobotPlayer;
 import com.jjg.game.core.pb.KVInfo;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.ploy.controller.AbstractMultiPloyController;
 import com.jjg.game.ploy.data.PloyBetDivideInfo;
+import com.jjg.game.ploy.data.PropInfo;
 import com.jjg.game.ploy.games.airraid.data.*;
 import com.jjg.game.ploy.games.airraid.pb.*;
-import com.jjg.game.ploy.games.airraid.pb.cluster.BetSync;
-import com.jjg.game.ploy.games.airraid.pb.cluster.CashOutSync;
-import com.jjg.game.ploy.games.airraid.pb.cluster.GameStateSync;
+import com.jjg.game.ploy.games.airraid.pb.cluster.*;
 import com.jjg.game.ploy.pb.ReqPloyRecord;
+import com.jjg.game.ploy.utils.PropUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.AirstrikeRobotCfg;
 import com.jjg.game.sampledata.bean.PloygameRoomCfg;
 import com.jjg.game.sampledata.bean.PoolResultLibCfg;
+import com.jjg.game.sampledata.bean.RobotCfg;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -52,6 +57,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Component
 public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPlayerPloyGameData, AirRaidGameRoom> {
+
+    @Autowired
+    private RobotUtil robotUtil;
+
     //游戏全局状态(所有回合共享)
     private final AirRaidGameRoom gameRoom = new AirRaidGameRoom();
 
@@ -60,11 +69,21 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
     //游戏循环定时器引用
     private TimerEvent<String> event;
-    //机器人定时器
-    private TimerEvent<String> robotEvent;
+    //机器人下注定时器(仅主节点)
+    private TimerEvent<String> robotBetEvent;
+    //飞行阶段每秒 tick 定时器(所有节点) — 主节点用来触发机器人兑现 + 推送累积兑现，从节点仅推送累积兑现
+    private TimerEvent<String> cashOutTickEvent;
+    //本节点累积的兑现，等 cashOutTickEvent 触发时合并推送给本地玩家(线程安全)
+    private final Queue<AirRaidCashOutInfo> pendingCashOuts = new ConcurrentLinkedQueue<>();
 
     //已完成本地结算的回合号，避免 crash 同步重复记账
     private volatile int lastSettledRoundId;
+    //初始的机器人人数
+    private volatile int initRobotCount;
+    //本回合已经使用的机器人配置id
+    private Set<Integer> robotCfgIdSet = new HashSet<>();
+    //机器人下注金额
+    private PropInfo robotBetPropInfo = null;
 
     //倍数增长率 r (万分比, 如1200=12%)
     private int growthRate;
@@ -137,6 +156,11 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             this.event = null;
             log.info("AirRaid 不再是主节点，停止游戏循环");
         }
+        if (this.robotBetEvent != null) {
+            this.timerCenter.remove(this.robotBetEvent);
+            this.robotBetEvent = null;
+        }
+        stopCashOutTick();
     }
 
     /**
@@ -150,13 +174,6 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         // 创建定时器
         this.event = new TimerEvent<>(this, initTime, phase.name()).withTimeUnit(TimeUnit.MILLISECONDS);
         timerCenter.add(this.event);
-
-        //如果是下注阶段
-        if (phase == AirRaidPhase.BETTING) {
-            // 创建定时器
-            this.robotEvent = new TimerEvent<>(this, initTime, phase.name()).setIntervalTime(950).withTimeUnit(TimeUnit.MILLISECONDS);
-            timerCenter.add(this.robotEvent);
-        }
     }
 
     @Override
@@ -174,8 +191,10 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             } else {
                 log.warn("AirRaid unknown timer phase={}", param);
             }
-        }else if(e == this.robotEvent){
+        } else if (e == this.robotBetEvent) {
             handleRobotBetEvent();
+        } else if (e == this.cashOutTickEvent) {
+            handleCashOutTick();
         }
     }
 
@@ -183,15 +202,29 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 开始新的回合-进入下注阶段
      */
     private void startNewRound() {
-        roundBetBook.clear();
+        clearRoundData();
         gameRoom.startNewRound();
         gameRoom.setPhaseStopTime(gameRoom.getPhaseStartTime() + bettingDurationMs);
         gameRoom.setNotifyPhase(true);
         broadcastPhaseChange(bettingDurationMs);
         addPhaseEvent(AirRaidPhase.BETTING_END_BET, bettingDurationMs);
+
+        // 创建机器人下注定时器
+        this.robotBetEvent = new TimerEvent<>(this, "robotBet", 950).withTimeUnit(TimeUnit.MILLISECONDS);
+        timerCenter.add(this.robotBetEvent);
+        log.info("新回合开始 round={}", gameRoom.getRoundCounter().get());
+    }
+
+    /**
+     * 清除旧数据
+     */
+    private void clearRoundData() {
+        this.initRobotCount = 0;
+        this.robotCfgIdSet.clear();
+        this.pendingCashOuts.clear();
+        roundBetBook.clear();
         // 清空所有本节点玩家的投注数据
         clearLocalPlayerBets();
-        log.info("新回合开始 round={}", gameRoom.getRoundCounter().get());
     }
 
     /**
@@ -199,9 +232,9 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      */
     private void handleStopBetPhaseTimerEvent() {
         //移除机器人的定时器
-        if(this.robotEvent != null){
-            this.timerCenter.remove(this.robotEvent);
-            this.robotEvent = null;
+        if (this.robotBetEvent != null) {
+            this.timerCenter.remove(this.robotBetEvent);
+            this.robotBetEvent = null;
         }
 
         long now = System.currentTimeMillis();
@@ -226,6 +259,9 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         gameRoom.setNotifyPhase(true);
         broadcastPhaseChange(0);
         addPhaseEvent(AirRaidPhase.CRASHED, crashTimeSec * 1000);
+
+        // 启动飞行阶段的兑现 tick(每秒触发机器人兑现 + 推送累积兑现)
+        startCashOutTick();
         log.info("飞行阶段， 坠毁时间 = {},坠毁倍率 ={}", crashTimeSec, crashMultiplier / 10000.0);
     }
 
@@ -233,13 +269,15 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 坠毁结算阶段
      */
     private void handleCrashedPhaseTimerEvent() {
+        //停止兑现 tick，并把残留的兑现推送出去
+        stopCashOutTick();
+        flushCashOutQueue();
         doCrash();
         gameRoom.setPhaseStopTime(gameRoom.getPhaseStartTime() + settleDurationMs);
         gameRoom.setNotifyPhase(true);
         settleCurrentRoundIfNeeded();
         //广播阶段变化
         broadcastPhaseChange(settleDurationMs);
-//        broadcastCrash();
         addPhaseEvent(AirRaidPhase.BETTING, settleDurationMs);
         log.debug("坠毁结算阶段");
     }
@@ -291,8 +329,212 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
     /**
      * 处理机器人下注事件
      */
-    private void handleRobotBetEvent(){
+    private void handleRobotBetEvent() {
+        AirstrikeRobotCfg cfg = GameDataManager.getAirstrikeRobotCfg(CoreConst.GameType.AIR_STRIKE);
 
+        //计算本次应该添加的机器人人数
+        int addRobotCount = 0;
+        if (initRobotCount < 1) {
+            initRobotCount = RandomUtils.randomMinMax(cfg.getInitial().get(0), cfg.getInitial().get(1));
+            addRobotCount = initRobotCount;
+        } else {
+            int addProp = RandomUtils.randomMinMax(cfg.getIncrease().get(0), cfg.getIncrease().get(1));
+            addRobotCount = PropUtils.propBase(addProp, initRobotCount);
+        }
+
+        if (addRobotCount < 1) {
+            return;
+        }
+
+        BetSync syncMsg = new BetSync();
+        syncMsg.roundId = gameRoom.getRoundId();
+
+        for (int i = 0; i < addRobotCount; i++) {
+            RobotCfg robotCfg = getRobotCfg();
+            if (robotCfg == null) {
+                continue;
+            }
+            Integer betCfgId = this.robotBetPropInfo.getRandKey();
+            if (betCfgId == null) {
+                continue;
+            }
+            int[] dataSection = this.robotBetPropInfo.getDataSection(betCfgId);
+            if (dataSection == null) {
+                continue;
+            }
+
+            //获取一个机器人
+            RobotPlayer robotPlayer = robotUtil.initRobotPlayer(robotCfg);
+            //获取一个下注金额
+            int bet = RandomUtils.randomMinMax(dataSection[0], dataSection[1]);
+            roundBetBook.recordBet(robotPlayer.getId(), robotPlayer.getHeadImgId(), 0, bet);
+
+            PlayerBetInfo playerBetInfo = new PlayerBetInfo();
+            playerBetInfo.playerId = robotPlayer.getId();
+            playerBetInfo.headImgId = robotPlayer.getHeadImgId();
+            playerBetInfo.betAmount = bet;
+            playerBetInfo.betIndex = 0;
+            syncMsg.playerBetInfoList.add(playerBetInfo);
+        }
+        messageSync(syncMsg);
+    }
+
+    /**
+     * 处理机器人兑现事件
+     * 获取AirstrikeRobotCfg.CashIn，数据格式为 1000_2000,即在这个区间随机一个数得到万分比，每秒钟有(机器人人数*万分比)的机器人进行兑现操作
+     * 仅主节点执行；产生的兑现 → 入本节点队列(等 tick 推送) + 通过 CashOutSync 同步到其他节点
+     */
+    private void handRobotCashoutEvent() {
+        try {
+            long now = System.currentTimeMillis();
+            //必须仍在飞行阶段且未到坠毁
+            if (!gameRoom.canCashOut(now)) {
+                return;
+            }
+
+            AirstrikeRobotCfg cfg = GameDataManager.getAirstrikeRobotCfg(CoreConst.GameType.AIR_STRIKE);
+            if (cfg == null || cfg.getCashIn() == null || cfg.getCashIn().size() < 2) {
+                return;
+            }
+
+            //取所有未兑现的机器人下注
+            List<AirRaidPlayerInfo> robotBets = new ArrayList<>();
+            for (AirRaidPlayerInfo info : roundBetBook.getAllBets()) {
+                if (!info.cashedOut && RobotUtil.isRobot(info.playerId)) {
+                    robotBets.add(info);
+                }
+            }
+            if (robotBets.isEmpty()) {
+                return;
+            }
+
+            //本次应兑现的机器人数 = 总数 * 万分比
+            int cashInProp = RandomUtils.randomMinMax(cfg.getCashIn().get(0), cfg.getCashIn().get(1));
+            int cashOutCount = PropUtils.propBase(cashInProp, robotBets.size());
+            if (cashOutCount < 1) {
+                return;
+            }
+
+            int currentMultiplier = getAuthoritativeCurrentMultiplier(now);
+            Collections.shuffle(robotBets);
+            int limit = Math.min(cashOutCount, robotBets.size());
+
+            List<PlayerCashOut> syncList = new ArrayList<>(limit);
+            for (int i = 0; i < limit; i++) {
+                AirRaidPlayerInfo info = robotBets.get(i);
+                long winAmount = info.bet * currentMultiplier / 10000;
+                roundBetBook.recordCashOut(info.playerId, info.betIndex, currentMultiplier, winAmount);
+
+                //本节点入队
+                enqueueCashOut(info.playerId, info.betIndex, currentMultiplier, winAmount);
+
+                //集群同步给其他节点
+                PlayerCashOut playerCashOut = new PlayerCashOut();
+                playerCashOut.playerId = info.playerId;
+                playerCashOut.cashOutMultiplier = currentMultiplier;
+                playerCashOut.winAmount = winAmount;
+                playerCashOut.betIndex = info.betIndex;
+                syncList.add(playerCashOut);
+            }
+            if (!syncList.isEmpty()) {
+                syncCashOutsToCluster(syncList);
+            }
+        } catch (Exception e) {
+            log.error("AirRaid 机器人兑现异常", e);
+        }
+    }
+
+    /**
+     * 飞行阶段每秒 tick — 主节点处理机器人兑现；所有节点把累积兑现推送给本地玩家
+     */
+    private void handleCashOutTick() {
+        try {
+            if (this.marsCurator.isMaster()) {
+                handRobotCashoutEvent();
+            }
+            flushCashOutQueue();
+        } catch (Exception e) {
+            log.error("AirRaid cashOut tick异常", e);
+        }
+    }
+
+    /**
+     * 启动飞行阶段每秒 tick(幂等)
+     */
+    private void startCashOutTick() {
+        if (this.cashOutTickEvent != null) {
+            this.timerCenter.remove(this.cashOutTickEvent);
+        }
+        this.cashOutTickEvent = new TimerEvent<>(this, "cashOutTick", 950).withTimeUnit(TimeUnit.MILLISECONDS);
+        this.timerCenter.add(this.cashOutTickEvent);
+    }
+
+    /**
+     * 停止飞行阶段每秒 tick(幂等)
+     */
+    private void stopCashOutTick() {
+        if (this.cashOutTickEvent != null) {
+            this.timerCenter.remove(this.cashOutTickEvent);
+            this.cashOutTickEvent = null;
+        }
+    }
+
+    /**
+     * 把一条兑现加入本节点 pending 队列
+     */
+    private void enqueueCashOut(long playerId, int betIndex, int cashOutMultiplier, long winAmount) {
+        AirRaidCashOutInfo info = new AirRaidCashOutInfo();
+        info.playerId = playerId;
+        info.betIndex = betIndex;
+        info.cashOutMultiplier = cashOutMultiplier;
+        info.winAmount = winAmount;
+        this.pendingCashOuts.offer(info);
+    }
+
+    /**
+     * 把本节点 pending 队列里的兑现合并推送给本地玩家
+     */
+    private void flushCashOutQueue() {
+        if (this.pendingCashOuts.isEmpty()) {
+            return;
+        }
+        List<AirRaidCashOutInfo> batch = new ArrayList<>();
+        AirRaidCashOutInfo item;
+        while ((item = this.pendingCashOuts.poll()) != null) {
+            batch.add(item);
+        }
+        if (batch.isEmpty()) {
+            return;
+        }
+        NotifyAirRaidCashOut notice = new NotifyAirRaidCashOut();
+        notice.playerCashOuts = batch;
+        broadcastLocalPlayers(notice);
+    }
+
+    /**
+     * 把兑现列表同步到其他节点(不发本地)
+     */
+    private void syncCashOutsToCluster(List<PlayerCashOut> playerCashOutList) {
+        CashOutSync syncMsg = new CashOutSync();
+        syncMsg.roundId = gameRoom.getRoundId();
+        syncMsg.playerCashOuts = playerCashOutList;
+        messageSync(syncMsg);
+    }
+
+    /**
+     * 获取一个机器人配置
+     *
+     * @return
+     */
+    private RobotCfg getRobotCfg() {
+        for (int i = 0; i < 100; i++) {
+            RobotCfg robotCfg = RandomUtil.randomEle(GameDataManager.getRobotCfgList());
+            boolean add = robotCfgIdSet.add(robotCfg.getId());
+            if (add) {
+                return robotCfg;
+            }
+        }
+        return null;
     }
 
     /**
@@ -421,10 +663,14 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             // 通过集群消息同步到其他节点，本节点玩家单独推送正式协议消息
             BetSync syncMsg = new BetSync();
             syncMsg.roundId = gameRoom.getRoundId();
-            syncMsg.playerId = playerGameData.playerId();
-            syncMsg.headImgId = playerGameData.getPlayerController().getPlayer().getHeadImgId();
-            syncMsg.betAmount = bet;
-            syncMsg.betIndex = betIndex;
+
+            PlayerBetInfo playerBetInfo = new PlayerBetInfo();
+            playerBetInfo.playerId = playerGameData.playerId();
+            playerBetInfo.headImgId = playerGameData.getPlayerController().getPlayer().getHeadImgId();
+            playerBetInfo.betAmount = bet;
+            playerBetInfo.betIndex = betIndex;
+            syncMsg.playerBetInfoList.add(playerBetInfo);
+
             messageSync(syncMsg);
             log.info("AirRaid 下注成功 playerId={}, bet={}, betIndex={}", playerGameData.playerId(), bet, betIndex);
         } catch (Exception e) {
@@ -511,14 +757,22 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             // 更新本回合展示簿中的兑现信息
             roundBetBook.recordCashOut(playerController.playerId(), betIndex, currentMultiplier, winAmount);
 
-            // 构建响应
+            // 构建响应(handler 会通过返回值发给请求者本人)
             res.playerId = playerController.playerId();
             res.cashOutMultiplier = currentMultiplier;
             res.winAmount = winAmount;
             res.betIndex = betIndex;
 
-            // 广播兑现到所有节点
-            broadcastCashOut(playerController.playerId(), currentMultiplier, winAmount, betIndex, playerController.playerId());
+            // 本节点其他玩家：入队，等 cashOutTickEvent 每秒批量推送
+            enqueueCashOut(playerController.playerId(), betIndex, currentMultiplier, winAmount);
+
+            // 同步给其他节点：其他节点收到 onCashOutSync 后也会入队，等他们各自的 tick 推送
+            PlayerCashOut playerCashOut = new PlayerCashOut();
+            playerCashOut.playerId = playerController.playerId();
+            playerCashOut.cashOutMultiplier = currentMultiplier;
+            playerCashOut.winAmount = winAmount;
+            playerCashOut.betIndex = betIndex;
+            syncCashOutsToCluster(List.of(playerCashOut));
 
             log.info("AirRaid 兑现成功 playerId={}, multiplier={}x, win={}, betIndex={}", playerController.playerId(), currentMultiplier / 10000.0, winAmount, betIndex);
         } catch (Exception e) {
@@ -553,26 +807,6 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         broadcastLocalPlayers(buildGameStateResponse(msg));
     }
 
-    /**
-     * 广播兑现到所有节点
-     */
-    private void broadcastCashOut(long playerId, int cashOutMultiplier, long winAmount, int betIndex, long excludePlayerId) {
-        CashOutSync syncMsg = new CashOutSync();
-        syncMsg.roundId = gameRoom.getRoundId();
-        syncMsg.playerId = playerId;
-        syncMsg.cashOutMultiplier = cashOutMultiplier;
-        syncMsg.winAmount = winAmount;
-        syncMsg.betIndex = betIndex;
-        messageSync(syncMsg);
-
-        ResAirRaidCashOut res = new ResAirRaidCashOut(Code.SUCCESS);
-        res.playerId = playerId;
-        res.cashOutMultiplier = cashOutMultiplier;
-        res.winAmount = winAmount;
-        res.betIndex = betIndex;
-        broadcastLocalPlayersExcept(res, excludePlayerId);
-    }
-
     // ==================== 集群消息回调(从节点接收) ====================
 
     /**
@@ -588,8 +822,18 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             }
 
             if (msg.roundId > oldRoundId && newPhase == AirRaidPhase.BETTING) {
-                roundBetBook.clear();
-                clearLocalPlayerBets();
+                clearRoundData();
+            }
+
+            //从节点感知飞行阶段，启停每秒兑现 tick(主节点 onGameStateSync 不会被自己触发，故主节点不受影响)
+            if (newPhase == AirRaidPhase.FLYING) {
+                startCashOutTick();
+            } else {
+                //离开飞行阶段时把残留兑现推出去再停 tick
+                if (this.cashOutTickEvent != null) {
+                    flushCashOutQueue();
+                    stopCashOutTick();
+                }
             }
 
             broadcastLocalPlayers(buildGameStateResponse(msg));
@@ -608,30 +852,31 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             if (msg.roundId != gameRoom.getRoundId()) {
                 return;
             }
-            roundBetBook.recordBet(msg.playerId, msg.headImgId, msg.betIndex, msg.betAmount);
+
+            for (PlayerBetInfo playerBetInfo : msg.playerBetInfoList) {
+                roundBetBook.recordBet(playerBetInfo.playerId, playerBetInfo.headImgId, playerBetInfo.betIndex, playerBetInfo.betAmount);
+            }
         } catch (Exception e) {
             log.error("AirRaid onBetSync异常", e);
         }
     }
 
     /**
-     * 收到主节点的兑现同步 — 更新本地状态并推送
+     * 收到其他节点的兑现同步 — 更新本地展示簿并加入 pending 队列，等 tick 批量推送给本地玩家
      */
     public void onCashOutSync(CashOutSync msg) {
         try {
-            log.info("收到主节点的兑现同步 begin, msg = {}", JSON.toJSONString(msg));
+            log.info("收到节点的兑现同步 begin, msg = {}", JSON.toJSONString(msg));
             if (msg.roundId != gameRoom.getRoundId()) {
                 return;
             }
-            roundBetBook.recordCashOut(msg.playerId, msg.betIndex, msg.cashOutMultiplier, msg.winAmount);
-
-            // 推送给本地玩家
-            ResAirRaidCashOut res = new ResAirRaidCashOut(Code.SUCCESS);
-            res.playerId = msg.playerId;
-            res.cashOutMultiplier = msg.cashOutMultiplier;
-            res.winAmount = msg.winAmount;
-            res.betIndex = msg.betIndex;
-            broadcastLocalPlayers(res);
+            if (msg.playerCashOuts == null || msg.playerCashOuts.isEmpty()) {
+                return;
+            }
+            for (PlayerCashOut c : msg.playerCashOuts) {
+                roundBetBook.recordCashOut(c.playerId, c.betIndex, c.cashOutMultiplier, c.winAmount);
+                enqueueCashOut(c.playerId, c.betIndex, c.cashOutMultiplier, c.winAmount);
+            }
         } catch (Exception e) {
             log.error("AirRaid onCashOutSync异常", e);
         }
@@ -731,7 +976,28 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 加载机器人配置
      */
     private void loadAirstrikeRobotConfig() {
-        log.info("加载空袭机器人配置");
+        AirstrikeRobotCfg cfg = GameDataManager.getAirstrikeRobotCfg(CoreConst.GameType.AIR_STRIKE);
+        if (cfg == null) {
+            log.warn("初始化空袭机器人配置失败");
+            return;
+        }
+
+        PropInfo pInfo = new PropInfo();
+
+        int begin, end = 0;
+
+        //cfg.getStake()数据格式 1000_10000_5000|10001_50000_3000|50001_200000_1500|200001_500000_400|500001_1000000_100
+        //[0] = 下注区间begin ， [1] = 下注区间end ，  [2] = 该区间对应的权重
+        for (int i = 0; i < cfg.getStake().size(); i++) {
+            List<Integer> list = cfg.getStake().get(i);
+
+            begin = end;
+            end += list.get(2);
+            pInfo.addProp(i, begin, end);
+            pInfo.addData(i, list.get(0), list.get(1));
+        }
+
+        this.robotBetPropInfo = pInfo;
     }
 
     @Override
@@ -745,6 +1011,11 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             this.timerCenter.remove(this.event);
             this.event = null;
         }
+        if (this.robotBetEvent != null) {
+            this.timerCenter.remove(this.robotBetEvent);
+            this.robotBetEvent = null;
+        }
+        stopCashOutTick();
         super.shutdown();
     }
 }

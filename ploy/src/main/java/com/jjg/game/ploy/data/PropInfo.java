@@ -16,6 +16,8 @@ public class PropInfo implements Cloneable {
     private Map<Integer, int[]> propMap = new HashMap<>();
     //元素的最大出现次数
     private Map<Integer, Integer> maxShowLimitMap;
+    //数据
+    private Map<Integer, int[]> dataSectionMap = null;
 
     public int getSum() {
         return sum;
@@ -37,6 +39,14 @@ public class PropInfo implements Cloneable {
         this.sum += value;
     }
 
+    public Map<Integer, int[]> getDataSectionMap() {
+        return dataSectionMap;
+    }
+
+    public void setDataSectionMap(Map<Integer, int[]> dataSectionMap) {
+        this.dataSectionMap = dataSectionMap;
+    }
+
     public void addProp(Integer key, int begin, int end, int maxLimit) {
         addProp(key, begin, end);
         if (this.maxShowLimitMap == null) {
@@ -48,6 +58,20 @@ public class PropInfo implements Cloneable {
     public void addProp(Integer key, int begin, int end) {
         this.propMap.put(key, new int[]{begin, end});
         this.sum = end;
+    }
+
+    public void addData(Integer key, int begin, int end){
+        if(dataSectionMap == null){
+            dataSectionMap = new HashMap<>();
+        }
+        this.dataSectionMap.put(key, new int[]{begin, end});
+    }
+
+    public int[] getDataSection(int key){
+        if(dataSectionMap == null){
+            return null;
+        }
+        return dataSectionMap.get(key);
     }
 
     /**

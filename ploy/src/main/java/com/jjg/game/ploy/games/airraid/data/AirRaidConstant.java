@@ -21,8 +21,8 @@ public interface AirRaidConstant {
         int NOTIFY_AIR_RAID_GAME_STATE = BASE_MSG_PREFIX | 0x5;
         //坠毁广播
         int NOTIFY_AIR_RAID_CRASH = BASE_MSG_PREFIX | 0x6;
-        //下注广播
-        int NOTIFY_AIR_RAID_BET = BASE_MSG_PREFIX | 0x7;
+        //兑现批量广播(每秒累积推送)
+        int NOTIFY_AIR_RAID_CASH_OUT = BASE_MSG_PREFIX | 0x7;
 
 
         //游戏状态同步
@@ -31,8 +31,6 @@ public interface AirRaidConstant {
         int BET_SYNC = BASE_MSG_PREFIX | 0x92;
         //兑现同步
         int CASH_OUT_SYNC = BASE_MSG_PREFIX | 0x93;
-        //坠毁同步
-        int CRASH_SYNC = BASE_MSG_PREFIX | 0x94;
     }
 
     interface Common {

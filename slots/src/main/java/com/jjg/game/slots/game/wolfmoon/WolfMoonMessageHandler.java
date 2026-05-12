@@ -75,7 +75,7 @@ public class WolfMoonMessageHandler {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
-            log.info("收到玩家开始游戏 playerId={},req={}, gameRunInfo = {}", playerController.playerId(), JSONObject.toJSONString(req), JSONObject.toJSONString(gameRunInfo));
+            log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             sendMessageManager.sendWolfMoonStartGame(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);

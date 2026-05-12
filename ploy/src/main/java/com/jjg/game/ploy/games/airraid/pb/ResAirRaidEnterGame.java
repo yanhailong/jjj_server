@@ -24,7 +24,7 @@ public class ResAirRaidEnterGame extends AbstractResponse {
     public List<AirRaidBetInfo> betInfoList;
     @ProtoDesc("回合历史")
     public List<Integer> roundHistory;
-    @ProtoDesc("当前阶段 0=下注 1=飞行 2=坠毁")
+    @ProtoDesc("当前阶段 0=下注 1=停止下注  2=飞行 3=坠毁")
     public int phase;
     @ProtoDesc("当前倍率(万分比，10000=1.00x)")
     public int currentMultiplier;

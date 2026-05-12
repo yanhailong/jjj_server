@@ -8,7 +8,7 @@ import javax.annotation.processing.Generated;
  * 配置bean
  *
  * @excelName AirstrikeRobot‌.xlsx
- * @sheetName AirstrikeRobot
+ * @sheetName AirstrikeRobot‌
  * @author Auto.Generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
@@ -17,7 +17,7 @@ public class AirstrikeRobotCfg extends BaseCfgBean {
   /** 配置表名 */
   public static final String EXCEL_NAME = "AirstrikeRobot‌.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "AirstrikeRobot";
+  public static final String SHEET_NAME = "AirstrikeRobot‌";
 
   /** 兑现人数万分比/s */
   protected List<Integer> CashIn;

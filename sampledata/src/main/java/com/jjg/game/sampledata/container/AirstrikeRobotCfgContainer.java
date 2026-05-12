@@ -10,7 +10,7 @@ import com.jjg.game.sampledata.bean.AirstrikeRobotCfg;
  * AirstrikeRobot‌.xlsx配置管理容器
  *
  * @excelName AirstrikeRobot‌.xlsx
- * @sheetName AirstrikeRobot
+ * @sheetName AirstrikeRobot‌
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")

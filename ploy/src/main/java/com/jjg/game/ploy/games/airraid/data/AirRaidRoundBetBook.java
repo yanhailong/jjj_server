@@ -4,6 +4,8 @@ import com.jjg.game.ploy.games.airraid.pb.AirRaidBetInfo;
 import com.jjg.game.ploy.games.airraid.pb.AirRaidPlayerInfo;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +39,10 @@ public class AirRaidRoundBetBook {
         info.cashedOut = true;
         info.cashOutMultiplier = cashOutMultiplier;
         info.winAmount = winAmount;
+    }
+
+    public Collection<AirRaidPlayerInfo> getAllBets() {
+        return Collections.unmodifiableCollection(betSlotInfoMap.values());
     }
 
     public List<AirRaidBetInfo> buildBetInfoList() {
