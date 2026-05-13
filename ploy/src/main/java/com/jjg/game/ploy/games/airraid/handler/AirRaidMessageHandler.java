@@ -9,7 +9,9 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.ploy.games.airraid.AirRaidPloyController;
 import com.jjg.game.ploy.games.airraid.data.AirRaidConstant;
+import com.jjg.game.ploy.games.airraid.pb.ReqAirRaidAutoCashOut;
 import com.jjg.game.ploy.games.airraid.pb.ReqAirRaidCashOut;
+import com.jjg.game.ploy.games.airraid.pb.ResAirRaidAutoCashOut;
 import com.jjg.game.ploy.games.airraid.pb.cluster.BetSync;
 import com.jjg.game.ploy.games.airraid.pb.cluster.CashOutSync;
 import com.jjg.game.ploy.games.airraid.pb.cluster.GameStateSync;
@@ -72,6 +74,24 @@ public class AirRaidMessageHandler implements GmListener {
             playerController.send(airRaidPloyController.cashOut(playerController, req.betIndex));
         } catch (Exception e) {
             log.error("AirRaid 兑现请求异常 playerId={}", playerController.playerId(), e);
+        }
+    }
+
+    /**
+     * 自动兑现请求 — 仅保存设置；真正触发由飞行开始时按注单上的快照调度
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(AirRaidConstant.MsgBean.REQ_AIR_RAID_AUTO_CASH_OUT)
+    public void reqAutoCashOut(PlayerController playerController, ReqAirRaidAutoCashOut req) {
+        try {
+            int code = airRaidPloyController.updateAutoCashOutConfig(
+                    playerController.playerId(), req.betIndex, req.open, req.crashMultiplier);
+            playerController.send(new ResAirRaidAutoCashOut(code));
+        } catch (Exception e) {
+            log.error("AirRaid 自动兑现请求异常 playerId={}", playerController.playerId(), e);
+            playerController.send(new ResAirRaidAutoCashOut(Code.EXCEPTION));
         }
     }
 

@@ -14,6 +14,8 @@ import java.util.Map;
 public class AirRaidPlayerPloyGameData extends PlayerMultiPloyGameData {
     //两次下注信息
     private Map<Integer,AirRaidBetData> airRaidBetDataMap = new HashMap<>();
+    //自动兑现配置 (betIndex -> 目标倍率, 万分比); 跨回合保留，由玩家通过 reqAutoCashOut 维护
+    private Map<Integer,Integer> autoCashOutTargetMap = new HashMap<>();
 
     public Map<Integer, AirRaidBetData> getAirRaidBetDataMap() {
         return airRaidBetDataMap;
@@ -21,6 +23,14 @@ public class AirRaidPlayerPloyGameData extends PlayerMultiPloyGameData {
 
     public void setAirRaidBetDataMap(Map<Integer, AirRaidBetData> airRaidBetDataMap) {
         this.airRaidBetDataMap = airRaidBetDataMap;
+    }
+
+    public Map<Integer, Integer> getAutoCashOutTargetMap() {
+        return autoCashOutTargetMap;
+    }
+
+    public void setAutoCashOutTargetMap(Map<Integer, Integer> autoCashOutTargetMap) {
+        this.autoCashOutTargetMap = autoCashOutTargetMap;
     }
 
     /**

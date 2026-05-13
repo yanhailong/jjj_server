@@ -30,6 +30,8 @@ public class ResAirRaidEnterGame extends AbstractResponse {
     public int currentMultiplier;
     @ProtoDesc("阶段停止时间(毫秒)")
     public long phaseStopTime;
+    @ProtoDesc("自动兑现配置 k=注单索引(0/1), v=目标倍率(万分比); 不存在表示该注单未开启自动兑现")
+    public List<KVInfo> autoCashOutTargets;
 
     public ResAirRaidEnterGame(int code) {
         super(code);

@@ -13,16 +13,21 @@ public interface AirRaidConstant {
         int RES_AIR_RAID_ENTER_GAME = BASE_MSG_PREFIX | 0x1;
         //下注返回
         int RES_AIR_RAID_BET = BASE_MSG_PREFIX | 0x2;
+
         //兑现请求
         int REQ_AIR_RAID_CASH_OUT = BASE_MSG_PREFIX | 0x3;
         //兑现响应
         int RES_AIR_RAID_CASH_OUT = BASE_MSG_PREFIX | 0x4;
+
         //游戏状态广播
         int NOTIFY_AIR_RAID_GAME_STATE = BASE_MSG_PREFIX | 0x5;
-        //坠毁广播
-        int NOTIFY_AIR_RAID_CRASH = BASE_MSG_PREFIX | 0x6;
         //兑现批量广播(每秒累积推送)
-        int NOTIFY_AIR_RAID_CASH_OUT = BASE_MSG_PREFIX | 0x7;
+        int NOTIFY_AIR_RAID_CASH_OUT = BASE_MSG_PREFIX | 0x6;
+
+        //自动兑现请求
+        int REQ_AIR_RAID_AUTO_CASH_OUT = BASE_MSG_PREFIX | 0x7;
+        //自动兑现响应
+        int RES_AIR_RAID_AUTO_CASH_OUT = BASE_MSG_PREFIX | 0x8;
 
 
         //游戏状态同步
