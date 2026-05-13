@@ -73,6 +73,7 @@ public class WolfMoonSendMessageManager extends BaseSendMessageManager {
                 res.freeAmount = playerGameData.getFreeAllWin();
                 res.currentMultiplier = getCurrentMultiplier(playerGameData);
                 res.remainingFreeGames = playerGameData.getRemainFreeCount().get();
+                res.freeGameType = playerGameData.getFreeGameType();
             }
             res.poolList = new ArrayList<>();
             BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());

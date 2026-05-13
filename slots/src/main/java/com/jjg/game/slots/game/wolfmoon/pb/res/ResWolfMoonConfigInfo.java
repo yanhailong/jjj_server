@@ -30,6 +30,9 @@ public class ResWolfMoonConfigInfo extends AbstractResponse {
     public long freeAmount;
     @ProtoDesc("奖池信息")
     public List<WolfMoonPoolInfo> poolList;
+    @ProtoDesc("免费游戏类型 1-高赔付符号 2-固定堆叠百搭符号 3-递增奖励倍数")
+    public int freeGameType;
+
     public ResWolfMoonConfigInfo(int code) {
         super(code);
     }
