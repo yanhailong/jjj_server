@@ -20,13 +20,22 @@ public class AirRaidBetData {
     private boolean cashedOut;
     //兑现时的倍率(万分比, 10000 = 1.00x)
     private int cashOutMultiplier;
+    private int roundId;
     //赢得金额
     private long winAmount;
     //自动兑现目标倍率(万分比, 0 表示未启用); 在下注时从玩家配置快照而来
     private int autoCashOutTarget;
 
+    public AirRaidBetData() {
+    }
+
     public AirRaidBetData(long betAmount) {
         this.betAmount = betAmount;
+    }
+
+    public AirRaidBetData(long betAmount, int roundId) {
+        this.betAmount = betAmount;
+        this.roundId = roundId;
     }
 
     /**
@@ -76,5 +85,17 @@ public class AirRaidBetData {
 
     public void setAutoCashOutTarget(int autoCashOutTarget) {
         this.autoCashOutTarget = autoCashOutTarget;
+    }
+
+    public int getRoundId() {
+        return roundId;
+    }
+
+    public void setRoundId(int roundId) {
+        this.roundId = roundId;
+    }
+
+    public boolean isCurrentRound(int currentRoundId) {
+        return this.roundId == currentRoundId;
     }
 }

@@ -9,6 +9,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
  */
 @Document
 public class AirRaidRecord extends PloyRecord {
+    private int roundId;
+    private int betIndex;
     //投注金额
     private long betAmount;
     //坠毁倍率(万分比)
@@ -19,6 +21,22 @@ public class AirRaidRecord extends PloyRecord {
     private long winAmount;
     //是否兑现
     private boolean cashedOut;
+
+    public int getRoundId() {
+        return roundId;
+    }
+
+    public void setRoundId(int roundId) {
+        this.roundId = roundId;
+    }
+
+    public int getBetIndex() {
+        return betIndex;
+    }
+
+    public void setBetIndex(int betIndex) {
+        this.betIndex = betIndex;
+    }
 
     public long getBetAmount() {
         return betAmount;

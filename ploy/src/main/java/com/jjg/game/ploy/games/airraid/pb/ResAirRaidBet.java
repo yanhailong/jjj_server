@@ -6,12 +6,6 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.ploy.games.airraid.data.AirRaidConstant;
 
-import java.util.List;
-
-/**
- * @author 11
- * @date 2026/3/27
- */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.PLOY_AIR_RAID, cmd = AirRaidConstant.MsgBean.RES_AIR_RAID_BET, resp = true)
 @ProtoDesc("下注返回")
 public class ResAirRaidBet extends AbstractResponse {

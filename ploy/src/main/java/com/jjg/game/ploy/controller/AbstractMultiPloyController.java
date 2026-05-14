@@ -56,53 +56,6 @@ public abstract class AbstractMultiPloyController<T extends PlayerMultiPloyGameD
 
     }
 
-    /**
-     * 消息同步到其他节点
-     *
-     * @param msg 要同步的消息
-     */
-    protected void messageSync(AbstractMessage msg) {
-        try {
-            List<ClusterClient> nodes = ClusterSystem.system.getNodesByTypeExcludeSelf(NodeType.GAME, CoreConst.GameMajorType.PLOY);
-            if (nodes == null || nodes.isEmpty()) {
-                return;
-            }
-            ClusterMessage clusterMessage = new ClusterMessage(MessageUtil.getPFMessage(msg));
-            for (ClusterClient node : nodes) {
-                node.write(clusterMessage);
-            }
-        } catch (Exception e) {
-            log.error("", e);
-        }
-
-    }
-
-    /**
-     * 通知到本节点所有的真实玩家
-     *
-     * @param msg 要推送的消息
-     */
-    protected void broadcastLocalPlayers(AbstractMessage msg) {
-        broadcastLocalPlayersExcept(msg, 0);
-    }
-
-    /**
-     * 通知到本节点所有的真实玩家
-     *
-     * @param msg
-     * @param excludePlayerId 排除玩家
-     */
-    protected void broadcastLocalPlayersExcept(AbstractMessage msg, long excludePlayerId) {
-        this.gameDataMap.forEach((playerId, playerData) -> {
-            if (playerId == excludePlayerId) {
-                return;
-            }
-            if (playerData.getPlayerController() != null) {
-                playerData.getPlayerController().send(msg);
-            }
-        });
-    }
-
     // ==================== 机器人管理(子类按需覆写) ====================
 
     /**

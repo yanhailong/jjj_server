@@ -12,10 +12,9 @@ import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.pb.ReqChooseWare;
 import com.jjg.game.core.pb.ResChooseWare;
 import com.jjg.game.ploy.constant.PloyConstant;
-import com.jjg.game.ploy.constant.PloyGameType;
 import com.jjg.game.ploy.controller.AbstractPloyController;
 import com.jjg.game.ploy.pb.ReqPloyBet;
-import com.jjg.game.ploy.pb.ReqPloyConfig;
+import com.jjg.game.ploy.pb.ReqPloyEnterGame;
 import com.jjg.game.ploy.pb.ReqPloyRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +35,8 @@ public class PloyMessageHandler implements GmListener, ChooseWareListener {
      * @param playerController
      * @param req
      */
-    @Command(PloyConstant.MsgBean.REQ_PLOY_CONFIG)
-    public void ployConfig(PlayerController playerController, ReqPloyConfig req) {
+    @Command(PloyConstant.MsgBean.REQ_PLOY_ENTER_GAME)
+    public void ployConfig(PlayerController playerController, ReqPloyEnterGame req) {
         Object scene = playerController.getScene();
         if (scene instanceof AbstractPloyController<?> ployController) {
             AbstractMessage res = ployController.ployConfig(playerController);

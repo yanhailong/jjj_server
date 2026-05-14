@@ -41,4 +41,8 @@ public class AirRaidPlayerPloyGameData extends PlayerMultiPloyGameData {
     public void addBetValue(long bet,int betIndex){
         this.airRaidBetDataMap.computeIfAbsent(betIndex, k -> new AirRaidBetData(bet));
     }
+
+    public void addBetValue(long bet, int betIndex, int roundId) {
+        this.airRaidBetDataMap.put(betIndex, new AirRaidBetData(bet, roundId));
+    }
 }

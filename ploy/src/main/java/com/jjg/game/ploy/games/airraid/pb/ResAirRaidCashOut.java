@@ -21,6 +21,8 @@ public class ResAirRaidCashOut extends AbstractResponse {
     public long winAmount;
     @ProtoDesc("注单索引")
     public int betIndex;
+    @ProtoDesc("时间戳ms")
+    public long timestamp;
 
     public ResAirRaidCashOut(int code) {
         super(code);

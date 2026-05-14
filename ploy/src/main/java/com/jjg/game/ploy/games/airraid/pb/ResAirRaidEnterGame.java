@@ -21,7 +21,7 @@ public class ResAirRaidEnterGame extends AbstractResponse {
     @ProtoDesc("阶段配置信息 k(阶段) -> 0.下注  1.停止下注  2.飞行(配置中没有该配置)  3.结算 , v(阶段时长，单位:毫秒) ")
     public List<KVInfo> phaseCfgList;
     @ProtoDesc("当局投注信息")
-    public List<AirRaidBetInfo> betInfoList;
+    public List<AirRaidPlayerInfo> betInfoList;
     @ProtoDesc("回合历史")
     public List<Integer> roundHistory;
     @ProtoDesc("当前阶段 0=下注 1=停止下注  2=飞行 3=坠毁")
@@ -32,6 +32,8 @@ public class ResAirRaidEnterGame extends AbstractResponse {
     public long phaseStopTime;
     @ProtoDesc("自动兑现配置 k=注单索引(0/1), v=目标倍率(万分比); 不存在表示该注单未开启自动兑现")
     public List<KVInfo> autoCashOutTargets;
+    @ProtoDesc("倍数增长率(万分比, 如1200表示12%)")
+    public int growthRate;
 
     public ResAirRaidEnterGame(int code) {
         super(code);

@@ -11,6 +11,7 @@ import com.jjg.game.ploy.games.airraid.AirRaidPloyController;
 import com.jjg.game.ploy.games.airraid.data.AirRaidConstant;
 import com.jjg.game.ploy.games.airraid.pb.ReqAirRaidAutoCashOut;
 import com.jjg.game.ploy.games.airraid.pb.ReqAirRaidCashOut;
+import com.jjg.game.ploy.games.airraid.pb.ReqAirRaidRank;
 import com.jjg.game.ploy.games.airraid.pb.ResAirRaidAutoCashOut;
 import com.jjg.game.ploy.games.airraid.pb.cluster.BetSync;
 import com.jjg.game.ploy.games.airraid.pb.cluster.CashOutSync;
@@ -71,7 +72,7 @@ public class AirRaidMessageHandler implements GmListener {
     @Command(AirRaidConstant.MsgBean.REQ_AIR_RAID_CASH_OUT)
     public void reqCashOut(PlayerController playerController, ReqAirRaidCashOut req) {
         try {
-            playerController.send(airRaidPloyController.cashOut(playerController, req.betIndex));
+            playerController.send(airRaidPloyController.cashOut(playerController, req.betIndex, req.flyTime));
         } catch (Exception e) {
             log.error("AirRaid 兑现请求异常 playerId={}", playerController.playerId(), e);
         }
@@ -92,6 +93,18 @@ public class AirRaidMessageHandler implements GmListener {
         } catch (Exception e) {
             log.error("AirRaid 自动兑现请求异常 playerId={}", playerController.playerId(), e);
             playerController.send(new ResAirRaidAutoCashOut(Code.EXCEPTION));
+        }
+    }
+
+    /**
+     * 排行榜查询请求
+     */
+    @Command(AirRaidConstant.MsgBean.REQ_AIR_RAID_RANK)
+    public void reqRank(PlayerController playerController, ReqAirRaidRank req) {
+        try {
+            playerController.send(airRaidPloyController.queryRank(req.rankType, req.period));
+        } catch (Exception e) {
+            log.error("AirRaid 排行榜查询异常 playerId={}", playerController.playerId(), e);
         }
     }
 

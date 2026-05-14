@@ -10,7 +10,7 @@ import com.jjg.game.ploy.constant.PloyConstant;
  * @author 11
  * @date 2026/3/19
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.PLOY_COMMON, cmd = PloyConstant.MsgBean.REQ_PLOY_CONFIG)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.PLOY_COMMON, cmd = PloyConstant.MsgBean.REQ_PLOY_ENTER_GAME)
 @ProtoDesc("请求进入游戏")
-public class ReqPloyConfig extends AbstractMessage {
+public class ReqPloyEnterGame extends AbstractMessage {
 }

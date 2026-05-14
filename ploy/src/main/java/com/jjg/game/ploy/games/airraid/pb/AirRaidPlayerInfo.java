@@ -24,4 +24,6 @@ public class AirRaidPlayerInfo {
     public int cashOutMultiplier;
     @ProtoDesc("赢取金额")
     public long winAmount;
+    @ProtoDesc("头像框")
+    public int headFrame;
 }

@@ -34,6 +34,7 @@ public class AirRaidGameRoom extends PloyGameRoom {
     private volatile int crashMultiplier;
     //当前实时倍率(万分比, 飞行期间持续增长, 起始 10000 即 1.00x)
     private volatile int currentMultiplier = GameConstant.TEN_THOUSAND;
+    private volatile int lastHistoryRoundId;
 
     public FixedSizeQueue<Integer> getRoundHistoryQueue() {
         return roundHistoryQueue;
@@ -131,7 +132,7 @@ public class AirRaidGameRoom extends PloyGameRoom {
         this.currentMultiplier = this.crashMultiplier;
         this.phaseStartTime = System.currentTimeMillis();
         this.notifyPhase = false;
-        this.roundHistoryQueue.add(this.crashMultiplier);
+        recordCrashHistory(getRoundId(), this.crashMultiplier);
     }
 
     /**
@@ -141,6 +142,22 @@ public class AirRaidGameRoom extends PloyGameRoom {
      */
     public List<Integer> getRoundHistoryList() {
         return new ArrayList<>(roundHistoryQueue);
+    }
+
+    public static long clientStopTime(AirRaidPhase phase, long stopTime) {
+        return phase == AirRaidPhase.FLYING ? 0 : stopTime;
+    }
+
+    public static int clientCrashMultiplier(AirRaidPhase phase, int crashMultiplier) {
+        return phase == AirRaidPhase.CRASHED ? crashMultiplier : 0;
+    }
+
+    public synchronized void recordCrashHistory(int roundId, int crashMultiplier) {
+        if (roundId <= 0 || crashMultiplier <= 0 || roundId == lastHistoryRoundId) {
+            return;
+        }
+        this.roundHistoryQueue.add(crashMultiplier);
+        this.lastHistoryRoundId = roundId;
     }
 
     /**
@@ -171,6 +188,7 @@ public class AirRaidGameRoom extends PloyGameRoom {
 
     public synchronized void replaceRoundHistory(List<Integer> roundHistory) {
         roundHistoryQueue.clear();
+        lastHistoryRoundId = 0;
         if (roundHistory != null) {
             roundHistory.forEach(roundHistoryQueue::add);
         }

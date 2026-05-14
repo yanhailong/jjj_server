@@ -1,6 +1,5 @@
 package com.jjg.game.ploy.games.airraid.data;
 
-import com.jjg.game.ploy.games.airraid.pb.AirRaidBetInfo;
 import com.jjg.game.ploy.games.airraid.pb.AirRaidPlayerInfo;
 
 import java.util.ArrayList;
@@ -45,20 +44,20 @@ public class AirRaidRoundBetBook {
         return Collections.unmodifiableCollection(betSlotInfoMap.values());
     }
 
-    public List<AirRaidBetInfo> buildBetInfoList() {
-        List<AirRaidBetInfo> list = new ArrayList<>(betSlotInfoMap.size());
+    public List<AirRaidPlayerInfo> buildBetInfoList() {
+        List<AirRaidPlayerInfo> list = new ArrayList<>(betSlotInfoMap.size());
         betSlotInfoMap.values().stream()
                 .sorted(Comparator.comparingLong((AirRaidPlayerInfo info) -> info.playerId)
                         .thenComparingInt(info -> info.betIndex))
                 .forEach(info -> {
-                    AirRaidBetInfo betInfo = new AirRaidBetInfo();
+                    AirRaidPlayerInfo betInfo = new AirRaidPlayerInfo();
                     betInfo.playerId = info.playerId;
                     betInfo.headImgId = info.headImgId;
                     betInfo.betIndex = info.betIndex;
                     betInfo.bet = info.bet;
                     betInfo.cashedOut = info.cashedOut;
-                    betInfo.times = info.cashOutMultiplier;
-                    betInfo.win = info.winAmount;
+                    betInfo.cashOutMultiplier = info.cashOutMultiplier;
+                    betInfo.winAmount = info.winAmount;
                     list.add(betInfo);
                 });
         return list;

@@ -16,8 +16,10 @@ import com.jjg.game.ploy.games.airraid.data.AirRaidConstant;
 public class NotifyAirRaidGameState extends AbstractNotice {
     @ProtoDesc("游戏阶段")
     public int phase;
-    @ProtoDesc("阶段结束时间(毫秒)")
+    @ProtoDesc("阶段开始时间(毫秒)")
+    public long startTime;
+    @ProtoDesc("阶段结束时间(毫秒)，当phase=2时，该值为0")
     public long stopTime;
-    @ProtoDesc("坠毁倍率(万分比)")
+    @ProtoDesc("坠毁倍率(万分比)，当phase=3时，才赋值")
     public int crashMultiplier;
 }

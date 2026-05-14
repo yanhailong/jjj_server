@@ -28,6 +28,12 @@ public interface AirRaidConstant {
         int REQ_AIR_RAID_AUTO_CASH_OUT = BASE_MSG_PREFIX | 0x7;
         //自动兑现响应
         int RES_AIR_RAID_AUTO_CASH_OUT = BASE_MSG_PREFIX | 0x8;
+        int RES_AIR_RAID_RECORD = BASE_MSG_PREFIX | 0x9;
+        int NOTIFY_AIR_RAID_BET = BASE_MSG_PREFIX | 0xA;
+        //排行榜请求
+        int REQ_AIR_RAID_RANK = BASE_MSG_PREFIX | 0xB;
+        //排行榜响应
+        int RES_AIR_RAID_RANK = BASE_MSG_PREFIX | 0xC;
 
 
         //游戏状态同步
