@@ -678,6 +678,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
             autoCashOutTimerMap.remove(autoCashOutKey(playerId, betIndex));
 
+            long now = System.currentTimeMillis();
+
             PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(playerId, 0, new BaseHandler<String>() {
                 @Override
                 public void action() {
@@ -697,7 +699,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
                     if (target <= GameConstant.TEN_THOUSAND) {
                         return;
                     }
-                    ResAirRaidCashOut res = doCashOut(playerId, betIndex, target, System.currentTimeMillis());
+                    ResAirRaidCashOut res = doCashOut(playerId, betIndex, target, now, true);
                     PlayerController controller = playerGameData.getPlayerController();
                     if (res.code == Code.SUCCESS && controller != null) {
                         controller.send(res);
@@ -946,7 +948,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
         long now = System.currentTimeMillis();
         int multiplier = AirRaidCrashCalculator.calculateCurrentMultiplier(flyTime, growthRate);
-        return doCashOut(playerController.playerId(), betIndex, multiplier, now);
+        return doCashOut(playerController.playerId(), betIndex, multiplier, now, false);
     }
 
     /**
@@ -962,7 +964,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * - winFromPool 抛异常: 内部可能已扣池/部分加金, 不回滚 cashedOut 防止重复落账, 记 ERROR 等人工核对
      * - 派奖成功后的异常: cashedOut 已置 true, 记 ERROR 便于人工补偿展示簿/集群同步, 对调用者按成功返回
      */
-    private ResAirRaidCashOut doCashOut(long playerId, int betIndex, int multiplier, long now) {
+    private ResAirRaidCashOut doCashOut(long playerId, int betIndex, int multiplier, long now, boolean auto) {
         ResAirRaidCashOut res = new ResAirRaidCashOut(Code.SUCCESS);
         boolean payoutAttempted = false;
         boolean paid = false;
@@ -1043,7 +1045,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             playerCashOut.betIndex = betIndex;
             syncCashOutsToCluster(List.of(playerCashOut));
 
-            log.info("AirRaid 兑现成功 playerId={}, multiplier={}x, win={}, betIndex={}", playerId, multiplier / 10000.0, winAmount, betIndex);
+            log.info("AirRaid 兑现成功 playerId={}, multiplier={}x, win={}, betIndex={},auto = {}", playerId, multiplier, winAmount, betIndex, auto);
         } catch (Exception e) {
             if (paid) {
                 log.error("AirRaid 兑现已派奖但后续流程异常 playerId={}, betIndex={}, multiplier={} — 请人工补偿展示簿/集群同步",
