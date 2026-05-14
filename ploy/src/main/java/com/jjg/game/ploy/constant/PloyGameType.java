@@ -4,6 +4,7 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.ploy.controller.AbstractPloyController;
 import com.jjg.game.ploy.games.airraid.AirRaidPloyController;
+import com.jjg.game.ploy.games.hillo.HilloController;
 import com.jjg.game.ploy.games.highlowpoker.HighLowPokerController;
 import com.jjg.game.ploy.games.luckypoker.LuckyPokerPloyController;
 
@@ -24,7 +25,7 @@ public enum PloyGameType {
     //空袭
     AIR_STRIKE(CoreConst.GameType.AIR_STRIKE, AirRaidPloyController.class),
     //hillo
-//    HILLO(CoreConst.GameType.HILLO, HilloPloyController.class),
+    HILLO(CoreConst.GameType.HILLO, HilloController.class),
     //高低扑克
     HIGH_LOW_POKER(CoreConst.GameType.HIGH_LOW_POKER, HighLowPokerController.class),
     ;
