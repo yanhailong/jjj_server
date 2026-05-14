@@ -42,7 +42,7 @@ public class CandyPartyMessageHandler {
      *
      */
     @Command(CandyPartyConstant.MsgBean.REQ_CANDY_PARTY_ENTER_GAME)
-    public void reqCaptainJackEnterGame(PlayerController playerController, ReqCandyPartyEnterGame req) {
+    public void reqCandyPartyEnterGame(PlayerController playerController, ReqCandyPartyEnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
             CandyPartyGameRunInfo gameRunInfo;
@@ -54,7 +54,7 @@ public class CandyPartyMessageHandler {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
-            sendMessageManager.reqCaptainJackEnterGame(playerController,gameRunInfo);
+            sendMessageManager.reqCandyPartyEnterGame(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -77,7 +77,7 @@ public class CandyPartyMessageHandler {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
-            sendMessageManager.reqCaptainJackStartGame(playerController, gameRunInfo);
+            sendMessageManager.reqCandyPartyStartGame(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -89,7 +89,7 @@ public class CandyPartyMessageHandler {
      * @param req
      */
     @Command(CandyPartyConstant.MsgBean.REQ_CANDY_PARTY_POOL_VALUE)
-    public void reqCaptainJackPoolValue(PlayerController playerController, ReqCandyPartyPoolValue req) {
+    public void reqCandyPartyPoolValue(PlayerController playerController, ReqCandyPartyPoolValue req) {
         try {
             CandyPartyGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
@@ -100,7 +100,7 @@ public class CandyPartyMessageHandler {
                 log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
                 return;
             }
-            sendMessageManager.sendPoolMessage(playerController, gameRunInfo);
+            sendMessageManager.sendCandyPartyPoolMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

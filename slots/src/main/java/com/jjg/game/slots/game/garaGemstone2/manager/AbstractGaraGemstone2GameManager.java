@@ -51,9 +51,7 @@ public abstract class AbstractGaraGemstone2GameManager extends AbstractSlotsGame
 
             int status = playerGameData.getStatus();
             if (status == GaraGemstone2Constant.Status.NORMAL) {
-                GaraGemstone2GameRunInfo normal = normal(gameRunInfo, playerGameData, stake);
-                GaraGemstone2ResultLib resultLib = (GaraGemstone2ResultLib) normal.getResultLib();
-                gameRunInfo.setWheelTimes(resultLib.getWheelTimes());
+                normal(gameRunInfo, playerGameData, stake);
             } else {
                 gameRunInfo.setCode(Code.FAIL);
                 log.debug("开始游戏失败，检测到错误状态 playerId={},gameType={},roomCfgId={},status={}",
@@ -64,7 +62,9 @@ public abstract class AbstractGaraGemstone2GameManager extends AbstractSlotsGame
                 return gameRunInfo;
             }
             //从奖池扣除，并给玩家加钱
-            rewardFromBigPool(gameRunInfo, playerGameData);
+            long lineRewardGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
+            long wheelRewardGold = playerGameData.getAllBetScore() * gameRunInfo.getWheelTimes();
+            rewardFromBigPool(gameRunInfo, playerGameData, lineRewardGold + wheelRewardGold, AddType.SLOTS_BET_REWARD);
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             //触发实际赢钱的task
             triggerWinTask(playerController.getPlayer(), gameRunInfo, playerGameData, warehouseCfg.getTransactionItemId());
@@ -96,11 +96,13 @@ public abstract class AbstractGaraGemstone2GameManager extends AbstractSlotsGame
 
         long lineTimes = gameGenerateManager.calLineTimes(resultLib.getAwardLineInfoList());
         long axisMultiplier = resultLib.getMultiplyAxisTimes() > 0 ? resultLib.getMultiplyAxisTimes() : 1;
+        long wheelTimes = resultLib.getWheelTimes();
         long addTimes = lineTimes * axisMultiplier;
 
         gameRunInfo.setStatus(GaraGemstone2Constant.Status.NORMAL);
         log.debug("id={},data={}", resultLib.getId(), JSON.toJSONString(resultLib));
         gameRunInfo.setIconArr(resultLib.getIconArr());
+        gameRunInfo.setWheelTimes(wheelTimes);
         if (gameRunInfo.getBigPoolTimes() < 1) {
             gameRunInfo.addBigPoolTimes(addTimes);
         }

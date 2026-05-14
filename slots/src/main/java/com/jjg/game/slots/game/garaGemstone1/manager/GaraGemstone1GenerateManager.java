@@ -227,7 +227,7 @@ public class GaraGemstone1GenerateManager extends AbstractSlotsGenerateManager<G
                 return info;
             }
         }
-        return multiplyAxisInfoList.get(multiplyAxisInfoList.size() - 1);
+        return multiplyAxisInfoList.getLast();
     }
 
 

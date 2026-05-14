@@ -43,7 +43,7 @@ public class CandyPartyGameSendMessageManager extends BaseSendMessageManager {
      *
      * @param playerController
      */
-    public void reqCaptainJackEnterGame(PlayerController playerController, CandyPartyGameRunInfo gameRunInfo) {
+    public void reqCandyPartyEnterGame(PlayerController playerController, CandyPartyGameRunInfo gameRunInfo) {
 
         SendInfo sendInfo = new SendInfo();
         ResCandyPartyEnterGame res = new ResCandyPartyEnterGame(Code.SUCCESS);
@@ -106,7 +106,7 @@ public class CandyPartyGameSendMessageManager extends BaseSendMessageManager {
      * @param playerController
      * @param gameRunInfo
      */
-    public void reqCaptainJackStartGame(PlayerController playerController, CandyPartyGameRunInfo gameRunInfo) {
+    public void reqCandyPartyStartGame(PlayerController playerController, CandyPartyGameRunInfo gameRunInfo) {
         SendInfo sendInfo = new SendInfo();
 
         ResCandyPartyStartGame res = new ResCandyPartyStartGame(gameRunInfo.getCode());
@@ -197,7 +197,7 @@ public class CandyPartyGameSendMessageManager extends BaseSendMessageManager {
         return list;
     }
 
-    public void sendPoolMessage(PlayerController playerController, CandyPartyGameRunInfo gameRunInfo) {
+    public void sendCandyPartyPoolMessage(PlayerController playerController, CandyPartyGameRunInfo gameRunInfo) {
         SendInfo sendInfo = new SendInfo();
         ResCandyPartyPoolValue res = new ResCandyPartyPoolValue(gameRunInfo.getCode());
         if (gameRunInfo.success()) {
