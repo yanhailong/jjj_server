@@ -1,4 +1,4 @@
-package com.jjg.game.ploy.games.airraid.handler;
+package com.jjg.game.ploy.games.airraid;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
@@ -7,7 +7,6 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.ploy.games.airraid.AirRaidPloyController;
 import com.jjg.game.ploy.games.airraid.data.AirRaidConstant;
 import com.jjg.game.ploy.games.airraid.pb.ReqAirRaidAutoCashOut;
 import com.jjg.game.ploy.games.airraid.pb.ReqAirRaidCashOut;
@@ -89,7 +88,10 @@ public class AirRaidMessageHandler implements GmListener {
         try {
             int code = airRaidPloyController.updateAutoCashOutConfig(
                     playerController.playerId(), req.betIndex, req.open, req.crashMultiplier);
-            playerController.send(new ResAirRaidAutoCashOut(code));
+
+            ResAirRaidAutoCashOut res = new ResAirRaidAutoCashOut(code);
+            res.betIndex = req.betIndex;
+            playerController.send(res);
         } catch (Exception e) {
             log.error("AirRaid 自动兑现请求异常 playerId={}", playerController.playerId(), e);
             playerController.send(new ResAirRaidAutoCashOut(Code.EXCEPTION));

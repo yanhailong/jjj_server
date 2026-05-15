@@ -11,6 +11,8 @@ import com.jjg.game.ploy.games.airraid.data.AirRaidConstant;
 public class ResAirRaidBet extends AbstractResponse {
     @ProtoDesc("当前余额")
     public long gold;
+    @ProtoDesc("注单索引")
+    public int betIndex;
 
     public ResAirRaidBet(int code) {
         super(code);

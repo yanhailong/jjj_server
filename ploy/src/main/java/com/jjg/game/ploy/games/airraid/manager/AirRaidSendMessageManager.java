@@ -1,4 +1,4 @@
-package com.jjg.game.ploy.games.airraid;
+package com.jjg.game.ploy.games.airraid.manager;
 
 import com.jjg.game.ploy.games.airraid.data.AirRaidGameRoom;
 import com.jjg.game.ploy.games.airraid.data.AirRaidPhase;
@@ -46,40 +46,6 @@ public class AirRaidSendMessageManager extends AbstractPloySendMesageManager<Air
         return res;
     }
 
-    public void notifyBetNotice(Map<Long, AirRaidPlayerPloyGameData> gameDataMap, List<AirRaidPlayerInfo> airRaidPlayerInfoList) {
-        broadcastLocalPlayers(gameDataMap, buildBetNotice(airRaidPlayerInfoList));
-    }
-
-    private NotifyAirRaidBet buildBetNotice(List<AirRaidPlayerInfo> airRaidPlayerInfoList) {
-        NotifyAirRaidBet notice = new NotifyAirRaidBet();
-        if (airRaidPlayerInfoList == null || airRaidPlayerInfoList.isEmpty()) {
-            return notice;
-        }
-        notice.betInfoList = airRaidPlayerInfoList;
-        return notice;
-    }
-
-    /**
-     * 把本节点 pending 队列里的下注合并推送给本地玩家
-     */
-    public void flushBetsQueue(Map<Long, AirRaidPlayerPloyGameData> gameDataMap, Queue<AirRaidPlayerInfo> pendingBets, List<AirRaidPlayerInfo> roundBets) {
-        if (pendingBets.isEmpty()) {
-            return;
-        }
-        List<AirRaidPlayerInfo> batch = new ArrayList<>();
-        AirRaidPlayerInfo item;
-        while ((item = pendingBets.poll()) != null) {
-            batch.add(item);
-            roundBets.add(item);
-        }
-        if (batch.isEmpty()) {
-            return;
-        }
-        NotifyAirRaidBet notice = new NotifyAirRaidBet();
-        notice.betInfoList = batch;
-        broadcastLocalPlayers(gameDataMap, notice);
-    }
-
     /**
      * 把本节点 pending 队列里的兑现合并推送给本地玩家
      */
@@ -97,6 +63,26 @@ public class AirRaidSendMessageManager extends AbstractPloySendMesageManager<Air
         }
         NotifyAirRaidCashOut notice = new NotifyAirRaidCashOut();
         notice.playerCashOuts = batch;
+        broadcastLocalPlayers(gameDataMap, notice);
+    }
+
+    /**
+     * 把本节点 pending 队列里的押注推送给本地玩家
+     */
+    public void flushBetQueue(Map<Long, AirRaidPlayerPloyGameData> gameDataMap, Queue<AirRaidPlayerInfo> pendingBets) {
+        if (pendingBets.isEmpty()) {
+            return;
+        }
+        List<AirRaidPlayerInfo> batch = new ArrayList<>();
+        AirRaidPlayerInfo item;
+        while ((item = pendingBets.poll()) != null) {
+            batch.add(item);
+        }
+        if (batch.isEmpty()) {
+            return;
+        }
+        NotifyAirRaidBet notice = new NotifyAirRaidBet();
+        notice.betInfoList = batch;
         broadcastLocalPlayers(gameDataMap, notice);
     }
 }
