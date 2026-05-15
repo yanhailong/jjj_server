@@ -25,10 +25,8 @@ public interface MessageConst {
         int CORE_MESSAGE_TYPE = 0x4;
         // 房间通用消息类型
         int ROOM_TYPE = 0x5;
-
         //大厅
         int HALL_TYPE = 0x6;
-
         //美元快递
         int DOLLAR_EXPRESS_TYPE = 0x7;
         //森林人
@@ -47,14 +45,14 @@ public interface MessageConst {
         int FORTUNE_CAT_TYPE = 0xE;
         //加勒比海盗
         int PIRATES_CARIBBEAN_TYPE = 0xF;
+
+
         //苹果机-水果
         int APPLE_FRUITS_TYPE = 0x10;
         //苹果机-动物
         int APPLE_ANIMAL_TYPE = 0x11;
         //夺宝黄金城
         int GOLD_CITY_TYPE = 0x12;
-
-
         //红黑大战
         int RED_BLACK_WAR_TYPE = 0x13;
         //龙虎斗
@@ -75,11 +73,6 @@ public interface MessageConst {
         int SIZE_DICE_BABY_TYPE = 0x1B;
         //鱼虾蟹
         int FISH_SHRIMP_CRAB_TYPE = 0x1C;
-        //俄罗斯转盘
-        int RUSSIAN_ROULETTE_TYPE = 0x50;
-        //火热足球
-        int HOT_FOOTBALL_TYPE = 0x51;
-
         //21点
         int BLACK_JACK_TYPE = 0x1D;
         //德州
@@ -87,35 +80,27 @@ public interface MessageConst {
         //拉斯维加斯拼三张
         int VEGAS_THREE_TYPE = 0x1F;
 
+
         // 下注房间对战类通用协议类型
         int BET_GENERAL_TYPE = 0x20;
-
         // 服务器之间的通讯协议
         int TO_SERVER_CONST_TYPE = 0x21;
-
-
         // 下注房间对战类通用协议类型
         int POKER_GENERAL_TYPE = 0x22;
         // 好友房
         int FRIEND_ROOM_TYPE = 0x23;
-
-
         //财神
         int WEALTH_GOD = 0x24;
         //西游
         int WEST_JOURNEY = 0x25;
         //埃及艳后
         int CLEOPATRA = 0x26;
-
         //活动
         int ACTIVITY = 0x27;
-
         //小游戏
         int MINIGAME = 0x28;
-
         //商城
         int SHOP_TYPE = 0x29;
-
         //圣诞狂欢夜
         int CHRISTMAS_NIGHT_TYPE = 0x2A;
         //篮球巨星
@@ -125,11 +110,11 @@ public interface MessageConst {
         //寒冰王座
         int FROZEN_THRONE = 0x2D;
 
+
         //任务
         int TASK_TYPE = 0x30;
         //积分大奖
         int POINTS_AWARD = 0x31;
-
         //狼月
         int WOLF_MOON = 0x32;
         //热血足球
@@ -158,6 +143,8 @@ public interface MessageConst {
         int ELEPHANT_GOD = 0x3E;
         //十倍金牛
         int TENFOLD_GOLDEN_BULL = 0x3F;
+
+
         //虎虎生财
         int TIGER_BRINGS_RICHES = 0x40;
         //王牌dj
@@ -170,36 +157,38 @@ public interface MessageConst {
         int TO_SOUTH = 0x44;
         //愤怒的小鸟
         int ANGRY_BIRDS = 0x45;
-
         //潘金莲
         int PAN_JIN_LIAN = 0x46;
-
         //寻找黄金城
         int FIND_GOLD_CITY = 0x47;
-
         //麻将胡了
         int MAHJIONG_WIN2_TYPE = 0x48;
-
         //PLOY通用
         int PLOY_COMMON = 0x49;
         //鸿运扑克
         int PLOY_LUCKY_POKER = 0x4A;
-
         //糖果派对
         int CANDY_PARTY = 0x4B;
         //空袭
         int PLOY_AIR_RAID = 0x4C;
         //高低扑克
         int HIGH_LOW_POKER = 0x4D;
-        //HILLO
-        int HILLO = 0x52;
-
         //伽罗宝石1
         int GARA_GEMSTONE_1 = 0x4E;
         //伽罗宝石2
         int GARA_GEMSTONE_2 = 0x4F;
+
+
+        //俄罗斯转盘
+        int RUSSIAN_ROULETTE_TYPE = 0x50;
+        //火热足球
+        int HOT_FOOTBALL_TYPE = 0x51;
+        //HILLO
+        int HILLO = 0x52;
         //伽罗宝石3
-        int GARA_GEMSTONE_3 = 0x50;
+        int GARA_GEMSTONE_3 = 0x53;
+        //模拟经营游戏
+        int SIM_GAME = 0x54;
         //南方前进-血战
         int TO_SOUTH_BLOOD =  0x5A;
         //南方前进-免费
