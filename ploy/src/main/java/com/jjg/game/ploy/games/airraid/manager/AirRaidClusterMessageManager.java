@@ -31,7 +31,8 @@ public class AirRaidClusterMessageManager {
      */
     public void onGameStateSync(GameStateSync msg, Map<Long, AirRaidPlayerPloyGameData> gameDataMap, AirRaidGameRoom gameRoom,
                                 Runnable clearRoundData, Runnable startCashOutTickAndScheduleAutoCashOut,
-                                Runnable flushAndStopCashOutTick) {
+                                Runnable flushAndStopCashOutTick,
+                                Runnable startBetTick, Runnable flushAndStopBetTick) {
         try {
 //            log.info("收到主节点的游戏状态同步 begin, msg = {}", JSON.toJSONString(msg));
             AirRaidPhase newPhase = AirRaidPhase.fromCode(msg.phase);
@@ -51,6 +52,14 @@ public class AirRaidClusterMessageManager {
             //从节点感知飞行阶段，启停每秒兑现 tick(主节点 onGameStateSync 不会被自己触发，故主节点不受影响)
             if (newPhase == AirRaidPhase.CRASHED) {
                 gameRoom.recordCrashHistory(msg.roundId, msg.crashMultiplier);
+            }
+
+            //从节点感知下注阶段，启停每秒 bet tick，确保 pendingBets 能 flush 给本地玩家
+            if (newPhase == AirRaidPhase.BETTING) {
+                startBetTick.run();
+            } else {
+                //离开下注阶段时把残留下注推出去再停 tick
+                flushAndStopBetTick.run();
             }
 
             if (newPhase == AirRaidPhase.FLYING) {

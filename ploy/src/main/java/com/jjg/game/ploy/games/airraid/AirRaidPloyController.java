@@ -66,7 +66,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
     //游戏循环定时器引用
     private TimerEvent<String> event;
-    //机器人下注定时器(仅主节点)
+    //机器人下注定时器(主节点-下注，推送  从节点-推送)
     private TimerEvent<String> robotBetEvent;
     //飞行阶段每秒 tick：主节点处理机器人兑现，所有节点批量推送 pending 兑现
     private TimerEvent<String> cashOutTickEvent;
@@ -195,9 +195,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         broadcastPhaseChange(this.airRaidRuleConfig.getBettingDurationMs());
         addPhaseEvent(AirRaidPhase.BETTING_END_BET, this.airRaidRuleConfig.getBettingDurationMs());
 
-        // 创建机器人下注定时器
-        this.robotBetEvent = new TimerEvent<>(this, "robotBet", 950).withTimeUnit(TimeUnit.MILLISECONDS);
-        timerCenter.add(this.robotBetEvent);
+        // 启动下注阶段 tick(机器人下注 + bet flush)
+        startBetTick();
         log.info("新回合开始 round={}", gameRoom.getRoundCounter().get());
     }
 
@@ -225,12 +224,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 停止下注阶段
      */
     private void handleStopBetPhaseTimerEvent() {
-        this.sendMessageManager.flushBetQueue(this.gameDataMap,this.pendingBets);
-        //移除机器人的定时器
-        if (this.robotBetEvent != null) {
-            this.timerCenter.remove(this.robotBetEvent);
-            this.robotBetEvent = null;
-        }
+        //flush 残留下注并停掉 tick
+        flushAndStopBetTick();
 
         long now = System.currentTimeMillis();
         gameRoom.setPhase(AirRaidPhase.BETTING_END_BET);
@@ -372,6 +367,29 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
     private void startCashOutTickAndScheduleAutoCashOut() {
         startCashOutTick();
         this.airRaidAutoCashOutManager.scheduleAllAutoCashOutTimers(this, this.gameDataMap, this.gameRoom, this.airRaidRuleConfig);
+    }
+
+    /**
+     * 启动下注阶段每秒 tick — 主节点同时处理机器人下注;从节点仅 flush 本地 pendingBets,幂等
+     */
+    private void startBetTick() {
+        if (this.robotBetEvent != null) {
+            this.timerCenter.remove(this.robotBetEvent);
+        }
+        this.robotBetEvent = new TimerEvent<>(this, "robotBet", 950).withTimeUnit(TimeUnit.MILLISECONDS);
+        this.timerCenter.add(this.robotBetEvent);
+    }
+
+    private void flushAndStopBetTick() {
+        sendMessageManager.flushBetQueue(this.gameDataMap, this.pendingBets);
+        stopBetTick();
+    }
+
+    private void stopBetTick() {
+        if (this.robotBetEvent != null) {
+            this.timerCenter.remove(this.robotBetEvent);
+            this.robotBetEvent = null;
+        }
     }
 
     /**
@@ -788,7 +806,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      */
     public void onGameStateSync(GameStateSync msg) {
         this.airRaidClusterMessageManager.onGameStateSync(msg, this.gameDataMap, this.gameRoom,
-                this::clearRoundData, this::startCashOutTickAndScheduleAutoCashOut, this::flushAndStopCashOutTick);
+                this::clearRoundData, this::startCashOutTickAndScheduleAutoCashOut, this::flushAndStopCashOutTick,
+                this::startBetTick, this::flushAndStopBetTick);
     }
 
     /**
@@ -867,10 +886,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             this.timerCenter.remove(this.event);
             this.event = null;
         }
-        if (this.robotBetEvent != null) {
-            this.timerCenter.remove(this.robotBetEvent);
-            this.robotBetEvent = null;
-        }
+        stopBetTick();
         stopCashOutTick();
         this.airRaidAutoCashOutManager.cancelAllAutoCashOutTimers();
         super.shutdown();
