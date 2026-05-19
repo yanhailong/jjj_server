@@ -26,4 +26,6 @@ public class AirRaidPlayerInfo {
     public long winAmount;
     @ProtoDesc("头像框")
     public int headFrame;
+    @ProtoDesc("昵称")
+    public String nick;
 }

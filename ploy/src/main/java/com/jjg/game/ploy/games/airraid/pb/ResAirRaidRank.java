@@ -18,6 +18,10 @@ import java.util.List;
 public class ResAirRaidRank extends AbstractResponse {
     @ProtoDesc("排行列表(已按排序维度倒序)")
     public List<AirRaidRankInfo> rankList;
+    @ProtoDesc("排序维度: 0=中奖倍数 1=中奖金额  2=回合")
+    public int rankType;
+    @ProtoDesc("时间周期: 0=日 1=月 2=年")
+    public int period;
 
     public ResAirRaidRank(int code) {
         super(code);

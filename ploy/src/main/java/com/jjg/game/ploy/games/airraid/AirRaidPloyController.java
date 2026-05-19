@@ -204,6 +204,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 清除旧数据
      */
     private void clearRoundData() {
+        //在清空前把当前回合数据快照为"上一回合"
+        roundBetBook.snapshotLastRound(gameRoom.getCrashMultiplier());
         this.airRaidRobotManager.clear();
         this.pendingCashOuts.clear();
         roundBetBook.clear();
@@ -607,7 +609,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             }
 
             // 更新本回合展示簿
-            roundBetBook.recordBet(playerGameData.playerId(), playerGameData.getPlayerController().getPlayer().getHeadImgId(), betIndex, bet);
+            roundBetBook.recordBet(playerGameData.playerId(), playerGameData.getPlayerController().getPlayer().getHeadImgId(), betIndex, bet, playerGameData.getPlayerController().getPlayer().getNickName());
 
             res.gold = moneyResult.data.getPlayerAfterMoney();
             res.betIndex = betIndex;
@@ -619,6 +621,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             AirRaidPlayerInfo airRaidPlayerInfo = new AirRaidPlayerInfo();
             airRaidPlayerInfo.playerId = playerGameData.playerId();
             airRaidPlayerInfo.headImgId = playerGameData.getPlayerController().getPlayer().getHeadImgId();
+            airRaidPlayerInfo.nick = playerGameData.getPlayerController().getPlayer().getNickName();
             airRaidPlayerInfo.bet = bet;
             airRaidPlayerInfo.betIndex = betIndex;
             syncMsg.playerBetInfoList.add(airRaidPlayerInfo);
@@ -731,7 +734,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
             // 写入排行榜
             airRaidRankDao.addCashOut(playerId, playerGameData.getPlayerController().getPlayer().getHeadImgId(), playerGameData.getPlayerController().getPlayer().getHeadFrameId(), now, betData.getBetAmount(),
-                    winAmount, multiplier, gameRoom.getCrashMultiplier(), betIndex, gameRoom.getRoundId());
+                    winAmount, multiplier, gameRoom.getCrashMultiplier(), betIndex, gameRoom.getRoundId(), playerGameData.getPlayerController().getPlayer().getNickName());
 
             this.airRaidAutoCashOutManager.cancelAutoCashOutTimer(playerId, betIndex);
             enqueueCashOut(playerId, betIndex, multiplier, winAmount);
@@ -769,6 +772,16 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         return null;
     }
 
+    /**
+     * 获取上一回合的信息
+     */
+    public ResAirRaidLastRound queryLastRound() {
+        ResAirRaidLastRound res = new ResAirRaidLastRound(Code.SUCCESS);
+        res.crashMultiplier = roundBetBook.getLastRoundCrashMultiplier();
+        res.roundPlayerInfoList = roundBetBook.getLastRoundPlayerInfoList();
+        return res;
+    }
+
     public ResAirRaidRank queryRank(int rankType, int period) {
         ResAirRaidRank res = new ResAirRaidRank(Code.SUCCESS);
 
@@ -779,6 +792,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             case 2 -> res.rankList = airRaidRankDao.getWinRank(period, currentRoundId, currentRoundCrashed);
             default -> res.rankList = airRaidRankDao.getRoundRank(period);
         }
+        res.rankType = rankType;
+        res.period = period;
         return res;
     }
 

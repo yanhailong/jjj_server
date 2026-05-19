@@ -86,7 +86,7 @@ public class AirRaidClusterMessageManager {
             }
 
             for (AirRaidPlayerInfo airRaidPlayerInfo : msg.playerBetInfoList) {
-                roundBetBook.recordBet(airRaidPlayerInfo.playerId, airRaidPlayerInfo.headImgId, airRaidPlayerInfo.betIndex, airRaidPlayerInfo.bet);
+                roundBetBook.recordBet(airRaidPlayerInfo.playerId, airRaidPlayerInfo.headImgId, airRaidPlayerInfo.betIndex, airRaidPlayerInfo.bet, airRaidPlayerInfo.nick);
                 pendingBets.offer(airRaidPlayerInfo);
             }
         } catch (Exception e) {
