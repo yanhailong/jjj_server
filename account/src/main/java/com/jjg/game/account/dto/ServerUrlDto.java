@@ -21,6 +21,8 @@ public class ServerUrlDto {
     private String adid;
     //fcm
     private String fcm;
+    //客户端版本
+    private String clientVersion;
 
     public long getPlayerId() {
         return playerId;
@@ -84,5 +86,13 @@ public class ServerUrlDto {
 
     public void setFcm(String fcm) {
         this.fcm = fcm;
+    }
+
+    public String getClientVersion() {
+        return clientVersion;
+    }
+
+    public void setClientVersion(String clientVersion) {
+        this.clientVersion = clientVersion;
     }
 }

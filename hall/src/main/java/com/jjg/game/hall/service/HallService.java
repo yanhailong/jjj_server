@@ -1,5 +1,6 @@
 package com.jjg.game.hall.service;
 
+import cn.hutool.core.comparator.VersionComparator;
 import cn.hutool.core.util.EnumUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
@@ -39,6 +40,7 @@ import com.jjg.game.sampledata.bean.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -98,18 +100,22 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private Map<Integer, List<WareHouseConfigInfo>> svipWareHouseConfigMap = new HashMap<>();
     //体验场次缓存信息
     private Map<Integer, List<WareHouseConfigInfo>> experienceWareHouseConfigMap = new HashMap<>();
+
     //游戏类型->游戏状态
     private Map<Integer, GameStatus> gameStatusesMap;
     //排序后的gameList
     private List<GameListConfig> sortGameList;
     //马甲包排序后的gameList
     private Map<Integer, List<GameListConfig>> westeSortGameMap;
+
     //游戏倍场界面的奖池
     private Map<Integer, List<WarePoolInfo>> poolMap;
     //svip游戏倍场界面的奖池
     private Map<Integer, List<WarePoolInfo>> svipPoolMap;
     //体验场次游戏倍场界面的奖池
     private Map<Integer, List<WarePoolInfo>> expeiencePoolMap;
+
+    private Map<Integer, Integer> simOpenGames;
 
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
@@ -188,7 +194,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return list;
             }
         }
-        List<WareHouseConfigInfo>  list = this.experienceWareHouseConfigMap.get(gameType);
+        List<WareHouseConfigInfo> list = this.experienceWareHouseConfigMap.get(gameType);
         if (list != null && !list.isEmpty()) {
             return list;
         }
@@ -900,6 +906,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData).addChangeSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
         addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig).addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig);
         addChangeSampleFileObserveWithCallBack(UndergarmentCfg.EXCEL_NAME, this::sortWesteGameList);
+        addChangeSampleFileObserveWithCallBack(ResearchInstituteCfg.EXCEL_NAME, this::sortWesteGameList);
     }
 
     /**
@@ -961,6 +968,14 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         this.defaultChipsId = Integer.parseInt(arr[4]);
         this.defaultCardBackgroundId = Integer.parseInt(arr[5]);
         this.defaultBackgroundId = Integer.parseInt(arr[6]);
+    }
+
+    private void initResearchConfig() {
+        Map<Integer, Integer> tmpSimOpenGames = new HashMap<>();
+        for (ResearchInstituteCfg cfg : GameDataManager.getResearchInstituteCfgList()) {
+            tmpSimOpenGames.put(cfg.getGameType(), cfg.getLevel());
+        }
+        this.simOpenGames = tmpSimOpenGames;
     }
 
     public int getDefaultHeadImgId() {
@@ -1064,7 +1079,45 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
     }
 
-    public List<GameListConfig> getSortGameList(int westeId) {
+    /**
+     * 根据研究院等级获取开启的游戏列表
+     *
+     * @param westeId
+     * @param clientVersion
+     * @param researchId
+     * @return
+     */
+    public List<GameListConfig> getSortGameListByResearchId(int westeId, String clientVersion, int researchId) {
+        List<GameListConfig> gameListConfigList = getSortGameList(westeId);
+        if (gameListConfigList == null || gameListConfigList.isEmpty()
+                || StringUtils.isEmpty(clientVersion)
+                || this.simOpenGames == null
+                || this.simOpenGames.isEmpty()
+                || VersionComparator.INSTANCE.compare(clientVersion, CoreConst.Common.BRANCH_VERSION) <= 0) {
+            return gameListConfigList;
+        }
+
+        List<GameListConfig> newList = new ArrayList<>();
+        for (GameListConfig cfg : gameListConfigList) {
+            GameListConfig newConfig = new GameListConfig();
+            BeanUtils.copyProperties(cfg, newConfig);
+
+            Integer level = this.simOpenGames.get(cfg.sid);
+            if (level == null || level > researchId) {
+                newConfig.status = 2;
+            }
+            newList.add(cfg);
+        }
+        return newList;
+    }
+
+    /**
+     * 获取开启的游戏
+     *
+     * @param westeId
+     * @return
+     */
+    private List<GameListConfig> getSortGameList(int westeId) {
         if (this.adjustConfig == null || !this.adjustConfig.isOpen()) {
             return sortGameList;
         }
@@ -1301,5 +1354,18 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             res.code = Code.EXCEPTION;
         }
         return res;
+    }
+
+    /**
+     * 模拟经营游戏版本开启的游戏
+     *
+     * @return
+     */
+    private Map<Integer, Integer> getSimOpenGames() {
+        Map<Integer, Integer> simOpenGames = new HashMap<>();
+        for (ResearchInstituteCfg cfg : GameDataManager.getResearchInstituteCfgList()) {
+            simOpenGames.put(cfg.getGameType(), cfg.getLevel());
+        }
+        return simOpenGames;
     }
 }

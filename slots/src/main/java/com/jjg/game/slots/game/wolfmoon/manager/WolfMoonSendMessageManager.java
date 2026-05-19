@@ -61,11 +61,7 @@ public class WolfMoonSendMessageManager extends BaseSendMessageManager {
         }
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
         if (config != null) {
-            List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
-            res.stakeList = new ArrayList<>(list.size());
-            for (long[] arr : list) {
-                res.stakeList.add(arr[1]);
-            }
+            res.stakeList = gameManager.stakeList(gameRunInfo.getData());
             res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             WolfMoonPlayerGameData playerGameData = gameRunInfo.getData();
             if (playerGameData != null) {

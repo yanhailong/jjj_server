@@ -21,6 +21,7 @@ public class PlayerSessionToken {
     //马甲id
     private int westeId;
     private String fcm;
+    private String clientVersion;
 
     public long getPlayerId() {
         return playerId;
@@ -124,5 +125,13 @@ public class PlayerSessionToken {
 
     public void setFcm(String fcm) {
         this.fcm = fcm;
+    }
+
+    public String getClientVersion() {
+        return clientVersion;
+    }
+
+    public void setClientVersion(String clientVersion) {
+        this.clientVersion = clientVersion;
     }
 }

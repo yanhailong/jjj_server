@@ -27,6 +27,8 @@ public class LoginDto {
     private String phoneName;
     //fcm
     private String fcm;
+    //客户端版本
+    private String clientVersion;
 
     public int getLoginType() {
         return loginType;
@@ -114,5 +116,13 @@ public class LoginDto {
 
     public void setFcm(String fcm) {
         this.fcm = fcm;
+    }
+
+    public String getClientVersion() {
+        return clientVersion;
+    }
+
+    public void setClientVersion(String clientVersion) {
+        this.clientVersion = clientVersion;
     }
 }

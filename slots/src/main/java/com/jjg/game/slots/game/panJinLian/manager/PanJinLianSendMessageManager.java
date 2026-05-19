@@ -47,11 +47,7 @@ public class PanJinLianSendMessageManager extends BaseSendMessageManager {
         SendInfo sendInfo = new SendInfo();
         ResPanJinLianEnterGame res = new ResPanJinLianEnterGame(Code.SUCCESS);
         if (config != null) {
-            List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
-            res.stakeList = new ArrayList<>(list.size());
-            for (long[] arr : list) {
-                res.stakeList.add(arr[1]);
-            }
+            res.stakeList = gameManager.stakeList(gameRunInfo.getData());
 
             res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             res.totalWinGold = gameRunInfo.getData() == null ? 0 : gameRunInfo.getData().getFreeAllWin();

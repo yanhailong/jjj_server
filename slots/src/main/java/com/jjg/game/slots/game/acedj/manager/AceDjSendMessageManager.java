@@ -52,11 +52,7 @@ public class AceDjSendMessageManager extends BaseSendMessageManager {
 
         ResAceDjEnterGame res = new ResAceDjEnterGame(Code.SUCCESS);
         if (config != null) {
-            List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
-            res.stakeList = new ArrayList<>(list.size());
-            for (long[] arr : list) {
-                res.stakeList.add(arr[1]);
-            }
+            res.stakeList = gameManager.stakeList(gameRunInfo.getData());
 
             res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             res.totalWinGold = gameRunInfo.getData().getFreeAllWin();

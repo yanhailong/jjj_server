@@ -52,11 +52,7 @@ public class PegasusUnbridleGameSendMessageManager extends BaseSendMessageManage
         SendInfo sendInfo = new SendInfo();
         ResPegasusUnbridleEnterGame res = new ResPegasusUnbridleEnterGame(Code.SUCCESS);
         if (config != null) {
-            List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
-            res.stakeList = new ArrayList<>(list.size());
-            for (long[] arr : list) {
-                res.stakeList.add(arr[1]);
-            }
+            res.stakeList = gameManager.stakeList(gameRunInfo.getData());
             res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             PegasusUnbridlePlayerGameData playerGameData = gameRunInfo.getData();
             res.totalWinGold = playerGameData.getFreeAllWin();

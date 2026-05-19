@@ -507,7 +507,7 @@ public class AccountController extends AbstractController {
 
         //保存token，方便weboskcet连接时进行校验
         playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), dto.getChannel(), ip, dto.getDevice(),
-                dto.getMac(), account.getChannel().getValue(), dto.getShareId(), dto.getSubChannel(), dto.getWesteId(), dto.getFcm());
+                dto.getMac(), account.getChannel().getValue(), dto.getShareId(), dto.getSubChannel(), dto.getWesteId(), dto.getFcm(), dto.getClientVersion());
 
         LoginVo vo = new LoginVo();
         vo.setToken(token);
@@ -553,6 +553,12 @@ public class AccountController extends AbstractController {
         //对比fcm
         if (!Objects.equals(dto.getFcm(), playerSessionToken.getFcm())) {
             playerSessionToken.setFcm(dto.getFcm());
+            change = true;
+        }
+
+        //对比clientVersion
+        if (!Objects.equals(dto.getClientVersion(), playerSessionToken.getClientVersion())) {
+            playerSessionToken.setClientVersion(dto.getClientVersion());
             change = true;
         }
 

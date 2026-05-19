@@ -48,11 +48,7 @@ public class ThorSendMessageManager extends BaseSendMessageManager {
 
         ResThorEnterGame res = new ResThorEnterGame(Code.SUCCESS);
         if (config != null) {
-            List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
-            res.stakeList = new ArrayList<>(list.size());
-            for(long[] arr : list){
-                res.stakeList.add(arr[1]);
-            }
+            res.stakeList = gameManager.stakeList(gameRunInfo.getData());
 
             res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             res.status = gameRunInfo.getData().getStatus();

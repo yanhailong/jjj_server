@@ -39,6 +39,8 @@ import com.jjg.game.hall.service.HallService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
+import com.jjg.game.sim.SimManager;
+import com.jjg.game.sim.data.SimPlayerGameData;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,6 +100,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private CommonDao commonDao;
     @Autowired
     private PlayerSnapshotService playerSnapshotService;
+    @Autowired
+    private SimManager simManager;
 
     public void init() {
     }
@@ -218,6 +222,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             if (needPersistCleanStatus && updatedAccount != null) {
                 accountDao.save(updatedAccount);
             }
+
+            SimPlayerGameData simPlayerGameData = simManager.getGameData(player.getId(), true);
+
             res.playerId = player.getId();
             res.nickName = player.getNickName();
             res.gender = player.getGender();
@@ -233,7 +240,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.backgroundId = player.getBackgroundId();
             res.cardBackgroundId = player.getCardBackgroundId();
             //添加游戏列表
-            res.gameList = hallService.getSortGameList(playerSessionToken.getWesteId());
+            res.gameList = hallService.getSortGameListByResearchId(playerSessionToken.getWesteId(), playerSessionToken.getClientVersion(), simPlayerGameData == null ? 1 : simPlayerGameData.getResearchId());
             //添加跑马灯
             res.marqueeInfo = addMarquee();
 
@@ -331,6 +338,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
     @Override
     public void logout(long playerId, String sessionId) {
+        simManager.onExitGame(playerId, ExitType.DROPPED);
         PlayerSessionInfo playerSessionInfo = playerSessionService.remove(playerId);
         if (playerSessionInfo == null) {
             hallLogger.logout(playerId, 0);

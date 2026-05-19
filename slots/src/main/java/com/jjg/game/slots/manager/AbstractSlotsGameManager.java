@@ -1,6 +1,5 @@
 package com.jjg.game.slots.manager;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.common.data.ActivityTargetType;
@@ -35,6 +34,8 @@ import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sim.data.SimPlayerGameData;
+import com.jjg.game.sim.service.SimPlayerGameDataService;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.*;
@@ -43,6 +44,7 @@ import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.pb.NotifySlotsStatus;
 import com.jjg.game.slots.service.SlotsPlayerService;
+import com.jjg.game.slots.utils.SlotsUtil;
 import io.netty.util.Timeout;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -97,6 +99,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected PlayerGameDataDao playerGameDataDao;
     @Autowired
     protected PlayerAllSlotsDataDao playerAllSlotsDataDao;
+    @Autowired
+    protected SimPlayerGameDataService simPlayerGameDataService;
 
     protected AtomicBoolean open = new AtomicBoolean(false);
 
@@ -141,6 +145,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     //玩家状态检查任务句柄
     private volatile Timeout checkPlayerStatusTimeout;
 
+    //技能组id列表
+    private Set<Integer> skillPropIdsSet;
+    //技能配置  skillPropId -> cfgList
+    private Map<Integer, Map<Integer, ResearchSkillsCfg>> skillsMap;
+
 
     public AbstractSlotsGameManager(Class<T> playerGameDataClass, Class<L> libClass, Class<G> gameRunInfoClass) {
         this.playerGameDataClass = playerGameDataClass;
@@ -166,12 +175,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     public long getDefaultBetValue(G gameRunInfo, BaseRoomCfg config) {
         if (gameRunInfo.getData() == null || gameRunInfo.getData().getAllBetScore() < 1) {
-            return oneLineToAllStake(config.getDefaultBet().getFirst());
-        }
-
-        //校验该押分是否存在配置表中
-        long[] betScoreArr = this.allStakeMap.get(gameRunInfo.getData().getRoomCfgId()).stream().filter(arr -> arr[1] == gameRunInfo.getData().getAllBetScore()).findFirst().orElse(null);
-        if (betScoreArr == null) {
             return oneLineToAllStake(config.getDefaultBet().getFirst());
         }
         return gameRunInfo.getData().getAllBetScore();
@@ -424,7 +427,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         CommonResult<Pair<L, BetDivideInfo>> result = new CommonResult<>(Code.SUCCESS);
         log.debug("开始正常流程 playerId = {},roomId = {},betValue = {}", playerGameData.getPlayerId(), playerGameData.getRoomId(), betValue);
         //检查押分是否合法
-        long[] betScoreArr = this.allStakeMap.get(playerGameData.getRoomCfgId()).stream().filter(arr -> arr[1] == betValue).findFirst().orElse(null);
+        long[] betScoreArr = getBetScore(playerGameData, betValue);
         if (betScoreArr == null) {
             log.warn("押分值不合法 playerId = {},gameType = {},roomCfgId = {},betValue = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), betValue);
             result.code = Code.PARAM_ERROR;
@@ -755,6 +758,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         globalConfig();
         calAllLineStake();
+        prop();
+        researchSkill();
 //        log.info("配置重新计算结束 gameType = {}", this.gameType);
     }
 
@@ -887,8 +892,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return null;
         }
 
-        if(playerGameData.getRoomCfgId() != playerController.getPlayer().getRoomCfgId()) {
-            log.warn("玩家 gameData 不匹配当前 PlayerController, playerId={}, playerGameData.roomCfgId={}, playerController.roomCfgId={}",playerController.playerId(),playerGameData.getRoomCfgId(),playerController.getPlayer().getRoomCfgId());
+        if (playerGameData.getRoomCfgId() != playerController.getPlayer().getRoomCfgId()) {
+            log.warn("玩家 gameData 不匹配当前 PlayerController, playerId={}, playerGameData.roomCfgId={}, playerController.roomCfgId={}", playerController.playerId(), playerGameData.getRoomCfgId(), playerController.getPlayer().getRoomCfgId());
         }
         playerGameData.setLastActiveTime(System.currentTimeMillis());
         return playerGameData;
@@ -966,6 +971,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerAllSlotsData.setPlayerId(playerController.playerId());
         }
 
+        //获取模拟经营游戏的数据
+        SimPlayerGameData simPlayerGameData = simPlayerGameDataService.getSimPlayerGameData(playerController.playerId(), true);
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData != null) {
             playerGameData.setCreateTime(TimeHelper.nowInt());
@@ -974,6 +981,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setPlayerController(playerController);
             playerGameData.setOfflineEventMap(initOffLineEvent());
             playerGameData.setPlayerAllSlotsData(playerAllSlotsData);
+            playerGameData.setSimPlayerGameData(simPlayerGameData);
             return playerGameData;
         }
 
@@ -1005,6 +1013,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setPlayerController(playerController);
         playerGameData.setOfflineEventMap(initOffLineEvent());
         playerGameData.setPlayerAllSlotsData(playerAllSlotsData);
+        playerGameData.setSimPlayerGameData(simPlayerGameData);
+
+        //解锁技能
+        unlockSkills(playerGameData);
 
         //保存到缓存中
         this.gameDataMap.put(playerId, playerGameData);
@@ -1037,6 +1049,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             result.code = Code.NOT_FOUND;
             return result;
         }
+
+        //应用玩家技能的 specialMode 加成
+        List<ResearchSkillsCfg> skillCfgList = transSkillId(playerGameData);
+        if (!skillCfgList.isEmpty()) {
+            propInfo = applySpecialModeSkillBonus(propInfo, skillCfgList);
+            if (propInfo == null) {
+                log.warn("未找到 specialResultLib 中 typeProp相关的权重信息22 modelId = {},gameType = {}", modelId, gameType);
+                result.code = Code.NOT_FOUND;
+                return result;
+            }
+        }
+
         Integer type = propInfo.getRandKey();
         if (type == null) {
             log.warn("specialResultLib 中 typeProp随机失败 modelId = {},gameType = {}", modelId, gameType);
@@ -1048,6 +1072,57 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
+     * 将玩家技能 specialMode (libType -> weightDelta) 累加到 typeProp 权重上，返回修改后的克隆
+     */
+    protected PropInfo applySpecialModeSkillBonus(PropInfo propInfo, List<ResearchSkillsCfg> skillCfgList) {
+        //将玩家技能中所有影响libType权重的加成合并
+        Map<Integer, Integer> deltaMap = new HashMap<>();
+        for (ResearchSkillsCfg cfg : skillCfgList) {
+            Map<Integer, Integer> specialMode = cfg.getSpecialMode();
+            if (specialMode == null || specialMode.isEmpty()) {
+                continue;
+            }
+            specialMode.forEach((key, value) -> deltaMap.merge(key, value, Integer::sum));
+        }
+        return SlotsUtil.applyPropInfoDelta(propInfo, deltaMap);
+    }
+
+    /**
+     * 将玩家技能 winRate + specialModeProbUp 中匹配 libType 的 (sectionIdx -> delta) 累加到 section 权重上，返回修改后的克隆
+     */
+    protected PropInfo applySectionSkillBonus(PropInfo propInfo, int libType, List<ResearchSkillsCfg> skillCfgList) {
+        //将玩家技能中所有匹配libType的 section 权重加成合并
+        Map<Integer, Integer> deltaMap = new HashMap<>();
+        for (ResearchSkillsCfg cfg : skillCfgList) {
+            accumulateSectionDelta(deltaMap, cfg.getWinRate(), libType);
+            accumulateSectionDelta(deltaMap, cfg.getSpecialModeProbUp(), libType);
+        }
+        return SlotsUtil.applyPropInfoDelta(propInfo, deltaMap);
+    }
+
+    /**
+     * 合并配置中的区间权重修改
+     * @param deltaMap
+     * @param cfgPropChangMap
+     * @param libType
+     */
+    private void accumulateSectionDelta(Map<Integer, Integer> deltaMap, Map<Integer, Map<Integer, Integer>> cfgPropChangMap, int libType) {
+        if (cfgPropChangMap == null || cfgPropChangMap.isEmpty()) {
+            return;
+        }
+        Map<Integer, Integer> inner = cfgPropChangMap.get(libType);
+        if (inner == null || inner.isEmpty()) {
+            return;
+        }
+        inner.forEach((sectionIdx, delta) -> {
+            if (sectionIdx == null || delta == null) {
+                return;
+            }
+            deltaMap.merge(sectionIdx, delta, Integer::sum);
+        });
+    }
+
+    /**
      * 获取 specialResultLib 中的倍数区间
      *
      * @param modelId
@@ -1055,7 +1130,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param betValue 下注金额
      * @return
      */
-    protected CommonResult<Integer> getResultLibSection(int modelId, int libType, long betValue, int slotsVipType, int allBetCount, int prizelessCount) {
+    protected CommonResult<Integer> getResultLibSection(T playerGameData, int modelId, int libType, long betValue, int slotsVipType, int allBetCount, int prizelessCount) {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
         Map<Integer, PropInfo> tempPropMap;
         if (betValue < 1) {
@@ -1074,6 +1149,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             result.code = Code.NOT_FOUND;
             return result;
         }
+
+        //应用玩家技能的 winRate / specialModeProbUp 加成
+        List<ResearchSkillsCfg> skillCfgList = transSkillId(playerGameData);
+        if (!skillCfgList.isEmpty()) {
+            propInfo = applySectionSkillBonus(propInfo, libType, skillCfgList);
+        }
+
         Integer index = propInfo.getRandKey();
         if (index == null) {
             log.warn("未找到 specialResultLib 中 section 相关的权重信息3 modelId = {},gameType = {},libType = {},index = {},betValue = {},slotsVipType = {},allBetCount = {},prizelessCount = {}", modelId, this.gameType, libType, index, betValue, slotsVipType, allBetCount, prizelessCount);
@@ -1547,6 +1629,30 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         this.bigWinShowMap = tmpBigWinShowMap;
     }
 
+    protected void prop() {
+        Set<Integer> tmpSet = new HashSet<>();
+        for (PropCfg cfg : GameDataManager.getPropCfgList()) {
+            if (cfg.getGameType() != this.gameType) {
+                continue;
+            }
+
+            tmpSet.add(cfg.getId());
+        }
+        this.skillPropIdsSet = tmpSet;
+    }
+
+    protected void researchSkill() {
+        Map<Integer, Map<Integer, ResearchSkillsCfg>> tmpSkillsMap = new HashMap<>();
+        for (ResearchSkillsCfg cfg : GameDataManager.getResearchSkillsCfgList()) {
+            if (cfg.getGameType() != this.gameType) {
+                continue;
+            }
+
+            Map<Integer, ResearchSkillsCfg> tmpMap = tmpSkillsMap.putIfAbsent(cfg.getAttr(), new HashMap<>());
+            tmpMap.put(cfg.getGrade(), cfg);
+        }
+        this.skillsMap = tmpSkillsMap;
+    }
 
     protected void calGlobalBigWinShow(int id, int pbShowId, Map<Integer, int[]> map) {
         GlobalConfigCfg cfg = GameDataManager.getGlobalConfigCfg(id);
@@ -1610,7 +1716,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig())
                 .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig())
                 .addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, () -> specialPlayConfig())
-                .addChangeSampleFileObserveWithCallBack(SpecialAuxiliaryCfg.EXCEL_NAME, () -> specialAuxiliaryConfig());
+                .addChangeSampleFileObserveWithCallBack(SpecialAuxiliaryCfg.EXCEL_NAME, () -> specialAuxiliaryConfig())
+                .addChangeSampleFileObserveWithCallBack(PropCfg.EXCEL_NAME, () -> prop())
+                .addChangeSampleFileObserveWithCallBack(ResearchSkillsCfg.EXCEL_NAME, () -> researchSkill());
     }
 
     /**
@@ -1672,10 +1780,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         this.allStakeMap = tmpAllStakeMap;
     }
 
-    public Map<Integer, List<long[]>> getAllStakeMap() {
-        return allStakeMap;
-    }
-
     /**
      * 单线押分转化为总押分
      *
@@ -1687,6 +1791,19 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         int lineCount = baseInitCfg.getMaxLine();
 
         return lineCount * stake * baseInitCfg.getBetMultiple().getFirst() * baseInitCfg.getLineMultiple().getFirst();
+    }
+
+    /**
+     * 总押分转化为单线押分
+     *
+     * @param stake
+     * @return
+     */
+    public long allStakeToOneLine(long stake) {
+        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+        int lineCount = baseInitCfg.getMaxLine();
+
+        return stake / lineCount / stake / baseInitCfg.getBetMultiple().getFirst() / baseInitCfg.getLineMultiple().getFirst();
     }
 
     /**
@@ -2179,7 +2296,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     protected L getLib(SpecialResultLibCfg specialResultLibCfg, int libType, T playerGameData) {
         //获取倍数区间
-        CommonResult<Integer> resultLibSectionResult = getResultLibSection(specialResultLibCfg.getModelId(), libType, playerGameData.getAllBetScore(),
+        CommonResult<Integer> resultLibSectionResult = getResultLibSection(playerGameData, specialResultLibCfg.getModelId(), libType, playerGameData.getAllBetScore(),
                 playerGameData.getPlayer().getSvip(), playerGameData.getPlayerAllSlotsData().getAllBetCount(), playerGameData.getPlayerAllSlotsData().getPrizelessCount());
         if (!resultLibSectionResult.success()) {
             log.warn("获取区间失败 modelId = {},libtype = {}", specialResultLibCfg.getModelId(), libType);
@@ -2364,5 +2481,219 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     public AtomicBoolean getOpen() {
         return open;
+    }
+
+    /**
+     * 解锁技能
+     *
+     * @param playerGameData
+     * @return
+     */
+    public void unlockSkills(T playerGameData) {
+        if (this.skillPropIdsSet == null || this.skillPropIdsSet.isEmpty() || this.skillsMap == null || this.skillsMap.isEmpty()) {
+            return;
+        }
+
+        for (int skillPropId : this.skillPropIdsSet) {
+            PropCfg cfg = GameDataManager.getPropCfg(skillPropId);
+            Map<Integer, ResearchSkillsCfg> skillLevelMap = this.skillsMap.get(skillPropId);
+
+            if (cfg.getSkillId() == null || cfg.getSkillId().isEmpty()) {
+                ResearchSkillsCfg skillCfg = skillLevelMap.get(0);
+                if (skillCfg != null) {
+                    playerGameData.addSkill(skillCfg.getId());
+                }
+            }
+        }
+    }
+
+    /**
+     * 获取玩家的技能列表
+     *
+     * @param playerId
+     * @return
+     */
+    public List<Integer> querySkills(long playerId) {
+        T playerGameData = getPlayerGameData(playerId);
+        if (playerGameData == null) {
+            return Collections.emptyList();
+        }
+
+        if (playerGameData.getSkillsMap() == null || playerGameData.getSkillsMap().isEmpty() || this.skillsMap == null || this.skillsMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Integer> list = new ArrayList<>();
+        playerGameData.getSkillsMap().forEach((propId, level) -> {
+            Map<Integer, ResearchSkillsCfg> tmpMap = this.skillsMap.get(propId);
+            if (tmpMap != null && !tmpMap.isEmpty()) {
+                ResearchSkillsCfg cfg = tmpMap.get(level);
+                if (cfg != null) {
+                    list.add(cfg.getId());
+                }
+            }
+        });
+        return list;
+    }
+
+    /**
+     * 升级技能
+     *
+     * @param playerId
+     * @return
+     */
+    public int upgradeSkill(long playerId, int propId) {
+        if (this.skillsMap == null || skillsMap.isEmpty()) {
+            log.warn("升级技能失败，未找到技能配置 playerId={},propId = {}", playerId, propId);
+            return Code.NOT_FOUND;
+        }
+
+        Map<Integer, ResearchSkillsCfg> levelMap = this.skillsMap.get(propId);
+        if (levelMap == null || levelMap.isEmpty()) {
+            log.warn("升级技能失败，未找到技能配置2 playerId={},propId = {}", playerId, propId);
+            return Code.NOT_FOUND;
+        }
+
+        T playerGameData = getPlayerGameData(playerId);
+        if (playerGameData == null) {
+            log.warn("升级技能失败，未找到玩家信息 playerId={}", playerId);
+            return Code.NOT_FOUND;
+        }
+
+        Integer beforeLevel = playerGameData.findSkilLevelByPropId(propId);
+        if (beforeLevel == null) {
+            log.warn("升级技能失败，该技能还未解锁 playerId={},propId = {}", playerId, propId);
+            return Code.PARAM_ERROR;
+        }
+
+        //新等级的配置
+        ResearchSkillsCfg newLevelCfg = levelMap.get(beforeLevel + 1);
+        if (newLevelCfg == null) {
+            log.warn("升级技能失败，该技能已达到上限 playerId={},propId = {}", playerId, propId);
+            return Code.NOT_FOUND;
+        }
+
+        //检查新等级所需要的研究点
+        if (newLevelCfg.getResearchPoints() == null || newLevelCfg.getResearchPoints().isEmpty()) {
+            playerGameData.changeSkillLevel(propId, newLevelCfg.getGrade());
+            log.warn("该技能等级升级无需研究点，升级技能成功 playerId={},propId = {},newLevelCfgId = {}", playerId, propId, newLevelCfg.getId());
+            return Code.SUCCESS;
+        }
+
+        SimPlayerGameData simPlayerGameData = playerGameData.getSimPlayerGameData();
+        if (simPlayerGameData == null) {
+            log.warn("升级技能失败，未找到simPlayerGameData playerId={},propId = {}", playerId, propId);
+            return Code.NOT_FOUND;
+        }
+
+        //检查研究点是否足够
+        for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
+            int researchPoint = simPlayerGameData.findResearchPoint(en.getKey());
+            if (researchPoint < en.getValue()) {
+                log.warn("升级技能失败，研究点不足 playerId={},propId = {},newLevelCfgId = {},researchPoint = {}", playerId, propId, newLevelCfg.getId(), researchPoint);
+                return Code.NOT_ENOUGH;
+            }
+        }
+
+        //扣除研究点
+        for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
+            simPlayerGameData.deductResearchPoint(en.getKey(), en.getValue());
+        }
+        playerGameData.changeSkillLevel(propId, newLevelCfg.getGrade());
+        log.info("玩家技能升级成功 playerId={},propId={},newLevel={}", playerId, propId, newLevelCfg.getGrade());
+        return Code.SUCCESS;
+    }
+
+    /**
+     * 获取玩家的筹码列表
+     *
+     * @param playerGameData
+     * @return
+     */
+    public List<Long> stakeList(T playerGameData) {
+        //首先获取配置的筹码列表
+        List<long[]> cfgStakeList = this.allStakeMap.get(playerGameData.getRoomCfgId());
+
+        List<Long> list = new ArrayList<>();
+        for (long[] arr : cfgStakeList) {
+            list.add(arr[1]);
+        }
+
+        if (playerGameData.getSkillsMap() == null || playerGameData.getSkillsMap().isEmpty() || this.skillsMap == null || this.skillsMap.isEmpty()) {
+            return list;
+        }
+
+        playerGameData.getSkillsMap().forEach((propId, level) -> {
+            Map<Integer, ResearchSkillsCfg> map = this.skillsMap.get(propId);
+            if (map != null && !map.isEmpty()) {
+                ResearchSkillsCfg cfg = map.get(level);
+                if (cfg != null && cfg.getBet() > 0) {
+                    long bet = cfg.getBet();
+                    list.add(bet);
+                }
+            }
+        });
+        return list;
+    }
+
+    /**
+     * 获取押分值
+     *
+     * @param playerGameData
+     * @param betValue
+     * @return
+     */
+    public long[] getBetScore(T playerGameData, long betValue) {
+        long[] betScoreArr = this.allStakeMap.get(playerGameData.getRoomCfgId()).stream().filter(arr -> arr[1] == betValue).findFirst().orElse(null);
+        if (betScoreArr != null) {
+            return betScoreArr;
+        }
+
+        if (playerGameData.getSkillsMap() == null || playerGameData.getSkillsMap().isEmpty() || this.skillsMap == null || this.skillsMap.isEmpty()) {
+            return null;
+        }
+
+        boolean match = playerGameData.getSkillsMap().entrySet().stream().anyMatch(en -> {
+            Map<Integer, ResearchSkillsCfg> map = this.skillsMap.get(en.getKey());
+            if (map != null && !map.isEmpty()) {
+                ResearchSkillsCfg cfg = map.get(en.getValue());
+                if (cfg != null && cfg.getBet() == betValue) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        if (match) {
+            betScoreArr = new long[2];
+            betScoreArr[0] = allStakeToOneLine(betValue);
+            betScoreArr[1] = betValue;
+        }
+
+        return betScoreArr;
+    }
+
+    /**
+     * 将玩家身上的 propId->level 转化成 List<ResearchSkillsCfg>
+     *
+     * @param playerGameData
+     * @return
+     */
+    protected List<ResearchSkillsCfg> transSkillId(T playerGameData) {
+        if (playerGameData.getSkillsMap() == null || playerGameData.getSkillsMap().isEmpty() || this.skillsMap == null || this.skillsMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<ResearchSkillsCfg> list = new ArrayList<>();
+        for (Map.Entry<Integer, Integer> en : playerGameData.getSkillsMap().entrySet()) {
+            Map<Integer, ResearchSkillsCfg> tmpMap = this.skillsMap.get(en.getKey());
+            if (tmpMap != null && !tmpMap.isEmpty()) {
+                ResearchSkillsCfg cfg = tmpMap.get(en.getValue());
+                if (cfg != null) {
+                    list.add(cfg);
+                }
+            }
+        }
+        return list;
     }
 }

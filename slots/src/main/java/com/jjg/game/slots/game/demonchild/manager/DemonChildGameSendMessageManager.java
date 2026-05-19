@@ -56,11 +56,7 @@ public class DemonChildGameSendMessageManager extends BaseSendMessageManager {
         SendInfo sendInfo = new SendInfo();
         ResDemonChildEnterGame res = new ResDemonChildEnterGame(Code.SUCCESS);
         if (config != null) {
-            List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
-            res.stakeList = new ArrayList<>(list.size());
-            for (long[] arr : list) {
-                res.stakeList.add(arr[1]);
-            }
+            res.stakeList = gameManager.stakeList(gameRunInfo.getData());
             res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             DemonChildPlayerGameData playerGameData = gameRunInfo.getData();
             res.totalWinGold = playerGameData.getFreeAllWin();

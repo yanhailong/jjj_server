@@ -5,6 +5,7 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.slots.data.PropInfo;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -116,5 +117,50 @@ public class SlotsUtil {
 
         int rand = RandomUtils.randomMinMax(1,GameConstant.TEN_THOUSAND);
         return rand <= prop;
+    }
+
+
+    /**
+     * 克隆 PropInfo,对其 propMap 中匹配 key 的权重累加 delta,重算 [begin,end) 与 sum
+     */
+    public static PropInfo applyPropInfoDelta(PropInfo propInfo, Map<Integer, Integer> deltaMap) {
+        if (deltaMap.isEmpty()) {
+            return propInfo;
+        }
+
+        PropInfo cloned = propInfo.clone();
+        //保留原顺序读取每个 key 的权重
+        Map<Integer, Integer> weightMap = new LinkedHashMap<>();
+        for (Map.Entry<Integer, int[]> en : cloned.getPropMap().entrySet()) {
+            int[] range = en.getValue();
+            weightMap.put(en.getKey(), range[1] - range[0]);
+        }
+
+        boolean changed = false;
+        for (Map.Entry<Integer, Integer> en : deltaMap.entrySet()) {
+            Integer key = en.getKey();
+            if (!weightMap.containsKey(key)) {
+                continue;
+            }
+            int newWeight = Math.max(0, weightMap.get(key) + en.getValue());
+            weightMap.put(key, newWeight);
+            changed = true;
+        }
+        if (!changed) {
+            return propInfo;
+        }
+
+        int begin = 0;
+        int sum = 0;
+        for (Map.Entry<Integer, Integer> en : weightMap.entrySet()) {
+            int weight = en.getValue();
+            int[] range = cloned.getPropMap().get(en.getKey());
+            range[0] = begin;
+            range[1] = begin + weight;
+            begin = range[1];
+            sum += weight;
+        }
+        cloned.setSum(sum);
+        return cloned;
     }
 }

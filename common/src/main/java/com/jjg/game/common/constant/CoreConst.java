@@ -176,6 +176,9 @@ public class CoreConst {
 
         // 项目package路径
         public static final String BASE_PROJECT_PACKAGE_PATH = "com.jjg.game";
+
+        //客户端版本分支
+        public static final String BRANCH_VERSION = "3.1.0";
     }
 
     public static class Session {

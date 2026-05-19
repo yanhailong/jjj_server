@@ -3,13 +3,12 @@ package com.jjg.game.slots.data;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.sim.data.SimPlayerGameData;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -76,6 +75,11 @@ public class SlotsPlayerGameData {
     protected transient Map<Integer, OffLineEventData> offlineEventMap;
     @Transient
     protected transient PlayerAllSlotsData playerAllSlotsData;
+    @Transient
+    protected transient SimPlayerGameData simPlayerGameData;
+
+    //技能 propId -> level
+    private Map<Integer, Integer> skillsMap;
 
     public long getPlayerId() {
         if (playerId == 0) {
@@ -385,5 +389,51 @@ public class SlotsPlayerGameData {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public SimPlayerGameData getSimPlayerGameData() {
+        return simPlayerGameData;
+    }
+
+    public void setSimPlayerGameData(SimPlayerGameData simPlayerGameData) {
+        this.simPlayerGameData = simPlayerGameData;
+    }
+
+    public Map<Integer, Integer> getSkillsMap() {
+        return skillsMap;
+    }
+
+    public void setSkillsMap(Map<Integer, Integer> skillsMap) {
+        this.skillsMap = skillsMap;
+    }
+
+    public void addSkill(int propId) {
+        if (this.skillsMap == null) {
+            this.skillsMap = new HashMap<>();
+        }
+
+        if (!this.skillsMap.containsKey(propId)) {
+            this.skillsMap.put(propId, 0);
+        }
+    }
+
+    /**
+     * 获取该技能等级
+     *
+     * @param propId
+     * @return  null表示未解锁
+     */
+    public Integer findSkilLevelByPropId(int propId) {
+        if (this.skillsMap == null) {
+            return null;
+        }
+        return this.skillsMap.get(propId);
+    }
+
+    public void changeSkillLevel(int propId, int skillLevel) {
+        if (this.skillsMap == null) {
+            this.skillsMap = new HashMap<>();
+        }
+        this.skillsMap.put(propId, skillLevel);
     }
 }
