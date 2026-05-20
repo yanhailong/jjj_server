@@ -7,18 +7,18 @@ import com.jjg.game.ploy.games.hillo.data.HilloHistoryInfo;
 import java.util.List;
 
 @ProtobufMessage
-@ProtoDesc("HILLO record")
+@ProtoDesc("HILLO 历史记录")
 public class HilloRecordInfo {
-    @ProtoDesc("round history")
+    @ProtoDesc("单局过程记录")
     public List<HilloHistoryInfo> historyInfos;
-    @ProtoDesc("total income")
+    @ProtoDesc("本局总盈亏")
     public long totalIncome;
-    @ProtoDesc("round start time")
+    @ProtoDesc("本局开始时间")
     public long startTime;
-    @ProtoDesc("bet amount")
+    @ProtoDesc("下注金额")
     public long bet;
-    @ProtoDesc("bet mode (0 manual, 1 auto)")
+    @ProtoDesc("下注模式，0=手动，1=自动")
     public int betMode;
-    @ProtoDesc("balance after settle")
+    @ProtoDesc("结算后余额")
     public long balanceAfter;
 }

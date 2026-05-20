@@ -8,17 +8,22 @@ import java.util.List;
 
 @Document
 public class HilloPloyGameData extends PlayerSinglePloyGameData {
+    // 当前局状态：有 currentCardId 表示玩家还有一局未结束。
     private int currentCardId;
     private long currentCoin;
     private int successTimes;
     private int skipTimes;
     private int currentBetMode;
     private long currentRoundStartTime;
+
+    // 自动投注配置。betTimes=0 用 autoInfiniteBet 表示无限局，避免和“剩余 0 局”混淆。
     private boolean autoBetting;
     private boolean autoInfiniteBet;
     private long autoBet;
     private int autoGuessTimes;
     private int autoRemainBetTimes;
+
+    // history 记录当前局过程；totalHistories 只保存已经结束并归档的局。
     private List<HilloHistoryInfo> history;
     private List<HilloHistory> totalHistories;
 
@@ -152,6 +157,7 @@ public class HilloPloyGameData extends PlayerSinglePloyGameData {
         }
     }
 
+    // 只清自动投注配置，不清当前局；取消自动后未结束的局仍可由手动流程继续处理。
     public void clearAutoBet() {
         autoBetting = false;
         autoInfiniteBet = false;

@@ -4,15 +4,15 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
 @ProtobufMessage
-@ProtoDesc("HILLO choose info")
+@ProtoDesc("HILLO 投注项信息")
 public class HilloChooseInfo {
-    @ProtoDesc("choose id")
+    @ProtoDesc("投注项 id")
     public int chooseId;
-    @ProtoDesc("choose name")
+    @ProtoDesc("投注项名称")
     public String chooseName;
-    @ProtoDesc("odd")
+    @ProtoDesc("赔率")
     public String odd;
-    @ProtoDesc("win rate")
+    @ProtoDesc("命中概率")
     public String winRate;
 
     public HilloChooseInfo() {

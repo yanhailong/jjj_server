@@ -3,6 +3,7 @@ package com.jjg.game.ploy.games.hillo.data;
 import java.util.List;
 
 public class HilloHistory {
+    // 单局结束后的归档数据：过程、最终盈亏、开始时间、下注额和结算后余额。
     private List<HilloHistoryInfo> history;
     private long totalProfit;
     private long startTime;

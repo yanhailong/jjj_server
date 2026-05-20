@@ -4,17 +4,18 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
 @ProtobufMessage
-@ProtoDesc("HILLO history item")
+@ProtoDesc("HILLO 过程记录项")
 public class HilloHistoryInfo {
-    @ProtoDesc("current card id")
+    // 一条过程记录可能是猜牌，也可能是跳过；skipped=true 时 chooseId/odd/resultCardId 不参与展示。
+    @ProtoDesc("当时作为公牌的牌 id")
     private int cardId;
-    @ProtoDesc("choose id")
+    @ProtoDesc("当时选择的投注项 id")
     private int chooseId;
-    @ProtoDesc("odd")
+    @ProtoDesc("当时赔率")
     private String odd;
-    @ProtoDesc("result card id")
+    @ProtoDesc("本次猜牌结果牌 id")
     private int resultCardId;
-    @ProtoDesc("skipped")
+    @ProtoDesc("是否为跳过记录")
     private boolean skipped;
 
     public HilloHistoryInfo() {
@@ -26,6 +27,7 @@ public class HilloHistoryInfo {
         this.odd = odd;
     }
 
+    // 跳过只记录被跳过的公牌，用于前端还原本局过程。
     public static HilloHistoryInfo skipped(int cardId) {
         HilloHistoryInfo info = new HilloHistoryInfo();
         info.cardId = cardId;

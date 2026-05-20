@@ -10,6 +10,7 @@ import java.util.function.IntPredicate;
 import java.util.function.IntUnaryOperator;
 
 public enum HilloChoose {
+    // 每个枚举对应一个前端投注区域：可用牌面、命中判断、命中牌数都封装在这里。
     GREATER_EQUAL(0, ">=", rank -> rank > 1 && rank < 13,
             (currentCard, nextCard) -> nextCard.compareAisMin(currentCard, false) >= 0,
             rank -> 14 - rank),
@@ -26,6 +27,7 @@ public enum HilloChoose {
             (currentCard, nextCard) -> nextCard.compareAisMin(currentCard, false) < 0,
             rank -> 12);
 
+    // HILLO 每次发牌都从完整 52 张牌中随机，概率计算不扣除已出现的牌。
     private static final BigDecimal FULL_DECK_COUNT = BigDecimal.valueOf(52);
 
     private final int chooseId;
@@ -78,6 +80,7 @@ public enum HilloChoose {
         return matchedRankCounter.applyAsInt(currentRank) * 4;
     }
 
+    // 赔率 = 返奖率 / 命中概率，等价于 returnRate * 52 / 命中牌数。
     public String calculateOdds(BigDecimal returnRate, int currentRank) {
         int matchedCardCount = matchedCardCount(currentRank);
         if (matchedCardCount <= 0) {
@@ -88,6 +91,7 @@ public enum HilloChoose {
                 .toPlainString();
     }
 
+    // 胜率返回小数形式字符串，例如 0.9230 表示 92.30%。
     public String calculateWinRate(int currentRank) {
         int matchedCardCount = matchedCardCount(currentRank);
         if (matchedCardCount <= 0) {
