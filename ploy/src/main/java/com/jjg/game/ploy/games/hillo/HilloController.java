@@ -433,9 +433,13 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
                 return res;
             }
             ResHilloChoose startRes = startAutoRound(playerController, playerGameData, cfg);
-            if (startRes.code != Code.SUCCESS || !playerGameData.hasActiveGame()) {
-                return startRes;
-            }
+            return startRes;
+        }
+
+        if (playerGameData.getCurrentCoin() > 0 && playerGameData.getSuccessTimes() >= playerGameData.getAutoGuessTimes()) {
+            fillAutoExchangeResult(res, playerGameData, cfg);
+            fillAutoState(res, playerGameData, cfg);
+            return res;
         }
 
         AutoDecision decision = buildAutoDecision(playerGameData, cfg);
@@ -502,8 +506,8 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
 
         long nextCoin = calculateNextCoin(playerGameData.getLastBet(), playerGameData.getCurrentCoin(), chooseInfo.odd);
         int successTimes = playerGameData.getSuccessTimes() + 1;
-        if (successTimes >= HilloConstant.Common.MAX_JOIN_TIMES || successTimes >= playerGameData.getAutoGuessTimes()) {
-            // 猜中后如果达到系统上限或玩家设置的自动猜测次数，立即兑现并归档本局。
+        if (successTimes >= HilloConstant.Common.MAX_JOIN_TIMES) {
+            // 猜中后如果达到系统上限，立即兑现并归档本局。
             CommonResult<Pair<PloyBetDivideInfo, Player>> winResult = winFromPool(playerGameData, nextCoin, cfg.getTaxRate());
             if (!winResult.success()) {
                 res.code = winResult.code;
