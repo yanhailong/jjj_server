@@ -72,7 +72,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
                 HilloHistory history = totalHistories.get(i);
                 HilloRecordInfo recordInfo = new HilloRecordInfo();
                 if (CollectionUtil.isNotEmpty(history.getHistory())) {
-                    recordInfo.historyInfos = new ArrayList<>(history.getHistory());
+                    recordInfo.historyInfos = buildDisplayHistory(history.getHistory());
                 }
                 recordInfo.totalIncome = history.getTotalProfit();
                 recordInfo.startTime = history.getStartTime();
@@ -110,7 +110,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
             // 重连或重新进入时恢复当前局状态，让前端继续展示可猜牌面、可兑现奖励和历史过程。
             res.currentCard = playerGameData.getCurrentCardId();
             res.currentCoin = playerGameData.getCurrentCoin();
-            res.historyChoose = playerGameData.getHistory();
+            res.historyChoose = buildDisplayHistory(playerGameData.getHistory());
             res.remainRoundNum = HilloConstant.Common.MAX_JOIN_TIMES - playerGameData.getSuccessTimes();
             res.remainSkipTimes = playerGameData.getSkipTimes();
             res.currentBetMode = playerGameData.getCurrentBetMode();
@@ -582,7 +582,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
     private void fillHistoryChoose(ResHilloChoose res, HilloPloyGameData playerGameData) {
         List<HilloHistoryInfo> history = playerGameData.getHistory();
         if (CollectionUtil.isNotEmpty(history)) {
-            res.historyChoose = new ArrayList<>(history);
+            res.historyChoose = buildDisplayHistory(history);
         }
     }
 
@@ -647,11 +647,47 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
             res.currentCoin = playerGameData.getCurrentCoin();
             res.remainRoundNum = HilloConstant.Common.MAX_JOIN_TIMES - playerGameData.getSuccessTimes();
             res.remainSkipTimes = playerGameData.getSkipTimes();
-            res.historyChoose = playerGameData.getHistory();
+            res.historyChoose = buildDisplayHistory(playerGameData.getHistory());
             if (cfg != null) {
                 res.chooseInfos = hilloUtil.buildChooseInfos(playerGameData.getCurrentCardId(), getReturnRate(cfg));
             }
         }
+    }
+
+    private List<HilloHistoryInfo> buildDisplayHistory(List<HilloHistoryInfo> history) {
+        if (CollectionUtil.isEmpty(history)) {
+            return null;
+        }
+        List<HilloHistoryInfo> displayHistory = new ArrayList<>();
+        for (HilloHistoryInfo info : history) {
+            addDisplayHistoryInfo(displayHistory, copyHistoryInfo(info), info.isSkipped());
+            if (!info.isSkipped() && info.getResultCardId() > 0) {
+                HilloHistoryInfo resultInfo = new HilloHistoryInfo();
+                resultInfo.setCardId(info.getResultCardId());
+                resultInfo.setChooseId(-1);
+                resultInfo.setOdd("");
+                addDisplayHistoryInfo(displayHistory, resultInfo, false);
+            }
+        }
+        return displayHistory;
+    }
+
+    private void addDisplayHistoryInfo(List<HilloHistoryInfo> displayHistory, HilloHistoryInfo info, boolean forceAdd) {
+        if (!forceAdd && !displayHistory.isEmpty()
+                && displayHistory.getLast().getCardId() == info.getCardId()) {
+            return;
+        }
+        displayHistory.add(info);
+    }
+
+    private HilloHistoryInfo copyHistoryInfo(HilloHistoryInfo info) {
+        HilloHistoryInfo copy = new HilloHistoryInfo();
+        copy.setCardId(info.getCardId());
+        copy.setChooseId(info.getChooseId());
+        copy.setOdd(info.getOdd());
+        copy.setResultCardId(info.getResultCardId());
+        copy.setSkipped(info.isSkipped());
+        return copy;
     }
 
     private void stopAutoBet(HilloPloyGameData playerGameData) {
