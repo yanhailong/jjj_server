@@ -15,10 +15,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.ploy.controller.AbstractSinglePloyController;
 import com.jjg.game.ploy.data.PloyBetDivideInfo;
-import com.jjg.game.ploy.games.highlowpoker.data.HighLowChoose;
-import com.jjg.game.ploy.games.highlowpoker.data.HighLowPokerConstant;
-import com.jjg.game.ploy.games.highlowpoker.data.HighLowPokerHistory;
-import com.jjg.game.ploy.games.highlowpoker.data.HighLowPokerPloyGameData;
+import com.jjg.game.ploy.games.highlowpoker.data.*;
 import com.jjg.game.ploy.games.highlowpoker.pb.bean.HighLowRecordInfo;
 import com.jjg.game.ploy.games.highlowpoker.pb.req.ReqHighLowPokerChoose;
 import com.jjg.game.ploy.games.highlowpoker.pb.req.ReqHighLowPokerExchange;
@@ -27,7 +24,6 @@ import com.jjg.game.ploy.games.highlowpoker.util.HighLowUtil;
 import com.jjg.game.ploy.pb.ReqPloyRecord;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PloygameRoomCfg;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -133,6 +129,8 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
         res.chooseRate = highLowUtil.calculateAllChooseRate(playerGameData.getCard(), playerGameData.getCurrentIndex(), returnRate);
         //发送当前牌
         res.currentCard = playerGameData.getCard().get(playerGameData.getCurrentIndex());
+
+        playerGameData.addHistory(Pair.newPair(res.currentCard, ""));
         return res;
     }
 
@@ -189,7 +187,8 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
         long lastBet = playerGameData.getLastBet();
         long addGold = BigDecimal.valueOf(lastBet).multiply(new BigDecimal(rate)).longValue();
         playerGameData.setCurrentCoin(playerGameData.getCurrentCoin() + addGold);
-        playerGameData.addHistory(Pair.newPair(oldCard.getValue(), rate));
+        playerGameData.addHistory(Pair.newPair(nextCard.getValue(), rate));
+
         //如果到达30局直接退
         if (playerGameData.getHistory().size() >= HighLowPokerConstant.Common.MAX_JOIN_TIMES) {
             //获胜了
