@@ -23,6 +23,10 @@ public class ResHighLowPokerChoose extends AbstractResponse {
     public List<String> chooseRate;
     @ProtoDesc("兑换金币数量")
     public long exchangeNum;
+    @ProtoDesc("是否结束")
+    public boolean over;
+    @ProtoDesc("牌对应的赔率")
+    public String rate;
 
     public ResHighLowPokerChoose(int code) {
         super(code);

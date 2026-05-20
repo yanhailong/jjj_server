@@ -13,6 +13,7 @@ import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.data.SlotsResultLib;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import com.jjg.game.slots.game.wolfmoon.WolfMoonConstant;
 import com.jjg.game.slots.game.wolfmoon.data.*;
 import com.jjg.game.slots.game.wolfmoon.pb.bean.WolfMoonCascade;
 import com.jjg.game.slots.game.wolfmoon.pb.bean.WolfMoonPoolInfo;
@@ -144,6 +145,9 @@ public class WolfMoonSendMessageManager extends BaseSendMessageManager {
 
             res.rewardIconInfo = addRewardIcons(lib.getAwardLineInfoList(), gameRunInfo.getData());
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
+
+            //合成列
+            res.composeColums = composeColums(gameRunInfo,lib);
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
@@ -239,5 +243,52 @@ public class WolfMoonSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回免费游戏选择结果", false);
+    }
+
+    private List<Integer> composeColums(WolfMoonGameRunInfo gameRunInfo, WolfMoonResultLib lib) {
+        if (lib == null) {
+            return null;
+        }
+        WolfMoonPlayerGameData playerGameData = gameRunInfo.getData();
+        Set<Integer> libTypeSet = lib.getLibTypeSet();
+        //检查结果库类型是不是2或者6
+        boolean libTypeMatch = libTypeSet != null && (libTypeSet.contains(WolfMoonConstant.SpecialMode.WILD_MODEL) || libTypeSet.contains(WolfMoonConstant.SpecialMode.FREE_FIXED_STACKED_WILD));
+        //是不是选的固定堆叠
+        boolean freeTypeMatch = playerGameData != null && playerGameData.getFreeGameType() == 2;
+        if (!libTypeMatch && !freeTypeMatch) {
+            return null;
+        }
+
+        int[] iconArr = gameRunInfo.getIconArr();
+        if (iconArr == null || iconArr.length <= 1) {
+            return null;
+        }
+
+        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(gameManager.getGameType());
+        if (baseInitCfg == null) {
+            return null;
+        }
+        int rows = baseInitCfg.getRows();
+        int cols = baseInitCfg.getCols();
+
+        List<Integer> result = new ArrayList<>();
+        for (int col = 1; col <= cols; col++) {
+            int beginIndex = (col - 1) * rows + 1;
+            int endIndex = beginIndex + rows - 1;
+            if (endIndex >= iconArr.length) {
+                break;
+            }
+            boolean allWild = true;
+            for (int i = beginIndex; i <= endIndex; i++) {
+                if (iconArr[i] != WolfMoonConstant.BaseElement.WILD) {
+                    allWild = false;
+                    break;
+                }
+            }
+            if (allWild) {
+                result.add(col);
+            }
+        }
+        return result;
     }
 }

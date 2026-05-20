@@ -12,6 +12,7 @@ public interface WolfMoonConstant {
     interface SpecialMode {
         //普通旋转
         int TYPE_NORMAL = 1;
+        int WILD_MODEL = 2;
         int FREE_CHOOSE = 3;
         //高赔付符号免费游戏
         int FREE_HIGH_PAY = 5;

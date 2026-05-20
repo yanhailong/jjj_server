@@ -34,6 +34,10 @@ public class ResAirRaidEnterGame extends AbstractResponse {
     public List<KVInfo> autoCashOutTargets;
     @ProtoDesc("倍数增长率(万分比, 如1200表示12%)")
     public int growthRate;
+    @ProtoDesc("如果是飞行阶段，表示飞行了多久")
+    public long hasFlyms;
+    @ProtoDesc("自动兑现倍数")
+    public List<KVInfo> autoCashOut;
 
     public ResAirRaidEnterGame(int code) {
         super(code);

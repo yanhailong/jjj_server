@@ -29,6 +29,9 @@ public interface AirRaidConstant {
         //自动兑现响应
         int RES_AIR_RAID_AUTO_CASH_OUT = BASE_MSG_PREFIX | 0x8;
 
+        //获取个人历史记录
+        int RES_AIR_RAID_RECORD = BASE_MSG_PREFIX | 0x9;
+
         int NOTIFY_AIR_RAID_BET = BASE_MSG_PREFIX | 0xA;
         //排行榜请求
         int REQ_AIR_RAID_RANK = BASE_MSG_PREFIX | 0xB;
@@ -55,6 +58,11 @@ public interface AirRaidConstant {
         int BET_PHASE_TIME_BEFORE_END_MILLS = 2000;
         //结算阶段
         int CRASHED_PHASE_TIME_MILLS = 3000;
+
+        //个人历史记录保留时长(ms) — 30 天
+        long RECORD_RETAIN_MS = 30L * 24 * 60 * 60 * 1000;
+        //个人历史记录保留条数上限
+        int RECORD_LIMIT = 100;
     }
 
     interface Odds{

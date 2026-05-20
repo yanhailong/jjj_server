@@ -1,6 +1,7 @@
 package com.jjg.game.ploy.games.highlowpoker;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
@@ -177,6 +178,8 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
             //失败了
             res.nextCardId = nextCard.getValue();
             res.currentCoin = 0;
+            res.over = true;
+            res.rate = rate;
             playerGameData.setCurrentCoin(0);
             playerGameData.addHistory(Pair.newPair(oldCard.getValue(), rate));
             resetData(playerGameData, 0);
@@ -202,7 +205,10 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
             long tax = winResult.data.getFirst().getTax();
             res.exchangeNum = playerGameData.getCurrentCoin() - tax;
             res.nextCardId = nextCard.getValue();
+            res.over = true;
+            res.rate = rate;
             resetData(playerGameData, tax);
+            log.info("玩家达到局数上限自动退 playerId = {},size = {}", playerController.playerId(), playerGameData.getHistory().size());
             return res;
         }
         playerGameData.setCurrentIndex(nextIndex);
@@ -210,6 +216,8 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
         //重新计算赔率
         res.chooseRate = highLowUtil.calculateAllChooseRate(playerGameData.getCard(), playerGameData.getCurrentIndex(), returnRate);
         res.nextCardId = nextCard.getValue();
+        res.rate = rate;
+        log.info("玩家选择成功 playerId = {},chooseId = {},res = {}", playerController.playerId(), req.chooseId, JSON.toJSONString(res));
         return res;
     }
 

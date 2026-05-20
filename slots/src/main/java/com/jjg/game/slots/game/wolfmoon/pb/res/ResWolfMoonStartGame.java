@@ -39,6 +39,8 @@ public class ResWolfMoonStartGame extends AbstractResponse {
     public WolfMoonWinIconInfo rewardIconInfo;
     @ProtoDesc("消除后添加图标的信息")
     public List<WolfMoonCascade> addIconInfoList;
+    @ProtoDesc("合成列")
+    public List<Integer> composeColums;
 
     public ResWolfMoonStartGame(int code) {
         super(code);

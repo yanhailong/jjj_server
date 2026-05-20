@@ -133,7 +133,6 @@ public abstract class AbstractWolfMoonGameManager extends AbstractSlotsGameManag
         }
         //检查是否中大奖
         rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
-        log.debug("id = {}", resultLib.getId());
         gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);

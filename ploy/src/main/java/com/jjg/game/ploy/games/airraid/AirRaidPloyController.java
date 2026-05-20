@@ -290,6 +290,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
     private void doSettle() {
         int crashMul = gameRoom.getCrashMultiplier();
         int settleRoundId = gameRoom.getRoundId();
+        long now = System.currentTimeMillis();
         for (AirRaidPlayerPloyGameData playerData : this.gameDataMap.values()) {
             long playerId = playerData.playerId();
             int roomCfgId = playerData.getRoomCfgId();
@@ -318,7 +319,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
                             record.setCrashMultiplier(crashMul);
                             record.setCashOutMultiplier(betData.getCashOutMultiplier());
                             record.setWinAmount(betData.getWinAmount());
-                            record.setCashedOut(betData.isCashedOut());
+                            record.setTimestamp(now);
                             recordDao.saveRecord(record);
                         } catch (Exception ex) {
                             log.error("AirRaid 保存记录异常 playerId={}, betIndex={}", playerId, e.getKey(), ex);
@@ -519,6 +520,21 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         }
 
         res.growthRate = this.airRaidRuleConfig.getGrowthRate();
+
+        if (gameRoom.getPhase() == AirRaidPhase.FLYING) {
+            res.hasFlyms = System.currentTimeMillis() - gameRoom.getPhaseStartTime();
+        }
+
+        if (playerGameData.getAutoCashOutTargetMap() != null && !playerGameData.getAutoCashOutTargetMap().isEmpty()) {
+            res.autoCashOut = new ArrayList<>();
+            playerGameData.getAutoCashOutTargetMap().forEach((k, v) ->{
+                KVInfo kvInfo = new KVInfo();
+                kvInfo.key = k;
+                kvInfo.value = v;
+                res.autoCashOut.add(kvInfo);
+            });
+        }
+
         return res;
     }
 
@@ -568,12 +584,6 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
             if (cfg == null || cfg.getLineBetScore() == null) {
                 res.code = Code.SAMPLE_ERROR;
-                return res;
-            }
-            boolean match = cfg.getLineBetScore().stream().anyMatch(b -> b == bet);
-            if (!match) {
-                res.code = Code.PARAM_ERROR;
-                log.warn("AirRaid 下注额不在配置中 playerId={}, bet={}", playerGameData.playerId(), bet);
                 return res;
             }
 
@@ -769,7 +779,28 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
     @Override
     public AbstractMessage reqPloyRecord(PlayerController playerController, ReqPloyRecord req) {
-        return null;
+        ResAirRaidRecord res = new ResAirRaidRecord(Code.SUCCESS);
+        List<AirRaidRecord> list = recordDao.findRecords(
+                playerController.playerId(),
+                playerController.getPlayer().getRoomCfgId(),
+                req.pageIndex,
+                AirRaidRecord.class);
+        if (list == null || list.isEmpty()) {
+            return res;
+        }
+        List<AirRaidRecordInfo> infoList = new ArrayList<>(list.size());
+        for (AirRaidRecord r : list) {
+            AirRaidRecordInfo info = new AirRaidRecordInfo();
+            info.betAmount = r.getBetAmount();
+            info.cashOutMultiplier = r.getCashOutMultiplier();
+            info.winAmount = r.getWinAmount();
+            info.timestamp = r.getTimestamp();
+            infoList.add(info);
+        }
+        res.records = infoList;
+        res.pageIndex = req.pageIndex;
+        res.totalPages = recordDao.allPages(playerController.playerId(), playerController.getPlayer().getRoomCfgId(), AirRaidRecord.class);
+        return res;
     }
 
     /**
@@ -788,9 +819,9 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         int currentRoundId = gameRoom.getRoundId();
         boolean currentRoundCrashed = gameRoom.getPhase() == AirRaidPhase.CRASHED;
         switch (rankType) {
-            case 1 -> res.rankList = airRaidRankDao.getMultiplierRank(period, currentRoundId, currentRoundCrashed);
-            case 2 -> res.rankList = airRaidRankDao.getWinRank(period, currentRoundId, currentRoundCrashed);
-            default -> res.rankList = airRaidRankDao.getRoundRank(period);
+            case 1 -> res.rankList = airRaidRankDao.getWinRank(period, currentRoundId, currentRoundCrashed);
+            case 2 -> res.rankList = airRaidRankDao.getRoundRank(period);
+            default -> res.rankList = airRaidRankDao.getMultiplierRank(period, currentRoundId, currentRoundCrashed);
         }
         res.rankType = rankType;
         res.period = period;
