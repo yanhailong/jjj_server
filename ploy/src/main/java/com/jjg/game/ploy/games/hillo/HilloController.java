@@ -374,11 +374,6 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
             return logAutoBetStatusAndReturn("取消自动投注", playerController.playerId(), res);
         }
 
-        PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
-        if (cfg != null && playerGameData.hasActiveGame() && playerGameData.getCurrentCoin() > 0) {
-            // 取消自动投注时，如果当前局已有可兑现奖励，先兑现再停止，避免丢失玩家已赢奖励。
-            fillAutoExchangeResult(res, playerGameData, cfg);
-        }
         playerGameData.clearAutoBet();
         res.autoBetting = false;
         return logAutoBetStatusAndReturn("取消自动投注", playerController.playerId(), res);
