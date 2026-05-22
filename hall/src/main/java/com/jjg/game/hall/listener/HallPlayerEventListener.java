@@ -223,7 +223,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 accountDao.save(updatedAccount);
             }
 
-            SimPlayerGameData simPlayerGameData = simManager.getGameData(player.getId(), true);
+            SimPlayerGameData simPlayerGameData = simManager.getSimPlayerGameDataFromDB(player.getId());
 
             res.playerId = player.getId();
             res.nickName = player.getNickName();

@@ -1,12 +1,10 @@
 package com.jjg.game.sim.data;
 
-import com.jjg.game.core.data.PlayerController;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author 11
@@ -15,9 +13,9 @@ import java.util.Set;
 @Document
 public class SimPlayerGameData {
     @Id
-    private long id;
-    @Transient
-    private transient PlayerController playerController;
+    private long playerId;
+    //赌场信息
+    private CasinoData casinoData;
     //研究院等级
     private int researchId;
     //体力值
@@ -26,23 +24,31 @@ public class SimPlayerGameData {
     private int power;
     //研究点 研究点类型：1.普通 2.珍惜  -> 数量
     private Map<Integer, Integer> researchPointMap;
-    //技能 gameType -> skills
-    private Map<Integer, Set<Integer>> skillsMap;
+    //是否已完成新手引导
+    private boolean guide;
+    //知名度
+    private int awareness;
+    //拥有的游客 VisitorQuest表
+    private Map<Integer, GuestData> guestMap;
+    //上次生成游客时间(ms)
+    private long lastGenerateTime;
+    //上次离线时间 (ms), 用于长/短时掉线判定
+    private long lastOfflineTime;
 
-    public long getId() {
-        return id;
+    public long getPlayerId() {
+        return playerId;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setPlayerId(long playerId) {
+        this.playerId = playerId;
     }
 
-    public PlayerController getPlayerController() {
-        return playerController;
+    public CasinoData getCasinoData() {
+        return casinoData;
     }
 
-    public void setPlayerController(PlayerController playerController) {
-        this.playerController = playerController;
+    public void setCasinoData(CasinoData casinoData) {
+        this.casinoData = casinoData;
     }
 
     public int getResearchId() {
@@ -77,12 +83,51 @@ public class SimPlayerGameData {
         this.researchPointMap = researchPointMap;
     }
 
-    public Map<Integer, Set<Integer>> getSkillsMap() {
-        return skillsMap;
+    public boolean isGuide() {
+        return guide;
     }
 
-    public void setSkillsMap(Map<Integer, Set<Integer>> skillsMap) {
-        this.skillsMap = skillsMap;
+    public void setGuide(boolean guide) {
+        this.guide = guide;
+    }
+
+    public int getAwareness() {
+        return awareness;
+    }
+
+    public void setAwareness(int awareness) {
+        this.awareness = awareness;
+    }
+
+    public Map<Integer, GuestData> getGuestMap() {
+        return guestMap;
+    }
+
+    public void setGuestMap(Map<Integer, GuestData> guestMap) {
+        this.guestMap = guestMap;
+    }
+
+    public long getLastGenerateTime() {
+        return lastGenerateTime;
+    }
+
+    public void setLastGenerateTime(long lastGenerateTime) {
+        this.lastGenerateTime = lastGenerateTime;
+    }
+
+    public long getLastOfflineTime() {
+        return lastOfflineTime;
+    }
+
+    public void setLastOfflineTime(long lastOfflineTime) {
+        this.lastOfflineTime = lastOfflineTime;
+    }
+
+    /**
+     * 当前是否处于曝光状态
+     */
+    public boolean isExposed(long now) {
+        return this.casinoData.getExposureEndTime() > now;
     }
 
     /**
@@ -122,5 +167,19 @@ public class SimPlayerGameData {
         }
 
         return true;
+    }
+
+    public GuestData findGuestData(int guestId) {
+        if (this.guestMap == null || this.guestMap.isEmpty()) {
+            return null;
+        }
+        return this.guestMap.get(guestId);
+    }
+
+    public void addGuest(GuestData guestData) {
+        if(this.guestMap == null){
+            this.guestMap = new HashMap<>();
+        }
+        this.guestMap.put(guestData.getId(), guestData);
     }
 }

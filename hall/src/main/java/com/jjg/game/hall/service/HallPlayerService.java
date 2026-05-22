@@ -31,6 +31,7 @@ import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.pb.res.ResFunctionOpenList;
 import com.jjg.game.hall.vip.service.VipService;
 import com.jjg.game.sampledata.bean.GameFunctionCfg;
+import com.jjg.game.sim.service.SimPlayerGameDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -69,6 +70,8 @@ public class HallPlayerService extends AbstractPlayerService implements ConfigEx
     private GameFunctionService gameFunctionService;
     @Autowired
     private PlayerSnapshotService playerSnapshotService;
+    @Autowired
+    private SimPlayerGameDataService simPlayerGameDataService;
 
     /**
      * 仅在登录时调用
@@ -227,6 +230,7 @@ public class HallPlayerService extends AbstractPlayerService implements ConfigEx
         playerSessionTokenDao.delToken(playerId);
         accountDao.moveToMongo(playerId);
         playerSnapshotService.dumpToMongo(playerId);
+        simPlayerGameDataService.moveToMongo(playerId);
         return true;
     }
 

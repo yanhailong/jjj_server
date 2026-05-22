@@ -19,8 +19,12 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "CasinoStatsSheet";
 
+  /** 游客基础来访间隔(秒) */
+  protected int BaseVisitInterval;
   /** 开启曝光所需值 */
   protected int ExposureValue;
+  /** 离线收益时长（分） */
+  protected int OfflineDuration;
   /** 基础繁荣度 */
   protected int Prosperity;
   /** 升级消耗道具 */
@@ -29,12 +33,24 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   protected int UpgradeOutput;
   /** 曝光持续基础时长（秒） */
   protected int ViewableDuration;
+  /** 曝光度来访间隔系数 */
+  protected int VisitIntervalCoefficient;
   /** 等级 */
   protected int level;
+
+  /** 返回游客基础来访间隔(秒) */
+  public int getBaseVisitInterval() {
+    return BaseVisitInterval;
+  }
 
   /** 返回开启曝光所需值 */
   public int getExposureValue() {
     return ExposureValue;
+  }
+
+  /** 返回离线收益时长（分） */
+  public int getOfflineDuration() {
+    return OfflineDuration;
   }
 
   /** 返回基础繁荣度 */
@@ -55,6 +71,11 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   /** 返回曝光持续基础时长（秒） */
   public int getViewableDuration() {
     return ViewableDuration;
+  }
+
+  /** 返回曝光度来访间隔系数 */
+  public int getVisitIntervalCoefficient() {
+    return VisitIntervalCoefficient;
   }
 
   /** 返回等级 */

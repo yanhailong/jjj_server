@@ -158,7 +158,6 @@ public class GameDataManager {
     containerMap.put(GiftPackCfg.class, new GiftPackCfgContainer());
     containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
     containerMap.put(GrowthFundCfg.class, new GrowthFundCfgContainer());
-    containerMap.put(GuestStatsCfg.class, new GuestStatsCfgContainer());
     containerMap.put(InteractionAreasTableCfg.class, new InteractionAreasTableCfgContainer());
     containerMap.put(InteractiveDevicesTableCfg.class, new InteractiveDevicesTableCfgContainer());
     containerMap.put(IponeAreacodeConfigCfg.class, new IponeAreacodeConfigCfgContainer());
@@ -207,7 +206,9 @@ public class GameDataManager {
     containerMap.put(UndergarmentCfg.class, new UndergarmentCfgContainer());
     containerMap.put(UpcomingMobileGameCfg.class, new UpcomingMobileGameCfgContainer());
     containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
-    containerMap.put(VisitorBehaviorCfg.class, new VisitorBehaviorCfgContainer());
+    containerMap.put(VisitorCfg.class, new VisitorCfgContainer());
+    containerMap.put(VisitorLevelCfg.class, new VisitorLevelCfgContainer());
+    containerMap.put(VisitorStarCfg.class, new VisitorStarCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
     containerMap.put(WealthRouletteRewardCfg.class, new WealthRouletteRewardCfgContainer());
     containerMap.put(WinPosWeightCfg.class, new WinPosWeightCfgContainer());
@@ -1092,18 +1093,6 @@ public class GameDataManager {
     return getInstance().getCfgContainer(GrowthFundCfg.class).getCfgBeanList();
   }
 
-  public static GuestStatsCfg getGuestStatsCfg(int key) {
-    return getInstance().getCfgContainer(GuestStatsCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, GuestStatsCfg> getGuestStatsCfgMap() {
-    return getInstance().getCfgContainer(GuestStatsCfg.class).getCfgBeanMap();
-  }
-
-  public static List<GuestStatsCfg> getGuestStatsCfgList() {
-    return getInstance().getCfgContainer(GuestStatsCfg.class).getCfgBeanList();
-  }
-
   public static InteractionAreasTableCfg getInteractionAreasTableCfg(int key) {
     return getInstance().getCfgContainer(InteractionAreasTableCfg.class).getCfgBeanMap().get(key);
   }
@@ -1680,16 +1669,40 @@ public class GameDataManager {
     return getInstance().getCfgContainer(ViplevelCfg.class).getCfgBeanList();
   }
 
-  public static VisitorBehaviorCfg getVisitorBehaviorCfg(int key) {
-    return getInstance().getCfgContainer(VisitorBehaviorCfg.class).getCfgBeanMap().get(key);
+  public static VisitorCfg getVisitorCfg(int key) {
+    return getInstance().getCfgContainer(VisitorCfg.class).getCfgBeanMap().get(key);
   }
 
-  public static Map<Integer, VisitorBehaviorCfg> getVisitorBehaviorCfgMap() {
-    return getInstance().getCfgContainer(VisitorBehaviorCfg.class).getCfgBeanMap();
+  public static Map<Integer, VisitorCfg> getVisitorCfgMap() {
+    return getInstance().getCfgContainer(VisitorCfg.class).getCfgBeanMap();
   }
 
-  public static List<VisitorBehaviorCfg> getVisitorBehaviorCfgList() {
-    return getInstance().getCfgContainer(VisitorBehaviorCfg.class).getCfgBeanList();
+  public static List<VisitorCfg> getVisitorCfgList() {
+    return getInstance().getCfgContainer(VisitorCfg.class).getCfgBeanList();
+  }
+
+  public static VisitorLevelCfg getVisitorLevelCfg(int key) {
+    return getInstance().getCfgContainer(VisitorLevelCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, VisitorLevelCfg> getVisitorLevelCfgMap() {
+    return getInstance().getCfgContainer(VisitorLevelCfg.class).getCfgBeanMap();
+  }
+
+  public static List<VisitorLevelCfg> getVisitorLevelCfgList() {
+    return getInstance().getCfgContainer(VisitorLevelCfg.class).getCfgBeanList();
+  }
+
+  public static VisitorStarCfg getVisitorStarCfg(int key) {
+    return getInstance().getCfgContainer(VisitorStarCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, VisitorStarCfg> getVisitorStarCfgMap() {
+    return getInstance().getCfgContainer(VisitorStarCfg.class).getCfgBeanMap();
+  }
+
+  public static List<VisitorStarCfg> getVisitorStarCfgList() {
+    return getInstance().getCfgContainer(VisitorStarCfg.class).getCfgBeanList();
   }
 
   public static WarehouseCfg getWarehouseCfg(int key) {

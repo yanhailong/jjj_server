@@ -7,6 +7,7 @@ import com.jjg.game.core.service.OrderService;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureService;
 import com.jjg.game.hall.service.HallPlayerService;
+import com.jjg.game.sim.service.SimPlayerGameDataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

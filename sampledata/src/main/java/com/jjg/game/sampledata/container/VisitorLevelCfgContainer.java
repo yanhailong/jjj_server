@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.GuestStatsCfg;
+import com.jjg.game.sampledata.bean.VisitorLevelCfg;
 
 /**
- * GuestStats.xlsx配置管理容器
+ * VisitorLevel.xlsx配置管理容器
  *
- * @excelName GuestStats.xlsx
- * @sheetName GuestStats
+ * @excelName VisitorLevel.xlsx
+ * @sheetName VisitorLevel
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class GuestStatsCfgContainer extends BaseCfgContainer<GuestStatsCfg> {
+public class VisitorLevelCfgContainer extends BaseCfgContainer<VisitorLevelCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -27,23 +27,23 @@ public class GuestStatsCfgContainer extends BaseCfgContainer<GuestStatsCfg> {
   }
 
   @Override
-  public GuestStatsCfgContainer getNewContainer(){
-    return new GuestStatsCfgContainer();
+  public VisitorLevelCfgContainer getNewContainer(){
+    return new VisitorLevelCfgContainer();
   }
 
-  public GuestStatsCfgContainer() {
+  public VisitorLevelCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("GuestStats.xlsx");
+    excelNameList.add("VisitorLevel.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected GuestStatsCfg createNewBean() {
-    return new GuestStatsCfg();
+  protected VisitorLevelCfg createNewBean() {
+    return new VisitorLevelCfg();
   }
 }

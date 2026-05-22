@@ -21,8 +21,8 @@ public class InteractionAreasTableCfg extends BaseCfgBean {
 
   /** 建筑等级上限 */
   protected int BuildingLevelCap;
-  /** 设备数量上限 */
-  protected int DeviceLimit;
+  /** 设备ID */
+  protected List<Integer> DeviceLimit;
   /** 楼层 */
   protected int Floor;
   /** 交互耗时(秒) */
@@ -37,8 +37,8 @@ public class InteractionAreasTableCfg extends BaseCfgBean {
     return BuildingLevelCap;
   }
 
-  /** 返回设备数量上限 */
-  public int getDeviceLimit() {
+  /** 返回设备ID */
+  public List<Integer> getDeviceLimit() {
     return DeviceLimit;
   }
 

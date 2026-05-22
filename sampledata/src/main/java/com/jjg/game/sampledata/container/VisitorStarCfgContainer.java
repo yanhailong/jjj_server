@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.VisitorBehaviorCfg;
+import com.jjg.game.sampledata.bean.VisitorStarCfg;
 
 /**
- * VisitorBehavior.xlsx配置管理容器
+ * VisitorStar.xlsx配置管理容器
  *
- * @excelName VisitorBehavior.xlsx
- * @sheetName VisitorBehavior
+ * @excelName VisitorStar.xlsx
+ * @sheetName VisitorStar
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class VisitorBehaviorCfgContainer extends BaseCfgContainer<VisitorBehaviorCfg> {
+public class VisitorStarCfgContainer extends BaseCfgContainer<VisitorStarCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -27,23 +27,23 @@ public class VisitorBehaviorCfgContainer extends BaseCfgContainer<VisitorBehavio
   }
 
   @Override
-  public VisitorBehaviorCfgContainer getNewContainer(){
-    return new VisitorBehaviorCfgContainer();
+  public VisitorStarCfgContainer getNewContainer(){
+    return new VisitorStarCfgContainer();
   }
 
-  public VisitorBehaviorCfgContainer() {
+  public VisitorStarCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("VisitorBehavior.xlsx");
+    excelNameList.add("VisitorStar.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected VisitorBehaviorCfg createNewBean() {
-    return new VisitorBehaviorCfg();
+  protected VisitorStarCfg createNewBean() {
+    return new VisitorStarCfg();
   }
 }
