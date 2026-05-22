@@ -6,6 +6,8 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.manager.SlotsFactoryManager;
@@ -91,6 +93,15 @@ public class SlotsGMHandler implements GmListener {
                         }
                     }
                 });
+            } else if ("skillLevelUp".equalsIgnoreCase(gmOrders[0])) {
+                int skillId = Integer.parseInt(gmOrders[1]);
+                ResearchSkillsCfg cfg = GameDataManager.getResearchSkillsCfg(skillId);
+                if (cfg == null) {
+                    res.code = Code.FAIL;
+                    log.warn("gm修改技能失败，未找到该技能 skillId={}", skillId);
+                    return res;
+                }
+                res.code = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId()).gmLevelUpSkill(playerController, cfg);
             } else {
                 res.code = Code.NOT_FOUND;
             }

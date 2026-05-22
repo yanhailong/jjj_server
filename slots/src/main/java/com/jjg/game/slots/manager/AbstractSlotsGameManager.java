@@ -2497,13 +2497,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         for (int skillPropId : this.skillPropIdsSet) {
             PropCfg cfg = GameDataManager.getPropCfg(skillPropId);
-            Map<Integer, ResearchSkillsCfg> skillLevelMap = this.skillsMap.get(skillPropId);
-
             if (cfg.getSkillId() == null || cfg.getSkillId().isEmpty()) {
-                ResearchSkillsCfg skillCfg = skillLevelMap.get(0);
-                if (skillCfg != null) {
-                    playerGameData.addSkill(skillCfg.getId());
-                }
+                playerGameData.addSkill(cfg.getId());
             }
         }
     }
@@ -2696,5 +2691,15 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
         }
         return list;
+    }
+
+    public int gmLevelUpSkill(PlayerController playerController, ResearchSkillsCfg cfg) {
+        T playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.warn("gm修改allData失败 playerId = {}", playerController.playerId());
+            return Code.FAIL;
+        }
+        playerGameData.changeSkillLevel(cfg.getAttr(), cfg.getGrade());
+        return Code.SUCCESS;
     }
 }
