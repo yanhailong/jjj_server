@@ -10,10 +10,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.controller.SimGameController;
-import com.jjg.game.sim.pb.req.ReqFinishGuide;
-import com.jjg.game.sim.pb.req.ReqSimEnterGame;
-import com.jjg.game.sim.pb.req.ReqSimExitGame;
-import com.jjg.game.sim.pb.req.ReqSyncGuestLocation;
+import com.jjg.game.sim.pb.req.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,6 +73,17 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_SYNC_GUEST_DEST)
     public void reqSyncGuestDest(PlayerController playerController, ReqSyncGuestLocation req) {
         simManager.onGuestLcation(playerController, req.guestId, req.buildingId, req.enter);
+    }
+
+
+    @Command(SimConstant.MsgBean.REQ_SLOTS_GET_SKILLS)
+    public void reqSlotsGetSkills(PlayerController playerController, ReqSlotsGetSkills req) {
+
+    }
+
+    @Command(SimConstant.MsgBean.REQ_SLOTS_UPGRADE_SKILL)
+    public void reqSlotsUpgradeSkill(PlayerController playerController, ReqSlotsUpgradeSkill req) {
+
     }
 
     @Override

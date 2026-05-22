@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.goldsnakefortune.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
@@ -14,7 +15,6 @@ import com.jjg.game.slots.game.goldsnakefortune.GoldSnakeFortuneConstant;
 import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortuneAwardLineInfo;
 import com.jjg.game.slots.game.goldsnakefortune.data.GoldSnakeFortuneResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
-import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -221,7 +221,7 @@ public class GoldSnakeFortuneGenerateManager extends AbstractSlotsGenerateManage
             int randCount = specialAuxiliaryAwardInfo.getRandCount();
 
             int prop = cfg.getAwardTypeA().get(1);
-            if (!SlotsUtil.calProp(prop)) {
+            if (!PropUtil.calProp(prop)) {
                 continue;
             }
 

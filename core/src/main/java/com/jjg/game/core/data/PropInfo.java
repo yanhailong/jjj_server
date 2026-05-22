@@ -1,4 +1,4 @@
-package com.jjg.game.slots.data;
+package com.jjg.game.core.data;
 
 import com.jjg.game.common.utils.RandomUtils;
 
@@ -8,7 +8,7 @@ import java.util.Set;
 
 /**
  * @author 11
- * @date 2025/6/16 13:40
+ * @date 2026/5/22
  */
 public class PropInfo implements Cloneable{
     private int sum;
@@ -16,6 +16,8 @@ public class PropInfo implements Cloneable{
     private Map<Integer, int[]> propMap = new HashMap<>();
     //元素的最大出现次数
     private Map<Integer, Integer> maxShowLimitMap;
+    //数据
+    private Map<Integer, int[]> dataSectionMap = null;
 
     public int getSum() {
         return sum;
@@ -37,9 +39,17 @@ public class PropInfo implements Cloneable{
         this.sum += value;
     }
 
-    public void addProp(Integer key, int begin, int end,int maxLimit) {
-        addProp(key,begin,end);
-        if(this.maxShowLimitMap == null) {
+    public Map<Integer, int[]> getDataSectionMap() {
+        return dataSectionMap;
+    }
+
+    public void setDataSectionMap(Map<Integer, int[]> dataSectionMap) {
+        this.dataSectionMap = dataSectionMap;
+    }
+
+    public void addProp(Integer key, int begin, int end, int maxLimit) {
+        addProp(key, begin, end);
+        if (this.maxShowLimitMap == null) {
             this.maxShowLimitMap = new HashMap<>();
         }
         this.maxShowLimitMap.put(key, maxLimit);
@@ -50,18 +60,33 @@ public class PropInfo implements Cloneable{
         this.sum = end;
     }
 
+    public void addData(Integer key, int begin, int end){
+        if(dataSectionMap == null){
+            dataSectionMap = new HashMap<>();
+        }
+        this.dataSectionMap.put(key, new int[]{begin, end});
+    }
+
+    public int[] getDataSection(int key){
+        if(dataSectionMap == null){
+            return null;
+        }
+        return dataSectionMap.get(key);
+    }
+
     /**
      * 随机获取一个key
+     *
      * @return
      */
     public Integer getRandKey() {
-        if(this.sum < 1){
+        if (this.sum < 1) {
             return null;
         }
         int rand = RandomUtils.randomInt(this.sum);
 //        System.out.println("rand : " + rand + ", sum = " + this.sum + ", propMap = " + JSON.toJSONString(this.propMap));
-        for(Map.Entry<Integer,int[]> en: this.propMap.entrySet()){
-            if(rand >= en.getValue()[0] && rand < en.getValue()[1]){
+        for (Map.Entry<Integer, int[]> en : this.propMap.entrySet()) {
+            if (rand >= en.getValue()[0] && rand < en.getValue()[1]) {
                 return en.getKey();
             }
         }
@@ -69,14 +94,14 @@ public class PropInfo implements Cloneable{
     }
 
     public Integer getRandKey(Set<Integer> exlude) {
-        if(this.sum < 1){
+        if (this.sum < 1) {
             return null;
         }
 
-        if(exlude == null || exlude.isEmpty()){
+        if (exlude == null || exlude.isEmpty()) {
             int rand = RandomUtils.randomInt(this.sum);
-            for(Map.Entry<Integer,int[]> en: this.propMap.entrySet()){
-                if(rand >= en.getValue()[0] && rand < en.getValue()[1]){
+            for (Map.Entry<Integer, int[]> en : this.propMap.entrySet()) {
+                if (rand >= en.getValue()[0] && rand < en.getValue()[1]) {
                     return en.getKey();
                 }
             }
@@ -87,12 +112,12 @@ public class PropInfo implements Cloneable{
     }
 
     public int getMaxShowLimit(int key) {
-        if(this.maxShowLimitMap == null) {
+        if (this.maxShowLimitMap == null) {
             return Integer.MAX_VALUE;
         }
 
         Integer v = this.maxShowLimitMap.get(key);
-        if(v == null) {
+        if (v == null) {
             return Integer.MAX_VALUE;
         }
         return v;

@@ -8,8 +8,11 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
+import com.jjg.game.sim.service.SimSkillService;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.data.SlotsPlayerGameData;
+import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.manager.SlotsFactoryManager;
 import com.jjg.game.slots.manager.SlotsRoomManager;
 import org.slf4j.Logger;
@@ -33,6 +36,8 @@ public class SlotsGMHandler implements GmListener {
     private SlotsPoolDao slotsPoolDao;
     @Autowired
     private SlotsRoomManager slotsRoomManager;
+    @Autowired
+    private SimSkillService simSkillService;
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
@@ -101,7 +106,14 @@ public class SlotsGMHandler implements GmListener {
                     log.warn("gm修改技能失败，未找到该技能 skillId={}", skillId);
                     return res;
                 }
-                res.code = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId()).gmLevelUpSkill(playerController, cfg);
+                AbstractSlotsGameManager<?, ?, ?> gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+                SlotsPlayerGameData playerGameData = gameManager == null ? null : gameManager.getPlayerGameData(playerController.playerId());
+                if (playerGameData == null) {
+                    res.code = Code.FAIL;
+                    log.warn("gm修改技能失败，未找到玩家信息 playerId={}", playerController.playerId());
+                    return res;
+                }
+                res.code = simSkillService.gmLevelUpSkill(playerGameData.getSimSkillsData(), cfg);
             } else {
                 res.code = Code.NOT_FOUND;
             }

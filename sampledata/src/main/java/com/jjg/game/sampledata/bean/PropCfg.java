@@ -27,6 +27,8 @@ public class PropCfg extends BaseCfgBean {
   protected int subIdx;
   /** 组别 */
   protected int team;
+  /** 类型 */
+  protected int type;
 
   /** 返回游戏id */
   public int getGameType() {
@@ -46,6 +48,11 @@ public class PropCfg extends BaseCfgBean {
   /** 返回组别 */
   public int getTeam() {
     return team;
+  }
+
+  /** 返回类型 */
+  public int getType() {
+    return type;
   }
 
   @Override

@@ -8,17 +8,16 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.game.luckymouse.LuckyMouseConstant;
 import com.jjg.game.slots.game.luckymouse.dao.LuckyMouseResultLibDao;
 import com.jjg.game.slots.game.luckymouse.data.*;
 import com.jjg.game.slots.game.luckymouse.pb.LuckyMouseWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import com.jjg.game.slots.utils.SlotsUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -116,7 +115,7 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
                     , playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus(), resultLib.getSpecialAuxiliaryInfoList().getFirst().getFreeGames());
         } else {
             // 随机触发假福鼠
-            if (SlotsUtil.calProp(this.fake_fu_shu_prop)) {
+            if (PropUtil.calProp(this.fake_fu_shu_prop)) {
                 gameRunInfo.setStatus(LuckyMouseConstant.Status.FAKE_FU_SHU);
                 log.debug("触发假福鼠  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
             } else {

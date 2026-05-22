@@ -3,9 +3,10 @@ package com.jjg.game.ploy.games.airraid.manager;
 import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.data.PropInfo;
 import com.jjg.game.core.data.RobotPlayer;
+import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.core.utils.RobotUtil;
-import com.jjg.game.ploy.data.PropInfo;
 import com.jjg.game.ploy.games.airraid.dao.AirRaidRankDao;
 import com.jjg.game.ploy.games.airraid.data.AirRaidGameRoom;
 import com.jjg.game.ploy.games.airraid.data.AirRaidRoundBetBook;
@@ -15,7 +16,6 @@ import com.jjg.game.ploy.games.airraid.function.SyncCashOutsFunction;
 import com.jjg.game.ploy.games.airraid.pb.AirRaidPlayerInfo;
 import com.jjg.game.ploy.games.airraid.pb.cluster.BetSync;
 import com.jjg.game.ploy.games.airraid.pb.cluster.PlayerCashOut;
-import com.jjg.game.ploy.utils.PropUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.AirstrikeRobotCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
@@ -69,7 +69,7 @@ public class AirRaidRobotManager {
             addRobotCount = initRobotCount;
         } else {
             int addProp = RandomUtils.randomMinMax(cfg.getIncrease().get(0), cfg.getIncrease().get(1));
-            addRobotCount = PropUtils.propBase(addProp, initRobotCount);
+            addRobotCount = PropUtil.propBase(addProp, initRobotCount);
         }
 
         if (addRobotCount < 1) {
@@ -142,7 +142,7 @@ public class AirRaidRobotManager {
 
             //本次应兑现的机器人数 = 总数 * 万分比
             int cashInProp = RandomUtils.randomMinMax(cfg.getCashIn().get(0), cfg.getCashIn().get(1));
-            int cashOutCount = PropUtils.propBase(cashInProp, robotBets.size());
+            int cashOutCount = PropUtil.propBase(cashInProp, robotBets.size());
             if (cashOutCount < 1) {
                 return;
             }

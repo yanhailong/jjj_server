@@ -1,13 +1,10 @@
-package com.jjg.game.slots.pb;
+package com.jjg.game.sim.pb.res;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.slots.constant.SlotsConst;
-
-import java.util.List;
 
 /**
  * @author 11

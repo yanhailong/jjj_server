@@ -1,8 +1,8 @@
-package com.jjg.game.slots.utils;
+package com.jjg.game.core.utils;
 
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.slots.data.PropInfo;
+import com.jjg.game.core.data.PropInfo;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -11,9 +11,9 @@ import java.util.Map;
 
 /**
  * @author 11
- * @date 2025/7/22 17:41
+ * @date 2026/5/22
  */
-public class SlotsUtil {
+public class PropUtil {
     /**
      * 将 <值,权重>格式的map转化为PropInfo
      * @param map
@@ -162,5 +162,26 @@ public class SlotsUtil {
         }
         cloned.setSum(sum);
         return cloned;
+    }
+
+    private static final int tenThousand = 10000;
+
+    /**
+     * 计算baseNum的万分比的值
+     *
+     * @param prop
+     * @param baseNum
+     * @return
+     */
+    public static int propBase(int prop, int baseNum) {
+        if(prop < 1){
+            return 0;
+        }
+
+        if(prop >= tenThousand){
+            return baseNum;
+        }
+
+        return (int) ((long) baseNum * prop / tenThousand);
     }
 }

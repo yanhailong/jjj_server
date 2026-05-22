@@ -184,7 +184,6 @@ public class SlotsConst {
         public static final int ID_ROOM_PLAYER_ILDE_TIME_MILLS = 112;
     }
 
-
     public class SlotsCommon {
         public static final int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.SLOTS_COMMON << MessageConst.MessageCommon.RIGHT_MOVE;
 
@@ -195,13 +194,5 @@ public class SlotsConst {
         //获取游戏状态
         public static final int REQ_SLOTS_STATUS = BASE_MSG_PREFIX | 0x3;
         public static final int RES_SLOTS_STATUS = BASE_MSG_PREFIX | 0x4;
-
-        //获取技能
-        public static final int REQ_SLOTS_GET_SKILLS = BASE_MSG_PREFIX | 0x5;
-        public static final int RES_SLOTS_GET_SKILLS = BASE_MSG_PREFIX | 0x6;
-
-        //升级技能
-        public static final int REQ_SLOTS_UPGRADE_SKILL = BASE_MSG_PREFIX | 0x7;
-        public static final int RES_SLOTS_UPGRADE_SKILL = BASE_MSG_PREFIX | 0x8;
     }
 }

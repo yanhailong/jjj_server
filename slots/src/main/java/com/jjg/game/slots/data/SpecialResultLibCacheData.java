@@ -1,6 +1,6 @@
 package com.jjg.game.slots.data;
 
-import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.core.data.PropInfo;
 import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 

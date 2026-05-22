@@ -28,6 +28,19 @@ public interface SimConstant {
         //请求同步游客到达目的地
         int REQ_SYNC_GUEST_DEST = BASE_MSG_PREFIX | 0x8;
         int RES_SYNC_GUEST_DEST = BASE_MSG_PREFIX | 0x9;
+
+        //获取技能
+        int REQ_SLOTS_GET_SKILLS = BASE_MSG_PREFIX | 0xA;
+        int RES_SLOTS_GET_SKILLS = BASE_MSG_PREFIX | 0xB;
+
+        //升级技能
+        int REQ_SLOTS_UPGRADE_SKILL = BASE_MSG_PREFIX | 0xC;
+        int RES_SLOTS_UPGRADE_SKILL = BASE_MSG_PREFIX | 0xD;
+    }
+
+    interface PropConfig {
+        //下注金额
+        int TYPE_STAKE = 1;
     }
 
     interface Common {

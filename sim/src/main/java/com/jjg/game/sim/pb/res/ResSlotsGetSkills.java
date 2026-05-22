@@ -1,4 +1,4 @@
-package com.jjg.game.slots.pb;
+package com.jjg.game.sim.pb.res;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;

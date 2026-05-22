@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.dollarexpress.manager;
 
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.core.data.PropInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;

@@ -1,5 +1,7 @@
 package com.jjg.game.slots.data;
 
+import com.jjg.game.core.data.PropInfo;
+
 import java.util.HashMap;
 import java.util.Map;
 

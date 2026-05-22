@@ -5,12 +5,13 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.data.PropInfo;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.*;
-import com.jjg.game.slots.utils.SlotsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1393,7 +1394,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                     int girdId = en.getKey();
                     //检查是不是配置的图标
                     if (arr[girdId] == icon) {
-                        int newValue = SlotsUtil.calProp(prop, en.getValue());
+                        int newValue = PropUtil.calProp(prop, en.getValue());
                         sgInfo.getValueMap().put(girdId, newValue);
                     }
                 }
@@ -1574,7 +1575,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             tmpIconMap.computeIfAbsent(cfg.getType(), k -> new HashSet<>()).add(cfg.getElementId());
 
             if (cfg.getPostChangeElementId() != null && !cfg.getPostChangeElementId().isEmpty()) {
-                tmpBaseElementPostChangeMap.put(cfg.getElementId(), SlotsUtil.converMapToPropInfo(cfg.getPostChangeElementId()));
+                tmpBaseElementPostChangeMap.put(cfg.getElementId(), PropUtil.converMapToPropInfo(cfg.getPostChangeElementId()));
             }
         }
         this.iconsMap = tmpIconMap;
@@ -1638,7 +1639,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 tmpSpecialModeCfgMap.put(v.getType(), v);
 
                 if (v.getSpecialGroupGirdID() != null && !v.getSpecialGroupGirdID().isEmpty()) {
-                    tmpSpecialModeGroupGirdPropMap.put(v.getType(), SlotsUtil.converMapToPropInfo(v.getSpecialGroupGirdID()));
+                    tmpSpecialModeGroupGirdPropMap.put(v.getType(), PropUtil.converMapToPropInfo(v.getSpecialGroupGirdID()));
                 }
             }
         });
@@ -1663,15 +1664,15 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             config.setId(cfg.getId());
 
             //免费旋转
-            config.setTriggerCountPropInfo(SlotsUtil.converMapToPropInfo(cfg.getTriggerCount()));
+            config.setTriggerCountPropInfo(PropUtil.converMapToPropInfo(cfg.getTriggerCount()));
             //随机次数
-            config.setRandCountPropInfo(SlotsUtil.converMapToPropInfo(cfg.getRandCount()));
+            config.setRandCountPropInfo(PropUtil.converMapToPropInfo(cfg.getRandCount()));
             //修改图案策略组
-            config.setSpecialGroupGirdIDPropInfo(SlotsUtil.converMapToPropInfo(cfg.getSpecialGroupGirdID()));
+            config.setSpecialGroupGirdIDPropInfo(PropUtil.converMapToPropInfo(cfg.getSpecialGroupGirdID()));
             //奖励c
-            config.setAwardTypeCPropInfo(SlotsUtil.converMapToLimitPropInfo(cfg.getAwardTypeC()));
+            config.setAwardTypeCPropInfo(PropUtil.converMapToLimitPropInfo(cfg.getAwardTypeC()));
             //奖励d
-            config.setAwardTypeDPropInfo(SlotsUtil.converMapToPropInfo(cfg.getAwardTypeD()));
+            config.setAwardTypeDPropInfo(PropUtil.converMapToPropInfo(cfg.getAwardTypeD()));
 
             tmpSpecialAuxiliaryPropConfigMap.put(config.getId(), config);
         }
@@ -1695,13 +1696,13 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             config.setId(cfg.getId());
 
             //需要出现的元素
-            config.setShowIconPropInfo(SlotsUtil.converMapToPropInfo(cfg.getElement()));
+            config.setShowIconPropInfo(PropUtil.converMapToPropInfo(cfg.getElement()));
             //影响格子
-            config.setAffectGirdPropInfo(SlotsUtil.converMapToLimitPropInfo(cfg.getAffectGird()));
+            config.setAffectGirdPropInfo(PropUtil.converMapToLimitPropInfo(cfg.getAffectGird()));
             //随机次数
-            config.setRandCountPropInfo(SlotsUtil.converMapToPropInfo(cfg.getRandCount()));
+            config.setRandCountPropInfo(PropUtil.converMapToPropInfo(cfg.getRandCount()));
             //成功后赋值
-            config.setValuePropInfo(SlotsUtil.converMapToPropInfo(cfg.getValue()));
+            config.setValuePropInfo(PropUtil.converMapToPropInfo(cfg.getValue()));
 
 
             tmpSpecialGirdCfgMap.put(cfg.getId(), config);

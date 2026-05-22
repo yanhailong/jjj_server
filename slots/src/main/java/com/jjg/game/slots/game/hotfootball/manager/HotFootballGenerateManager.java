@@ -3,6 +3,8 @@ package com.jjg.game.slots.game.hotfootball.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.data.PropInfo;
+import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -14,7 +16,6 @@ import com.jjg.game.slots.game.hotfootball.data.HotFootballAddIconInfo;
 import com.jjg.game.slots.game.hotfootball.data.HotFootballAwardLineInfo;
 import com.jjg.game.slots.game.hotfootball.data.HotFootballResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
-import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -190,7 +191,7 @@ public class HotFootballGenerateManager extends AbstractSlotsGenerateManager<Hot
             if (icon != this.hotFootballAddFreeInfo.getTargetIcon()) {
                 continue;
             }
-            boolean flag = SlotsUtil.calProp(this.hotFootballAddFreeInfo.getProp());
+            boolean flag = PropUtil.calProp(this.hotFootballAddFreeInfo.getProp());
             if (flag) {
                 addCount += this.hotFootballAddFreeInfo.getAddFreeCount();
             }
