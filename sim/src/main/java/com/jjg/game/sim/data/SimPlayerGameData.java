@@ -28,6 +28,8 @@ public class SimPlayerGameData {
     private boolean guide;
     //知名度
     private int awareness;
+    //建筑数据
+    private Map<Integer,BuildingData> buildingData;
     //拥有的游客 VisitorQuest表
     private Map<Integer, GuestData> guestMap;
     //上次生成游客时间(ms)
@@ -97,6 +99,14 @@ public class SimPlayerGameData {
 
     public void setAwareness(int awareness) {
         this.awareness = awareness;
+    }
+
+    public Map<Integer, BuildingData> getBuildingData() {
+        return buildingData;
+    }
+
+    public void setBuildingData(Map<Integer, BuildingData> buildingData) {
+        this.buildingData = buildingData;
     }
 
     public Map<Integer, GuestData> getGuestMap() {

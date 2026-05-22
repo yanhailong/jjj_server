@@ -168,10 +168,6 @@ public class GuestData {
     public GuestInfo toGuestInfo() {
         GuestInfo info = new GuestInfo();
         info.id = this.id;
-        info.star = this.star;
-        info.exp = this.exp;
-        info.level = this.level;
-        info.currentBuildingId = this.currentBuildingId;
         if (this.destinations != null && !this.destinations.isEmpty()) {
             List<KVInfo> list = new ArrayList<>();
             for (Destination d : this.destinations) {

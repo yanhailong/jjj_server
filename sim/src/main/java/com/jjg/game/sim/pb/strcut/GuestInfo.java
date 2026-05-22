@@ -15,14 +15,6 @@ import java.util.List;
 public class GuestInfo {
     @ProtoDesc("游客id")
     public int id;
-    @ProtoDesc("星级")
-    public int star;
-    @ProtoDesc("经验")
-    public int exp;
-    @ProtoDesc("等级")
-    public int level;
     @ProtoDesc("剩余未完成的目的地序列 (顺序固定)")
     public List<KVInfo> destinations;
-    @ProtoDesc("当前所在建筑id (0=建筑外)")
-    public int currentBuildingId;
 }

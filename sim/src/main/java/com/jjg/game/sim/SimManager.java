@@ -77,7 +77,7 @@ public class SimManager implements OnSwitchNode, ConfigExcelChangeListener {
             SimGameController simGameController = createGameController(playerController);
             playerController.setScene(simGameController);
             //处理重连
-            res.guests = simGameController.handleReconnect();
+            res.buildings = simGameController.handleReconnect(this.visitorLevelCfgMap, this.visitorStarCfgMap);
             res.guide = simGameController.getPlayerGameData().isGuide();
 
             log.info("玩家进入游戏 playerId={},res={}", playerController.playerId(), JSONObject.toJSONString(res));

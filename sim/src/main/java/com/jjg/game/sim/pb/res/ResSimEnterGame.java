@@ -5,6 +5,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.pb.strcut.BuildingInfo;
 import com.jjg.game.sim.pb.strcut.GuestInfo;
 
 import java.util.List;
@@ -18,8 +19,8 @@ import java.util.List;
 public class ResSimEnterGame extends AbstractResponse {
     @ProtoDesc("是否完成新手引导")
     public boolean guide;
-    @ProtoDesc("游客信息")
-    public List<GuestInfo> guests;
+    @ProtoDesc("建筑信息")
+    public List<BuildingInfo> buildings;
 
     public ResSimEnterGame(int code) {
         super(code);

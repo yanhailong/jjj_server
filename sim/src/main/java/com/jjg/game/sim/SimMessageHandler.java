@@ -101,6 +101,8 @@ public class SimMessageHandler implements GmListener {
                 reqExitGame(playerController, null);
             } else if ("printGuest".equalsIgnoreCase(gmOrders[0])) {
                 ((SimGameController) playerController.getScene()).printGuest();
+            } else if ("printBuilding".equalsIgnoreCase(gmOrders[0])) {
+                ((SimGameController) playerController.getScene()).printBuilding();
             } else if ("unlockGuest".equalsIgnoreCase(gmOrders[0])) {
                 int guestid = Integer.parseInt(gmOrders[1]);
                 ((SimGameController) playerController.getScene()).unlockGuest(guestid);
