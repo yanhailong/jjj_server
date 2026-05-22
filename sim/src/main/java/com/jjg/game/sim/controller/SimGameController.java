@@ -10,6 +10,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.BuildingData;
+import com.jjg.game.sim.data.CasinoData;
 import com.jjg.game.sim.data.Destination;
 import com.jjg.game.sim.data.GuestData;
 import com.jjg.game.sim.data.SimPlayerGameData;
@@ -51,6 +52,17 @@ public class SimGameController {
     }
 
     /**
+     * 获取当前所在赌场 (按 currentCasinoId 解析)
+     */
+    private CasinoData getCurrentCasino() {
+        Map<Integer, CasinoData> map = this.playerGameData.getCasinoDataMap();
+        if (map == null) {
+            return null;
+        }
+        return map.get(this.playerGameData.getCurrentCasinoId());
+    }
+
+    /**
      * 生成游客
      */
     public void generateGuestEvent(long now,
@@ -60,26 +72,32 @@ public class SimGameController {
         if (!this.playerGameData.isGuide()) {
             return;
         }
+        //当前赌场
+        CasinoData casino = getCurrentCasino();
+        if (casino == null) {
+            log.warn("生成游客失败，当前赌场数据不存在 playerId={},currentCasinoId={}", this.playerGameData.getPlayerId(), this.playerGameData.getCurrentCasinoId());
+            return;
+        }
         //赌场配置
-        CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(this.playerGameData.getCasinoData().getId());
+        CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
         if (casinoCfg == null) {
-            log.warn("生成游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", this.playerGameData.getPlayerId(), this.playerGameData.getCasinoData().getId());
+            log.warn("生成游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", this.playerGameData.getPlayerId(), casino.getStatsId());
             return;
         }
         //计算实际生成间隔(ms)
-        long intervalMs = computeVisitIntervalMs(casinoCfg, this.playerGameData, now);
-        if (this.playerGameData.getLastGenerateTime() != 0 && now - this.playerGameData.getLastGenerateTime() < intervalMs) {
+        long intervalMs = computeVisitIntervalMs(casinoCfg, casino, now);
+        if (casino.getLastGenerateTime() != 0 && now - casino.getLastGenerateTime() < intervalMs) {
             return;
         }
 
         //检查是否有解锁的游客
-        if (this.playerGameData.getGuestMap() == null || this.playerGameData.getGuestMap().isEmpty()) {
+        if (casino.getGuestMap() == null || casino.getGuestMap().isEmpty()) {
             return;
         }
 
         //获取所有不在线的游客
         List<GuestData> offLineGuestList = new ArrayList<>();
-        for (Map.Entry<Integer, GuestData> en : this.playerGameData.getGuestMap().entrySet()) {
+        for (Map.Entry<Integer, GuestData> en : casino.getGuestMap().entrySet()) {
             if (!en.getValue().isOnline()) {
                 offLineGuestList.add(en.getValue());
             }
@@ -90,27 +108,27 @@ public class SimGameController {
         }
 
         //是否曝光
-        boolean exposed = this.playerGameData.isExposed(now);
+        boolean exposed = casino.getExposureEndTime() > now;
 
         GuestData existingGuest = offLineGuestList.get(RandomUtils.randomInt(offLineGuestList.size()));
         VisitorCfg visitorCfg = GameDataManager.getVisitorCfg(existingGuest.getId());
 
         int interactionCount = computeInteractionCount(visitorCfg.getBaseDwellTime(), casinoCfg.getProsperity(), getStarCfg(visitorCfg.getQuality(), existingGuest.getStar(), starMap));
         if (interactionCount <= 0) {
-            this.playerGameData.setLastGenerateTime(now);
+            casino.setLastGenerateTime(now);
             log.info("生成游客但交互次数为 0, 跳过 playerId={},guestId={}", this.playerGameData.getPlayerId(), visitorCfg.getId());
             return;
         }
 
-        List<Destination> destinations = planDestinations(this.playerGameData, visitorCfg, interactionCount, existingGuest.getId());
+        List<Destination> destinations = planDestinations(casino, visitorCfg, interactionCount, existingGuest.getId());
         if (destinations.isEmpty()) {
-            this.playerGameData.setLastGenerateTime(now);
+            casino.setLastGenerateTime(now);
             log.warn("生成游客失败，目的地序列为空 playerId={},guestId={}", this.playerGameData.getPlayerId(), visitorCfg.getId());
             return;
         }
 
         //累加经验 / 更新 guestMap
-        GuestData guest = guestVisit(this.playerGameData, visitorCfg, levelMap);
+        GuestData guest = guestVisit(casino, visitorCfg, levelMap);
         if (guest == null) {
             log.warn("生成游客失败，该游客之前就在线 playerId={},guestCfg={}", this.playerGameData.getPlayerId(), visitorCfg.getId());
             return;
@@ -119,7 +137,7 @@ public class SimGameController {
         guest.setDestinations(destinations);
         guest.setCurrentBuildingId(0);
 
-        this.playerGameData.setLastGenerateTime(now);
+        casino.setLastGenerateTime(now);
 
         //下发通知
         NotifyGenerateGuest notify = new NotifyGenerateGuest(Code.SUCCESS);
@@ -133,9 +151,9 @@ public class SimGameController {
     /**
      * 计算实际来访间隔 (ms)
      */
-    private long computeVisitIntervalMs(CasinoStatsSheetCfg casinoCfg, SimPlayerGameData data, long now) {
+    private long computeVisitIntervalMs(CasinoStatsSheetCfg casinoCfg, CasinoData casino, long now) {
         long base = (long) casinoCfg.getBaseVisitInterval() * 1000L;
-        if (!data.isExposed(now)) {
+        if (casino.getExposureEndTime() <= now) {
             return base;
         }
         int coefficient = casinoCfg.getVisitIntervalCoefficient();
@@ -172,11 +190,11 @@ public class SimGameController {
     /**
      * 记录游客来访: 累加经验
      */
-    private GuestData guestVisit(SimPlayerGameData data, VisitorCfg visitorCfg, Map<Integer, Map<Integer, VisitorLevelCfg>> levelMap) {
-        Map<Integer, GuestData> guestMap = data.getGuestMap();
+    private GuestData guestVisit(CasinoData casino, VisitorCfg visitorCfg, Map<Integer, Map<Integer, VisitorLevelCfg>> levelMap) {
+        Map<Integer, GuestData> guestMap = casino.getGuestMap();
         if (guestMap == null) {
             guestMap = new HashMap<>();
-            data.setGuestMap(guestMap);
+            casino.setGuestMap(guestMap);
         }
 
         GuestData guest = guestMap.get(visitorCfg.getId());
@@ -202,18 +220,17 @@ public class SimGameController {
      * - InteractionWeight 非空 → 随机模式: 每次按权重独立随机选建筑
      * - 否则 TargetArea 非空 → 固定模式: 按顺序取 targetArea[i % size], 交互次数超出列表长度时循环
      *
-     * @param data
      * @param visitorCfg
      * @param interactionCount
      */
-    private List<Destination> planDestinations(SimPlayerGameData data, VisitorCfg visitorCfg, int interactionCount, int guestId) {
+    private List<Destination> planDestinations(CasinoData casino, VisitorCfg visitorCfg, int interactionCount, int guestId) {
         List<Destination> result = new ArrayList<>(interactionCount);
 
         //随机模式
         List<List<Integer>> interactionWeight = visitorCfg.getInteractionWeight();
         if (interactionWeight != null && !interactionWeight.isEmpty()) {
             for (int i = 0; i < interactionCount; i++) {
-                Destination dest = pickRandomDestination(data, visitorCfg, guestId);
+                Destination dest = pickRandomDestination(casino, visitorCfg, guestId);
                 if (dest != null) {
                     result.add(dest);
                 }
@@ -227,7 +244,7 @@ public class SimGameController {
             int len = targetArea.size();
             for (int i = 0; i < interactionCount; i++) {
                 int buildingId = targetArea.get(i % len);
-                Destination dest = tryPickBuildingDevice(data, buildingId, guestId);
+                Destination dest = tryPickBuildingDevice(casino, buildingId, guestId);
                 if (dest != null) {
                     result.add(dest);
                 }
@@ -246,7 +263,7 @@ public class SimGameController {
      * 尝试在指定建筑挑一个交互设备; 若建筑不存在或当前总占用 (接待+等待+预占) 已满返回 null
      * 选中后立刻把 guestId 写入该建筑的预占集合
      */
-    private Destination tryPickBuildingDevice(SimPlayerGameData data, int buildingId, int guestId) {
+    private Destination tryPickBuildingDevice(CasinoData casino, int buildingId, int guestId) {
         InteractionAreasTableCfg cfg = GameDataManager.getInteractionAreasTableCfg(buildingId);
         if (cfg == null) {
             return null;
@@ -255,7 +272,7 @@ public class SimGameController {
             return null;
         }
 
-        BuildingData bd = getOrCreateBuildingData(data, buildingId);
+        BuildingData bd = getOrCreateBuildingData(casino, buildingId);
         int totalCapacity = cfg.getSeatingCapacity() + cfg.getQueueLimit();
         //游客已经在该建筑占位时, 不再算新占位 (同建筑多次交互复用同一槽位)
         int virtualOccupancy = bd.occupancy();
@@ -274,11 +291,11 @@ public class SimGameController {
     /**
      * 获取或新建该建筑的 BuildingData
      */
-    private BuildingData getOrCreateBuildingData(SimPlayerGameData data, int buildingId) {
-        Map<Integer, BuildingData> map = data.getBuildingData();
+    private BuildingData getOrCreateBuildingData(CasinoData casino, int buildingId) {
+        Map<Integer, BuildingData> map = casino.getBuildingData();
         if (map == null) {
             map = new HashMap<>();
-            data.setBuildingData(map);
+            casino.setBuildingData(map);
         }
         BuildingData bd = map.get(buildingId);
         if (bd == null) {
@@ -299,7 +316,7 @@ public class SimGameController {
     /**
      * 按 InteractionWeight 加权随机一个建筑, 满员则换一个, MAX_DEST_PICK_RETRY 次内未找到返回 null
      */
-    private Destination pickRandomDestination(SimPlayerGameData data, VisitorCfg visitorCfg, int guestId) {
+    private Destination pickRandomDestination(CasinoData casino, VisitorCfg visitorCfg, int guestId) {
         List<List<Integer>> weightList = visitorCfg.getInteractionWeight();
         if (weightList == null || weightList.isEmpty()) {
             return null;
@@ -310,7 +327,7 @@ public class SimGameController {
             if (buildingId == null) {
                 return null;
             }
-            Destination dest = tryPickBuildingDevice(data, buildingId, guestId);
+            Destination dest = tryPickBuildingDevice(casino, buildingId, guestId);
             if (dest != null) {
                 return dest;
             }
@@ -352,10 +369,16 @@ public class SimGameController {
             return Collections.emptyList();
         }
 
+        //当前赌场
+        CasinoData casino = getCurrentCasino();
+        if (casino == null) {
+            return Collections.emptyList();
+        }
+
         //获取所有解锁的游客
         long now = System.currentTimeMillis();
         boolean longOffline = (now - offlineTime) >= SimConstant.Common.DISCONNECT_LONG_THRESHOLD_MS;
-        Map<Integer, GuestData> guestMap = this.playerGameData.getGuestMap();
+        Map<Integer, GuestData> guestMap = casino.getGuestMap();
         if (guestMap == null || guestMap.isEmpty()) {
             return Collections.emptyList();
         }
@@ -366,7 +389,7 @@ public class SimGameController {
                 if (!guest.isOnline()) {
                     continue;
                 }
-                settleAndOffLine(guest, levelMap, starMap);
+                settleAndOffLine(casino, guest, levelMap, starMap);
             }
             return Collections.emptyList();
         }
@@ -376,11 +399,11 @@ public class SimGameController {
             if (!guest.isOnline() || guest.getCurrentBuildingId() != 0) {
                 continue;
             }
-            settleAndOffLine(guest, levelMap, starMap);
+            settleAndOffLine(casino, guest, levelMap, starMap);
         }
 
         //短时掉线 - 第2步: 按建筑分组下发当前接待+排队中的在线游客
-        Map<Integer, BuildingData> buildingMap = this.playerGameData.getBuildingData();
+        Map<Integer, BuildingData> buildingMap = casino.getBuildingData();
         if (buildingMap == null || buildingMap.isEmpty()) {
             return Collections.emptyList();
         }
@@ -433,7 +456,12 @@ public class SimGameController {
     public int guestLocation(int guestId, int buildingId, boolean enter,
                              Map<Integer, Map<Integer, VisitorLevelCfg>> visitorLevelCfgMap,
                              Map<Integer, Map<Integer, VisitorStarCfg>> visitorStarCfgMap) {
-        GuestData guest = this.playerGameData.findGuestData(guestId);
+        CasinoData casino = getCurrentCasino();
+        if (casino == null) {
+            log.warn("同步游客位置: 当前赌场数据不存在 playerId={},currentCasinoId={}", playerController.playerId(), this.playerGameData.getCurrentCasinoId());
+            return Code.NOT_FOUND;
+        }
+        GuestData guest = casino.findGuestData(guestId);
         if (guest == null || !guest.isOnline()) {
             log.warn("同步游客位置: GuestData 不存在或已离场 playerId={},guestId={}", playerController.playerId(), guestId);
             return Code.NOT_FOUND;
@@ -455,7 +483,7 @@ public class SimGameController {
                 }
 
                 if (flag) {
-                    moveGuestIntoBuilding(buildingId, guestId);
+                    moveGuestIntoBuilding(casino, buildingId, guestId);
                     log.info("游客到达建筑 playerId={},guestId={},building={}", playerController.playerId(), guestId, buildingId);
                 } else {
                     log.info("游客同步位置时未找到该建筑 playerId={},guestId={},building={}", playerController.playerId(), guestId, buildingId);
@@ -463,7 +491,7 @@ public class SimGameController {
                 }
             } else {
                 //离开建筑: 按传入 buildingId 从 BuildingData 接待/排队中移除
-                removeGuestFromBuilding(buildingId, guestId);
+                removeGuestFromBuilding(casino, buildingId, guestId);
                 guest.setCurrentBuildingId(0);
                 if (guest.isAllDestinationsDone()) {
                     log.info("游客目的地已完成 playerId={},guestId={}", playerController.playerId(), guestId);
@@ -473,7 +501,7 @@ public class SimGameController {
             }
         } else {
             //离场: 清理该游客在所有建筑中的痕迹, 再 offLine
-            removeGuestFromAllBuildings(guest);
+            removeGuestFromAllBuildings(casino, guest);
             guest.offLine();
             log.info("游客离场 playerId={},guestId={}", playerController.playerId(), guestId);
         }
@@ -483,8 +511,8 @@ public class SimGameController {
     /**
      * 游客到达建筑: 从 reserve 释放, 加入 seating (满则进 wait, 都满走兜底加 seating 并打 warn)
      */
-    private void moveGuestIntoBuilding(int buildingId, int guestId) {
-        Map<Integer, BuildingData> map = this.playerGameData.getBuildingData();
+    private void moveGuestIntoBuilding(CasinoData casino, int buildingId, int guestId) {
+        Map<Integer, BuildingData> map = casino.getBuildingData();
         if (map == null) {
             return;
         }
@@ -512,8 +540,8 @@ public class SimGameController {
     /**
      * 游客离开建筑: 从该建筑的接待与排队集合中移除
      */
-    private void removeGuestFromBuilding(int buildingId, int guestId) {
-        Map<Integer, BuildingData> map = this.playerGameData.getBuildingData();
+    private void removeGuestFromBuilding(CasinoData casino, int buildingId, int guestId) {
+        Map<Integer, BuildingData> map = casino.getBuildingData();
         if (map == null) {
             return;
         }
@@ -528,7 +556,7 @@ public class SimGameController {
     /**
      * 重连时"在路上"游客的结算: 对每个未完成 destination 补发奖励, 再清理建筑数据并 offLine
      */
-    private void settleAndOffLine(GuestData guest,
+    private void settleAndOffLine(CasinoData casino, GuestData guest,
                                   Map<Integer, Map<Integer, VisitorLevelCfg>> levelMap,
                                   Map<Integer, Map<Integer, VisitorStarCfg>> starMap) {
         int pending = 0;
@@ -541,7 +569,7 @@ public class SimGameController {
                 }
             }
         }
-        removeGuestFromAllBuildings(guest);
+        removeGuestFromAllBuildings(casino, guest);
         guest.offLine();
         log.info("重连结算路上游客并下线 playerId={},guestId={},补发次数={}", this.playerGameData.getPlayerId(), guest.getId(), pending);
     }
@@ -551,8 +579,8 @@ public class SimGameController {
      * 1) 当前所在建筑的接待/排队中移除
      * 2) destinations 涉及的所有建筑的预占中移除
      */
-    private void removeGuestFromAllBuildings(GuestData guest) {
-        Map<Integer, BuildingData> map = this.playerGameData.getBuildingData();
+    private void removeGuestFromAllBuildings(CasinoData casino, GuestData guest) {
+        Map<Integer, BuildingData> map = casino.getBuildingData();
         if (map == null || map.isEmpty()) {
             return;
         }
@@ -609,7 +637,12 @@ public class SimGameController {
     }
 
     public int unlockGuest(int guestId) {
-        GuestData guest = this.playerGameData.findGuestData(guestId);
+        CasinoData casino = getCurrentCasino();
+        if (casino == null) {
+            log.warn("解锁游客时，当前赌场数据不存在 playerId={},currentCasinoId={}", this.playerGameData.getPlayerId(), this.playerGameData.getCurrentCasinoId());
+            return Code.NOT_FOUND;
+        }
+        GuestData guest = casino.findGuestData(guestId);
         if (guest == null) {
             VisitorCfg visitorCfg = GameDataManager.getVisitorCfg(guestId);
             if (visitorCfg == null) {
@@ -620,7 +653,7 @@ public class SimGameController {
             guest.setId(guestId);
             guest.setLevel(1);
             guest.setStar(1);
-            this.playerGameData.addGuest(guest);
+            casino.addGuest(guest);
         }
 
         log.info("解锁游客成功 guestId={},online={}", guestId, guest.isOnline());
@@ -667,7 +700,11 @@ public class SimGameController {
     }
 
     public void printGuest() {
-        Map<Integer, GuestData> guestMap = this.playerGameData.getGuestMap();
+        CasinoData casino = getCurrentCasino();
+        if (casino == null) {
+            return;
+        }
+        Map<Integer, GuestData> guestMap = casino.getGuestMap();
         if (guestMap == null || guestMap.isEmpty()) {
             return;
         }
@@ -677,7 +714,11 @@ public class SimGameController {
         }
     }
     public void printBuilding() {
-        Map<Integer, BuildingData> guestMap = this.playerGameData.getBuildingData();
+        CasinoData casino = getCurrentCasino();
+        if (casino == null) {
+            return;
+        }
+        Map<Integer, BuildingData> guestMap = casino.getBuildingData();
         if (guestMap == null || guestMap.isEmpty()) {
             return;
         }

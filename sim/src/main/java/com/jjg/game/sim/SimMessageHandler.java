@@ -83,21 +83,17 @@ public class SimMessageHandler implements GmListener {
         CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
         try {
             if ("simEnterGame".equalsIgnoreCase(gmOrders[0])) {
-                log.debug("收到gm命令进入sim游戏 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 ReqSimEnterGame req = new ReqSimEnterGame();
                 reqEnterGame(playerController, req);
             } else if ("simFinishGuide".equalsIgnoreCase(gmOrders[0])) {
-                log.debug("收到gm命令完成新手引导 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 reqFinishGuide(playerController, null);
             } else if ("syncGuestDest".equalsIgnoreCase(gmOrders[0])) {
-                log.debug("收到gm命令同步游客位置 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 ReqSyncGuestLocation req = new ReqSyncGuestLocation();
                 req.guestId = Integer.parseInt(gmOrders[1]);
                 req.buildingId = Integer.parseInt(gmOrders[2]);
                 req.enter = Boolean.parseBoolean(gmOrders[3]);
                 reqSyncGuestDest(playerController, req);
             } else if ("simExitGame".equalsIgnoreCase(gmOrders[0])) {
-                log.debug("收到gm命令退出游戏 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 reqExitGame(playerController, null);
             } else if ("printGuest".equalsIgnoreCase(gmOrders[0])) {
                 ((SimGameController) playerController.getScene()).printGuest();

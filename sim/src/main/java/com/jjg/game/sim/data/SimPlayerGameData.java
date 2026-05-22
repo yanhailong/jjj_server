@@ -3,7 +3,6 @@ package com.jjg.game.sim.data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -15,9 +14,9 @@ public class SimPlayerGameData {
     @Id
     private long playerId;
     //赌场信息
-    private CasinoData casinoData;
-    //研究院等级
-    private int researchId;
+    private Map<Integer, CasinoData> casinoDataMap;
+    //当前所在赌场id
+    private int currentCasinoId;
     //体力值
     private int stamina;
     //能量
@@ -26,14 +25,6 @@ public class SimPlayerGameData {
     private Map<Integer, Integer> researchPointMap;
     //是否已完成新手引导
     private boolean guide;
-    //知名度
-    private int awareness;
-    //建筑数据
-    private Map<Integer,BuildingData> buildingData;
-    //拥有的游客 VisitorQuest表
-    private Map<Integer, GuestData> guestMap;
-    //上次生成游客时间(ms)
-    private long lastGenerateTime;
     //上次离线时间 (ms), 用于长/短时掉线判定
     private long lastOfflineTime;
 
@@ -45,20 +36,12 @@ public class SimPlayerGameData {
         this.playerId = playerId;
     }
 
-    public CasinoData getCasinoData() {
-        return casinoData;
+    public Map<Integer, CasinoData> getCasinoDataMap() {
+        return casinoDataMap;
     }
 
-    public void setCasinoData(CasinoData casinoData) {
-        this.casinoData = casinoData;
-    }
-
-    public int getResearchId() {
-        return researchId;
-    }
-
-    public void setResearchId(int researchId) {
-        this.researchId = researchId;
+    public void setCasinoDataMap(Map<Integer, CasinoData> casinoDataMap) {
+        this.casinoDataMap = casinoDataMap;
     }
 
     public int getStamina() {
@@ -93,36 +76,12 @@ public class SimPlayerGameData {
         this.guide = guide;
     }
 
-    public int getAwareness() {
-        return awareness;
+    public int getCurrentCasinoId() {
+        return currentCasinoId;
     }
 
-    public void setAwareness(int awareness) {
-        this.awareness = awareness;
-    }
-
-    public Map<Integer, BuildingData> getBuildingData() {
-        return buildingData;
-    }
-
-    public void setBuildingData(Map<Integer, BuildingData> buildingData) {
-        this.buildingData = buildingData;
-    }
-
-    public Map<Integer, GuestData> getGuestMap() {
-        return guestMap;
-    }
-
-    public void setGuestMap(Map<Integer, GuestData> guestMap) {
-        this.guestMap = guestMap;
-    }
-
-    public long getLastGenerateTime() {
-        return lastGenerateTime;
-    }
-
-    public void setLastGenerateTime(long lastGenerateTime) {
-        this.lastGenerateTime = lastGenerateTime;
+    public void setCurrentCasinoId(int currentCasinoId) {
+        this.currentCasinoId = currentCasinoId;
     }
 
     public long getLastOfflineTime() {
@@ -131,13 +90,6 @@ public class SimPlayerGameData {
 
     public void setLastOfflineTime(long lastOfflineTime) {
         this.lastOfflineTime = lastOfflineTime;
-    }
-
-    /**
-     * 当前是否处于曝光状态
-     */
-    public boolean isExposed(long now) {
-        return this.casinoData.getExposureEndTime() > now;
     }
 
     /**
@@ -177,19 +129,5 @@ public class SimPlayerGameData {
         }
 
         return true;
-    }
-
-    public GuestData findGuestData(int guestId) {
-        if (this.guestMap == null || this.guestMap.isEmpty()) {
-            return null;
-        }
-        return this.guestMap.get(guestId);
-    }
-
-    public void addGuest(GuestData guestData) {
-        if(this.guestMap == null){
-            this.guestMap = new HashMap<>();
-        }
-        this.guestMap.put(guestData.getId(), guestData);
     }
 }

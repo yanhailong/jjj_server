@@ -27,9 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -164,14 +162,19 @@ public class SimManager implements OnSwitchNode, ConfigExcelChangeListener {
             gameData = new SimPlayerGameData();
             gameData.setPlayerId(playerController.playerId());
 
-            //初始化赌场信息
+            //初始化默认赌场
             CasinoData casinoData = new CasinoData();
             casinoData.setId(SimConstant.Common.DEFAULT_CASINO_ID);
-            CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(SimConstant.Common.DEFAULT_CASINO_ID);
+            casinoData.setStatsId(SimConstant.Common.DEFAULT_CASINO_STATS_ID);
+            CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(SimConstant.Common.DEFAULT_CASINO_STATS_ID);
             casinoData.setProsperity(casinoCfg.getProsperity());
+            casinoData.setResearchId(1);
 
-            gameData.setCasinoData(casinoData);
-            gameData.setResearchId(1);
+            Map<Integer, CasinoData> casinoMap = new HashMap<>();
+            casinoMap.put(casinoData.getId(), casinoData);
+            gameData.setCasinoDataMap(casinoMap);
+            gameData.setCurrentCasinoId(casinoData.getId());
+
             simPlayerGameDataService.saveToRedis(gameData);
         }
 

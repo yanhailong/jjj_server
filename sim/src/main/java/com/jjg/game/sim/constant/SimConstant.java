@@ -31,8 +31,11 @@ public interface SimConstant {
     }
 
     interface Common {
-        //默认赌场 id (CasinoStatsSheetCfg level=0)
-        int DEFAULT_CASINO_ID = 1001;
+        //默认赌场 id
+        int DEFAULT_CASINO_ID = 1;
+
+        //默认赌场STATS id (CasinoStatsSheetCfg level=0)
+        int DEFAULT_CASINO_STATS_ID = 1001;
 
         //曝光度系数表中分母 (配置中 90 表示 90%)
         int EXPOSURE_COEFFICIENT_BASE = 100;

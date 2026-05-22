@@ -223,7 +223,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 accountDao.save(updatedAccount);
             }
 
-            SimPlayerGameData simPlayerGameData = simManager.getSimPlayerGameDataFromDB(player.getId());
+//            SimPlayerGameData simPlayerGameData = simManager.getSimPlayerGameDataFromDB(player.getId());
 
             res.playerId = player.getId();
             res.nickName = player.getNickName();
@@ -240,7 +240,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.backgroundId = player.getBackgroundId();
             res.cardBackgroundId = player.getCardBackgroundId();
             //添加游戏列表
-            res.gameList = hallService.getSortGameListByResearchId(playerSessionToken.getWesteId(), playerSessionToken.getClientVersion(), simPlayerGameData == null ? 1 : simPlayerGameData.getResearchId());
+            res.gameList = hallService.getSortGameListByResearchId(playerSessionToken.getWesteId(), playerSessionToken.getClientVersion(), 1);
             //添加跑马灯
             res.marqueeInfo = addMarquee();
 
