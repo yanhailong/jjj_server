@@ -52,20 +52,10 @@ public interface AirRaidConstant {
     }
 
     interface Common {
-        //下注阶段时间(真正下注)
-        int BET_PHASE_TIME_MILLS = 5000;
-        //下注阶段最后的时间停止下注
-        int BET_PHASE_TIME_BEFORE_END_MILLS = 2000;
-        //结算阶段
-        int CRASHED_PHASE_TIME_MILLS = 3000;
-
-        //个人历史记录保留时长(ms) — 30 天
-        long RECORD_RETAIN_MS = 30L * 24 * 60 * 60 * 1000;
-        //个人历史记录保留条数上限
-        int RECORD_LIMIT = 100;
+        int AIR_BIR_REWARD = 50000;
     }
 
-    interface Odds{
+    interface Odds {
         //倍数增长率
         int GROWTH = 0;
         //风险增量

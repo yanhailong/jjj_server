@@ -18,7 +18,7 @@ import java.util.List;
 public class ResAirRaidEnterGame extends AbstractResponse {
     @ProtoDesc("押注列表")
     public List<Integer> stakeList;
-    @ProtoDesc("阶段配置信息 k(阶段) -> 0.下注  1.停止下注  2.飞行(配置中没有该配置)  3.结算 , v(阶段时长，单位:毫秒) ")
+    @ProtoDesc("阶段配置信息 k(阶段) -> 0.下注  1.停止下注  2.飞行(配置中没有该配置)  3.结算 , v(阶段时长，单位:毫秒)")
     public List<KVInfo> phaseCfgList;
     @ProtoDesc("当局投注信息")
     public List<AirRaidPlayerInfo> betInfoList;

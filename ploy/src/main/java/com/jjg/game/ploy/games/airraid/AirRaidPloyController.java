@@ -264,13 +264,18 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         //停止兑现 tick，并把残留的兑现推送出去
         flushAndStopCashOutTick();
         doCrash();
-        gameRoom.setPhaseStopTime(gameRoom.getPhaseStartTime() + this.airRaidRuleConfig.getSettleDurationMs());
+
+        int settleDurationMs = this.airRaidRuleConfig.getSettleDurationMs();
+        if (gameRoom.getCrashMultiplier() >= AirRaidConstant.Common.AIR_BIR_REWARD) {
+            settleDurationMs = this.airRaidRuleConfig.getBigRewardSettleDurationMs();
+        }
+        gameRoom.setPhaseStopTime(gameRoom.getPhaseStartTime() + settleDurationMs);
         gameRoom.setNotifyPhase(true);
         settleCurrentRoundIfNeeded();
         airRaidRankDao.add(gameRoom.getPhaseStopTime(), gameRoom.getCrashMultiplier());
         //广播阶段变化
-        broadcastPhaseChange(this.airRaidRuleConfig.getSettleDurationMs());
-        addPhaseEvent(AirRaidPhase.BETTING, this.airRaidRuleConfig.getSettleDurationMs());
+        broadcastPhaseChange(settleDurationMs);
+        addPhaseEvent(AirRaidPhase.BETTING, settleDurationMs);
         log.debug("坠毁结算阶段");
     }
 
@@ -527,7 +532,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
         if (playerGameData.getAutoCashOutTargetMap() != null && !playerGameData.getAutoCashOutTargetMap().isEmpty()) {
             res.autoCashOut = new ArrayList<>();
-            playerGameData.getAutoCashOutTargetMap().forEach((k, v) ->{
+            playerGameData.getAutoCashOutTargetMap().forEach((k, v) -> {
                 KVInfo kvInfo = new KVInfo();
                 kvInfo.key = k;
                 kvInfo.value = v;
@@ -896,6 +901,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             tmpAirRaidRuleConfig.setBettingDurationMs(info.get(0));
             tmpAirRaidRuleConfig.setStopBetDurationMs(info.get(1));
             tmpAirRaidRuleConfig.setSettleDurationMs(info.get(2));
+            tmpAirRaidRuleConfig.setBigRewardSettleDurationMs(info.get(3));
             break;
         }
 
