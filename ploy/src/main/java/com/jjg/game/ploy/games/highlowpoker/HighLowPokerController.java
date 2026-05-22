@@ -179,24 +179,25 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
             res.over = true;
             res.rate = rate;
             playerGameData.setCurrentCoin(0);
-            playerGameData.addHistory(Pair.newPair(oldCard.getValue(), rate));
+            playerGameData.addHistory(Pair.newPair(nextCard.getValue(), rate));
             resetData(playerGameData, 0);
             return res;
         }
-        //计算可兑换金币
-        long lastBet = playerGameData.getLastBet();
-        long addGold = BigDecimal.valueOf(lastBet).multiply(new BigDecimal(rate)).longValue();
-        playerGameData.setCurrentCoin(playerGameData.getCurrentCoin() + addGold);
+        //计算可兑换金币：每次倍率乘上一次的金额（复利），首局以本金为基础
+        long prevCoin = playerGameData.getCurrentCoin();
+        long base = prevCoin > 0 ? prevCoin : playerGameData.getLastBet();
+        long newCoin = BigDecimal.valueOf(base).multiply(new BigDecimal(rate)).longValue();
+        playerGameData.setCurrentCoin(newCoin);
         playerGameData.addHistory(Pair.newPair(nextCard.getValue(), rate));
 
-        //如果到达30局直接退
-        if (playerGameData.getHistory().size() >= HighLowPokerConstant.Common.MAX_JOIN_TIMES) {
+        //如果到达30局直接退（history 含 1 张初始牌占位，所以阈值是 MAX_JOIN_TIMES + 1）
+        if (playerGameData.getHistory().size() >= HighLowPokerConstant.Common.MAX_JOIN_TIMES + 1) {
             //获胜了
             CommonResult<Pair<PloyBetDivideInfo, Player>> winResult = winFromPool(playerGameData, playerGameData.getCurrentCoin(), cfg.getTaxRate());
             if (!winResult.success()) {
                 //失败回滚
                 playerGameData.getHistory().removeLast();
-                playerGameData.setCurrentCoin(playerGameData.getCurrentCoin() - addGold);
+                playerGameData.setCurrentCoin(prevCoin);
                 log.error("高低扑克发送奖励失败 playerId:{} winGold:{} ", playerController.playerId(), playerGameData.getCurrentCoin());
                 res.code = winResult.code;
                 return res;
