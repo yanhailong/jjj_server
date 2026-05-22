@@ -114,6 +114,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
             res.remainRoundNum = HilloConstant.Common.MAX_JOIN_TIMES - playerGameData.getSuccessTimes();
             res.remainSkipTimes = playerGameData.getSkipTimes();
             res.currentBetMode = playerGameData.getCurrentBetMode();
+            res.defaultBet = playerGameData.getLastBet();
             res.chooseInfos = hilloUtil.buildChooseInfos(playerGameData.getCurrentCardId(), getReturnRate(cfg));
         }
         if (playerGameData != null) {
@@ -195,69 +196,9 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
             return logChooseAndReturn("手动猜牌", playerController.playerId(), res);
         }
 
-        BigDecimal returnRate = getReturnRate(cfg);
-        List<HilloChooseInfo> chooseInfos = hilloUtil.buildChooseInfos(playerGameData.getCurrentCardId(), returnRate);
-        HilloChooseInfo chooseInfo = chooseInfos.stream()
-                .filter(info -> info.chooseId == req.chooseId)
-                .findFirst()
-                .orElse(null);
-        if (chooseInfo == null) {
-            res.code = Code.PARAM_ERROR;
-            return logChooseAndReturn("手动猜牌", playerController.playerId(), res);
-        }
-
-        Card currentCard = new Card(playerGameData.getCurrentCardId());
-        int nextCardId = hilloUtil.randomCardId();
-        Card nextCard = new Card(nextCardId);
-
-        if (!hilloChoose.check(currentCard, nextCard)) {
-            // 猜错直接结束本局，只归档过程和亏损；不会从奖池派发奖励。
-            playerGameData.addHistory(playerGameData.getCurrentCardId(), req.chooseId, chooseInfo.odd, nextCardId);
-            fillHistoryChoose(res, playerGameData);
-            settleAndArchive(playerGameData, 0, 0, getCurrentBalance(playerGameData));
-            res.action = HilloConstant.AutoAction.ROUND_LOSE;
-            res.nextCardId = nextCardId;
-            fillAutoBetStatus(res, playerGameData);
-            return logChooseAndReturn("手动猜牌", playerController.playerId(), res);
-        }
-
-        long nextCoin = calculateNextCoin(playerGameData.getLastBet(), playerGameData.getCurrentCoin(), chooseInfo.odd);
-        int successTimes = playerGameData.getSuccessTimes() + 1;
-        if (successTimes >= HilloConstant.Common.MAX_JOIN_TIMES) {
-            // 达到单局最大猜测次数时强制兑现，避免一局无限累乘。
-            CommonResult<Pair<PloyBetDivideInfo, Player>> winResult = winFromPool(playerGameData, nextCoin, cfg.getTaxRate());
-            if (!winResult.success()) {
-                res.code = winResult.code;
-                return logChooseAndReturn("手动猜牌", playerController.playerId(), res);
-            }
-            long tax = winResult.data.getFirst().getTax();
-            res.action = HilloConstant.AutoAction.EXCHANGE;
-            res.nextCardId = nextCardId;
-            res.currentCoin = nextCoin;
-            res.exchangeNum = nextCoin - tax;
-            playerGameData.addHistory(playerGameData.getCurrentCardId(), req.chooseId, chooseInfo.odd, nextCardId);
-            fillHistoryChoose(res, playerGameData);
-            settleAndArchive(playerGameData, tax, nextCoin, winResult.data.getSecond().getGold());
-            fillAutoBetStatus(res, playerGameData);
-            return logChooseAndReturn("手动猜牌", playerController.playerId(), res);
-        }
-
-        playerGameData.addHistory(playerGameData.getCurrentCardId(), req.chooseId, chooseInfo.odd, nextCardId);
-        // 猜中后，结果牌变成下一轮要比较的公牌。
-        playerGameData.setCurrentCardId(nextCardId);
-        playerGameData.setCurrentCoin(nextCoin);
-        playerGameData.setSuccessTimes(successTimes);
-
-        res.action = HilloConstant.AutoAction.CHOOSE;
-        res.nextCardId = nextCardId;
-        res.currentCard = nextCardId;
-        res.currentCoin = nextCoin;
-        res.remainRoundNum = HilloConstant.Common.MAX_JOIN_TIMES - successTimes;
-        res.remainSkipTimes = playerGameData.getSkipTimes();
-        res.chooseInfos = hilloUtil.buildChooseInfos(nextCardId, returnRate);
-        fillHistoryChoose(res, playerGameData);
-        fillAutoBetStatus(res, playerGameData);
-        return logChooseAndReturn("手动猜牌", playerController.playerId(), res);
+        ResHilloChoose chooseResult = doChoose(playerGameData, cfg, req.chooseId, false);
+        fillAutoBetStatus(chooseResult, playerGameData);
+        return logChooseAndReturn("手动猜牌", playerController.playerId(), chooseResult);
     }
 
     public AbstractResponse exchange(PlayerController playerController, ReqHilloExchange req) {
@@ -442,7 +383,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
             // 两个投注区域胜率都低于阈值时，自动策略选择跳过当前公牌。
             fillAutoSkipResult(res, playerGameData, cfg);
         } else {
-            fillAutoChooseResult(res, playerGameData, cfg, decision.chooseId());
+            res = doChoose(playerGameData, cfg, decision.chooseId(), true);
         }
         stopAutoIfNoMoreRounds(playerGameData);
         fillAutoState(res, playerGameData, cfg);
@@ -471,7 +412,8 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
         return res;
     }
 
-    private void fillAutoChooseResult(ResHilloChoose res, HilloPloyGameData playerGameData, PloygameRoomCfg cfg, int chooseId) {
+    private ResHilloChoose doChoose(HilloPloyGameData playerGameData, PloygameRoomCfg cfg, int chooseId, boolean stopAutoOnError) {
+        ResHilloChoose res = new ResHilloChoose(Code.SUCCESS);
         BigDecimal returnRate = getReturnRate(cfg);
         HilloChoose hilloChoose = HilloChoose.getChoose(chooseId);
         HilloChooseInfo chooseInfo = hilloUtil.buildChooseInfos(playerGameData.getCurrentCardId(), returnRate).stream()
@@ -480,8 +422,10 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
                 .orElse(null);
         if (hilloChoose == null || chooseInfo == null) {
             res.code = Code.PARAM_ERROR;
-            stopAutoBet(playerGameData);
-            return;
+            if (stopAutoOnError) {
+                stopAutoBet(playerGameData);
+            }
+            return res;
         }
 
         Card currentCard = new Card(playerGameData.getCurrentCardId());
@@ -491,23 +435,23 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
         res.nextCardId = nextCardId;
 
         if (!hilloChoose.check(currentCard, nextCard)) {
-            // 自动投注猜错后本局结束，但自动配置保留，下一次自动推进会尝试开下一局。
             playerGameData.addHistory(playerGameData.getCurrentCardId(), chooseId, chooseInfo.odd, nextCardId);
             fillHistoryChoose(res, playerGameData);
             settleAndArchive(playerGameData, 0, 0, getCurrentBalance(playerGameData));
             res.action = HilloConstant.AutoAction.ROUND_LOSE;
-            return;
+            return res;
         }
 
         long nextCoin = calculateNextCoin(playerGameData.getLastBet(), playerGameData.getCurrentCoin(), chooseInfo.odd);
         int successTimes = playerGameData.getSuccessTimes() + 1;
         if (successTimes >= HilloConstant.Common.MAX_JOIN_TIMES) {
-            // 猜中后如果达到系统上限，立即兑现并归档本局。
             CommonResult<Pair<PloyBetDivideInfo, Player>> winResult = winFromPool(playerGameData, nextCoin, cfg.getTaxRate());
             if (!winResult.success()) {
                 res.code = winResult.code;
-                stopAutoBet(playerGameData);
-                return;
+                if (stopAutoOnError) {
+                    stopAutoBet(playerGameData);
+                }
+                return res;
             }
             long tax = winResult.data.getFirst().getTax();
             res.action = HilloConstant.AutoAction.EXCHANGE;
@@ -516,7 +460,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
             playerGameData.addHistory(playerGameData.getCurrentCardId(), chooseId, chooseInfo.odd, nextCardId);
             fillHistoryChoose(res, playerGameData);
             settleAndArchive(playerGameData, tax, nextCoin, winResult.data.getSecond().getGold());
-            return;
+            return res;
         }
 
         playerGameData.addHistory(playerGameData.getCurrentCardId(), chooseId, chooseInfo.odd, nextCardId);
@@ -525,11 +469,13 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
         playerGameData.setSuccessTimes(successTimes);
 
         res.action = HilloConstant.AutoAction.CHOOSE;
+        res.currentCard = nextCardId;
         res.currentCoin = nextCoin;
         res.remainRoundNum = HilloConstant.Common.MAX_JOIN_TIMES - successTimes;
         res.remainSkipTimes = playerGameData.getSkipTimes();
         res.chooseInfos = hilloUtil.buildChooseInfos(nextCardId, returnRate);
         fillHistoryChoose(res, playerGameData);
+        return res;
     }
 
     private void fillAutoSkipResult(ResHilloChoose res, HilloPloyGameData playerGameData, PloygameRoomCfg cfg) {
@@ -559,18 +505,6 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
         res.currentCoin = settleCoin;
         res.exchangeNum = settleCoin - tax;
         fillHistoryChoose(res, playerGameData);
-        settleAndArchive(playerGameData, tax, settleCoin, winResult.data.getSecond().getGold());
-    }
-
-    private void fillAutoExchangeResult(ResHilloAutoBetStatus res, HilloPloyGameData playerGameData, PloygameRoomCfg cfg) {
-        long settleCoin = playerGameData.getCurrentCoin();
-        CommonResult<Pair<PloyBetDivideInfo, Player>> winResult = winFromPool(playerGameData, settleCoin, cfg.getTaxRate());
-        if (!winResult.success()) {
-            res.code = winResult.code;
-            playerGameData.clearAutoBet();
-            return;
-        }
-        long tax = winResult.data.getFirst().getTax();
         settleAndArchive(playerGameData, tax, settleCoin, winResult.data.getSecond().getGold());
     }
 
@@ -654,25 +588,36 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
             return null;
         }
         List<HilloHistoryInfo> displayHistory = new ArrayList<>();
-        for (HilloHistoryInfo info : history) {
-            addDisplayHistoryInfo(displayHistory, copyHistoryInfo(info), info.isSkipped());
+        for (int i = 0; i < history.size(); i++) {
+            HilloHistoryInfo info = history.get(i);
+            addOperationHistoryInfo(displayHistory, copyHistoryInfo(info));
             if (!info.isSkipped() && info.getResultCardId() > 0) {
-                HilloHistoryInfo resultInfo = new HilloHistoryInfo();
-                resultInfo.setCardId(info.getResultCardId());
-                resultInfo.setChooseId(-1);
-                resultInfo.setOdd("");
-                addDisplayHistoryInfo(displayHistory, resultInfo, false);
+                HilloHistoryInfo nextInfo = i + 1 < history.size() ? history.get(i + 1) : null;
+                if (nextInfo == null || nextInfo.getCardId() != info.getResultCardId()) {
+                    HilloHistoryInfo resultInfo = new HilloHistoryInfo();
+                    resultInfo.setCardId(info.getResultCardId());
+                    resultInfo.setChooseId(-1);
+                    resultInfo.setOdd("");
+                    displayHistory.add(resultInfo);
+                }
             }
         }
         return displayHistory;
     }
 
-    private void addDisplayHistoryInfo(List<HilloHistoryInfo> displayHistory, HilloHistoryInfo info, boolean forceAdd) {
-        if (!forceAdd && !displayHistory.isEmpty()
+    private void addOperationHistoryInfo(List<HilloHistoryInfo> displayHistory, HilloHistoryInfo info) {
+        if (!displayHistory.isEmpty() && isResultPlaceholder(displayHistory.getLast())
                 && displayHistory.getLast().getCardId() == info.getCardId()) {
+            displayHistory.set(displayHistory.size() - 1, info);
             return;
         }
         displayHistory.add(info);
+    }
+
+    private boolean isResultPlaceholder(HilloHistoryInfo info) {
+        return info != null && !info.isSkipped()
+                && info.getResultCardId() <= 0
+                && (info.getOdd() == null || info.getOdd().isEmpty());
     }
 
     private HilloHistoryInfo copyHistoryInfo(HilloHistoryInfo info) {

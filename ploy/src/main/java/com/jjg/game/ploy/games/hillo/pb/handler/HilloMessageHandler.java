@@ -4,6 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.ploy.games.hillo.HilloController;
 import com.jjg.game.ploy.games.hillo.data.HilloConstant;
@@ -12,9 +13,13 @@ import com.jjg.game.ploy.games.hillo.pb.req.ReqHilloCancelAuto;
 import com.jjg.game.ploy.games.hillo.pb.req.ReqHilloChoose;
 import com.jjg.game.ploy.games.hillo.pb.req.ReqHilloExchange;
 import com.jjg.game.ploy.games.hillo.pb.req.ReqHilloSkip;
+import com.jjg.game.ploy.games.hillo.pb.res.ResHilloAutoBetStatus;
+import com.jjg.game.ploy.games.hillo.pb.res.ResHilloChoose;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.function.Supplier;
 
 @Component
 @MessageType(MessageConst.MessageTypeDef.HILLO)
@@ -28,61 +33,37 @@ public class HilloMessageHandler {
 
     @Command(HilloConstant.MsgBean.REQ_HILLO_CHOOSE)
     public void reqHilloChoose(PlayerController playerController, ReqHilloChoose req) {
-        try {
-            AbstractResponse res = hilloController.choose(playerController, req);
-            if (res != null) {
-                playerController.send(res);
-            }
-        } catch (Exception e) {
-            log.error("hilloController.choose error", e);
-        }
+        handle(playerController, "choose", () -> hilloController.choose(playerController, req), () -> new ResHilloChoose(Code.FAIL));
     }
 
     @Command(HilloConstant.MsgBean.REQ_HILLO_EXCHANGE)
     public void reqHilloExchange(PlayerController playerController, ReqHilloExchange req) {
-        try {
-            AbstractResponse res = hilloController.exchange(playerController, req);
-            if (res != null) {
-                playerController.send(res);
-            }
-        } catch (Exception e) {
-            log.error("hilloController.exchange error", e);
-        }
+        handle(playerController, "exchange", () -> hilloController.exchange(playerController, req), () -> new ResHilloChoose(Code.FAIL));
     }
 
     @Command(HilloConstant.MsgBean.REQ_HILLO_SKIP)
     public void reqHilloSkip(PlayerController playerController, ReqHilloSkip req) {
-        try {
-            AbstractResponse res = hilloController.skip(playerController, req);
-            if (res != null) {
-                playerController.send(res);
-            }
-        } catch (Exception e) {
-            log.error("hilloController.skip error", e);
-        }
+        handle(playerController, "skip", () -> hilloController.skip(playerController, req), () -> new ResHilloChoose(Code.FAIL));
     }
 
     @Command(HilloConstant.MsgBean.REQ_HILLO_AUTO_BET)
     public void reqHilloAutoBet(PlayerController playerController, ReqHilloAutoBet req) {
-        try {
-            AbstractResponse res = hilloController.startAutoBet(playerController, req);
-            if (res != null) {
-                playerController.send(res);
-            }
-        } catch (Exception e) {
-            log.error("hilloController.startAutoBet error", e);
-        }
+        handle(playerController, "startAutoBet", () -> hilloController.startAutoBet(playerController, req), () -> new ResHilloAutoBetStatus(Code.FAIL));
     }
 
     @Command(HilloConstant.MsgBean.REQ_HILLO_CANCEL_AUTO)
     public void reqHilloCancelAuto(PlayerController playerController, ReqHilloCancelAuto req) {
+        handle(playerController, "cancelAutoBet", () -> hilloController.cancelAutoBet(playerController, req), () -> new ResHilloAutoBetStatus(Code.FAIL));
+    }
+
+    private void handle(PlayerController playerController, String actionName,
+                        Supplier<AbstractResponse> action, Supplier<AbstractResponse> failResponse) {
         try {
-            AbstractResponse res = hilloController.cancelAutoBet(playerController, req);
-            if (res != null) {
-                playerController.send(res);
-            }
+            AbstractResponse res = action.get();
+            playerController.send(res != null ? res : failResponse.get());
         } catch (Exception e) {
-            log.error("hilloController.cancelAutoBet error", e);
+            log.error("hilloController.{} error", actionName, e);
+            playerController.send(failResponse.get());
         }
     }
 }
