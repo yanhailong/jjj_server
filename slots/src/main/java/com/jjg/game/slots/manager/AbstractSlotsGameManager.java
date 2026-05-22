@@ -1102,6 +1102,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 合并配置中的区间权重修改
+     *
      * @param deltaMap
      * @param cfgPropChangMap
      * @param libType
@@ -1648,7 +1649,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 continue;
             }
 
-            Map<Integer, ResearchSkillsCfg> tmpMap = tmpSkillsMap.putIfAbsent(cfg.getAttr(), new HashMap<>());
+            Map<Integer, ResearchSkillsCfg> tmpMap = tmpSkillsMap.computeIfAbsent(cfg.getAttr(), k -> new HashMap<>());
             tmpMap.put(cfg.getGrade(), cfg);
         }
         this.skillsMap = tmpSkillsMap;
