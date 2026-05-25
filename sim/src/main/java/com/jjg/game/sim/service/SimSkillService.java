@@ -7,6 +7,8 @@ import com.jjg.game.sim.data.SimPlayerGameData;
 import com.jjg.game.sim.data.SimSkillsData;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -38,6 +40,33 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             simSkillsDao.save(data);
         } catch (Exception e) {
             log.error("保存 SimSkillsData 失败 id={}", data.getId(), e);
+        }
+    }
+
+    /**
+     * 批量保存技能数据
+     *
+     * @param list
+     */
+    public void saveAll(Collection<SimSkillsData> list) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        List<SimSkillsData> toSave = new ArrayList<>(list.size());
+        for (SimSkillsData data : list) {
+            if (data == null) {
+                continue;
+            }
+            data.buildKey();
+            toSave.add(data);
+        }
+        if (toSave.isEmpty()) {
+            return;
+        }
+        try {
+            simSkillsDao.saveAll(toSave);
+        } catch (Exception e) {
+            log.error("批量保存 SimSkillsData 失败 size={}", toSave.size(), e);
         }
     }
 

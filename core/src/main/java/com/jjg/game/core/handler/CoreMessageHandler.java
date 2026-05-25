@@ -20,6 +20,7 @@ import com.jjg.game.core.constant.SubscriptionTopic;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.ChooseSimListener;
 import com.jjg.game.core.listener.ChooseWareListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.listener.OrderGenerate;
@@ -92,13 +93,16 @@ public class CoreMessageHandler {
     private AccountDao accountDao;
     @Autowired
     private GameFunctionService gameFunctionService;
+
     public Map<String, ChooseWareListener> chooseWareListenerMap;
+    public Map<String, ChooseSimListener> chooseSimListenerMap;
     //奖池本地缓存
     private final Cache<String, Class<? extends BaseCfgBean>> configCache = Caffeine.newBuilder()
             .build();
 
     public void init() {
         chooseWareListenerMap = CommonUtil.getContext().getBeansOfType(ChooseWareListener.class);
+        chooseSimListenerMap = CommonUtil.getContext().getBeansOfType(ChooseSimListener.class);
     }
 
     /**
@@ -612,6 +616,23 @@ public class CoreMessageHandler {
         }
         this.chooseWareListenerMap.forEach((s, listener) -> {
             listener.onChooseWare(playerController, req);
+        });
+    }
+
+    /**
+     * 选择模拟经营游戏
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(MessageConst.CoreMessage.REQ_CHOOSE_SIM)
+    public void reqChooseWare(PlayerController playerController, ReqChooseSim req) {
+        if (this.chooseSimListenerMap == null || this.chooseSimListenerMap.isEmpty()) {
+            log.warn("chooseSimListenerMap 为空，选择sim失败");
+            return;
+        }
+        this.chooseSimListenerMap.forEach((s, listener) -> {
+            listener.onChooseSim(playerController, req);
         });
     }
 

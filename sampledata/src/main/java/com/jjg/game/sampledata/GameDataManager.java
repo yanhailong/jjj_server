@@ -138,6 +138,7 @@ public class GameDataManager {
     containerMap.put(BuildingFunctionCfg.class, new BuildingFunctionCfgContainer());
     containerMap.put(BuildingGainCfg.class, new BuildingGainCfgContainer());
     containerMap.put(CashcowCfg.class, new CashcowCfgContainer());
+    containerMap.put(CasinoListCfg.class, new CasinoListCfgContainer());
     containerMap.put(CasinoStatsSheetCfg.class, new CasinoStatsSheetCfgContainer());
     containerMap.put(ChessJackStrategyCfg.class, new ChessJackStrategyCfgContainer());
     containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
@@ -851,6 +852,18 @@ public class GameDataManager {
 
   public static List<CashcowCfg> getCashcowCfgList() {
     return getInstance().getCfgContainer(CashcowCfg.class).getCfgBeanList();
+  }
+
+  public static CasinoListCfg getCasinoListCfg(int key) {
+    return getInstance().getCfgContainer(CasinoListCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, CasinoListCfg> getCasinoListCfgMap() {
+    return getInstance().getCfgContainer(CasinoListCfg.class).getCfgBeanMap();
+  }
+
+  public static List<CasinoListCfg> getCasinoListCfgList() {
+    return getInstance().getCfgContainer(CasinoListCfg.class).getCfgBeanList();
   }
 
   public static CasinoStatsSheetCfg getCasinoStatsSheetCfg(int key) {

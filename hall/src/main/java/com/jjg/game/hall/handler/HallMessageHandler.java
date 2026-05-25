@@ -20,9 +20,12 @@ import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.dao.PlayerSkinDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.ChooseSimListener;
 import com.jjg.game.core.listener.ChooseWareListener;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.core.pb.ReqChooseSim;
 import com.jjg.game.core.pb.ReqChooseWare;
+import com.jjg.game.core.pb.ResChooseSim;
 import com.jjg.game.core.pb.ResChooseWare;
 import com.jjg.game.core.service.*;
 import com.jjg.game.core.utils.ItemUtils;
@@ -66,7 +69,7 @@ import java.util.*;
  */
 @Component
 @MessageType(MessageConst.MessageTypeDef.HALL_TYPE)
-public class HallMessageHandler implements GmListener, ChooseWareListener {
+public class HallMessageHandler implements GmListener, ChooseWareListener, ChooseSimListener {
     private Logger log = LoggerFactory.getLogger(getClass());
     @Autowired
     private NodeManager nodeManager;
@@ -1275,6 +1278,19 @@ public class HallMessageHandler implements GmListener, ChooseWareListener {
                 res.code = Code.PARAM_ERROR;
             }
             log.info("玩家选择场次，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    @Override
+    public void onChooseSim(PlayerController playerController, ReqChooseSim req) {
+        ResChooseSim res = new ResChooseSim(HallCode.SUCCESS);
+        try {
+            res.code = hallRoomService.enterSimNode(playerController);
+            log.info("玩家进入sim节点，playerId = {},code = {}", playerController.playerId(), res.code);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

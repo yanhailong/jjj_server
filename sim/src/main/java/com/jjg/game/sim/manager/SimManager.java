@@ -88,6 +88,7 @@ public class SimManager implements OnSwitchNode, ConfigExcelChangeListener {
             res.buildings = simGameController.handleReconnect(this.visitorLevelCfgMap, this.visitorStarCfgMap);
             res.guide = simGameController.getPlayerGameData().isGuide();
 
+            simGameController.getPlayerGameData().setLastOfflineTime(0);
             log.info("玩家进入游戏 playerId={},res={}", playerController.playerId(), JSONObject.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
@@ -301,17 +302,22 @@ public class SimManager implements OnSwitchNode, ConfigExcelChangeListener {
             this.checkPlayerDataTimeout.cancel();
         }
 
-        //玩家数据落库
+        //收集所有待落库的玩家数据和技能数据
+        List<SimPlayerGameData> gameDataList = new ArrayList<>(this.gameControllerMap.size());
+        List<SimSkillsData> skillsDataList = new ArrayList<>();
         for (Map.Entry<Long, SimGameController> en : this.gameControllerMap.entrySet()) {
             SimGameController gc = en.getValue();
-            this.simPlayerGameDataService.save(gc.getPlayerGameData());
-            //技能数据落库
+            if (gc.getPlayerGameData() != null) {
+                gameDataList.add(gc.getPlayerGameData());
+            }
             if (gc.getSkillsDataMap() != null && !gc.getSkillsDataMap().isEmpty()) {
-                for (SimSkillsData skill : gc.getSkillsDataMap().values()) {
-                    this.simSkillService.save(skill);
-                }
+                skillsDataList.addAll(gc.getSkillsDataMap().values());
             }
         }
+
+        //批量落库
+        this.simPlayerGameDataService.saveAll(gameDataList);
+        this.simSkillService.saveAll(skillsDataList);
     }
 
     /**

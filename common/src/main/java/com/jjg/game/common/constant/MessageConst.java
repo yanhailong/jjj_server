@@ -247,6 +247,10 @@ public interface MessageConst {
         int REQ_CHOOSE_WARE = BASE_MSG_PREFIX | 0x3;
         int RES_CHOOSE_WARE = BASE_MSG_PREFIX | 0x4;
 
+        //选择模拟经营游戏
+        int REQ_CHOOSE_SIM = BASE_MSG_PREFIX | 0x5;
+        int RES_CHOOSE_SIM = BASE_MSG_PREFIX | 0x6;
+
         //通知玩家基础信息变化
         int NOTICE_BASE_INFO_CHANGE = BASE_MSG_PREFIX | 0x99;
         //推送跑马灯

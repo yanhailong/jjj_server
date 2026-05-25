@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.Optional;
 
 /**
@@ -43,5 +44,21 @@ public class SimPlayerGameDataService {
      */
     public void save(SimPlayerGameData simPlayerGameData) {
         simPlayerGameDao.save(simPlayerGameData);
+    }
+
+    /**
+     * 批量落库
+     *
+     * @param list
+     */
+    public void saveAll(Collection<SimPlayerGameData> list) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        try {
+            simPlayerGameDao.saveAll(list);
+        } catch (Exception e) {
+            log.error("批量保存 SimPlayerGameData 失败 size={}", list.size(), e);
+        }
     }
 }
