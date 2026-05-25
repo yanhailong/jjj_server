@@ -89,7 +89,7 @@ public class HallRoomService implements IConsoleReceiver {
      * @return
      */
     public int enterSimNode(PlayerController playerController) {
-        ClusterClient node = ClusterSystem.system.getByNodeType(NodeType.HALL, playerController.ipAddress(), playerController.playerId());
+        ClusterClient node = ClusterSystem.system.getByNodeType(NodeType.SIM, playerController.ipAddress(), playerController.playerId());
         if (node == null) {
             log.error("进入sim游戏失败，未找到对应的节点 playerId={}", playerController.playerId());
             return Code.SAMPLE_ERROR;

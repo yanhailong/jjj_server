@@ -1240,7 +1240,9 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
                 hallService.addPlayerAvatar(playerController.playerId(), id);
             } else if ("newGameNextDay".equalsIgnoreCase(gmOrders[0])) {
                 hallService.newGameExpectDao.clearPlayerData();
-            } else {
+            } else if ("enterSim".equalsIgnoreCase(gmOrders[0])) {
+                onChooseSim(playerController,null);
+            }else {
                 res.code = Code.NOT_FOUND;
             }
         } catch (Exception e) {

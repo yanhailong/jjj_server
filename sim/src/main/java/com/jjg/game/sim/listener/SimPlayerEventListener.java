@@ -10,7 +10,6 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.recharge.service.RechargeService;
 import com.jjg.game.core.service.CorePlayerService;
@@ -58,17 +57,6 @@ public class SimPlayerEventListener implements SessionEnterListener, SessionClos
         try {
             session.setPlayerId(playerId);
             session.setWorkId(playerId);
-
-            PlayerSessionInfo info = playerSessionService.getInfo(playerId);
-            if (info == null) {
-                log.warn("sessionEnter时 PlayerSessionInfo 为空 playerId = {}", playerId);
-                return;
-            }
-
-            if (info.getGameType() < 1) {
-                log.warn("sessionEnter时 PlayerSessionInfo中gameType小于1 getPlayerId = {}", playerId);
-                return;
-            }
 
             Player player = playerService.get(playerId);
 
