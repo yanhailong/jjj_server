@@ -16,7 +16,7 @@
     <modules>
         <module>common</module>
         <module>core</module>
-        <module>sim</module>
+        <module>sim-core</module>
         <module>room</module>
         <module>gm</module>
         <module>hall</module>
@@ -29,5 +29,6 @@
         <module>activity</module>
         <module>recharge</module>
         <module>ploy</module>
+        <module>sim</module>
     </modules>
 </project>

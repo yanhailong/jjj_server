@@ -35,7 +35,6 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.data.SimSkillsData;
-import com.jjg.game.sim.service.SimSkillService;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.*;
@@ -44,6 +43,7 @@ import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.pb.NotifySlotsStatus;
 import com.jjg.game.slots.service.SlotsPlayerService;
+import com.jjg.game.slots.service.SlotsSkillService;
 import io.netty.util.Timeout;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -99,7 +99,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     @Autowired
     protected PlayerAllSlotsDataDao playerAllSlotsDataDao;
     @Autowired
-    protected SimSkillService simSkillService;
+    protected SlotsSkillService simSkillService;
 
     protected AtomicBoolean open = new AtomicBoolean(false);
 
@@ -964,7 +964,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         //获取该slots游戏的技能数据并解锁技能
-        SimSkillsData simSkillsData = simSkillService.getSimSkillsData(playerController.playerId(), this.gameType);
+        SimSkillsData simSkillsData = simSkillService.getSkillDataByGameType(playerController.playerId(), this.gameType);
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData != null) {
             playerGameData.setCreateTime(TimeHelper.nowInt());
@@ -1491,7 +1491,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     protected void offlineSaveGameData(T gameData) {
         playerGameDataDao.savePlayerGameData(gameData);
-        simSkillService.save(gameData.getSimSkillsData());
     }
 
 /*****************************************************************************************************************************/
@@ -2401,7 +2400,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         //追加技能解锁的下注额
-        list.addAll(simSkillService.skillStakeList(playerGameData.getSimSkillsData()));
+        if(playerGameData.getSimSkillsData() != null && playerGameData.getSimSkillsData().getStakeList() != null && !playerGameData.getSimSkillsData().getStakeList().isEmpty()){
+            list.addAll(playerGameData.getSimSkillsData().getStakeList());
+        }
         return list;
     }
 

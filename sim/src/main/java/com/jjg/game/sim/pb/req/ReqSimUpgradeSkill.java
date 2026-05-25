@@ -4,14 +4,15 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.sim.constant.SimConstant;
 
 /**
  * @author 11
  * @date 2026/5/18
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SLOTS_COMMON, cmd = SlotsConst.SlotsCommon.REQ_SLOTS_UPGRADE_SKILL)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.REQ_SIM_UPGRADE_SKILL)
 @ProtoDesc("升级技能")
-public class ReqSlotsUpgradeSkill extends AbstractMessage {
+public class ReqSimUpgradeSkill extends AbstractMessage {
+    public int gameType;
     public int skillId;
 }

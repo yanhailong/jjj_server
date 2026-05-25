@@ -1,4 +1,4 @@
-package com.jjg.game.sim;
+package com.jjg.game.sim.handler;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
@@ -10,6 +10,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.controller.SimGameController;
+import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.pb.req.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,15 +76,14 @@ public class SimMessageHandler implements GmListener {
         simManager.onGuestLcation(playerController, req.guestId, req.buildingId, req.enter);
     }
 
-
-    @Command(SimConstant.MsgBean.REQ_SLOTS_GET_SKILLS)
-    public void reqSlotsGetSkills(PlayerController playerController, ReqSlotsGetSkills req) {
-
+    @Command(SimConstant.MsgBean.REQ_SIM_GET_SKILLS)
+    public void reqSlotsGetSkills(PlayerController playerController, ReqSimGetSkills req) {
+        simManager.onLoadSlotsSkills(playerController);
     }
 
-    @Command(SimConstant.MsgBean.REQ_SLOTS_UPGRADE_SKILL)
-    public void reqSlotsUpgradeSkill(PlayerController playerController, ReqSlotsUpgradeSkill req) {
-
+    @Command(SimConstant.MsgBean.REQ_SIM_UPGRADE_SKILL)
+    public void reqSimUpgradeSkill(PlayerController playerController, ReqSimUpgradeSkill req) {
+        simManager.onUpgradeSkill(playerController, req.gameType, req.skillId);
     }
 
     @Override

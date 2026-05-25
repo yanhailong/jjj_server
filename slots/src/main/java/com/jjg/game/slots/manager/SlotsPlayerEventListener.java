@@ -161,8 +161,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 rechargeService.loadOfflineRecharge(player.getId());
             }
         });
-        PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(player.getId());
-        logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), playerSessionToken.getDevice());
+        logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), player.getDeviceType());
         log.debug("玩家进入好友房slots 游戏 playerId = {},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
     }
 

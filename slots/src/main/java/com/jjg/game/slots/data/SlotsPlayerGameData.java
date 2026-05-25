@@ -3,13 +3,14 @@ package com.jjg.game.slots.data;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.sim.data.SimPlayerGameData;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 

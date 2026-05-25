@@ -1,26 +1,15 @@
-package com.jjg.game.hall.manager;
+package com.jjg.game.sim.manager;
 
-import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.config.ConfigManager;
-import com.jjg.game.core.dao.CommonDao;
 import com.jjg.game.core.handler.CoreMessageHandler;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
-import com.jjg.game.core.service.LoginConfigService;
-import com.jjg.game.core.service.SmsService;
 import com.jjg.game.core.task.manager.TaskManager;
-import com.jjg.game.hall.casino.manager.CasinoManager;
-import com.jjg.game.hall.listener.HallPlayerEventListener;
-import com.jjg.game.hall.minigame.MinigameManager;
-import com.jjg.game.hall.pointsaward.PointsAwardManager;
-import com.jjg.game.hall.service.HallService;
-import com.jjg.game.hall.service.NoticeService;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
@@ -28,45 +17,24 @@ import java.util.Collections;
 
 /**
  * @author 11
- * @date 2025/5/29 14:45
+ * @date 2026/5/25
  */
 @Component
-public class HallStartManager implements SmartLifecycle, ApplicationContextAware {
-
+public class SimStartManager implements SmartLifecycle, ApplicationContextAware {
     @Autowired
     private MarsCoreStartService marsCoreStartService;
     @Autowired
     private CoreStartService coreStartService;
     @Autowired
-    private HallService hallService;
-    @Autowired
-    private ApplicationEventPublisher eventPublisher;
+    private SimManager simManager;
     @Autowired
     private CoreMarqueeManager marqueeManager;
     @Autowired
-    private CasinoManager casinoManager;
-    @Autowired
-    private HallPlayerEventListener hallPlayerEventListener;
-    @Autowired
-    private ActivityManager activityManager;
-    @Autowired
-    private MinigameManager minigameManager;
-    @Autowired
     private ConfigManager configManager;
-    @Autowired
-    private PointsAwardManager pointsAwardManager;
-    @Autowired
-    private LoginConfigService loginConfigService;
-    @Autowired
-    private NoticeService noticeService;
     @Autowired
     private TaskManager taskManager;
     @Autowired
     private CoreMessageHandler coreMessageHandler;
-    @Autowired
-    private SmsService smsService;
-    @Autowired
-    private CommonDao commonDao;
 
     private ApplicationContext context;
 
@@ -77,24 +45,16 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         marsCoreStartService.init(this.context, Collections.emptySet());
         configManager.loadAll();
         coreStartService.init(this.context);
-        hallService.init();
-        hallPlayerEventListener.init();
         marqueeManager.init();
-        activityManager.initData();
-        minigameManager.init();
-        pointsAwardManager.init();
-        loginConfigService.init();
-        noticeService.init();
         coreMessageHandler.init();
-        smsService.init();
-        commonDao.init();
+        simManager.init();
 
         running = true;
     }
 
     @Override
     public void stop() {
-        casinoManager.shutdown();
+        simManager.shutdown();
         taskManager.shutdown();
         coreStartService.shutdown();
         marsCoreStartService.shutdown();

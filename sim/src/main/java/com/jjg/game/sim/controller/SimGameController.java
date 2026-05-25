@@ -6,14 +6,11 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
-import com.jjg.game.sim.data.BuildingData;
-import com.jjg.game.sim.data.CasinoData;
-import com.jjg.game.sim.data.Destination;
-import com.jjg.game.sim.data.GuestData;
-import com.jjg.game.sim.data.SimPlayerGameData;
+import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.pb.res.NotifyGenerateGuest;
 import com.jjg.game.sim.pb.strcut.BuildingInfo;
 import com.jjg.game.sim.pb.strcut.GuestInfo;
@@ -34,6 +31,8 @@ public class SimGameController {
 
     private PlayerController playerController;
     private SimPlayerGameData playerGameData;
+    //技能
+    private Map<Integer, SimSkillsData> skillsDataMap;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -49,6 +48,21 @@ public class SimGameController {
 
     public void setPlayerGameData(SimPlayerGameData playerGameData) {
         this.playerGameData = playerGameData;
+    }
+
+    public Map<Integer, SimSkillsData> getSkillsDataMap() {
+        return skillsDataMap;
+    }
+
+    public void setSkillsDataMap(Map<Integer, SimSkillsData> skillsDataMap) {
+        this.skillsDataMap = skillsDataMap;
+    }
+
+    public SimSkillsData getSkillData(int gameType) {
+        if (this.skillsDataMap == null || this.skillsDataMap.isEmpty()) {
+            return null;
+        }
+        return this.skillsDataMap.get(gameType);
     }
 
     /**
@@ -141,7 +155,7 @@ public class SimGameController {
 
         //下发通知
         NotifyGenerateGuest notify = new NotifyGenerateGuest(Code.SUCCESS);
-        notify.guests = Collections.singletonList(guest.toGuestInfo());
+        notify.guests = Collections.singletonList(toGuestInfo(guest));
         this.playerController.send(notify);
 
         log.info("生成游客成功 playerId={},guestId={},exposed={},exp={},level={},destinations={}",
@@ -359,8 +373,8 @@ public class SimGameController {
      * 重连处理:
      * - 长时掉线 → 清除所有在场游客, 返回空列表
      * - 短时掉线:
-     *     - 在路上 (currentBuildingId==0) → 补发剩余 destinations 奖励, 下线
-     *     - 在建筑里 → 按 BuildingData(接待+排队) 聚合 BuildingInfo 下发
+     * - 在路上 (currentBuildingId==0) → 补发剩余 destinations 奖励, 下线
+     * - 在建筑里 → 按 BuildingData(接待+排队) 聚合 BuildingInfo 下发
      */
     public List<BuildingInfo> handleReconnect(Map<Integer, Map<Integer, VisitorLevelCfg>> levelMap,
                                               Map<Integer, Map<Integer, VisitorStarCfg>> starMap) {
@@ -431,7 +445,7 @@ public class SimGameController {
             for (Integer gid : ids) {
                 GuestData g = guestMap.get(gid);
                 if (g != null && g.isOnline()) {
-                    guestInfos.add(g.toGuestInfo());
+                    guestInfos.add(toGuestInfo(g));
                 }
             }
             if (guestInfos.isEmpty()) {
@@ -636,6 +650,12 @@ public class SimGameController {
         }
     }
 
+    /**
+     * 解锁游客
+     *
+     * @param guestId
+     * @return
+     */
     public int unlockGuest(int guestId) {
         CasinoData casino = getCurrentCasino();
         if (casino == null) {
@@ -699,6 +719,28 @@ public class SimGameController {
         return tmpMap.get(level);
     }
 
+    /**
+     * 将 GuestData 转为协议下发的 GuestInfo (destinations 仅含未完成项)
+     */
+    public GuestInfo toGuestInfo(GuestData guestData) {
+        GuestInfo info = new GuestInfo();
+        info.id = guestData.getId();
+        if (guestData.getDestinations() != null && !guestData.getDestinations().isEmpty()) {
+            List<KVInfo> list = new ArrayList<>();
+            for (Destination d : guestData.getDestinations()) {
+                if (d.isDone()) {
+                    continue;
+                }
+                KVInfo kv = new KVInfo();
+                kv.key = d.getBuildingId();
+                kv.value = d.getDeviceId();
+                list.add(kv);
+            }
+            info.destinations = list;
+        }
+        return info;
+    }
+
     public void printGuest() {
         CasinoData casino = getCurrentCasino();
         if (casino == null) {
@@ -713,6 +755,7 @@ public class SimGameController {
             System.out.println(JSONObject.toJSONString(en.getValue()));
         }
     }
+
     public void printBuilding() {
         CasinoData casino = getCurrentCasino();
         if (casino == null) {

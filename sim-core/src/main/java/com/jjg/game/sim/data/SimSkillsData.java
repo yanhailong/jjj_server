@@ -3,9 +3,7 @@ package com.jjg.game.sim.data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author 11
@@ -23,7 +21,7 @@ public class SimSkillsData {
     //技能 propId -> level
     private Map<Integer, Integer> skillsMap;
     //通过技能解锁的下注额
-    private List<Integer> stakeList;
+    private List<Long> stakeList;
 
     public long getPlayerId() {
         return playerId;
@@ -49,22 +47,12 @@ public class SimSkillsData {
         this.skillsMap = skillsMap;
     }
 
-    public List<Integer> getStakeList() {
+    public List<Long> getStakeList() {
         return stakeList;
     }
 
-    public void setStakeList(List<Integer> stakeList) {
+    public void setStakeList(List<Long> stakeList) {
         this.stakeList = stakeList;
-    }
-
-    public void addNewSkill(int propId) {
-        if (this.skillsMap == null) {
-            this.skillsMap = new HashMap<>();
-        }
-
-        if (!this.skillsMap.containsKey(propId)) {
-            this.skillsMap.put(propId, 0);
-        }
     }
 
     /**
@@ -85,6 +73,16 @@ public class SimSkillsData {
             this.skillsMap = new HashMap<>();
         }
         this.skillsMap.put(propId, skillLevel);
+    }
+
+    public void addStake(long stake){
+        if(this.stakeList == null){
+            this.stakeList = new ArrayList<>();
+        }
+        if(!this.stakeList.contains(stake)){
+            this.stakeList.add(stake);
+            Collections.sort(this.stakeList);
+        }
     }
 
     public String getId() {

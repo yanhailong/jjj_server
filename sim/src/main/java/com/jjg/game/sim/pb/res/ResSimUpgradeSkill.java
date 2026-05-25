@@ -4,17 +4,17 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.sim.constant.SimConstant;
 
 /**
  * @author 11
  * @date 2026/5/18
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SLOTS_COMMON, cmd = SlotsConst.SlotsCommon.RES_SLOTS_UPGRADE_SKILL, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.RES_SIM_UPGRADE_SKILL, resp = true)
 @ProtoDesc("获取slots技能返回")
-public class ResSlotsUpgradeSkill extends AbstractResponse {
+public class ResSimUpgradeSkill extends AbstractResponse {
 
-    public ResSlotsUpgradeSkill(int code) {
+    public ResSimUpgradeSkill(int code) {
         super(code);
     }
 }

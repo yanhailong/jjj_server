@@ -13,16 +13,16 @@ import java.util.Map;
 public class SimPlayerGameData {
     @Id
     private long playerId;
-    //赌场信息
-    private Map<Integer, CasinoData> casinoDataMap;
-    //当前所在赌场id
-    private int currentCasinoId;
     //体力值
     private int stamina;
     //能量
     private int power;
     //研究点 研究点类型：1.普通 2.珍惜  -> 数量
     private Map<Integer, Integer> researchPointMap;
+    //赌场信息
+    private Map<Integer, CasinoData> casinoDataMap;
+    //当前所在赌场id
+    private int currentCasinoId;
     //是否已完成新手引导
     private boolean guide;
     //上次离线时间 (ms), 用于长/短时掉线判定
@@ -34,14 +34,6 @@ public class SimPlayerGameData {
 
     public void setPlayerId(long playerId) {
         this.playerId = playerId;
-    }
-
-    public Map<Integer, CasinoData> getCasinoDataMap() {
-        return casinoDataMap;
-    }
-
-    public void setCasinoDataMap(Map<Integer, CasinoData> casinoDataMap) {
-        this.casinoDataMap = casinoDataMap;
     }
 
     public int getStamina() {
@@ -68,6 +60,14 @@ public class SimPlayerGameData {
         this.researchPointMap = researchPointMap;
     }
 
+    public Map<Integer, CasinoData> getCasinoDataMap() {
+        return casinoDataMap;
+    }
+
+    public void setCasinoDataMap(Map<Integer, CasinoData> casinoDataMap) {
+        this.casinoDataMap = casinoDataMap;
+    }
+
     public boolean isGuide() {
         return guide;
     }
@@ -91,6 +91,7 @@ public class SimPlayerGameData {
     public void setLastOfflineTime(long lastOfflineTime) {
         this.lastOfflineTime = lastOfflineTime;
     }
+
 
     /**
      * 查询研究点

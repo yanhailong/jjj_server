@@ -39,8 +39,6 @@ import com.jjg.game.hall.service.HallService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.sim.SimManager;
-import com.jjg.game.sim.data.SimPlayerGameData;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,8 +98,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private CommonDao commonDao;
     @Autowired
     private PlayerSnapshotService playerSnapshotService;
-    @Autowired
-    private SimManager simManager;
+//    @Autowired
+//    private SimPlayerGameDao simPlayerGameDao;
 
     public void init() {
     }
@@ -223,6 +221,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 accountDao.save(updatedAccount);
             }
 
+//            SimPlayerGameData simPlayerGameData = simPlayerGameDao.findById(player.getId()).orElse(null);
 //            SimPlayerGameData simPlayerGameData = simManager.getSimPlayerGameDataFromDB(player.getId());
 
             res.playerId = player.getId();
@@ -338,7 +337,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
     @Override
     public void logout(long playerId, String sessionId) {
-        simManager.onExitGame(playerId, ExitType.DROPPED);
         PlayerSessionInfo playerSessionInfo = playerSessionService.remove(playerId);
         if (playerSessionInfo == null) {
             hallLogger.logout(playerId, 0);

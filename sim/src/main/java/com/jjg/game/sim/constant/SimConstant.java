@@ -30,12 +30,12 @@ public interface SimConstant {
         int RES_SYNC_GUEST_DEST = BASE_MSG_PREFIX | 0x9;
 
         //获取技能
-        int REQ_SLOTS_GET_SKILLS = BASE_MSG_PREFIX | 0xA;
-        int RES_SLOTS_GET_SKILLS = BASE_MSG_PREFIX | 0xB;
+        int REQ_SIM_GET_SKILLS = BASE_MSG_PREFIX | 0xA;
+        int RES_SIM_GET_SKILLS = BASE_MSG_PREFIX | 0xB;
 
         //升级技能
-        int REQ_SLOTS_UPGRADE_SKILL = BASE_MSG_PREFIX | 0xC;
-        int RES_SLOTS_UPGRADE_SKILL = BASE_MSG_PREFIX | 0xD;
+        int REQ_SIM_UPGRADE_SKILL = BASE_MSG_PREFIX | 0xC;
+        int RES_SIM_UPGRADE_SKILL = BASE_MSG_PREFIX | 0xD;
     }
 
     interface PropConfig {

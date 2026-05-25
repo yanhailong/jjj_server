@@ -1,10 +1,7 @@
 package com.jjg.game.sim.data;
 
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.bean.VisitorLevelCfg;
-import com.jjg.game.sim.pb.strcut.GuestInfo;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -160,27 +157,5 @@ public class GuestData {
         this.online = false;
         this.currentBuildingId = 0;
         this.destinations = null;
-    }
-
-    /**
-     * 将 GuestData 转为协议下发的 GuestInfo (destinations 仅含未完成项)
-     */
-    public GuestInfo toGuestInfo() {
-        GuestInfo info = new GuestInfo();
-        info.id = this.id;
-        if (this.destinations != null && !this.destinations.isEmpty()) {
-            List<KVInfo> list = new ArrayList<>();
-            for (Destination d : this.destinations) {
-                if (d.isDone()) {
-                    continue;
-                }
-                KVInfo kv = new KVInfo();
-                kv.key = d.getBuildingId();
-                kv.value = d.getDeviceId();
-                list.add(kv);
-            }
-            info.destinations = list;
-        }
-        return info;
     }
 }

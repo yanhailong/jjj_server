@@ -6,15 +6,14 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
-import com.jjg.game.sim.service.SimSkillService;
+import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.manager.SlotsFactoryManager;
 import com.jjg.game.slots.manager.SlotsRoomManager;
+import com.jjg.game.slots.service.SlotsSkillService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +36,7 @@ public class SlotsGMHandler implements GmListener {
     @Autowired
     private SlotsRoomManager slotsRoomManager;
     @Autowired
-    private SimSkillService simSkillService;
+    private SlotsSkillService slotsSkillService;
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
@@ -100,12 +99,6 @@ public class SlotsGMHandler implements GmListener {
                 });
             } else if ("skillLevelUp".equalsIgnoreCase(gmOrders[0])) {
                 int skillId = Integer.parseInt(gmOrders[1]);
-                ResearchSkillsCfg cfg = GameDataManager.getResearchSkillsCfg(skillId);
-                if (cfg == null) {
-                    res.code = Code.FAIL;
-                    log.warn("gm修改技能失败，未找到该技能 skillId={}", skillId);
-                    return res;
-                }
                 AbstractSlotsGameManager<?, ?, ?> gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
                 SlotsPlayerGameData playerGameData = gameManager == null ? null : gameManager.getPlayerGameData(playerController.playerId());
                 if (playerGameData == null) {
@@ -113,7 +106,17 @@ public class SlotsGMHandler implements GmListener {
                     log.warn("gm修改技能失败，未找到玩家信息 playerId={}", playerController.playerId());
                     return res;
                 }
-                res.code = simSkillService.gmLevelUpSkill(playerGameData.getSimSkillsData(), cfg);
+
+                if(playerGameData.getSimSkillsData() == null){
+                    SimSkillsData simSkillsData = slotsSkillService.getSkillDataByGameType(playerController.playerId(), playerGameData.getGameType());
+                    if(simSkillsData == null){
+                        simSkillsData = new SimSkillsData();
+                        simSkillsData.setPlayerId(playerController.playerId());
+                        simSkillsData.setGameType(playerGameData.getGameType());
+                    }
+                    playerGameData.setSimSkillsData(simSkillsData);
+                }
+                res.code = slotsSkillService.addSkillById(playerGameData, skillId);
             } else {
                 res.code = Code.NOT_FOUND;
             }
