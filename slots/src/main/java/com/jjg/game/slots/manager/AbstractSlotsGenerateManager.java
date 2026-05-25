@@ -1729,13 +1729,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 continue;
             }
             cfgList.add(cfg);
-
-            if(gameType == 103700){
-                System.out.println(111);
-            }
-            if(cfg.getId() == 37001){
-                System.out.println(JSONObject.toJSONString(cfg.getSectionProp()));
-            }
         }
 
         this.specialResultLibCacheData = calSpecialResultLibCacheData(cfgList);
