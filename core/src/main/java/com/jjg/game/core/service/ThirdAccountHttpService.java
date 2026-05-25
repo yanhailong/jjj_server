@@ -57,7 +57,10 @@ public class ThirdAccountHttpService {
         this.thirdServiceInfo = thirdServiceInfo;
         this.adjustConfig = adjustConfig;
 
-        if (this.thirdServiceInfo != null && StringUtils.isNotEmpty(thirdServiceInfo.getAppleJwksUrl())) {
+        if (this.thirdServiceInfo != null
+                && this.thirdServiceInfo.getAppleAppId() != null
+                && this.thirdServiceInfo.getAppleAppId() > 0
+                && StringUtils.isNotEmpty(thirdServiceInfo.getAppleJwksUrl())) {
             appleJwkProvider = new JwkProviderBuilder(thirdServiceInfo.getAppleJwksUrl())
                     .cached(10, 12, TimeUnit.HOURS) // 缓存10个公钥，12小时
                     .rateLimited(true)
