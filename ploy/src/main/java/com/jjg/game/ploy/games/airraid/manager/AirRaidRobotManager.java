@@ -56,9 +56,7 @@ public class AirRaidRobotManager {
      */
     public void handleRobotBetEvent(AirRaidGameRoom gameRoom, AirRaidRoundBetBook roundBetBook, Queue<AirRaidPlayerInfo> pendingBets) {
         AirstrikeRobotCfg cfg = GameDataManager.getAirstrikeRobotCfg(CoreConst.GameType.AIR_STRIKE);
-        if (cfg == null || cfg.getInitial() == null || cfg.getInitial().size() < 2
-                || cfg.getIncrease() == null || cfg.getIncrease().size() < 2
-                || robotBetPropInfo == null) {
+        if (cfg == null || cfg.getInitial() == null || cfg.getInitial().size() < 2 || cfg.getIncrease() == null || cfg.getIncrease().size() < 2 || robotBetPropInfo == null) {
             return;
         }
 
@@ -94,19 +92,23 @@ public class AirRaidRobotManager {
                 continue;
             }
 
-            //获取一个下注金额
-            int bet = RandomUtils.randomMinMax(dataSection[0], dataSection[1]);
-            roundBetBook.recordBet(robotPlayer.getId(), robotPlayer.getHeadImgId(), 0, bet, robotPlayer.getNickName());
+            int betCount = robotBetCount(cfg);
 
-            AirRaidPlayerInfo airRaidPlayerInfo = new AirRaidPlayerInfo();
-            airRaidPlayerInfo.playerId = robotPlayer.getId();
-            airRaidPlayerInfo.headImgId = robotPlayer.getHeadImgId();
-            airRaidPlayerInfo.headFrame = robotPlayer.getHeadFrameId();
-            airRaidPlayerInfo.nick = robotPlayer.getNickName();
-            airRaidPlayerInfo.bet = bet;
-            airRaidPlayerInfo.betIndex = 0;
-            syncMsg.playerBetInfoList.add(airRaidPlayerInfo);
-            pendingBets.offer(airRaidPlayerInfo);
+            for (int j = 0; j < betCount; j++) {
+                //获取一个下注金额
+                int bet = RandomUtils.randomMinMax(dataSection[0], dataSection[1]);
+                roundBetBook.recordBet(robotPlayer.getId(), robotPlayer.getHeadImgId(), j, bet, robotPlayer.getNickName());
+
+                AirRaidPlayerInfo airRaidPlayerInfo = new AirRaidPlayerInfo();
+                airRaidPlayerInfo.playerId = robotPlayer.getId();
+                airRaidPlayerInfo.headImgId = robotPlayer.getHeadImgId();
+                airRaidPlayerInfo.headFrame = robotPlayer.getHeadFrameId();
+                airRaidPlayerInfo.nick = robotPlayer.getNickName();
+                airRaidPlayerInfo.bet = bet;
+                airRaidPlayerInfo.betIndex = j;
+                syncMsg.playerBetInfoList.add(airRaidPlayerInfo);
+                pendingBets.offer(airRaidPlayerInfo);
+            }
         }
         sendMessageManager.messageSync(syncMsg);
     }
@@ -116,8 +118,7 @@ public class AirRaidRobotManager {
      * 获取AirstrikeRobotCfg.CashIn，数据格式为 1000_2000,即在这个区间随机一个数得到万分比，每秒钟有(机器人人数*万分比)的机器人进行兑现操作
      * 仅主节点执行；产生的兑现 → 入本节点队列(等 tick 推送) + 通过 CashOutSync 同步到其他节点
      */
-    public void handRobotCashoutEvent(AirRaidGameRoom gameRoom, AirRaidRoundBetBook roundBetBook, AirRaidRuleConfig airRaidRuleConfig,
-                                      EnqueueCashOutFunction enqueueCashOut, SyncCashOutsFunction syncCashOutsFunction) {
+    public void handRobotCashoutEvent(AirRaidGameRoom gameRoom, AirRaidRoundBetBook roundBetBook, AirRaidRuleConfig airRaidRuleConfig, EnqueueCashOutFunction enqueueCashOut, SyncCashOutsFunction syncCashOutsFunction) {
         try {
             long now = System.currentTimeMillis();
             //必须仍在飞行阶段且未到坠毁
@@ -163,8 +164,7 @@ public class AirRaidRobotManager {
                 roundBetBook.recordCashOut(info.playerId, info.betIndex, currentMultiplier, winAmount);
 
                 // 写入排行榜
-                airRaidRankDao.addCashOut(info.playerId, robotPlayer.getHeadImgId(), robotPlayer.getHeadFrameId(), now, info.bet,
-                        winAmount, currentMultiplier, gameRoom.getCrashMultiplier(), info.betIndex, gameRoom.getRoundId(), robotPlayer.getNickName());
+                airRaidRankDao.addCashOut(info.playerId, robotPlayer.getHeadImgId(), robotPlayer.getHeadFrameId(), now, info.bet, winAmount, currentMultiplier, gameRoom.getCrashMultiplier(), info.betIndex, gameRoom.getRoundId(), robotPlayer.getNickName());
 
                 //本节点入队
                 enqueueCashOut.apply(info.playerId, info.betIndex, currentMultiplier, winAmount);
@@ -237,6 +237,20 @@ public class AirRaidRobotManager {
             return robotPlayer;
         }
         return null;
+    }
+
+    private int robotBetCount(AirstrikeRobotCfg cfg) {
+        try {
+            if (cfg.getPeopleNum() != null && !cfg.getPeopleNum().isEmpty()) {
+                int rand1 = RandomUtils.randomMinMax(cfg.getPeopleNum().get(0), cfg.getPeopleNum().get(1));
+                if (RandomUtils.randomMinMax(1, 10000) <= rand1) {
+                    return 2;
+                }
+            }
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        return 1;
     }
 
     public void clear() {

@@ -25,6 +25,8 @@ public class AirstrikeRobotCfg extends BaseCfgBean {
   protected List<Integer> Increase;
   /** 初始人数 */
   protected List<Integer> Initial;
+  /** 第二轮下注人数万分比 */
+  protected List<Integer> PeopleNum;
   /** 机器人下注金额 */
   protected List<List<Integer>> stake;
 
@@ -41,6 +43,11 @@ public class AirstrikeRobotCfg extends BaseCfgBean {
   /** 返回初始人数 */
   public List<Integer> getInitial() {
     return Initial;
+  }
+
+  /** 返回第二轮下注人数万分比 */
+  public List<Integer> getPeopleNum() {
+    return PeopleNum;
   }
 
   /** 返回机器人下注金额 */
