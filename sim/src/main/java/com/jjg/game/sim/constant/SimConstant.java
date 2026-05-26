@@ -44,8 +44,6 @@ public interface SimConstant {
     }
 
     interface Common {
-        //默认赌场 id
-        int DEFAULT_CASINO_ID = 1;
 
         //默认赌场STATS id (CasinoStatsSheetCfg level=0)
         int DEFAULT_CASINO_STATS_ID = 1001;

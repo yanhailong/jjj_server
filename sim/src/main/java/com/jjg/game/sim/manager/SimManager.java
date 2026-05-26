@@ -9,23 +9,24 @@ import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.listener.ConfigExcelChangeListener;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.CasinoListCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
-import com.jjg.game.sampledata.bean.VisitorLevelCfg;
-import com.jjg.game.sampledata.bean.VisitorStarCfg;
 import com.jjg.game.sim.constant.SimConstant;
-import com.jjg.game.sim.controller.SimGameController;
 import com.jjg.game.sim.data.CasinoData;
+import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimPlayerGameData;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.pb.res.ResSimEnterGame;
 import com.jjg.game.sim.pb.res.ResSimGetSkills;
 import com.jjg.game.sim.pb.res.ResSimUpgradeSkill;
 import com.jjg.game.sim.pb.res.ResSyncGuestLocation;
-import com.jjg.game.sim.pb.strcut.GameSkills;
+import com.jjg.game.sim.pb.SimPbConverter;
+import com.jjg.game.sim.service.SimGuestService;
+import com.jjg.game.sim.service.SimNodeService;
 import com.jjg.game.sim.service.SimPlayerGameDataService;
+import com.jjg.game.sim.service.SimPlayerTickHandler;
+import com.jjg.game.sim.service.SimReconnectService;
 import com.jjg.game.sim.service.SimSkillService;
 import io.netty.util.Timeout;
 import org.slf4j.Logger;
@@ -34,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,53 +44,65 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 模拟经营游戏管理器
+ * <p>
+ * 职责: 玩家会话生命周期 + 定时调度 + 协议入口转发。
+ * 具体业务逻辑全部分散到对应 Service。
  *
  * @author 11
  * @date 2026/5/15
  */
 @Component
-public class SimManager implements OnSwitchNode, ConfigExcelChangeListener {
+public class SimManager implements OnSwitchNode {
     private final Logger log = LoggerFactory.getLogger(SimManager.class);
 
     @Autowired
     private SimPlayerGameDataService simPlayerGameDataService;
     @Autowired
     private SimSkillService simSkillService;
+    @Autowired
+    private SimNodeService simNodeService;
+    @Autowired
+    private SimGuestService guestService;
+    @Autowired
+    private SimReconnectService reconnectService;
+    //所有玩家级定时回调 (Spring 自动注入全部实现, 按 order 排序)
+    @Autowired
+    private List<SimPlayerTickHandler> tickHandlers;
 
     //玩家状态检查任务句柄
     private volatile Timeout checkPlayerDataTimeout;
+    //定时刷盘任务句柄
+    private volatile Timeout saveDirtyTimeout;
 
-    //visitorLevel配置 guestId -> level -> cfg
-    private Map<Integer, Map<Integer, VisitorLevelCfg>> visitorLevelCfgMap;
-    //visitorStar配置 guestId -> star -> cfg
-    private Map<Integer, Map<Integer, VisitorStarCfg>> visitorStarCfgMap;
+    //定时刷盘间隔: 5 分钟
+    private static final long SAVE_DIRTY_INTERVAL_SEC = 5 * 60L;
 
-    //储存玩家控制器
-    protected Map<Long, SimGameController> gameControllerMap = new ConcurrentHashMap<>();
+    //储存玩家会话上下文
+    protected Map<Long, SimPlayerContext> contextMap = new ConcurrentHashMap<>();
 
     /**
      * 初始化
      */
     public void init() {
+        //按 order 排序 tick handlers
+        this.tickHandlers.sort(Comparator.comparingInt(SimPlayerTickHandler::order));
         checkPlayerDataTimeout = WheelTimerUtil.scheduleAtFixedRate(this::checkPlayerDataTimer, 1, 2, TimeUnit.SECONDS);
+        saveDirtyTimeout = WheelTimerUtil.scheduleAtFixedRate(this::saveDirtyTimer, SAVE_DIRTY_INTERVAL_SEC, SAVE_DIRTY_INTERVAL_SEC, TimeUnit.SECONDS);
     }
 
     /**
      * 玩家进入游戏
-     *
-     * @param playerController
      */
     public void onEnterGame(PlayerController playerController) {
         ResSimEnterGame res = new ResSimEnterGame(Code.SUCCESS);
         try {
-            //初始化玩家数据
-            SimGameController simGameController = createGameController(playerController);
-            playerController.setScene(simGameController);
+            SimPlayerContext ctx = createContext(playerController);
+            playerController.setScene(ctx);
             //处理重连
-            res.buildings = simGameController.handleReconnect(this.visitorLevelCfgMap, this.visitorStarCfgMap);
-            res.guide = simGameController.getPlayerGameData().isGuide();
+            res.buildings = reconnectService.handleReconnect(ctx);
+            res.guide = ctx.getPlayerGameData().isGuide();
 
-            simGameController.getPlayerGameData().setLastOfflineTime(0);
+            ctx.getPlayerGameData().setLastOfflineTime(0);
             log.info("玩家进入游戏 playerId={},res={}", playerController.playerId(), JSONObject.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
@@ -99,55 +113,46 @@ public class SimManager implements OnSwitchNode, ConfigExcelChangeListener {
 
     /**
      * 玩家退出游戏
-     *
-     * @param playerId
      */
     public void onExitGame(long playerId, ExitType exitType) {
-        SimGameController gameController = this.gameControllerMap.get(playerId);
-        if (gameController != null) {
-            gameController.getPlayerGameData().setLastOfflineTime(System.currentTimeMillis());
+        SimPlayerContext ctx = this.contextMap.get(playerId);
+        if (ctx != null) {
+            ctx.getPlayerGameData().setLastOfflineTime(System.currentTimeMillis());
         }
     }
 
     /**
      * 玩家完成新手引导
-     *
-     * @param playerId
      */
     public void onFinishGuide(long playerId) {
         try {
-            SimGameController gameController = getGameController(playerId);
-            if (gameController == null) {
-                log.warn("玩家完成新手引导时获取 SimPlayerGameData 失败 playerId={}", playerId);
+            SimPlayerContext ctx = getContext(playerId);
+            if (ctx == null) {
+                log.warn("玩家完成新手引导时获取 SimPlayerContext 失败 playerId={}", playerId);
                 return;
             }
-            gameController.getPlayerGameData().setGuide(true);
+            ctx.getPlayerGameData().setGuide(true);
             log.info("玩家完成新手引导 playerId={}", playerId);
         } catch (Exception e) {
             log.error("", e);
         }
     }
 
-
     /**
-     * 玩家同步游客位置
-     *
-     * @param playerController
-     * @param guestId
-     * @param buildingId       建筑id
+     * 同步游客位置
      */
     public void onGuestLcation(PlayerController playerController, int guestId, int buildingId, boolean enter) {
         ResSyncGuestLocation res = new ResSyncGuestLocation(Code.SUCCESS);
         try {
-            SimGameController gameController = getGameController(playerController.playerId());
-            if (gameController == null) {
-                log.warn("同步游客位置: SimPlayerGameData 不存在 playerId={}", playerController.playerId());
+            SimPlayerContext ctx = getContext(playerController.playerId());
+            if (ctx == null) {
+                log.warn("同步游客位置: SimPlayerContext 不存在 playerId={}", playerController.playerId());
                 res.code = Code.NOT_FOUND;
                 playerController.send(res);
                 return;
             }
 
-            res.code = gameController.guestLocation(guestId, buildingId, enter, this.visitorLevelCfgMap, this.visitorStarCfgMap);
+            res.code = guestService.guestLocation(ctx, guestId, buildingId, enter);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -157,50 +162,33 @@ public class SimManager implements OnSwitchNode, ConfigExcelChangeListener {
 
     /**
      * 加载技能
-     *
-     * @param playerController
      */
     public void onLoadSlotsSkills(PlayerController playerController) {
         ResSimGetSkills res = new ResSimGetSkills(Code.SUCCESS);
         try {
-            SimGameController gameController = getGameController(playerController.playerId());
-            if (gameController == null) {
-                log.warn("同步游客位置: SimPlayerGameData 不存在 playerId={}", playerController.playerId());
+            SimPlayerContext ctx = getContext(playerController.playerId());
+            if (ctx == null) {
+                log.warn("加载技能: SimPlayerContext 不存在 playerId={}", playerController.playerId());
                 res.code = Code.NOT_FOUND;
                 playerController.send(res);
                 return;
             }
 
-            if (gameController.getSkillsDataMap() == null || gameController.getSkillsDataMap().isEmpty()) {
+            if (ctx.getSkillsDataMap() == null || ctx.getSkillsDataMap().isEmpty()) {
                 List<SimSkillsData> tmpList = simSkillService.getAllSlostsSkills(playerController.playerId());
                 if (tmpList != null && !tmpList.isEmpty()) {
                     Map<Integer, SimSkillsData> map = new HashMap<>();
                     for (SimSkillsData data : tmpList) {
                         map.put(data.getGameType(), data);
                     }
-                    gameController.setSkillsDataMap(map);
+                    ctx.setSkillsDataMap(map);
                 }
             }
 
-            if (gameController.getSkillsDataMap() != null && !gameController.getSkillsDataMap().isEmpty()) {
+            if (ctx.getSkillsDataMap() != null && !ctx.getSkillsDataMap().isEmpty()) {
                 res.skills = new ArrayList<>();
-                for (Map.Entry<Integer, SimSkillsData> en : gameController.getSkillsDataMap().entrySet()) {
-                    SimSkillsData value = en.getValue();
-
-                    GameSkills gameSkills = new GameSkills();
-                    gameSkills.gameType = value.getGameType();
-                    gameSkills.stake = value.getStakeList();
-
-                    if (value.getSkillsMap() != null && !value.getSkillsMap().isEmpty()) {
-                        gameSkills.skillInfos = new ArrayList<>();
-                        for (Map.Entry<Integer, Integer> en2 : value.getSkillsMap().entrySet()) {
-                            KVInfo kvInfo = new KVInfo();
-                            kvInfo.key = en2.getKey();
-                            kvInfo.value = en2.getValue();
-                            gameSkills.skillInfos.add(kvInfo);
-                        }
-                    }
-                    res.skills.add(gameSkills);
+                for (SimSkillsData value : ctx.getSkillsDataMap().values()) {
+                    res.skills.add(SimPbConverter.toGameSkills(value));
                 }
             }
 
@@ -213,22 +201,19 @@ public class SimManager implements OnSwitchNode, ConfigExcelChangeListener {
 
     /**
      * 升级技能
-     *
-     * @param playerController
-     * @param skillPropId
      */
     public void onUpgradeSkill(PlayerController playerController, int gameType, int skillPropId) {
         ResSimUpgradeSkill res = new ResSimUpgradeSkill(Code.SUCCESS);
         try {
-            SimGameController gameController = getGameController(playerController.playerId());
-            if (gameController == null) {
-                log.warn("升级技能失败: SimPlayerGameData 不存在 playerId={}", playerController.playerId());
+            SimPlayerContext ctx = getContext(playerController.playerId());
+            if (ctx == null) {
+                log.warn("升级技能失败: SimPlayerContext 不存在 playerId={}", playerController.playerId());
                 res.code = Code.NOT_FOUND;
                 playerController.send(res);
                 return;
             }
 
-            SimSkillsData skillData = gameController.getSkillData(gameType);
+            SimSkillsData skillData = ctx.getSkillData(gameType);
             if (skillData == null) {
                 log.warn("升级技能失败: simSkillsData 不存在 playerId={}", playerController.playerId());
                 res.code = Code.NOT_FOUND;
@@ -236,7 +221,7 @@ public class SimManager implements OnSwitchNode, ConfigExcelChangeListener {
                 return;
             }
 
-            res.code = simSkillService.upgradeSkill(gameController.getPlayerGameData(), skillData, skillPropId);
+            res.code = simSkillService.upgradeSkill(ctx.getPlayerGameData(), skillData, skillPropId);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -245,51 +230,89 @@ public class SimManager implements OnSwitchNode, ConfigExcelChangeListener {
     }
 
     /**
-     * 初始化玩家数据
-     *
-     * @param playerController
-     * @return
+     * 创建或获取玩家会话上下文
      */
-    public SimGameController createGameController(PlayerController playerController) {
-        SimGameController gameController = getGameController(playerController.playerId());
-        if (gameController != null) {
-            return gameController;
+    public SimPlayerContext createContext(PlayerController playerController) {
+        SimPlayerContext ctx = getContext(playerController.playerId());
+        if (ctx != null) {
+            return ctx;
         }
 
         SimPlayerGameData gameData = getSimPlayerGameDataFromDB(playerController.playerId());
         if (gameData == null) {
             gameData = new SimPlayerGameData();
             gameData.setPlayerId(playerController.playerId());
-
-            //初始化默认赌场
-            CasinoData casinoData = new CasinoData();
-            casinoData.setId(SimConstant.Common.DEFAULT_CASINO_ID);
-            casinoData.setStatsId(SimConstant.Common.DEFAULT_CASINO_STATS_ID);
-            CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(SimConstant.Common.DEFAULT_CASINO_STATS_ID);
-            casinoData.setProsperity(casinoCfg.getProsperity());
-            casinoData.setResearchId(1);
-
-            Map<Integer, CasinoData> casinoMap = new HashMap<>();
-            casinoMap.put(casinoData.getId(), casinoData);
-            gameData.setCasinoDataMap(casinoMap);
-            gameData.setCurrentCasinoId(casinoData.getId());
         }
 
-        gameController = new SimGameController();
-        gameController.setPlayerController(playerController);
-        gameController.setPlayerGameData(gameData);
-        this.gameControllerMap.put(playerController.playerId(), gameController);
-        return gameController;
+        //解锁赌场
+        Map<Integer, CasinoData> casinoMap = gameData.getCasinoDataMap();
+        if (casinoMap == null) {
+            casinoMap = new HashMap<>();
+            gameData.setCasinoDataMap(casinoMap);
+        }
+
+        CasinoStatsSheetCfg defaultCasinoCfg = GameDataManager.getCasinoStatsSheetCfg(SimConstant.Common.DEFAULT_CASINO_STATS_ID);
+
+        for (Map.Entry<Integer, CasinoListCfg> en : GameDataManager.getCasinoListCfgMap().entrySet()) {
+            CasinoListCfg cfg = en.getValue();
+            int casinoId = cfg.getId();
+
+            //已解锁则跳过
+            if (casinoMap.containsKey(casinoId)) {
+                continue;
+            }
+
+            Map<Integer, Integer> condition = cfg.getCondition();
+            boolean isDefault = condition == null || condition.isEmpty();
+            if (!isDefault && !isCasinoUnlockConditionMet(condition, casinoMap)) {
+                continue;
+            }
+
+            CasinoData casinoData = new CasinoData();
+            casinoData.setId(casinoId);
+            casinoData.setStatsId(SimConstant.Common.DEFAULT_CASINO_STATS_ID);
+            casinoData.setProsperity(defaultCasinoCfg.getProsperity());
+            casinoData.setResearchId(1);
+            casinoMap.put(casinoId, casinoData);
+
+            if (isDefault && gameData.getCurrentCasinoId() <= 0) {
+                gameData.setCurrentCasinoId(casinoId);
+            }
+        }
+
+        ctx = new SimPlayerContext();
+        ctx.setPlayerController(playerController);
+        ctx.setPlayerGameData(gameData);
+        this.contextMap.put(playerController.playerId(), ctx);
+        return ctx;
     }
 
-    public SimGameController getGameController(long playerId) {
-        return this.gameControllerMap.get(playerId);
+    /**
+     * 判断赌场解锁条件是否满足
+     * condition: key = 依赖的 casinoData.id, value = 该赌场需达到的 CasinoStatsSheetCfg.level
+     */
+    private boolean isCasinoUnlockConditionMet(Map<Integer, Integer> condition, Map<Integer, CasinoData> casinoMap) {
+        for (Map.Entry<Integer, Integer> en : condition.entrySet()) {
+            CasinoData dependData = casinoMap.get(en.getKey());
+            if (dependData == null) {
+                return false;
+            }
+            CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(dependData.getStatsId());
+            if (statsCfg == null || statsCfg.getLevel() < en.getValue()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public SimPlayerContext getContext(long playerId) {
+        return this.contextMap.get(playerId);
     }
 
     public SimPlayerGameData getSimPlayerGameDataFromDB(long playerId) {
-        SimGameController gameController = this.gameControllerMap.get(playerId);
-        if (gameController != null) {
-            return gameController.getPlayerGameData();
+        SimPlayerContext ctx = this.contextMap.get(playerId);
+        if (ctx != null) {
+            return ctx.getPlayerGameData();
         }
         return simPlayerGameDataService.getSimPlayerGameData(playerId);
     }
@@ -301,37 +324,41 @@ public class SimManager implements OnSwitchNode, ConfigExcelChangeListener {
         if (this.checkPlayerDataTimeout != null) {
             this.checkPlayerDataTimeout.cancel();
         }
+        if (this.saveDirtyTimeout != null) {
+            this.saveDirtyTimeout.cancel();
+        }
 
         //收集所有待落库的玩家数据和技能数据
-        List<SimPlayerGameData> gameDataList = new ArrayList<>(this.gameControllerMap.size());
+        List<SimPlayerGameData> gameDataList = new ArrayList<>(this.contextMap.size());
         List<SimSkillsData> skillsDataList = new ArrayList<>();
-        for (Map.Entry<Long, SimGameController> en : this.gameControllerMap.entrySet()) {
-            SimGameController gc = en.getValue();
-            if (gc.getPlayerGameData() != null) {
-                gameDataList.add(gc.getPlayerGameData());
+        for (Map.Entry<Long, SimPlayerContext> en : this.contextMap.entrySet()) {
+            SimPlayerContext ctx = en.getValue();
+            if (ctx.getPlayerGameData() != null) {
+                gameDataList.add(ctx.getPlayerGameData());
             }
-            if (gc.getSkillsDataMap() != null && !gc.getSkillsDataMap().isEmpty()) {
-                skillsDataList.addAll(gc.getSkillsDataMap().values());
+            if (ctx.getSkillsDataMap() != null && !ctx.getSkillsDataMap().isEmpty()) {
+                skillsDataList.addAll(ctx.getSkillsDataMap().values());
             }
         }
 
         //批量落库
         this.simPlayerGameDataService.saveAll(gameDataList);
         this.simSkillService.saveAll(skillsDataList);
+
+        //删除本节点上所有玩家的sim节点路由信息
+        this.simNodeService.delete(this.contextMap.keySet());
     }
 
     /**
-     * 将SimPlayerGameData从内存移除，并保存到redis
-     *
-     * @param playerId
+     * 将玩家数据从内存移除并保存
      */
     private void exitSaveData(long playerId) {
-        SimGameController gameController = this.gameControllerMap.remove(playerId);
-        if (gameController != null) {
-            this.simPlayerGameDataService.save(gameController.getPlayerGameData());
+        SimPlayerContext ctx = this.contextMap.remove(playerId);
+        if (ctx != null) {
+            this.simPlayerGameDataService.save(ctx.getPlayerGameData());
 
-            if (gameController.getSkillsDataMap() != null && !gameController.getSkillsDataMap().isEmpty()) {
-                for (Map.Entry<Integer, SimSkillsData> en : gameController.getSkillsDataMap().entrySet()) {
+            if (ctx.getSkillsDataMap() != null && !ctx.getSkillsDataMap().isEmpty()) {
+                for (Map.Entry<Integer, SimSkillsData> en : ctx.getSkillsDataMap().entrySet()) {
                     this.simSkillService.save(en.getValue());
                 }
             }
@@ -339,54 +366,58 @@ public class SimManager implements OnSwitchNode, ConfigExcelChangeListener {
     }
 
     /**
-     * 定时检查玩家任务
+     * 定时刷盘: 扫描脏数据, 批量落库
+     */
+    private void saveDirtyTimer() {
+        long now = System.currentTimeMillis();
+        List<SimPlayerGameData> dirtyList = new ArrayList<>();
+        for (SimPlayerContext ctx : this.contextMap.values()) {
+            SimPlayerGameData data = ctx.getPlayerGameData();
+            if (data != null && data.isDirty()) {
+                dirtyList.add(data);
+            }
+        }
+        if (dirtyList.isEmpty()) {
+            return;
+        }
+        try {
+            this.simPlayerGameDataService.saveAll(dirtyList);
+            for (SimPlayerGameData data : dirtyList) {
+                data.clearDirty();
+                data.setLastSaveTime(now);
+            }
+            log.info("定时刷盘完成 count={}", dirtyList.size());
+        } catch (Exception e) {
+            log.error("定时刷盘异常 count={}", dirtyList.size(), e);
+        }
+    }
+
+    /**
+     * 定时检查玩家任务: 遍历所有 SimPlayerTickHandler 在玩家线程中执行
      */
     private void checkPlayerDataTimer() {
         long now = System.currentTimeMillis();
 
-        final Map<Integer, Map<Integer, VisitorStarCfg>> tmpStarMap = this.visitorStarCfgMap;
-        final Map<Integer, Map<Integer, VisitorLevelCfg>> tmpLevelMap = this.visitorLevelCfgMap;
-        for (Map.Entry<Long, SimGameController> en : this.gameControllerMap.entrySet()) {
+        for (Map.Entry<Long, SimPlayerContext> en : this.contextMap.entrySet()) {
+            final SimPlayerContext ctx = en.getValue();
             //分发到对应的线程
             PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(en.getKey(), 0, new BaseHandler<String>() {
                 @Override
                 public void action() {
-                    en.getValue().generateGuestEvent(now, tmpLevelMap, tmpStarMap);
+                    for (SimPlayerTickHandler handler : tickHandlers) {
+                        try {
+                            handler.onTick(ctx, now);
+                        } catch (Exception e) {
+                            log.error("tick handler 异常 handler={},playerId={}", handler.getClass().getSimpleName(), ctx.playerId(), e);
+                        }
+                    }
                 }
             }.setHandlerParamWithSelf("sim check playerdata timer"));
         }
     }
 
-    /**
-     * 加载 VisitorLevel 配置
-     */
-    private void loadVisitorLevelConfig() {
-        Map<Integer, Map<Integer, VisitorLevelCfg>> tmpVisitorLevelCfgMap = new HashMap<>();
-        for (VisitorLevelCfg cfg : GameDataManager.getVisitorLevelCfgList()) {
-            tmpVisitorLevelCfgMap.computeIfAbsent(cfg.getVisitor(), k -> new HashMap<>()).put(cfg.getLevel(), cfg);
-        }
-        this.visitorLevelCfgMap = tmpVisitorLevelCfgMap;
-    }
-
-    /**
-     * 加载 VisitorStar 配置
-     */
-    private void loadVisitorStarConfig() {
-        Map<Integer, Map<Integer, VisitorStarCfg>> tmpVisitorStarCfgMap = new HashMap<>();
-        for (VisitorStarCfg cfg : GameDataManager.getVisitorStarCfgList()) {
-            tmpVisitorStarCfgMap.computeIfAbsent(cfg.getVisitor(), k -> new HashMap<>()).put(cfg.getStarlevel(), cfg);
-        }
-        this.visitorStarCfgMap = tmpVisitorStarCfgMap;
-    }
-
-    @Override
-    public void initSampleCallbackCollector() {
-        addInitSampleFileObserveWithCallBack(VisitorLevelCfg.EXCEL_NAME, this::loadVisitorLevelConfig);
-        addInitSampleFileObserveWithCallBack(VisitorStarCfg.EXCEL_NAME, this::loadVisitorStarConfig);
-    }
-
     @Override
     public void onSwitchNodeAction(PFSession pfSession) {
-//        exitSaveData(pfSession.getPlayerId());
+        onExitGame(pfSession.playerId,ExitType.INITIATIVE);
     }
 }

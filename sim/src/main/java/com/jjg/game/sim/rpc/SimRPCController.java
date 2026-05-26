@@ -7,7 +7,7 @@ import com.jjg.game.core.rpc.GmToAllBridge;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
 import com.jjg.game.sim.bridge.ToSimBridge;
-import com.jjg.game.sim.controller.SimGameController;
+import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimPlayerGameData;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.manager.SimManager;
@@ -38,12 +38,12 @@ public class SimRPCController extends CoreRPCController implements ToSimBridge, 
         if (deductMap == null || deductMap.isEmpty()) {
             return Code.SUCCESS;
         }
-        SimGameController gameController = simManager.getGameController(playerId);
-        if (gameController == null) {
+        SimPlayerContext ctx = simManager.getContext(playerId);
+        if (ctx == null) {
             log.warn("扣除研究点失败，未找到玩家 sim 数据 playerId={}", playerId);
             return Code.NOT_FOUND;
         }
-        SimPlayerGameData data = gameController.getPlayerGameData();
+        SimPlayerGameData data = ctx.getPlayerGameData();
         //先校验
         for (Map.Entry<Integer, Integer> en : deductMap.entrySet()) {
             if (data.findResearchPoint(en.getKey()) < en.getValue()) {
@@ -67,8 +67,8 @@ public class SimRPCController extends CoreRPCController implements ToSimBridge, 
         }
 
         //优先用内存中的数据，避免与 sim 节点内存出现脏读
-        SimGameController gameController = simManager.getGameController(playerId);
-        SimSkillsData data = gameController == null ? null : gameController.getSkillData(gameType);
+        SimPlayerContext ctx = simManager.getContext(playerId);
+        SimSkillsData data = ctx == null ? null : ctx.getSkillData(gameType);
         if (data == null) {
             data = simSkillService.getSkillDataByGameType(playerId, gameType);
         }
@@ -81,11 +81,11 @@ public class SimRPCController extends CoreRPCController implements ToSimBridge, 
 //        simSkillService.save(data);
 
         //回写到 sim 内存
-        if (gameController != null) {
-            Map<Integer, SimSkillsData> skillsMap = gameController.getSkillsDataMap();
+        if (ctx != null) {
+            Map<Integer, SimSkillsData> skillsMap = ctx.getSkillsDataMap();
             if (skillsMap == null) {
                 skillsMap = new HashMap<>();
-                gameController.setSkillsDataMap(skillsMap);
+                ctx.setSkillsDataMap(skillsMap);
             }
             skillsMap.put(gameType, data);
         }

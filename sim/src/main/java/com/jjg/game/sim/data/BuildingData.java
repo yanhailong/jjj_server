@@ -119,4 +119,61 @@ public class BuildingData {
     public int waitSize() {
         return waitGuestId == null ? 0 : waitGuestId.size();
     }
+
+    // ---------------------------------------------------------------------
+    // 状态机操作: 把多步组合内聚到聚合根, Service 只调一次即可
+    // ---------------------------------------------------------------------
+
+    /**
+     * 游客是否在本建筑 (接待 / 排队 / 预占任一集合)
+     */
+    public boolean contains(int gid) {
+        if (guestId != null && guestId.contains(gid)) return true;
+        if (waitGuestId != null && waitGuestId.contains(gid)) return true;
+        if (reserveGuestId != null && reserveGuestId.contains(gid)) return true;
+        return false;
+    }
+
+    /**
+     * 游客到达建筑:
+     * - 先从 reserve 释放
+     * - 再按 seating / wait 容量决定落位
+     * - 若 seating 与 wait 都已满, 兜底加 seating 并返回 false (调用方据此告警)
+     *
+     * @param gid        游客 id
+     * @param seatingCap 接待上限
+     * @param queueCap   排队上限
+     * @return true=正常落位; false=都已满, 兜底入座
+     */
+    public boolean arriveSeating(int gid, int seatingCap, int queueCap) {
+        removeReserve(gid);
+        if (seatingSize() < seatingCap) {
+            addSeating(gid);
+            return true;
+        }
+        if (waitSize() < queueCap) {
+            addWait(gid);
+            return true;
+        }
+        //兜底
+        addSeating(gid);
+        return false;
+    }
+
+    /**
+     * 游客离开建筑: 同时从 seating / wait 中移除
+     */
+    public void leaveBuilding(int gid) {
+        removeSeating(gid);
+        removeWait(gid);
+    }
+
+    /**
+     * 清除该游客在本建筑所有集合 (接待 / 排队 / 预占) 的痕迹
+     */
+    public void clearTraces(int gid) {
+        removeSeating(gid);
+        removeWait(gid);
+        removeReserve(gid);
+    }
 }

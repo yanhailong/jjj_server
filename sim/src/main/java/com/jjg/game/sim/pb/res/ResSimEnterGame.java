@@ -5,7 +5,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.sim.constant.SimConstant;
-import com.jjg.game.sim.pb.strcut.BuildingInfo;
+import com.jjg.game.sim.pb.struct.BuildingInfo;
 
 import java.util.List;
 

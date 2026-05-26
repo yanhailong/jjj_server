@@ -28,6 +28,13 @@ public class SimPlayerGameData {
     //上次离线时间 (ms), 用于长/短时掉线判定
     private long lastOfflineTime;
 
+    //脏标记 (不入库; 内存中标识需要刷盘)
+    @org.springframework.data.annotation.Transient
+    private transient volatile boolean dirty;
+    //上次落库时间 (ms, 不入库)
+    @org.springframework.data.annotation.Transient
+    private transient long lastSaveTime;
+
     public long getPlayerId() {
         return playerId;
     }
@@ -90,6 +97,29 @@ public class SimPlayerGameData {
 
     public void setLastOfflineTime(long lastOfflineTime) {
         this.lastOfflineTime = lastOfflineTime;
+    }
+
+    public boolean isDirty() {
+        return dirty;
+    }
+
+    /**
+     * 标脏: 任何修改数据的业务都应该调用
+     */
+    public void markDirty() {
+        this.dirty = true;
+    }
+
+    public void clearDirty() {
+        this.dirty = false;
+    }
+
+    public long getLastSaveTime() {
+        return lastSaveTime;
+    }
+
+    public void setLastSaveTime(long lastSaveTime) {
+        this.lastSaveTime = lastSaveTime;
     }
 
 

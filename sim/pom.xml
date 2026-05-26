@@ -38,6 +38,11 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.jjg.game</groupId>
+            <artifactId>activity</artifactId>
+            <version>3.1.0-JJG-RELEASES</version>
+        </dependency>
     </dependencies>
 
     <build>

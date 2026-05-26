@@ -71,8 +71,8 @@ public class SimPlayerEventListener implements SessionEnterListener, SessionClos
                 @Override
                 public void action() throws Exception {
                     taskManager.loadTaskData(player.getId());
-                    //创建 gameController
-                    simManager.createGameController(playerController);
+                    //创建玩家会话上下文
+                    simManager.createContext(playerController);
                     //大厅非重连会检查一次，这里再检查一次
                     rechargeService.loadOfflineRecharge(player.getId());
                 }
