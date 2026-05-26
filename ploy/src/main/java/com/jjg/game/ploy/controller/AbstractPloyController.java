@@ -155,7 +155,10 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     protected AbstractMessage bet(T playerGameData, long betValue, int value) {
         //检查押分值
         PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
-        if (betValue < cfg.getLineBetScore().get(0) || betValue > cfg.getLineBetScore().get(1)) {
+        if (cfg == null || CollectionUtil.isEmpty(cfg.getLineBetScore())
+                || cfg.getLineBetScore().size() < 2
+                || (cfg.getLineBetScore().size() == 2 && (betValue < cfg.getLineBetScore().get(0) || betValue > cfg.getLineBetScore().get(1)))
+                || (cfg.getLineBetScore().size() > 2 && cfg.getLineBetScore().stream().noneMatch(lineBetScore -> betValue == lineBetScore))) {
             log.warn("下注额错误，下注失败 playerId = {},roomCfgId = {},betValue = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), betValue);
             return buildResBetMessage(Code.PARAM_ERROR, playerGameData, 0, 0);
         }
