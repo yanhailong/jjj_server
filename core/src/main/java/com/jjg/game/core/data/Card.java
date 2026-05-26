@@ -64,6 +64,8 @@ public class Card {
     public String toString() {
         String[] suits = {"♦", "♣", "♥", "♠"};
         String[] ranks = {"A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2"};
-        return suits[suit] + ranks[rank - 1];
+        String suitStr = suit >= 0 && suit < suits.length ? suits[suit] : "?";
+        String rankStr = rank > 0 && rank <= ranks.length ? ranks[rank - 1] : String.valueOf(rank);
+        return suitStr + rankStr;
     }
 }
