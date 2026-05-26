@@ -94,6 +94,9 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
 
         if (playerGameData.getFirstCardList() != null && !playerGameData.getFirstCardList().isEmpty() && playerGameData.getSecondCardList() != null && !playerGameData.getSecondCardList().isEmpty()) {
             res.pokerIds = LuckyPokerUtils.card2Ids(playerGameData.getFirstCardList());
+            //断线重连/重新进入时，补发建议保留的牌，保持与下注返回一致
+            List<PloyCard> suggestCards = LuckyPokerUtils.suggestSavePokerIds(playerGameData.getFirstCardList());
+            res.suggestSavePokerIds = LuckyPokerUtils.card2Ids(suggestCards);
         }else {
             playerGameData.setFinalCardList(null);
             playerGameData.setSecondCardList(null);
