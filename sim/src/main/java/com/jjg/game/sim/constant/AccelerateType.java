@@ -7,12 +7,11 @@ package com.jjg.game.sim.constant;
  * @date 2026/5/26
  */
 public enum AccelerateType {
-
-    /** 钻石加速 */
+    //钻石加速
     DIAMOND(1),
-    /** 道具加速 */
+    //道具加速
     ITEM(2),
-    /** 广告加速 */
+    //广告加速
     AD(3);
 
     private final int code;

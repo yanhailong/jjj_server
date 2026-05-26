@@ -17,36 +17,26 @@ import com.jjg.game.sim.data.CasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimPlayerGameData;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.event.SimEventBus;
+import com.jjg.game.sim.listener.SimPlayerTickListener;
+import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.ResSimEnterGame;
 import com.jjg.game.sim.pb.res.ResSimGetSkills;
 import com.jjg.game.sim.pb.res.ResSimUpgradeSkill;
 import com.jjg.game.sim.pb.res.ResSyncGuestLocation;
-import com.jjg.game.sim.pb.SimPbConverter;
-import com.jjg.game.sim.service.SimGuestService;
-import com.jjg.game.sim.service.SimNodeService;
-import com.jjg.game.sim.service.SimPlayerGameDataService;
-import com.jjg.game.sim.service.SimPlayerTickHandler;
-import com.jjg.game.sim.service.SimReconnectService;
-import com.jjg.game.sim.service.SimSkillService;
+import com.jjg.game.sim.service.*;
 import io.netty.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
  * 模拟经营游戏管理器
- * <p>
- * 职责: 玩家会话生命周期 + 定时调度 + 协议入口转发。
- * 具体业务逻辑全部分散到对应 Service。
  *
  * @author 11
  * @date 2026/5/15
@@ -58,6 +48,8 @@ public class SimManager implements OnSwitchNode {
     @Autowired
     private SimPlayerGameDataService simPlayerGameDataService;
     @Autowired
+    private SimCasinoDataService simCasinoDataService;
+    @Autowired
     private SimSkillService simSkillService;
     @Autowired
     private SimNodeService simNodeService;
@@ -67,15 +59,13 @@ public class SimManager implements OnSwitchNode {
     private SimReconnectService reconnectService;
     //所有玩家级定时回调 (Spring 自动注入全部实现, 按 order 排序)
     @Autowired
-    private List<SimPlayerTickHandler> tickHandlers;
+    private List<SimPlayerTickListener> tickHandlers;
+    @Autowired
+    private SimEventBus simEventBus;
+
 
     //玩家状态检查任务句柄
     private volatile Timeout checkPlayerDataTimeout;
-    //定时刷盘任务句柄
-    private volatile Timeout saveDirtyTimeout;
-
-    //定时刷盘间隔: 5 分钟
-    private static final long SAVE_DIRTY_INTERVAL_SEC = 5 * 60L;
 
     //储存玩家会话上下文
     protected Map<Long, SimPlayerContext> contextMap = new ConcurrentHashMap<>();
@@ -84,10 +74,10 @@ public class SimManager implements OnSwitchNode {
      * 初始化
      */
     public void init() {
-        //按 order 排序 tick handlers
-        this.tickHandlers.sort(Comparator.comparingInt(SimPlayerTickHandler::order));
+        //按 order 排序 tick handlers (SimAutoSaveService 会以 MAX_VALUE 排在最后)
+        this.tickHandlers.sort(Comparator.comparingInt(SimPlayerTickListener::order));
+        this.simEventBus.init();
         checkPlayerDataTimeout = WheelTimerUtil.scheduleAtFixedRate(this::checkPlayerDataTimer, 1, 2, TimeUnit.SECONDS);
-        saveDirtyTimeout = WheelTimerUtil.scheduleAtFixedRate(this::saveDirtyTimer, SAVE_DIRTY_INTERVAL_SEC, SAVE_DIRTY_INTERVAL_SEC, TimeUnit.SECONDS);
     }
 
     /**
@@ -103,6 +93,7 @@ public class SimManager implements OnSwitchNode {
             res.guide = ctx.getPlayerGameData().isGuide();
 
             ctx.getPlayerGameData().setLastOfflineTime(0);
+            ctx.markDirty();
             log.info("玩家进入游戏 playerId={},res={}", playerController.playerId(), JSONObject.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
@@ -118,6 +109,7 @@ public class SimManager implements OnSwitchNode {
         SimPlayerContext ctx = this.contextMap.get(playerId);
         if (ctx != null) {
             ctx.getPlayerGameData().setLastOfflineTime(System.currentTimeMillis());
+            ctx.markDirty();
         }
     }
 
@@ -132,6 +124,7 @@ public class SimManager implements OnSwitchNode {
                 return;
             }
             ctx.getPlayerGameData().setGuide(true);
+            ctx.markDirty();
             log.info("玩家完成新手引导 playerId={}", playerId);
         } catch (Exception e) {
             log.error("", e);
@@ -221,7 +214,7 @@ public class SimManager implements OnSwitchNode {
                 return;
             }
 
-            res.code = simSkillService.upgradeSkill(ctx.getPlayerGameData(), skillData, skillPropId);
+            res.code = simSkillService.upgradeSkill(ctx, skillData, skillPropId);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -231,6 +224,11 @@ public class SimManager implements OnSwitchNode {
 
     /**
      * 创建或获取玩家会话上下文
+     * <p>
+     * 加载顺序:
+     * 1) load 玩家级 SimPlayerGameData (无则新建)
+     * 2) load 玩家所有 CasinoData (一次 find by playerId)
+     * 3) 按配置补齐解锁条件满足但未创建的赌场, 同步 markCasinoDirty 让它们落库
      */
     public SimPlayerContext createContext(PlayerController playerController) {
         SimPlayerContext ctx = getContext(playerController.playerId());
@@ -238,58 +236,81 @@ public class SimManager implements OnSwitchNode {
             return ctx;
         }
 
-        SimPlayerGameData gameData = getSimPlayerGameDataFromDB(playerController.playerId());
+        long playerId = playerController.playerId();
+        boolean playerDirty = false;
+
+        //load 玩家级数据
+        SimPlayerGameData gameData = simPlayerGameDataService.getSimPlayerGameData(playerId);
         if (gameData == null) {
             gameData = new SimPlayerGameData();
-            gameData.setPlayerId(playerController.playerId());
+            gameData.setPlayerId(playerId);
+            playerDirty = true;
         }
 
-        //解锁赌场
-        Map<Integer, CasinoData> casinoMap = gameData.getCasinoDataMap();
-        if (casinoMap == null) {
-            casinoMap = new HashMap<>();
-            gameData.setCasinoDataMap(casinoMap);
+        // load 玩家所有赌场
+        List<CasinoData> casinos = simCasinoDataService.findByPlayerId(playerId);
+        Map<Integer, CasinoData> casinoMap = new HashMap<>();
+        for (CasinoData c : casinos) {
+            casinoMap.put(c.getCasinoId(), c);
         }
 
+        // 按 CasinoList 配置补齐解锁但未创建的赌场
         CasinoStatsSheetCfg defaultCasinoCfg = GameDataManager.getCasinoStatsSheetCfg(SimConstant.Common.DEFAULT_CASINO_STATS_ID);
-
+        List<Integer> newlyUnlocked = new ArrayList<>();
         for (Map.Entry<Integer, CasinoListCfg> en : GameDataManager.getCasinoListCfgMap().entrySet()) {
             CasinoListCfg cfg = en.getValue();
             int casinoId = cfg.getId();
-
             //已解锁则跳过
             if (casinoMap.containsKey(casinoId)) {
                 continue;
             }
-
             Map<Integer, Integer> condition = cfg.getCondition();
             boolean isDefault = condition == null || condition.isEmpty();
             if (!isDefault && !isCasinoUnlockConditionMet(condition, casinoMap)) {
                 continue;
             }
-
             CasinoData casinoData = new CasinoData();
-            casinoData.setId(casinoId);
+            casinoData.setPlayerId(playerId);
+            casinoData.setCasinoId(casinoId);
             casinoData.setStatsId(SimConstant.Common.DEFAULT_CASINO_STATS_ID);
             casinoData.setProsperity(defaultCasinoCfg.getProsperity());
-            casinoData.setResearchId(1);
+            //研究院作为建筑, level=1 由建筑系统实施时通过默认建筑解锁逻辑设置
             casinoMap.put(casinoId, casinoData);
+            newlyUnlocked.add(casinoId);
 
             if (isDefault && gameData.getCurrentCasinoId() <= 0) {
                 gameData.setCurrentCasinoId(casinoId);
+                playerDirty = true;
             }
         }
 
+        // 兜底: currentCasinoId 指向不存在的赌场时回退到任意已解锁赌场
+        if (!casinoMap.containsKey(gameData.getCurrentCasinoId()) && !casinoMap.isEmpty()) {
+            int fallback = casinoMap.keySet().iterator().next();
+            gameData.setCurrentCasinoId(fallback);
+            playerDirty = true;
+            log.warn("玩家 currentCasinoId 指向不存在赌场, 回退 playerId={},fallback={}", playerId, fallback);
+        }
+
+        //装配 ctx
         ctx = new SimPlayerContext();
         ctx.setPlayerController(playerController);
         ctx.setPlayerGameData(gameData);
-        this.contextMap.put(playerController.playerId(), ctx);
+        ctx.setCasinoMap(casinoMap);
+        this.contextMap.put(playerId, ctx);
+
+        if (playerDirty) {
+            ctx.markDirty();
+        }
+        for (int casinoId : newlyUnlocked) {
+            ctx.markCasinoDirty(casinoId);
+        }
         return ctx;
     }
 
     /**
      * 判断赌场解锁条件是否满足
-     * condition: key = 依赖的 casinoData.id, value = 该赌场需达到的 CasinoStatsSheetCfg.level
+     * condition: key = 依赖的 casinoId, value = 该赌场需达到的 CasinoStatsSheetCfg.level
      */
     private boolean isCasinoUnlockConditionMet(Map<Integer, Integer> condition, Map<Integer, CasinoData> casinoMap) {
         for (Map.Entry<Integer, Integer> en : condition.entrySet()) {
@@ -309,32 +330,24 @@ public class SimManager implements OnSwitchNode {
         return this.contextMap.get(playerId);
     }
 
-    public SimPlayerGameData getSimPlayerGameDataFromDB(long playerId) {
-        SimPlayerContext ctx = this.contextMap.get(playerId);
-        if (ctx != null) {
-            return ctx.getPlayerGameData();
-        }
-        return simPlayerGameDataService.getSimPlayerGameData(playerId);
-    }
-
     /**
-     * 服务器关闭
+     * 服务器关闭: 收集所有 ctx 的玩家/赌场/技能数据落库
      */
     public void shutdown() {
         if (this.checkPlayerDataTimeout != null) {
             this.checkPlayerDataTimeout.cancel();
         }
-        if (this.saveDirtyTimeout != null) {
-            this.saveDirtyTimeout.cancel();
-        }
 
-        //收集所有待落库的玩家数据和技能数据
         List<SimPlayerGameData> gameDataList = new ArrayList<>(this.contextMap.size());
+        List<CasinoData> casinoList = new ArrayList<>();
         List<SimSkillsData> skillsDataList = new ArrayList<>();
         for (Map.Entry<Long, SimPlayerContext> en : this.contextMap.entrySet()) {
             SimPlayerContext ctx = en.getValue();
             if (ctx.getPlayerGameData() != null) {
                 gameDataList.add(ctx.getPlayerGameData());
+            }
+            if (ctx.getCasinoMap() != null && !ctx.getCasinoMap().isEmpty()) {
+                casinoList.addAll(ctx.getCasinoMap().values());
             }
             if (ctx.getSkillsDataMap() != null && !ctx.getSkillsDataMap().isEmpty()) {
                 skillsDataList.addAll(ctx.getSkillsDataMap().values());
@@ -343,6 +356,7 @@ public class SimManager implements OnSwitchNode {
 
         //批量落库
         this.simPlayerGameDataService.saveAll(gameDataList);
+        this.simCasinoDataService.saveAll(casinoList);
         this.simSkillService.saveAll(skillsDataList);
 
         //删除本节点上所有玩家的sim节点路由信息
@@ -354,41 +368,17 @@ public class SimManager implements OnSwitchNode {
      */
     private void exitSaveData(long playerId) {
         SimPlayerContext ctx = this.contextMap.remove(playerId);
-        if (ctx != null) {
-            this.simPlayerGameDataService.save(ctx.getPlayerGameData());
-
-            if (ctx.getSkillsDataMap() != null && !ctx.getSkillsDataMap().isEmpty()) {
-                for (Map.Entry<Integer, SimSkillsData> en : ctx.getSkillsDataMap().entrySet()) {
-                    this.simSkillService.save(en.getValue());
-                }
-            }
-        }
-    }
-
-    /**
-     * 定时刷盘: 扫描脏数据, 批量落库
-     */
-    private void saveDirtyTimer() {
-        long now = System.currentTimeMillis();
-        List<SimPlayerGameData> dirtyList = new ArrayList<>();
-        for (SimPlayerContext ctx : this.contextMap.values()) {
-            SimPlayerGameData data = ctx.getPlayerGameData();
-            if (data != null && data.isDirty()) {
-                dirtyList.add(data);
-            }
-        }
-        if (dirtyList.isEmpty()) {
+        if (ctx == null) {
             return;
         }
-        try {
-            this.simPlayerGameDataService.saveAll(dirtyList);
-            for (SimPlayerGameData data : dirtyList) {
-                data.clearDirty();
-                data.setLastSaveTime(now);
+        this.simPlayerGameDataService.save(ctx.getPlayerGameData());
+        if (ctx.getCasinoMap() != null && !ctx.getCasinoMap().isEmpty()) {
+            this.simCasinoDataService.saveAll(ctx.getCasinoMap().values());
+        }
+        if (ctx.getSkillsDataMap() != null && !ctx.getSkillsDataMap().isEmpty()) {
+            for (Map.Entry<Integer, SimSkillsData> en : ctx.getSkillsDataMap().entrySet()) {
+                this.simSkillService.save(en.getValue());
             }
-            log.info("定时刷盘完成 count={}", dirtyList.size());
-        } catch (Exception e) {
-            log.error("定时刷盘异常 count={}", dirtyList.size(), e);
         }
     }
 
@@ -404,7 +394,7 @@ public class SimManager implements OnSwitchNode {
             PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(en.getKey(), 0, new BaseHandler<String>() {
                 @Override
                 public void action() {
-                    for (SimPlayerTickHandler handler : tickHandlers) {
+                    for (SimPlayerTickListener handler : tickHandlers) {
                         try {
                             handler.onTick(ctx, now);
                         } catch (Exception e) {
@@ -418,6 +408,6 @@ public class SimManager implements OnSwitchNode {
 
     @Override
     public void onSwitchNodeAction(PFSession pfSession) {
-        onExitGame(pfSession.playerId,ExitType.INITIATIVE);
+        onExitGame(pfSession.playerId, ExitType.INITIATIVE);
     }
 }

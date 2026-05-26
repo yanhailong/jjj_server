@@ -8,17 +8,17 @@ package com.jjg.game.sim.constant;
  */
 public enum BuildingCategory {
 
-    /** 游戏类: SLOT / 扑克 / 捕鱼 → 产出金币 */
+    //游戏类: SLOT / 扑克 / 捕鱼 → 产出金币
     GAME(1, true),
-    /** 休息类: 普通休息区 / VIP休息区 → 产出能量 */
+    //休息类: 普通休息区 / VIP休息区 → 产出能量
     REST(2, true),
-    /** 前台接待区 → 服务能力(繁荣度) */
+    //前台接待区 → 服务能力(繁荣度)
     RECEPTION(3, false),
-    /** 运营部 → 知名度 */
+    //运营部 → 知名度
     OPERATION(4, false),
-    /** 营销部 → 曝光度 */
+    //营销部 → 曝光度
     MARKETING(5, false),
-    /** 研发部 → 解锁游戏数量上限 */
+    //研发部 → 解锁游戏数量上限
     RESEARCH(6, false);
 
     private final int code;

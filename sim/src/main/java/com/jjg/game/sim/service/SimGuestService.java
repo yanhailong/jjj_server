@@ -15,6 +15,7 @@ import com.jjg.game.sim.data.CasinoData;
 import com.jjg.game.sim.data.Destination;
 import com.jjg.game.sim.data.GuestData;
 import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.NotifyGenerateGuest;
 import org.slf4j.Logger;
@@ -37,7 +38,7 @@ import java.util.Set;
  * @date 2026/5/26
  */
 @Service
-public class SimGuestService implements SimPlayerTickHandler {
+public class SimGuestService implements SimPlayerTickListener {
     private static final Logger log = LoggerFactory.getLogger(SimGuestService.class);
 
     @Autowired
@@ -134,6 +135,7 @@ public class SimGuestService implements SimPlayerTickHandler {
         guest.setCurrentBuildingId(0);
 
         casino.setLastGenerateTime(now);
+        ctx.markCasinoDirty();
 
         //下发通知
         NotifyGenerateGuest notify = new NotifyGenerateGuest(Code.SUCCESS);
@@ -365,6 +367,7 @@ public class SimGuestService implements SimPlayerTickHandler {
 
                 if (flag) {
                     moveGuestIntoBuilding(casino, buildingId, guestId);
+                    ctx.markCasinoDirty();
                     log.info("游客到达建筑 playerId={},guestId={},building={}", ctx.playerId(), guestId, buildingId);
                 } else {
                     log.info("游客同步位置时未找到该建筑 playerId={},guestId={},building={}", ctx.playerId(), guestId, buildingId);
@@ -374,6 +377,7 @@ public class SimGuestService implements SimPlayerTickHandler {
                 //离开建筑
                 removeGuestFromBuilding(casino, buildingId, guestId);
                 guest.setCurrentBuildingId(0);
+                ctx.markCasinoDirty();
                 if (guest.isAllDestinationsDone()) {
                     log.info("游客目的地已完成 playerId={},guestId={}", ctx.playerId(), guestId);
                 } else {
@@ -384,6 +388,7 @@ public class SimGuestService implements SimPlayerTickHandler {
             //离场
             removeGuestFromAllBuildings(casino, guest);
             guest.offLine();
+            ctx.markCasinoDirty();
             log.info("游客离场 playerId={},guestId={}", ctx.playerId(), guestId);
         }
         return Code.SUCCESS;
@@ -478,6 +483,7 @@ public class SimGuestService implements SimPlayerTickHandler {
             guest.setLevel(1);
             guest.setStar(1);
             casino.addGuest(guest);
+            ctx.markCasinoDirty();
         }
 
         log.info("解锁游客成功 guestId={},online={}", guestId, guest.isOnline());

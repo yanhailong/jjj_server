@@ -3,7 +3,8 @@ package com.jjg.game.sim.service;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
-import com.jjg.game.sim.data.SimPlayerGameData;
+import com.jjg.game.sim.data.CasinoData;
+import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
 import org.springframework.stereotype.Service;
 
@@ -77,7 +78,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
      * @param propId
      * @return
      */
-    public int upgradeSkill(SimPlayerGameData simPlayerGameData, SimSkillsData simSkillsData, int propId) {
+    public int upgradeSkill(SimPlayerContext ctx, SimSkillsData simSkillsData, int propId) {
         Map<Integer, Map<Integer, ResearchSkillsCfg>> cfgMap = this.skillsCfgMap.get(simSkillsData.getGameType());
         if (cfgMap == null || cfgMap.isEmpty()) {
             log.warn("升级技能失败，未找到技能配置 playerId={},propId={}", simSkillsData.getPlayerId(), propId);
@@ -110,9 +111,16 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             return Code.SUCCESS;
         }
 
+        //研究点在当前赌场上
+        CasinoData casino = ctx.getCurrentCasino();
+        if (casino == null) {
+            log.warn("升级技能失败，当前赌场不存在 playerId={}", simSkillsData.getPlayerId());
+            return Code.NOT_FOUND;
+        }
+
         //检查研究点是否足够
         for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
-            int researchPoint = simPlayerGameData.findResearchPoint(en.getKey());
+            int researchPoint = casino.findResearchPoint(en.getKey());
             if (researchPoint < en.getValue()) {
                 log.warn("升级技能失败，研究点不足 playerId={},propId={},newLevelCfgId={},researchPoint={}", simSkillsData.getPlayerId(), propId, newLevelCfg.getId(), researchPoint);
                 return Code.NOT_ENOUGH;
@@ -121,8 +129,9 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
 
         //扣除研究点
         for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
-            simPlayerGameData.deductResearchPoint(en.getKey(), en.getValue());
+            casino.deductResearchPoint(en.getKey(), en.getValue());
         }
+        ctx.markCasinoDirty();
 
         simSkillsData.changeSkillLevel(propId, newLevelCfg.getGrade());
         log.info("玩家技能升级成功 playerId={},propId={},newLevel={}", simSkillsData.getPlayerId(), propId, newLevelCfg.getGrade());

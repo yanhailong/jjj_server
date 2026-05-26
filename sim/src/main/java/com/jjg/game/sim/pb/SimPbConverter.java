@@ -13,8 +13,6 @@ import java.util.Map;
 
 /**
  * 数据 → 协议 转换工具
- * <p>
- * 集中存放所有 *Data → *Info / *Struct 的转换, 避免散落在各 Service。
  *
  * @author 11
  * @date 2026/5/26

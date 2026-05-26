@@ -12,6 +12,8 @@ import java.util.Set;
 public class BuildingData {
     //建筑id
     private int id;
+    //建筑等级
+    private int level;
     //当前在里面逛的游客 (接待区)
     private Set<Integer> guestId;
     //排队区的游客
@@ -25,6 +27,14 @@ public class BuildingData {
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public void setLevel(int level) {
+        this.level = level;
     }
 
     public Set<Integer> getGuestId() {
@@ -119,10 +129,6 @@ public class BuildingData {
     public int waitSize() {
         return waitGuestId == null ? 0 : waitGuestId.size();
     }
-
-    // ---------------------------------------------------------------------
-    // 状态机操作: 把多步组合内聚到聚合根, Service 只调一次即可
-    // ---------------------------------------------------------------------
 
     /**
      * 游客是否在本建筑 (接待 / 排队 / 预占任一集合)

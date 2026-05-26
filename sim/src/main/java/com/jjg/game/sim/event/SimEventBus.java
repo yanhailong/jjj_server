@@ -1,24 +1,15 @@
 package com.jjg.game.sim.event;
 
+import com.jjg.game.sim.listener.SimEventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * sim 模块事件总线 (同步派发)
- * <p>
- * 同步派发的好处: 派发线程 = 触发线程 = 玩家线程 (PlayerExecutorGroupDisruptor 已做隔离),
- * 监听器内部可直接读写 ctx, 无需加锁。
- * <p>
- * 缺点: 监听器异常会传播; 已用 try/catch 隔离, 不影响其它监听器与触发者。
  *
  * @author 11
  * @date 2026/5/26
@@ -35,7 +26,6 @@ public class SimEventBus {
     @SuppressWarnings("rawtypes")
     private final Map<Class<? extends SimEvent>, List<SimEventListener>> listenerMap = new HashMap<>();
 
-    @PostConstruct
     @SuppressWarnings({"unchecked", "rawtypes"})
     public void init() {
         if (rawListeners == null || rawListeners.isEmpty()) {

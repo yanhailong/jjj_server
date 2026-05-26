@@ -7,8 +7,8 @@ import com.jjg.game.core.rpc.GmToAllBridge;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
 import com.jjg.game.sim.bridge.ToSimBridge;
+import com.jjg.game.sim.data.CasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
-import com.jjg.game.sim.data.SimPlayerGameData;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.service.SimSkillService;
@@ -43,18 +43,24 @@ public class SimRPCController extends CoreRPCController implements ToSimBridge, 
             log.warn("扣除研究点失败，未找到玩家 sim 数据 playerId={}", playerId);
             return Code.NOT_FOUND;
         }
-        SimPlayerGameData data = ctx.getPlayerGameData();
+        //研究点在当前赌场上, 哪个赌场玩 slots 就扣哪个赌场
+        CasinoData casino = ctx.getCurrentCasino();
+        if (casino == null) {
+            log.warn("扣除研究点失败，当前赌场不存在 playerId={}", playerId);
+            return Code.NOT_FOUND;
+        }
         //先校验
         for (Map.Entry<Integer, Integer> en : deductMap.entrySet()) {
-            if (data.findResearchPoint(en.getKey()) < en.getValue()) {
+            if (casino.findResearchPoint(en.getKey()) < en.getValue()) {
                 log.warn("扣除研究点失败，研究点不足 playerId={},type={},need={}", playerId, en.getKey(), en.getValue());
                 return Code.NOT_ENOUGH;
             }
         }
         //再扣
         for (Map.Entry<Integer, Integer> en : deductMap.entrySet()) {
-            data.deductResearchPoint(en.getKey(), en.getValue());
+            casino.deductResearchPoint(en.getKey(), en.getValue());
         }
+        ctx.markCasinoDirty();
         return Code.SUCCESS;
     }
 

@@ -139,6 +139,7 @@ public class SimReconnectService {
         }
         guestService.removeGuestFromAllBuildings(casino, guest);
         guest.offLine();
+        ctx.markCasinoDirty(casino.getCasinoId());
         log.info("重连结算路上游客并下线 playerId={},guestId={},补发次数={}", ctx.playerId(), guest.getId(), pending);
     }
 }

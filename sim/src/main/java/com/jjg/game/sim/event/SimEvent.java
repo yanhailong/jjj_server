@@ -4,8 +4,6 @@ import com.jjg.game.sim.data.SimPlayerContext;
 
 /**
  * sim 模块事件基类
- * <p>
- * 所有事件都携带触发它的 SimPlayerContext, 监听器可直接拿到玩家上下文操作。
  *
  * @author 11
  * @date 2026/5/26
