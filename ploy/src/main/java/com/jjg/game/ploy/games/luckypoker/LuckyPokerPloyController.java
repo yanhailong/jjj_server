@@ -90,7 +90,11 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         }
         PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
         res.stakeList = cfg.getLineBetScore();
-        res.defaultBet = cfg.getDefaultBet();
+        //优先使用玩家上次选择的下注值；没有则回退到配置默认值
+        long lastBet = playerGameData == null ? 0 : playerGameData.getLastBet();
+        res.defaultBet = lastBet > 0 && cfg.getLineBetScore() != null && cfg.getLineBetScore().contains((int) lastBet)
+                ? lastBet
+                : cfg.getDefaultBet();
 
         if (playerGameData.getFirstCardList() != null && !playerGameData.getFirstCardList().isEmpty() && playerGameData.getSecondCardList() != null && !playerGameData.getSecondCardList().isEmpty()) {
             res.pokerIds = LuckyPokerUtils.card2Ids(playerGameData.getFirstCardList());
