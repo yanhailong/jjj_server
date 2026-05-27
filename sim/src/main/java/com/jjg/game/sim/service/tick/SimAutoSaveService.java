@@ -1,8 +1,10 @@
-package com.jjg.game.sim.service;
+package com.jjg.game.sim.service.tick;
 
 import com.jjg.game.sim.data.CasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
+import com.jjg.game.sim.service.SimCasinoDataService;
+import com.jjg.game.sim.service.SimPlayerGameDataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

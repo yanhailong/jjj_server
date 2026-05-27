@@ -23,8 +23,11 @@ import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.ResSimEnterGame;
 import com.jjg.game.sim.pb.res.ResSimGetSkills;
 import com.jjg.game.sim.pb.res.ResSimUpgradeSkill;
-import com.jjg.game.sim.pb.res.ResSyncGuestLocation;
-import com.jjg.game.sim.service.*;
+import com.jjg.game.sim.service.SimCasinoDataService;
+import com.jjg.game.sim.service.SimNodeService;
+import com.jjg.game.sim.service.SimPlayerGameDataService;
+import com.jjg.game.sim.service.SimSkillService;
+import com.jjg.game.sim.service.tick.SimGuestService;
 import io.netty.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,8 +58,6 @@ public class SimManager implements OnSwitchNode {
     private SimNodeService simNodeService;
     @Autowired
     private SimGuestService guestService;
-    @Autowired
-    private SimReconnectService reconnectService;
     //所有玩家级定时回调 (Spring 自动注入全部实现, 按 order 排序)
     @Autowired
     private List<SimPlayerTickListener> tickHandlers;
@@ -88,8 +89,6 @@ public class SimManager implements OnSwitchNode {
         try {
             SimPlayerContext ctx = createContext(playerController);
             playerController.setScene(ctx);
-            //处理重连
-            res.buildings = reconnectService.handleReconnect(ctx);
             res.guide = ctx.getPlayerGameData().isGuide();
 
             ctx.getPlayerGameData().setLastOfflineTime(0);
@@ -129,28 +128,6 @@ public class SimManager implements OnSwitchNode {
         } catch (Exception e) {
             log.error("", e);
         }
-    }
-
-    /**
-     * 同步游客位置
-     */
-    public void onGuestLcation(PlayerController playerController, int guestId, int buildingId, boolean enter) {
-        ResSyncGuestLocation res = new ResSyncGuestLocation(Code.SUCCESS);
-        try {
-            SimPlayerContext ctx = getContext(playerController.playerId());
-            if (ctx == null) {
-                log.warn("同步游客位置: SimPlayerContext 不存在 playerId={}", playerController.playerId());
-                res.code = Code.NOT_FOUND;
-                playerController.send(res);
-                return;
-            }
-
-            res.code = guestService.guestLocation(ctx, guestId, buildingId, enter);
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
     }
 
     /**
@@ -289,7 +266,6 @@ public class SimManager implements OnSwitchNode {
             int fallback = casinoMap.keySet().iterator().next();
             gameData.setCurrentCasinoId(fallback);
             playerDirty = true;
-            log.warn("玩家 currentCasinoId 指向不存在赌场, 回退 playerId={},fallback={}", playerId, fallback);
         }
 
         //装配 ctx
@@ -331,13 +307,23 @@ public class SimManager implements OnSwitchNode {
     }
 
     /**
-     * 服务器关闭: 收集所有 ctx 的玩家/赌场/技能数据落库
+     * 服务器关闭: 让所有玩家走一遍 onExitGame, 然后批量落库
      */
     public void shutdown() {
         if (this.checkPlayerDataTimeout != null) {
             this.checkPlayerDataTimeout.cancel();
         }
 
+        //先让每个玩家走退出流程
+        for (Long playerId : this.contextMap.keySet()) {
+            try {
+                onExitGame(playerId, ExitType.DROPPED);
+            } catch (Exception e) {
+                log.error("shutdown onExitGame 异常 playerId={}", playerId, e);
+            }
+        }
+
+        //收集所有 ctx 的玩家/赌场/技能数据
         List<SimPlayerGameData> gameDataList = new ArrayList<>(this.contextMap.size());
         List<CasinoData> casinoList = new ArrayList<>();
         List<SimSkillsData> skillsDataList = new ArrayList<>();

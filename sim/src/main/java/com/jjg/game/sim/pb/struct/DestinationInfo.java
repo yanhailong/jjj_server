@@ -1,0 +1,22 @@
+package com.jjg.game.sim.pb.struct;
+
+import com.jjg.game.common.pb.ItemInfo;
+import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.proto.ProtobufMessage;
+
+import java.util.List;
+
+/**
+ * @author 11
+ * @date 2026/5/27
+ */
+@ProtobufMessage
+@ProtoDesc("目的地信息")
+public class DestinationInfo {
+    @ProtoDesc("建筑")
+    public int buildingId;
+    @ProtoDesc("设备")
+    public int deviceId;
+    @ProtoDesc("奖励")
+    public List<ItemInfo> rewards;
+}

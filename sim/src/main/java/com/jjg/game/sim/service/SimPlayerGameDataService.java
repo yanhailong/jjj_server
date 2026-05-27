@@ -18,8 +18,6 @@ import java.util.Optional;
 public class SimPlayerGameDataService {
     private Logger log = LoggerFactory.getLogger(getClass());
 
-    private final String TABLE_NAME = "simPlayerGameData";
-
     @Autowired
     private SimPlayerGameDao simPlayerGameDao;
 

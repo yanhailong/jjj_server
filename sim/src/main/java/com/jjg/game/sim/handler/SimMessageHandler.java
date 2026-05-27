@@ -12,7 +12,7 @@ import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.pb.req.*;
-import com.jjg.game.sim.service.SimGuestService;
+import com.jjg.game.sim.service.tick.SimGuestService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,14 +59,6 @@ public class SimMessageHandler implements GmListener {
         simManager.onFinishGuide(playerController.playerId());
     }
 
-    /**
-     * 请求同步游客位置
-     */
-    @Command(SimConstant.MsgBean.REQ_SYNC_GUEST_DEST)
-    public void reqSyncGuestDest(PlayerController playerController, ReqSyncGuestLocation req) {
-        simManager.onGuestLcation(playerController, req.guestId, req.buildingId, req.enter);
-    }
-
     @Command(SimConstant.MsgBean.REQ_SIM_GET_SKILLS)
     public void reqSlotsGetSkills(PlayerController playerController, ReqSimGetSkills req) {
         simManager.onLoadSlotsSkills(playerController);
@@ -86,22 +78,18 @@ public class SimMessageHandler implements GmListener {
                 reqEnterGame(playerController, req);
             } else if ("simFinishGuide".equalsIgnoreCase(gmOrders[0])) {
                 reqFinishGuide(playerController, null);
-            } else if ("syncGuestDest".equalsIgnoreCase(gmOrders[0])) {
-                ReqSyncGuestLocation req = new ReqSyncGuestLocation();
-                req.guestId = Integer.parseInt(gmOrders[1]);
-                req.buildingId = Integer.parseInt(gmOrders[2]);
-                req.enter = Boolean.parseBoolean(gmOrders[3]);
-                reqSyncGuestDest(playerController, req);
             } else if ("simExitGame".equalsIgnoreCase(gmOrders[0])) {
                 reqExitGame(playerController, null);
             } else if ("printGuest".equalsIgnoreCase(gmOrders[0])) {
-                ((SimPlayerContext) playerController.getScene()).printGuest();
+                SimPlayerContext context = simManager.getContext(playerController.playerId());
+                context.printGuest();
             } else if ("printBuilding".equalsIgnoreCase(gmOrders[0])) {
-                ((SimPlayerContext) playerController.getScene()).printBuilding();
+                SimPlayerContext context = simManager.getContext(playerController.playerId());
+                context.printBuilding();
             } else if ("unlockGuest".equalsIgnoreCase(gmOrders[0])) {
+                SimPlayerContext context = simManager.getContext(playerController.playerId());
                 int guestId = Integer.parseInt(gmOrders[1]);
-                SimPlayerContext ctx = (SimPlayerContext) playerController.getScene();
-                guestService.unlockGuest(ctx, guestId);
+                guestService.unlockGuest(context, guestId);
             } else {
                 res.code = Code.NOT_FOUND;
             }

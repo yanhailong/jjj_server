@@ -1,15 +1,18 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.WeightRandom;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.bean.VisitorLevelCfg;
 import com.jjg.game.sampledata.bean.VisitorStarCfg;
 import com.jjg.game.sim.data.GuestData;
-import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.pb.struct.DestinationInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -29,11 +32,12 @@ public class SimRewardService {
     /**
      * 发放本次交互产出 (按 VisitorStar.bonusRate 加权随机一行 + VisitorLevel.reward 固定奖励)
      */
-    public void grantReward(SimPlayerContext ctx, GuestData guest) {
+    public void grantReward(GuestData guest, DestinationInfo info) {
         Map<Integer, Map<Integer, VisitorStarCfg>> starMap = configCache.getVisitorStarCfgMap();
         Map<Integer, Map<Integer, VisitorLevelCfg>> levelMap = configCache.getVisitorLevelCfgMap();
 
         //星级配置, 概率奖励
+        List<ItemInfo> itemInfos = new ArrayList<>();
         VisitorStarCfg starCfg = getStarCfg(guest.getId(), guest.getStar(), starMap);
         if (starCfg != null && starCfg.getBonusRate() != null && !starCfg.getBonusRate().isEmpty()) {
             List<List<Integer>> rewardList = starCfg.getBonusRate();
@@ -45,14 +49,20 @@ public class SimRewardService {
             }
             List<Integer> picked = random.next();
             if (picked != null) {
-                log.info("交互时随机奖励 playerId={},visitorStarCfgId={},picked={}", ctx.playerId(), starCfg.getId(), picked);
+                itemInfos.add(ItemUtils.buildItemInfo(picked.get(1), picked.get(2).longValue()));
             }
         }
 
         //等级配置, 固定奖励
         VisitorLevelCfg levelCfg = getLevelCfg(guest.getId(), guest.getLevel(), levelMap);
         if (levelCfg != null && levelCfg.getReward() != null && !levelCfg.getReward().isEmpty()) {
-            log.info("交互时固定奖励 playerId={},levelCfgId={},reward={}", ctx.playerId(), levelCfg.getId(), levelCfg.getReward());
+            levelCfg.getReward().forEach((k, v) -> {
+                itemInfos.add(ItemUtils.buildItemInfo(k, v.longValue()));
+            });
+        }
+
+        if(!itemInfos.isEmpty()){
+            info.rewards = itemInfos;
         }
     }
 

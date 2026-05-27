@@ -1,9 +1,9 @@
 package com.jjg.game.sim.pb;
 
 import com.jjg.game.core.pb.KVInfo;
-import com.jjg.game.sim.data.Destination;
 import com.jjg.game.sim.data.GuestData;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.pb.struct.DestinationInfo;
 import com.jjg.game.sim.pb.struct.GameSkills;
 import com.jjg.game.sim.pb.struct.GuestInfo;
 
@@ -23,24 +23,12 @@ public final class SimPbConverter {
     }
 
     /**
-     * GuestData → GuestInfo (destinations 仅含未完成项)
+     * GuestData + destinations → GuestInfo
      */
-    public static GuestInfo toGuestInfo(GuestData guestData) {
+    public static GuestInfo toGuestInfo(GuestData guestData, List<DestinationInfo> destinations) {
         GuestInfo info = new GuestInfo();
         info.id = guestData.getId();
-        if (guestData.getDestinations() != null && !guestData.getDestinations().isEmpty()) {
-            List<KVInfo> list = new ArrayList<>();
-            for (Destination d : guestData.getDestinations()) {
-                if (d.isDone()) {
-                    continue;
-                }
-                KVInfo kv = new KVInfo();
-                kv.key = d.getBuildingId();
-                kv.value = d.getDeviceId();
-                list.add(kv);
-            }
-            info.destinations = list;
-        }
+        info.destinations = destinations;
         return info;
     }
 

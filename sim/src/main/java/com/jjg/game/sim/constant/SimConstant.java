@@ -26,8 +26,8 @@ public interface SimConstant {
         int NOTIFY_GENERATE_GUEST = BASE_MSG_PREFIX | 0x7;
 
         //请求同步游客到达目的地
-        int REQ_SYNC_GUEST_DEST = BASE_MSG_PREFIX | 0x8;
-        int RES_SYNC_GUEST_DEST = BASE_MSG_PREFIX | 0x9;
+//        int REQ_SYNC_GUEST_DEST = BASE_MSG_PREFIX | 0x8;
+//        int RES_SYNC_GUEST_DEST = BASE_MSG_PREFIX | 0x9;
 
         //获取技能
         int REQ_SIM_GET_SKILLS = BASE_MSG_PREFIX | 0xA;
