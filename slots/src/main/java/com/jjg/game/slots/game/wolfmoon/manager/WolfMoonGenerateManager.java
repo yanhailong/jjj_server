@@ -397,4 +397,8 @@ public class WolfMoonGenerateManager extends AbstractSlotsGenerateManager<WolfMo
         }
         freeIconAddCfg = Pair.newPair(Integer.parseInt(modeArr[0]), Integer.parseInt(modeArr[1]));
     }
+
+    public Pair<Integer, Integer> getFreeAddCfg() {
+        return freeAddCfg;
+    }
 }

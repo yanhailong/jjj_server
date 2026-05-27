@@ -270,7 +270,12 @@ public abstract class AbstractWolfMoonGameManager extends AbstractSlotsGameManag
             afterCount = playerGameData.getRemainFreeCount().addAndGet(freeGame.getAddFreeCount());
             log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(), afterCount);
         }
+
         gameRunInfo.setCurrentMultiplier(freeGame.getBaseMultiple());
+        if(generateManager.getFreeAddCfg() != null){
+            gameRunInfo.setCurrentMultiplier(generateManager.getFreeAddCfg().getFirst() + freeGame.getBaseMultiple());
+        }
+
         //累计免费模式的中奖金额
         playerGameData.addFreeAllWin(playerGameData.getOneBetScore() * freeGame.getTimes());
         gameRunInfo.addBigPoolTimes(freeGame.getTimes());
