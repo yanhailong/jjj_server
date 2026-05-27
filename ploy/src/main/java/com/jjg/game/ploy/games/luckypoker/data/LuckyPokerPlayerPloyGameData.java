@@ -20,6 +20,16 @@ public class LuckyPokerPlayerPloyGameData extends PlayerSinglePloyGameData {
     private List<PloyCard> secondCardList;
     //最终的手牌
     private List<PloyCard> finalCardList;
+    //GM测试用：强制下一把牌型(对应 PokerRank.rank)；为null则走正常结果库流程
+    private Integer testForceRank;
+
+    public Integer getTestForceRank() {
+        return testForceRank;
+    }
+
+    public void setTestForceRank(Integer testForceRank) {
+        this.testForceRank = testForceRank;
+    }
 
     public List<PloyCard> getFirstCardList() {
         return firstCardList;

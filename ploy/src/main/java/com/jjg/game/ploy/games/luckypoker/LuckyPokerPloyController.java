@@ -154,6 +154,17 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         Integer randKey = propInfo.getRandKey();
         PokerRank pokerRank2 = PokerRank.rankOf(randKey);
 
+        //GM测试用：若设置了强制牌型，则两次手牌都按该牌型生成，方便前端调试
+        Integer forceRank = playerGameData.getTestForceRank();
+        if (forceRank != null) {
+            PokerRank forced = PokerRank.rankOf(forceRank);
+            if (forced != null) {
+                pokerRank1 = forced;
+                pokerRank2 = forced;
+                log.info("GM强制牌型生效 playerId = {},forceRank = {}", playerGameData.playerId(), forced);
+            }
+        }
+
         //生成两次手牌
         List<List<PloyCard>> pokersList = LuckyPokerUtils.getCardIdsByRanks(List.of(pokerRank1, pokerRank2));
         playerGameData.setFirstCardList(pokersList.get(0));
