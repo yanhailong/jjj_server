@@ -108,7 +108,7 @@ public class HotFootballSendMessageManager extends BaseSendMessageManager {
             //当前状态
             res.status = gameRunInfo.getStatus();
             //图标信息
-            res.iconList = IntStream.range(1, 21).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
+            res.iconList = IntStream.range(1, 37).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
             //剩余免费次数
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
             //大奖展示id
@@ -195,5 +195,27 @@ public class HotFootballSendMessageManager extends BaseSendMessageManager {
             list.add(hotFootballCascade);
         }
         return list;
+    }
+    /**
+     * Return pool value.
+     *
+     * @param playerController player
+     * @param gameRunInfo game run info
+     */
+    public void sendPoolValue(PlayerController playerController, HotFootballGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+
+        ResHotFootballPoolValue res = new ResHotFootballPoolValue(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+            res.mini = gameRunInfo.getMini();
+            res.minor = gameRunInfo.getMinor();
+            res.major = gameRunInfo.getMajor();
+            res.grand = gameRunInfo.getGrand();
+        } else {
+            log.debug("hot football pool value error playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendRun(playerController, sendInfo, "return hot football pool value", false);
     }
 }

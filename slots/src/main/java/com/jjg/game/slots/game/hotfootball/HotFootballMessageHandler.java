@@ -11,6 +11,7 @@ import com.jjg.game.slots.game.hotfootball.manager.HotFootballGameManager;
 import com.jjg.game.slots.game.hotfootball.manager.HotFootballRoomGameManager;
 import com.jjg.game.slots.game.hotfootball.manager.HotFootballSendMessageManager;
 import com.jjg.game.slots.game.hotfootball.pb.ReqHotFootballEnterGame;
+import com.jjg.game.slots.game.hotfootball.pb.ReqHotFootballPoolValue;
 import com.jjg.game.slots.game.hotfootball.pb.ReqHotFootballStartGame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +81,24 @@ public class HotFootballMessageHandler {
                 return;
             }
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+    @Command(HotFootballConstant.MsgBean.REQ_POOL_INFO)
+    public void reqHotFootballPoolValue(PlayerController playerController, ReqHotFootballPoolValue req) {
+        try {
+            log.info("receive hot football pool value request playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+            HotFootballGameRunInfo gameRunInfo;
+            if(playerController.getScene() == null){
+                gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+            }else if(playerController.getScene() instanceof SlotsRoomController){
+                gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeVlue);
+            }else {
+                log.warn("playerController.getScene() is error, scene={}",playerController.getScene());
+                return;
+            }
+            sendMessageManager.sendPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
