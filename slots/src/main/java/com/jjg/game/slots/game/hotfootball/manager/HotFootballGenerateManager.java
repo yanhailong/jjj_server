@@ -310,12 +310,13 @@ public class HotFootballGenerateManager extends AbstractSlotsGenerateManager<Hot
         int beginIndex = (colIndex - 1) * rows + 1;
         //这一列结束坐标
         int endIndex = beginIndex + rows - 1;
+        Set<Integer> expandedRemovedIndexes = expandRemovedIndexes(removedIndexes, arr, beginIndex, endIndex);
 
         //找到这一列，消除后应该剩余的图标
-        List<Integer> validIndexes = new ArrayList<>(baseInitCfg.getRows() - removedIndexes.size());
+        List<Integer> validIndexes = new ArrayList<>(baseInitCfg.getRows());
         for (int i = beginIndex; i <= endIndex; i++) {
             int icon = arr[i];
-            if (removedIndexes.contains(i)) {
+            if (expandedRemovedIndexes.contains(i)) {
                 //判断消除的图标是不是金色图标
                 if (icon >= HotFootballConstant.BaseElement.SILVER_MIN && icon <= HotFootballConstant.BaseElement.GOLD_MAX) {
                     Integer replaceIcon = getPostChangeIcon(icon);
@@ -370,6 +371,50 @@ public class HotFootballGenerateManager extends AbstractSlotsGenerateManager<Hot
 //        System.out.println("补充后打印 ");
 //        printResult(arr);
 //        System.out.println();
+    }
+
+    private Set<Integer> expandRemovedIndexes(Set<Integer> removedIndexes, int[] arr, int beginIndex, int endIndex) {
+        Set<Integer> expandedRemovedIndexes = new HashSet<>(removedIndexes);
+        for (Integer index : removedIndexes) {
+            int anchorIndex = getMultiGridAnchorIndex(index, arr, beginIndex, endIndex);
+            if (anchorIndex <= 0) {
+                continue;
+            }
+
+            BaseElementCfg anchorCfg = baseElementCfgMap.get(arr[anchorIndex]);
+            if (anchorCfg == null || anchorCfg.getSpace() <= 1) {
+                continue;
+            }
+
+            int startIndex = Math.max(beginIndex, anchorIndex - anchorCfg.getSpace() + 1);
+            for (int i = startIndex; i <= anchorIndex; i++) {
+                expandedRemovedIndexes.add(i);
+            }
+        }
+        return expandedRemovedIndexes;
+    }
+
+    private int getMultiGridAnchorIndex(int index, int[] arr, int beginIndex, int endIndex) {
+        int icon = arr[index];
+        BaseElementCfg cfg = baseElementCfgMap.get(icon);
+        if (cfg != null && cfg.getSpace() > 1) {
+            return index;
+        }
+
+        if (icon != SlotsConst.Common.PLACEHOLDER_ELEMENTS) {
+            return -1;
+        }
+
+        for (int anchorIndex = index + 1; anchorIndex <= endIndex; anchorIndex++) {
+            BaseElementCfg anchorCfg = baseElementCfgMap.get(arr[anchorIndex]);
+            if (anchorCfg == null || anchorCfg.getSpace() <= 1) {
+                continue;
+            }
+            if (index >= anchorIndex - anchorCfg.getSpace() + 1) {
+                return anchorIndex;
+            }
+        }
+        return -1;
     }
 
 
