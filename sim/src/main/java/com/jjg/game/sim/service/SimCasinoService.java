@@ -39,31 +39,37 @@ public class SimCasinoService {
      * @return
      */
     public SimCasinoData loadCasinoData(SimPlayerContext ctx, SimBaseData baseData) {
-        //加载赌场数据
-        SimCasinoData simCasinoData = null;
-        if (baseData.getCurrentCasinoId() > 1) {
-            simCasinoData = simCasinoDao.findById(SimCasinoData.buildKey(ctx.playerId(), baseData.getCurrentCasinoId())).orElse(null);
-            if (simCasinoData != null) {
-                ctx.getCasinoMap().put(simCasinoData.getCasinoId(), simCasinoData);
-            } else {
-                log.warn("玩家获取当前所在场景数据为空 playerId={},currentCasinoId={}", ctx.playerId(), baseData.getCurrentCasinoId());
+        SimCasinoData currentCasino = null;
+        //按 playerId 加载玩家已有的全部赌场, 以"DB 中是否有数据"区分新老玩家, 避免误判把存档冲掉
+        List<SimCasinoData> existList = simCasinoDao.findByPlayerId(ctx.playerId());
+        if (!existList.isEmpty()) {
+            for (SimCasinoData cd : existList) {
+                ctx.getCasinoMap().put(cd.getCasinoId(), cd);
+            }
+            currentCasino = ctx.getCasino(baseData.getCurrentCasinoId());
+            if (currentCasino == null) {
+                //当前赌场 id 失效时回退到任一已有赌场
+                currentCasino = existList.get(0);
+                baseData.setCurrentCasinoId(currentCasino.getCasinoId());
+                log.warn("玩家当前赌场 id 无对应数据, 回退 playerId={},currentCasinoId={}", ctx.playerId(), baseData.getCurrentCasinoId());
             }
         } else {
-            List<SimCasinoData> simCasinoDataList = initPlayerCasino(ctx.playerId());
-            if (simCasinoDataList.isEmpty()) {
+            //新玩家: 初始化默认赌场
+            List<SimCasinoData> initList = initPlayerCasino(ctx.playerId());
+            if (initList.isEmpty()) {
                 log.warn("玩家初始化时解锁赌场失败 playerId={}", ctx.playerId());
             } else {
-                for (SimCasinoData cd : simCasinoDataList) {
+                for (SimCasinoData cd : initList) {
                     ctx.getCasinoMap().put(cd.getCasinoId(), cd);
                 }
-                simCasinoData = simCasinoDataList.get(0);
-                baseData.setCurrentCasinoId(simCasinoData.getCasinoId());
+                currentCasino = initList.get(0);
+                baseData.setCurrentCasinoId(currentCasino.getCasinoId());
             }
         }
 
         //检查是否有建筑完成升级
-        simBuildingService.completeAllBuildingUpgrade(simCasinoData);
-        return simCasinoData;
+        simBuildingService.completeAllBuildingUpgrade(currentCasino);
+        return currentCasino;
     }
 
 

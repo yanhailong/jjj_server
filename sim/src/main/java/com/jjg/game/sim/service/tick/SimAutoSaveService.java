@@ -7,8 +7,6 @@ import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.mongodb.client.model.ReplaceOptions;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +39,6 @@ public class SimAutoSaveService implements SimPlayerTickListener {
     //落库 IO 线程 (与玩家逻辑线程隔离; 单线程保证同一文档的写入严格 FIFO, 避免旧快照覆盖新值)
     private ExecutorService ioExecutor;
 
-    @PostConstruct
     public void init() {
         this.ioExecutor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "sim-save-io");
@@ -50,7 +47,6 @@ public class SimAutoSaveService implements SimPlayerTickListener {
         });
     }
 
-    @PreDestroy
     public void destroy() {
         if (ioExecutor != null) {
             ioExecutor.shutdown();

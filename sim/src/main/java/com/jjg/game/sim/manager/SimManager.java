@@ -82,6 +82,7 @@ public class SimManager implements OnSwitchNode {
      * 初始化
      */
     public void init() {
+        this.autoSaveService.init();
         //按 order 排序 tick handlers (SimAutoSaveService 会以 MAX_VALUE 排在最后)
         this.tickHandlers.sort(Comparator.comparingInt(SimPlayerTickListener::order));
         this.simEventBus.init();
@@ -448,7 +449,8 @@ public class SimManager implements OnSwitchNode {
             this.checkPlayerDataTimeout.cancel();
         }
         //先等异步落库排空, 避免在途旧快照覆盖下面的同步全量落库
-        autoSaveService.awaitPending();
+        this.autoSaveService.awaitPending();
+        this.autoSaveService.destroy();
 
         //玩家级 SimPlayerGameData
         List<SimBaseData> gameDataList = new ArrayList<>(this.contextMap.size());
