@@ -23,10 +23,6 @@ public class ResearchInstituteCfg extends BaseCfgBean {
   protected int gameType;
   /** 研究院等级 */
   protected int level;
-  /** 属性技能位置坐标 */
-  protected Map<Integer,Integer> location;
-  /** 组别 */
-  protected int team;
 
   /** 返回解锁游戏id */
   public int getGameType() {
@@ -36,16 +32,6 @@ public class ResearchInstituteCfg extends BaseCfgBean {
   /** 返回研究院等级 */
   public int getLevel() {
     return level;
-  }
-
-  /** 返回属性技能位置坐标 */
-  public Map<Integer,Integer> getLocation() {
-    return location;
-  }
-
-  /** 返回组别 */
-  public int getTeam() {
-    return team;
   }
 
   @Override

@@ -1,8 +1,10 @@
 package com.jjg.game.sim.pb;
 
 import com.jjg.game.core.pb.KVInfo;
+import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.GuestData;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.pb.struct.BuildingInfo;
 import com.jjg.game.sim.pb.struct.DestinationInfo;
 import com.jjg.game.sim.pb.struct.GameSkills;
 import com.jjg.game.sim.pb.struct.GuestInfo;
@@ -29,6 +31,15 @@ public final class SimPbConverter {
         GuestInfo info = new GuestInfo();
         info.id = guestData.getId();
         info.destinations = destinations;
+        return info;
+    }
+
+    public static BuildingInfo toBuildingInfo(BuildingData buildingData) {
+        BuildingInfo info = new BuildingInfo();
+        info.id = buildingData.getId();
+        info.level = buildingData.getLevel();
+        info.cdEndTime = buildingData.getCdEndTime();
+        info.managerEmployId = buildingData.getManagerEmployId();
         return info;
     }
 

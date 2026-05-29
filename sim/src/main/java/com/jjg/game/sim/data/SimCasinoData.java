@@ -5,7 +5,10 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -15,7 +18,7 @@ import java.util.Map;
  * @date 2026/5/21
  */
 @Document
-public class CasinoData {
+public class SimCasinoData extends AbstractData {
     //联合主键 playerId:casinoId
     @Id
     private String id;
@@ -28,14 +31,11 @@ public class CasinoData {
     private int statsId;
     //当前繁荣度
     private int prosperity;
-    //曝光结束时间(ms)，0 表示未曝光
-    private long exposureEndTime;
-    //知名度
+    //知名度 (赌场宣传度)
     private int awareness;
     //能量值 (上限/速率受休息区等级控制, 每赌场独立)
     private int power;
     //研究点 (类型 -> 数量; 类型: 1.普通 2.珍惜)
-    //备注: 研究院本身是一个建筑, 其等级走 buildingData.get(研发部 id).level
     private Map<Integer, Integer> researchPointMap;
     //建筑数据
     private Map<Integer, BuildingData> buildingData;
@@ -44,6 +44,9 @@ public class CasinoData {
     //上次生成游客时间(ms) — 运行时, 不持久化
     @Transient
     private transient long lastGenerateTime;
+    //近期生成游客时间戳队列 (用于"10 分钟内生成人数"计算) — 运行时, 不持久化
+    @Transient
+    private transient Deque<Long> recentGenerateTimes;
 
     public String getId() {
         return id;
@@ -85,14 +88,6 @@ public class CasinoData {
         this.prosperity = prosperity;
     }
 
-    public long getExposureEndTime() {
-        return exposureEndTime;
-    }
-
-    public void setExposureEndTime(long exposureEndTime) {
-        this.exposureEndTime = exposureEndTime;
-    }
-
     public int getAwareness() {
         return awareness;
     }
@@ -107,6 +102,26 @@ public class CasinoData {
 
     public void setBuildingData(Map<Integer, BuildingData> buildingData) {
         this.buildingData = buildingData;
+    }
+
+    /**
+     * 添加建筑
+     */
+    public void putBuilding(BuildingData data) {
+        if (this.buildingData == null) {
+            this.buildingData = new HashMap<>();
+        }
+        this.buildingData.put(data.getId(), data);
+    }
+
+    /**
+     * 查询建筑数据
+     */
+    public BuildingData findBuilding(int buildingId) {
+        if (this.buildingData == null || this.buildingData.isEmpty()) {
+            return null;
+        }
+        return this.buildingData.get(buildingId);
     }
 
     public Map<Integer, GuestData> getGuestMap() {
@@ -175,6 +190,47 @@ public class CasinoData {
             this.guestMap = new HashMap<>();
         }
         this.guestMap.put(guestData.getId(), guestData);
+    }
+
+    /**
+     * 记录一次生成时刻; 同时丢弃窗口外的旧记录
+     *
+     * @param now      当前时间 (ms)
+     * @param windowMs 统计窗口长度 (ms)
+     */
+    public void recordGenerate(long now, long windowMs) {
+        if (this.recentGenerateTimes == null) {
+            this.recentGenerateTimes = new ArrayDeque<>();
+        }
+        this.recentGenerateTimes.addLast(now);
+        long cutoff = now - windowMs;
+        Iterator<Long> it = this.recentGenerateTimes.iterator();
+        while (it.hasNext()) {
+            if (it.next() < cutoff) {
+                it.remove();
+            } else {
+                break;
+            }
+        }
+    }
+
+    /**
+     * 统计窗口内的生成人数 (会顺带清理过期记录)
+     */
+    public int countGenerateInWindow(long now, long windowMs) {
+        if (this.recentGenerateTimes == null || this.recentGenerateTimes.isEmpty()) {
+            return 0;
+        }
+        long cutoff = now - windowMs;
+        Iterator<Long> it = this.recentGenerateTimes.iterator();
+        while (it.hasNext()) {
+            if (it.next() < cutoff) {
+                it.remove();
+            } else {
+                break;
+            }
+        }
+        return this.recentGenerateTimes.size();
     }
 
 

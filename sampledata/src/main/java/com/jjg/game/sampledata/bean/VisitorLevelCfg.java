@@ -19,6 +19,8 @@ public class VisitorLevelCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "VisitorLevel";
 
+  /** 额外材料掉落 */
+  protected List<List<Integer>> BonusRate;
   /** 游客等级 */
   protected int Level;
   /** 固定产出 */
@@ -27,6 +29,11 @@ public class VisitorLevelCfg extends BaseCfgBean {
   protected int Visitor;
   /** 升级所需经验值 */
   protected int levelUpExp;
+
+  /** 返回额外材料掉落 */
+  public List<List<Integer>> getBonusRate() {
+    return BonusRate;
+  }
 
   /** 返回游客等级 */
   public int getLevel() {

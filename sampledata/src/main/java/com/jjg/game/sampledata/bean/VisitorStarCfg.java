@@ -19,18 +19,18 @@ public class VisitorStarCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "VisitorStar";
 
-  /** 基础停留时长加成系数 */
+  /** 服务能力加成系数 */
   protected int Additioncoefficient;
   /** 升星所需碎片 */
   protected int Ascend;
-  /** 额外材料掉落 */
-  protected List<List<Integer>> BonusRate;
+  /** 概率 */
+  protected int Probability;
   /** 游客星级 */
   protected int Starlevel;
   /** 游客ID */
   protected int Visitor;
 
-  /** 返回基础停留时长加成系数 */
+  /** 返回服务能力加成系数 */
   public int getAdditioncoefficient() {
     return Additioncoefficient;
   }
@@ -40,9 +40,9 @@ public class VisitorStarCfg extends BaseCfgBean {
     return Ascend;
   }
 
-  /** 返回额外材料掉落 */
-  public List<List<Integer>> getBonusRate() {
-    return BonusRate;
+  /** 返回概率 */
+  public int getProbability() {
+    return Probability;
   }
 
   /** 返回游客星级 */

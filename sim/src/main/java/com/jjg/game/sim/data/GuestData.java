@@ -11,7 +11,7 @@ import java.util.Map;
  * @date 2026/5/20
  */
 public class GuestData {
-    //游客 id (对应 VisitorCfg.id)
+    //游客 id (对应 VisitorQuestCfg.id)
     private int id;
     //当前星级
     private int star;

@@ -10,7 +10,7 @@ import java.util.*;
  * @date 2026/5/22
  */
 @Document
-public class SimSkillsData {
+public class SimSkillsData extends AbstractData{
     //playerId:gameType 联合主键
     @Id
     private String id;

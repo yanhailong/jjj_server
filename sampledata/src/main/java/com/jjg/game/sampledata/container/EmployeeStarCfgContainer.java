@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.InteractionAreasTableCfg;
+import com.jjg.game.sampledata.bean.EmployeeStarCfg;
 
 /**
- * InteractionAreasTable.xlsx配置管理容器
+ * EmployeeStar.xlsx配置管理容器
  *
- * @excelName InteractionAreasTable.xlsx
- * @sheetName InteractionAreasTable
+ * @excelName EmployeeStar.xlsx
+ * @sheetName EmployeeStar
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class InteractionAreasTableCfgContainer extends BaseCfgContainer<InteractionAreasTableCfg> {
+public class EmployeeStarCfgContainer extends BaseCfgContainer<EmployeeStarCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -27,23 +27,23 @@ public class InteractionAreasTableCfgContainer extends BaseCfgContainer<Interact
   }
 
   @Override
-  public InteractionAreasTableCfgContainer getNewContainer(){
-    return new InteractionAreasTableCfgContainer();
+  public EmployeeStarCfgContainer getNewContainer(){
+    return new EmployeeStarCfgContainer();
   }
 
-  public InteractionAreasTableCfgContainer() {
+  public EmployeeStarCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("InteractionAreasTable.xlsx");
+    excelNameList.add("EmployeeStar.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected InteractionAreasTableCfg createNewBean() {
-    return new InteractionAreasTableCfg();
+  protected EmployeeStarCfg createNewBean() {
+    return new EmployeeStarCfg();
   }
 }

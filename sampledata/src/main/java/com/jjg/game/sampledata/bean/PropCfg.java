@@ -23,10 +23,6 @@ public class PropCfg extends BaseCfgBean {
   protected int gameType;
   /** 等级_激活后解锁属性id */
   protected Map<Integer,List<Integer>> skillId;
-  /** 组内序号 */
-  protected int subIdx;
-  /** 组别 */
-  protected int team;
   /** 类型 */
   protected int type;
 
@@ -38,16 +34,6 @@ public class PropCfg extends BaseCfgBean {
   /** 返回等级_激活后解锁属性id */
   public Map<Integer,List<Integer>> getSkillId() {
     return skillId;
-  }
-
-  /** 返回组内序号 */
-  public int getSubIdx() {
-    return subIdx;
-  }
-
-  /** 返回组别 */
-  public int getTeam() {
-    return team;
   }
 
   /** 返回类型 */

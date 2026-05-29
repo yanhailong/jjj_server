@@ -21,31 +21,22 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
 
   /** 游客基础来访间隔(秒) */
   protected int BaseVisitInterval;
-  /** 开启曝光所需值 */
-  protected int ExposureValue;
   /** 离线收益时长（分） */
   protected int OfflineDuration;
   /** 基础繁荣度 */
   protected int Prosperity;
-  /** 升级消耗道具 */
-  protected Map<Integer,Long> UpgradeCost;
+  /** 地区 ID */
+  protected int RegionID;
+  /** 升级消耗数量 */
+  protected int UpgradeCost;
   /** 升级产出能量 */
   protected int UpgradeOutput;
-  /** 曝光持续基础时长（秒） */
-  protected int ViewableDuration;
-  /** 曝光度来访间隔系数 */
-  protected int VisitIntervalCoefficient;
   /** 等级 */
   protected int level;
 
   /** 返回游客基础来访间隔(秒) */
   public int getBaseVisitInterval() {
     return BaseVisitInterval;
-  }
-
-  /** 返回开启曝光所需值 */
-  public int getExposureValue() {
-    return ExposureValue;
   }
 
   /** 返回离线收益时长（分） */
@@ -58,24 +49,19 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
     return Prosperity;
   }
 
-  /** 返回升级消耗道具 */
-  public Map<Integer,Long> getUpgradeCost() {
+  /** 返回地区 ID */
+  public int getRegionID() {
+    return RegionID;
+  }
+
+  /** 返回升级消耗数量 */
+  public int getUpgradeCost() {
     return UpgradeCost;
   }
 
   /** 返回升级产出能量 */
   public int getUpgradeOutput() {
     return UpgradeOutput;
-  }
-
-  /** 返回曝光持续基础时长（秒） */
-  public int getViewableDuration() {
-    return ViewableDuration;
-  }
-
-  /** 返回曝光度来访间隔系数 */
-  public int getVisitIntervalCoefficient() {
-    return VisitIntervalCoefficient;
   }
 
   /** 返回等级 */

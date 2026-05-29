@@ -14,4 +14,8 @@ public class BuildingInfo {
     public int id;
     @ProtoDesc("等级")
     public int level;
+    @ProtoDesc("升级 CD 结束时间")
+    public long cdEndTime;
+    @ProtoDesc("主管id")
+    public int managerEmployId;
 }

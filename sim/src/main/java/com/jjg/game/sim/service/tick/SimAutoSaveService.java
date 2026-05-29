@@ -1,21 +1,27 @@
 package com.jjg.game.sim.service.tick;
 
-import com.jjg.game.sim.data.CasinoData;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.jjg.game.sim.data.AbstractData;
+import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
-import com.jjg.game.sim.service.SimCasinoDataService;
-import com.jjg.game.sim.service.SimPlayerGameDataService;
+import com.mongodb.client.model.ReplaceOptions;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
- * 玩家数据自动落库
+ * 玩家数据自动落库。
  *
  * @author 11
  * @date 2026/5/26
@@ -24,54 +30,127 @@ import java.util.Set;
 public class SimAutoSaveService implements SimPlayerTickListener {
     private static final Logger log = LoggerFactory.getLogger(SimAutoSaveService.class);
 
-    /** 同一玩家最小落库间隔: 5 分钟 */
+    /**
+     * 同一玩家最小落库间隔: 5 分钟
+     */
     private static final long SAVE_INTERVAL_MS = 5 * 60 * 1000L;
 
     @Autowired
-    private SimPlayerGameDataService playerDataService;
-    @Autowired
-    private SimCasinoDataService casinoDataService;
+    private MongoTemplate mongoTemplate;
+
+    //落库 IO 线程 (与玩家逻辑线程隔离; 单线程保证同一文档的写入严格 FIFO, 避免旧快照覆盖新值)
+    private ExecutorService ioExecutor;
+
+    @PostConstruct
+    public void init() {
+        this.ioExecutor = Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "sim-save-io");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    @PreDestroy
+    public void destroy() {
+        if (ioExecutor != null) {
+            ioExecutor.shutdown();
+            try {
+                ioExecutor.awaitTermination(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
-        if (ctx.getPlayerGameData() == null) {
+        SimBaseData base = ctx.getSimBaseData();
+        if (base == null) {
             return;
         }
         //节流: 距上次落库不够间隔则跳过
         if (ctx.getLastSaveTime() > 0 && now - ctx.getLastSaveTime() < SAVE_INTERVAL_MS) {
             return;
         }
-        if (!ctx.isDirty() && !ctx.hasDirtyCasino()) {
-            return;
+
+        boolean enqueued = enqueueIfChanged(base);
+        for (AbstractData casino : ctx.getCasinoMap().values()) {
+            enqueued |= enqueueIfChanged(casino);
+        }
+        for (AbstractData employee : ctx.getEmployeeMap().values()) {
+            enqueued |= enqueueIfChanged(employee);
+        }
+        for (AbstractData skills : ctx.getSkillsDataMap().values()) {
+            enqueued |= enqueueIfChanged(skills);
         }
 
-        try {
-            //玩家级
-            if (ctx.isDirty()) {
-                playerDataService.save(ctx.getPlayerGameData());
-                ctx.clearDirty();
-            }
-            //赌场级 (按 id 收集对应 CasinoData, 批量保存)
-            Set<Integer> dirtyCasinoIds = ctx.consumeDirtyCasinoIds();
-            if (!dirtyCasinoIds.isEmpty()) {
-                List<CasinoData> toSave = new ArrayList<>(dirtyCasinoIds.size());
-                for (int casinoId : dirtyCasinoIds) {
-                    CasinoData c = ctx.getCasino(casinoId);
-                    if (c != null) {
-                        toSave.add(c);
-                    }
-                }
-                if (!toSave.isEmpty()) {
-                    casinoDataService.saveAll(toSave);
-                }
-            }
+        if (enqueued) {
             ctx.setLastSaveTime(now);
-        } catch (Exception e) {
-            log.error("自动落库失败 playerId={}", ctx.playerId(), e);
         }
     }
 
-    /** 最后执行: 让所有业务 tick 都跑完, 再统一刷盘 */
+    /**
+     * 玩家线程内: 生成"将落库内容"快照并算哈希; 内容变化则把不可变快照交给 IO 线程异步写库。
+     *
+     * @return 是否有变更被提交落库
+     */
+    private boolean enqueueIfChanged(AbstractData data) {
+        //保证联合主键就绪, 快照里才有正确的 _id
+        data.buildKey();
+        Document snapshot = new Document();
+        mongoTemplate.getConverter().write(data, snapshot);
+        long hash = fnv1a64(JSON.toJSONString(snapshot, SerializerFeature.MapSortField));
+        if (hash == data.getSavedHash()) {
+            return false;
+        }
+
+        String collection = mongoTemplate.getCollectionName(data.getClass());
+        Object id = snapshot.get("_id");
+        ioExecutor.execute(() -> {
+            try {
+                mongoTemplate.getCollection(collection)
+                        .replaceOne(new Document("_id", id), snapshot, new ReplaceOptions().upsert(true));
+                //写库成功后再记录哈希 (volatile 跨线程可见); 失败则保持脏, 下个周期重试
+                data.markSaved(hash);
+            } catch (Exception e) {
+                log.error("异步落库失败 collection={},id={}", collection, id, e);
+            }
+        });
+        return true;
+    }
+
+    /**
+     * 阻塞等待已提交的异步写库全部完成 (单线程 FIFO, 提交一个空屏障并等它执行完即可)。
+     * 供退出/关服在同步全量落库前调用, 确保不会有旧快照在其后覆盖最新值。
+     */
+    public void awaitPending() {
+        ExecutorService ex = this.ioExecutor;
+        if (ex == null || ex.isShutdown()) {
+            return;
+        }
+        try {
+            ex.submit(() -> {
+            }).get(5, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.warn("等待异步落库完成异常", e);
+        }
+    }
+
+    /**
+     * FNV-1a 64 位哈希, 内容相同则哈希相同
+     */
+    private static long fnv1a64(String s) {
+        long hash = 0xcbf29ce484222325L;
+        for (int i = 0, len = s.length(); i < len; i++) {
+            hash ^= s.charAt(i);
+            hash *= 0x100000001b3L;
+        }
+        return hash;
+    }
+
+    /**
+     * 最后执行: 让所有业务 tick 都跑完, 再统一刷盘
+     */
     @Override
     public int order() {
         return Integer.MAX_VALUE;

@@ -4,13 +4,13 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
- * 玩家 sim 模块持久化数据
+ * 玩家 sim 基础数据
  *
  * @author 11
  * @date 2026/5/15
  */
 @Document
-public class SimPlayerGameData {
+public class SimBaseData extends AbstractData {
     @Id
     private long playerId;
     //体力值

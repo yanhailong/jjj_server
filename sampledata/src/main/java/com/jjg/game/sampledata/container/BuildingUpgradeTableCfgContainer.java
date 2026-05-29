@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.VisitorCfg;
+import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
 
 /**
- * Visitor.xlsx配置管理容器
+ * BuildingUpgradeTable.xlsx配置管理容器
  *
- * @excelName Visitor.xlsx
- * @sheetName Visitor
+ * @excelName BuildingUpgradeTable.xlsx
+ * @sheetName BuildingUpgradeTable
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class VisitorCfgContainer extends BaseCfgContainer<VisitorCfg> {
+public class BuildingUpgradeTableCfgContainer extends BaseCfgContainer<BuildingUpgradeTableCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -27,23 +27,23 @@ public class VisitorCfgContainer extends BaseCfgContainer<VisitorCfg> {
   }
 
   @Override
-  public VisitorCfgContainer getNewContainer(){
-    return new VisitorCfgContainer();
+  public BuildingUpgradeTableCfgContainer getNewContainer(){
+    return new BuildingUpgradeTableCfgContainer();
   }
 
-  public VisitorCfgContainer() {
+  public BuildingUpgradeTableCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("Visitor.xlsx");
+    excelNameList.add("BuildingUpgradeTable.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected VisitorCfg createNewBean() {
-    return new VisitorCfg();
+  protected BuildingUpgradeTableCfg createNewBean() {
+    return new BuildingUpgradeTableCfg();
   }
 }

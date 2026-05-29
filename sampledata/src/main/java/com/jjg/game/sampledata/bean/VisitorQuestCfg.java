@@ -7,40 +7,38 @@ import javax.annotation.processing.Generated;
 /**
  * 配置bean
  *
- * @excelName Visitor.xlsx
- * @sheetName Visitor
+ * @excelName VisitorQuest.xlsx
+ * @sheetName VisitorQuest
  * @author Auto.Generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class VisitorCfg extends BaseCfgBean {
+public class VisitorQuestCfg extends BaseCfgBean {
 
   /** 配置表名 */
-  public static final String EXCEL_NAME = "Visitor.xlsx";
+  public static final String EXCEL_NAME = "VisitorQuest.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "Visitor";
+  public static final String SHEET_NAME = "VisitorQuest";
 
-  /** 基础停留时长 */
-  protected int BaseDwellTime;
+  /** 无奖励的服务能力 */
+  protected int BaseServiceCapacity;
   /** 基础刷新权重 */
   protected int BaseWeight;
   /** 建筑交互权重 */
-  protected List<List<Integer>> InteractionWeight;
+  protected Map<Integer,Integer> InteractionWeight;
   /** 游客品质 */
   protected int Quality;
-  /** 曝光时的刷新权重 */
-  protected int RefreshWeights;
+  /** 服务能力 */
+  protected int ServiceCapacity;
   /** 指定区域 */
   protected List<Integer> TargetArea;
   /** 游客 */
   protected int Tourist;
-  /** 知名度要求 */
+  /** 知名度 */
   protected int awareness;
-  /** 解锁道具 */
-  protected Map<Integer,Integer> unlockitems;
 
-  /** 返回基础停留时长 */
-  public int getBaseDwellTime() {
-    return BaseDwellTime;
+  /** 返回无奖励的服务能力 */
+  public int getBaseServiceCapacity() {
+    return BaseServiceCapacity;
   }
 
   /** 返回基础刷新权重 */
@@ -49,7 +47,7 @@ public class VisitorCfg extends BaseCfgBean {
   }
 
   /** 返回建筑交互权重 */
-  public List<List<Integer>> getInteractionWeight() {
+  public Map<Integer,Integer> getInteractionWeight() {
     return InteractionWeight;
   }
 
@@ -58,9 +56,9 @@ public class VisitorCfg extends BaseCfgBean {
     return Quality;
   }
 
-  /** 返回曝光时的刷新权重 */
-  public int getRefreshWeights() {
-    return RefreshWeights;
+  /** 返回服务能力 */
+  public int getServiceCapacity() {
+    return ServiceCapacity;
   }
 
   /** 返回指定区域 */
@@ -73,14 +71,9 @@ public class VisitorCfg extends BaseCfgBean {
     return Tourist;
   }
 
-  /** 返回知名度要求 */
+  /** 返回知名度 */
   public int getAwareness() {
     return awareness;
-  }
-
-  /** 返回解锁道具 */
-  public Map<Integer,Integer> getUnlockitems() {
-    return unlockitems;
   }
 
   @Override

@@ -18,6 +18,8 @@ import java.util.List;
 public class ResSimEnterGame extends AbstractResponse {
     @ProtoDesc("是否完成新手引导")
     public boolean guide;
+    @ProtoDesc("当前所在场景id")
+    public int currentCasinoId;
     @ProtoDesc("建筑信息")
     public List<BuildingInfo> buildings;
 
