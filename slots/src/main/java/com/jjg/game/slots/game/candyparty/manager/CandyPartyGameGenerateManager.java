@@ -116,10 +116,26 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
 
     @Override
     public boolean assignPatternAwardSpecialCheck(Set<Integer> targetCounts, int icon, int size) {
-        //过关图标特殊处理
+        //过关图标特殊处理：过关符号在 BaseElementReward 里没有 lineType=7 配置，targetCounts 为空，
+        //此处只要 cluster 至少有 1 格就算消除一次（任意 size 都消除）
+        if (isPassingIcon(icon)) {
+            return size >= 1;
+        }
+        return false;
+    }
+
+    @Override
+    protected boolean hasAssignPatternSpecialCheck(int icon) {
+        return isPassingIcon(icon);
+    }
+
+    private boolean isPassingIcon(int icon) {
+        if (passingCriteriaMap == null || passingCriteriaMap.isEmpty()) {
+            return false;
+        }
         for (Pair<Integer, Integer> pair : passingCriteriaMap.values()) {
-            if (pair.getFirst() == icon) {
-                return size >= targetCounts.size();
+            if (pair != null && pair.getFirst() != null && pair.getFirst() == icon) {
+                return true;
             }
         }
         return false;

@@ -200,7 +200,9 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
             Set<Integer> equivalentIcons = resolveAssignPatternEquivalentIcons(icon);
             Set<Integer> targetCounts = this.assignPatternTargetCountMap.get(icon);
-            if (CollectionUtil.isEmpty(targetCounts)) {
+            boolean noTargetCounts = CollectionUtil.isEmpty(targetCounts);
+            //过关符号等不在 BaseElementReward 里的特殊图标，仍需要走 specialCheck 判定（消除/累计），不能直接跳过
+            if (noTargetCounts && !hasAssignPatternSpecialCheck(icon)) {
                 traverseConnectedIcons(arr, rows, cols, startIndex, index, visited, equivalentIcons, null);
                 continue;
             }
@@ -208,7 +210,9 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             LinkedHashSet<Integer> sameIconSet = new LinkedHashSet<>();
             traverseConnectedIcons(arr, rows, cols, startIndex, index, visited, equivalentIcons, sameIconSet);
             int size = sameIconSet.size();
-            if (targetCounts.contains(size) || assignPatternAwardSpecialCheck(targetCounts, icon, size)) {
+            Set<Integer> effectiveTargetCounts = noTargetCounts ? Collections.emptySet() : targetCounts;
+            boolean matched = !noTargetCounts && targetCounts.contains(size);
+            if (matched || assignPatternAwardSpecialCheck(effectiveTargetCounts, icon, size)) {
                 result.add(buildAssignPatternAwardLineInfo(resolveAssignPatternSameIcon(icon), sameIconSet));
             }
         }
@@ -224,6 +228,14 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * @return true 报错 false 不保存
      */
     public boolean assignPatternAwardSpecialCheck(Set<Integer> targetCounts, int icon, int size) {
+        return false;
+    }
+
+    /**
+     * 该图标是否需要走 specialCheck（即使 BaseElementReward 里没配 lineType=DISTRIBUTED_CONNECTION 的 cfg）。
+     * 默认 false，子类如有过关符号等特殊图标需要识别和消除时返回 true。
+     */
+    protected boolean hasAssignPatternSpecialCheck(int icon) {
         return false;
     }
 
