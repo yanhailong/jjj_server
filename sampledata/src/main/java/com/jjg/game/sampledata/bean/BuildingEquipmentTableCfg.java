@@ -7,17 +7,17 @@ import javax.annotation.processing.Generated;
 /**
  * 配置bean
  *
- * @excelName EquipmentTable.xlsx
- * @sheetName EquipmentTable
+ * @excelName BuildingEquipmentTable.xlsx
+ * @sheetName BuildingEquipmentTable
  * @author Auto.Generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class EquipmentTableCfg extends BaseCfgBean {
+public class BuildingEquipmentTableCfg extends BaseCfgBean {
 
   /** 配置表名 */
-  public static final String EXCEL_NAME = "EquipmentTable.xlsx";
+  public static final String EXCEL_NAME = "BuildingEquipmentTable.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "EquipmentTable";
+  public static final String SHEET_NAME = "BuildingEquipmentTable";
 
   /** 建筑ID */
   protected int BuildingID;

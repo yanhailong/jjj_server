@@ -1,14 +1,23 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
+import com.jjg.game.sim.constant.BonusType;
+import com.jjg.game.sim.constant.BuildingType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimCasinoData;
+import com.jjg.game.sim.data.SimOfflineReward;
 import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.listener.SimPlayerTickListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * 建筑服务: 解锁、升级、CD 清除
@@ -28,7 +34,7 @@ import java.util.Set;
  * @date 2026/5/28
  */
 @Service
-public class SimBuildingService {
+public class SimBuildingService implements SimPlayerTickListener {
     private static final Logger log = LoggerFactory.getLogger(SimBuildingService.class);
 
     //初始等级 (解锁后)
@@ -36,6 +42,209 @@ public class SimBuildingService {
 
     @Autowired
     private SimConfigCacheService configCache;
+    @Autowired
+    private SimEmployeeService employeeService;
+    @Autowired
+    private PlayerPackService playerPackService;
+
+    @Override
+    public void onTick(SimPlayerContext ctx, long now) {
+        output(ctx, now);
+    }
+
+    @Override
+    public int order() {
+        return SimPlayerTickListener.super.order();
+    }
+
+    /**
+     * 在线产出: 每分钟自动结算一次, 保留不足 1 分钟的余量时间
+     */
+    private void output(SimPlayerContext ctx, long now) {
+        try {
+            //新手引导未完成不产出 (与游客生成一致)
+            if (!ctx.getSimBaseData().isGuide()) {
+                return;
+            }
+            SimCasinoData casino = ctx.getCurrentCasino();
+            if (casino == null) {
+                return;
+            }
+            if (casino.getLastOutputTime() == 0) {
+                casino.setLastOutputTime(now);
+                return;
+            }
+            long elapsed = now - casino.getLastOutputTime();
+            long fullMinutes = elapsed / TimeHelper.ONE_MINUTE_OF_MILLIS;
+            if (fullMinutes <= 0) {
+                return;
+            }
+            Map<Integer, Long> perMinute = computePerMinuteOutput(ctx, casino);
+            if (!perMinute.isEmpty()) {
+                Map<Integer, Long> total = multiply(perMinute, fullMinutes);
+                creditResources(ctx, total, AddType.SIM_BUILD_MINUTE_REWARDS);
+            }
+            //仅推进已结算的整分钟, 保留余量
+            casino.setLastOutputTime(casino.getLastOutputTime() + fullMinutes * TimeHelper.ONE_MINUTE_OF_MILLIS);
+        } catch (Exception e) {
+            log.error("在线产出结算异常 playerId={}", ctx.playerId(), e);
+        }
+    }
+
+    /**
+     * 计算当前赌场所有游戏区/休息区建筑每分钟产出 (含雇员加成) 之和
+     *
+     * @return itemId -> 每分钟数量 (金币/能量混合)
+     */
+    public Map<Integer, Long> computePerMinuteOutput(SimPlayerContext ctx, SimCasinoData casino) {
+        if (casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        //获取雇员加成
+        Map<BonusType, Integer> bonusesMap = new HashMap<>();
+        employeeService.computeTypeBonusFixed(ctx, bonusesMap);
+
+        Map<Integer, Long> total = new HashMap<>();
+        for (BuildingData building : casino.getBuildingData().values()) {
+            //获取建筑的基础产出，不包含加成
+            Map<Integer, Long> base = getBaseOutput(building.getId(), building.getLevel());
+            if (base.isEmpty()) {
+                continue;
+            }
+
+            BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
+            if (areaCfg == null) {
+                continue;
+            }
+
+            BuildingType buildingType = BuildingType.fromCode(areaCfg.getType());
+            if (buildingType == null) {
+                continue;
+            }
+
+            //主管加成
+            Map<BonusType, Integer> tmpBonusesMap = employeeService.computeSupervisorBonusFixed(ctx, bonusesMap, building.getManagerEmployId());
+
+            //获取加成
+            BonusType bonusType = BonusType.fromBuildingType(buildingType);
+            int bonus = 0;
+            if (bonusType != null) {
+                bonus = tmpBonusesMap.getOrDefault(bonusType, 0);
+            }
+
+            Map<Integer, Long> actual = applyBonus(base, bonus);
+            actual.forEach((itemId, count) -> total.merge(itemId, count, Long::sum));
+        }
+        return total;
+    }
+
+    /**
+     * 建筑按雇员加成固定值计算实际产出: base + base * bonusFixed / 1000 (向下取整)
+     *
+     * @param baseOutputMap 基础产出 itemId -> 数量
+     * @param bonus         雇员加成之和 (固定值 / 1000 = 加成百分比)
+     * @return 物品id -> 数量
+     */
+    public Map<Integer, Long> applyBonus(Map<Integer, Long> baseOutputMap, int bonus) {
+        if (baseOutputMap == null || baseOutputMap.isEmpty() || bonus < 1) {
+            return baseOutputMap;
+        }
+        HashMap<Integer, Long> result = new HashMap<>(baseOutputMap.size());
+        for (Map.Entry<Integer, Long> en : baseOutputMap.entrySet()) {
+            long extra = en.getValue() * bonus / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR;
+            result.put(en.getKey(), extra + en.getValue());
+        }
+        return result;
+    }
+
+    /**
+     * 资源入账: 能量累加进 casino.power; 金币走统一 credit hook (stub, 预留 PlayerPackService)
+     */
+    public void creditResources(SimPlayerContext ctx, Map<Integer, Long> resources, AddType addType) {
+        if (resources == null || resources.isEmpty()) {
+            return;
+        }
+
+        CommonResult<ItemOperationResult> result = playerPackService.addItems(ctx.playerId(), resources, addType);
+        if (result.success()) {
+            log.info("道具入账 playerId={},items={},addType={}", ctx.playerId(), resources, addType);
+        }
+    }
+
+    /**
+     * 计算离线收益 (上线时调用; 不入账, 仅生成待领取快照)
+     *
+     * @param offlineMs 离线总时长(ms)
+     * @return 待领取离线收益; 不足 1 分钟或无产出返回 null
+     */
+    public SimOfflineReward computeOfflineReward(SimPlayerContext ctx, SimCasinoData casino, long offlineMs) {
+        long offlineMinutes = offlineMs / TimeHelper.ONE_MINUTE_OF_MILLIS;
+        if (offlineMinutes < 1) {
+            return null;
+        }
+        //离线上限时长 (按当前经营等级)
+        CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
+        int capMinutes = statsCfg == null ? 0 : statsCfg.getOfflineDuration();
+        int effectiveMinutes = capMinutes > 0 ? (int) Math.min(offlineMinutes, capMinutes) : (int) offlineMinutes;
+        if (effectiveMinutes <= 0) {
+            return null;
+        }
+        Map<Integer, Long> perMinute = computePerMinuteOutput(ctx, casino);
+        if (perMinute.isEmpty()) {
+            return null;
+        }
+        Map<Integer, Long> baseReward = multiply(perMinute, effectiveMinutes);
+        if (baseReward.isEmpty()) {
+            return null;
+        }
+        String adMultiplier = configCache.pickAdMultiplier();
+        return new SimOfflineReward(baseReward, effectiveMinutes, capMinutes, adMultiplier);
+    }
+
+    /**
+     * 领取离线收益 (1倍直接领取 / 看广告领取广告倍数), 入账并清空待领取快照
+     *
+     * @param watchAd 是否看广告 (true 走广告倍数)
+     * @return Code; 无待领取返回 PARAM_ERROR
+     */
+    public int claimOfflineReward(SimPlayerContext ctx, boolean watchAd) {
+        SimOfflineReward reward = ctx.getPendingOffline();
+        if (reward == null) {
+            log.warn("领取离线收益失败, 无待领取收益 playerId={}", ctx.playerId());
+            return Code.PARAM_ERROR;
+        }
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (casino == null) {
+            return Code.NOT_FOUND;
+        }
+
+        double multiplier = 1.0;
+        if(watchAd && reward.getAdMultiplier() != null && !reward.getAdMultiplier().isEmpty()) {
+            multiplier = Double.parseDouble(reward.getAdMultiplier());
+        }
+        Map<Integer, Long> finalReward = scale(reward.getBaseReward(), multiplier);
+        creditResources(ctx, finalReward, AddType.SIM_BUILD_OFFLINE_REWARDS);
+        //领取后重置
+        ctx.setPendingOffline(null);
+        log.info("领取离线收益 playerId={},watchAd={},multiplier={},reward={}", ctx.playerId(), watchAd, multiplier, finalReward);
+        return Code.SUCCESS;
+    }
+
+    private Map<Integer, Long> multiply(Map<Integer, Long> src, long factor) {
+        Map<Integer, Long> result = new HashMap<>(src.size());
+        src.forEach((k, v) -> result.put(k, v * factor));
+        return result;
+    }
+
+    /**
+     * 按倍数放大 (小数倍数向下取整, 文档约定)
+     */
+    private Map<Integer, Long> scale(Map<Integer, Long> src, double multiplier) {
+        Map<Integer, Long> result = new HashMap<>(src.size());
+        src.forEach((k, v) -> result.put(k, (long) Math.floor(v * multiplier)));
+        return result;
+    }
 
     /**
      * 解锁建筑
@@ -187,35 +396,6 @@ public class SimBuildingService {
     }
 
     /**
-     * 当前赌场已解锁的建筑 ID 集合
-     */
-    public Set<Integer> getUnlockedBuildingIds(SimCasinoData casino) {
-        if (casino == null || casino.getBuildingData() == null) {
-            return Collections.emptySet();
-        }
-        return casino.getBuildingData().keySet();
-    }
-
-    /**
-     * 当前赌场各分类下一个待解锁的建筑 (按 SequenceID 升序)
-     */
-    public Map<Integer, Integer> findNextUnlockable(SimCasinoData casino) {
-        if (casino == null) {
-            return Collections.emptyMap();
-        }
-        Map<Integer, Integer> result = new HashMap<>();
-        int[] allTypes = {SimConstant.BuildingType.GAME, SimConstant.BuildingType.REST, SimConstant.BuildingType.MANAGEMENT};
-        Set<Integer> unlocked = getUnlockedBuildingIds(casino);
-        for (int type : allTypes) {
-            Integer next = configCache.getNextUnlockBuilding(casino.getCasinoId(), type, unlocked);
-            if (next != null) {
-                result.put(type, next);
-            }
-        }
-        return result;
-    }
-
-    /**
      * 资源检查 & 扣除 (占位实现)
      * TODO: 接入 PlayerPackService.removeItems / 货币系统
      */
@@ -239,29 +419,4 @@ public class SimBuildingService {
         return cfg.getUpgradeOutput();
     }
 
-    /**
-     * 获取该建筑指定等级的最大交互人数
-     */
-    public int getMaxInteractionCount(int buildingId, int level) {
-        BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(buildingId, level);
-        return cfg == null ? 0 : cfg.getMaxInteractionCount();
-    }
-
-    /**
-     * 获取该建筑当前累积已解锁的设备列表 (level 1..currentLevel 的 UnlockEquipment 并集)
-     */
-    public Set<Integer> getUnlockedEquipments(int buildingId, int currentLevel) {
-        Set<Integer> set = new HashSet<>();
-        for (int lv = 1; lv <= currentLevel; lv++) {
-            BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(buildingId, lv);
-            if (cfg == null) {
-                continue;
-            }
-            List<Integer> list = cfg.getUnlockEquipment();
-            if (list != null) {
-                set.addAll(list);
-            }
-        }
-        return set;
-    }
 }

@@ -44,6 +44,9 @@ public class SimCasinoData extends AbstractData {
     //上次生成游客时间(ms) — 运行时, 不持久化
     @Transient
     private transient long lastGenerateTime;
+    //上次在线产出结算时间(ms) — 运行时, 不持久化
+    @Transient
+    private transient long lastOutputTime;
     //近期生成游客时间戳队列 (用于"10 分钟内生成人数"计算) — 运行时, 不持久化
     @Transient
     private transient Deque<Long> recentGenerateTimes;
@@ -138,6 +141,28 @@ public class SimCasinoData extends AbstractData {
 
     public void setLastGenerateTime(long lastGenerateTime) {
         this.lastGenerateTime = lastGenerateTime;
+    }
+
+    public long getLastOutputTime() {
+        return lastOutputTime;
+    }
+
+    public void setLastOutputTime(long lastOutputTime) {
+        this.lastOutputTime = lastOutputTime;
+    }
+
+    /**
+     * 增加能量值 (休息区产出)
+     */
+    public void addPower(long delta) {
+        long v = this.power + delta;
+        if (v > Integer.MAX_VALUE) {
+            v = Integer.MAX_VALUE;
+        }
+        if (v < 0) {
+            v = 0;
+        }
+        this.power = (int) v;
     }
 
     public int getPower() {

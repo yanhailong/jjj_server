@@ -21,6 +21,8 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
 
   /** 赌场ID */
   protected int CasinoID;
+  /** 受影响的雇员类型 */
+  protected int EmployeeProfile;
   /** 序列ID */
   protected int SequenceID;
   /** 解锁消耗 */
@@ -33,6 +35,11 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   /** 返回赌场ID */
   public int getCasinoID() {
     return CasinoID;
+  }
+
+  /** 返回受影响的雇员类型 */
+  public int getEmployeeProfile() {
+    return EmployeeProfile;
   }
 
   /** 返回序列ID */

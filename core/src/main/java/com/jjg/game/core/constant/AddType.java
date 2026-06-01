@@ -267,9 +267,12 @@ public enum AddType {
     PLOY_BET(1701),
     //策略游戏奖励
     PLOY_REWARD(1702),
-    ;
 
 
+    //sim游戏每分钟产出
+    SIM_BUILD_MINUTE_REWARDS(1801),
+    //sim游戏离线收益
+    SIM_BUILD_OFFLINE_REWARDS(1802);
     private int value;
 
     AddType(int value) {

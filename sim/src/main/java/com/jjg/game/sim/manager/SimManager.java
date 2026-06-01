@@ -6,9 +6,11 @@ import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.listener.OnSwitchNode;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.WheelTimerUtil;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
@@ -18,6 +20,7 @@ import com.jjg.game.sim.event.SimEventBus;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.*;
+import com.jjg.game.sim.pb.struct.OfflineReward;
 import com.jjg.game.sim.service.*;
 import com.jjg.game.sim.service.tick.SimAutoSaveService;
 import io.netty.util.Timeout;
@@ -28,6 +31,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -74,8 +78,6 @@ public class SimManager implements OnSwitchNode {
     @Autowired
     private SimEmployeeDao simEmployeeDao;
     @Autowired
-    private SimEmployeeService simEmployeeService;
-    @Autowired
     private SimSkillsDao simSkillsDao;
 
     /**
@@ -99,16 +101,83 @@ public class SimManager implements OnSwitchNode {
             playerController.setScene(ctx);
             res.guide = ctx.getSimBaseData().isGuide();
 
-            if (ctx.getCurrentCasino() != null && ctx.getCurrentCasino().getBuildingData() != null) {
-                res.currentCasinoId = ctx.getCurrentCasino().getCasinoId();
+            res.currentCasinoId = ctx.getCurrentCasino().getCasinoId();
+
+            //添加建筑数据
+            if (ctx.getCurrentCasino().getBuildingData() != null && !ctx.getCurrentCasino().getBuildingData().isEmpty()) {
                 res.buildings = new ArrayList<>();
                 for (Map.Entry<Integer, BuildingData> en : ctx.getCurrentCasino().getBuildingData().entrySet()) {
                     res.buildings.add(SimPbConverter.toBuildingInfo(en.getValue()));
                 }
             }
 
+            res.awareness = simCasinoService.awareness(ctx);
+            res.offlineReward = settleOfflineReward(ctx);
             ctx.getSimBaseData().setLastOfflineTime(0);
             log.info("玩家进入游戏 playerId={},res={}", playerController.playerId(), JSONObject.toJSONString(res));
+            playerController.send(res);
+            return;
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 离线收益结算: 计算并存入待领取快照
+     */
+    private OfflineReward settleOfflineReward(SimPlayerContext ctx) {
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (casino == null) {
+            return null;
+        }
+        long lastOfflineTime = ctx.getSimBaseData().getLastOfflineTime();
+        long now = System.currentTimeMillis();
+        //重置在线产出结算游标, 避免离线时段被在线 tick 重复计算
+        casino.setLastOutputTime(now);
+        if (lastOfflineTime <= 0) {
+            return null;
+        }
+        SimOfflineReward reward = buildingService.computeOfflineReward(ctx, casino, now - lastOfflineTime);
+        if (reward == null) {
+            return null;
+        }
+        ctx.setPendingOffline(reward);
+
+        OfflineReward rewards = new OfflineReward();
+        rewards.rewards = ItemUtils.buildItemInfo(reward.getBaseReward());
+        rewards.offlineMinutes = reward.getEffectiveMinutes();
+        rewards.capMinutes = reward.getCapMinutes();
+        rewards.adMultiplier = reward.getAdMultiplier();
+
+        log.info("离线收益结算 playerId={},effectiveMinutes={},capMinutes={},reward={}",
+                ctx.playerId(), reward.getEffectiveMinutes(), reward.getCapMinutes(), reward.getBaseReward());
+        return rewards;
+    }
+
+    /**
+     * 领取离线收益
+     */
+    public void onClaimOfflineReward(PlayerController playerController, boolean watchAd) {
+        ResClaimOfflineReward res = new ResClaimOfflineReward(Code.SUCCESS);
+        try {
+            SimPlayerContext ctx = getContext(playerController.playerId());
+            if (ctx == null) {
+                res.code = Code.NOT_FOUND;
+                playerController.send(res);
+                log.warn("领取离线收益: SimPlayerContext 不存在 playerId={}", playerController.playerId());
+                return;
+            }
+            SimOfflineReward reward = ctx.getPendingOffline();
+            res.code = buildingService.claimOfflineReward(ctx, watchAd);
+            if (res.code == Code.SUCCESS && reward != null) {
+                res.watchAd = watchAd;
+                double multiplier = (reward.getAdMultiplier() == null || reward.getAdMultiplier().isEmpty()) ? 1.0 : Double.parseDouble(reward.getAdMultiplier());
+                Map<Integer, Long> finalReward = new HashMap<>(reward.getBaseReward().size());
+                reward.getBaseReward().forEach((k, v) -> finalReward.put(k, (long) Math.floor(v * multiplier)));
+                res.rewards = ItemUtils.buildItemInfo(finalReward);
+            }
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -430,7 +499,7 @@ public class SimManager implements OnSwitchNode {
         //加载场景数据
         simCasinoService.loadCasinoData(ctx, baseData);
         //加载雇员数据
-        simEmployeeService.loadEmployeeData(ctx);
+        employeeService.loadEmployeeData(ctx);
 
         ctx.setSimBaseData(baseData);
         this.contextMap.put(playerId, ctx);
@@ -439,6 +508,35 @@ public class SimManager implements OnSwitchNode {
 
     public SimPlayerContext getContext(long playerId) {
         return this.contextMap.get(playerId);
+    }
+
+    /**
+     * GM: 立即结算一分钟在线产出 (测试用)
+     */
+    public void gmSettleOutput(long playerId) {
+        SimPlayerContext ctx = getContext(playerId);
+        if (ctx == null || ctx.getCurrentCasino() == null) {
+            log.warn("gmSettleOutput: ctx/casino 不存在 playerId={}", playerId);
+            return;
+        }
+        SimCasinoData casino = ctx.getCurrentCasino();
+        Map<Integer, Long> perMinute = buildingService.computePerMinuteOutput(ctx, casino);
+        buildingService.creditResources(ctx, perMinute, AddType.SIM_BUILD_MINUTE_REWARDS);
+        log.info("gmSettleOutput playerId={},perMinute={},power={}", playerId, perMinute, casino.getPower());
+    }
+
+    /**
+     * GM: 打印当前赌场能量与每分钟产出 (测试用)
+     */
+    public void gmPrintPower(long playerId) {
+        SimPlayerContext ctx = getContext(playerId);
+        if (ctx == null || ctx.getCurrentCasino() == null) {
+            log.warn("gmPrintPower: ctx/casino 不存在 playerId={}", playerId);
+            return;
+        }
+        SimCasinoData casino = ctx.getCurrentCasino();
+        log.info("gmPrintPower playerId={},casinoId={},power={},perMinuteOutput={}",
+                playerId, casino.getCasinoId(), casino.getPower(), buildingService.computePerMinuteOutput(ctx, casino));
     }
 
     /**

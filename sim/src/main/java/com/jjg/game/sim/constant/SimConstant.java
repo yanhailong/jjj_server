@@ -64,41 +64,36 @@ public interface SimConstant {
         //任命主管 (按建筑类型)
         int REQ_ASSIGN_SUPERVISOR = BASE_MSG_PREFIX | 0x1A;
         int RES_ASSIGN_SUPERVISOR = BASE_MSG_PREFIX | 0x1B;
-    }
 
-    interface PropConfig {
-        //下注金额
-        int TYPE_STAKE = 1;
+        //领取离线收益 (1倍/看广告2倍)
+        int REQ_CLAIM_OFFLINE_REWARD = BASE_MSG_PREFIX | 0x1C;
+        int RES_CLAIM_OFFLINE_REWARD = BASE_MSG_PREFIX | 0x1D;
     }
 
     interface Common {
-
         //默认赌场STATS id (CasinoStatsSheetCfg level=0)
         int DEFAULT_CASINO_STATS_ID = 1001;
-
-        //随机模式选目的地时单点最大重试次数
-        int MAX_DEST_PICK_RETRY = 10;
-
-        //长时掉线阈值 (ms) — 5 分钟
-        long DISCONNECT_LONG_THRESHOLD_MS = 5 * 60 * 1000L;
-
         //"赌场满员"判定窗口 (ms) — 10 分钟
         long CAPACITY_WINDOW_MS = 10 * 60 * 1000L;
 
         //服务能力加成系数基数 (VisitorStarCfg.Additioncoefficient, 100 表示 +0%)
         int SERVICE_CAPACITY_COEFFICIENT_BASE = 100;
 
-        //雇员主管加成基数 (EmployeeStarCfg.SupervisorBonus, 100 表示 +0%)
-        int EMPLOYEE_SUPERVISOR_BONUS_BASE = 100;
+        //雇员加成固定值换算基数 (固定值 / 1000 = 加成百分比, 雇员文档第243行)
+        int EMPLOYEE_BONUS_DIVISOR = 1000;
+
+        //广告收益倍数全局配置id (global.xlsx 135)
+        int GLOBAL_AD_MULTIPLIER_ID = 135;
     }
 
     /**
-     * 建筑分类 (BuildingAreaTable.type)
+     * 产出资源物品id
      */
-    interface BuildingType {
-        int GAME = 1;       //游戏 (SLOT/扑克/捕鱼)
-        int REST = 2;       //休息 (普通/VIP休息区)
-        int MANAGEMENT = 3; //管理 (前台/运营/营销/研发)
+    interface Item {
+        //能量
+        int ID_POWER = 1024001;
+        //知名度
+        int ID_AWARENESS = 1024002;
     }
 
     /**
@@ -107,5 +102,10 @@ public interface SimConstant {
     interface EquipmentType {
         int DEVICE = 1;     //可交互设备
         //其它值: 装饰
+    }
+
+    interface Building {
+        //运营部id
+        int ID_OPERATIONS_DEPART = 1303;
     }
 }

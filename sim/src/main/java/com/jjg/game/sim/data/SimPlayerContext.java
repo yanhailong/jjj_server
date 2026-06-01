@@ -28,6 +28,9 @@ public class SimPlayerContext {
     //当前赌场引用缓存 (由 setPlayerGameData / switchCasino / setCasinoMap 维护)
     private SimCasinoData currentCasino;
 
+    //待领取的离线收益 (上线计算, 领取后清空)
+    private SimOfflineReward pendingOffline;
+
     //上次落库时间 (ms)
     private long lastSaveTime;
 
@@ -132,6 +135,14 @@ public class SimPlayerContext {
             return;
         }
         this.currentCasino = casinoMap.get(this.simBaseData.getCurrentCasinoId());
+    }
+
+    public SimOfflineReward getPendingOffline() {
+        return pendingOffline;
+    }
+
+    public void setPendingOffline(SimOfflineReward pendingOffline) {
+        this.pendingOffline = pendingOffline;
     }
 
     public long getLastSaveTime() {

@@ -1,10 +1,13 @@
 package com.jjg.game.sim.service;
 
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
 import com.jjg.game.sampledata.bean.CasinoListCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
+import com.jjg.game.sim.constant.BonusType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
+import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -14,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +34,10 @@ public class SimCasinoService {
     private SimCasinoDao simCasinoDao;
     @Autowired
     private SimBuildingService simBuildingService;
+    @Autowired
+    private SimConfigCacheService configCacheService;
+    @Autowired
+    private SimEmployeeService employeeService;
 
     /**
      * 加载场景数据
@@ -98,5 +106,49 @@ public class SimCasinoService {
             list.add(simCasinoData);
         }
         return list;
+    }
+
+    /**
+     * 获取知名度
+     *
+     * @param ctx
+     * @return
+     */
+    public long awareness(SimPlayerContext ctx) {
+        SimCasinoData casinoData = ctx.getCurrentCasino();
+        if (casinoData == null) {
+            return 0;
+        }
+
+        if (casinoData.getBuildingData() == null || casinoData.getBuildingData().isEmpty()) {
+            return 0;
+        }
+
+        //获取运营部的建筑
+        BuildingData buildingData = casinoData.getBuildingData().get(SimConstant.Building.ID_OPERATIONS_DEPART);
+        if (buildingData == null) {
+            return 0;
+        }
+
+        //获取配置
+        BuildingUpgradeTableCfg cfg = configCacheService.getBuildingUpgradeCfg(buildingData.getId(), buildingData.getLevel());
+        if (cfg == null || cfg.getUpgradeOutput() == null || cfg.getUpgradeOutput().isEmpty()) {
+            return 0;
+        }
+
+        Long awareness = cfg.getUpgradeOutput().get(SimConstant.Item.ID_AWARENESS);
+        if (awareness == null) {
+            return 0;
+        }
+
+        //获取雇员加成
+        Map<BonusType, Integer> bonusesMap = new HashMap<>();
+        employeeService.computeTypeBonusFixed(ctx, bonusesMap);
+        Integer bouns = bonusesMap.get(BonusType.AWARENESS);
+        if (bouns == null) {
+            return awareness;
+        }
+        long extra = awareness * bouns / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR;
+        return awareness + extra;
     }
 }

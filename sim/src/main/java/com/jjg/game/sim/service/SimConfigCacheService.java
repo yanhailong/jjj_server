@@ -1,15 +1,12 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
-import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
-import com.jjg.game.sampledata.bean.EmployeeLevelCfg;
-import com.jjg.game.sampledata.bean.EmployeeStarCfg;
-import com.jjg.game.sampledata.bean.EquipmentTableCfg;
-import com.jjg.game.sampledata.bean.VisitorLevelCfg;
-import com.jjg.game.sampledata.bean.VisitorStarCfg;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -26,6 +23,8 @@ import java.util.Map;
  */
 @Component
 public class SimConfigCacheService implements ConfigExcelChangeListener {
+    private static final Logger log = LoggerFactory.getLogger(SimConfigCacheService.class);
+
     //VisitorLevel配置 guestId -> level -> cfg
     private Map<Integer, Map<Integer, VisitorLevelCfg>> visitorLevelCfgMap;
     //VisitorStar配置 guestId -> star -> cfg
@@ -42,6 +41,23 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private Map<Integer, Map<Integer, BuildingUpgradeTableCfg>> buildingUpgradeCfgMap;
     //建筑设备列表 buildingId -> 该建筑下所有设备 (EquipmentTable type==设备)
     private Map<Integer, List<Integer>> buildingDeviceMap;
+
+    //广告收益倍数随机
+    private WeightRandom<String> adMultiplierRandom = null;
+
+    public void testInit() {
+        loadBuildingChain();
+        loadBuildingDeviceConfig();
+        loadBuildingUpgradeConfig();
+
+        loadEmployeeLevelConfig();
+        loadEmployeeStarConfig();
+
+        loadVisitorLevelConfig();
+        loadVisitorStarConfig();
+
+        loadGlobalConfig();
+    }
 
     /**
      * 加载 VisitorLevel 配置
@@ -130,7 +146,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
      */
     private void loadBuildingDeviceConfig() {
         Map<Integer, List<Integer>> tmp = new HashMap<>();
-        for (EquipmentTableCfg cfg : GameDataManager.getEquipmentTableCfgList()) {
+        for (BuildingEquipmentTableCfg cfg : GameDataManager.getBuildingEquipmentTableCfgList()) {
             if (cfg.getType() != SimConstant.EquipmentType.DEVICE) {
                 continue;
             }
@@ -139,15 +155,45 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         this.buildingDeviceMap = tmp;
     }
 
+    /**
+     * 加载全局配置
+     */
+    private void loadGlobalConfig() {
+        GlobalConfigCfg cfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.GLOBAL_AD_MULTIPLIER_ID);
+        if (cfg != null && cfg.getValue() != null && !cfg.getValue().isEmpty()) {
+            WeightRandom<String> random = WeightRandom.create();
+            for (String seg : cfg.getValue().split("\\|")) {
+                String[] kv = seg.split("_");
+                if (kv.length < 2) {
+                    continue;
+                }
+                try {
+                    Double.parseDouble(kv[0].trim());
+                    int weight = Integer.parseInt(kv[1].trim());
+                    if (weight > 0) {
+                        random.add(kv[0].trim(), weight);
+                    }
+                } catch (NumberFormatException e) {
+                    log.warn("广告倍数配置解析失败 seg={}", seg);
+                }
+            }
+
+            this.adMultiplierRandom = random;
+        }
+    }
+
     @Override
     public void initSampleCallbackCollector() {
         addInitSampleFileObserveWithCallBack(VisitorLevelCfg.EXCEL_NAME, this::loadVisitorLevelConfig);
         addInitSampleFileObserveWithCallBack(VisitorStarCfg.EXCEL_NAME, this::loadVisitorStarConfig);
+
         addInitSampleFileObserveWithCallBack(EmployeeLevelCfg.EXCEL_NAME, this::loadEmployeeLevelConfig);
         addInitSampleFileObserveWithCallBack(EmployeeStarCfg.EXCEL_NAME, this::loadEmployeeStarConfig);
+
         addInitSampleFileObserveWithCallBack(BuildingAreaTableCfg.EXCEL_NAME, this::loadBuildingChain);
         addInitSampleFileObserveWithCallBack(BuildingUpgradeTableCfg.EXCEL_NAME, this::loadBuildingUpgradeConfig);
-        addInitSampleFileObserveWithCallBack(EquipmentTableCfg.EXCEL_NAME, this::loadBuildingDeviceConfig);
+        addInitSampleFileObserveWithCallBack(BuildingEquipmentTableCfg.EXCEL_NAME, this::loadBuildingDeviceConfig);
+        addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::loadGlobalConfig);
     }
 
     // ---------------------------------------------------------------------
@@ -225,21 +271,6 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     }
 
     /**
-     * 获取建筑解锁链
-     */
-    public List<Integer> getBuildingChain(int casinoId, int type) {
-        if (buildingChainMap == null) {
-            return Collections.emptyList();
-        }
-        Map<Integer, List<Integer>> typeMap = buildingChainMap.get(casinoId);
-        if (typeMap == null) {
-            return Collections.emptyList();
-        }
-        List<Integer> chain = typeMap.get(type);
-        return chain == null ? Collections.emptyList() : chain;
-    }
-
-    /**
      * 获取建筑下的设备列表
      */
     public List<Integer> getBuildingDevices(int buildingId) {
@@ -248,5 +279,22 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         }
         List<Integer> list = buildingDeviceMap.get(buildingId);
         return list == null ? Collections.emptyList() : list;
+    }
+
+    /**
+     * 广告收益倍数
+     *
+     * @return
+     */
+    public String pickAdMultiplier() {
+        if (this.adMultiplierRandom == null) {
+            return "1";
+        }
+
+        String next = this.adMultiplierRandom.next();
+        if (next == null) {
+            return "1";
+        }
+        return next;
     }
 }

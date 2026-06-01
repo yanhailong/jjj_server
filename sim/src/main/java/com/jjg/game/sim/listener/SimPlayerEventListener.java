@@ -78,7 +78,7 @@ public class SimPlayerEventListener implements SessionEnterListener, SessionClos
                 }
             });
             logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), player.getDeviceType());
-            log.debug("玩家进入sim 游戏 playerId = {},gameType = {}", player.getId(), player.getGameType());
+            log.debug("玩家进入sim 游戏 playerId = {}", player.getId());
         } catch (Exception e) {
             log.error("", e);
         }

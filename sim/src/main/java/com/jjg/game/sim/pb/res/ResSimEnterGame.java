@@ -6,6 +6,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.pb.struct.BuildingInfo;
+import com.jjg.game.sim.pb.struct.OfflineReward;
 
 import java.util.List;
 
@@ -22,6 +23,10 @@ public class ResSimEnterGame extends AbstractResponse {
     public List<BuildingInfo> buildings;
     @ProtoDesc("当前所在场景id")
     public int currentCasinoId;
+    @ProtoDesc("知名度")
+    public long awareness;
+    @ProtoDesc("离线收益")
+    public OfflineReward offlineReward;
 
     public ResSimEnterGame(int code) {
         super(code);

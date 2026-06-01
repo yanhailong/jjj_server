@@ -136,6 +136,7 @@ public class GameDataManager {
     containerMap.put(BetRobotCfg.class, new BetRobotCfgContainer());
     containerMap.put(BlackjackCfg.class, new BlackjackCfgContainer());
     containerMap.put(BuildingAreaTableCfg.class, new BuildingAreaTableCfgContainer());
+    containerMap.put(BuildingEquipmentTableCfg.class, new BuildingEquipmentTableCfgContainer());
     containerMap.put(BuildingFloorCfg.class, new BuildingFloorCfgContainer());
     containerMap.put(BuildingFunctionCfg.class, new BuildingFunctionCfgContainer());
     containerMap.put(BuildingGainCfg.class, new BuildingGainCfgContainer());
@@ -160,8 +161,8 @@ public class GameDataManager {
     containerMap.put(DropTypeCfg.class, new DropTypeCfgContainer());
     containerMap.put(EmployeeLevelCfg.class, new EmployeeLevelCfgContainer());
     containerMap.put(EmployeeProfileCfg.class, new EmployeeProfileCfgContainer());
+    containerMap.put(EmployeeSkillConfigCfg.class, new EmployeeSkillConfigCfgContainer());
     containerMap.put(EmployeeStarCfg.class, new EmployeeStarCfgContainer());
-    containerMap.put(EquipmentTableCfg.class, new EquipmentTableCfgContainer());
     containerMap.put(FirstpaymentCfg.class, new FirstpaymentCfgContainer());
     containerMap.put(FreespinCfg.class, new FreespinCfgContainer());
     containerMap.put(GameFunctionCfg.class, new GameFunctionCfgContainer());
@@ -203,7 +204,6 @@ public class GameDataManager {
     containerMap.put(RunninglightCfg.class, new RunninglightCfgContainer());
     containerMap.put(ScratchCardsCfg.class, new ScratchCardsCfgContainer());
     containerMap.put(SharePromoteCfg.class, new SharePromoteCfgContainer());
-    containerMap.put(SkillConfigCfg.class, new SkillConfigCfgContainer());
     containerMap.put(SouthernMoneyCfg.class, new SouthernMoneyCfgContainer());
     containerMap.put(SpecialAuxiliaryCfg.class, new SpecialAuxiliaryCfgContainer());
     containerMap.put(SpecialGirdCfg.class, new SpecialGirdCfgContainer());
@@ -839,6 +839,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(BuildingAreaTableCfg.class).getCfgBeanList();
   }
 
+  public static BuildingEquipmentTableCfg getBuildingEquipmentTableCfg(int key) {
+    return getInstance().getCfgContainer(BuildingEquipmentTableCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, BuildingEquipmentTableCfg> getBuildingEquipmentTableCfgMap() {
+    return getInstance().getCfgContainer(BuildingEquipmentTableCfg.class).getCfgBeanMap();
+  }
+
+  public static List<BuildingEquipmentTableCfg> getBuildingEquipmentTableCfgList() {
+    return getInstance().getCfgContainer(BuildingEquipmentTableCfg.class).getCfgBeanList();
+  }
+
   public static BuildingFloorCfg getBuildingFloorCfg(int key) {
     return getInstance().getCfgContainer(BuildingFloorCfg.class).getCfgBeanMap().get(key);
   }
@@ -1127,6 +1139,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(EmployeeProfileCfg.class).getCfgBeanList();
   }
 
+  public static EmployeeSkillConfigCfg getEmployeeSkillConfigCfg(int key) {
+    return getInstance().getCfgContainer(EmployeeSkillConfigCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, EmployeeSkillConfigCfg> getEmployeeSkillConfigCfgMap() {
+    return getInstance().getCfgContainer(EmployeeSkillConfigCfg.class).getCfgBeanMap();
+  }
+
+  public static List<EmployeeSkillConfigCfg> getEmployeeSkillConfigCfgList() {
+    return getInstance().getCfgContainer(EmployeeSkillConfigCfg.class).getCfgBeanList();
+  }
+
   public static EmployeeStarCfg getEmployeeStarCfg(int key) {
     return getInstance().getCfgContainer(EmployeeStarCfg.class).getCfgBeanMap().get(key);
   }
@@ -1137,18 +1161,6 @@ public class GameDataManager {
 
   public static List<EmployeeStarCfg> getEmployeeStarCfgList() {
     return getInstance().getCfgContainer(EmployeeStarCfg.class).getCfgBeanList();
-  }
-
-  public static EquipmentTableCfg getEquipmentTableCfg(int key) {
-    return getInstance().getCfgContainer(EquipmentTableCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, EquipmentTableCfg> getEquipmentTableCfgMap() {
-    return getInstance().getCfgContainer(EquipmentTableCfg.class).getCfgBeanMap();
-  }
-
-  public static List<EquipmentTableCfg> getEquipmentTableCfgList() {
-    return getInstance().getCfgContainer(EquipmentTableCfg.class).getCfgBeanList();
   }
 
   public static FirstpaymentCfg getFirstpaymentCfg(int key) {
@@ -1641,18 +1653,6 @@ public class GameDataManager {
 
   public static List<SharePromoteCfg> getSharePromoteCfgList() {
     return getInstance().getCfgContainer(SharePromoteCfg.class).getCfgBeanList();
-  }
-
-  public static SkillConfigCfg getSkillConfigCfg(int key) {
-    return getInstance().getCfgContainer(SkillConfigCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, SkillConfigCfg> getSkillConfigCfgMap() {
-    return getInstance().getCfgContainer(SkillConfigCfg.class).getCfgBeanMap();
-  }
-
-  public static List<SkillConfigCfg> getSkillConfigCfgList() {
-    return getInstance().getCfgContainer(SkillConfigCfg.class).getCfgBeanList();
   }
 
   public static SouthernMoneyCfg getSouthernMoneyCfg(int key) {

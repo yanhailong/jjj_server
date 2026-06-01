@@ -5,7 +5,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.EmployeeLevelCfg;
 import com.jjg.game.sampledata.bean.EmployeeProfileCfg;
 import com.jjg.game.sampledata.bean.EmployeeStarCfg;
-import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.constant.BonusType;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimCasinoData;
@@ -159,21 +159,63 @@ public class SimEmployeeService {
     }
 
     /**
-     * 在某建筑等级下计算实际产出 (基础值 * (1 + bonus / BASE))
+     * 计算所有已解锁雇员加成固定值之和:
      *
-     * @return 物品id -> 数量
+     * @param ctx 玩家上下文
+     * @return 加成之和
      */
-    public Map<Integer, Long> applyBonus(Map<Integer, Long> baseOutput, int bonusPercent) {
-        if (baseOutput == null || baseOutput.isEmpty() || bonusPercent <= 0) {
-            return baseOutput;
+    public void computeTypeBonusFixed(SimPlayerContext ctx, Map<BonusType, Integer> bonusesMap) {
+        //所有已解锁同职业雇员的等级加成
+        for (SimEmployeeData emp : ctx.getEmployeeMap().values()) {
+            EmployeeLevelCfg levelCfg = getLevelCfg(emp.getEmployeeId(), emp.getLevel());
+            if (levelCfg == null) {
+                continue;
+            }
+            sumBouns(bonusesMap, levelCfg.getAttributeValue());
         }
-        int base = SimConstant.Common.EMPLOYEE_SUPERVISOR_BONUS_BASE;
-        HashMap<Integer, Long> result = new HashMap<>(baseOutput.size());
-        for (Map.Entry<Integer, Long> en : baseOutput.entrySet()) {
-            long extra = en.getValue() * bonusPercent / base;
-            result.put(en.getKey(), en.getValue() + extra);
+    }
+
+    /**
+     * 主管加成
+     *
+     * @param ctx
+     * @param bonusesMap
+     * @param supervisorEmployId 该建筑当前主管雇员id (0 表示未任命)
+     */
+    public Map<BonusType, Integer> computeSupervisorBonusFixed(SimPlayerContext ctx, Map<BonusType, Integer> bonusesMap, int supervisorEmployId) {
+        if (supervisorEmployId < 1 || bonusesMap == null || bonusesMap.isEmpty()) {
+            return bonusesMap;
         }
-        return result;
+
+        Map<BonusType, Integer> tmpMap = new HashMap<>(bonusesMap);
+        SimEmployeeData supervisor = ctx.getEmployee(supervisorEmployId);
+        if (supervisor != null) {
+            EmployeeStarCfg starCfg = getStarCfg(supervisorEmployId, supervisor.getStar());
+            if (starCfg != null) {
+                sumBouns(tmpMap, starCfg.getSupervisorBonus());
+            }
+        }
+        return tmpMap;
+    }
+
+    /**
+     * 将所有的加成总结
+     *
+     * @param bonusesMap
+     * @param attrMap
+     */
+    private void sumBouns(Map<BonusType, Integer> bonusesMap, Map<Integer, Integer> attrMap) {
+        if (attrMap == null || attrMap.isEmpty()) {
+            return;
+        }
+
+        for (Map.Entry<Integer, Integer> en : attrMap.entrySet()) {
+            BonusType bonusType = BonusType.fromCode(en.getKey());
+            if (bonusType == null) {
+                continue;
+            }
+            bonusesMap.merge(bonusType, en.getValue(), Integer::sum);
+        }
     }
 
     // ---------------------------------------------------------------------

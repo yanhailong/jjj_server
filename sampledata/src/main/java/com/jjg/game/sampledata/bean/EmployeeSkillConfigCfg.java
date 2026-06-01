@@ -7,17 +7,17 @@ import javax.annotation.processing.Generated;
 /**
  * 配置bean
  *
- * @excelName SkillConfig.xlsx
- * @sheetName SkillConfig
+ * @excelName EmployeeSkillConfig.xlsx
+ * @sheetName EmployeeSkillConfig
  * @author Auto.Generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class SkillConfigCfg extends BaseCfgBean {
+public class EmployeeSkillConfigCfg extends BaseCfgBean {
 
   /** 配置表名 */
-  public static final String EXCEL_NAME = "SkillConfig.xlsx";
+  public static final String EXCEL_NAME = "EmployeeSkillConfig.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "SkillConfig";
+  public static final String SHEET_NAME = "EmployeeSkillConfig";
 
   /** 固定值加成 */
   protected Map<Integer,Long> Buff;

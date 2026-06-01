@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.EquipmentTableCfg;
+import com.jjg.game.sampledata.bean.EmployeeSkillConfigCfg;
 
 /**
- * EquipmentTable.xlsx配置管理容器
+ * EmployeeSkillConfig.xlsx配置管理容器
  *
- * @excelName EquipmentTable.xlsx
- * @sheetName EquipmentTable
+ * @excelName EmployeeSkillConfig.xlsx
+ * @sheetName EmployeeSkillConfig
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class EquipmentTableCfgContainer extends BaseCfgContainer<EquipmentTableCfg> {
+public class EmployeeSkillConfigCfgContainer extends BaseCfgContainer<EmployeeSkillConfigCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -27,23 +27,23 @@ public class EquipmentTableCfgContainer extends BaseCfgContainer<EquipmentTableC
   }
 
   @Override
-  public EquipmentTableCfgContainer getNewContainer(){
-    return new EquipmentTableCfgContainer();
+  public EmployeeSkillConfigCfgContainer getNewContainer(){
+    return new EmployeeSkillConfigCfgContainer();
   }
 
-  public EquipmentTableCfgContainer() {
+  public EmployeeSkillConfigCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("EquipmentTable.xlsx");
+    excelNameList.add("EmployeeSkillConfig.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected EquipmentTableCfg createNewBean() {
-    return new EquipmentTableCfg();
+  protected EmployeeSkillConfigCfg createNewBean() {
+    return new EmployeeSkillConfigCfg();
   }
 }

@@ -143,6 +143,14 @@ public class SimMessageHandler implements GmListener {
         simManager.onUpgradeSkill(playerController, req.gameType, req.skillId);
     }
 
+    /**
+     * 领取离线收益
+     */
+    @Command(SimConstant.MsgBean.REQ_CLAIM_OFFLINE_REWARD)
+    public void reqClaimOfflineReward(PlayerController playerController, ReqClaimOfflineReward req) {
+        simManager.onClaimOfflineReward(playerController, req.watchAd);
+    }
+
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
         CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
@@ -197,6 +205,13 @@ public class SimMessageHandler implements GmListener {
                 ReqRecruitEmployee req = new ReqRecruitEmployee();
                 req.employeeId = Integer.parseInt(gmOrders[1]);
                 reqRecruitEmployee(playerController, req);
+            } else if ("settleOutput".equalsIgnoreCase(gmOrders[0])) {
+                simManager.gmSettleOutput(playerController.playerId());
+            } else if ("printPower".equalsIgnoreCase(gmOrders[0])) {
+                simManager.gmPrintPower(playerController.playerId());
+            } else if ("claimOffline".equalsIgnoreCase(gmOrders[0])) {
+                boolean watchAd = gmOrders.length > 1 && "1".equals(gmOrders[1]);
+                simManager.onClaimOfflineReward(playerController, watchAd);
             } else {
                 res.code = Code.NOT_FOUND;
             }
