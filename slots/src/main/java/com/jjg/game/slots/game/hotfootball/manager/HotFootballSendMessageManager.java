@@ -122,6 +122,13 @@ public class HotFootballSendMessageManager extends BaseSendMessageManager {
             res.rewardIconInfo = addRewardIcons(lib.getIconArr(), lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
 
+            //免费模式能量值/守门员机制（文档 [37-43]）—— 字段在 NORMAL 局上默认为 0
+            res.multiplier = lib.getMultiplier();
+            res.energyAfter = lib.getEnergyAfter();
+            res.maxEnergyAfter = lib.getMaxEnergyAfter();
+            //本局触发的额外免费次数（+1 符号），用于客户端 +N 动画
+            res.addFreeCount = lib.getAddFreeCount();
+
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());

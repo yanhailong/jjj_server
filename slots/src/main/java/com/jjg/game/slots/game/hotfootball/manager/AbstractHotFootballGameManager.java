@@ -17,6 +17,8 @@ import com.jjg.game.slots.game.hotfootball.data.HotFootballResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractHotFootballGameManager extends AbstractSlotsGameManager<HotFootballPlayerGameData, HotFootballResultLib, HotFootballGameRunInfo> {
@@ -126,11 +128,18 @@ public abstract class AbstractHotFootballGameManager extends AbstractSlotsGameMa
     @Override
     protected HotFootballGameRunInfo normal(HotFootballGameRunInfo gameRunInfo, HotFootballPlayerGameData playerGameData, long betValue, HotFootballResultLib resultLib) {
         //根据结果库类型不同，从不同地方获取icon
-        if (resultLib.getLibTypeSet().contains(HotFootballConstant.SpecialMode.FREE)) {  //是否会触发免费
+        //防御性判断：libTypeSet 含 FREE 但 specialAuxiliaryInfoList 为空时（如池子里抽到 FREE 子库当 NORMAL 用），按普通局处理避免 NPE
+        Set<Integer> libTypeSet = resultLib.getLibTypeSet();
+        List<SpecialAuxiliaryInfo> auxList = resultLib.getSpecialAuxiliaryInfoList();
+        boolean triggerFree = libTypeSet != null
+                && libTypeSet.contains(HotFootballConstant.SpecialMode.FREE)
+                && auxList != null
+                && !auxList.isEmpty();
+        if (triggerFree) {  //是否会触发免费
             playerGameData.setStatus(HotFootballConstant.Status.FREE);
             int againFreeCount = 0;
             int allCount = 0;
-            for (SpecialAuxiliaryInfo info : resultLib.getSpecialAuxiliaryInfoList()) {
+            for (SpecialAuxiliaryInfo info : auxList) {
                 for (JSONObject json : info.getFreeGames()) {
                     Integer addFreeCount = json.getInteger("addFreeCount");
                     if (addFreeCount != null && addFreeCount > 0) {
