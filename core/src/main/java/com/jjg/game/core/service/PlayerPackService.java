@@ -69,20 +69,31 @@ public class PlayerPackService implements IPlayerRegister {
      * 添加多个道具
      */
     public CommonResult<ItemOperationResult> addItems(long playerId, Map<Integer, Long> addItemMap, AddType addType) {
-        return addItems(playerId, addItemMap, addType, null);
+        return addItems(playerId, addItemMap, addType, true);
+    }
+
+    /**
+     * 添加多个道具
+     */
+    public CommonResult<ItemOperationResult> addItems(long playerId, Map<Integer, Long> addItemMap, AddType addType, boolean notify) {
+        return addItems(playerId, addItemMap, addType, null, notify);
     }
 
     /**
      * 添加多个道具
      */
     public CommonResult<ItemOperationResult> addItems(long playerId, Map<Integer, Long> addItemMap, AddType addType, String desc) {
+        return addItems(playerId, addItemMap, addType, desc, true);
+    }
+
+    public CommonResult<ItemOperationResult> addItems(long playerId, Map<Integer, Long> addItemMap, AddType addType, String desc, boolean notify) {
         List<Item> itemList = checkItemParam(addItemMap);
         if (CollectionUtil.isEmpty(itemList)) {
             CommonResult<ItemOperationResult> result = new CommonResult<>(Code.SUCCESS);
             result.data = new ItemOperationResult();
             return result;
         }
-        return addItems(playerId, itemList, addType, desc);
+        return addItems(playerId, itemList, addType, desc, notify);
     }
 
     public List<Item> checkItemParam(Map<Integer, Long> addItemMap) {
@@ -110,6 +121,13 @@ public class PlayerPackService implements IPlayerRegister {
      * 添加多个道具
      */
     public CommonResult<ItemOperationResult> addItems(long playerId, List<Item> addItemList, AddType addType, String desc) {
+        return addItems(playerId, addItemList, addType, desc, true);
+    }
+
+    /**
+     * 添加多个道具
+     */
+    public CommonResult<ItemOperationResult> addItems(long playerId, List<Item> addItemList, AddType addType, String desc, boolean notify) {
         if (CollectionUtil.isEmpty(addItemList)) {
             CommonResult<ItemOperationResult> result = new CommonResult<>(Code.SUCCESS);
             result.data = new ItemOperationResult();
@@ -161,7 +179,7 @@ public class PlayerPackService implements IPlayerRegister {
         if (itemList.isEmpty()) {
             if (addGold > 0 || addDiamond > 0 || addShell > 0) {
                 CommonResult<Player> goldAndDiamond =
-                        corePlayerService.addMoneyCoin(playerId, addGold, addDiamond, addShell, addType, true, desc);
+                        corePlayerService.addMoneyCoin(playerId, addGold, addDiamond, addShell, addType, notify, desc);
                 if (!goldAndDiamond.success()) {
                     result.code = goldAndDiamond.code;
                     return result;
@@ -211,7 +229,7 @@ public class PlayerPackService implements IPlayerRegister {
             }
             if (addGold > 0 || addDiamond > 0 || addShell > 0) {
                 CommonResult<Player> goldAndDiamond =
-                        corePlayerService.addMoneyCoin(playerId, addGold, addDiamond, addShell, addType, true, desc);
+                        corePlayerService.addMoneyCoin(playerId, addGold, addDiamond, addShell, addType, notify, desc);
                 if (!goldAndDiamond.success()) {
                     result.code = goldAndDiamond.code;
                     return result;

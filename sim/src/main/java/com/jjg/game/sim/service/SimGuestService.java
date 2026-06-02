@@ -1,6 +1,5 @@
 package com.jjg.game.sim.service;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.Code;
@@ -11,8 +10,8 @@ import com.jjg.game.sampledata.bean.VisitorQuestCfg;
 import com.jjg.game.sampledata.bean.VisitorStarCfg;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.BuildingData;
-import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.GuestData;
+import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.pb.SimPbConverter;
@@ -127,8 +126,7 @@ public class SimGuestService implements SimPlayerTickListener {
         notify.guests = Collections.singletonList(SimPbConverter.toGuestInfo(guest, destinations));
         ctx.send(notify);
 
-        log.info("生成游客 playerId={},guestId={},exp={},level={},rewarded={},unrewarded={},destinations={}",
-                ctx.playerId(), visitorQuestCfg.getId(), guest.getExp(), guest.getLevel(), rewardedCount, unrewardedCount, JSON.toJSONString(destinations));
+//        log.info("生成游客 playerId={},guestId={},exp={},level={},rewarded={},unrewarded={},destinations={}",ctx.playerId(), visitorQuestCfg.getId(), guest.getExp(), guest.getLevel(), rewardedCount, unrewardedCount, JSON.toJSONString(destinations));
     }
 
     /**

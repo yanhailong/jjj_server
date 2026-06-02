@@ -414,7 +414,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             return;
         }
 
-        CommonResult<ItemOperationResult> result = playerPackService.addItems(ctx.playerId(), resources, addType);
+        CommonResult<ItemOperationResult> result = playerPackService.addItems(ctx.playerId(), resources, addType, false);
         if (result.success()) {
             log.info("道具入账 playerId={},items={},addType={}", ctx.playerId(), resources, addType);
         }
@@ -621,6 +621,7 @@ public class SimBuildingService implements SimPlayerTickListener {
 
     /**
      * GM: 立即结算一分钟在线产出 (测试用)
+     *
      * @param ctx
      */
     public void gmSettleOutput(SimPlayerContext ctx) {
