@@ -6,7 +6,6 @@ import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.listener.OnSwitchNode;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.WheelTimerUtil;
-import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
@@ -15,15 +14,10 @@ import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
 import com.jjg.game.sim.dao.SimSkillsDao;
 import com.jjg.game.sim.data.*;
-import com.jjg.game.sim.event.SimEventBus;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.ResSimEnterGame;
-import com.jjg.game.sim.service.SimBuildingService;
-import com.jjg.game.sim.service.SimCasinoService;
-import com.jjg.game.sim.service.SimEmployeeService;
-import com.jjg.game.sim.service.SimNodeService;
-import com.jjg.game.sim.service.SimAutoSaveService;
+import com.jjg.game.sim.service.*;
 import io.netty.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +57,7 @@ public class SimManager implements OnSwitchNode {
     @Autowired
     private SimAutoSaveService autoSaveService;
     @Autowired
-    private SimEventBus simEventBus;
+    private SimEventBusManager simEventBusManager;
 
     //玩家状态检查任务句柄
     private volatile Timeout checkPlayerDataTimeout;
@@ -86,7 +80,7 @@ public class SimManager implements OnSwitchNode {
         this.autoSaveService.init();
         //按 order 排序 tick handlers (SimAutoSaveService 会以 MAX_VALUE 排在最后)
         this.tickHandlers.sort(Comparator.comparingInt(SimPlayerTickListener::order));
-        this.simEventBus.init();
+        this.simEventBusManager.init();
         checkPlayerDataTimeout = WheelTimerUtil.scheduleAtFixedRate(this::checkPlayerDataTimer, 1, 2, TimeUnit.SECONDS);
     }
 
@@ -183,35 +177,6 @@ public class SimManager implements OnSwitchNode {
 
     public SimPlayerContext getContext(long playerId) {
         return this.contextMap.get(playerId);
-    }
-
-    /**
-     * GM: 立即结算一分钟在线产出 (测试用)
-     */
-    public void gmSettleOutput(long playerId) {
-        SimPlayerContext ctx = getContext(playerId);
-        if (ctx == null || ctx.getCurrentCasino() == null) {
-            log.warn("gmSettleOutput: ctx/casino 不存在 playerId={}", playerId);
-            return;
-        }
-        SimCasinoData casino = ctx.getCurrentCasino();
-        Map<Integer, Long> perMinute = buildingService.computePerMinuteOutput(ctx, casino);
-        buildingService.creditResources(ctx, perMinute, AddType.SIM_BUILD_MINUTE_REWARDS);
-        log.info("gmSettleOutput playerId={},perMinute={},power={}", playerId, perMinute, casino.getPower());
-    }
-
-    /**
-     * GM: 打印当前赌场能量与每分钟产出 (测试用)
-     */
-    public void gmPrintPower(long playerId) {
-        SimPlayerContext ctx = getContext(playerId);
-        if (ctx == null || ctx.getCurrentCasino() == null) {
-            log.warn("gmPrintPower: ctx/casino 不存在 playerId={}", playerId);
-            return;
-        }
-        SimCasinoData casino = ctx.getCurrentCasino();
-        log.info("gmPrintPower playerId={},casinoId={},power={},perMinuteOutput={}",
-                playerId, casino.getCasinoId(), casino.getPower(), buildingService.computePerMinuteOutput(ctx, casino));
     }
 
     /**

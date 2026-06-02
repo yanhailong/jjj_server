@@ -1,6 +1,4 @@
-package com.jjg.game.sim.event;
-
-import com.jjg.game.sim.data.SimPlayerContext;
+package com.jjg.game.sim.data;
 
 /**
  * sim 模块事件基类

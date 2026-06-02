@@ -1,6 +1,6 @@
 package com.jjg.game.sim.listener;
 
-import com.jjg.game.sim.event.SimEvent;
+import com.jjg.game.sim.data.SimEvent;
 
 /**
  * sim 模块事件监听器

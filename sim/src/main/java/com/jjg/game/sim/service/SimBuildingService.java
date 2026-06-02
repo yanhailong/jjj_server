@@ -619,4 +619,24 @@ public class SimBuildingService implements SimPlayerTickListener {
         return cfg.getUpgradeOutput();
     }
 
+    /**
+     * GM: 立即结算一分钟在线产出 (测试用)
+     * @param ctx
+     */
+    public void gmSettleOutput(SimPlayerContext ctx) {
+        SimCasinoData casino = ctx.getCurrentCasino();
+        Map<Integer, Long> perMinute = computePerMinuteOutput(ctx, casino);
+        creditResources(ctx, perMinute, AddType.SIM_BUILD_MINUTE_REWARDS);
+        log.info("gmSettleOutput playerId={},perMinute={},power={}", ctx.playerId(), perMinute, casino.getPower());
+    }
+
+
+    /**
+     * GM: 打印当前赌场能量与每分钟产出 (测试用)
+     */
+    public void gmPrintPower(SimPlayerContext ctx) {
+        SimCasinoData casino = ctx.getCurrentCasino();
+        log.info("gmPrintPower playerId={},casinoId={},power={},perMinuteOutput={}",
+                ctx.playerId(), casino.getCasinoId(), casino.getPower(), computePerMinuteOutput(ctx, casino));
+    }
 }

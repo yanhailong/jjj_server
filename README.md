@@ -27,6 +27,7 @@ core: hall和game共有的模块，比如player对象
 room: 房间模块
 activity: 活动模块
 sampledata: 配置表模块
+sim: 模拟经营游戏
 
 gate：网关服务器
 account：账号服务器

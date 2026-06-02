@@ -1,5 +1,6 @@
-package com.jjg.game.sim.event;
+package com.jjg.game.sim.manager;
 
+import com.jjg.game.sim.data.SimEvent;
 import com.jjg.game.sim.listener.SimEventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,8 +16,8 @@ import java.util.*;
  * @date 2026/5/26
  */
 @Component
-public class SimEventBus {
-    private static final Logger log = LoggerFactory.getLogger(SimEventBus.class);
+public class SimEventBusManager {
+    private static final Logger log = LoggerFactory.getLogger(SimEventBusManager.class);
 
     @SuppressWarnings("rawtypes")
     @Autowired(required = false)

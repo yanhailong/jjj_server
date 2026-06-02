@@ -200,7 +200,7 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_SIM_UPGRADE_SKILL)
     public void reqSimUpgradeSkill(PlayerController playerController, ReqSimUpgradeSkill req) {
         execute(playerController, ctx -> {
-            skillService.onUpgradeSkill(ctx,req.gameType, req.skillId);
+            skillService.onUpgradeSkill(ctx, req.gameType, req.skillId);
         });
     }
 
@@ -209,13 +209,8 @@ public class SimMessageHandler implements GmListener {
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
         CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
         try {
-            if ("simEnterGame".equalsIgnoreCase(gmOrders[0])) {
-                ReqSimEnterGame req = new ReqSimEnterGame();
-                reqEnterGame(playerController, req);
-            } else if ("simFinishGuide".equalsIgnoreCase(gmOrders[0])) {
+            if ("simFinishGuide".equalsIgnoreCase(gmOrders[0])) {
                 reqFinishGuide(playerController, null);
-            } else if ("simExitGame".equalsIgnoreCase(gmOrders[0])) {
-                reqExitGame(playerController, null);
             } else if ("printGuest".equalsIgnoreCase(gmOrders[0])) {
                 SimPlayerContext context = simManager.getContext(playerController.playerId());
                 context.printGuest();
@@ -223,9 +218,10 @@ public class SimMessageHandler implements GmListener {
                 SimPlayerContext context = simManager.getContext(playerController.playerId());
                 context.printBuilding();
             } else if ("unlockGuest".equalsIgnoreCase(gmOrders[0])) {
-                SimPlayerContext context = simManager.getContext(playerController.playerId());
                 int guestId = Integer.parseInt(gmOrders[1]);
-                guestService.unlockGuest(context, guestId);
+                execute(playerController, ctx -> {
+                    guestService.unlockGuest(ctx, guestId);
+                });
             } else if ("unlockBuilding".equalsIgnoreCase(gmOrders[0])) {
                 ReqUnlockBuilding req = new ReqUnlockBuilding();
                 req.id = Integer.parseInt(gmOrders[1]);
@@ -260,15 +256,19 @@ public class SimMessageHandler implements GmListener {
                 req.employeeId = Integer.parseInt(gmOrders[1]);
                 reqRecruitEmployee(playerController, req);
             } else if ("settleOutput".equalsIgnoreCase(gmOrders[0])) {
-                simManager.gmSettleOutput(playerController.playerId());
+                execute(playerController, ctx -> {
+                    buildingService.gmSettleOutput(ctx);
+                });
             } else if ("printPower".equalsIgnoreCase(gmOrders[0])) {
-                simManager.gmPrintPower(playerController.playerId());
+                execute(playerController, ctx -> {
+                    buildingService.gmPrintPower(ctx);
+                });
             } else if ("claimOffline".equalsIgnoreCase(gmOrders[0])) {
                 boolean watchAd = gmOrders.length > 1 && "1".equals(gmOrders[1]);
 
                 ReqClaimOfflineReward req = new ReqClaimOfflineReward();
                 req.watchAd = watchAd;
-                reqClaimOfflineReward(playerController,req);
+                reqClaimOfflineReward(playerController, req);
             } else {
                 res.code = Code.NOT_FOUND;
             }
