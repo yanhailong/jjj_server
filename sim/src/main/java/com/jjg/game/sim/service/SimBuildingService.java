@@ -20,6 +20,7 @@ import com.jjg.game.sim.data.SimOfflineReward;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.pb.res.*;
+import com.jjg.game.sim.pb.struct.BuildingInfo;
 import com.jjg.game.sim.pb.struct.OfflineReward;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,9 +86,10 @@ public class SimBuildingService implements SimPlayerTickListener {
                 return;
             }
 
-            res.id = buildingId;
-            res.level = buildingData.getLevel();
-            res.managerEmployId = buildingData.getManagerEmployId();
+            res.buildingInfo = new BuildingInfo();
+            res.buildingInfo.id = buildingId;
+            res.buildingInfo.level = buildingData.getLevel();
+            res.buildingInfo.managerEmployId = buildingData.getManagerEmployId();
         } catch (Exception e) {
             log.error("", e);
         }
@@ -407,7 +409,7 @@ public class SimBuildingService implements SimPlayerTickListener {
     }
 
     /**
-     * 资源入账: 能量累加进 casino.power; 金币走统一 credit hook (stub, 预留 PlayerPackService)
+     * 资源入账
      */
     public void creditResources(SimPlayerContext ctx, Map<Integer, Long> resources, AddType addType) {
         if (resources == null || resources.isEmpty()) {
