@@ -1,12 +1,10 @@
 package com.jjg.game.hall.room;
 
 import com.jjg.game.common.baselogic.IConsoleReceiver;
-import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
-import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
@@ -89,12 +87,6 @@ public class HallRoomService implements IConsoleReceiver {
      * @return
      */
     public int enterSimNode(PlayerController playerController) {
-        ClusterClient node = ClusterSystem.system.getByNodeType(NodeType.SIM, playerController.ipAddress(), playerController.playerId());
-        if (node == null) {
-            log.error("进入sim游戏失败，未找到对应的节点 playerId={}", playerController.playerId());
-            return Code.SAMPLE_ERROR;
-        }
-        clusterSystem.switchNode(playerController.getSession(), node.marsNode);
         return Code.SUCCESS;
     }
 

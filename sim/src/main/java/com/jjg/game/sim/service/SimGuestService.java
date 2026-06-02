@@ -1,4 +1,4 @@
-package com.jjg.game.sim.service.tick;
+package com.jjg.game.sim.service;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.RandomUtils;
@@ -18,8 +18,6 @@ import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.NotifyGenerateGuest;
 import com.jjg.game.sim.pb.struct.DestinationInfo;
-import com.jjg.game.sim.service.SimConfigCacheService;
-import com.jjg.game.sim.service.SimRewardService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

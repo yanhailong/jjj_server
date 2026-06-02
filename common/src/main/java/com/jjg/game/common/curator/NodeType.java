@@ -15,9 +15,7 @@ public enum NodeType {
     //gm
     GM(5),
     //充值服务器
-    RECHARGE(6),
-    //模拟经营游戏
-    SIM(7);
+    RECHARGE(6);
 
     NodeType(int value) {
         this.value = value;

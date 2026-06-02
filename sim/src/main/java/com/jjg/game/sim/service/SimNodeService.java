@@ -61,7 +61,7 @@ public class SimNodeService {
         }
 
         if(clusterClient == null) {
-            clusterClient = clusterSystem.randClientByType(NodeType.SIM);
+            clusterClient = clusterSystem.randClientByType(NodeType.HALL);
         }
         return clusterClient;
     }

@@ -1,4 +1,4 @@
-package com.jjg.game.sim.service.tick;
+package com.jjg.game.sim.service;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;

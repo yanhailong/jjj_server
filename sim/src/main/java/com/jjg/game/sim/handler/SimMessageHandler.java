@@ -17,7 +17,7 @@ import com.jjg.game.sim.pb.req.*;
 import com.jjg.game.sim.service.SimBuildingService;
 import com.jjg.game.sim.service.SimEmployeeService;
 import com.jjg.game.sim.service.SimSkillService;
-import com.jjg.game.sim.service.tick.SimGuestService;
+import com.jjg.game.sim.service.SimGuestService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

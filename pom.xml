@@ -16,7 +16,6 @@
     <modules>
         <module>common</module>
         <module>core</module>
-        <module>sim-core</module>
         <module>room</module>
         <module>gm</module>
         <module>hall</module>

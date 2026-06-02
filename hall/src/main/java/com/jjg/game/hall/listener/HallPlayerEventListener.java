@@ -39,6 +39,7 @@ import com.jjg.game.hall.service.HallService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
+import com.jjg.game.sim.manager.SimManager;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,6 +99,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private CommonDao commonDao;
     @Autowired
     private PlayerSnapshotService playerSnapshotService;
+    @Autowired
+    private SimManager simManager;
 //    @Autowired
 //    private SimPlayerGameDao simPlayerGameDao;
 
@@ -348,6 +351,11 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
     @Override
     public void sessionClose(PFSession session) {
+        PlayerController playerController = (PlayerController) session.getReference();
+        if (playerController != null) {
+            simManager.onExitGame(playerController.playerId(), ExitType.INITIATIVE);
+        }
+
         session.setReference(null);
         if (session.getPlayerId() > 0) {
             taskManager.onExit(session.getPlayerId());
@@ -473,5 +481,4 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private List<Carousel> getCarousel() {
         return carouselService.getCarouselList();
     }
-
 }

@@ -20,7 +20,7 @@ public class TaskCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "task";
 
   /** 道具奖励 */
-  protected List<Integer> getItem;
+  protected Map<Integer,Long> getItem;
   /** 任务组 */
   protected int group;
   /** 积分ICON */
@@ -41,7 +41,7 @@ public class TaskCfg extends BaseCfgBean {
   protected String time;
 
   /** 返回道具奖励 */
-  public List<Integer> getGetItem() {
+  public Map<Integer,Long> getGetItem() {
     return getItem;
   }
 

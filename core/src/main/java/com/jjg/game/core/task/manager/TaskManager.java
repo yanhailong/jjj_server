@@ -457,15 +457,14 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
             //修改任务状态
             taskDetail.setRewardTime(System.currentTimeMillis());
             taskDetail.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
-            List<Integer> getItem = taskCfg.getGetItem();
             int integralNum = taskCfg.getIntegralNum();
             //如果有积分奖励通知大厅
             if (integralNum > TaskConstant.TimeConstants.MIN_INTEGRAL_REWARD) {
                 taskService.addPlayerPoints(playerId, integralNum, true);
             }
             List<Item> itemList = new ArrayList<>();
-            if (!getItem.isEmpty()) {
-                itemList = ItemUtils.buildItems(getItem);
+            if (!taskCfg.getGetItem().isEmpty()) {
+                itemList = ItemUtils.buildItems(taskCfg.getGetItem());
                 playerPackService.addItems(playerId, itemList, AddType.TASKAWARD);
             }
             //记录日志

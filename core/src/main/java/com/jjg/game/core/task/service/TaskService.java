@@ -209,10 +209,8 @@ public class TaskService {
                     if (taskDetail.getFinishConditionIds().size() == taskDetail.getProgress().size()) {
                         taskDetail.setCompleteTime(timestamp);
                         hasFinished.set(true);
-                        //检测是否有奖励
-                        List<Integer> awardList = taskCfg.getGetItem();
                         //没有奖励的任务 默认直接完成并且已经领取奖励
-                        if (awardList.isEmpty() && taskCfg.getIntegralNum() <= TaskConstant.TimeConstants.MIN_INTEGRAL_REWARD) {
+                        if (taskCfg.getGetItem().isEmpty() && taskCfg.getIntegralNum() <= TaskConstant.TimeConstants.MIN_INTEGRAL_REWARD) {
                             taskDetail.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
                             taskDetail.setRewardTime(timestamp);
                             taskLogger.receiveTaskAward(playerId, taskDetail.getConfigId(), null, taskCfg.getIntegralNum(), TaskConstant.TaskStatus.STATUS_REWARDED);

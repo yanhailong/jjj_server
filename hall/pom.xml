@@ -38,7 +38,7 @@
         </dependency>
         <dependency>
             <groupId>com.jjg.game</groupId>
-            <artifactId>sim-core</artifactId>
+            <artifactId>sim</artifactId>
             <version>3.1.0-JJG-RELEASES</version>
             <optional>true</optional>
         </dependency>
@@ -144,7 +144,9 @@
                     <url>scp://172.18.11.38${update.patch}</url>
                     <commands>
                         <!-- 解压 -->
-                        <command>cd ${update.patch};unzip  -o ${project.artifactId}_${project.version}_${maven.build.timestamp}.zip -d .</command>
+                        <command>cd ${update.patch};unzip -o
+                            ${project.artifactId}_${project.version}_${maven.build.timestamp}.zip -d .
+                        </command>
                         <!-- 重启 -->
                         <!--<command>cd ${update.patch};sh ./restart.sh</command>-->
                     </commands>

@@ -23,7 +23,7 @@ import com.jjg.game.sim.service.SimBuildingService;
 import com.jjg.game.sim.service.SimCasinoService;
 import com.jjg.game.sim.service.SimEmployeeService;
 import com.jjg.game.sim.service.SimNodeService;
-import com.jjg.game.sim.service.tick.SimAutoSaveService;
+import com.jjg.game.sim.service.SimAutoSaveService;
 import io.netty.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

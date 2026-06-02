@@ -123,7 +123,6 @@ public class GameDataManager {
     containerMap.put(ActivityConfigCfg.class, new ActivityConfigCfgContainer());
     containerMap.put(AirstrikeRobotCfg.class, new AirstrikeRobotCfgContainer());
     containerMap.put(AlbumCfg.class, new AlbumCfgContainer());
-    containerMap.put(AttributeValueCfg.class, new AttributeValueCfgContainer());
     containerMap.put(AuxiliaryAwardCfg.class, new AuxiliaryAwardCfgContainer());
     containerMap.put(AvatarCfg.class, new AvatarCfgContainer());
     containerMap.put(BaseElementCfg.class, new BaseElementCfgContainer());
@@ -175,6 +174,7 @@ public class GameDataManager {
     containerMap.put(LoginConfigCfg.class, new LoginConfigCfgContainer());
     containerMap.put(MGLuckyTreasureCfg.class, new MGLuckyTreasureCfgContainer());
     containerMap.put(MailCfg.class, new MailCfgContainer());
+    containerMap.put(MedalListCfg.class, new MedalListCfgContainer());
     containerMap.put(MiniGameCfg.class, new MiniGameCfgContainer());
     containerMap.put(MiniGameListCfg.class, new MiniGameListCfgContainer());
     containerMap.put(OfficialAwardsCfg.class, new OfficialAwardsCfgContainer());
@@ -681,18 +681,6 @@ public class GameDataManager {
 
   public static List<AlbumCfg> getAlbumCfgList() {
     return getInstance().getCfgContainer(AlbumCfg.class).getCfgBeanList();
-  }
-
-  public static AttributeValueCfg getAttributeValueCfg(int key) {
-    return getInstance().getCfgContainer(AttributeValueCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, AttributeValueCfg> getAttributeValueCfgMap() {
-    return getInstance().getCfgContainer(AttributeValueCfg.class).getCfgBeanMap();
-  }
-
-  public static List<AttributeValueCfg> getAttributeValueCfgList() {
-    return getInstance().getCfgContainer(AttributeValueCfg.class).getCfgBeanList();
   }
 
   public static AuxiliaryAwardCfg getAuxiliaryAwardCfg(int key) {
@@ -1305,6 +1293,18 @@ public class GameDataManager {
 
   public static List<MailCfg> getMailCfgList() {
     return getInstance().getCfgContainer(MailCfg.class).getCfgBeanList();
+  }
+
+  public static MedalListCfg getMedalListCfg(int key) {
+    return getInstance().getCfgContainer(MedalListCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, MedalListCfg> getMedalListCfgMap() {
+    return getInstance().getCfgContainer(MedalListCfg.class).getCfgBeanMap();
+  }
+
+  public static List<MedalListCfg> getMedalListCfgList() {
+    return getInstance().getCfgContainer(MedalListCfg.class).getCfgBeanList();
   }
 
   public static MiniGameCfg getMiniGameCfg(int key) {
