@@ -134,7 +134,7 @@ public class GaraGemstone3GenerateManager extends AbstractSlotsGenerateManager<G
         return CollUtil.isEmpty(list)
                 ? 0
                 : list.stream()
-                .mapToInt(GaraGemstone3AwardLineInfo::getBaseTimes)
+                .mapToInt(GaraGemstone3AwardLineInfo::getTotalTimes)
                 .sum();
     }
 
@@ -406,7 +406,10 @@ public class GaraGemstone3GenerateManager extends AbstractSlotsGenerateManager<G
             return;
         }
         for (GaraGemstone3AwardLineInfo lineInfo : lines) {
-            BaseLineCfg lineCfg = GameDataManager.getBaseLineCfg(lineInfo.getId());
+            //注意：lineInfo.getId() 是 BaseLine 的 lineId（1-5），不是表的 PK
+            //GameDataManager.getBaseLineCfg(key) 按 PK 查会永远找不到，
+            //必须用父类已经按 gameMode→lineId 缓存好的 baseLineCfgMap
+            BaseLineCfg lineCfg = findBaseLineCfgByLineId(lineInfo.getId());
             if (lineCfg == null || CollUtil.isEmpty(lineCfg.getPosLocation())) {
                 continue;
             }
@@ -423,6 +426,21 @@ public class GaraGemstone3GenerateManager extends AbstractSlotsGenerateManager<G
                 lineInfo.setSplitTimes(splitTimes);
             }
         }
+    }
+
+    /**
+     * 根据 lineId 查找 BaseLineCfg。父类 baseLineCfgMap 结构为 gameMode→lineId→cfg。
+     * 优先用 gameMode=0（通用）的，再回退 gameMode=1（普通模式）。
+     */
+    private BaseLineCfg findBaseLineCfgByLineId(int lineId) {
+        if (this.baseLineCfgMap == null) {
+            return null;
+        }
+        Map<Integer, BaseLineCfg> map = this.baseLineCfgMap.get(0);
+        if (map == null || map.isEmpty()) {
+            map = this.baseLineCfgMap.get(1);
+        }
+        return map == null ? null : map.get(lineId);
     }
 
     public GaraGemstone3ResultLib checkAward(int[] arr, GaraGemstone3ResultLib lib, boolean freeModel) throws Exception {
