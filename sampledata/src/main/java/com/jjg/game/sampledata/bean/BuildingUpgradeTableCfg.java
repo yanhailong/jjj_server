@@ -22,7 +22,7 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   /** 建筑ID */
   protected int BuildingID;
   /** 每级消耗 */
-  protected Map<Integer,Long> CostPerLevel;
+  protected List<List<Integer>> CostPerLevel;
   /** 最大交互数量 */
   protected int MaxInteractionCount;
   /** 解锁设备 */
@@ -44,7 +44,7 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   }
 
   /** 返回每级消耗 */
-  public Map<Integer,Long> getCostPerLevel() {
+  public List<List<Integer>> getCostPerLevel() {
     return CostPerLevel;
   }
 

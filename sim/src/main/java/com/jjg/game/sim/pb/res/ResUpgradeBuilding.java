@@ -5,6 +5,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.pb.struct.BuildingInfo;
 
 /**
  * @author 11
@@ -13,10 +14,8 @@ import com.jjg.game.sim.constant.SimConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.RES_UPGRADE_BUILDING, resp = true)
 @ProtoDesc("升级建筑返回")
 public class ResUpgradeBuilding extends AbstractResponse {
-    @ProtoDesc("建筑id")
-    public int id;
-    @ProtoDesc("CD结束时间(ms)")
-    public long cdEndTime;
+    @ProtoDesc("建筑信息")
+    public BuildingInfo buildingInfo;
 
     public ResUpgradeBuilding(int code) {
         super(code);

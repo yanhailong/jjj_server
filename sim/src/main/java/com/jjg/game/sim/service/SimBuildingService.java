@@ -1,5 +1,6 @@
 package com.jjg.game.sim.service;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -19,8 +20,8 @@ import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimOfflineReward;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
+import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.*;
-import com.jjg.game.sim.pb.struct.BuildingInfo;
 import com.jjg.game.sim.pb.struct.OfflineReward;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -86,16 +88,12 @@ public class SimBuildingService implements SimPlayerTickListener {
                 return;
             }
 
-            res.buildingInfo = new BuildingInfo();
-            res.buildingInfo.id = buildingId;
-            res.buildingInfo.level = buildingData.getLevel();
-            res.buildingInfo.managerEmployId = buildingData.getManagerEmployId();
+            res.buildingInfo = SimPbConverter.toBuildingInfo(buildingData);
         } catch (Exception e) {
             log.error("", e);
         }
         ctx.send(res);
     }
-
 
     /**
      * 领取离线收益
@@ -185,7 +183,6 @@ public class SimBuildingService implements SimPlayerTickListener {
      */
     public void onUpgradeBuilding(SimPlayerContext ctx, int buildingId) {
         ResUpgradeBuilding res = new ResUpgradeBuilding(Code.SUCCESS);
-        res.id = buildingId;
         try {
             long now = System.currentTimeMillis();
             SimCasinoData casino = ctx.getCurrentCasino();
@@ -207,6 +204,39 @@ public class SimBuildingService implements SimPlayerTickListener {
                 ctx.send(res);
                 return;
             }
+
+            //获取本级的配置
+            BuildingUpgradeTableCfg currentCfg = configCache.getBuildingUpgradeCfg(buildingId, data.getLevel());
+            if (currentCfg == null) {
+                log.warn("升级建筑失败, 未找到获取配置表 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            //先检查是不是添加进度条
+            if (currentCfg.getCostPerLevel() != null && !currentCfg.getCostPerLevel().isEmpty()) {
+                int allProgress = currentCfg.getCostPerLevel().size() - 1;
+                //添加进度条
+                if (data.getProgress() < allProgress) {
+
+                    List<Integer> list = currentCfg.getCostPerLevel().get(data.getProgress());
+                    if (!checkAndConsumeItem(ctx, list.get(0), list.get(1))) {
+                        log.warn("建筑添加进度条失败, 未找到获取配置表 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
+                        res.code = Code.PARAM_ERROR;
+                        ctx.send(res);
+                        return;
+                    }
+
+                    data.setProgress(data.getProgress() + 1);
+                    res.buildingInfo = SimPbConverter.toBuildingInfo(data);
+                    ctx.send(res);
+
+                    log.info("建筑增加进度条 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
+                    return;
+                }
+            }
+
             int targetLevel = data.getLevel() + 1;
             BuildingUpgradeTableCfg next = configCache.getBuildingUpgradeCfg(buildingId, targetLevel);
             if (next == null) {
@@ -232,8 +262,8 @@ public class SimBuildingService implements SimPlayerTickListener {
             }
             long cdMs = (long) next.getUpgradeCD() * 60_000L;
             data.setCdEndTime(now + cdMs);
-            res.cdEndTime = data.getCdEndTime();
-            log.info("升级建筑启动 playerId={},buildingId={},targetLevel={},cdMs={}", ctx.playerId(), buildingId, targetLevel, cdMs);
+            res.buildingInfo = SimPbConverter.toBuildingInfo(data);
+            log.info("升级建筑启动 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -581,6 +611,7 @@ public class SimBuildingService implements SimPlayerTickListener {
         data.setLevel(data.getLevel() + 1);
         data.setCdEndTime(0);
         data.setAdClearCount(0);
+        data.setProgress(0);
         log.info("完成建筑升级 playerId={},buildingId={},newLevel={}", casino.getPlayerId(), data.getId(), data.getLevel());
         return Code.SUCCESS;
     }
@@ -607,6 +638,16 @@ public class SimBuildingService implements SimPlayerTickListener {
         }
         //占位: 假装成功扣除 (实际项目应该走 PlayerPackService)
         log.debug("[stub] 扣除资源 playerId={},items={}", ctx.playerId(), items);
+        return true;
+    }
+
+    /**
+     * 资源检查 & 扣除 (占位实现)
+     * TODO: 接入 PlayerPackService.removeItems / 货币系统
+     */
+    private boolean checkAndConsumeItem(SimPlayerContext ctx, int itemId, long count) {
+        //占位: 假装成功扣除 (实际项目应该走 PlayerPackService)
+        log.debug("[stub] 扣除资源 playerId={},itemId={},count={}", ctx.playerId(), itemId, count);
         return true;
     }
 

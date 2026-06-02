@@ -17,6 +17,8 @@ public class BuildingData {
     private int adClearCount;
     //主管id
     private int managerEmployId;
+    //进度条 BuildingUpgradeTable.CostPerLevel 的下标，默认为0
+    private int progress;
 
     public int getId() {
         return id;
@@ -56,6 +58,14 @@ public class BuildingData {
 
     public void setManagerEmployId(int managerEmployId) {
         this.managerEmployId = managerEmployId;
+    }
+
+    public int getProgress() {
+        return progress;
+    }
+
+    public void setProgress(int progress) {
+        this.progress = progress;
     }
 
     /**

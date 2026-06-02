@@ -18,4 +18,6 @@ public class BuildingInfo {
     public long cdEndTime;
     @ProtoDesc("主管id")
     public int managerEmployId;
+    @ProtoDesc("进度条")
+    public int progress;
 }
