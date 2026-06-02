@@ -6,6 +6,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
@@ -18,6 +19,8 @@ import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimOfflineReward;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
+import com.jjg.game.sim.pb.res.*;
+import com.jjg.game.sim.pb.struct.OfflineReward;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +58,251 @@ public class SimBuildingService implements SimPlayerTickListener {
     @Override
     public int order() {
         return SimPlayerTickListener.super.order();
+    }
+
+    /**
+     * 获取建筑信息
+     *
+     * @param ctx
+     * @param buildingId
+     */
+    public void onBuildingInfo(SimPlayerContext ctx, int buildingId) {
+        ResBuildingInfo res = new ResBuildingInfo(Code.SUCCESS);
+        try {
+            Map<Integer, BuildingData> buildingDataMap = ctx.getCurrentCasino().getBuildingData();
+            if (buildingDataMap == null || buildingDataMap.isEmpty()) {
+                log.warn("获取建筑信息失败, 建筑列表为空 playerId={}", ctx.playerId());
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+
+            BuildingData buildingData = buildingDataMap.get(buildingId);
+            if (buildingData == null) {
+                log.warn("获取建筑信息失败, 该建筑不存在 playerId={},buildingId={}", ctx.playerId(), buildingId);
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+
+            res.id = buildingId;
+            res.level = buildingData.getLevel();
+            res.managerEmployId = buildingData.getManagerEmployId();
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        ctx.send(res);
+    }
+
+
+    /**
+     * 领取离线收益
+     */
+    public void onClaimOfflineReward(SimPlayerContext ctx, boolean watchAd) {
+        ResClaimOfflineReward res = new ResClaimOfflineReward(Code.SUCCESS);
+        try {
+            SimOfflineReward reward = ctx.getPendingOffline();
+            res.code = claimOfflineReward(ctx, watchAd);
+            if (res.code == Code.SUCCESS && reward != null) {
+                res.watchAd = watchAd;
+                double multiplier = (reward.getAdMultiplier() == null || reward.getAdMultiplier().isEmpty()) ? 1.0 : Double.parseDouble(reward.getAdMultiplier());
+                Map<Integer, Long> finalReward = new HashMap<>(reward.getBaseReward().size());
+                reward.getBaseReward().forEach((k, v) -> finalReward.put(k, (long) Math.floor(v * multiplier)));
+                res.rewards = ItemUtils.buildItemInfo(finalReward);
+            }
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+    }
+
+    /**
+     * 解锁建筑
+     */
+    public void onUnlockBuilding(SimPlayerContext ctx, int buildingId) {
+        ResUnlockBuilding res = new ResUnlockBuilding(Code.SUCCESS);
+        res.id = buildingId;
+        try {
+            SimCasinoData casino = ctx.getCurrentCasino();
+            if (casino == null) {
+                log.warn("解锁建筑失败, 当前赌场不存在 playerId={}", ctx.playerId());
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+            BuildingAreaTableCfg cfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
+            if (cfg == null) {
+                log.warn("解锁建筑失败, 配置不存在 playerId={},buildingId={}", ctx.playerId(), buildingId);
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+            if (cfg.getCasinoID() != casino.getCasinoId()) {
+                log.warn("解锁建筑失败, 建筑不属于当前赌场 playerId={},buildingId={},casinoId={}", ctx.playerId(), buildingId, casino.getCasinoId());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+            if (casino.findBuilding(buildingId) != null) {
+                log.warn("解锁建筑失败, 已解锁 playerId={},buildingId={}", ctx.playerId(), buildingId);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+            //前置建筑必须已解锁
+            if (cfg.getUnlockMethod() > 0 && casino.findBuilding(cfg.getUnlockMethod()) == null) {
+                log.warn("解锁建筑失败, 前置建筑未解锁 playerId={},buildingId={},prereq={}", ctx.playerId(), buildingId, cfg.getUnlockMethod());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+            //资源足够?
+            if (!checkAndConsumeItems(ctx, cfg.getUnlockCost())) {
+                log.warn("解锁建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, cfg.getUnlockCost());
+                res.code = Code.NOT_ENOUGH;
+                ctx.send(res);
+                return;
+            }
+
+            BuildingData data = new BuildingData();
+            data.setId(buildingId);
+            data.setLevel(INITIAL_LEVEL);
+            casino.putBuilding(data);
+
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+    }
+
+
+    /**
+     * 升级建筑 (启动 CD)
+     */
+    public void onUpgradeBuilding(SimPlayerContext ctx, int buildingId) {
+        ResUpgradeBuilding res = new ResUpgradeBuilding(Code.SUCCESS);
+        res.id = buildingId;
+        try {
+            long now = System.currentTimeMillis();
+            SimCasinoData casino = ctx.getCurrentCasino();
+            if (casino == null) {
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+            BuildingData data = casino.findBuilding(buildingId);
+            if (data == null) {
+                log.warn("升级建筑失败, 建筑未解锁 playerId={},buildingId={}", ctx.playerId(), buildingId);
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+            if (data.getCdEndTime() > now) {
+                log.warn("升级建筑失败, 升级中 playerId={},buildingId={},cdEndTime={}", ctx.playerId(), buildingId, data.getCdEndTime());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+            int targetLevel = data.getLevel() + 1;
+            BuildingUpgradeTableCfg next = configCache.getBuildingUpgradeCfg(buildingId, targetLevel);
+            if (next == null) {
+                log.warn("升级建筑失败, 已达上限 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+            //建筑等级 <= 经营等级 (简化: 以赌场 stats level 为经营等级)
+            CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
+            int operationLevel = statsCfg == null ? 0 : statsCfg.getLevel();
+            if (targetLevel > operationLevel + 1) {
+                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},targetLevel={},operationLevel={}", ctx.playerId(), buildingId, targetLevel, operationLevel);
+                res.code = Code.NOT_ENOUGH;
+                ctx.send(res);
+                return;
+            }
+            if (!checkAndConsumeItems(ctx, next.getUpgradeCost())) {
+                log.warn("升级建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, next.getUpgradeCost());
+                res.code = Code.NOT_ENOUGH;
+                ctx.send(res);
+                return;
+            }
+            long cdMs = (long) next.getUpgradeCD() * 60_000L;
+            data.setCdEndTime(now + cdMs);
+            res.cdEndTime = data.getCdEndTime();
+            log.info("升级建筑启动 playerId={},buildingId={},targetLevel={},cdMs={}", ctx.playerId(), buildingId, targetLevel, cdMs);
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+    }
+
+    /**
+     * 完成建筑升级
+     */
+    public void onCompleteBuildingUpgrade(SimPlayerContext ctx, int buildingId) {
+        ResCompleteBuildingUpgrade res = new ResCompleteBuildingUpgrade(Code.SUCCESS);
+        res.id = buildingId;
+        try {
+            SimCasinoData casino = ctx.getCurrentCasino();
+            if (casino == null) {
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+            BuildingData data = casino.findBuilding(buildingId);
+            if (data == null) {
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            res.code = completeBuildingUpgrade(casino, data, System.currentTimeMillis());
+            if (res.code == Code.SUCCESS) {
+                res.level = data.getLevel();
+            }
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+    }
+
+    /**
+     * 清除建筑升级 CD
+     */
+    public void onClearBuildingCD(SimPlayerContext ctx, int buildingId, Map<Integer, Long> costItems) {
+        ResClearBuildingCD res = new ResClearBuildingCD(Code.SUCCESS);
+        res.id = buildingId;
+        try {
+            long now = System.currentTimeMillis();
+            SimCasinoData casino = ctx.getCurrentCasino();
+            if (casino == null) {
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+            BuildingData data = casino.findBuilding(buildingId);
+            if (data == null || !data.isUpgrading(now)) {
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+            if (!checkAndConsumeItems(ctx, costItems)) {
+                res.code = Code.NOT_ENOUGH;
+                ctx.send(res);
+                return;
+            }
+            //简化: 直接清完 (TODO: 按道具数量换算清掉的 CD 时间)
+            data.setCdEndTime(now);
+            log.info("清除建筑升级CD playerId={},buildingId={}", ctx.playerId(), buildingId);
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
     }
 
     /**
@@ -173,6 +421,38 @@ public class SimBuildingService implements SimPlayerTickListener {
     }
 
     /**
+     * 离线收益结算: 计算并存入待领取快照
+     */
+    public OfflineReward settleOfflineReward(SimPlayerContext ctx) {
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (casino == null) {
+            return null;
+        }
+        long lastOfflineTime = ctx.getSimBaseData().getLastOfflineTime();
+        long now = System.currentTimeMillis();
+        //重置在线产出结算游标, 避免离线时段被在线 tick 重复计算
+        casino.setLastOutputTime(now);
+        if (lastOfflineTime <= 0) {
+            return null;
+        }
+        SimOfflineReward reward = computeOfflineReward(ctx, casino, now - lastOfflineTime);
+        if (reward == null) {
+            return null;
+        }
+        ctx.setPendingOffline(reward);
+
+        OfflineReward rewards = new OfflineReward();
+        rewards.rewards = ItemUtils.buildItemInfo(reward.getBaseReward());
+        rewards.offlineMinutes = reward.getEffectiveMinutes();
+        rewards.capMinutes = reward.getCapMinutes();
+        rewards.adMultiplier = reward.getAdMultiplier();
+
+        log.info("离线收益结算 playerId={},effectiveMinutes={},capMinutes={},reward={}",
+                ctx.playerId(), reward.getEffectiveMinutes(), reward.getCapMinutes(), reward.getBaseReward());
+        return rewards;
+    }
+
+    /**
      * 计算离线收益 (上线时调用; 不入账, 仅生成待领取快照)
      *
      * @param offlineMs 离线总时长(ms)
@@ -220,7 +500,7 @@ public class SimBuildingService implements SimPlayerTickListener {
         }
 
         double multiplier = 1.0;
-        if(watchAd && reward.getAdMultiplier() != null && !reward.getAdMultiplier().isEmpty()) {
+        if (watchAd && reward.getAdMultiplier() != null && !reward.getAdMultiplier().isEmpty()) {
             multiplier = Double.parseDouble(reward.getAdMultiplier());
         }
         Map<Integer, Long> finalReward = scale(reward.getBaseReward(), multiplier);
@@ -290,62 +570,6 @@ public class SimBuildingService implements SimPlayerTickListener {
     }
 
     /**
-     * 升级建筑 (启动 CD)
-     */
-    public int upgradeBuilding(SimPlayerContext ctx, int buildingId) {
-        long now = System.currentTimeMillis();
-        SimCasinoData casino = ctx.getCurrentCasino();
-        if (casino == null) {
-            return Code.NOT_FOUND;
-        }
-        BuildingData data = casino.findBuilding(buildingId);
-        if (data == null) {
-            log.warn("升级建筑失败, 建筑未解锁 playerId={},buildingId={}", ctx.playerId(), buildingId);
-            return Code.NOT_FOUND;
-        }
-        if (data.getCdEndTime() > now) {
-            log.warn("升级建筑失败, 升级中 playerId={},buildingId={},cdEndTime={}", ctx.playerId(), buildingId, data.getCdEndTime());
-            return Code.PARAM_ERROR;
-        }
-        int targetLevel = data.getLevel() + 1;
-        BuildingUpgradeTableCfg next = configCache.getBuildingUpgradeCfg(buildingId, targetLevel);
-        if (next == null) {
-            log.warn("升级建筑失败, 已达上限 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
-            return Code.PARAM_ERROR;
-        }
-        //建筑等级 <= 经营等级 (简化: 以赌场 stats level 为经营等级)
-        CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
-        int operationLevel = statsCfg == null ? 0 : statsCfg.getLevel();
-        if (targetLevel > operationLevel + 1) {
-            log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},targetLevel={},operationLevel={}", ctx.playerId(), buildingId, targetLevel, operationLevel);
-            return Code.NOT_ENOUGH;
-        }
-        if (!checkAndConsumeItems(ctx, next.getUpgradeCost())) {
-            log.warn("升级建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, next.getUpgradeCost());
-            return Code.NOT_ENOUGH;
-        }
-        long cdMs = (long) next.getUpgradeCD() * 60_000L;
-        data.setCdEndTime(now + cdMs);
-        log.info("升级建筑启动 playerId={},buildingId={},targetLevel={},cdMs={}", ctx.playerId(), buildingId, targetLevel, cdMs);
-        return Code.SUCCESS;
-    }
-
-    /**
-     * 完成建筑升级 (客户端在 CD 到点后调用)
-     */
-    public int completeBuildingUpgrade(SimPlayerContext ctx, int buildingId) {
-        SimCasinoData casino = ctx.getCurrentCasino();
-        if (casino == null) {
-            return Code.NOT_FOUND;
-        }
-        BuildingData data = casino.findBuilding(buildingId);
-        if (data == null) {
-            return Code.PARAM_ERROR;
-        }
-        return completeBuildingUpgrade(casino, data, System.currentTimeMillis());
-    }
-
-    /**
      * 完成建筑升级
      */
     public int completeBuildingUpgrade(SimCasinoData casino, BuildingData data, long now) {
@@ -369,30 +593,6 @@ public class SimBuildingService implements SimPlayerTickListener {
 
         long now = System.currentTimeMillis();
         casino.getBuildingData().forEach((k, v) -> completeBuildingUpgrade(casino, v, now));
-    }
-
-    /**
-     * 清除升级 CD (钻石/道具)
-     *
-     * @param costItems 玩家承诺消耗的道具
-     */
-    public int clearBuildingCD(SimPlayerContext ctx, int buildingId, Map<Integer, Long> costItems) {
-        long now = System.currentTimeMillis();
-        SimCasinoData casino = ctx.getCurrentCasino();
-        if (casino == null) {
-            return Code.NOT_FOUND;
-        }
-        BuildingData data = casino.findBuilding(buildingId);
-        if (data == null || !data.isUpgrading(now)) {
-            return Code.PARAM_ERROR;
-        }
-        if (!checkAndConsumeItems(ctx, costItems)) {
-            return Code.NOT_ENOUGH;
-        }
-        //简化: 直接清完 (TODO: 按道具数量换算清掉的 CD 时间)
-        data.setCdEndTime(now);
-        log.info("清除建筑升级CD playerId={},buildingId={}", ctx.playerId(), buildingId);
-        return Code.SUCCESS;
     }
 
     /**

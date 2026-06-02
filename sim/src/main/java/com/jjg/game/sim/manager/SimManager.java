@@ -10,7 +10,6 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
@@ -19,9 +18,11 @@ import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.event.SimEventBus;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.pb.SimPbConverter;
-import com.jjg.game.sim.pb.res.*;
-import com.jjg.game.sim.pb.struct.OfflineReward;
-import com.jjg.game.sim.service.*;
+import com.jjg.game.sim.pb.res.ResSimEnterGame;
+import com.jjg.game.sim.service.SimBuildingService;
+import com.jjg.game.sim.service.SimCasinoService;
+import com.jjg.game.sim.service.SimEmployeeService;
+import com.jjg.game.sim.service.SimNodeService;
 import com.jjg.game.sim.service.tick.SimAutoSaveService;
 import io.netty.util.Timeout;
 import org.slf4j.Logger;
@@ -31,7 +32,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 模拟经营游戏管理器
+ * 管理一些跨service的操作和SimPlayerContext创建和销毁
  *
  * @author 11
  * @date 2026/5/15
@@ -49,8 +50,6 @@ public class SimManager implements OnSwitchNode {
 
     @Autowired
     private SimPlayerGameDao simPlayerGameDao;
-    @Autowired
-    private SimSkillService simSkillService;
     @Autowired
     private SimNodeService simNodeService;
     @Autowired
@@ -112,72 +111,11 @@ public class SimManager implements OnSwitchNode {
             }
 
             res.awareness = simCasinoService.awareness(ctx);
-            res.offlineReward = settleOfflineReward(ctx);
+            res.offlineReward = buildingService.settleOfflineReward(ctx);
             ctx.getSimBaseData().setLastOfflineTime(0);
             log.info("玩家进入游戏 playerId={},res={}", playerController.playerId(), JSONObject.toJSONString(res));
             playerController.send(res);
             return;
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
-    }
-
-    /**
-     * 离线收益结算: 计算并存入待领取快照
-     */
-    private OfflineReward settleOfflineReward(SimPlayerContext ctx) {
-        SimCasinoData casino = ctx.getCurrentCasino();
-        if (casino == null) {
-            return null;
-        }
-        long lastOfflineTime = ctx.getSimBaseData().getLastOfflineTime();
-        long now = System.currentTimeMillis();
-        //重置在线产出结算游标, 避免离线时段被在线 tick 重复计算
-        casino.setLastOutputTime(now);
-        if (lastOfflineTime <= 0) {
-            return null;
-        }
-        SimOfflineReward reward = buildingService.computeOfflineReward(ctx, casino, now - lastOfflineTime);
-        if (reward == null) {
-            return null;
-        }
-        ctx.setPendingOffline(reward);
-
-        OfflineReward rewards = new OfflineReward();
-        rewards.rewards = ItemUtils.buildItemInfo(reward.getBaseReward());
-        rewards.offlineMinutes = reward.getEffectiveMinutes();
-        rewards.capMinutes = reward.getCapMinutes();
-        rewards.adMultiplier = reward.getAdMultiplier();
-
-        log.info("离线收益结算 playerId={},effectiveMinutes={},capMinutes={},reward={}",
-                ctx.playerId(), reward.getEffectiveMinutes(), reward.getCapMinutes(), reward.getBaseReward());
-        return rewards;
-    }
-
-    /**
-     * 领取离线收益
-     */
-    public void onClaimOfflineReward(PlayerController playerController, boolean watchAd) {
-        ResClaimOfflineReward res = new ResClaimOfflineReward(Code.SUCCESS);
-        try {
-            SimPlayerContext ctx = getContext(playerController.playerId());
-            if (ctx == null) {
-                res.code = Code.NOT_FOUND;
-                playerController.send(res);
-                log.warn("领取离线收益: SimPlayerContext 不存在 playerId={}", playerController.playerId());
-                return;
-            }
-            SimOfflineReward reward = ctx.getPendingOffline();
-            res.code = buildingService.claimOfflineReward(ctx, watchAd);
-            if (res.code == Code.SUCCESS && reward != null) {
-                res.watchAd = watchAd;
-                double multiplier = (reward.getAdMultiplier() == null || reward.getAdMultiplier().isEmpty()) ? 1.0 : Double.parseDouble(reward.getAdMultiplier());
-                Map<Integer, Long> finalReward = new HashMap<>(reward.getBaseReward().size());
-                reward.getBaseReward().forEach((k, v) -> finalReward.put(k, (long) Math.floor(v * multiplier)));
-                res.rewards = ItemUtils.buildItemInfo(finalReward);
-            }
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -211,269 +149,6 @@ public class SimManager implements OnSwitchNode {
         } catch (Exception e) {
             log.error("", e);
         }
-    }
-
-    /**
-     * 解锁建筑
-     */
-    public void onUnlockBuilding(PlayerController playerController, int buildingId) {
-        ResUnlockBuilding res = new ResUnlockBuilding(Code.SUCCESS);
-        res.id = buildingId;
-        try {
-            SimPlayerContext ctx = getContext(playerController.playerId());
-            if (ctx == null) {
-                log.warn("解锁建筑: SimPlayerContext 不存在 playerId={}", playerController.playerId());
-                res.code = Code.NOT_FOUND;
-                playerController.send(res);
-                return;
-            }
-            res.code = buildingService.unlockBuilding(ctx, buildingId);
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
-    }
-
-    /**
-     * 升级建筑 (启动 CD)
-     */
-    public void onUpgradeBuilding(PlayerController playerController, int buildingId) {
-        ResUpgradeBuilding res = new ResUpgradeBuilding(Code.SUCCESS);
-        res.id = buildingId;
-        try {
-            SimPlayerContext ctx = getContext(playerController.playerId());
-            if (ctx == null) {
-                res.code = Code.NOT_FOUND;
-                playerController.send(res);
-                log.warn("升级建筑: SimPlayerContext 不存在 playerId={}", playerController.playerId());
-                return;
-            }
-
-            res.code = buildingService.upgradeBuilding(ctx, buildingId);
-            if (res.code == Code.SUCCESS) {
-                BuildingData data = ctx.getCurrentCasino().findBuilding(buildingId);
-                if (data != null) {
-                    res.cdEndTime = data.getCdEndTime();
-                }
-            }
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
-    }
-
-    /**
-     * 完成建筑升级
-     */
-    public void onCompleteBuildingUpgrade(PlayerController playerController, int buildingId) {
-        ResCompleteBuildingUpgrade res = new ResCompleteBuildingUpgrade(Code.SUCCESS);
-        res.id = buildingId;
-        try {
-            SimPlayerContext ctx = getContext(playerController.playerId());
-            if (ctx == null) {
-                res.code = Code.NOT_FOUND;
-                playerController.send(res);
-                log.warn("完成建筑升级: SimPlayerContext 不存在 playerId={}", playerController.playerId());
-                return;
-            }
-
-            res.code = buildingService.completeBuildingUpgrade(ctx, buildingId);
-            if (res.code == Code.SUCCESS) {
-                BuildingData data = ctx.getCurrentCasino().findBuilding(buildingId);
-                if (data != null) {
-                    res.level = data.getLevel();
-                }
-            }
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
-    }
-
-    /**
-     * 清除建筑升级 CD
-     */
-    public void onClearBuildingCD(PlayerController playerController, int buildingId, Map<Integer, Long> costItems) {
-        ResClearBuildingCD res = new ResClearBuildingCD(Code.SUCCESS);
-        res.id = buildingId;
-        try {
-            SimPlayerContext ctx = getContext(playerController.playerId());
-            if (ctx == null) {
-                res.code = Code.NOT_FOUND;
-                playerController.send(res);
-                log.warn("清除建筑升级: SimPlayerContext 不存在 playerId={}", playerController.playerId());
-                return;
-            }
-
-            res.code = buildingService.clearBuildingCD(ctx, buildingId, costItems);
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
-    }
-
-    /**
-     * 招募雇员
-     */
-    public void onRecruitEmployee(PlayerController playerController, int employeeId) {
-        ResRecruitEmployee res = new ResRecruitEmployee(Code.SUCCESS);
-        res.employeeId = employeeId;
-        try {
-            SimPlayerContext ctx = getContext(playerController.playerId());
-            if (ctx == null) {
-                res.code = Code.NOT_FOUND;
-                playerController.send(res);
-                log.warn("招募雇员: SimPlayerContext 不存在 playerId={}", playerController.playerId());
-                return;
-            }
-
-            res.code = employeeService.recruitEmployee(ctx, employeeId);
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
-    }
-
-    /**
-     * 升级雇员
-     */
-    public void onUpgradeEmployee(PlayerController playerController, int employeeId) {
-        ResUpgradeEmployee res = new ResUpgradeEmployee(Code.SUCCESS);
-        res.employeeId = employeeId;
-        try {
-            SimPlayerContext ctx = getContext(playerController.playerId());
-            if (ctx == null) {
-                res.code = Code.NOT_FOUND;
-                playerController.send(res);
-                log.warn("升级雇员: SimPlayerContext 不存在 playerId={}", playerController.playerId());
-                return;
-            }
-
-            res.code = employeeService.upgradeEmployee(ctx, employeeId);
-            SimEmployeeData ed = ctx.getEmployee(employeeId);
-            if (ed != null) {
-                res.level = ed.getLevel();
-            }
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
-    }
-
-    /**
-     * 升星雇员
-     */
-    public void onStarUpEmployee(PlayerController playerController, int employeeId) {
-        ResStarUpEmployee res = new ResStarUpEmployee(Code.SUCCESS);
-        res.employeeId = employeeId;
-        try {
-            SimPlayerContext ctx = getContext(playerController.playerId());
-            if (ctx == null) {
-                res.code = Code.NOT_FOUND;
-                playerController.send(res);
-                log.warn("升星雇员: SimPlayerContext 不存在 playerId={}", playerController.playerId());
-                return;
-            }
-
-            res.code = employeeService.starUpEmployee(ctx, employeeId);
-            SimEmployeeData ed = ctx.getEmployee(employeeId);
-            if (ed != null) {
-                res.star = ed.getStar();
-            }
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
-    }
-
-    /**
-     * 任命主管
-     */
-    public void onAssignSupervisor(PlayerController playerController, int buildingId, int employeeId) {
-        ResAssignSupervisor res = new ResAssignSupervisor(Code.SUCCESS);
-        res.buildingType = buildingId;
-        res.employeeId = employeeId;
-        try {
-            SimPlayerContext ctx = getContext(playerController.playerId());
-            if (ctx == null) {
-                res.code = Code.NOT_FOUND;
-                playerController.send(res);
-                log.warn("任命主管: SimPlayerContext 不存在 playerId={}", playerController.playerId());
-                return;
-            }
-
-            res.code = employeeService.assignSupervisor(ctx, buildingId, employeeId);
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
-    }
-
-    /**
-     * 加载技能
-     */
-    public void onLoadSlotsSkills(PlayerController playerController) {
-        ResSimGetSkills res = new ResSimGetSkills(Code.SUCCESS);
-        try {
-            SimPlayerContext ctx = getContext(playerController.playerId());
-            if (ctx == null) {
-                log.warn("加载技能: SimPlayerContext 不存在 playerId={}", playerController.playerId());
-                res.code = Code.NOT_FOUND;
-                playerController.send(res);
-                return;
-            }
-
-            //加载技能数据
-            simSkillService.loadSkillsData(ctx);
-
-            res.skills = new ArrayList<>();
-
-            for (SimSkillsData value : ctx.getSkillsDataMap().values()) {
-                res.skills.add(SimPbConverter.toGameSkills(value));
-            }
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
-    }
-
-    /**
-     * 升级技能
-     */
-    public void onUpgradeSkill(PlayerController playerController, int gameType, int skillPropId) {
-        ResSimUpgradeSkill res = new ResSimUpgradeSkill(Code.SUCCESS);
-        try {
-            SimPlayerContext ctx = getContext(playerController.playerId());
-            if (ctx == null) {
-                log.warn("升级技能失败: SimPlayerContext 不存在 playerId={}", playerController.playerId());
-                res.code = Code.NOT_FOUND;
-                playerController.send(res);
-                return;
-            }
-
-            SimSkillsData skillData = ctx.getSkillData(gameType);
-            if (skillData == null) {
-                log.warn("升级技能失败: simSkillsData 不存在 playerId={}", playerController.playerId());
-                res.code = Code.NOT_FOUND;
-                playerController.send(res);
-                return;
-            }
-
-            res.code = simSkillService.upgradeSkill(ctx, skillData, skillPropId);
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
     }
 
     /**

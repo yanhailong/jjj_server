@@ -7,9 +7,13 @@ import com.jjg.game.sim.dao.SimSkillsDao;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.pb.SimPbConverter;
+import com.jjg.game.sim.pb.res.ResSimGetSkills;
+import com.jjg.game.sim.pb.res.ResSimUpgradeSkill;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -25,75 +29,120 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
     @Autowired
     private SimSkillsDao simSkillsDao;
 
-    public void loadSkillsData(SimPlayerContext ctx) {
-        List<SimSkillsData> list = simSkillsDao.findByPlayerId(ctx.playerId());
-        if (list != null && !list.isEmpty()) {
-            list.forEach(skillsData -> {
-                ctx.getSkillsDataMap().put(skillsData.getGameType(), skillsData);
-            });
+    /**
+     * 加载技能
+     */
+    public void onLoadSlotsSkills(SimPlayerContext ctx) {
+        ResSimGetSkills res = new ResSimGetSkills(Code.SUCCESS);
+        try {
+            //加载技能数据
+            List<SimSkillsData> list = simSkillsDao.findByPlayerId(ctx.playerId());
+            if (list != null && !list.isEmpty()) {
+                list.forEach(skillsData -> {
+                    ctx.getSkillsDataMap().put(skillsData.getGameType(), skillsData);
+                });
+            }
+
+            res.skills = new ArrayList<>();
+
+            for (SimSkillsData value : ctx.getSkillsDataMap().values()) {
+                res.skills.add(SimPbConverter.toGameSkills(value));
+            }
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
         }
+        ctx.send(res);
     }
 
     /**
      * 升级技能
      */
-    public int upgradeSkill(SimPlayerContext ctx, SimSkillsData simSkillsData, int propId) {
-        Map<Integer, Map<Integer, ResearchSkillsCfg>> cfgMap = this.skillsCfgMap.get(simSkillsData.getGameType());
-        if (cfgMap == null || cfgMap.isEmpty()) {
-            log.warn("升级技能失败，未找到技能配置 playerId={},propId={}", simSkillsData.getPlayerId(), propId);
-            return Code.NOT_FOUND;
-        }
-
-        Map<Integer, ResearchSkillsCfg> levelMap = cfgMap.get(propId);
-        if (levelMap == null || levelMap.isEmpty()) {
-            log.warn("升级技能失败，未找到技能配置2 playerId={},propId={}", simSkillsData.getPlayerId(), propId);
-            return Code.NOT_FOUND;
-        }
-
-        Integer beforeLevel = simSkillsData.findSkilLevelByPropId(propId);
-        if (beforeLevel == null) {
-            log.warn("升级技能失败，该技能还未解锁 playerId={},propId={}", simSkillsData.getPlayerId(), propId);
-            return Code.PARAM_ERROR;
-        }
-
-        //新等级的配置
-        ResearchSkillsCfg newLevelCfg = levelMap.get(beforeLevel + 1);
-        if (newLevelCfg == null) {
-            log.warn("升级技能失败，该技能已达到上限 playerId={},propId={}", simSkillsData.getPlayerId(), propId);
-            return Code.NOT_FOUND;
-        }
-
-        //检查新等级所需要的研究点
-        if (newLevelCfg.getResearchPoints() == null || newLevelCfg.getResearchPoints().isEmpty()) {
-            simSkillsData.changeSkillLevel(propId, newLevelCfg.getGrade());
-            log.warn("该技能等级升级无需研究点，升级技能成功 playerId={},propId={},newLevelCfgId={}", simSkillsData.getPlayerId(), propId, newLevelCfg.getId());
-            return Code.SUCCESS;
-        }
-
-        //研究点在当前赌场上
-        SimCasinoData casino = ctx.getCurrentCasino();
-        if (casino == null) {
-            log.warn("升级技能失败，当前赌场不存在 playerId={}", simSkillsData.getPlayerId());
-            return Code.NOT_FOUND;
-        }
-
-        //检查研究点是否足够
-        for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
-            int researchPoint = casino.findResearchPoint(en.getKey());
-            if (researchPoint < en.getValue()) {
-                log.warn("升级技能失败，研究点不足 playerId={},propId={},newLevelCfgId={},researchPoint={}", simSkillsData.getPlayerId(), propId, newLevelCfg.getId(), researchPoint);
-                return Code.NOT_ENOUGH;
+    public void onUpgradeSkill(SimPlayerContext ctx, int gameType, int skillPropId) {
+        ResSimUpgradeSkill res = new ResSimUpgradeSkill(Code.SUCCESS);
+        try {
+            SimSkillsData skillData = ctx.getSkillData(gameType);
+            if (skillData == null) {
+                log.warn("升级技能失败: simSkillsData 不存在 playerId={}", ctx.playerId());
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
             }
-        }
 
-        //扣除研究点
-        for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
-            casino.deductResearchPoint(en.getKey(), en.getValue());
-        }
+            Map<Integer, Map<Integer, ResearchSkillsCfg>> cfgMap = this.skillsCfgMap.get(skillData.getGameType());
+            if (cfgMap == null || cfgMap.isEmpty()) {
+                log.warn("升级技能失败，未找到技能配置 playerId={},propId={}", skillData.getPlayerId(), skillPropId);
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
 
-        simSkillsData.changeSkillLevel(propId, newLevelCfg.getGrade());
-        log.info("玩家技能升级成功 playerId={},propId={},newLevel={}", simSkillsData.getPlayerId(), propId, newLevelCfg.getGrade());
-        return Code.SUCCESS;
+            Map<Integer, ResearchSkillsCfg> levelMap = cfgMap.get(skillPropId);
+            if (levelMap == null || levelMap.isEmpty()) {
+                log.warn("升级技能失败，未找到技能配置2 playerId={},propId={}", skillData.getPlayerId(), skillPropId);
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+
+            Integer beforeLevel = skillData.findSkilLevelByPropId(skillPropId);
+            if (beforeLevel == null) {
+                log.warn("升级技能失败，该技能还未解锁 playerId={},propId={}", skillData.getPlayerId(), skillPropId);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            //新等级的配置
+            ResearchSkillsCfg newLevelCfg = levelMap.get(beforeLevel + 1);
+            if (newLevelCfg == null) {
+                log.warn("升级技能失败，该技能已达到上限 playerId={},propId={}", skillData.getPlayerId(), skillPropId);
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+
+            //检查新等级所需要的研究点
+            if (newLevelCfg.getResearchPoints() == null || newLevelCfg.getResearchPoints().isEmpty()) {
+                skillData.changeSkillLevel(skillPropId, newLevelCfg.getGrade());
+                log.warn("该技能等级升级无需研究点，升级技能成功 playerId={},propId={},newLevelCfgId={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId());
+                res.code = Code.SUCCESS;
+                ctx.send(res);
+                return;
+            }
+
+            //研究点在当前赌场上
+            SimCasinoData casino = ctx.getCurrentCasino();
+            if (casino == null) {
+                log.warn("升级技能失败，当前赌场不存在 playerId={}", skillData.getPlayerId());
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+
+            //检查研究点是否足够
+            for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
+                int researchPoint = casino.findResearchPoint(en.getKey());
+                if (researchPoint < en.getValue()) {
+                    log.warn("升级技能失败，研究点不足 playerId={},propId={},newLevelCfgId={},researchPoint={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId(), researchPoint);
+                    res.code = Code.NOT_ENOUGH;
+                    ctx.send(res);
+                    return;
+                }
+            }
+
+            //扣除研究点
+            for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
+                casino.deductResearchPoint(en.getKey(), en.getValue());
+            }
+
+            skillData.changeSkillLevel(skillPropId, newLevelCfg.getGrade());
+            log.info("玩家技能升级成功 playerId={},propId={},newLevel={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getGrade());
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
     }
 
 }

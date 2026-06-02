@@ -68,6 +68,10 @@ public interface SimConstant {
         //领取离线收益 (1倍/看广告2倍)
         int REQ_CLAIM_OFFLINE_REWARD = BASE_MSG_PREFIX | 0x1C;
         int RES_CLAIM_OFFLINE_REWARD = BASE_MSG_PREFIX | 0x1D;
+
+        //获取建筑信息
+        int REQ_BUILDING_INFO = BASE_MSG_PREFIX | 0x1E;
+        int RES_BUILDING_INFO = BASE_MSG_PREFIX | 0x1F;
     }
 
     interface Common {

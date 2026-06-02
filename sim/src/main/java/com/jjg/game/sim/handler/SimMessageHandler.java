@@ -1,6 +1,7 @@
 package com.jjg.game.sim.handler;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
@@ -13,6 +14,9 @@ import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.pb.req.*;
+import com.jjg.game.sim.service.SimBuildingService;
+import com.jjg.game.sim.service.SimEmployeeService;
+import com.jjg.game.sim.service.SimSkillService;
 import com.jjg.game.sim.service.tick.SimGuestService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +25,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * 模拟经营游戏消息处理器
@@ -37,6 +42,13 @@ public class SimMessageHandler implements GmListener {
     private SimManager simManager;
     @Autowired
     private SimGuestService guestService;
+    @Autowired
+    private SimBuildingService buildingService;
+    @Autowired
+    private SimEmployeeService employeeService;
+    @Autowired
+    private SimSkillService skillService;
+
 
     /**
      * 进入游戏
@@ -63,12 +75,26 @@ public class SimMessageHandler implements GmListener {
         simManager.onFinishGuide(playerController.playerId());
     }
 
+    //--------------------------建筑相关 begin--------------------------
+
     /**
      * 解锁建筑
      */
     @Command(SimConstant.MsgBean.REQ_UNLOCK_BUILDING)
     public void reqUnlockBuilding(PlayerController playerController, ReqUnlockBuilding req) {
-        simManager.onUnlockBuilding(playerController, req.id);
+        execute(playerController, ctx -> {
+            buildingService.onUnlockBuilding(ctx, req.id);
+        });
+    }
+
+    /**
+     * 获取建筑信息
+     */
+    @Command(SimConstant.MsgBean.REQ_BUILDING_INFO)
+    public void reqBuildingInfo(PlayerController playerController, ReqBuildingInfo req) {
+        execute(playerController, ctx -> {
+            buildingService.onBuildingInfo(ctx, req.id);
+        });
     }
 
     /**
@@ -76,7 +102,9 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_UPGRADE_BUILDING)
     public void reqUpgradeBuilding(PlayerController playerController, ReqUpgradeBuilding req) {
-        simManager.onUpgradeBuilding(playerController, req.id);
+        execute(playerController, ctx -> {
+            buildingService.onUpgradeBuilding(ctx, req.id);
+        });
     }
 
     /**
@@ -84,7 +112,9 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_COMPLETE_BUILDING_UPGRADE)
     public void reqCompleteBuildingUpgrade(PlayerController playerController, ReqCompleteBuildingUpgrade req) {
-        simManager.onCompleteBuildingUpgrade(playerController, req.id);
+        execute(playerController, ctx -> {
+            buildingService.onCompleteBuildingUpgrade(ctx, req.id);
+        });
     }
 
     /**
@@ -98,49 +128,10 @@ public class SimMessageHandler implements GmListener {
                 costMap.put(kv.key, (long) kv.value);
             }
         }
-        simManager.onClearBuildingCD(playerController, req.id, costMap);
-    }
 
-    /**
-     * 招募雇员
-     */
-    @Command(SimConstant.MsgBean.REQ_RECRUIT_EMPLOYEE)
-    public void reqRecruitEmployee(PlayerController playerController, ReqRecruitEmployee req) {
-        simManager.onRecruitEmployee(playerController, req.employeeId);
-    }
-
-    /**
-     * 升级雇员
-     */
-    @Command(SimConstant.MsgBean.REQ_UPGRADE_EMPLOYEE)
-    public void reqUpgradeEmployee(PlayerController playerController, ReqUpgradeEmployee req) {
-        simManager.onUpgradeEmployee(playerController, req.employeeId);
-    }
-
-    /**
-     * 升星雇员
-     */
-    @Command(SimConstant.MsgBean.REQ_STAR_UP_EMPLOYEE)
-    public void reqStarUpEmployee(PlayerController playerController, ReqStarUpEmployee req) {
-        simManager.onStarUpEmployee(playerController, req.employeeId);
-    }
-
-    /**
-     * 任命/更换主管
-     */
-    @Command(SimConstant.MsgBean.REQ_ASSIGN_SUPERVISOR)
-    public void reqAssignSupervisor(PlayerController playerController, ReqAssignSupervisor req) {
-        simManager.onAssignSupervisor(playerController, req.buildingId, req.employeeId);
-    }
-
-    @Command(SimConstant.MsgBean.REQ_SIM_GET_SKILLS)
-    public void reqSlotsGetSkills(PlayerController playerController, ReqSimGetSkills req) {
-        simManager.onLoadSlotsSkills(playerController);
-    }
-
-    @Command(SimConstant.MsgBean.REQ_SIM_UPGRADE_SKILL)
-    public void reqSimUpgradeSkill(PlayerController playerController, ReqSimUpgradeSkill req) {
-        simManager.onUpgradeSkill(playerController, req.gameType, req.skillId);
+        execute(playerController, ctx -> {
+            buildingService.onClearBuildingCD(ctx, req.id, costMap);
+        });
     }
 
     /**
@@ -148,8 +139,71 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_CLAIM_OFFLINE_REWARD)
     public void reqClaimOfflineReward(PlayerController playerController, ReqClaimOfflineReward req) {
-        simManager.onClaimOfflineReward(playerController, req.watchAd);
+        execute(playerController, ctx -> {
+            buildingService.onClaimOfflineReward(ctx, req.watchAd);
+        });
     }
+
+
+    //--------------------------雇员相关 begin--------------------------
+
+    /**
+     * 招募雇员
+     */
+    @Command(SimConstant.MsgBean.REQ_RECRUIT_EMPLOYEE)
+    public void reqRecruitEmployee(PlayerController playerController, ReqRecruitEmployee req) {
+        execute(playerController, ctx -> {
+            employeeService.onRecruitEmployee(ctx, req.employeeId);
+        });
+    }
+
+    /**
+     * 升级雇员
+     */
+    @Command(SimConstant.MsgBean.REQ_UPGRADE_EMPLOYEE)
+    public void reqUpgradeEmployee(PlayerController playerController, ReqUpgradeEmployee req) {
+        execute(playerController, ctx -> {
+            employeeService.onUpgradeEmployee(ctx, req.employeeId);
+        });
+    }
+
+    /**
+     * 升星雇员
+     */
+    @Command(SimConstant.MsgBean.REQ_STAR_UP_EMPLOYEE)
+    public void reqStarUpEmployee(PlayerController playerController, ReqStarUpEmployee req) {
+        execute(playerController, ctx -> {
+            employeeService.onStarUpEmployee(ctx, req.employeeId);
+        });
+    }
+
+    /**
+     * 任命/更换主管
+     */
+    @Command(SimConstant.MsgBean.REQ_ASSIGN_SUPERVISOR)
+    public void reqAssignSupervisor(PlayerController playerController, ReqAssignSupervisor req) {
+        execute(playerController, ctx -> {
+            employeeService.onAssignSupervisor(ctx, req.buildingId, req.employeeId);
+        });
+    }
+
+    //--------------------------雇员相关 end--------------------------
+
+
+    @Command(SimConstant.MsgBean.REQ_SIM_GET_SKILLS)
+    public void reqSlotsGetSkills(PlayerController playerController, ReqSimGetSkills req) {
+        execute(playerController, ctx -> {
+            skillService.onLoadSlotsSkills(ctx);
+        });
+    }
+
+    @Command(SimConstant.MsgBean.REQ_SIM_UPGRADE_SKILL)
+    public void reqSimUpgradeSkill(PlayerController playerController, ReqSimUpgradeSkill req) {
+        execute(playerController, ctx -> {
+            skillService.onUpgradeSkill(ctx,req.gameType, req.skillId);
+        });
+    }
+
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
@@ -211,7 +265,10 @@ public class SimMessageHandler implements GmListener {
                 simManager.gmPrintPower(playerController.playerId());
             } else if ("claimOffline".equalsIgnoreCase(gmOrders[0])) {
                 boolean watchAd = gmOrders.length > 1 && "1".equals(gmOrders[1]);
-                simManager.onClaimOfflineReward(playerController, watchAd);
+
+                ReqClaimOfflineReward req = new ReqClaimOfflineReward();
+                req.watchAd = watchAd;
+                reqClaimOfflineReward(playerController,req);
             } else {
                 res.code = Code.NOT_FOUND;
             }
@@ -220,5 +277,14 @@ public class SimMessageHandler implements GmListener {
             res.code = Code.EXCEPTION;
         }
         return res;
+    }
+
+    public <T extends AbstractResponse> void execute(PlayerController pc, Consumer<SimPlayerContext> action) {
+        SimPlayerContext ctx = simManager.getContext(pc.playerId());
+        if (ctx == null) {
+            log.warn("获取ctx为空 playerId={}", pc.playerId());
+            return;
+        }
+        action.accept(ctx);
     }
 }
