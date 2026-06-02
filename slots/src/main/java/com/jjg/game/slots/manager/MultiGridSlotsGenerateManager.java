@@ -1,12 +1,13 @@
 package com.jjg.game.slots.manager;
 
+import com.jjg.game.core.data.PropInfo;
+import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementCfg;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.*;
-import com.jjg.game.slots.utils.SlotsUtil;
 
 import java.util.*;
 
@@ -39,7 +40,7 @@ public abstract class MultiGridSlotsGenerateManager<A extends AwardLineInfo, T e
             tmpIconMap.computeIfAbsent(cfg.getType(), k -> new HashSet<>()).add(cfg.getElementId());
 
             if (cfg.getPostChangeElementId() != null && !cfg.getPostChangeElementId().isEmpty()) {
-                tmpBaseElementPostChangeMap.put(cfg.getElementId(), SlotsUtil.converMapToPropInfo(cfg.getPostChangeElementId()));
+                tmpBaseElementPostChangeMap.put(cfg.getElementId(), PropUtil.converMapToPropInfo(cfg.getPostChangeElementId()));
             }
         }
         baseElementCfgMap = tmpCfgMap;

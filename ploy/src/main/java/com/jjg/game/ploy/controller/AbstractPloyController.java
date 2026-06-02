@@ -12,22 +12,18 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ExitType;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.ploy.dao.PlayerPloyGameDataDao;
 import com.jjg.game.ploy.dao.PloyPoolDao;
 import com.jjg.game.ploy.dao.PloyRecordDao;
 import com.jjg.game.ploy.data.PlayerPloyGameData;
 import com.jjg.game.ploy.data.PloyBetDivideInfo;
-import com.jjg.game.ploy.data.PropInfo;
 import com.jjg.game.ploy.logger.PloyLogger;
 import com.jjg.game.ploy.pb.ReqPloyRecord;
-import com.jjg.game.ploy.utils.PropUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PloygameRoomCfg;
 import com.jjg.game.sampledata.bean.PoolResultLibCfg;
@@ -430,7 +426,7 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
                 continue;
             }
             tmpPoolResultLibCfgMap.put(cfg.getModelId(), cfg);
-            poolResultLibPropMap.put(cfg.getModelId(), PropUtils.converMapToPropInfo(cfg.getTypeProp()));
+            poolResultLibPropMap.put(cfg.getModelId(), PropUtil.converMapToPropInfo(cfg.getTypeProp()));
         }
 
         this.poolResultLibCfgMap = tmpPoolResultLibCfgMap;

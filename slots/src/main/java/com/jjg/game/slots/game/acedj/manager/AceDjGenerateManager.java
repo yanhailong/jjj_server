@@ -3,6 +3,7 @@ package com.jjg.game.slots.game.acedj.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.data.PropInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -287,7 +288,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
                 num++;
             }
             //是否命中 万分比
-//            boolean flag = SlotsUtil.calProp(aceDjAddFreeInfo.getProp());
+//            boolean flag = PropUtil.calProp(aceDjAddFreeInfo.getProp());
             if (num == aceDjAddFreeInfo.getNum()) {
                 addCount = aceDjAddFreeInfo.getAddFreeCount();
             }

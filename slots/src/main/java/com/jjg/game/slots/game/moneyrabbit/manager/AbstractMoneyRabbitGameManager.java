@@ -5,6 +5,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SpecialGirdCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
@@ -16,7 +17,6 @@ import com.jjg.game.slots.game.moneyrabbit.data.*;
 import com.jjg.game.slots.game.moneyrabbit.pb.MoneyRabbitCoinInfo;
 import com.jjg.game.slots.game.moneyrabbit.pb.MoneyRabbitWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import com.jjg.game.slots.utils.SlotsUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -119,7 +119,7 @@ public abstract class AbstractMoneyRabbitGameManager extends AbstractSlotsGameMa
             log.debug("触发真免费  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
         } else {
             //随机触发假免费
-            if (SlotsUtil.calProp(this.fake_free_prop)) {
+            if (PropUtil.calProp(this.fake_free_prop)) {
                 gameRunInfo.setStatus(MoneyRabbitConstant.Status.FAKE_FREE);
                 log.debug("触发假免费  playerId = {},libId = {},status = {}", playerGameData.getPlayerId(), resultLib.getId(), playerGameData.getStatus());
             } else {

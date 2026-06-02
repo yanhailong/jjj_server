@@ -3,6 +3,7 @@ package com.jjg.game.slots.game.christmasBashNight.manager;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -14,7 +15,6 @@ import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAddIcon
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightAwardLineInfo;
 import com.jjg.game.slots.game.christmasBashNight.data.ChristmasBashNightResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
-import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -248,7 +248,7 @@ public class ChristmasBashNightGenerateManager extends AbstractSlotsGenerateMana
             if (icon != this.christmasBashNightAddFreeInfo.getTargetIcon()) {
                 continue;
             }
-            boolean flag = SlotsUtil.calProp(this.christmasBashNightAddFreeInfo.getProp());
+            boolean flag = PropUtil.calProp(this.christmasBashNightAddFreeInfo.getProp());
             if (flag) {
                 addCount += this.christmasBashNightAddFreeInfo.getAddFreeCount();
             }

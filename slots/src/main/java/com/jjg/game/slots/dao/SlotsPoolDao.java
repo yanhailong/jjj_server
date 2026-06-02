@@ -7,11 +7,11 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AbstractPoolDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.service.SlotsPlayerService;
-import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -181,7 +181,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
 
         Number poolValue = getSmallPoolByRoomCfgId(gameType, roomCfgId);
 
-        long value = SlotsUtil.calProp(ratio, poolValue.longValue());
+        long value = PropUtil.calProp(ratio, poolValue.longValue());
         if (value < 1) {
             result.code = Code.FAIL;
             log.warn("计算出的 value 小于1 playerId = {},gameType = {},roomCfgId = {}", playerId, gameType, roomCfgId);

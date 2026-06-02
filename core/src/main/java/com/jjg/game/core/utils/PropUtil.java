@@ -1,18 +1,19 @@
-package com.jjg.game.slots.utils;
+package com.jjg.game.core.utils;
 
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.slots.data.PropInfo;
+import com.jjg.game.core.data.PropInfo;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * @author 11
- * @date 2025/7/22 17:41
+ * @date 2026/6/2
  */
-public class SlotsUtil {
+public class PropUtil {
     /**
      * 将 <值,权重>格式的map转化为PropInfo
      * @param map
@@ -116,5 +117,71 @@ public class SlotsUtil {
 
         int rand = RandomUtils.randomMinMax(1,GameConstant.TEN_THOUSAND);
         return rand <= prop;
+    }
+
+
+    /**
+     * 克隆 PropInfo,对其 propMap 中匹配 key 的权重累加 delta,重算 [begin,end) 与 sum
+     */
+    public static PropInfo applyPropInfoDelta(PropInfo propInfo, Map<Integer, Integer> deltaMap) {
+        if (deltaMap.isEmpty()) {
+            return propInfo;
+        }
+
+        PropInfo cloned = propInfo.clone();
+        //保留原顺序读取每个 key 的权重
+        Map<Integer, Integer> weightMap = new LinkedHashMap<>();
+        for (Map.Entry<Integer, int[]> en : cloned.getPropMap().entrySet()) {
+            int[] range = en.getValue();
+            weightMap.put(en.getKey(), range[1] - range[0]);
+        }
+
+        boolean changed = false;
+        for (Map.Entry<Integer, Integer> en : deltaMap.entrySet()) {
+            Integer key = en.getKey();
+            if (!weightMap.containsKey(key)) {
+                continue;
+            }
+            int newWeight = Math.max(0, weightMap.get(key) + en.getValue());
+            weightMap.put(key, newWeight);
+            changed = true;
+        }
+        if (!changed) {
+            return propInfo;
+        }
+
+        int begin = 0;
+        int sum = 0;
+        for (Map.Entry<Integer, Integer> en : weightMap.entrySet()) {
+            int weight = en.getValue();
+            int[] range = cloned.getPropMap().get(en.getKey());
+            range[0] = begin;
+            range[1] = begin + weight;
+            begin = range[1];
+            sum += weight;
+        }
+        cloned.setSum(sum);
+        return cloned;
+    }
+
+    private static final int tenThousand = 10000;
+
+    /**
+     * 计算baseNum的万分比的值
+     *
+     * @param prop
+     * @param baseNum
+     * @return
+     */
+    public static int propBase(int prop, int baseNum) {
+        if(prop < 1){
+            return 0;
+        }
+
+        if(prop >= tenThousand){
+            return baseNum;
+        }
+
+        return (int) ((long) baseNum * prop / tenThousand);
     }
 }

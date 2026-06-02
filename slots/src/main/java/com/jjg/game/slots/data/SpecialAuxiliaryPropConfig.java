@@ -1,5 +1,7 @@
 package com.jjg.game.slots.data;
 
+import com.jjg.game.core.data.PropInfo;
+
 /**
  * @author 11
  * @date 2025/8/30 11:09
