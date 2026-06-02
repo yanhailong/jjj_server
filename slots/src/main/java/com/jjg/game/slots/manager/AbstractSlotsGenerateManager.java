@@ -484,7 +484,11 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             }
             //获取rollerMode
             int rollerMode = specialAuxiliaryCfg.getRollerMode();
-            if (rollerMode < 1) {
+            if (rollerMode < 1 || !hasRollerColumns(rollerMode, specialModeCfg.getCols())) {
+                if (rollerMode > 0) {
+                    log.warn("免费游戏滚轴列数不足，回退到特殊模式滚轴 gameType={},specialModeType={},miniGameId={},rollerMode={},cols={}",
+                            this.gameType, specialModeType, specialAuxiliaryCfg.getId(), rollerMode, specialModeCfg.getCols());
+                }
                 rollerMode = specialModeCfg.getRollerMode();
             }
 
@@ -601,18 +605,18 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         int[] arr = new int[cols * rows + 1];
 
         //蒸汽时代 列（滚轴） 配置 数量多余 列数量
-        int addCols = 0;
-        for (Map.Entry<Integer, BaseRollerCfg> en : rollerCfgMap.entrySet()) {
-            if (addCols >= cols) {
-                return arr;
+        for (int col = 1; col <= cols; col++) {
+            BaseRollerCfg cfg = rollerCfgMap.get(col);
+            if (cfg == null) {
+                log.warn("生成图标时，滚轴列配置缺失 gameType={},rollerMode={},col={},cols={}", this.gameType, rollerMode, col, cols);
+                return null;
             }
-            BaseRollerCfg cfg = en.getValue();
             if (cfg.getAxleCountScope() == null || cfg.getAxleCountScope().isEmpty()) {
                 log.warn("没有该滚轴的范围,生成结果集失败 gameType = {},rollerCfgId = {}", this.gameType, cfg.getId());
                 return null;
             }
 
-            int iconIndex = (cfg.getColumn() - 1) * rows + 1;
+            int iconIndex = (col - 1) * rows + 1;
 
             //区间范围的第一个下标
             int first = cfg.getAxleCountScope().get(0) - 1;
@@ -632,18 +636,26 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 iconIndex++;
                 scopeIndex++;
             }
-            addCols++;
         }
         return arr;
     }
 
     /**
-     * 根据滚轴id，生成一列的图标
-     *
-     * @param rollerMode
-     * @param rows
-     * @return
+     * 检查滚轴组是否覆盖指定列数。
      */
+    private boolean hasRollerColumns(int rollerMode, int cols) {
+        Map<Integer, BaseRollerCfg> rollerCfgMap = this.baseRollerCfgMap.get(rollerMode);
+        if (rollerCfgMap == null) {
+            return false;
+        }
+        for (int col = 1; col <= cols; col++) {
+            if (!rollerCfgMap.containsKey(col)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public int[] generateColumnIcons(int rollerMode, int rows, int colId) {
         Map<Integer, BaseRollerCfg> rollerCfgMap = this.baseRollerCfgMap.get(rollerMode);
         if (rollerCfgMap == null) {
