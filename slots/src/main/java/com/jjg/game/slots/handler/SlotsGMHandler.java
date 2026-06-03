@@ -116,7 +116,7 @@ public class SlotsGMHandler implements GmListener {
                     }
                     playerGameData.setSimSkillsData(simSkillsData);
                 }
-                res.code = slotsSkillService.addSkillById(playerGameData, skillId);
+                res.code = slotsSkillService.addSkill(playerGameData.getSimSkillsData(), skillId);
             } else {
                 res.code = Code.NOT_FOUND;
             }

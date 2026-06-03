@@ -1041,7 +1041,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         //应用玩家技能的 specialMode 加成
-        propInfo = simSkillService.useLibTypeSkill(playerGameData.getSimSkillsData(),propInfo);
+        propInfo = simSkillService.useLibTypeSkill(playerGameData.getSimSkillsData(), propInfo);
 
         Integer type = propInfo.getRandKey();
         if (type == null) {
@@ -1082,7 +1082,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         //应用玩家技能的 winRate / specialModeProbUp 加成
-        propInfo = simSkillService.useSectionSkill(playerGameData.getSimSkillsData(),propInfo,libType);
+        propInfo = simSkillService.useSectionSkill(playerGameData.getSimSkillsData(), propInfo, libType);
 
         Integer index = propInfo.getRandKey();
         if (index == null) {
@@ -1491,6 +1491,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     protected void offlineSaveGameData(T gameData) {
         playerGameDataDao.savePlayerGameData(gameData);
+        if (gameData.getSimSkillsData() != null) {
+            simSkillService.save(gameData.getSimSkillsData());
+        }
     }
 
 /*****************************************************************************************************************************/
@@ -1620,6 +1623,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig())
                 .addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, () -> specialPlayConfig())
                 .addChangeSampleFileObserveWithCallBack(SpecialAuxiliaryCfg.EXCEL_NAME, () -> specialAuxiliaryConfig());
+
     }
 
     /**
@@ -1651,6 +1655,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //playerAllSlotsData 只要退出就要落库
             playerAllSlotsDataDao.saveToRedis(playerGameData.getPlayerAllSlotsData());
         }
+
+        //推出后立马保存skill数据
+        if (playerGameData.getSimSkillsData() != null) {
+            simSkillService.save(playerGameData.getSimSkillsData());
+            playerGameData.setSimSkillsData(null);
+        }
+
         taskManager.onExit(playerController.playerId());
         return playerGameData;
     }
@@ -2400,8 +2411,21 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         //追加技能解锁的下注额
-        if(playerGameData.getSimSkillsData() != null && playerGameData.getSimSkillsData().getStakeList() != null && !playerGameData.getSimSkillsData().getStakeList().isEmpty()){
-            list.addAll(playerGameData.getSimSkillsData().getStakeList());
+        if (playerGameData.getSimSkillsData() != null && playerGameData.getSimSkillsData().getSkillsMap() != null
+                && !playerGameData.getSimSkillsData().getSkillsMap().isEmpty()) {
+            for (Map.Entry<Integer, Integer> en : playerGameData.getSimSkillsData().getSkillsMap().entrySet()) {
+                ResearchSkillsCfg cfg = this.simSkillService.getResearchSkillsCfg(this.gameType,en.getKey(),en.getValue());
+                if (cfg == null) {
+                    continue;
+                }
+
+                if (cfg.getBet() == null || cfg.getBet().isEmpty()) {
+                    continue;
+                }
+                list.addAll(cfg.getBet());
+                playerGameData.setTmpSkillStakeSet(new HashSet<>(cfg.getBet()));
+                break;
+            }
         }
         return list;
     }
@@ -2419,13 +2443,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return betScoreArr;
         }
 
-        //检查是否为技能解锁的下注额
-        if (simSkillService.isSkillBet(playerGameData.getSimSkillsData(), betValue)) {
-            betScoreArr = new long[2];
-            betScoreArr[0] = allStakeToOneLine(betValue);
-            betScoreArr[1] = betValue;
+        if (playerGameData.getTmpSkillStakeSet() == null || !playerGameData.getTmpSkillStakeSet().contains(betValue)) {
+            return betScoreArr;
         }
 
+        betScoreArr = new long[2];
+        betScoreArr[0] = allStakeToOneLine(betValue);
+        betScoreArr[1] = betValue;
         return betScoreArr;
     }
 

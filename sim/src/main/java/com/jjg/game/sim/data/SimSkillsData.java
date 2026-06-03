@@ -20,8 +20,6 @@ public class SimSkillsData extends AbstractData{
     private int gameType;
     //技能 propId -> level
     private Map<Integer, Integer> skillsMap;
-    //通过技能解锁的下注额
-    private List<Long> stakeList;
 
     public long getPlayerId() {
         return playerId;
@@ -47,14 +45,6 @@ public class SimSkillsData extends AbstractData{
         this.skillsMap = skillsMap;
     }
 
-    public List<Long> getStakeList() {
-        return stakeList;
-    }
-
-    public void setStakeList(List<Long> stakeList) {
-        this.stakeList = stakeList;
-    }
-
     /**
      * 获取该技能等级
      *
@@ -73,16 +63,6 @@ public class SimSkillsData extends AbstractData{
             this.skillsMap = new HashMap<>();
         }
         this.skillsMap.put(propId, skillLevel);
-    }
-
-    public void addStake(long stake){
-        if(this.stakeList == null){
-            this.stakeList = new ArrayList<>();
-        }
-        if(!this.stakeList.contains(stake)){
-            this.stakeList.add(stake);
-            Collections.sort(this.stakeList);
-        }
     }
 
     public String getId() {

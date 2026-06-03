@@ -28,7 +28,7 @@ public class ResearchSkillsCfg extends BaseCfgBean {
   /** 快速旋转 */
   protected int TurboSpin;
   /** 金额解锁 */
-  protected List<Integer> bet;
+  protected List<Long> bet;
   /** 游戏id */
   protected int gameType;
   /** 研究等级 */
@@ -61,7 +61,7 @@ public class ResearchSkillsCfg extends BaseCfgBean {
   }
 
   /** 返回金额解锁 */
-  public List<Integer> getBet() {
+  public List<Long> getBet() {
     return bet;
   }
 

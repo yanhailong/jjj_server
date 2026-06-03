@@ -1,20 +1,10 @@
 package com.jjg.game.slots.service;
 
-import com.jjg.game.common.cluster.ClusterClient;
-import com.jjg.game.common.rpc.ClusterRpcReference;
-import com.jjg.game.common.rpc.GameRpcContext;
-import com.jjg.game.common.rpc.RpcReqParameterBuilder;
-import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PropInfo;
 import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
-import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.service.AbstractSkillService;
-import com.jjg.game.sim.service.SimNodeService;
-import com.jjg.game.slots.data.SlotsPlayerGameData;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -25,48 +15,6 @@ import java.util.*;
  */
 @Service
 public class SlotsSkillService extends AbstractSkillService {
-
-    @ClusterRpcReference()
-    private ToSimBridge toSimBridge;
-    @Autowired
-    private SimNodeService simNodeService;
-
-    public int addSkillById(SlotsPlayerGameData playerGameData, int skillId) {
-        //获取节点
-        ClusterClient client = simNodeService.getSimClusterClient(playerGameData.getPlayerId());
-        if (client == null) {
-            log.warn("添加技能失败，未找到sim 节点 playerId = {}", playerGameData.getPlayerId());
-            return Code.FAIL;
-        }
-
-        GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
-
-        CommonResult<SimSkillsData> commonResult = toSimBridge.addSkillById(playerGameData.getPlayerId(), playerGameData.getGameType(), skillId);
-        if (commonResult == null || !commonResult.success()) {
-            log.warn("添加技能失败 playerId = {},code={}", playerGameData.getPlayerId(), commonResult == null ? "null" : commonResult.code);
-            return Code.FAIL;
-        }
-        if (commonResult.data == null) {
-            log.warn("添加技能失败，返回数据为空 playerId = {}", playerGameData.getPlayerId());
-            return Code.FAIL;
-        }
-        playerGameData.setSimSkillsData(commonResult.data);
-        return Code.SUCCESS;
-    }
-
-    /**
-     * 判断 betValue 是否为玩家技能解锁的下注额
-     *
-     * @param data
-     * @param betValue
-     * @return
-     */
-    public boolean isSkillBet(SimSkillsData data, long betValue) {
-        if (data == null || data.getStakeList() == null) {
-            return false;
-        }
-        return data.getStakeList().contains(betValue);
-    }
 
     /**
      * 将玩家技能 specialMode (libType -> weightDelta) 累加到 typeProp 权重上，返回修改后的克隆

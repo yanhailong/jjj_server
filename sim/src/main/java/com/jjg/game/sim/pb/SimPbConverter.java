@@ -49,7 +49,6 @@ public final class SimPbConverter {
     public static GameSkills toGameSkills(SimSkillsData data) {
         GameSkills gs = new GameSkills();
         gs.gameType = data.getGameType();
-        gs.stake = data.getStakeList();
 
         if (data.getSkillsMap() != null && !data.getSkillsMap().isEmpty()) {
             gs.skillInfos = new ArrayList<>();

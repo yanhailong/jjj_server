@@ -8,9 +8,7 @@ import com.jjg.game.slots.controller.SlotsRoomController;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -79,6 +77,8 @@ public class SlotsPlayerGameData {
     protected transient PlayerAllSlotsData playerAllSlotsData;
     @Transient
     protected transient SimSkillsData simSkillsData;
+    @Transient
+    protected transient Set<Long> tmpSkillStakeSet;
 
     public long getPlayerId() {
         if (playerId == 0) {
@@ -396,5 +396,13 @@ public class SlotsPlayerGameData {
 
     public void setSimSkillsData(SimSkillsData simSkillsData) {
         this.simSkillsData = simSkillsData;
+    }
+
+    public Set<Long> getTmpSkillStakeSet() {
+        return tmpSkillStakeSet;
+    }
+
+    public void setTmpSkillStakeSet(Set<Long> tmpSkillStakeSet) {
+        this.tmpSkillStakeSet = tmpSkillStakeSet;
     }
 }

@@ -17,6 +17,4 @@ public class GameSkills {
     public int gameType;
     @ProtoDesc("技能信息  propId->level")
     public List<KVInfo> skillInfos;
-    @ProtoDesc("解锁的下注额")
-    public List<Long> stake;
 }

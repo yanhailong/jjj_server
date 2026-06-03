@@ -19,6 +19,8 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "BuildingAreaTable";
 
+  /** 建筑名称ID */
+  protected int BuildingNameId;
   /** 赌场ID */
   protected int CasinoID;
   /** 受影响的雇员类型 */
@@ -31,6 +33,11 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   protected int UnlockMethod;
   /** 建筑分类 */
   protected int type;
+
+  /** 返回建筑名称ID */
+  public int getBuildingNameId() {
+    return BuildingNameId;
+  }
 
   /** 返回赌场ID */
   public int getCasinoID() {

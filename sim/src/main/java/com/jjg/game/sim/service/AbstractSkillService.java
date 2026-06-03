@@ -1,5 +1,6 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PropCfg;
@@ -58,4 +59,29 @@ public abstract class AbstractSkillService implements ConfigExcelChangeListener 
         return simSkillsDao.findById(SimSkillsData.buildKey(playerId, gameType)).orElse(null);
     }
 
+    public ResearchSkillsCfg getResearchSkillsCfg(int gameType,int skillAttrId,int level){
+        Map<Integer, Map<Integer, ResearchSkillsCfg>> gameTymeCfgMap = this.skillsCfgMap.get(gameType);
+        if(gameTymeCfgMap == null || gameTymeCfgMap.isEmpty()){
+            return null;
+        }
+        Map<Integer, ResearchSkillsCfg> attrMap = gameTymeCfgMap.get(skillAttrId);
+        if(attrMap == null || attrMap.isEmpty()){
+            return null;
+        }
+        return attrMap.get(level);
+    }
+
+    public int addSkill(SimSkillsData simSkillsData, int skillId) {
+        ResearchSkillsCfg cfg = GameDataManager.getResearchSkillsCfg(skillId);
+        if (cfg == null) {
+            log.warn("添加技能失败，未找到技能配置 playerId={},skillId={}", simSkillsData.getPlayerId(), skillId);
+            return Code.NOT_FOUND;
+        }
+        simSkillsData.changeSkillLevel(cfg.getAttr(), cfg.getGrade());
+        return Code.SUCCESS;
+    }
+
+    public void save(SimSkillsData simSkillsData) {
+        simSkillsDao.save(simSkillsData);
+    }
 }
