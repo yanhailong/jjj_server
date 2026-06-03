@@ -9,6 +9,7 @@ import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
@@ -101,6 +102,17 @@ public class SimManager implements OnSwitchNode {
                 res.buildings = new ArrayList<>();
                 for (Map.Entry<Integer, BuildingData> en : ctx.getCurrentCasino().getBuildingData().entrySet()) {
                     res.buildings.add(SimPbConverter.toBuildingInfo(en.getValue()));
+                }
+            }
+
+            //添加主管信息
+            if (ctx.getCurrentCasino().getManagerEmployMap() != null && !ctx.getCurrentCasino().getManagerEmployMap().isEmpty()) {
+                res.managerEmployInfos = new ArrayList<>();
+                for (Map.Entry<Integer, Integer> en : ctx.getCurrentCasino().getManagerEmployMap().entrySet()) {
+                    KVInfo kvInfo = new KVInfo();
+                    kvInfo.key = en.getKey();
+                    kvInfo.value = en.getValue();
+                    res.managerEmployInfos.add(kvInfo);
                 }
             }
 

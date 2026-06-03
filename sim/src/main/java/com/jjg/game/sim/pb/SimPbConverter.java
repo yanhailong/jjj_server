@@ -39,7 +39,6 @@ public final class SimPbConverter {
         info.id = buildingData.getId();
         info.level = buildingData.getLevel();
         info.cdEndTime = buildingData.getCdEndTime();
-        info.managerEmployId = buildingData.getManagerEmployId();
         info.progress = buildingData.getProgress();
         return info;
     }

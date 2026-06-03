@@ -41,6 +41,8 @@ public class SimCasinoData extends AbstractData {
     private Map<Integer, BuildingData> buildingData;
     //拥有的游客 VisitorQuest表
     private Map<Integer, GuestData> guestMap;
+    //主管id
+    private Map<Integer, Integer> managerEmployMap;
     //上次生成游客时间(ms) — 运行时, 不持久化
     @Transient
     private transient long lastGenerateTime;
@@ -133,6 +135,14 @@ public class SimCasinoData extends AbstractData {
 
     public void setGuestMap(Map<Integer, GuestData> guestMap) {
         this.guestMap = guestMap;
+    }
+
+    public Map<Integer, Integer> getManagerEmployMap() {
+        return managerEmployMap;
+    }
+
+    public void setManagerEmployMap(Map<Integer, Integer> managerEmployMap) {
+        this.managerEmployMap = managerEmployMap;
     }
 
     public long getLastGenerateTime() {
@@ -288,5 +298,19 @@ public class SimCasinoData extends AbstractData {
             this.researchPointMap.put(type, after);
         }
         return true;
+    }
+
+    public boolean containsManageEmploy(int buildingType) {
+        if (this.managerEmployMap == null || this.managerEmployMap.isEmpty()) {
+            return false;
+        }
+        return this.managerEmployMap.containsKey(buildingType);
+    }
+
+    public void addManagerEmploy(int buildingType, int employId) {
+        if (this.managerEmployMap == null || this.managerEmployMap.isEmpty()) {
+            this.managerEmployMap = new HashMap<>();
+        }
+        this.managerEmployMap.put(buildingType, employId);
     }
 }

@@ -4,6 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.pb.struct.BuildingInfo;
 import com.jjg.game.sim.pb.struct.OfflineReward;
@@ -27,6 +28,8 @@ public class ResSimEnterGame extends AbstractResponse {
     public long awareness;
     @ProtoDesc("离线收益")
     public OfflineReward offlineReward;
+    @ProtoDesc("主管信息 建筑类型->雇员id")
+    public List<KVInfo> managerEmployInfos;
 
     public ResSimEnterGame(int code) {
         super(code);

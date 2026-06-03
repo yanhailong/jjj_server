@@ -2,13 +2,13 @@ package com.jjg.game.sim.service;
 
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.EmployeeLevelCfg;
 import com.jjg.game.sampledata.bean.EmployeeProfileCfg;
 import com.jjg.game.sampledata.bean.EmployeeStarCfg;
 import com.jjg.game.sim.constant.BonusType;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.data.BuildingData;
-import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimEmployeeData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.pb.res.ResAssignSupervisor;
@@ -172,29 +172,39 @@ public class SimEmployeeService {
         res.buildingType = buildingId;
         res.employeeId = employeeId;
         try {
-
-            SimCasinoData casino = ctx.getCurrentCasino();
-            if (casino == null) {
-                res.code =  Code.NOT_FOUND;
+            //获取建筑配置
+            BuildingAreaTableCfg cfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
+            if (cfg == null) {
+                log.warn("任命主管失败, 未找到建筑配置信息 playerId={},buildingId={}", ctx.playerId(), buildingId);
+                res.code = Code.NOT_FOUND;
                 ctx.send(res);
                 return;
             }
             SimEmployeeData data = ctx.getEmployee(employeeId);
             if (data == null) {
                 log.warn("任命主管失败, 雇员未解锁 playerId={},employeeId={}", ctx.playerId(), employeeId);
-                res.code =  Code.NOT_FOUND;
+                res.code = Code.NOT_FOUND;
                 ctx.send(res);
                 return;
             }
             BuildingData buildingData = ctx.getCurrentCasino().getBuildingData().get(buildingId);
             if (buildingData == null) {
                 log.warn("任命主管失败, 该建筑未解锁 playerId={},buildingId={}", ctx.playerId(), buildingId);
-                res.code =  Code.NOT_FOUND;
+                res.code = Code.NOT_FOUND;
                 ctx.send(res);
                 return;
             }
-            buildingData.setManagerEmployId(employeeId);
-            log.info("任命主管 playerId={},casinoId={},type={},employeeId={}", ctx.playerId(), casino.getCasinoId(), buildingId, employeeId);
+
+            boolean contains = ctx.getCurrentCasino().containsManageEmploy(cfg.getType());
+            if (contains) {
+                log.warn("任命主管失败, 该类建筑已有主管 playerId={},buildingId={},type={}", ctx.playerId(), buildingId, cfg.getType());
+                res.code = Code.FORBID;
+                ctx.send(res);
+                return;
+            }
+
+            ctx.getCurrentCasino().addManagerEmploy(cfg.getType(), employeeId);
+            log.info("任命主管 playerId={},casinoId={},type={},employeeId={}", ctx.playerId(), ctx.getCurrentCasino().getCasinoId(), buildingId, employeeId);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

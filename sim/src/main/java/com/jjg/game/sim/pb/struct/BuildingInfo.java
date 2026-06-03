@@ -16,8 +16,6 @@ public class BuildingInfo {
     public int level;
     @ProtoDesc("升级 CD 结束时间")
     public long cdEndTime;
-    @ProtoDesc("主管id")
-    public int managerEmployId;
     @ProtoDesc("进度条")
     public int progress;
 }
