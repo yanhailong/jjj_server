@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -244,26 +245,27 @@ public class SimEmployeeService {
     }
 
     /**
-     * 主管加成
+     * 仅仅获取主管的加成
      *
      * @param ctx
-     * @param bonusesMap
-     * @param supervisorEmployId 该建筑当前主管雇员id (0 表示未任命)
+     * @param supervisorEmployId
+     * @return
      */
-    public Map<BonusType, Integer> computeSupervisorBonusFixed(SimPlayerContext ctx, Map<BonusType, Integer> bonusesMap, int supervisorEmployId) {
-        if (supervisorEmployId < 1 || bonusesMap == null || bonusesMap.isEmpty()) {
-            return bonusesMap;
+    public Map<BonusType, Integer> manageEmployeeBonus(SimPlayerContext ctx, int supervisorEmployId) {
+        if (supervisorEmployId < 1) {
+            return Collections.emptyMap();
         }
-
-        Map<BonusType, Integer> tmpMap = new HashMap<>(bonusesMap);
         SimEmployeeData supervisor = ctx.getEmployee(supervisorEmployId);
-        if (supervisor != null) {
-            EmployeeStarCfg starCfg = getStarCfg(supervisorEmployId, supervisor.getStar());
-            if (starCfg != null) {
-                sumBouns(tmpMap, starCfg.getSupervisorBonus());
-            }
+        if (supervisor == null) {
+            return Collections.emptyMap();
         }
-        return tmpMap;
+        EmployeeStarCfg starCfg = getStarCfg(supervisorEmployId, supervisor.getStar());
+        if (starCfg == null) {
+            return Collections.emptyMap();
+        }
+        Map<BonusType, Integer> map = new HashMap<>();
+        sumBouns(map, starCfg.getSupervisorBonus());
+        return map;
     }
 
     /**

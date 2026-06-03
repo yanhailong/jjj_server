@@ -226,6 +226,10 @@ public class SimMessageHandler implements GmListener {
                 ReqUnlockBuilding req = new ReqUnlockBuilding();
                 req.id = Integer.parseInt(gmOrders[1]);
                 reqUnlockBuilding(playerController, req);
+            } else if ("buildingInfo".equalsIgnoreCase(gmOrders[0])) {
+                ReqBuildingInfo req = new ReqBuildingInfo();
+                req.id = Integer.parseInt(gmOrders[1]);
+                reqBuildingInfo(playerController, req);
             } else if ("upgradeBuilding".equalsIgnoreCase(gmOrders[0])) {
                 ReqUpgradeBuilding req = new ReqUpgradeBuilding();
                 req.id = Integer.parseInt(gmOrders[1]);

@@ -4,8 +4,11 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.pb.struct.BuildingInfo;
+
+import java.util.List;
 
 /**
  * @author 11
@@ -16,6 +19,10 @@ import com.jjg.game.sim.pb.struct.BuildingInfo;
 public class ResBuildingInfo extends AbstractResponse {
     @ProtoDesc("建筑信息")
     public BuildingInfo buildingInfo;
+    @ProtoDesc("雇员加成")
+    public List<KVInfo> employeeBonus;
+    @ProtoDesc("主管加成")
+    public List<KVInfo> manageEmployeeBonus;
 
     public ResBuildingInfo(int code) {
         super(code);

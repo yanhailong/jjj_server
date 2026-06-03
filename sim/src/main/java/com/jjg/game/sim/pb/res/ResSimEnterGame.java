@@ -7,6 +7,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.pb.struct.BuildingInfo;
+import com.jjg.game.sim.pb.struct.EmployeeInfo;
 import com.jjg.game.sim.pb.struct.OfflineReward;
 
 import java.util.List;
@@ -30,6 +31,9 @@ public class ResSimEnterGame extends AbstractResponse {
     public OfflineReward offlineReward;
     @ProtoDesc("主管信息 建筑类型->雇员id")
     public List<KVInfo> managerEmployInfos;
+    @ProtoDesc("雇员信息")
+    public List<EmployeeInfo> employInfos;
+
 
     public ResSimEnterGame(int code) {
         super(code);

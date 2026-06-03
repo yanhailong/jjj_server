@@ -9,7 +9,6 @@ import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
@@ -109,10 +108,15 @@ public class SimManager implements OnSwitchNode {
             if (ctx.getCurrentCasino().getManagerEmployMap() != null && !ctx.getCurrentCasino().getManagerEmployMap().isEmpty()) {
                 res.managerEmployInfos = new ArrayList<>();
                 for (Map.Entry<Integer, Integer> en : ctx.getCurrentCasino().getManagerEmployMap().entrySet()) {
-                    KVInfo kvInfo = new KVInfo();
-                    kvInfo.key = en.getKey();
-                    kvInfo.value = en.getValue();
-                    res.managerEmployInfos.add(kvInfo);
+                    res.managerEmployInfos.add(SimPbConverter.toManageEmpInfo(en.getKey(),en.getValue()));
+                }
+            }
+
+            //添加雇员信息
+            if (ctx.getEmployeeMap() != null && !ctx.getEmployeeMap().isEmpty()) {
+                res.employInfos = new ArrayList<>();
+                for (Map.Entry<Integer, SimEmployeeData> en : ctx.getEmployeeMap().entrySet()) {
+                    res.employInfos.add(SimPbConverter.toEmployeeInfo(en.getValue()));
                 }
             }
 

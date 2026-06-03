@@ -3,11 +3,9 @@ package com.jjg.game.sim.pb;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.GuestData;
+import com.jjg.game.sim.data.SimEmployeeData;
 import com.jjg.game.sim.data.SimSkillsData;
-import com.jjg.game.sim.pb.struct.BuildingInfo;
-import com.jjg.game.sim.pb.struct.DestinationInfo;
-import com.jjg.game.sim.pb.struct.GameSkills;
-import com.jjg.game.sim.pb.struct.GuestInfo;
+import com.jjg.game.sim.pb.struct.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +38,21 @@ public final class SimPbConverter {
         info.level = buildingData.getLevel();
         info.cdEndTime = buildingData.getCdEndTime();
         info.progress = buildingData.getProgress();
+        return info;
+    }
+
+    public static EmployeeInfo toEmployeeInfo(SimEmployeeData data){
+        EmployeeInfo info = new EmployeeInfo();
+        info.id = data.getEmployeeId();
+        info.level = data.getLevel();
+        info.star = data.getStar();
+        return info;
+    }
+
+    public static KVInfo toManageEmpInfo(int buildingType,int id){
+        KVInfo info = new KVInfo();
+        info.key = buildingType;
+        info.value = id;
         return info;
     }
 
