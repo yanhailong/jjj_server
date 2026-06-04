@@ -110,7 +110,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private void loadBuildingChain() {
         Map<Integer, Map<Integer, List<int[]>>> raw = new HashMap<>();
         for (BuildingAreaTableCfg cfg : GameDataManager.getBuildingAreaTableCfgList()) {
-            raw.computeIfAbsent(cfg.getCasinoID(), k -> new HashMap<>())
+            raw.computeIfAbsent(cfg.getRegionID(), k -> new HashMap<>())
                     .computeIfAbsent(cfg.getType(), k -> new ArrayList<>())
                     .add(new int[]{cfg.getSequenceID(), cfg.getId()});
         }

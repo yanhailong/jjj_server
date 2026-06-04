@@ -1,5 +1,6 @@
 package com.jjg.game.sim.service;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
@@ -14,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,22 +32,23 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
     /**
      * 加载技能
      */
-    public void onLoadSlotsSkills(SimPlayerContext ctx) {
+    public void onLoadSlotsSkills(SimPlayerContext ctx, int gameType) {
         ResSimGetSkills res = new ResSimGetSkills(Code.SUCCESS);
         try {
             //加载技能数据
-            List<SimSkillsData> list = simSkillsDao.findByPlayerId(ctx.playerId());
-            if (list != null && !list.isEmpty()) {
-                list.forEach(skillsData -> {
-                    ctx.getSkillsDataMap().put(skillsData.getGameType(), skillsData);
-                });
+            SimSkillsData data = ctx.getSkillData(gameType);
+            if (data == null) {
+                data = simSkillsDao.findByGameType(ctx.playerId(), gameType);
+                if (data != null) {
+                    ctx.getSkillsDataMap().put(data.getGameType(), data);
+                }
             }
 
-            res.skills = new ArrayList<>();
-
-            for (SimSkillsData value : ctx.getSkillsDataMap().values()) {
-                res.skills.add(SimPbConverter.toGameSkills(value));
+            if (data != null) {
+                res.skills = new ArrayList<>();
+                res.skills.add(SimPbConverter.toGameSkills(data));
             }
+            log.info("玩家加载技能 playerId={},res={}", ctx.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

@@ -18,4 +18,6 @@ public class BuildingInfo {
     public long cdEndTime;
     @ProtoDesc("进度条")
     public int progress;
+    @ProtoDesc("已经观看的广告次数")
+    public int watchAdCount;
 }

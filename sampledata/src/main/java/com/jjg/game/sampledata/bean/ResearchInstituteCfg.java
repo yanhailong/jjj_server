@@ -19,10 +19,17 @@ public class ResearchInstituteCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "ResearchInstitute";
 
+  /** 场景id */
+  protected int RegionID;
   /** 解锁游戏id */
   protected int gameType;
   /** 研究院等级 */
   protected int level;
+
+  /** 返回场景id */
+  public int getRegionID() {
+    return RegionID;
+  }
 
   /** 返回解锁游戏id */
   public int getGameType() {

@@ -19,17 +19,12 @@ public class MedalListCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "MedalList";
 
-  /** 赌场ID */
-  protected int CasinoId;
   /** 需求道具 */
   protected int ItemId;
   /** 勋章图标资源 */
   protected String PicRes;
-
-  /** 返回赌场ID */
-  public int getCasinoId() {
-    return CasinoId;
-  }
+  /** 场景ID */
+  protected int RegionID;
 
   /** 返回需求道具 */
   public int getItemId() {
@@ -39,6 +34,11 @@ public class MedalListCfg extends BaseCfgBean {
   /** 返回勋章图标资源 */
   public String getPicRes() {
     return PicRes;
+  }
+
+  /** 返回场景ID */
+  public int getRegionID() {
+    return RegionID;
   }
 
   @Override

@@ -38,6 +38,7 @@ public final class SimPbConverter {
         info.level = buildingData.getLevel();
         info.cdEndTime = buildingData.getCdEndTime();
         info.progress = buildingData.getProgress();
+        info.watchAdCount = buildingData.getAdClearCount();
         return info;
     }
 

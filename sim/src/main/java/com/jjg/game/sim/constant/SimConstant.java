@@ -75,8 +75,10 @@ public interface SimConstant {
     }
 
     interface Common {
+        //默认解锁的场景id
+        int DEFAULT_CASINO_ID = 1;
         //默认赌场STATS id (CasinoStatsSheetCfg level=0)
-        int DEFAULT_CASINO_STATS_ID = 1001;
+        int DEFAULT_CASINO_STATS_ID = 1000;
         //"赌场满员"判定窗口 (ms) — 10 分钟
         long CAPACITY_WINDOW_MS = 10 * 60 * 1000L;
 
@@ -90,6 +92,13 @@ public interface SimConstant {
         int GLOBAL_AD_MULTIPLIER_ID = 135;
     }
 
+    interface Global{
+        //每次观看广告清除的时间(分钟)
+        int ID_WATCH_AD_CLEAR_TIME = 136;
+        //观看广告次数限制
+        int ID_WATCH_AD_LIMIT = 137;
+    }
+
     /**
      * 产出资源物品id
      */
@@ -98,6 +107,8 @@ public interface SimConstant {
         int ID_POWER = 1024001;
         //知名度
         int ID_AWARENESS = 1024002;
+
+        int ID_CLEAR_CD = 1024007;
     }
 
     /**

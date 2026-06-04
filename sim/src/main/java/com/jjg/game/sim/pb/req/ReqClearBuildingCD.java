@@ -4,10 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.constant.SimConstant;
-
-import java.util.List;
 
 /**
  * @author 11
@@ -18,6 +15,8 @@ import java.util.List;
 public class ReqClearBuildingCD extends AbstractMessage {
     @ProtoDesc("建筑id")
     public int id;
-    @ProtoDesc("消耗道具列表 (itemId -> count)")
-    public List<KVInfo> costItems;
+    @ProtoDesc("消耗道具数量")
+    public int costCount;
+    @ProtoDesc("是否看广告")
+    public boolean watchAd;
 }

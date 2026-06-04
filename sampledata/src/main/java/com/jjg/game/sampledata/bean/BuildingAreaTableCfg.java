@@ -21,10 +21,10 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
 
   /** 建筑名称ID */
   protected int BuildingNameId;
-  /** 赌场ID */
-  protected int CasinoID;
   /** 受影响的雇员类型 */
   protected int EmployeeProfile;
+  /** 场景ID */
+  protected int RegionID;
   /** 序列ID */
   protected int SequenceID;
   /** 解锁消耗 */
@@ -39,14 +39,14 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
     return BuildingNameId;
   }
 
-  /** 返回赌场ID */
-  public int getCasinoID() {
-    return CasinoID;
-  }
-
   /** 返回受影响的雇员类型 */
   public int getEmployeeProfile() {
     return EmployeeProfile;
+  }
+
+  /** 返回场景ID */
+  public int getRegionID() {
+    return RegionID;
   }
 
   /** 返回序列ID */

@@ -13,4 +13,5 @@ import com.jjg.game.sim.constant.SimConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.REQ_SIM_GET_SKILLS)
 @ProtoDesc("获取slots技能")
 public class ReqSimGetSkills extends AbstractMessage {
+    public int gameType;
 }

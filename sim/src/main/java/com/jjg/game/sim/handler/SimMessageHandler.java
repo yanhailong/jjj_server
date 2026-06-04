@@ -9,22 +9,19 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.pb.req.*;
 import com.jjg.game.sim.service.SimBuildingService;
 import com.jjg.game.sim.service.SimEmployeeService;
-import com.jjg.game.sim.service.SimSkillService;
 import com.jjg.game.sim.service.SimGuestService;
+import com.jjg.game.sim.service.SimSkillService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -122,15 +119,8 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_CLEAR_BUILDING_CD)
     public void reqClearBuildingCD(PlayerController playerController, ReqClearBuildingCD req) {
-        Map<Integer, Long> costMap = new HashMap<>();
-        if (req.costItems != null) {
-            for (KVInfo kv : req.costItems) {
-                costMap.put(kv.key, (long) kv.value);
-            }
-        }
-
         execute(playerController, ctx -> {
-            buildingService.onClearBuildingCD(ctx, req.id, costMap);
+            buildingService.onClearBuildingCD(ctx, req.id, req.costCount, req.watchAd);
         });
     }
 
@@ -193,7 +183,7 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_SIM_GET_SKILLS)
     public void reqSlotsGetSkills(PlayerController playerController, ReqSimGetSkills req) {
         execute(playerController, ctx -> {
-            skillService.onLoadSlotsSkills(ctx);
+            skillService.onLoadSlotsSkills(ctx, req.gameType);
         });
     }
 

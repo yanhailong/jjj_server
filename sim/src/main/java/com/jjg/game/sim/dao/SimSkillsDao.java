@@ -29,6 +29,12 @@ public class SimSkillsDao extends MongoBaseDao<SimSkillsData, String> {
         return mongoTemplate.find(query, SimSkillsData.class);
     }
 
+    public SimSkillsData findByGameType(long playerId,int gameType) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("id").is(SimSkillsData.buildKey(playerId, gameType)));
+        return mongoTemplate.findOne(query, SimSkillsData.class);
+    }
+
     public void saveAll(Collection<SimSkillsData> skillsDataList) {
         if (skillsDataList == null || skillsDataList.isEmpty()) {
             return;

@@ -185,7 +185,6 @@ public class SimManager implements OnSwitchNode {
         simCasinoService.loadCasinoData(ctx, baseData);
         //加载雇员数据
         employeeService.loadEmployeeData(ctx);
-
         ctx.setSimBaseData(baseData);
         this.contextMap.put(playerId, ctx);
         return ctx;

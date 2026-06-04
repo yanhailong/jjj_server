@@ -25,7 +25,7 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   protected int OfflineDuration;
   /** 基础繁荣度 */
   protected int Prosperity;
-  /** 地区 ID */
+  /** 场景 ID */
   protected int RegionID;
   /** 升级消耗数量 */
   protected int UpgradeCost;
@@ -49,7 +49,7 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
     return Prosperity;
   }
 
-  /** 返回地区 ID */
+  /** 返回场景 ID */
   public int getRegionID() {
     return RegionID;
   }

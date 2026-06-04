@@ -5,6 +5,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.pb.struct.BuildingInfo;
 
 /**
  * @author 11
@@ -13,8 +14,8 @@ import com.jjg.game.sim.constant.SimConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.RES_CLEAR_BUILDING_CD, resp = true)
 @ProtoDesc("清除建筑升级CD返回")
 public class ResClearBuildingCD extends AbstractResponse {
-    @ProtoDesc("建筑id")
-    public int id;
+    @ProtoDesc("建筑信息")
+    public BuildingInfo buildingInfo;
 
     public ResClearBuildingCD(int code) {
         super(code);
