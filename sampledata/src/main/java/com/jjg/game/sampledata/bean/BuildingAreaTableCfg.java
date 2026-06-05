@@ -23,6 +23,8 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   protected int BuildingNameId;
   /** 受影响的雇员类型 */
   protected int EmployeeProfile;
+  /** 等级上限 */
+  protected int MaxLevel;
   /** 场景ID */
   protected int RegionID;
   /** 序列ID */
@@ -42,6 +44,11 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   /** 返回受影响的雇员类型 */
   public int getEmployeeProfile() {
     return EmployeeProfile;
+  }
+
+  /** 返回等级上限 */
+  public int getMaxLevel() {
+    return MaxLevel;
   }
 
   /** 返回场景ID */

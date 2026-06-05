@@ -23,9 +23,7 @@ public class SimPlayerContext {
     private Map<Integer, SimSkillsData> skillsDataMap = new HashMap<>();
     //雇员 employeeId -> data (玩家级, 跨赌场共享)
     private Map<Integer, SimEmployeeData> employeeMap = new HashMap<>();
-    //玩家拥有的赌场
-    private Map<Integer, SimCasinoData> casinoMap = new HashMap<>();
-    //当前赌场引用缓存 (由 setPlayerGameData / switchCasino / setCasinoMap 维护)
+    //当前所在赌场 (内存中仅保留当前赌场, 切换时落库旧赌场并加载新赌场)
     private SimCasinoData currentCasino;
 
     //待领取的离线收益 (上线计算, 领取后清空)
@@ -48,7 +46,6 @@ public class SimPlayerContext {
 
     public void setSimBaseData(SimBaseData simBaseData) {
         this.simBaseData = simBaseData;
-        refreshCurrentCasino();
     }
 
     public Map<Integer, SimSkillsData> getSkillsDataMap() {
@@ -91,50 +88,28 @@ public class SimPlayerContext {
     }
 
     // ---------------------------------------------------------------------
-    // 赌场数据访问
+    // 赌场数据访问 (内存仅保留当前赌场)
     // ---------------------------------------------------------------------
 
-    public Map<Integer, SimCasinoData> getCasinoMap() {
-        return casinoMap;
-    }
-
-    public void setCasinoMap(Map<Integer, SimCasinoData> casinoMap) {
-        this.casinoMap = casinoMap == null ? new HashMap<>() : casinoMap;
-        refreshCurrentCasino();
-    }
-
-    public SimCasinoData getCasino(int casinoId) {
-        return casinoMap.get(casinoId);
-    }
-
-    public void putCasino(SimCasinoData casino) {
-        casinoMap.put(casino.getCasinoId(), casino);
-    }
-
     /**
-     * 获取当前所在赌场 (走缓存)
+     * 获取当前所在赌场
      */
     public SimCasinoData getCurrentCasino() {
         return currentCasino;
     }
 
     /**
-     * 切换当前赌场
+     * 设置当前赌场实体 (由 SimCasinoService 在加载/切换时维护)
      */
-    public void switchCasino(int casinoId) {
-        this.simBaseData.setCurrentCasinoId(casinoId);
-        refreshCurrentCasino();
+    public void setCurrentCasino(SimCasinoData currentCasino) {
+        this.currentCasino = currentCasino;
     }
 
     /**
-     * 根据 playerGameData.currentCasinoId 刷新当前赌场引用
+     * 切换当前赌场 id (内存赌场实体替换由 SimCasinoService 完成)
      */
-    public void refreshCurrentCasino() {
-        if (this.simBaseData == null) {
-            this.currentCasino = null;
-            return;
-        }
-        this.currentCasino = casinoMap.get(this.simBaseData.getCurrentCasinoId());
+    public void switchCasino(int casinoId) {
+        this.simBaseData.setCurrentCasinoId(casinoId);
     }
 
     public SimOfflineReward getPendingOffline() {

@@ -27,14 +27,14 @@ public class SimCasinoData extends AbstractData {
     private long playerId;
     //赌场id (业务 id, 配合 CasinoListCfg)
     private int casinoId;
+    //经验
+    private int exp;
     //等级id
     private int statsId;
     //当前繁荣度
     private int prosperity;
     //知名度 (赌场宣传度)
     private int awareness;
-    //能量值 (上限/速率受休息区等级控制, 每赌场独立)
-    private int power;
     //研究点 (类型 -> 数量; 类型: 1.普通 2.珍惜)
     private Map<Integer, Integer> researchPointMap;
     //建筑数据
@@ -75,6 +75,14 @@ public class SimCasinoData extends AbstractData {
 
     public void setCasinoId(int casinoId) {
         this.casinoId = casinoId;
+    }
+
+    public int getExp() {
+        return exp;
+    }
+
+    public void setExp(int exp) {
+        this.exp = exp;
     }
 
     public int getStatsId() {
@@ -159,28 +167,6 @@ public class SimCasinoData extends AbstractData {
 
     public void setLastOutputTime(long lastOutputTime) {
         this.lastOutputTime = lastOutputTime;
-    }
-
-    /**
-     * 增加能量值 (休息区产出)
-     */
-    public void addPower(long delta) {
-        long v = this.power + delta;
-        if (v > Integer.MAX_VALUE) {
-            v = Integer.MAX_VALUE;
-        }
-        if (v < 0) {
-            v = 0;
-        }
-        this.power = (int) v;
-    }
-
-    public int getPower() {
-        return power;
-    }
-
-    public void setPower(int power) {
-        this.power = power;
     }
 
     public Map<Integer, Integer> getResearchPointMap() {

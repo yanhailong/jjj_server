@@ -1,8 +1,11 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.WeightRandom;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.CasinoListCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
@@ -22,10 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 游客生成、解锁
@@ -41,6 +41,8 @@ public class SimGuestService implements SimPlayerTickListener {
     private SimConfigCacheService configCache;
     @Autowired
     private SimRewardService rewardService;
+    @Autowired
+    private PlayerPackService playerPackService;
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
@@ -113,6 +115,21 @@ public class SimGuestService implements SimPlayerTickListener {
             casino.setLastGenerateTime(now);
             log.warn("生成游客失败，目的地序列为空 playerId={},guestId={}", ctx.playerId(), visitorQuestCfg.getId());
             return;
+        }
+
+        Map<Integer, Long> rewardsMap = new HashMap<>();
+        for (DestinationInfo info : destinations) {
+            if (info.rewards == null || info.rewards.isEmpty()) {
+                continue;
+            }
+
+            for (ItemInfo itemInfo : info.rewards) {
+                rewardsMap.merge(itemInfo.itemId, itemInfo.count, Long::sum);
+            }
+        }
+        if (!rewardsMap.isEmpty()) {
+            //添加道具
+            playerPackService.addItems(ctx.playerId(), rewardsMap, AddType.SIM_GUEST_REWARDS);
         }
 
         //累加经验
@@ -209,13 +226,31 @@ public class SimGuestService implements SimPlayerTickListener {
      * - 目标建筑未解锁/未配置则跳过该次交互
      */
     private List<DestinationInfo> planDestinations(GuestData guest, VisitorQuestCfg cfg, SimCasinoData casino, int rewardedCount, int unrewardedCount) {
-        List<DestinationInfo> result = new ArrayList<>(rewardedCount + unrewardedCount);
+        int allCount = rewardedCount + unrewardedCount;
+        if (allCount < 1) {
+            return Collections.emptyList();
+        }
+        List<DestinationInfo> result = new ArrayList<>(allCount);
 
         //有奖励: InteractionWeight (Map<buildingId, weight>)
         Map<Integer, Integer> interactionWeight = cfg.getInteractionWeight();
         if (rewardedCount > 0 && interactionWeight != null && !interactionWeight.isEmpty()) {
+            WeightRandom<Integer> random = WeightRandom.create();
+            for (Map.Entry<Integer, Integer> en : interactionWeight.entrySet()) {
+                if (en.getValue() == null || en.getValue() <= 0) {
+                    continue;
+                }
+                if (!isBuildingUnlocked(en.getKey(), casino)) {
+                    continue;
+                }
+                random.add(en.getKey(), en.getValue());
+            }
             for (int i = 0; i < rewardedCount; i++) {
-                DestinationInfo dest = pickRandomDestination(interactionWeight, casino);
+                Integer buildingId = random.next();
+                if (buildingId == null) {
+                    continue;
+                }
+                DestinationInfo dest = pickBuildingDevice(buildingId, casino);
                 if (dest != null) {
                     rewardService.grantReward(guest, dest);
                     result.add(dest);
@@ -241,27 +276,6 @@ public class SimGuestService implements SimPlayerTickListener {
         }
 
         return result;
-    }
-
-    /**
-     * 按 InteractionWeight 加权随机一个建筑 + 设备 (建筑必须已解锁)
-     */
-    private DestinationInfo pickRandomDestination(Map<Integer, Integer> weightMap, SimCasinoData casino) {
-        WeightRandom<Integer> random = WeightRandom.create();
-        for (Map.Entry<Integer, Integer> en : weightMap.entrySet()) {
-            if (en.getValue() == null || en.getValue() <= 0) {
-                continue;
-            }
-            if (!isBuildingUnlocked(en.getKey(), casino)) {
-                continue;
-            }
-            random.add(en.getKey(), en.getValue());
-        }
-        Integer buildingId = random.next();
-        if (buildingId == null) {
-            return null;
-        }
-        return pickBuildingDevice(buildingId, casino);
     }
 
     /**

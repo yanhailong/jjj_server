@@ -1,10 +1,7 @@
 package com.jjg.game.sim.pb;
 
 import com.jjg.game.core.pb.KVInfo;
-import com.jjg.game.sim.data.BuildingData;
-import com.jjg.game.sim.data.GuestData;
-import com.jjg.game.sim.data.SimEmployeeData;
-import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.pb.struct.*;
 
 import java.util.ArrayList;
@@ -74,5 +71,33 @@ public final class SimPbConverter {
             }
         }
         return gs;
+    }
+
+    /**
+     * 赌场建筑列表 -> 协议结构 (无建筑返回 null)
+     */
+    public static List<BuildingInfo> toBuildingInfos(SimCasinoData casino) {
+        if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
+            return null;
+        }
+        List<BuildingInfo> list = new ArrayList<>(casino.getBuildingData().size());
+        for (BuildingData b : casino.getBuildingData().values()) {
+            list.add(SimPbConverter.toBuildingInfo(b));
+        }
+        return list;
+    }
+
+    /**
+     * 赌场主管列表 -> 协议结构 (无主管返回 null)
+     */
+    public static List<KVInfo> toManagerInfos(SimCasinoData casino) {
+        if (casino == null || casino.getManagerEmployMap() == null || casino.getManagerEmployMap().isEmpty()) {
+            return null;
+        }
+        List<KVInfo> list = new ArrayList<>(casino.getManagerEmployMap().size());
+        for (Map.Entry<Integer, Integer> en : casino.getManagerEmployMap().entrySet()) {
+            list.add(SimPbConverter.toManageEmpInfo(en.getKey(), en.getValue()));
+        }
+        return list;
     }
 }

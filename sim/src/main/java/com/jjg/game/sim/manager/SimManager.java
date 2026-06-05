@@ -97,20 +97,10 @@ public class SimManager implements OnSwitchNode {
             res.currentCasinoId = ctx.getCurrentCasino().getCasinoId();
 
             //添加建筑数据
-            if (ctx.getCurrentCasino().getBuildingData() != null && !ctx.getCurrentCasino().getBuildingData().isEmpty()) {
-                res.buildings = new ArrayList<>();
-                for (Map.Entry<Integer, BuildingData> en : ctx.getCurrentCasino().getBuildingData().entrySet()) {
-                    res.buildings.add(SimPbConverter.toBuildingInfo(en.getValue()));
-                }
-            }
+            res.buildings = SimPbConverter.toBuildingInfos(ctx.getCurrentCasino());
 
             //添加主管信息
-            if (ctx.getCurrentCasino().getManagerEmployMap() != null && !ctx.getCurrentCasino().getManagerEmployMap().isEmpty()) {
-                res.managerEmployInfos = new ArrayList<>();
-                for (Map.Entry<Integer, Integer> en : ctx.getCurrentCasino().getManagerEmployMap().entrySet()) {
-                    res.managerEmployInfos.add(SimPbConverter.toManageEmpInfo(en.getKey(),en.getValue()));
-                }
-            }
+            res.managerEmployInfos = SimPbConverter.toManagerInfos(ctx.getCurrentCasino());
 
             //添加雇员信息
             if (ctx.getEmployeeMap() != null && !ctx.getEmployeeMap().isEmpty()) {
@@ -179,6 +169,7 @@ public class SimManager implements OnSwitchNode {
         if (baseData == null) {
             baseData = new SimBaseData();
             baseData.setPlayerId(playerId);
+            baseData.setPower(10000);
         }
 
         //加载场景数据
@@ -216,7 +207,9 @@ public class SimManager implements OnSwitchNode {
                 onExitGame(en.getKey(), ExitType.DROPPED);
 
                 gameDataList.add(ctx.getSimBaseData());
-                simCasinoDataList.addAll(ctx.getCasinoMap().values());
+                if (ctx.getCurrentCasino() != null) {
+                    simCasinoDataList.add(ctx.getCurrentCasino());
+                }
                 simEmployeeDataList.addAll(ctx.getEmployeeMap().values());
                 skillDataList.addAll(ctx.getSkillsDataMap().values());
             } catch (Exception e) {
@@ -244,7 +237,9 @@ public class SimManager implements OnSwitchNode {
         autoSaveService.awaitPending();
 
         simPlayerGameDao.save(ctx.getSimBaseData());
-        simCasinoDao.saveAll(ctx.getCasinoMap().values());
+        if (ctx.getCurrentCasino() != null) {
+            simCasinoDao.save(ctx.getCurrentCasino());
+        }
         simEmployeeDao.saveAll(ctx.getEmployeeMap().values());
         simSkillsDao.saveAll(ctx.getSkillsDataMap().values());
         //删除本节点上玩家的sim节点路由信息

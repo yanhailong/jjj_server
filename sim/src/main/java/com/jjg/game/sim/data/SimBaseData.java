@@ -21,6 +21,8 @@ public class SimBaseData extends AbstractData {
     private boolean guide;
     //上次离线时间 (ms), 用于长/短时掉线判定
     private long lastOfflineTime;
+    //能量值
+    private int power;
 
     public long getPlayerId() {
         return playerId;
@@ -60,5 +62,13 @@ public class SimBaseData extends AbstractData {
 
     public void setLastOfflineTime(long lastOfflineTime) {
         this.lastOfflineTime = lastOfflineTime;
+    }
+
+    public int getPower() {
+        return power;
+    }
+
+    public void setPower(int power) {
+        this.power = power;
     }
 }

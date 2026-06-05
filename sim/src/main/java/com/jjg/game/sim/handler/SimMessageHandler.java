@@ -13,10 +13,7 @@ import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.pb.req.*;
-import com.jjg.game.sim.service.SimBuildingService;
-import com.jjg.game.sim.service.SimEmployeeService;
-import com.jjg.game.sim.service.SimGuestService;
-import com.jjg.game.sim.service.SimSkillService;
+import com.jjg.game.sim.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +42,8 @@ public class SimMessageHandler implements GmListener {
     private SimEmployeeService employeeService;
     @Autowired
     private SimSkillService skillService;
+    @Autowired
+    private SimCasinoService casinoService;
 
 
     /**
@@ -70,6 +69,28 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_FINISH_GUIDE)
     public void reqFinishGuide(PlayerController playerController, ReqFinishGuide req) {
         simManager.onFinishGuide(playerController.playerId());
+    }
+
+    //--------------------------Casino相关 begin--------------------------
+
+    /**
+     * 开辟新赌场
+     */
+    @Command(SimConstant.MsgBean.REQ_UNLOCK_CASINO)
+    public void reqUnlockCasino(PlayerController playerController, ReqUnlockCasino req) {
+        execute(playerController, ctx -> {
+            casinoService.onUnlockCasino(ctx, req.casinoId);
+        });
+    }
+
+    /**
+     * 切换赌场
+     */
+    @Command(SimConstant.MsgBean.REQ_SWITCH_CASINO)
+    public void reqSwitchCasino(PlayerController playerController, ReqSwitchCasino req) {
+        execute(playerController, ctx -> {
+            casinoService.onSwitchCasino(ctx, req.casinoId);
+        });
     }
 
     //--------------------------建筑相关 begin--------------------------
@@ -253,16 +274,20 @@ public class SimMessageHandler implements GmListener {
                 execute(playerController, ctx -> {
                     buildingService.gmSettleOutput(ctx);
                 });
-            } else if ("printPower".equalsIgnoreCase(gmOrders[0])) {
-                execute(playerController, ctx -> {
-                    buildingService.gmPrintPower(ctx);
-                });
             } else if ("claimOffline".equalsIgnoreCase(gmOrders[0])) {
                 boolean watchAd = gmOrders.length > 1 && "1".equals(gmOrders[1]);
 
                 ReqClaimOfflineReward req = new ReqClaimOfflineReward();
                 req.watchAd = watchAd;
                 reqClaimOfflineReward(playerController, req);
+            } else if ("unlockCasino".equalsIgnoreCase(gmOrders[0])) {
+                ReqUnlockCasino req = new ReqUnlockCasino();
+                req.casinoId = Integer.parseInt(gmOrders[1]);
+                reqUnlockCasino(playerController, req);
+            } else if ("switchCasino".equalsIgnoreCase(gmOrders[0])) {
+                ReqSwitchCasino req = new ReqSwitchCasino();
+                req.casinoId = Integer.parseInt(gmOrders[1]);
+                reqSwitchCasino(playerController, req);
             } else {
                 res.code = Code.NOT_FOUND;
             }

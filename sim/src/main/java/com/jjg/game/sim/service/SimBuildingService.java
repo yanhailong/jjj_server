@@ -227,9 +227,8 @@ public class SimBuildingService implements SimPlayerTickListener {
 
             //先检查是不是添加进度条
             if (currentCfg.getCostPerLevel() != null && !currentCfg.getCostPerLevel().isEmpty()) {
-                int allProgress = currentCfg.getCostPerLevel().size() - 1;
                 //添加进度条
-                if (data.getProgress() < allProgress) {
+                if (data.getProgress() < currentCfg.getCostPerLevel().size()) {
 
                     List<Integer> list = currentCfg.getCostPerLevel().get(data.getProgress());
                     if (!checkAndConsumeItem(ctx, list.get(0), list.get(1))) {
@@ -257,14 +256,14 @@ public class SimBuildingService implements SimPlayerTickListener {
                 return;
             }
             //建筑等级 <= 经营等级 (简化: 以赌场 stats level 为经营等级)
-            CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
-            int operationLevel = statsCfg == null ? 0 : statsCfg.getLevel();
-            if (targetLevel > operationLevel + 1) {
-                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},targetLevel={},operationLevel={}", ctx.playerId(), buildingId, targetLevel, operationLevel);
-                res.code = Code.NOT_ENOUGH;
-                ctx.send(res);
-                return;
-            }
+//            CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
+//            int operationLevel = statsCfg == null ? 0 : statsCfg.getLevel();
+//            if (targetLevel > operationLevel + 1) {
+//                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},targetLevel={},operationLevel={}", ctx.playerId(), buildingId, targetLevel, operationLevel);
+//                res.code = Code.NOT_ENOUGH;
+//                ctx.send(res);
+//                return;
+//            }
             if (!checkAndConsumeItems(ctx, next.getUpgradeCost())) {
                 log.warn("升级建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, next.getUpgradeCost());
                 res.code = Code.NOT_ENOUGH;
@@ -272,7 +271,8 @@ public class SimBuildingService implements SimPlayerTickListener {
                 return;
             }
             long cdMs = (long) next.getUpgradeCD() * 60_000L;
-            data.setCdEndTime(now + cdMs);
+//            data.setCdEndTime(now + cdMs);
+            data.setCdEndTime(5000);
             res.buildingInfo = SimPbConverter.toBuildingInfo(data);
             log.info("升级建筑启动 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
         } catch (Exception e) {
@@ -372,6 +372,14 @@ public class SimBuildingService implements SimPlayerTickListener {
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+    }
+
+
+    /**
+     * 立即结算当前赌场已积累的整分钟在线产出 (切换赌场前调用, 避免余量丢失)
+     */
+    public void settleOnlineOutput(SimPlayerContext ctx) {
+        output(ctx, System.currentTimeMillis());
     }
 
     /**
@@ -732,8 +740,11 @@ public class SimBuildingService implements SimPlayerTickListener {
         if (items == null || items.isEmpty()) {
             return true;
         }
-        //占位: 假装成功扣除 (实际项目应该走 PlayerPackService)
-        log.debug("[stub] 扣除资源 playerId={},items={}", ctx.playerId(), items);
+        CommonResult<ItemOperationResult> result = playerPackService.removeItems(ctx.getPlayerController().getPlayer(), items, AddType.SIM_BUILDING_UPGRADE, null);
+        if (!result.success()) {
+            log.warn("扣除道具失败 playerId={},items={},code={}", ctx.playerId(), items, result.code);
+            return false;
+        }
         return true;
     }
 
@@ -742,8 +753,11 @@ public class SimBuildingService implements SimPlayerTickListener {
      * TODO: 接入 PlayerPackService.removeItems / 货币系统
      */
     private boolean checkAndConsumeItem(SimPlayerContext ctx, int itemId, long count) {
-        //占位: 假装成功扣除 (实际项目应该走 PlayerPackService)
-        log.debug("[stub] 扣除资源 playerId={},itemId={},count={}", ctx.playerId(), itemId, count);
+        CommonResult<ItemOperationResult> result = playerPackService.removeItem(ctx.playerId(), itemId, count, AddType.SIM_BUILDING_UPGRADE);
+        if (!result.success()) {
+            log.warn("扣除道具失败 playerId={},itemId={},count={},code={}", ctx.playerId(), itemId, count, result.code);
+            return false;
+        }
         return true;
     }
 
@@ -767,15 +781,6 @@ public class SimBuildingService implements SimPlayerTickListener {
         SimCasinoData casino = ctx.getCurrentCasino();
         Map<Integer, Long> perMinute = computePerMinuteOutput(ctx, casino);
         creditResources(ctx, perMinute, AddType.SIM_BUILD_MINUTE_REWARDS);
-        log.info("gmSettleOutput playerId={},perMinute={},power={}", ctx.playerId(), perMinute, casino.getPower());
-    }
-
-
-    /**
-     * GM: 打印当前赌场能量与每分钟产出 (测试用)
-     */
-    public void gmPrintPower(SimPlayerContext ctx) {
-        SimCasinoData casino = ctx.getCurrentCasino();
-        log.info("gmPrintPower playerId={},casinoId={},power={},perMinuteOutput={}", ctx.playerId(), casino.getCasinoId(), casino.getPower(), computePerMinuteOutput(ctx, casino));
+        log.info("gmSettleOutput playerId={},perMinute={}", ctx.playerId(), perMinute);
     }
 }

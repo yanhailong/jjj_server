@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.jjg.game.sim.data.AbstractData;
 import com.jjg.game.sim.data.SimBaseData;
+import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.mongodb.client.model.ReplaceOptions;
@@ -70,7 +71,8 @@ public class SimAutoSaveService implements SimPlayerTickListener {
         }
 
         boolean enqueued = enqueueIfChanged(base);
-        for (AbstractData casino : ctx.getCasinoMap().values()) {
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (casino != null) {
             enqueued |= enqueueIfChanged(casino);
         }
         for (AbstractData employee : ctx.getEmployeeMap().values()) {

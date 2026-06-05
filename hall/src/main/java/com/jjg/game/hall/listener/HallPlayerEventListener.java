@@ -101,8 +101,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private PlayerSnapshotService playerSnapshotService;
     @Autowired
     private SimManager simManager;
-//    @Autowired
-//    private SimPlayerGameDao simPlayerGameDao;
 
     public void init() {
     }
@@ -242,7 +240,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.backgroundId = player.getBackgroundId();
             res.cardBackgroundId = player.getCardBackgroundId();
             //添加游戏列表
-            res.gameList = hallService.getSortGameListByResearchId(playerSessionToken.getWesteId(), playerSessionToken.getClientVersion(), 1);
+            res.gameList = hallService.getSortGameList(player.getId(), playerSessionToken.getWesteId(), playerSessionToken.getClientVersion());
             //添加跑马灯
             res.marqueeInfo = addMarquee();
 

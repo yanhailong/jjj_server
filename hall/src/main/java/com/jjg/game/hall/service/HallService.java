@@ -37,6 +37,8 @@ import com.jjg.game.hall.pb.struct.WarePoolInfo;
 import com.jjg.game.hall.utils.HallTool;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sim.data.SimCasinoUnlock;
+import com.jjg.game.sim.service.SimCasinoService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +95,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private AdjustConfig adjustConfig;
     @Autowired
     public NewGameExpectDao newGameExpectDao;
+    @Autowired
+    private SimCasinoService simCasinoService;
 
     //普通场次缓存信息
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
@@ -115,7 +119,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     //体验场次游戏倍场界面的奖池
     private Map<Integer, List<WarePoolInfo>> expeiencePoolMap;
 
-    private Map<Integer, Integer> simOpenGames;
+    private Map<Integer, Map<Integer, Integer>> simOpenGames;
 
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
@@ -903,8 +907,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
     @Override
     public void initSampleCallbackCollector() {
-        addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData).addChangeSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
-        addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig).addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig);
+        addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
+        addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig);
+        addInitSampleFileObserveWithCallBack(ResearchInstituteCfg.EXCEL_NAME, this::initResearchConfig);
         addChangeSampleFileObserveWithCallBack(UndergarmentCfg.EXCEL_NAME, this::sortWesteGameList);
         addChangeSampleFileObserveWithCallBack(ResearchInstituteCfg.EXCEL_NAME, this::sortWesteGameList);
     }
@@ -971,9 +976,10 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     }
 
     private void initResearchConfig() {
-        Map<Integer, Integer> tmpSimOpenGames = new HashMap<>();
+        Map<Integer, Map<Integer, Integer>> tmpSimOpenGames = new HashMap<>();
         for (ResearchInstituteCfg cfg : GameDataManager.getResearchInstituteCfgList()) {
-            tmpSimOpenGames.put(cfg.getGameType(), cfg.getLevel());
+            Map<Integer, Integer> tmpMap = tmpSimOpenGames.computeIfAbsent(cfg.getRegionID(), k -> new HashMap<>());
+            tmpMap.put(cfg.getGameType(), cfg.getLevel());
         }
         this.simOpenGames = tmpSimOpenGames;
     }
@@ -1084,10 +1090,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      *
      * @param westeId
      * @param clientVersion
-     * @param researchId
      * @return
      */
-    public List<GameListConfig> getSortGameListByResearchId(int westeId, String clientVersion, int researchId) {
+    public List<GameListConfig> getSortGameList(long playerId, int westeId, String clientVersion) {
         List<GameListConfig> gameListConfigList = getSortGameList(westeId);
         if (gameListConfigList == null || gameListConfigList.isEmpty()
                 || StringUtils.isEmpty(clientVersion)
@@ -1097,13 +1102,36 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return gameListConfigList;
         }
 
+        SimCasinoUnlock casinoUnlock = simCasinoService.getCasinoUnlock(playerId);
+        if (casinoUnlock == null || casinoUnlock.getResearchLevelMap() == null || casinoUnlock.getResearchLevelMap().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Set<Integer> openGameTypeSet = new HashSet<>();
+        for (Map.Entry<Integer, Integer> en : casinoUnlock.getResearchLevelMap().entrySet()) {
+            Map<Integer, Integer> tmpMap = this.simOpenGames.get(en.getKey());
+            if (tmpMap == null || tmpMap.isEmpty()) {
+                continue;
+            }
+            int researchLevel = en.getValue();
+
+            for (Map.Entry<Integer, Integer> en2 : tmpMap.entrySet()) {
+                if (researchLevel >= en2.getKey()) {
+                    openGameTypeSet.add(en2.getValue());
+                }
+            }
+        }
+
+        if (openGameTypeSet.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         List<GameListConfig> newList = new ArrayList<>();
         for (GameListConfig cfg : gameListConfigList) {
             GameListConfig newConfig = new GameListConfig();
             BeanUtils.copyProperties(cfg, newConfig);
 
-            Integer level = this.simOpenGames.get(cfg.sid);
-            if (level == null || level > researchId) {
+            if (!openGameTypeSet.contains(cfg.sid)) {
                 newConfig.status = 2;
             }
             newList.add(cfg);

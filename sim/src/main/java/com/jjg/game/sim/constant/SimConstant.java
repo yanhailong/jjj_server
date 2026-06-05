@@ -72,6 +72,14 @@ public interface SimConstant {
         //获取建筑信息
         int REQ_BUILDING_INFO = BASE_MSG_PREFIX | 0x1E;
         int RES_BUILDING_INFO = BASE_MSG_PREFIX | 0x1F;
+
+        //开辟新场景
+        int REQ_UNLOCK_CASINO = BASE_MSG_PREFIX | 0x20;
+        int RES_UNLOCK_CASINO = BASE_MSG_PREFIX | 0x21;
+
+        //切换场景
+        int REQ_SWITCH_CASINO = BASE_MSG_PREFIX | 0x22;
+        int RES_SWITCH_CASINO = BASE_MSG_PREFIX | 0x23;
     }
 
     interface Common {

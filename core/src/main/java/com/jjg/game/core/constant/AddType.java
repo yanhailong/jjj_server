@@ -272,7 +272,11 @@ public enum AddType {
     //sim游戏每分钟产出
     SIM_BUILD_MINUTE_REWARDS(1801),
     //sim游戏离线收益
-    SIM_BUILD_OFFLINE_REWARDS(1802);
+    SIM_BUILD_OFFLINE_REWARDS(1802),
+    //sim游戏游客产出
+    SIM_GUEST_REWARDS(1803),
+    //建筑升级
+    SIM_BUILDING_UPGRADE(1804);
     private int value;
 
     AddType(int value) {
