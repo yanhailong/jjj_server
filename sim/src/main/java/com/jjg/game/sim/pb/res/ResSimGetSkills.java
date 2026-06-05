@@ -4,6 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.pb.struct.GameSkills;
 
@@ -18,6 +19,8 @@ import java.util.List;
 public class ResSimGetSkills extends AbstractResponse {
     @ProtoDesc("技能列表")
     public List<GameSkills> skills;
+    @ProtoDesc("研究点")
+    public List<KVInfo> researchPoints;
 
     public ResSimGetSkills(int code) {
         super(code);

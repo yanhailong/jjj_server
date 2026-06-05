@@ -3,6 +3,7 @@ package com.jjg.game.sim.service;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PropCfg;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
@@ -91,6 +92,17 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 res.skills = new ArrayList<>();
                 res.skills.add(SimPbConverter.toGameSkills(data));
             }
+
+            if (ctx.getCurrentCasino().getResearchPointMap() != null && !ctx.getCurrentCasino().getResearchPointMap().isEmpty()) {
+                res.researchPoints = new ArrayList<>();
+                for (Map.Entry<Integer, Integer> en : ctx.getCurrentCasino().getResearchPointMap().entrySet()) {
+                    KVInfo kvInfo = new KVInfo();
+                    kvInfo.key = en.getKey();
+                    kvInfo.value = en.getValue();
+                    res.researchPoints.add(kvInfo);
+                }
+            }
+
             log.info("玩家加载技能 playerId={},res={}", ctx.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
