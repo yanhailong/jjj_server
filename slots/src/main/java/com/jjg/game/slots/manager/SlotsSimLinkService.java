@@ -1,5 +1,6 @@
 package com.jjg.game.slots.manager;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -44,18 +46,25 @@ public class SlotsSimLinkService {
      */
     public void notifySpin(PlayerController playerController, int gameType, int winTimes) {
         ClusterClient client = simNodeService.getSimClusterClient(playerController.playerId());
-        if(client == null){
+        if (client == null) {
             return;
         }
 
         GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
 
         CommonResult<Map<Integer, Long>> result = toSimBridge.onSlotsSpin(playerController.playerId(), gameType, winTimes);
-        if(!result.success() || result.data == null || result.data.isEmpty()){
+        if (!result.success() || result.data == null || result.data.isEmpty()) {
             return;
         }
+
+        Map<Integer, Long> newMap = new HashMap<>();
+        for (Map.Entry en : result.data.entrySet()) {
+            newMap.put(Integer.parseInt(en.getKey().toString()),Long.parseLong(en.getValue().toString()));
+        }
+
         NotifyItemDrop notify = new NotifyItemDrop();
-        notify.items = ItemUtils.buildItemInfo(result.data);
+        notify.items = ItemUtils.buildItemInfo(newMap);
         playerController.send(notify);
+        log.info("sim道具掉落 playerId={},res={}", playerController.playerId(), JSON.toJSONString(notify));
     }
 }
