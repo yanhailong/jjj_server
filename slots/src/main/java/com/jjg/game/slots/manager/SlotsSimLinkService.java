@@ -7,15 +7,17 @@ import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.pb.ActivityItemDropInfo;
+import com.jjg.game.core.pb.NotifyItemDropInfo;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sim.bridge.ToSimBridge;
-import com.jjg.game.sim.pb.res.NotifyItemDrop;
 import com.jjg.game.sim.service.SimNodeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -62,8 +64,11 @@ public class SlotsSimLinkService {
             newMap.put(Integer.parseInt(en.getKey().toString()),Long.parseLong(en.getValue().toString()));
         }
 
-        NotifyItemDrop notify = new NotifyItemDrop();
-        notify.items = ItemUtils.buildItemInfo(newMap);
+        NotifyItemDropInfo notify = new NotifyItemDropInfo();
+        notify.itemDropInfos = new ArrayList<>();
+        ActivityItemDropInfo dropInfo = new ActivityItemDropInfo();
+        dropInfo.itemMap = ItemUtils.buildItemInfo(newMap);
+        notify.itemDropInfos.add(dropInfo);
         playerController.send(notify);
         log.info("sim道具掉落 playerId={},res={}", playerController.playerId(), JSON.toJSONString(notify));
     }
