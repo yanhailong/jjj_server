@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -124,6 +125,13 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 ctx.send(res);
                 return;
             }
+            PropCfg propCfg = GameDataManager.getPropCfg(skillPropId);
+            if (propCfg == null) {
+                log.warn("升级技能失败，未找到prop配置 playerId={},skillPropId={}", skillData.getPlayerId(), skillPropId);
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
 
             Map<Integer, Map<Integer, ResearchSkillsCfg>> cfgMap = this.skillsCfgMap.get(skillData.getGameType());
             if (cfgMap == null || cfgMap.isEmpty()) {
@@ -176,6 +184,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 return;
             }
 
+
             //检查研究点是否足够
             for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
                 int researchPoint = casino.findResearchPoint(en.getKey());
@@ -191,8 +200,34 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
                 casino.deductResearchPoint(en.getKey(), en.getValue());
             }
-
             skillData.changeSkillLevel(skillPropId, newLevelCfg.getGrade());
+
+            res.gameType = gameType;
+            res.skillId = skillPropId;
+            res.nowLevel = newLevelCfg.getGrade();
+
+            res.researchPoints = new ArrayList<>();
+            for (Map.Entry<Integer, Integer> en : ctx.getCurrentCasino().getResearchPointMap().entrySet()) {
+                KVInfo kvInfo = new KVInfo();
+                kvInfo.key = en.getKey();
+                kvInfo.value = en.getValue();
+                res.researchPoints.add(kvInfo);
+            }
+
+            //新解锁的技能
+            if (propCfg.getSkillId() != null && !propCfg.getSkillId().isEmpty()) {
+                res.newUnlockSkills = new ArrayList<>();
+                for (Map.Entry<Integer, List<Integer>> en : propCfg.getSkillId().entrySet()) {
+                    if (newLevelCfg.getGrade() < en.getKey()) {
+                        continue;
+                    }
+                    for (int newSkillId : en.getValue()) {
+                        skillData.changeSkillLevel(newSkillId, 0);
+                        res.newUnlockSkills.add(newSkillId);
+                    }
+                }
+            }
+
             log.info("玩家技能升级成功 playerId={},propId={},newLevel={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getGrade());
         } catch (Exception e) {
             log.error("", e);

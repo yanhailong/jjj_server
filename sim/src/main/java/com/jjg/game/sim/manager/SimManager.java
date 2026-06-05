@@ -1,6 +1,7 @@
 package com.jjg.game.sim.manager;
 
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.utils.WheelTimerUtil;
@@ -74,6 +75,8 @@ public class SimManager {
     private SimSlotsDropService simSlotsDropService;
     @Autowired
     private SimSkillService simSkillService;
+    @Autowired
+    private ClusterSystem clusterSystem;
 
     /**
      * 初始化
@@ -107,6 +110,7 @@ public class SimManager {
     public void onEnterGame(PlayerController playerController) {
         ResSimEnterGame res = new ResSimEnterGame(Code.SUCCESS);
         try {
+            simNodeService.save(playerController.playerId(), clusterSystem.getNodePath());
             SimPlayerContext ctx = getContext(playerController.playerId());
             if (ctx == null) {
                 //兜底: 登录扩展点未触发时现场加载并结算离线收益
