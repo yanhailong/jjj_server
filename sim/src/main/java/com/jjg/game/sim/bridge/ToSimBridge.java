@@ -36,5 +36,5 @@ public interface ToSimBridge extends IGameRpc {
      * @param winTimes 本次中奖倍数 (allWinGold / allBetScore)
      * @return code
      */
-    int onSlotsSpin(long playerId, int gameType, int winTimes);
+    CommonResult<Map<Integer, Long>> onSlotsSpin(long playerId, int gameType, int winTimes);
 }

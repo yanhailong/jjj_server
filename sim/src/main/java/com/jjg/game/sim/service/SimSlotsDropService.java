@@ -3,6 +3,8 @@ package com.jjg.game.sim.service;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
@@ -46,18 +48,22 @@ public class SimSlotsDropService {
      * @param gameType slots 游戏类型 (如 SuperStar=100300)
      * @param winTimes 本次中奖倍数 (allWinGold / allBetScore)
      */
-    public void onSpin(SimPlayerContext ctx, int gameType, int winTimes) {
+    public CommonResult<Map<Integer, Long>> onSpin(SimPlayerContext ctx, int gameType, int winTimes) {
+        CommonResult<Map<Integer, Long>> result = new CommonResult<>(Code.SUCCESS);
+
         SimBaseData base = ctx.getSimBaseData();
         SimCasinoData casino = ctx.getCurrentCasino();
         if (base == null || casino == null) {
             log.warn("slots 联动失败, 基础数据或当前赌场为空 playerId={},gameType={}", ctx.playerId(), gameType);
-            return;
+            result.code = Code.FAIL;
+            return result;
         }
 
         //① 扣能量: 不足则跳过本次掉落联动 (不影响 slots 旋转本身)
         if (base.getPower() < SimConstant.Common.SPIN_COST_POWER) {
             log.info("能量不足, 跳过 slots 掉落联动 playerId={},gameType={},power={}", ctx.playerId(), gameType, base.getPower());
-            return;
+            result.code = Code.FAIL;
+            return result;
         }
         base.setPower(base.getPower() - SimConstant.Common.SPIN_COST_POWER);
 
@@ -70,11 +76,13 @@ public class SimSlotsDropService {
         //掉落
         Map<Integer, Long> dropResult = rollDrop(base, gameType, winTimes);
 
+        result.data = dropResult;
         //入背包
         if (!dropResult.isEmpty()) {
             playerPackService.addItems(ctx.playerId(), dropResult, AddType.SIM_SLOTS_DROP, false);
             log.info("slots 掉落入账 playerId={},gameType={},winTimes={},drop={}", ctx.playerId(), gameType, winTimes, dropResult);
         }
+        return result;
     }
 
     /**

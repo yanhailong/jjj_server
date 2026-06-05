@@ -80,6 +80,9 @@ public interface SimConstant {
         //切换场景
         int REQ_SWITCH_CASINO = BASE_MSG_PREFIX | 0x22;
         int RES_SWITCH_CASINO = BASE_MSG_PREFIX | 0x23;
+
+        //通知道具掉落
+        int NOTIFY_ITEM_DROP = BASE_MSG_PREFIX | 0x24;
     }
 
     interface Common {

@@ -194,8 +194,5 @@ public class SlotsConst {
         //获取游戏状态
         public static final int REQ_SLOTS_STATUS = BASE_MSG_PREFIX | 0x3;
         public static final int RES_SLOTS_STATUS = BASE_MSG_PREFIX | 0x4;
-
-        //通知道具掉落
-        public static final int NOTIFY_ITEM_DROP = BASE_MSG_PREFIX | 0x5;
     }
 }

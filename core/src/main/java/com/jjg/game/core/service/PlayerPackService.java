@@ -161,6 +161,9 @@ public class PlayerPackService implements IPlayerRegister {
                         playerId, itemId, item.getItemCount(), addType, desc);
                 continue;
             }
+            if(!itemCfg.getIsBag()){
+                continue;
+            }
             if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
                 addGold += Math.abs(item.getItemCount());
                 continue;

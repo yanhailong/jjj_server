@@ -151,19 +151,18 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     }
 
     @Override
-    public int onSlotsSpin(long playerId, int gameType, int winTimes) {
+    public CommonResult<Map<Integer, Long>> onSlotsSpin(long playerId, int gameType, int winTimes) {
         SimPlayerContext ctx = simManager.getContext(playerId);
         if (ctx == null) {
             //玩家未在 sim 在线: 跳过联动, 不影响 slots 旋转
             log.info("slots 联动跳过, 玩家未在 sim 在线 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes);
-            return Code.NOT_FOUND;
+            return new CommonResult<>(Code.NOT_FOUND);
         }
         try {
-            simSlotsDropService.onSpin(ctx, gameType, winTimes);
+            return simSlotsDropService.onSpin(ctx, gameType, winTimes);
         } catch (Exception e) {
             log.error("slots 联动异常 playerId=" + playerId + ",gameType=" + gameType, e);
-            return Code.EXCEPTION;
+            return new CommonResult<>(Code.EXCEPTION);
         }
-        return Code.SUCCESS;
     }
 }
