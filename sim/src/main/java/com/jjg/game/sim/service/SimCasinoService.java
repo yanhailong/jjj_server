@@ -292,12 +292,7 @@ public class SimCasinoService {
 
         //获取配置
         BuildingUpgradeTableCfg cfg = configCacheService.getBuildingUpgradeCfg(buildingData.getId(), buildingData.getLevel());
-        if (cfg == null || cfg.getUpgradeOutput() == null || cfg.getUpgradeOutput().isEmpty()) {
-            return 0;
-        }
-
-        Long awareness = cfg.getUpgradeOutput().get(SimConstant.Item.ID_AWARENESS);
-        if (awareness == null) {
+        if (cfg == null || cfg.getUpgradeOutput() < 1) {
             return 0;
         }
 
@@ -306,10 +301,10 @@ public class SimCasinoService {
         employeeService.computeTypeBonusFixed(ctx, bonusesMap);
         Integer bouns = bonusesMap.get(BonusType.AWARENESS);
         if (bouns == null) {
-            return awareness;
+            return cfg.getUpgradeOutput();
         }
-        long extra = awareness * bouns / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR;
-        return awareness + extra;
+        long extra = cfg.getUpgradeOutput() * bouns / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR;
+        return cfg.getUpgradeOutput() + extra;
     }
 
     /**
