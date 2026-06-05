@@ -264,6 +264,12 @@ public class SimCasinoData extends AbstractData {
         return this.recentGenerateTimes.size();
     }
 
+    public void addResearchPoint(int type,int num){
+        if(this.researchPointMap == null){
+            this.researchPointMap = new HashMap<>();
+        }
+        this.researchPointMap.merge(type,num,Integer::sum);
+    }
 
     /**
      * 查询某类型研究点的当前数量

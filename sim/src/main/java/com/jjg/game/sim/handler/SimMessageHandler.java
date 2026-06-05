@@ -270,6 +270,11 @@ public class SimMessageHandler implements GmListener {
                 ReqSwitchCasino req = new ReqSwitchCasino();
                 req.casinoId = Integer.parseInt(gmOrders[1]);
                 reqSwitchCasino(playerController, req);
+            } else if ("addResearch".equalsIgnoreCase(gmOrders[0])) {
+                int type = Integer.parseInt(gmOrders[1]);
+                int num = Integer.parseInt(gmOrders[2]);
+                SimPlayerContext context = simManager.getContext(playerController.playerId());
+                context.getCurrentCasino().addResearchPoint(type, num);
             } else {
                 res.code = Code.NOT_FOUND;
             }
