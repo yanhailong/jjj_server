@@ -833,12 +833,15 @@ public class PlayerPackService implements IPlayerRegister {
 
         List<PackItemInfo> packItemInfos = new ArrayList<>();
         playerPack.getItems().forEach((key, value) -> {
-            PackItemInfo info = new PackItemInfo();
-            info.girdId = key;
-            info.item = new ItemInfo();
-            info.item.itemId = value.getId();
-            info.item.count = value.getItemCount();
-            packItemInfos.add(info);
+            ItemCfg itemCfg = GameDataManager.getItemCfg(value.getId());
+            if (itemCfg != null && itemCfg.getDisplayOrNot() == 0) {
+                PackItemInfo info = new PackItemInfo();
+                info.girdId = key;
+                info.item = new ItemInfo();
+                info.item.itemId = value.getId();
+                info.item.count = value.getItemCount();
+                packItemInfos.add(info);
+            }
         });
         return packItemInfos;
     }

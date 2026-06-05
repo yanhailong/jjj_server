@@ -33,6 +33,8 @@ public class ResearchSkillsCfg extends BaseCfgBean {
   protected int gameType;
   /** 研究等级 */
   protected int grade;
+  /** 多语言id */
+  protected int languageID;
   /** 进入特殊模式概率提升 */
   protected Map<Integer,Integer> specialMode;
   /** 特殊模式X-Y倍中奖概率提升 */
@@ -73,6 +75,11 @@ public class ResearchSkillsCfg extends BaseCfgBean {
   /** 返回研究等级 */
   public int getGrade() {
     return grade;
+  }
+
+  /** 返回多语言id */
+  public int getLanguageID() {
+    return languageID;
   }
 
   /** 返回进入特殊模式概率提升 */

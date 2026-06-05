@@ -20,10 +20,10 @@ public class DropTypeCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "dropType";
 
   /** 掉落方式 */
-  protected int DropType;
+  protected List<Integer> DropType;
 
   /** 返回掉落方式 */
-  public int getDropType() {
+  public List<Integer> getDropType() {
     return DropType;
   }
 

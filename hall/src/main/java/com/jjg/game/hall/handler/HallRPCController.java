@@ -15,6 +15,7 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.service.SimSkillService;
+import com.jjg.game.sim.service.SimSlotsDropService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +38,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private SimManager simManager;
     @Autowired
     private SimSkillService simSkillService;
+    @Autowired
+    private SimSlotsDropService simSlotsDropService;
 
     @Override
     public int playerBindPhone(long playerId, String phone, int type, boolean reward) {
@@ -145,5 +148,22 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
         log.info("添加技能成功 playerId={},gameType={},skillId={},propId={},grade={}",
                 playerId, gameType, skillId, cfg.getAttr(), cfg.getGrade());
         return new CommonResult<>(Code.SUCCESS, data);
+    }
+
+    @Override
+    public int onSlotsSpin(long playerId, int gameType, int winTimes) {
+        SimPlayerContext ctx = simManager.getContext(playerId);
+        if (ctx == null) {
+            //玩家未在 sim 在线: 跳过联动, 不影响 slots 旋转
+            log.info("slots 联动跳过, 玩家未在 sim 在线 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes);
+            return Code.NOT_FOUND;
+        }
+        try {
+            simSlotsDropService.onSpin(ctx, gameType, winTimes);
+        } catch (Exception e) {
+            log.error("slots 联动异常 playerId=" + playerId + ",gameType=" + gameType, e);
+            return Code.EXCEPTION;
+        }
+        return Code.SUCCESS;
     }
 }

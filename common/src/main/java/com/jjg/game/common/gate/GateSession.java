@@ -1,7 +1,6 @@
 package com.jjg.game.common.gate;
 
 import com.jjg.game.common.cluster.ClusterClient;
-import com.jjg.game.common.cluster.ClusterConnect;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
@@ -24,6 +23,7 @@ import com.jjg.game.common.protostuff.ProtostuffUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -139,14 +139,14 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
             sessionLogout.playerId = playerId;
             PFMessage pfMessage = MessageUtil.getPFMessage(sessionLogout);
             ClusterMessage clusterMessage = new ClusterMessage(sessionId, pfMessage, playerId);
-            ClusterClient clusterClient = ClusterSystem.system.getByNodeType(NodeType.HALL, remoteAddress.getHost(), playerId);
-            if (clusterClient == null) {
-                // 哈希路由节点不可用时，降级到任意可用hall节点，避免在线状态残留
-                clusterClient = ClusterSystem.system.randClientByType(NodeType.HALL);
-            }
-            if (clusterClient != null) {
-                clusterClient.getConnect().write(clusterMessage);
-            } else {
+
+            //通知所有的大厅节点
+            List<ClusterClient> clusterClientList = ClusterSystem.system.getNodesByType(NodeType.HALL);
+            if (!clusterClientList.isEmpty()) {
+                for (ClusterClient client : clusterClientList) {
+                    client.getConnect().write(clusterMessage);
+                }
+            }else {
                 log.warn("用户下线消息发送失败，未找到可用hall节点，playerId={},sessionId={}", playerId, sessionId);
             }
         } catch (Exception e) {

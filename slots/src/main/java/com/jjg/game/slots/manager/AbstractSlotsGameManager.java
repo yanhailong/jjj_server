@@ -100,6 +100,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected PlayerAllSlotsDataDao playerAllSlotsDataDao;
     @Autowired
     protected SlotsSkillService simSkillService;
+    @Autowired
+    protected SlotsSimLinkService slotsSimLinkService;
 
     protected AtomicBoolean open = new AtomicBoolean(false);
 
@@ -370,7 +372,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 return createGameRunInfo(playerController.playerId(), code);
             }
         }
-        return startGame(playerController, playerGameData, betValue, false);
+        G gameRunInfo = startGame(playerController, playerGameData, betValue, false);
+        //公共: 旋转成功后通知 sim 联动 (扣能量/加经验/赌场升级/道具掉落), winTimes 取各游戏写入的 allWinTimes
+        if (gameRunInfo != null && gameRunInfo.success()) {
+            slotsSimLinkService.notifySpin(playerController.playerId(), getGameType(), gameRunInfo.getAllWinTimes());
+        }
+        return gameRunInfo;
     }
 
     /**

@@ -284,6 +284,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 Player finalPlayerLogin = player;
                 SystemInterfaceHolder.callGameSysAction(
                         IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, finalPlayerLogin, account, dayOfFirstLogin));
+                //sim 寄生在 hall, 登录即加载赌场数据并后台运行
+                simManager.onPlayerLogin(playerController);
 
                 //更新token过期时间
                 playerSessionTokenDao.updateExpire(playerSessionToken);
@@ -326,6 +328,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             Player finalPlayer = player;
             SystemInterfaceHolder.callGameSysAction(
                     IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, finalPlayer, account, dayOfFirstLogin));
+            //sim 寄生在 hall, 登录即加载赌场数据并后台运行
+            simManager.onPlayerLogin(playerController);
             //加载任务数据
             taskManager.loadTaskData(player.getId());
             rechargeService.loadOfflineRecharge(player.getId());
@@ -338,6 +342,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
     @Override
     public void logout(long playerId, String sessionId) {
+        //玩家彻底下线: 保存并卸载 sim (此前切换节点不卸载)
+        simManager.onExitGame(playerId, ExitType.DROPPED);
         PlayerSessionInfo playerSessionInfo = playerSessionService.remove(playerId);
         if (playerSessionInfo == null) {
             hallLogger.logout(playerId, 0);
@@ -349,11 +355,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
     @Override
     public void sessionClose(PFSession session) {
-        PlayerController playerController = (PlayerController) session.getReference();
-        if (playerController != null) {
-            simManager.onExitGame(playerController.playerId(), ExitType.INITIATIVE);
-        }
-
+        //sim 不在会话关闭(含切换节点)时卸载, 改由集群下线事件 logout 统一卸载, 保证切换节点不影响 sim
         session.setReference(null);
         if (session.getPlayerId() > 0) {
             taskManager.onExit(session.getPlayerId());

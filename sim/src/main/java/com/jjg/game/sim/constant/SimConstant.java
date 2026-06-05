@@ -98,6 +98,11 @@ public interface SimConstant {
 
         //广告收益倍数全局配置id (global.xlsx 135)
         int GLOBAL_AD_MULTIPLIER_ID = 135;
+
+        //slots 每次旋转消耗的能量
+        int SPIN_COST_POWER = 1;
+        //slots 每次旋转增加的赌场经验 (与消耗的能量保持一致)
+        int SPIN_ADD_EXP = 1;
     }
 
     interface Global{

@@ -9,11 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 配置缓存
@@ -24,6 +20,11 @@ import java.util.Map;
 @Component
 public class SimConfigCacheService implements ConfigExcelChangeListener {
     private static final Logger log = LoggerFactory.getLogger(SimConfigCacheService.class);
+
+    //CasinoStatsSheet配置 regionID -> level -> cfg
+    private Map<Integer, Map<Integer, CasinoStatsSheetCfg>> casinoStatsSheetCfgMap;
+    //ResearchInstitute配置 regionID -> gameTypeSet
+    private Map<Integer, Set<Integer>> unlockGamesMap;
 
     //VisitorLevel配置 guestId -> level -> cfg
     private Map<Integer, Map<Integer, VisitorLevelCfg>> visitorLevelCfgMap;
@@ -46,6 +47,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private WeightRandom<String> adMultiplierRandom = null;
 
     public void testInit() {
+        loadCasinoStatsSheetCfg();
+        loadResearchInstituteCfg();
+
         loadBuildingChain();
         loadBuildingDeviceConfig();
         loadBuildingUpgradeConfig();
@@ -57,6 +61,28 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         loadVisitorStarConfig();
 
         loadGlobalConfig();
+    }
+
+    /**
+     * 加载 VisitorLevel 配置
+     */
+    private void loadCasinoStatsSheetCfg() {
+        Map<Integer, Map<Integer, CasinoStatsSheetCfg>> tmp = new HashMap<>();
+        for (CasinoStatsSheetCfg cfg : GameDataManager.getCasinoStatsSheetCfgList()) {
+            tmp.computeIfAbsent(cfg.getRegionID(), k -> new HashMap<>()).put(cfg.getLevel(), cfg);
+        }
+        this.casinoStatsSheetCfgMap = tmp;
+    }
+
+    /**
+     * 加载 VisitorLevel 配置
+     */
+    private void loadResearchInstituteCfg() {
+        Map<Integer, Set<Integer>> tmpUnlockGamesMap = new HashMap<>();
+        for (ResearchInstituteCfg cfg : GameDataManager.getResearchInstituteCfgList()) {
+            tmpUnlockGamesMap.computeIfAbsent(cfg.getRegionID(), k -> new HashSet<>()).add(cfg.getGameType());
+        }
+        this.unlockGamesMap = tmpUnlockGamesMap;
     }
 
     /**
@@ -184,6 +210,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     @Override
     public void initSampleCallbackCollector() {
+        addInitSampleFileObserveWithCallBack(CasinoStatsSheetCfg.EXCEL_NAME, this::loadCasinoStatsSheetCfg);
+        addInitSampleFileObserveWithCallBack(ResearchInstituteCfg.EXCEL_NAME, this::loadResearchInstituteCfg);
+
         addInitSampleFileObserveWithCallBack(VisitorLevelCfg.EXCEL_NAME, this::loadVisitorLevelConfig);
         addInitSampleFileObserveWithCallBack(VisitorStarCfg.EXCEL_NAME, this::loadVisitorStarConfig);
 
@@ -296,5 +325,23 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             return "1";
         }
         return next;
+    }
+
+    public CasinoStatsSheetCfg getCasinoStatsSheetCfg(int regionId, int level) {
+        if (this.casinoStatsSheetCfgMap == null) {
+            return null;
+        }
+        Map<Integer, CasinoStatsSheetCfg> tmpMap = this.casinoStatsSheetCfgMap.get(regionId);
+        if (tmpMap == null) {
+            return null;
+        }
+        return tmpMap.get(level);
+    }
+
+    public Set<Integer> getUnlockGameByRegionId(int regionId) {
+        if(this.unlockGamesMap == null){
+            return Collections.emptySet();
+        }
+        return unlockGamesMap.get(regionId);
     }
 }

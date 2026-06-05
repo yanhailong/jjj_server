@@ -21,6 +21,8 @@ public class PropCfg extends BaseCfgBean {
 
   /** 游戏id */
   protected int gameType;
+  /** 多语言id */
+  protected int languageID;
   /** 等级_激活后解锁属性id */
   protected Map<Integer,List<Integer>> skillId;
   /** 类型 */
@@ -29,6 +31,11 @@ public class PropCfg extends BaseCfgBean {
   /** 返回游戏id */
   public int getGameType() {
     return gameType;
+  }
+
+  /** 返回多语言id */
+  public int getLanguageID() {
+    return languageID;
   }
 
   /** 返回等级_激活后解锁属性id */

@@ -3,7 +3,6 @@ package com.jjg.game.sim.service;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
 import com.jjg.game.sampledata.bean.CasinoListCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
@@ -49,6 +48,8 @@ public class SimCasinoService {
     private SimAutoSaveService autoSaveService;
     @Autowired
     private RedisTemplate redisTemplate;
+    @Autowired
+    private SimSkillService simSkillService;
 
     /**
      * 开辟新赌场 (校验 condition 后创建并落库, 不自动切换)
@@ -77,7 +78,7 @@ public class SimCasinoService {
                 ctx.send(res);
                 return;
             }
-            SimCasinoData casino = buildNewCasino(ctx.playerId(), targetCasinoId);
+            SimCasinoData casino = buildNewCasino(ctx, targetCasinoId);
             simCasinoDao.save(casino);
             log.info("开辟新赌场成功 playerId={},casinoId={}", ctx.playerId(), targetCasinoId);
         } catch (Exception e) {
@@ -123,7 +124,7 @@ public class SimCasinoService {
             res.currentCasinoId = casino.getCasinoId();
             res.buildings = SimPbConverter.toBuildingInfos(casino);
             res.managerEmployInfos = SimPbConverter.toManagerInfos(casino);
-            res.awareness = awareness(ctx);
+            res.awareness = casino.getAwareness();
 
             log.info("切换赌场 playerId={},res={}", ctx.playerId(), JSONObject.toJSONString(res));
         } catch (Exception e) {
@@ -148,7 +149,7 @@ public class SimCasinoService {
             currentCasino = simCasinoDao.findOne(ctx.playerId(), baseData.getCurrentCasinoId());
         } else {
             //新玩家: 初始化默认赌场并落库
-            currentCasino = initDefaultCasino(ctx.playerId());
+            currentCasino = initDefaultCasino(ctx);
             if (currentCasino != null) {
                 baseData.setCurrentCasinoId(currentCasino.getCasinoId());
                 simCasinoDao.save(currentCasino);
@@ -169,7 +170,7 @@ public class SimCasinoService {
     /**
      * 初始化新玩家的默认赌场 (取 CasinoList 中无解锁条件的赌场, 通常为 casinoId=1)
      */
-    public SimCasinoData initDefaultCasino(long playerId) {
+    public SimCasinoData initDefaultCasino(SimPlayerContext ctx) {
         int defaultCasinoId = SimConstant.Common.DEFAULT_CASINO_ID;
         for (Map.Entry<Integer, CasinoListCfg> en : GameDataManager.getCasinoListCfgMap().entrySet()) {
             Map<Integer, Integer> condition = en.getValue().getCondition();
@@ -178,18 +179,17 @@ public class SimCasinoService {
                 break;
             }
         }
-        return buildNewCasino(playerId, defaultCasinoId);
+        return buildNewCasino(ctx, defaultCasinoId);
     }
 
     /**
      * 配置驱动创建一个新赌场 (初始化/开辟共用): 设置经营等级、繁荣度, 并放入该场景的初始建筑。
      *
-     * @param playerId 玩家id
      * @param casinoId 赌场id (= CasinoListCfg.id = BuildingAreaTableCfg.RegionID)
      */
-    public SimCasinoData buildNewCasino(long playerId, int casinoId) {
+    public SimCasinoData buildNewCasino(SimPlayerContext ctx, int casinoId) {
         SimCasinoData casino = new SimCasinoData();
-        casino.setPlayerId(playerId);
+        casino.setPlayerId(ctx.playerId());
         casino.setCasinoId(casinoId);
 
         int statsId = resolveInitialStatsId(casinoId);
@@ -199,20 +199,10 @@ public class SimCasinoService {
             casino.setProsperity(statsCfg.getProsperity());
         }
 
-        //配置驱动初始化初始建筑: 该场景内 UnlockMethod 为空的建筑开局即拥有
-        for (BuildingAreaTableCfg areaCfg : GameDataManager.getBuildingAreaTableCfgList()) {
-            if (areaCfg.getRegionID() != casinoId || areaCfg.getUnlockMethod() > 0) {
-                continue;
-            }
-            BuildingData data = new BuildingData();
-            data.setId(areaCfg.getId());
-            data.setLevel(INITIAL_BUILDING_LEVEL);
-            casino.putBuilding(data);
-        }
-
-        updateCasinoUnlock(playerId, casinoId, INITIAL_BUILDING_LEVEL);
+        updateCasinoUnlock(ctx.playerId(), casinoId, INITIAL_BUILDING_LEVEL);
+        simSkillService.initUnlock(ctx, casinoId);
         //TODO 初始游客: VisitorQuest 无场景维度配置, 待策划补充配置后在此初始化 guestMap
-        log.info("创建新赌场 playerId={},casinoId={},statsId={},buildingCount={}", playerId, casinoId, statsId,
+        log.info("创建新赌场 playerId={},casinoId={},statsId={},buildingCount={}", ctx.playerId(), casinoId, statsId,
                 casino.getBuildingData() == null ? 0 : casino.getBuildingData().size());
         return casino;
     }

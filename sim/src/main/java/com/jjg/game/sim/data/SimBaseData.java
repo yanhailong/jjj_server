@@ -3,6 +3,9 @@ package com.jjg.game.sim.data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * 玩家 sim 基础数据
  *
@@ -23,6 +26,10 @@ public class SimBaseData extends AbstractData {
     private long lastOfflineTime;
     //能量值
     private int power;
+    //每日掉落次数 (dropItemId -> 当日已掉次数)
+    private Map<Integer, Integer> dailyDropCount;
+    //每日掉落计数重置日 (yyyyMMdd)
+    private int dropResetDay;
 
     public long getPlayerId() {
         return playerId;
@@ -70,5 +77,55 @@ public class SimBaseData extends AbstractData {
 
     public void setPower(int power) {
         this.power = power;
+    }
+
+    public Map<Integer, Integer> getDailyDropCount() {
+        return dailyDropCount;
+    }
+
+    public void setDailyDropCount(Map<Integer, Integer> dailyDropCount) {
+        this.dailyDropCount = dailyDropCount;
+    }
+
+    public int getDropResetDay() {
+        return dropResetDay;
+    }
+
+    public void setDropResetDay(int dropResetDay) {
+        this.dropResetDay = dropResetDay;
+    }
+
+    /**
+     * 跨天则重置每日掉落计数
+     *
+     * @param today yyyyMMdd
+     */
+    public void checkResetDropCount(int today) {
+        if (this.dropResetDay != today) {
+            this.dropResetDay = today;
+            if (this.dailyDropCount != null) {
+                this.dailyDropCount.clear();
+            }
+        }
+    }
+
+    /**
+     * 查询某 dropItem 当日已掉落次数
+     */
+    public int getDropCount(int dropItemId) {
+        if (this.dailyDropCount == null || this.dailyDropCount.isEmpty()) {
+            return 0;
+        }
+        return this.dailyDropCount.getOrDefault(dropItemId, 0);
+    }
+
+    /**
+     * 某 dropItem 当日掉落次数 +1
+     */
+    public void addDropCount(int dropItemId) {
+        if (this.dailyDropCount == null) {
+            this.dailyDropCount = new HashMap<>();
+        }
+        this.dailyDropCount.merge(dropItemId, 1, Integer::sum);
     }
 }

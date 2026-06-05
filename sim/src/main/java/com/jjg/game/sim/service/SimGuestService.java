@@ -129,7 +129,7 @@ public class SimGuestService implements SimPlayerTickListener {
         }
         if (!rewardsMap.isEmpty()) {
             //添加道具
-            playerPackService.addItems(ctx.playerId(), rewardsMap, AddType.SIM_GUEST_REWARDS);
+            playerPackService.addItems(ctx.playerId(), rewardsMap, AddType.SIM_GUEST_REWARDS, false);
         }
 
         //累加经验

@@ -27,4 +27,14 @@ public interface ToSimBridge extends IGameRpc {
      * @return
      */
     CommonResult<SimSkillsData> addSkillById(long playerId, int gameType, int skillId);
+
+    /**
+     * slots 旋转联动: 扣能量 -> 加经验 -> 赌场升级 -> 道具掉落入背包
+     *
+     * @param playerId 玩家id (供 RPC 按玩家路由)
+     * @param gameType slots 游戏类型 (如 SuperStar=100300)
+     * @param winTimes 本次中奖倍数 (allWinGold / allBetScore)
+     * @return code
+     */
+    int onSlotsSpin(long playerId, int gameType, int winTimes);
 }

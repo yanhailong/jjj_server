@@ -35,6 +35,8 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   protected int UnlockMethod;
   /** 建筑分类 */
   protected int type;
+  /** 建筑属性分类 */
+  protected int typeValue;
 
   /** 返回建筑名称ID */
   public int getBuildingNameId() {
@@ -74,6 +76,11 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   /** 返回建筑分类 */
   public int getType() {
     return type;
+  }
+
+  /** 返回建筑属性分类 */
+  public int getTypeValue() {
+    return typeValue;
   }
 
   @Override

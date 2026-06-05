@@ -47,6 +47,9 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
     //免费游戏累计金额
     private long freeModeTotalReward;
 
+    //总的中奖倍数
+    private int allWinTimes;
+
     public GameRunInfo(int code, long playerId) {
         this.code = code;
         this.playerId = playerId;
@@ -234,5 +237,13 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
 
     public void setFreeModeTotalReward(long freeModeTotalReward) {
         this.freeModeTotalReward = freeModeTotalReward;
+    }
+
+    public int getAllWinTimes() {
+        return allWinTimes;
+    }
+
+    public void setAllWinTimes(int allWinTimes) {
+        this.allWinTimes = allWinTimes;
     }
 }

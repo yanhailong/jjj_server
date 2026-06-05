@@ -3,6 +3,8 @@ package com.jjg.game.sim.service;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.PropCfg;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
 import com.jjg.game.sim.dao.SimSkillsDao;
 import com.jjg.game.sim.data.SimCasinoData;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * slots 技能服务
@@ -28,6 +31,46 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
 
     @Autowired
     private SimSkillsDao simSkillsDao;
+    @Autowired
+    private SimConfigCacheService simConfigCacheService;
+
+    /**
+     * 初始时解锁技能
+     *
+     * @param ctx
+     * @param casinoId
+     */
+    public void initUnlock(SimPlayerContext ctx, int casinoId) {
+        //获取casinoId解锁的游戏
+        Set<Integer> unlockGameSet = simConfigCacheService.getUnlockGameByRegionId(casinoId);
+        if (unlockGameSet.isEmpty()) {
+            return;
+        }
+
+        Map<Integer, SimSkillsData> skillsMap = ctx.getSkillsDataMap();
+        for (PropCfg cfg : GameDataManager.getPropCfgList()) {
+            if (cfg.getSkillId() != null && !cfg.getSkillId().isEmpty()) {
+                continue;
+            }
+            if (!unlockGameSet.contains(cfg.getGameType())) {
+                continue;
+            }
+
+            SimSkillsData data = skillsMap.get(cfg.getGameType());
+            if (data != null) {
+                Integer beforeLevel = data.findSkilLevelByPropId(cfg.getId());
+                if (beforeLevel != null) {
+                    continue;
+                }
+            } else {
+                data = new SimSkillsData();
+                data.setPlayerId(ctx.playerId());
+                data.setGameType(cfg.getGameType());
+                skillsMap.put(cfg.getGameType(), data);
+            }
+            data.changeSkillLevel(cfg.getId(), 0);
+        }
+    }
 
     /**
      * 加载技能

@@ -77,8 +77,8 @@ public abstract class AbstractSuperStarGameManager extends AbstractSlotsGameMana
 
             //添加大奖展示id
             int times = calWinTimes(gameRunInfo, playerGameData);
-            log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
+            gameRunInfo.setAllWinTimes(times);
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.getPlayerId());

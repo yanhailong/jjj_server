@@ -3,8 +3,6 @@ package com.jjg.game.sim.manager;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
-import com.jjg.game.common.listener.OnSwitchNode;
-import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.ExitType;
@@ -39,7 +37,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2026/5/15
  */
 @Component
-public class SimManager implements OnSwitchNode {
+public class SimManager {
     private final Logger log = LoggerFactory.getLogger(SimManager.class);
 
     @Autowired
@@ -72,6 +70,10 @@ public class SimManager implements OnSwitchNode {
     private SimEmployeeDao simEmployeeDao;
     @Autowired
     private SimSkillsDao simSkillsDao;
+    @Autowired
+    private SimSlotsDropService simSlotsDropService;
+    @Autowired
+    private SimSkillService simSkillService;
 
     /**
      * 初始化
@@ -85,12 +87,33 @@ public class SimManager implements OnSwitchNode {
     }
 
     /**
-     * 玩家进入游戏
+     * 玩家登录: 立即加载 sim 数据 (入 contextMap 后赌场后台 tick 运行), 并结算离线收益。
+     */
+    public void onPlayerLogin(PlayerController playerController) {
+        try {
+            SimPlayerContext ctx = createContext(playerController);
+            //结算离线收益 (存 pendingOffline, 待进入 sim 界面时下发)
+            buildingService.settleOfflineReward(ctx);
+            ctx.getSimBaseData().setLastOfflineTime(0);
+            log.info("玩家登录加载 sim playerId={}", playerController.playerId());
+        } catch (Exception e) {
+            log.error("玩家登录加载 sim 异常 playerId={}", playerController.playerId(), e);
+        }
+    }
+
+    /**
+     * 玩家进入 sim 界面: 复用登录时已加载的 ctx, 下发界面数据 (离线收益取登录时已结算的快照)
      */
     public void onEnterGame(PlayerController playerController) {
         ResSimEnterGame res = new ResSimEnterGame(Code.SUCCESS);
         try {
-            SimPlayerContext ctx = createContext(playerController);
+            SimPlayerContext ctx = getContext(playerController.playerId());
+            if (ctx == null) {
+                //兜底: 登录扩展点未触发时现场加载并结算离线收益
+                ctx = createContext(playerController);
+                buildingService.settleOfflineReward(ctx);
+                ctx.getSimBaseData().setLastOfflineTime(0);
+            }
             playerController.setScene(ctx);
             res.guide = ctx.getSimBaseData().isGuide();
 
@@ -110,9 +133,9 @@ public class SimManager implements OnSwitchNode {
                 }
             }
 
-            res.awareness = simCasinoService.awareness(ctx);
-            res.offlineReward = buildingService.settleOfflineReward(ctx);
-            ctx.getSimBaseData().setLastOfflineTime(0);
+            res.awareness = ctx.getCurrentCasino().getAwareness();
+            //离线收益已在登录时结算, 这里仅从快照构建下发
+            res.offlineReward = buildingService.buildOfflineRewardPb(ctx.getPendingOffline());
             log.info("玩家进入游戏 playerId={},res={}", playerController.playerId(), JSONObject.toJSONString(res));
             playerController.send(res);
             return;
@@ -271,8 +294,4 @@ public class SimManager implements OnSwitchNode {
         }
     }
 
-    @Override
-    public void onSwitchNodeAction(PFSession pfSession) {
-        onExitGame(pfSession.playerId, ExitType.INITIATIVE);
-    }
 }

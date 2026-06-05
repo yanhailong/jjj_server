@@ -276,7 +276,9 @@ public enum AddType {
     //sim游戏游客产出
     SIM_GUEST_REWARDS(1803),
     //建筑升级
-    SIM_BUILDING_UPGRADE(1804);
+    SIM_BUILDING_UPGRADE(1804),
+    //sim slots 旋转掉落
+    SIM_SLOTS_DROP(1805);
     private int value;
 
     AddType(int value) {

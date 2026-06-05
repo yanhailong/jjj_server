@@ -1,5 +1,7 @@
 package com.jjg.game.sim.data;
 
+import com.jjg.game.sim.constant.BuildingOutputType;
+
 import java.util.Map;
 
 /**
@@ -10,7 +12,7 @@ import java.util.Map;
  */
 public class SimOfflineReward {
     //1倍基础奖励 itemId -> 数量
-    private final Map<Integer, Long> baseReward;
+    private final Map<BuildingOutputType, Long> baseReward;
     //有效结算时长(分)
     private final int effectiveMinutes;
     //当前经营等级对应的离线上限时长(分)
@@ -18,14 +20,14 @@ public class SimOfflineReward {
     //广告倍数 (上线时确定, 领取时使用)
     private final String adMultiplier;
 
-    public SimOfflineReward(Map<Integer, Long> baseReward, int effectiveMinutes, int capMinutes, String adMultiplier) {
+    public SimOfflineReward(Map<BuildingOutputType, Long> baseReward, int effectiveMinutes, int capMinutes, String adMultiplier) {
         this.baseReward = baseReward;
         this.effectiveMinutes = effectiveMinutes;
         this.capMinutes = capMinutes;
         this.adMultiplier = adMultiplier;
     }
 
-    public Map<Integer, Long> getBaseReward() {
+    public Map<BuildingOutputType, Long> getBaseReward() {
         return baseReward;
     }
 

@@ -6,7 +6,6 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.sim.constant.SimConstant;
@@ -59,7 +58,7 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_EXIT_GAME)
     public void reqExitGame(PlayerController playerController, ReqSimExitGame req) {
-        simManager.onExitGame(playerController.playerId(), ExitType.INITIATIVE);
+        //退出 sim 界面不卸载 ctx, 赌场后台继续运行直到玩家下线
         playerController.setScene(null);
     }
 
@@ -241,18 +240,6 @@ public class SimMessageHandler implements GmListener {
                 ReqBuildingInfo req = new ReqBuildingInfo();
                 req.id = Integer.parseInt(gmOrders[1]);
                 reqBuildingInfo(playerController, req);
-            } else if ("upgradeBuilding".equalsIgnoreCase(gmOrders[0])) {
-                ReqUpgradeBuilding req = new ReqUpgradeBuilding();
-                req.id = Integer.parseInt(gmOrders[1]);
-                reqUpgradeBuilding(playerController, req);
-            } else if ("completeBuildingUpgrade".equalsIgnoreCase(gmOrders[0])) {
-                ReqCompleteBuildingUpgrade req = new ReqCompleteBuildingUpgrade();
-                req.id = Integer.parseInt(gmOrders[1]);
-                reqCompleteBuildingUpgrade(playerController, req);
-            } else if ("clearBuildingCD".equalsIgnoreCase(gmOrders[0])) {
-                ReqClearBuildingCD req = new ReqClearBuildingCD();
-                req.id = Integer.parseInt(gmOrders[1]);
-                reqClearBuildingCD(playerController, req);
             } else if ("upgradeEmployee".equalsIgnoreCase(gmOrders[0])) {
                 ReqUpgradeEmployee req = new ReqUpgradeEmployee();
                 req.employeeId = Integer.parseInt(gmOrders[1]);
@@ -270,13 +257,8 @@ public class SimMessageHandler implements GmListener {
                 ReqRecruitEmployee req = new ReqRecruitEmployee();
                 req.employeeId = Integer.parseInt(gmOrders[1]);
                 reqRecruitEmployee(playerController, req);
-            } else if ("settleOutput".equalsIgnoreCase(gmOrders[0])) {
-                execute(playerController, ctx -> {
-                    buildingService.gmSettleOutput(ctx);
-                });
             } else if ("claimOffline".equalsIgnoreCase(gmOrders[0])) {
                 boolean watchAd = gmOrders.length > 1 && "1".equals(gmOrders[1]);
-
                 ReqClaimOfflineReward req = new ReqClaimOfflineReward();
                 req.watchAd = watchAd;
                 reqClaimOfflineReward(playerController, req);

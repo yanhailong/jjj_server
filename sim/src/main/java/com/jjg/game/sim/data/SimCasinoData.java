@@ -29,6 +29,8 @@ public class SimCasinoData extends AbstractData {
     private int casinoId;
     //经验
     private int exp;
+    //赌场等级 (CasinoLevelCfg.id)
+    private int casinoLevel;
     //等级id
     private int statsId;
     //当前繁荣度
@@ -83,6 +85,14 @@ public class SimCasinoData extends AbstractData {
 
     public void setExp(int exp) {
         this.exp = exp;
+    }
+
+    public int getCasinoLevel() {
+        return casinoLevel;
+    }
+
+    public void setCasinoLevel(int casinoLevel) {
+        this.casinoLevel = casinoLevel;
     }
 
     public int getStatsId() {

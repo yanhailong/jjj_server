@@ -14,9 +14,11 @@ import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.constant.BonusType;
+import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.BuildingType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.BuildingData;
+import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimOfflineReward;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -92,7 +94,7 @@ public class SimBuildingService implements SimPlayerTickListener {
 
             res.buildingInfo = SimPbConverter.toBuildingInfo(buildingData);
             //建筑的基础产出，不包含加成
-            Map<Integer, Long> base = getBaseOutput(buildingData.getId(), buildingData.getLevel());
+            Map<BuildingOutputType, Long> base = getBaseOutput(buildingData.getId(), buildingData.getLevel());
             //普通雇员加成
             res.employeeBonus = normalEmployeeBonus(ctx, base, buildingData);
             //主管加成
@@ -117,9 +119,17 @@ public class SimBuildingService implements SimPlayerTickListener {
             if (res.code == Code.SUCCESS && reward != null) {
                 res.watchAd = watchAd;
                 double multiplier = (reward.getAdMultiplier() == null || reward.getAdMultiplier().isEmpty()) ? 1.0 : Double.parseDouble(reward.getAdMultiplier());
-                Map<Integer, Long> finalReward = new HashMap<>(reward.getBaseReward().size());
+                Map<BuildingOutputType, Long> finalReward = new HashMap<>(reward.getBaseReward().size());
                 reward.getBaseReward().forEach((k, v) -> finalReward.put(k, (long) Math.floor(v * multiplier)));
-                res.rewards = ItemUtils.buildItemInfo(finalReward);
+//                res.rewards = ItemUtils.buildItemInfo(finalReward);
+
+                res.rewards = new ArrayList<>();
+                for (Map.Entry<BuildingOutputType, Long> en : finalReward.entrySet()) {
+                    KVInfo kvInfo = new KVInfo();
+                    kvInfo.key = en.getKey().getCode();
+                    kvInfo.value = en.getValue().intValue();
+                    res.rewards.add(kvInfo);
+                }
             }
         } catch (Exception e) {
             log.error("", e);
@@ -272,7 +282,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             }
             long cdMs = (long) next.getUpgradeCD() * 60_000L;
 //            data.setCdEndTime(now + cdMs);
-            data.setCdEndTime(5000);
+            data.setCdEndTime(now + 5000);
             res.buildingInfo = SimPbConverter.toBuildingInfo(data);
             log.info("升级建筑启动 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
         } catch (Exception e) {
@@ -404,9 +414,9 @@ public class SimBuildingService implements SimPlayerTickListener {
             if (fullMinutes <= 0) {
                 return;
             }
-            Map<Integer, Long> perMinute = computePerMinuteOutput(ctx, casino);
+            Map<BuildingOutputType, Long> perMinute = computePerMinuteOutput(ctx, casino);
             if (!perMinute.isEmpty()) {
-                Map<Integer, Long> total = multiply(perMinute, fullMinutes);
+                Map<BuildingOutputType, Long> total = multiply(perMinute, fullMinutes);
                 creditResources(ctx, total, AddType.SIM_BUILD_MINUTE_REWARDS);
             }
             //仅推进已结算的整分钟, 保留余量
@@ -421,7 +431,7 @@ public class SimBuildingService implements SimPlayerTickListener {
      *
      * @return itemId -> 每分钟数量 (金币/能量混合)
      */
-    public Map<Integer, Long> computePerMinuteOutput(SimPlayerContext ctx, SimCasinoData casino) {
+    public Map<BuildingOutputType, Long> computePerMinuteOutput(SimPlayerContext ctx, SimCasinoData casino) {
         if (casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
             return Collections.emptyMap();
         }
@@ -430,10 +440,10 @@ public class SimBuildingService implements SimPlayerTickListener {
         Map<BonusType, Integer> bonusesMap = new HashMap<>();
         employeeService.computeTypeBonusFixed(ctx, bonusesMap);
 
-        Map<Integer, Long> total = new HashMap<>();
+        Map<BuildingOutputType, Long> total = new HashMap<>();
         for (BuildingData building : casino.getBuildingData().values()) {
             //获取建筑的基础产出，不包含加成
-            Map<Integer, Long> base = getBaseOutput(building.getId(), building.getLevel());
+            Map<BuildingOutputType, Long> base = getBaseOutput(building.getId(), building.getLevel());
             if (base.isEmpty()) {
                 continue;
             }
@@ -445,6 +455,12 @@ public class SimBuildingService implements SimPlayerTickListener {
 
             BuildingType buildingType = BuildingType.fromCode(areaCfg.getType());
             if (buildingType == null) {
+                continue;
+            }
+            //获取加成
+            BonusType bonusType = BonusType.fromBuildingType(buildingType);
+            //检查是不是每分钟产出的建筑类型
+            if (bonusType != null && !bonusType.isMin()) {
                 continue;
             }
 
@@ -460,15 +476,13 @@ public class SimBuildingService implements SimPlayerTickListener {
                 tmpMap = bonusesMap;
             }
 
-            //获取加成
-            BonusType bonusType = BonusType.fromBuildingType(buildingType);
             int bonus = 0;
             if (bonusType != null) {
                 bonus = tmpMap.getOrDefault(bonusType, 0);
             }
 
-            Map<Integer, Long> actual = applyBonus(base, bonus);
-            actual.forEach((itemId, count) -> total.merge(itemId, count, Long::sum));
+            Map<BuildingOutputType, Long> actual = applyBonus(base, bonus);
+            actual.forEach((buildingOutputType, count) -> total.merge(buildingOutputType, count, Long::sum));
         }
         return total;
     }
@@ -481,7 +495,7 @@ public class SimBuildingService implements SimPlayerTickListener {
      * @param buildingData
      * @return KVInfo.key=itemId  KVInfo.value=bouns
      */
-    public List<KVInfo> normalEmployeeBonus(SimPlayerContext ctx, Map<Integer, Long> base, BuildingData buildingData) {
+    public List<KVInfo> normalEmployeeBonus(SimPlayerContext ctx, Map<BuildingOutputType, Long> base, BuildingData buildingData) {
         if (base == null || base.isEmpty()) {
             return Collections.emptyList();
         }
@@ -505,7 +519,7 @@ public class SimBuildingService implements SimPlayerTickListener {
      * @param buildingData
      * @return KVInfo.key=itemId  KVInfo.value=bouns
      */
-    public List<KVInfo> manageEmployeeBonus(SimPlayerContext ctx, Map<Integer, Long> base, BuildingData buildingData) {
+    public List<KVInfo> manageEmployeeBonus(SimPlayerContext ctx, Map<BuildingOutputType, Long> base, BuildingData buildingData) {
         if (base == null || base.isEmpty()) {
             return Collections.emptyList();
         }
@@ -549,18 +563,18 @@ public class SimBuildingService implements SimPlayerTickListener {
      * @param bonus 加成固定值 (/ 1000 = 加成百分比)
      * @return KVInfo.key=itemId  KVInfo.value=额外加成产出
      */
-    private List<KVInfo> buildBonusList(Map<Integer, Long> base, int bonus) {
+    private List<KVInfo> buildBonusList(Map<BuildingOutputType, Long> base, int bonus) {
         if (bonus < 1) {
             return Collections.emptyList();
         }
         List<KVInfo> list = new ArrayList<>(base.size());
-        for (Map.Entry<Integer, Long> en : base.entrySet()) {
+        for (Map.Entry<BuildingOutputType, Long> en : base.entrySet()) {
             long extra = en.getValue() * bonus / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR;
             if (extra <= 0) {
                 continue;
             }
             KVInfo kv = new KVInfo();
-            kv.key = en.getKey();
+            kv.key = en.getKey().getCode();
             kv.value = (int) extra;
             list.add(kv);
         }
@@ -574,12 +588,12 @@ public class SimBuildingService implements SimPlayerTickListener {
      * @param bonus         雇员加成之和 (固定值 / 1000 = 加成百分比)
      * @return 物品id -> 数量
      */
-    public Map<Integer, Long> applyBonus(Map<Integer, Long> baseOutputMap, int bonus) {
+    public Map<BuildingOutputType, Long> applyBonus(Map<BuildingOutputType, Long> baseOutputMap, int bonus) {
         if (baseOutputMap == null || baseOutputMap.isEmpty() || bonus < 1) {
             return baseOutputMap;
         }
-        HashMap<Integer, Long> result = new HashMap<>(baseOutputMap.size());
-        for (Map.Entry<Integer, Long> en : baseOutputMap.entrySet()) {
+        HashMap<BuildingOutputType, Long> result = new HashMap<>(baseOutputMap.size());
+        for (Map.Entry<BuildingOutputType, Long> en : baseOutputMap.entrySet()) {
             long extra = en.getValue() * bonus / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR;
             result.put(en.getKey(), extra + en.getValue());
         }
@@ -589,14 +603,39 @@ public class SimBuildingService implements SimPlayerTickListener {
     /**
      * 资源入账
      */
-    public void creditResources(SimPlayerContext ctx, Map<Integer, Long> resources, AddType addType) {
+    public void creditResources(SimPlayerContext ctx, Map<BuildingOutputType, Long> resources, AddType addType) {
         if (resources == null || resources.isEmpty()) {
             return;
         }
 
-        CommonResult<ItemOperationResult> result = playerPackService.addItems(ctx.playerId(), resources, addType, false);
+        //能量/知名度等 sim 资源不进背包, 累加到玩家对应字段; 其余道具才入背包
+        Map<Integer, Long> packItems = new HashMap<>(resources.size());
+        for (Map.Entry<BuildingOutputType, Long> en : resources.entrySet()) {
+            BuildingOutputType buildingOutputType = en.getKey();
+            long count = en.getValue();
+            if (count <= 0) {
+                continue;
+            }
+
+            if (buildingOutputType == BuildingOutputType.POWER) {
+                SimBaseData base = ctx.getSimBaseData();
+                base.setPower(base.getPower() + (int) count);
+            } else if (buildingOutputType == BuildingOutputType.AWARENESS) {
+                SimCasinoData casino = ctx.getCurrentCasino();
+                if (casino != null) {
+                    casino.setAwareness(casino.getAwareness() + (int) count);
+                }
+            } else if (buildingOutputType == BuildingOutputType.GOLD) {
+                packItems.put(ItemUtils.getGoldItemId(), count);
+            }
+        }
+
+        if (packItems.isEmpty()) {
+            return;
+        }
+        CommonResult<ItemOperationResult> result = playerPackService.addItems(ctx.playerId(), packItems, addType, false);
         if (result.success()) {
-            log.info("道具入账 playerId={},items={},addType={}", ctx.playerId(), resources, addType);
+            log.info("道具入账 playerId={},items={},addType={}", ctx.playerId(), packItems, addType);
         }
     }
 
@@ -620,14 +659,22 @@ public class SimBuildingService implements SimPlayerTickListener {
             return null;
         }
         ctx.setPendingOffline(reward);
+        log.info("离线收益结算 playerId={},effectiveMinutes={},capMinutes={},reward={}", ctx.playerId(), reward.getEffectiveMinutes(), reward.getCapMinutes(), reward.getBaseReward());
+        return buildOfflineRewardPb(reward);
+    }
 
+    /**
+     * 由离线收益快照构建下发结构 (无快照返回 null)
+     */
+    public OfflineReward buildOfflineRewardPb(SimOfflineReward reward) {
+        if (reward == null) {
+            return null;
+        }
         OfflineReward rewards = new OfflineReward();
-        rewards.rewards = ItemUtils.buildItemInfo(reward.getBaseReward());
+//        rewards.rewards = ItemUtils.buildItemInfo(reward.getBaseReward());
         rewards.offlineMinutes = reward.getEffectiveMinutes();
         rewards.capMinutes = reward.getCapMinutes();
         rewards.adMultiplier = reward.getAdMultiplier();
-
-        log.info("离线收益结算 playerId={},effectiveMinutes={},capMinutes={},reward={}", ctx.playerId(), reward.getEffectiveMinutes(), reward.getCapMinutes(), reward.getBaseReward());
         return rewards;
     }
 
@@ -649,11 +696,11 @@ public class SimBuildingService implements SimPlayerTickListener {
         if (effectiveMinutes <= 0) {
             return null;
         }
-        Map<Integer, Long> perMinute = computePerMinuteOutput(ctx, casino);
+        Map<BuildingOutputType, Long> perMinute = computePerMinuteOutput(ctx, casino);
         if (perMinute.isEmpty()) {
             return null;
         }
-        Map<Integer, Long> baseReward = multiply(perMinute, effectiveMinutes);
+        Map<BuildingOutputType, Long> baseReward = multiply(perMinute, effectiveMinutes);
         if (baseReward.isEmpty()) {
             return null;
         }
@@ -682,7 +729,7 @@ public class SimBuildingService implements SimPlayerTickListener {
         if (watchAd && reward.getAdMultiplier() != null && !reward.getAdMultiplier().isEmpty()) {
             multiplier = Double.parseDouble(reward.getAdMultiplier());
         }
-        Map<Integer, Long> finalReward = scale(reward.getBaseReward(), multiplier);
+        Map<BuildingOutputType, Long> finalReward = scale(reward.getBaseReward(), multiplier);
         creditResources(ctx, finalReward, AddType.SIM_BUILD_OFFLINE_REWARDS);
         //领取后重置
         ctx.setPendingOffline(null);
@@ -690,8 +737,8 @@ public class SimBuildingService implements SimPlayerTickListener {
         return Code.SUCCESS;
     }
 
-    private Map<Integer, Long> multiply(Map<Integer, Long> src, long factor) {
-        Map<Integer, Long> result = new HashMap<>(src.size());
+    private Map<BuildingOutputType, Long> multiply(Map<BuildingOutputType, Long> src, long factor) {
+        Map<BuildingOutputType, Long> result = new HashMap<>(src.size());
         src.forEach((k, v) -> result.put(k, v * factor));
         return result;
     }
@@ -699,8 +746,8 @@ public class SimBuildingService implements SimPlayerTickListener {
     /**
      * 按倍数放大 (小数倍数向下取整, 文档约定)
      */
-    private Map<Integer, Long> scale(Map<Integer, Long> src, double multiplier) {
-        Map<Integer, Long> result = new HashMap<>(src.size());
+    private Map<BuildingOutputType, Long> scale(Map<BuildingOutputType, Long> src, double multiplier) {
+        Map<BuildingOutputType, Long> result = new HashMap<>(src.size());
         src.forEach((k, v) -> result.put(k, (long) Math.floor(v * multiplier)));
         return result;
     }
@@ -764,23 +811,18 @@ public class SimBuildingService implements SimPlayerTickListener {
     /**
      * 获取该建筑指定等级的产出 (基础值; 不含主管/雇员加成)
      */
-    public Map<Integer, Long> getBaseOutput(int buildingId, int level) {
-        BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(buildingId, level);
-        if (cfg == null || cfg.getUpgradeOutput() == null) {
+    public Map<BuildingOutputType, Long> getBaseOutput(int buildingId, int level) {
+        BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
+        if (buildingAreaTableCfg == null) {
             return Collections.emptyMap();
         }
-        return cfg.getUpgradeOutput();
-    }
 
-    /**
-     * GM: 立即结算一分钟在线产出 (测试用)
-     *
-     * @param ctx
-     */
-    public void gmSettleOutput(SimPlayerContext ctx) {
-        SimCasinoData casino = ctx.getCurrentCasino();
-        Map<Integer, Long> perMinute = computePerMinuteOutput(ctx, casino);
-        creditResources(ctx, perMinute, AddType.SIM_BUILD_MINUTE_REWARDS);
-        log.info("gmSettleOutput playerId={},perMinute={}", ctx.playerId(), perMinute);
+        BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(buildingId, level);
+        if (cfg == null) {
+            return Collections.emptyMap();
+        }
+        Map<BuildingOutputType, Long> map = new HashMap<>();
+        map.put(BuildingOutputType.fromCode(buildingAreaTableCfg.getTypeValue()), cfg.getUpgradeOutput());
+        return map;
     }
 }

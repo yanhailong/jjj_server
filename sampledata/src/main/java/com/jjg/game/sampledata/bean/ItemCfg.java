@@ -31,6 +31,8 @@ public class ItemCfg extends BaseCfgBean {
   protected Map<Integer,Long> getItem;
   /** 图标资源名 */
   protected String icon;
+  /** 是否进背包 */
+  protected boolean isBag;
   /** 名称多语言ID */
   protected int name;
   /** 是否需要调用多语言 */
@@ -72,6 +74,11 @@ public class ItemCfg extends BaseCfgBean {
   /** 返回图标资源名 */
   public String getIcon() {
     return icon;
+  }
+
+  /** 返回是否进背包 */
+  public boolean getIsBag() {
+    return isBag;
   }
 
   /** 返回名称多语言ID */
