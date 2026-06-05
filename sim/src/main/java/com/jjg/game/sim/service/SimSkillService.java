@@ -215,15 +215,26 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             }
 
             //新解锁的技能
-            if (propCfg.getSkillId() != null && !propCfg.getSkillId().isEmpty()) {
-                res.newUnlockSkills = new ArrayList<>();
-                for (Map.Entry<Integer, List<Integer>> en : propCfg.getSkillId().entrySet()) {
-                    if (newLevelCfg.getGrade() < en.getKey()) {
+            List<PropCfg> propCfgList = simConfigCacheService.getPropCfgList(gameType);
+            if (propCfgList != null && !propCfgList.isEmpty()) {
+                for (PropCfg cfg : propCfgList) {
+                    //检查该技能是否解锁
+                    Integer level = skillData.findSkilLevelByPropId(cfg.getId());
+                    if (level != null) {
                         continue;
                     }
-                    for (int newSkillId : en.getValue()) {
-                        skillData.changeSkillLevel(newSkillId, 0);
-                        res.newUnlockSkills.add(newSkillId);
+                    if (cfg.getSkillId() == null || cfg.getSkillId().isEmpty()) {
+                        skillData.changeSkillLevel(cfg.getId(), 0);
+                        res.newUnlockSkills.add(cfg.getId());
+                    } else {
+                        for (Map.Entry<Integer, Integer> en : cfg.getSkillId().entrySet()) {
+                            Integer tmpLevel = skillData.findSkilLevelByPropId(en.getKey());
+                            if (tmpLevel == null || tmpLevel < en.getValue()) {
+                                continue;
+                            }
+                            skillData.changeSkillLevel(cfg.getId(), 0);
+                            res.newUnlockSkills.add(cfg.getId());
+                        }
                     }
                 }
             }

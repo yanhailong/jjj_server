@@ -43,6 +43,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //建筑设备列表 buildingId -> 该建筑下所有设备 (EquipmentTable type==设备)
     private Map<Integer, List<Integer>> buildingDeviceMap;
 
+    //技能配置
+    private Map<Integer, List<PropCfg>> propCfgMap;
+
     //广告收益倍数随机
     private WeightRandom<String> adMultiplierRandom = null;
 
@@ -61,6 +64,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         loadVisitorStarConfig();
 
         loadGlobalConfig();
+
+        loadPropConfig();
     }
 
     /**
@@ -208,6 +213,14 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         }
     }
 
+    private void loadPropConfig() {
+        Map<Integer, List<PropCfg>> tmpMap = new HashMap<>();
+        for (PropCfg cfg : GameDataManager.getPropCfgList()) {
+            tmpMap.computeIfAbsent(cfg.getGameType(), k -> new ArrayList<>()).add(cfg);
+        }
+        this.propCfgMap = tmpMap;
+    }
+
     @Override
     public void initSampleCallbackCollector() {
         addInitSampleFileObserveWithCallBack(CasinoStatsSheetCfg.EXCEL_NAME, this::loadCasinoStatsSheetCfg);
@@ -223,6 +236,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         addInitSampleFileObserveWithCallBack(BuildingUpgradeTableCfg.EXCEL_NAME, this::loadBuildingUpgradeConfig);
         addInitSampleFileObserveWithCallBack(BuildingEquipmentTableCfg.EXCEL_NAME, this::loadBuildingDeviceConfig);
         addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::loadGlobalConfig);
+
+        addInitSampleFileObserveWithCallBack(PropCfg.EXCEL_NAME, this::loadPropConfig);
     }
 
     // ---------------------------------------------------------------------
@@ -339,9 +354,16 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     }
 
     public Set<Integer> getUnlockGameByRegionId(int regionId) {
-        if(this.unlockGamesMap == null){
+        if (this.unlockGamesMap == null) {
             return Collections.emptySet();
         }
         return unlockGamesMap.get(regionId);
+    }
+
+    public List<PropCfg> getPropCfgList(int gameType) {
+        if(this.propCfgMap == null) {
+            this.propCfgMap = new HashMap<>();
+        }
+        return this.propCfgMap.get(gameType);
     }
 }
