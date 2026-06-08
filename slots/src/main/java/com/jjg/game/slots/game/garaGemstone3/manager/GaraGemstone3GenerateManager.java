@@ -322,9 +322,23 @@ public class GaraGemstone3GenerateManager extends AbstractSlotsGenerateManager<G
      *   <li>对已替换位置所在的中奖线，将 baseTimes 乘以该图标倍数</li>
      * </ol>
      */
-    private void expandMultiIcons(GaraGemstone3ResultLib lib) {
+    private void expandMultiIcons(GaraGemstone3ResultLib lib, Map<Integer, int[]> presetReplacedMap) {
+        int[] iconArr = lib.getIconArr();
+        // position(1-9) → 该位置的替换倍数
+        Map<Integer, Integer> replacedMap = new HashMap<>();
+        // 把 GM 等预置的分裂图标位置先纳入，并把 iconArr 上的多格图标 ID 写回用于显示
+        if (presetReplacedMap != null && !presetReplacedMap.isEmpty()) {
+            for (Map.Entry<Integer, int[]> e : presetReplacedMap.entrySet()) {
+                int pos = e.getKey();
+                int[] meta = e.getValue(); // [multiIconId, multiplier]
+                iconArr[pos] = meta[0];
+                replacedMap.put(pos, meta[1]);
+            }
+        }
+
         if (CollUtil.isEmpty(expandNumList) || CollUtil.isEmpty(expandIconList)
                 || expandNumWeightTotal <= 0 || expandIconWeightTotal <= 0) {
+            applySplitTimes(lib, replacedMap);
             return;
         }
 
@@ -342,12 +356,9 @@ public class GaraGemstone3GenerateManager extends AbstractSlotsGenerateManager<G
             }
         }
         if (replaceCount <= 0) {
+            applySplitTimes(lib, replacedMap);
             return;
         }
-
-        int[] iconArr = lib.getIconArr();
-        // position(1-9) → 该位置的替换倍数
-        Map<Integer, Integer> replacedMap = new HashMap<>();
 
         // 2. 逐个随机替换图标
         for (int i = 0; i < replaceCount; i++) {
@@ -395,20 +406,22 @@ public class GaraGemstone3GenerateManager extends AbstractSlotsGenerateManager<G
             }
         }
 
-        if (replacedMap.isEmpty()) {
+        lib.setIconArr(iconArr);
+        applySplitTimes(lib, replacedMap);
+    }
+
+    /**
+     * 对包含替换位置的中奖线累乘分裂倍数（同一线多个分裂图标则累乘）。
+     */
+    private void applySplitTimes(GaraGemstone3ResultLib lib, Map<Integer, Integer> replacedMap) {
+        if (replacedMap == null || replacedMap.isEmpty()) {
             return;
         }
-        lib.setIconArr(iconArr);
-
-        // 3. 对包含替换位置的中奖线累乘分裂倍数（同一线多个分裂图标则累乘）
         List<GaraGemstone3AwardLineInfo> lines = lib.getAwardLineInfoList();
         if (CollUtil.isEmpty(lines)) {
             return;
         }
         for (GaraGemstone3AwardLineInfo lineInfo : lines) {
-            //注意：lineInfo.getId() 是 BaseLine 的 lineId（1-5），不是表的 PK
-            //GameDataManager.getBaseLineCfg(key) 按 PK 查会永远找不到，
-            //必须用父类已经按 gameMode→lineId 缓存好的 baseLineCfgMap
             BaseLineCfg lineCfg = findBaseLineCfgByLineId(lineInfo.getId());
             if (lineCfg == null || CollUtil.isEmpty(lineCfg.getPosLocation())) {
                 continue;
@@ -426,6 +439,40 @@ public class GaraGemstone3GenerateManager extends AbstractSlotsGenerateManager<G
                 lineInfo.setSplitTimes(splitTimes);
             }
         }
+    }
+
+    /**
+     * 扫描 iconArr 中已存在的分裂图标（如 GM setIcons 直接放置的 28/24 等），
+     * 将其位置/倍数记录下来，并把对应位置临时还原成原图标，供 winLines 正常匹配连线。
+     * 返回 pos → [multiIconId, multiplier]，供 expandMultiIcons 写回 iconArr 和应用 splitTimes。
+     */
+    private Map<Integer, int[]> revertPreplacedMultiIcons(GaraGemstone3ResultLib lib) {
+        Map<Integer, int[]> presetMap = new HashMap<>();
+        int[] iconArr = lib.getIconArr();
+        if (iconArr == null || CollUtil.isEmpty(expandIconList)) {
+            return presetMap;
+        }
+        int upper = Math.min(9, iconArr.length - 1);
+        for (int pos = 1; pos <= upper; pos++) {
+            int iconId = iconArr[pos];
+            Integer originalIconId = MULTI_TO_ORIGINAL_MAP.get(iconId);
+            if (originalIconId == null || originalIconId == iconId) {
+                continue;
+            }
+            int multiplier = 0;
+            for (int[] entry : expandIconList) {
+                if (entry[0] == iconId) {
+                    multiplier = entry[1];
+                    break;
+                }
+            }
+            if (multiplier <= 1) {
+                continue;
+            }
+            presetMap.put(pos, new int[]{iconId, multiplier});
+            iconArr[pos] = originalIconId;
+        }
+        return presetMap;
     }
 
     /**
@@ -453,6 +500,9 @@ public class GaraGemstone3GenerateManager extends AbstractSlotsGenerateManager<G
         int[] extended = appendMultiplyAxisIcons(newArr, lib);
         lib.setIconArr(extended);
 
+        //预置分裂图标（如 GM setIcons 直接放置的 28/24 等）先还原为原图标，供 winLines 正常连线
+        Map<Integer, int[]> presetMultiMap = revertPreplacedMultiIcons(lib);
+
         //检查连线
         List<GaraGemstone3AwardLineInfo> awardLineInfoList = winLines(lib, freeModel);
         lib.setAwardLineInfoList(awardLineInfoList);
@@ -478,7 +528,7 @@ public class GaraGemstone3GenerateManager extends AbstractSlotsGenerateManager<G
         lib.addAllAwardLineInfo(lineDispersionCount);
 
         //多格图标替换，修改图标并对对应中奖线应用分裂倍数
-        expandMultiIcons(lib);
+        expandMultiIcons(lib, presetMultiMap);
 
         //计算倍数
         calTimes(lib);
