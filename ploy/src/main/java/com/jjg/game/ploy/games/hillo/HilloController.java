@@ -118,10 +118,8 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
             res.chooseInfos = hilloUtil.buildChooseInfos(playerGameData.getCurrentCardId(), getReturnRate(cfg));
         }
         if (playerGameData != null) {
-            // 重新进入游戏时不恢复自动投注，自动节奏必须由客户端本次重新开启。
-            if (playerGameData.isAutoBetting()) {
-                playerGameData.clearAutoBet();
-            }
+            // 正常退出已在 exit() 中清理自动投注；这里保留 isAutoBetting 状态，
+            // 用于断网重连场景下恢复自动投注，让客户端可继续按原节奏推进。
             res.autoBetting = playerGameData.isAutoBetting();
             res.autoInfiniteBet = playerGameData.isAutoInfiniteBet();
             res.autoBet = playerGameData.getAutoBet();
