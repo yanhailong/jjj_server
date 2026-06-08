@@ -31,6 +31,8 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   protected int UpgradeCost;
   /** 升级产出能量 */
   protected int UpgradeOutput;
+  /** 游客生成数量 */
+  protected int VisitorSpawnCount;
   /** 等级 */
   protected int level;
 
@@ -62,6 +64,11 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   /** 返回升级产出能量 */
   public int getUpgradeOutput() {
     return UpgradeOutput;
+  }
+
+  /** 返回游客生成数量 */
+  public int getVisitorSpawnCount() {
+    return VisitorSpawnCount;
   }
 
   /** 返回等级 */

@@ -8,6 +8,8 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
@@ -279,6 +281,44 @@ public class SimMessageHandler implements GmListener {
                 int num = Integer.parseInt(gmOrders[1]);
                 SimPlayerContext context = simManager.getContext(playerController.playerId());
                 context.getSimBaseData().setPower(num + context.getSimBaseData().getPower());
+            } else if ("genGuest".equalsIgnoreCase(gmOrders[0])) {
+                SimPlayerContext ctx = simManager.getContext(playerController.playerId());
+                int num = Integer.parseInt(gmOrders[1]);
+                if (num > 500 || num < 1) {
+                    log.warn("单次生成游客数量区间在 1-500");
+                    res.code = Code.FAIL;
+                    return res;
+                }
+                //赌场配置
+                CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(ctx.getCurrentCasino().getStatsId());
+                if (casinoCfg == null) {
+                    log.warn("生成游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), ctx.getCurrentCasino().getStatsId());
+                    res.code = Code.FAIL;
+                    return res;
+                }
+                guestService.batchGenerateGuest(ctx, num, casinoCfg, System.currentTimeMillis(), null);
+            } else if ("specifyIdGenGuest".equalsIgnoreCase(gmOrders[0])) {
+                int id = Integer.parseInt(gmOrders[1]);
+                int num = Integer.parseInt(gmOrders[2]);
+                if (num > 500 || num < 1) {
+                    log.warn("单次生成游客数量区间在 1-500");
+                    res.code = Code.FAIL;
+                    return res;
+                }
+
+                SimPlayerContext context = simManager.getContext(playerController.playerId());
+                guestService.batchGenerateSpecifyIdGuest(context, id, num);
+            } else if ("specifyQualityGenGuest".equalsIgnoreCase(gmOrders[0])) {
+                int quality = Integer.parseInt(gmOrders[1]);
+                int num = Integer.parseInt(gmOrders[2]);
+                if (num > 500 || num < 1) {
+                    log.warn("单次生成游客数量区间在 1-500");
+                    res.code = Code.FAIL;
+                    return res;
+                }
+
+                SimPlayerContext context = simManager.getContext(playerController.playerId());
+                guestService.batchGenerateSpecifyQualityGuest(context, quality, num);
             } else {
                 res.code = Code.NOT_FOUND;
             }

@@ -434,13 +434,24 @@ public class RandomUtils {
     /**
      * 随机获得列表中的元素
      *
+     * @param <T>  元素类型
+     * @param list 列表
+     * @return 随机元素
+     */
+    public static <T> T randomEle(final List<T> list) {
+        return randomEle(list, list.size());
+    }
+
+    /**
+     * 随机获得列表中的元素
+     *
      * @param <T>   元素类型
      * @param list  列表
      * @param limit 限制列表的前N项
      * @return 随机元素
      */
     public static <T> T randomEle(final List<T> list, int limit) {
-        if(list == null || list.isEmpty()){
+        if (list == null || list.isEmpty()) {
             return null;
         }
         if (list.size() < limit) {

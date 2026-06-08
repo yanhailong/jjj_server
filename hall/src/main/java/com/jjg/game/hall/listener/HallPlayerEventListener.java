@@ -343,14 +343,17 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     @Override
     public void logout(long playerId, String sessionId) {
         //玩家彻底下线: 保存并卸载 sim (此前切换节点不卸载)
-        simManager.onExitGame(playerId, ExitType.DROPPED);
-        PlayerSessionInfo playerSessionInfo = playerSessionService.remove(playerId);
-        if (playerSessionInfo == null) {
-            hallLogger.logout(playerId, 0);
-        } else {
-            hallLogger.logout(playerId, playerSessionInfo.getCreateTime());
+        boolean exit = simManager.onExitGame(playerId, ExitType.DROPPED);
+        if (exit) {
+            PlayerSessionInfo playerSessionInfo = playerSessionService.remove(playerId);
+            if (playerSessionInfo == null) {
+                hallLogger.logout(playerId, 0);
+            } else {
+                hallLogger.logout(playerId, playerSessionInfo.getCreateTime());
+            }
+            accountDao.checkAndSave(playerId, a -> a.setLastOfflineTime(System.currentTimeMillis()));
+            log.info("玩家登出 playerId={}", playerId);
         }
-        log.info("玩家登出 playerId={}", playerId);
     }
 
     @Override

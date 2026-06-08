@@ -26,6 +26,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //ResearchInstitute配置 regionID -> gameTypeSet
     private Map<Integer, Set<Integer>> unlockGamesMap;
 
+    //VisitorQuest配置 quality -> cfg
+    private Map<Integer, List<VisitorQuestCfg>> visitorQuestCfgMap;
     //VisitorLevel配置 guestId -> level -> cfg
     private Map<Integer, Map<Integer, VisitorLevelCfg>> visitorLevelCfgMap;
     //VisitorStar配置 guestId -> star -> cfg
@@ -60,6 +62,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         loadEmployeeLevelConfig();
         loadEmployeeStarConfig();
 
+        loadVisitorQuestConfig();
         loadVisitorLevelConfig();
         loadVisitorStarConfig();
 
@@ -88,6 +91,17 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             tmpUnlockGamesMap.computeIfAbsent(cfg.getRegionID(), k -> new HashSet<>()).add(cfg.getGameType());
         }
         this.unlockGamesMap = tmpUnlockGamesMap;
+    }
+
+    /**
+     * 加载VisitorQuestCfg
+     */
+    private void loadVisitorQuestConfig() {
+        Map<Integer, List<VisitorQuestCfg>> tmpVisitorQuestCfgMap = new HashMap<>();
+        for (VisitorQuestCfg cfg : GameDataManager.getVisitorQuestCfgList()) {
+            tmpVisitorQuestCfgMap.computeIfAbsent(cfg.getQuality(), k -> new ArrayList<>()).add(cfg);
+        }
+        this.visitorQuestCfgMap = tmpVisitorQuestCfgMap;
     }
 
     /**
@@ -226,6 +240,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         addInitSampleFileObserveWithCallBack(CasinoStatsSheetCfg.EXCEL_NAME, this::loadCasinoStatsSheetCfg);
         addInitSampleFileObserveWithCallBack(ResearchInstituteCfg.EXCEL_NAME, this::loadResearchInstituteCfg);
 
+        addInitSampleFileObserveWithCallBack(VisitorQuestCfg.EXCEL_NAME, this::loadVisitorQuestConfig);
         addInitSampleFileObserveWithCallBack(VisitorLevelCfg.EXCEL_NAME, this::loadVisitorLevelConfig);
         addInitSampleFileObserveWithCallBack(VisitorStarCfg.EXCEL_NAME, this::loadVisitorStarConfig);
 
@@ -361,9 +376,16 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     }
 
     public List<PropCfg> getPropCfgList(int gameType) {
-        if(this.propCfgMap == null) {
+        if (this.propCfgMap == null) {
             this.propCfgMap = new HashMap<>();
         }
         return this.propCfgMap.get(gameType);
+    }
+
+    public List<VisitorQuestCfg> getVisitorQuestCfgList(int quality) {
+        if (this.visitorQuestCfgMap == null) {
+            return null;
+        }
+        return this.visitorQuestCfgMap.get(quality);
     }
 }

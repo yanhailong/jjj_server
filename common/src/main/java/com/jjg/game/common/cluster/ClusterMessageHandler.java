@@ -126,7 +126,6 @@ public class ClusterMessageHandler {
     public void sessionLogout(Connect<ClusterMessage> connect, SessionLogout sessionLogout) {
         String sessionId = sessionLogout.sessionId;
         long playerId = sessionLogout.playerId;
-        log.info("用户下线，sessionId={}，playerId={}", sessionId, playerId);
         if (this.sessionLogoutListenerMap != null && !this.sessionLogoutListenerMap.isEmpty()) {
             for (Map.Entry<String, SessionLogoutListener> en : this.sessionLogoutListenerMap.entrySet()) {
                 en.getValue().logout(playerId, sessionId);

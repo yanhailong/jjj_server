@@ -8,7 +8,6 @@ import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
-import com.jjg.game.common.listener.SessionLogoutListener;
 import com.jjg.game.common.message.SessionKickout;
 import com.jjg.game.common.netty.NettyConnect;
 import com.jjg.game.common.protostuff.MessageUtil;
@@ -44,7 +43,7 @@ import java.util.stream.Collectors;
  * @date 2025/5/26 16:56
  */
 @Component
-public class PlayerSessionService implements TimerListener<String>, SessionLogoutListener {
+public class PlayerSessionService implements TimerListener<String> {
     public static final String SESSION_TABLE_NAME = "playerSession";
     //session超时时间
     private static final int SESSION_TIME_OUT_MINUTES = 30;
@@ -479,11 +478,5 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
             return true;
         }
         return false;
-    }
-
-
-    @Override
-    public void logout(long playerId, String sessionId) {
-        accountDao.checkAndSave(playerId, a -> a.setLastOfflineTime(System.currentTimeMillis()));
     }
 }

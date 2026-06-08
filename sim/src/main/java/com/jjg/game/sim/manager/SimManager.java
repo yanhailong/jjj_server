@@ -153,12 +153,14 @@ public class SimManager {
     /**
      * 玩家退出游戏
      */
-    public void onExitGame(long playerId, ExitType exitType) {
+    public boolean onExitGame(long playerId, ExitType exitType) {
         SimPlayerContext ctx = this.contextMap.get(playerId);
         if (ctx != null) {
             ctx.getSimBaseData().setLastOfflineTime(System.currentTimeMillis());
             exitSaveData(playerId);
+            return true;
         }
+        return false;
     }
 
     /**

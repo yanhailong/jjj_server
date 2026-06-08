@@ -20,6 +20,7 @@ import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.NotifyGenerateGuest;
 import com.jjg.game.sim.pb.struct.DestinationInfo;
+import com.jjg.game.sim.pb.struct.GuestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,17 +87,150 @@ public class SimGuestService implements SimPlayerTickListener {
             return;
         }
 
-        //加权随机选一个已解锁的游客
-        GuestData guest = pickGuestByWeight(casino);
-        if (guest == null) {
-            casino.setLastGenerateTime(now);
+        batchGenerateGuest(ctx, casinoCfg.getVisitorSpawnCount(), casinoCfg, now, null);
+    }
+
+    /**
+     * 指定游客id批量生成
+     *
+     * @param ctx
+     * @param guestId
+     * @param num
+     */
+    public void batchGenerateSpecifyIdGuest(SimPlayerContext ctx, int guestId, int num) {
+        //当前赌场
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (casino == null) {
+            log.warn("生成指定游客id失败，当前赌场数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
             return;
+        }
+
+        VisitorQuestCfg visitorQuestCfg = GameDataManager.getVisitorQuestCfg(guestId);
+        if (visitorQuestCfg == null) {
+            log.warn("生成指定游客id失败，获取 visitorQuestCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), casino.getStatsId());
+            return;
+        }
+
+        //赌场配置
+        CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
+        if (casinoCfg == null) {
+            log.warn("生成指定游客id失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), casino.getStatsId());
+            return;
+        }
+
+        GuestData guestData = new GuestData();
+        guestData.setId(guestId);
+        guestData.setLevel(1);
+        guestData.setStar(1);
+        batchGenerateGuest(ctx, num, casinoCfg, System.currentTimeMillis(), guestData);
+    }
+
+    /**
+     * 指定游客品质批量生成
+     *
+     * @param ctx
+     * @param quality
+     * @param num
+     */
+    public void batchGenerateSpecifyQualityGuest(SimPlayerContext ctx, int quality, int num) {
+        //当前赌场
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (casino == null) {
+            log.warn("生成指定游客quality失败，当前赌场数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
+            return;
+        }
+        //赌场配置
+        CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
+        if (casinoCfg == null) {
+            log.warn("生成指定游客quality失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), casino.getStatsId());
+            return;
+        }
+
+        List<VisitorQuestCfg> visitorQuestCfgList = configCache.getVisitorQuestCfgList(quality);
+        if (visitorQuestCfgList == null || visitorQuestCfgList.isEmpty()) {
+            log.warn("生成指定游客quality失败，获取 VisitorQuestCfg 配置未找到 playerId={},quality={}", ctx.playerId(), quality);
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        NotifyGenerateGuest notify = new NotifyGenerateGuest(Code.SUCCESS);
+        notify.guests = new ArrayList<>();
+        for (int i = 0; i < num; i++) {
+            VisitorQuestCfg visitorQuestCfg = RandomUtils.randomEle(visitorQuestCfgList);
+
+            GuestData guestData = new GuestData();
+            guestData.setId(visitorQuestCfg.getId());
+            guestData.setLevel(1);
+            guestData.setStar(1);
+
+            //生成单个游客
+            GuestInfo guestInfo = generateOneGuest(ctx, null, casinoCfg, now, guestData);
+            if (guestInfo != null) {
+                //将游客信息放入列表
+                notify.guests.add(guestInfo);
+            }
+        }
+        if (!notify.guests.isEmpty()) {
+            ctx.send(notify);
+        }
+    }
+
+    /**
+     * 批量生成游客
+     *
+     * @param ctx
+     * @param num
+     * @param casinoCfg
+     * @param now
+     * @param specifyGuest
+     */
+    public void batchGenerateGuest(SimPlayerContext ctx, int num, CasinoStatsSheetCfg casinoCfg, long now, GuestData specifyGuest) {
+        NotifyGenerateGuest notify = new NotifyGenerateGuest(Code.SUCCESS);
+        notify.guests = new ArrayList<>();
+
+        WeightRandom<GuestData> guestDataWeightRandom = weightRandomGuest(ctx.getCurrentCasino());
+        for (int i = 0; i < num; i++) {
+            //生成单个游客
+            GuestInfo guestInfo = generateOneGuest(ctx, guestDataWeightRandom, casinoCfg, now, specifyGuest);
+            if (guestInfo != null) {
+                //将游客信息放入列表
+                notify.guests.add(guestInfo);
+            }
+        }
+
+        if (!notify.guests.isEmpty()) {
+            ctx.send(notify);
+        }
+    }
+
+    /**
+     * 生成单个游客，不推送消息
+     *
+     * @param ctx
+     * @param guestDataWeightRandom
+     * @param casinoCfg
+     * @param now
+     * @param specifyGuest
+     * @return
+     */
+    private GuestInfo generateOneGuest(SimPlayerContext ctx, WeightRandom<GuestData> guestDataWeightRandom, CasinoStatsSheetCfg casinoCfg, long now, GuestData specifyGuest) {
+        //加权随机选一个已解锁的游客
+        GuestData guest = specifyGuest;
+        if (guest == null) {
+            if (guestDataWeightRandom == null) {
+                return null;
+            }
+            guest = guestDataWeightRandom.next();
+            if (guest == null) {
+                ctx.getCurrentCasino().setLastGenerateTime(now);
+                return null;
+            }
         }
         VisitorQuestCfg visitorQuestCfg = GameDataManager.getVisitorQuestCfg(guest.getId());
         if (visitorQuestCfg == null) {
-            casino.setLastGenerateTime(now);
+            ctx.getCurrentCasino().setLastGenerateTime(now);
             log.warn("生成游客失败，VisitorQuest 配置未找到 playerId={},guestId={}", ctx.playerId(), guest.getId());
-            return;
+            return null;
         }
 
         //本次交互次数 (有奖励 + 无奖励)
@@ -104,17 +238,17 @@ public class SimGuestService implements SimPlayerTickListener {
         int rewardedCount = computeInteractionCount(visitorQuestCfg.getServiceCapacity(), casinoCfg.getProsperity(), starCfg);
         int unrewardedCount = computeInteractionCount(visitorQuestCfg.getBaseServiceCapacity(), casinoCfg.getProsperity(), starCfg);
         if (rewardedCount + unrewardedCount <= 0) {
-            casino.setLastGenerateTime(now);
+            ctx.getCurrentCasino().setLastGenerateTime(now);
             log.info("生成游客但交互次数为 0, 跳过 playerId={},guestId={}", ctx.playerId(), visitorQuestCfg.getId());
-            return;
+            return null;
         }
 
         //规划本次行程的目的地序列
-        List<DestinationInfo> destinations = planDestinations(guest, visitorQuestCfg, casino, rewardedCount, unrewardedCount);
+        List<DestinationInfo> destinations = planDestinations(guest, visitorQuestCfg, ctx.getCurrentCasino(), rewardedCount, unrewardedCount);
         if (destinations.isEmpty()) {
-            casino.setLastGenerateTime(now);
-            log.warn("生成游客失败，目的地序列为空 playerId={},guestId={}", ctx.playerId(), visitorQuestCfg.getId());
-            return;
+            ctx.getCurrentCasino().setLastGenerateTime(now);
+//            log.warn("生成游客失败，目的地序列为空 playerId={},guestId={}", ctx.playerId(), visitorQuestCfg.getId());
+            return null;
         }
 
         Map<Integer, Long> rewardsMap = new HashMap<>();
@@ -135,15 +269,9 @@ public class SimGuestService implements SimPlayerTickListener {
         //累加经验
         guest.addExp(configCache.getVisitorLevelCfgMap());
 
-        casino.setLastGenerateTime(now);
-        casino.recordGenerate(now, SimConstant.Common.CAPACITY_WINDOW_MS);
-
-        //下发通知 (包含完整 destinations, 客户端自行模拟整个流程)
-        NotifyGenerateGuest notify = new NotifyGenerateGuest(Code.SUCCESS);
-        notify.guests = Collections.singletonList(SimPbConverter.toGuestInfo(guest, destinations));
-        ctx.send(notify);
-
-//        log.info("生成游客 playerId={},guestId={},exp={},level={},rewarded={},unrewarded={},destinations={}",ctx.playerId(), visitorQuestCfg.getId(), guest.getExp(), guest.getLevel(), rewardedCount, unrewardedCount, JSON.toJSONString(destinations));
+        ctx.getCurrentCasino().setLastGenerateTime(now);
+        ctx.getCurrentCasino().recordGenerate(now, SimConstant.Common.CAPACITY_WINDOW_MS);
+        return SimPbConverter.toGuestInfo(guest, destinations);
     }
 
     /**
@@ -189,11 +317,16 @@ public class SimGuestService implements SimPlayerTickListener {
     }
 
     /**
-     * 按已解锁游客的刷新权重加权随机一个游客
-     * 权重 = (cfg.awareness == 0) ? BaseWeight : (cfg.awareness + 1) * BaseWeight
+     * 按已解锁游客的刷新权重加权随机
+     *
+     * @param casino
+     * @return
      */
-    private GuestData pickGuestByWeight(SimCasinoData casino) {
+    private WeightRandom<GuestData> weightRandomGuest(SimCasinoData casino) {
         WeightRandom<GuestData> random = WeightRandom.create();
+        if (casino.getGuestMap() == null || casino.getGuestMap().isEmpty()) {
+            return random;
+        }
         for (GuestData g : casino.getGuestMap().values()) {
             VisitorQuestCfg cfg = GameDataManager.getVisitorQuestCfg(g.getId());
             if (cfg == null) {
@@ -204,7 +337,7 @@ public class SimGuestService implements SimPlayerTickListener {
                 random.add(g, weight);
             }
         }
-        return random.next();
+        return random;
     }
 
     /**
