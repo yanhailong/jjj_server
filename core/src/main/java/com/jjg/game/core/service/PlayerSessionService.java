@@ -117,16 +117,19 @@ public class PlayerSessionService implements TimerListener<String> {
     }
 
     public PFSession getSession(PlayerSessionInfo playerSessionInfo) {
-        if (playerSessionInfo == null) {
-            log.debug("获取session失败!playerSessionInfo 为空。");
+        return getSession(playerSessionInfo.getNodeName(), playerSessionInfo.getSessionId(), playerSessionInfo.getPlayerId());
+    }
+
+    public PFSession getSession(String nodeName, String sessionId, long playerId) {
+        if (nodeName == null || nodeName.isEmpty()) {
+            log.debug("获取session失败!nodeName 为空。");
             return null;
         }
         NettyConnect<Object> connect;
         try {
-            connect = clusterSystem.getClusterByPath(playerSessionInfo.getNodeName()).getConnect();
+            connect = clusterSystem.getClusterByPath(nodeName).getConnect();
         } catch (Exception e) {
-            log.error("获取Netty连接失败!playerSessionInfo={},nodeName={}",
-                    playerSessionInfo, playerSessionInfo.getNodeName(), e);
+            log.error("获取Netty连接失败!playerId={},sessionId={},nodeName={}", playerId, sessionId, nodeName, e);
             return null;
         }
         if (connect == null) {
@@ -134,8 +137,8 @@ public class PlayerSessionService implements TimerListener<String> {
             return null;
         }
 
-        PFSession pfSession = new PFSession(playerSessionInfo.getSessionId(), connect, null);
-        pfSession.setPlayerId(playerSessionInfo.getPlayerId());
+        PFSession pfSession = new PFSession(sessionId, connect, null);
+        pfSession.setPlayerId(playerId);
         return pfSession;
     }
 
@@ -468,7 +471,9 @@ public class PlayerSessionService implements TimerListener<String> {
                 }
             }
 
-            removeSessionIds.forEach(sessionId -> {clusterSystem.removeSession(sessionId);});
+            removeSessionIds.forEach(sessionId -> {
+                clusterSystem.removeSession(sessionId);
+            });
         }
     }
 

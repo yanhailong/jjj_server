@@ -4,10 +4,16 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
+import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.pb.ActivityItemDropInfo;
+import com.jjg.game.core.pb.NotifyItemDropInfo;
+import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
@@ -23,10 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -72,11 +75,14 @@ public class SimManager {
     @Autowired
     private SimSkillsDao simSkillsDao;
     @Autowired
-    private SimSlotsDropService simSlotsDropService;
+    private SimItemService simItemService;
     @Autowired
     private SimSkillService simSkillService;
     @Autowired
     private ClusterSystem clusterSystem;
+    @Autowired
+    private PlayerSessionService playerSessionService;
+
 
     /**
      * 初始化
@@ -300,4 +306,40 @@ public class SimManager {
         }
     }
 
+    public void onSlotsSpin(long playerId, int gameType, int winTimes, String sessionId, String sessionPath) {
+        try {
+            SimPlayerContext ctx = getContext(playerId);
+            if (ctx == null) {
+                //玩家未在 sim 在线: 跳过联动, 不影响 slots 旋转
+                log.warn("slots 联动跳过, 玩家未在 sim 在线 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes);
+                return;
+            }
+
+            CommonResult<Map<Integer, Long>> result = simItemService.onSpin(ctx, gameType, winTimes);
+            if (!result.success()) {
+                log.warn("slots 联动失败, onSpin执行失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result.code);
+                return;
+            }
+
+            if(result.data == null || result.data.isEmpty()){
+                return;
+            }
+
+            PFSession session = playerSessionService.getSession(sessionPath, sessionId, playerId);
+            if (session != null) {
+                Map<Integer, Long> newMap = new HashMap<>();
+                for (Map.Entry en : result.data.entrySet()) {
+                    newMap.put(Integer.parseInt(en.getKey().toString()), Long.parseLong(en.getValue().toString()));
+                }
+                NotifyItemDropInfo notify = new NotifyItemDropInfo();
+                notify.itemDropInfos = new ArrayList<>();
+                ActivityItemDropInfo dropInfo = new ActivityItemDropInfo();
+                dropInfo.itemMap = ItemUtils.buildItemInfo(newMap);
+                notify.itemDropInfos.add(dropInfo);
+                session.send(notify);
+            }
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
 }

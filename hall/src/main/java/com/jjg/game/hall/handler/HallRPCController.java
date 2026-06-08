@@ -1,5 +1,6 @@
 package com.jjg.game.hall.handler;
 
+import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
@@ -14,8 +15,6 @@ import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.manager.SimManager;
-import com.jjg.game.sim.service.SimSkillService;
-import com.jjg.game.sim.service.SimSlotsDropService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -36,10 +35,6 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private HallService hallService;
     @Autowired
     private SimManager simManager;
-    @Autowired
-    private SimSkillService simSkillService;
-    @Autowired
-    private SimSlotsDropService simSlotsDropService;
 
     @Override
     public int playerBindPhone(long playerId, String phone, int type, boolean reward) {
@@ -96,6 +91,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     }
 
     @Override
+    @RpcCallSetting(processorModKey = "#arg0")
     public int deductResearchPoint(long playerId, Map<Integer, Integer> deductMap) {
         if (deductMap == null || deductMap.isEmpty()) {
             return Code.SUCCESS;
@@ -126,6 +122,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     }
 
     @Override
+    @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<SimSkillsData> addSkillById(long playerId, int gameType, int skillId) {
         ResearchSkillsCfg cfg = GameDataManager.getResearchSkillsCfg(skillId);
         if (cfg == null) {
@@ -148,21 +145,5 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
         log.info("添加技能成功 playerId={},gameType={},skillId={},propId={},grade={}",
                 playerId, gameType, skillId, cfg.getAttr(), cfg.getGrade());
         return new CommonResult<>(Code.SUCCESS, data);
-    }
-
-    @Override
-    public CommonResult<Map<Integer, Long>> onSlotsSpin(long playerId, int gameType, int winTimes) {
-        SimPlayerContext ctx = simManager.getContext(playerId);
-        if (ctx == null) {
-            //玩家未在 sim 在线: 跳过联动, 不影响 slots 旋转
-            log.info("slots 联动跳过, 玩家未在 sim 在线 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes);
-            return new CommonResult<>(Code.NOT_FOUND);
-        }
-        try {
-            return simSlotsDropService.onSpin(ctx, gameType, winTimes);
-        } catch (Exception e) {
-            log.error("slots 联动异常 playerId=" + playerId + ",gameType=" + gameType, e);
-            return new CommonResult<>(Code.EXCEPTION);
-        }
     }
 }

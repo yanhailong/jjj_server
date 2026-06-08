@@ -190,9 +190,9 @@ public interface MessageConst {
         //模拟经营游戏
         int SIM_GAME = 0x54;
         //南方前进-血战
-        int TO_SOUTH_BLOOD =  0x5A;
+        int TO_SOUTH_BLOOD = 0x5A;
         //南方前进-免费
-        int TO_SOUTH_FREE =  0x5B;
+        int TO_SOUTH_FREE = 0x5B;
     }
 
     interface ToClientConst {
@@ -373,5 +373,7 @@ public interface MessageConst {
         //刷新游戏配置
         int REQ_REFRESH_GLOBAL_CONFIG = BASE_MSG_PREFIX | 0x17;
 
+        //通知slots旋转
+        int NOTICE_SLOTS_SPIN = BASE_MSG_PREFIX | 0x18;
     }
 }

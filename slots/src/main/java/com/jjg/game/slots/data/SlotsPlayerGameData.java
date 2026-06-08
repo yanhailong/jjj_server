@@ -1,5 +1,6 @@
 package com.jjg.game.slots.data;
 
+import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
@@ -79,6 +80,8 @@ public class SlotsPlayerGameData {
     protected transient SimSkillsData simSkillsData;
     @Transient
     protected transient Set<Long> tmpSkillStakeSet;
+    @Transient
+    protected transient ClusterClient simClient;
 
     public long getPlayerId() {
         if (playerId == 0) {
@@ -404,5 +407,13 @@ public class SlotsPlayerGameData {
 
     public void setTmpSkillStakeSet(Set<Long> tmpSkillStakeSet) {
         this.tmpSkillStakeSet = tmpSkillStakeSet;
+    }
+
+    public ClusterClient getSimClient() {
+        return simClient;
+    }
+
+    public void setSimClient(ClusterClient simClient) {
+        this.simClient = simClient;
     }
 }

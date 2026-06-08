@@ -23,6 +23,8 @@ import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
 import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureService;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.hall.service.NoticeService;
+import com.jjg.game.sim.manager.SimManager;
+import com.jjg.game.sim.pb.res.NotifyServerPlayerSpin;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -43,17 +45,19 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
     private final ActivityManager activityManager;
     private final NoticeService noticeService;
     private final GrandRouletteController grandRouletteController;
+    private final SimManager simManager;
 
     public HallToServerMessageHandler(LuckyTreasureService luckyTreasureService,
                                       HallService hallService,
                                       CoreLogger coreLogger,
-                                      ActivityManager activityManager, NoticeService noticeService, GrandRouletteController grandRouletteController) {
+                                      ActivityManager activityManager, NoticeService noticeService, GrandRouletteController grandRouletteController, SimManager simManager) {
         this.luckyTreasureService = luckyTreasureService;
         this.hallService = hallService;
         this.coreLogger = coreLogger;
         this.activityManager = activityManager;
         this.noticeService = noticeService;
         this.grandRouletteController = grandRouletteController;
+        this.simManager = simManager;
     }
 
     @Command(MessageConst.ToServer.REQ_REFRESH_GAME_STATUS)
@@ -117,4 +121,11 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
         noticeService.loadNotice(false);
     }
 
+    /**
+     * 通知slots旋转
+     */
+    @Command(MessageConst.ToServer.NOTICE_SLOTS_SPIN)
+    public void notifySlotsSpin(NotifyServerPlayerSpin notify) {
+        simManager.onSlotsSpin(notify.playerId, notify.gameType, notify.winTimes, notify.sessionId, notify.sessionPath);
+    }
 }

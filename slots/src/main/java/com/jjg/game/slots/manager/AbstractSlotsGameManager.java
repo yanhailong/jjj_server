@@ -35,6 +35,8 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.pb.res.NotifyServerPlayerSpin;
+import com.jjg.game.sim.service.SimNodeService;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.*;
@@ -101,7 +103,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     @Autowired
     protected SlotsSkillService simSkillService;
     @Autowired
-    protected SlotsSimLinkService slotsSimLinkService;
+    protected SimNodeService simNodeService;
 
     protected AtomicBoolean open = new AtomicBoolean(false);
 
@@ -375,9 +377,36 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         G gameRunInfo = startGame(playerController, playerGameData, betValue, false);
         //公共: 旋转成功后通知 sim 联动 (扣能量/加经验/赌场升级/道具掉落), winTimes 取各游戏写入的 allWinTimes
         if (gameRunInfo != null && gameRunInfo.success()) {
-            slotsSimLinkService.notifySpin(playerController, getGameType(), gameRunInfo.getAllWinTimes());
+            notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes());
         }
         return gameRunInfo;
+    }
+
+    /**
+     * 通知sim节点
+     * 非阻塞，异步通知
+     *
+     * @param playerGameData
+     * @param gameType
+     * @param winTimes
+     */
+    public void notifySpin(T playerGameData, int gameType, int winTimes) {
+        try {
+            if (playerGameData.getSimClient() == null) {
+                return;
+            }
+
+            NotifyServerPlayerSpin notify = new NotifyServerPlayerSpin();
+            notify.playerId = playerGameData.getPlayerId();
+            notify.gameType = gameType;
+            notify.winTimes = winTimes;
+            notify.sessionId = playerGameData.getPlayerController().getSession().sessionId();
+            notify.sessionPath = playerGameData.getPlayerController().getSession().gatePath;
+            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
+            playerGameData.getSimClient().write(new ClusterMessage(pfMessage));
+        } catch (Exception e) {
+            log.error("", e);
+        }
     }
 
     /**
@@ -972,6 +1001,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         //获取该slots游戏的技能数据并解锁技能
         SimSkillsData simSkillsData = simSkillService.getSkillDataByGameType(playerController.playerId(), this.gameType);
+        //获取sim节点
+        ClusterClient simClusterClient = simNodeService.getSimClusterClient(playerController.playerId());
+
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData != null) {
             playerGameData.setCreateTime(TimeHelper.nowInt());
@@ -981,6 +1013,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setOfflineEventMap(initOffLineEvent());
             playerGameData.setPlayerAllSlotsData(playerAllSlotsData);
             playerGameData.setSimSkillsData(simSkillsData);
+            playerGameData.setSimClient(simClusterClient);
             return playerGameData;
         }
 
@@ -1014,6 +1047,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setPlayerAllSlotsData(playerAllSlotsData);
 
         playerGameData.setSimSkillsData(simSkillsData);
+        playerGameData.setSimClient(simClusterClient);
 
         //保存到缓存中
         this.gameDataMap.put(playerId, playerGameData);
@@ -2421,7 +2455,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (playerGameData.getSimSkillsData() != null && playerGameData.getSimSkillsData().getSkillsMap() != null
                 && !playerGameData.getSimSkillsData().getSkillsMap().isEmpty()) {
             for (Map.Entry<Integer, Integer> en : playerGameData.getSimSkillsData().getSkillsMap().entrySet()) {
-                ResearchSkillsCfg cfg = this.simSkillService.getResearchSkillsCfg(this.gameType,en.getKey(),en.getValue());
+                ResearchSkillsCfg cfg = this.simSkillService.getResearchSkillsCfg(this.gameType, en.getKey(), en.getValue());
                 if (cfg == null) {
                     continue;
                 }
