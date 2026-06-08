@@ -16,4 +16,5 @@ public class NotifyServerPlayerSpin {
     public int winTimes;
     public String sessionId;
     public String sessionPath;
+    public boolean changeNode;
 }

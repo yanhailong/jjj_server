@@ -47,21 +47,26 @@ public class SimNodeService {
         redisTemplate.opsForHash().delete(tableName, playerIds.toArray());
     }
 
+    public String get(long playerId) {
+        return (String) redisTemplate.opsForHash().get(tableName, playerId);
+    }
+
     /**
      * 获取sim节点
+     *
      * @param playerId
      * @return
      */
-    public ClusterClient getSimClusterClient(long playerId) {
-        Object o = redisTemplate.opsForHash().get(tableName, playerId);
+    public ClusterClient getSimClusterClient(long playerId, String ip) {
+        String path = get(playerId);
 
         ClusterClient clusterClient = null;
-        if (o != null) {
-            clusterClient = clusterSystem.getClusterByPath(o.toString());
+        if (path != null && !path.isEmpty()) {
+            clusterClient = clusterSystem.getClusterByPath(path);
         }
 
-        if(clusterClient == null) {
-            clusterClient = clusterSystem.randClientByType(NodeType.HALL);
+        if (clusterClient == null) {
+            clusterClient = clusterSystem.getByNodeType(NodeType.HALL, ip, playerId);
         }
         return clusterClient;
     }

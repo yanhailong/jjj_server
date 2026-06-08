@@ -143,7 +143,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             });
             return;
         }
-        
+
         //设置workId
         session.setWorkId(slotsRoomController.getRoom().getId());
 
@@ -171,27 +171,29 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
      * @param session  PFSession
      * @param exitType 退出类型
      */
-    public int exitGame(PFSession session, ExitType exitType) {
+    public CommonResult<SlotsPlayerGameData> exitGame(PFSession session, ExitType exitType) {
+        CommonResult<SlotsPlayerGameData> result = new CommonResult<>(Code.SUCCESS);
         PlayerController playerController = (PlayerController) session.getReference();
         if (playerController == null) {
             log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(),
                     session.sessionId());
-            return Code.SUCCESS;
+            return result;
         }
 
         AbstractSlotsGameManager<?, ?, ?> gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
         if (gameManager == null) {
             log.debug("退出游戏时，获取游戏管理器失败 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
-            return Code.SUCCESS;
+            return result;
         }
         SlotsPlayerGameData playerGameData = gameManager.getPlayerGameData(playerController);
         if (playerGameData == null) {
-            return Code.SUCCESS;
+            return result;
         }
         boolean canExit = gameManager.canExit(playerGameData);
         //特殊状态下，玩家无法主动退出
         if (exitType == ExitType.INITIATIVE && !canExit) {
-            return Code.FAIL;
+            result.code = Code.FAIL;
+            return result;
         }
         playerGameData = gameManager.exit(playerController, exitType);
         playerSessionService.offline(playerController.getPlayer(), exitType == ExitType.DROPPED);
@@ -202,8 +204,9 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         }
         session.setReference(null);
         logger.exitGame(playerController.getPlayer(), onlineTimeLen, playerController.getPlayer().getDeviceType());
+        result.data = playerGameData;
         log.debug("玩家退出slots游戏 playerId = {}", playerController.playerId());
-        return Code.SUCCESS;
+        return result;
     }
 
 }

@@ -40,6 +40,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.sim.manager.SimManager;
+import com.jjg.game.sim.service.SimNodeService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,6 +102,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private PlayerSnapshotService playerSnapshotService;
     @Autowired
     private SimManager simManager;
+    @Autowired
+    private SimNodeService simNodeService;
 
     public void init() {
     }
@@ -272,11 +275,14 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 res.gameWareInfo = new GameWareInfo();
                 res.gameWareInfo.gameType = player.getGameType();
                 res.gameWareInfo.roomCfgId = player.getRoomCfgId();
-                WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(player.getRoomCfgId());
-                if (warehouseCfg != null) {
-                    res.gameWareInfo.isFriendRoom = (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START && warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START);
+                if (res.gameWareInfo.gameType > 0 && res.gameWareInfo.roomCfgId > 0) {
+                    WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(player.getRoomCfgId());
+                    if (warehouseCfg != null) {
+                        res.gameWareInfo.isFriendRoom = (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START && warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START);
+                    }
                 }
                 session.send(res);
+
                 hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice(), playerSessionToken.getMac(), playerSessionToken.getFcm());
                 // 调用登录接口类
                 PlayerController playerController = new PlayerController(session, player);
@@ -284,9 +290,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 Player finalPlayerLogin = player;
                 SystemInterfaceHolder.callGameSysAction(
                         IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, finalPlayerLogin, account, dayOfFirstLogin));
-                //sim 寄生在 hall, 登录即加载赌场数据并后台运行
-                simManager.onPlayerLogin(playerController);
-
                 //更新token过期时间
                 playerSessionTokenDao.updateExpire(playerSessionToken);
                 return;
@@ -328,8 +331,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             Player finalPlayer = player;
             SystemInterfaceHolder.callGameSysAction(
                     IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, finalPlayer, account, dayOfFirstLogin));
-            //sim 寄生在 hall, 登录即加载赌场数据并后台运行
-            simManager.onPlayerLogin(playerController);
+            simManager.onEnterSim(playerController, true);
             //加载任务数据
             taskManager.loadTaskData(player.getId());
             rechargeService.loadOfflineRecharge(player.getId());
@@ -367,6 +369,10 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
     @Override
     public void sessionEnter(PFSession session, long playerId) {
+//        simManager.createContextByPlayerId(playerId);
+        if (checkSimSwitchNode(session, true) != null) {
+            return;
+        }
         Player player = resetPlayerRoomData(playerId);
         PlayerController playerController = new PlayerController(session, player);
         session.setReference(playerController);
@@ -376,6 +382,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
         playerSessionService.updateNodePath(session, player);
         //推送红点信息
         redDotManager.notifyReddot(playerController, null, 0);
+        simManager.onEnterSim(playerController, false);
+        rechargeService.loadOfflineRecharge(player.getId());
         log.debug("玩家进入大厅节点 playerId={}", playerId);
     }
 
@@ -414,37 +422,35 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 return false;
             }
         } else {
-            //没有房间类的游戏重连
-//            Optional<PlayerLastGameInfo> op = playerLastGameInfoDao.findById(player.getId());
-//            if (op.isEmpty()) {
-//                return false;
-//            }
-//
-//            PlayerLastGameInfo playerLastGameInfo = op.get();
-//            if (!playerLastGameInfo.isHalfwayOffline() || StringUtils.isEmpty(playerLastGameInfo.getNodePath())) {
-//                return false;
-//            }
-//
-//            //获取节点
-//            node = clusterSystem.getNode(playerLastGameInfo.getNodePath());
-//            if (node == null) {
-//                node = nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
-//                if (node == null) {
-//                    playerLastGameInfo.setHalfwayOffline(false);
-//                    playerLastGameInfo.setNodePath(null);
-//                    playerLastGameInfoDao.save(playerLastGameInfo);
-//                    return false;
-//                }
-//            }
-//            playerSessionInfo.setGameType(playerLastGameInfo.getGameType());
-//            playerSessionInfo.setRoomCfgId(playerLastGameInfo.getRoomCfgId());
-            return false;
+            node = checkSimSwitchNode(session, false);
+            if (node == null) {
+                return false;
+            }
         }
         log.info("玩家重连开始切换节点 playerId={},gameType={},toNode = {}",
                 player.getId(), player.getGameType(), node.getNodePath());
         playerSessionService.updateReconnectStatus(true, playerSessionInfo);
         clusterSystem.switchNode(session, node);
         return true;
+    }
+
+    private MarsNode checkSimSwitchNode(PFSession session, boolean doSwitch) {
+        String simNode = simNodeService.get(session.playerId);
+        if (simNode == null || simNode.equals(clusterSystem.getNodePath())) {
+            log.warn("redis中无该玩家的sim节点信息，无需切换 playerId = {},path = {}", session.playerId, simNode);
+            return null;
+        }
+        MarsNode node = clusterSystem.getNode(simNode);
+        if (node == null) {
+            log.warn("sim的节点为空，无需切换 playerId = {},path = {}", session.playerId, simNode);
+            return null;
+        }
+
+        if (doSwitch) {
+            log.info("玩家重连开始切换节点 playerId={},toNode = {}", session.playerId, node.getNodePath());
+            clusterSystem.switchNode(session, node);
+        }
+        return node;
     }
 
     /**

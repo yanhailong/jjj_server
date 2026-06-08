@@ -98,13 +98,15 @@ public class SimManager {
     /**
      * 玩家登录: 立即加载 sim 数据 (入 contextMap 后赌场后台 tick 运行), 并结算离线收益。
      */
-    public void onPlayerLogin(PlayerController playerController) {
+    public void onEnterSim(PlayerController playerController, boolean login) {
         try {
             SimPlayerContext ctx = createContext(playerController);
             //结算离线收益 (存 pendingOffline, 待进入 sim 界面时下发)
-            buildingService.settleOfflineReward(ctx);
-            ctx.getSimBaseData().setLastOfflineTime(0);
-            log.info("玩家登录加载 sim playerId={}", playerController.playerId());
+            if (login) {
+                buildingService.settleOfflineReward(ctx);
+                ctx.getSimBaseData().setLastOfflineTime(0);
+            }
+            log.info("玩家进入sim节点加载SimPlayerContext数据， playerId={}", playerController.playerId());
         } catch (Exception e) {
             log.error("玩家登录加载 sim 异常 playerId={}", playerController.playerId(), e);
         }
@@ -116,7 +118,6 @@ public class SimManager {
     public void onEnterGame(PlayerController playerController) {
         ResSimEnterGame res = new ResSimEnterGame(Code.SUCCESS);
         try {
-            simNodeService.save(playerController.playerId(), clusterSystem.getNodePath());
             SimPlayerContext ctx = getContext(playerController.playerId());
             if (ctx == null) {
                 //兜底: 登录扩展点未触发时现场加载并结算离线收益
@@ -190,15 +191,22 @@ public class SimManager {
      * 创建或获取玩家会话上下文
      */
     public SimPlayerContext createContext(PlayerController playerController) {
-        SimPlayerContext ctx = getContext(playerController.playerId());
+        SimPlayerContext ctx = createContextByPlayerId(playerController.playerId());
+        if (ctx != null) {
+            ctx.setPlayerController(playerController);
+        }
+        return ctx;
+    }
+
+    public SimPlayerContext createContextByPlayerId(long playerId) {
+        SimPlayerContext ctx = getContext(playerId);
         if (ctx != null) {
             return ctx;
         }
         //装配 ctx
         ctx = new SimPlayerContext();
-        ctx.setPlayerController(playerController);
+        ctx.setPlayerId(playerId);
 
-        long playerId = playerController.playerId();
         //加载玩家数据
         SimBaseData baseData = simPlayerGameDao.findById(playerId).orElse(null);
         if (baseData == null) {
@@ -213,6 +221,7 @@ public class SimManager {
         employeeService.loadEmployeeData(ctx);
         ctx.setSimBaseData(baseData);
         this.contextMap.put(playerId, ctx);
+        simNodeService.save(playerId, clusterSystem.getNodePath());
         return ctx;
     }
 
@@ -306,13 +315,19 @@ public class SimManager {
         }
     }
 
-    public void onSlotsSpin(long playerId, int gameType, int winTimes, String sessionId, String sessionPath) {
+    public void onSlotsSpin(long playerId, int gameType, int winTimes, String sessionId, String sessionPath, boolean changeNode) {
         try {
             SimPlayerContext ctx = getContext(playerId);
             if (ctx == null) {
-                //玩家未在 sim 在线: 跳过联动, 不影响 slots 旋转
-                log.warn("slots 联动跳过, 玩家未在 sim 在线 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes);
-                return;
+                if (changeNode) {
+                    ctx = createContextByPlayerId(playerId);
+                }
+
+                if (ctx == null) {
+                    //玩家未在 sim 在线: 跳过联动, 不影响 slots 旋转
+                    log.warn("slots 联动跳过, 玩家未在 sim 在线 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes);
+                    return;
+                }
             }
 
             CommonResult<Map<Integer, Long>> result = simItemService.onSpin(ctx, gameType, winTimes);
@@ -321,7 +336,7 @@ public class SimManager {
                 return;
             }
 
-            if(result.data == null || result.data.isEmpty()){
+            if (result.data == null || result.data.isEmpty()) {
                 return;
             }
 

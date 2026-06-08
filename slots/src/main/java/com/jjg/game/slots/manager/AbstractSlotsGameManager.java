@@ -393,7 +393,21 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     public void notifySpin(T playerGameData, int gameType, int winTimes) {
         try {
             if (playerGameData.getSimClient() == null) {
+                log.warn("获取sim节点为空 playerId = {}", playerGameData.getPlayerId());
                 return;
+            }
+
+            //检查该节点是否有效
+            boolean changeNode = false;
+            ClusterClient client = clusterSystem.getClusterByPath(playerGameData.getSimClient().marsNode.getNodePath());
+            if (client == null) {
+                client = simNodeService.getSimClusterClient(playerGameData.getPlayerId(), playerGameData.getPlayerController().ipAddress());
+                if (client == null) {
+                    log.warn("获取sim节点为空 playerId = {}", playerGameData.getPlayerId());
+                    return;
+                }
+                playerGameData.setSimClient(client);
+                changeNode = true;
             }
 
             NotifyServerPlayerSpin notify = new NotifyServerPlayerSpin();
@@ -402,6 +416,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             notify.winTimes = winTimes;
             notify.sessionId = playerGameData.getPlayerController().getSession().sessionId();
             notify.sessionPath = playerGameData.getPlayerController().getSession().gatePath;
+            notify.changeNode = changeNode;
             PFMessage pfMessage = MessageUtil.getPFMessage(notify);
             playerGameData.getSimClient().write(new ClusterMessage(pfMessage));
         } catch (Exception e) {
@@ -1002,7 +1017,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         //获取该slots游戏的技能数据并解锁技能
         SimSkillsData simSkillsData = simSkillService.getSkillDataByGameType(playerController.playerId(), this.gameType);
         //获取sim节点
-        ClusterClient simClusterClient = simNodeService.getSimClusterClient(playerController.playerId());
+        ClusterClient simClusterClient = simNodeService.getSimClusterClient(playerController.playerId(), playerController.ipAddress());
 
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData != null) {

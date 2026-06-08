@@ -17,6 +17,7 @@ import java.util.Map;
 public class SimPlayerContext {
     private static final Logger log = LoggerFactory.getLogger(SimPlayerContext.class);
 
+    private long playerId;
     private PlayerController playerController;
     private SimBaseData simBaseData;
     //技能 gameType -> data
@@ -31,6 +32,8 @@ public class SimPlayerContext {
 
     //上次落库时间 (ms)
     private long lastSaveTime;
+    //上次活跃时间
+    private long lastActiveTime;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -79,8 +82,12 @@ public class SimPlayerContext {
         this.employeeMap.put(data.getEmployeeId(), data);
     }
 
+    public void setPlayerId(long playerId) {
+        this.playerId = playerId;
+    }
+
     public long playerId() {
-        return playerController.playerId();
+        return this.playerId;
     }
 
     public void send(Object msg) {
@@ -126,6 +133,14 @@ public class SimPlayerContext {
 
     public void setLastSaveTime(long lastSaveTime) {
         this.lastSaveTime = lastSaveTime;
+    }
+
+    public long getLastActiveTime() {
+        return lastActiveTime;
+    }
+
+    public void setLastActiveTime(long lastActiveTime) {
+        this.lastActiveTime = lastActiveTime;
     }
 
     // ---------------------------------------------------------------------

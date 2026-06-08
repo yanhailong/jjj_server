@@ -126,6 +126,6 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
      */
     @Command(MessageConst.ToServer.NOTICE_SLOTS_SPIN)
     public void notifySlotsSpin(NotifyServerPlayerSpin notify) {
-        simManager.onSlotsSpin(notify.playerId, notify.gameType, notify.winTimes, notify.sessionId, notify.sessionPath);
+        simManager.onSlotsSpin(notify.playerId, notify.gameType, notify.winTimes, notify.sessionId, notify.sessionPath, notify.changeNode);
     }
 }
