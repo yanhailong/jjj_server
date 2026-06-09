@@ -46,11 +46,49 @@ public class PloyRecordDao {
      * @return
      */
     public <T extends PloyRecord> List<T> findLastRecords(long playerId, int roomCfgId, Class<T> cla) {
+        return findRecords(playerId, roomCfgId, 0, cla);
+    }
+
+    /**
+     * 获取历史记录
+     *
+     * @param playerId
+     * @param roomCfgId
+     * @param pageIndex
+     * @param cla
+     * @param <T>
+     * @return
+     */
+    public <T extends PloyRecord> List<T> findRecords(long playerId, int roomCfgId, int pageIndex, Class<T> cla) {
         Query query = new Query();
         query.addCriteria(Criteria.where("playerId").is(playerId));
         query.addCriteria(Criteria.where("roomCfgId").is(roomCfgId));
         query.with(Sort.by(Sort.Direction.DESC, "timestamp"));
-        query.skip(0).limit(PAGE_SIZE);
+        int skip = pageIndex * PAGE_SIZE;
+        query.skip(skip).limit(PAGE_SIZE);
         return this.mongoTemplate.find(query, cla);
+    }
+
+    /**
+     * 获取总页码
+     * @param playerId
+     * @param roomCfgId
+     * @param cla
+     * @return
+     * @param <T>
+     */
+    public <T extends PloyRecord> int allPages(long playerId, int roomCfgId, Class<T> cla) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("playerId").is(playerId));
+        query.addCriteria(Criteria.where("roomCfgId").is(roomCfgId));
+
+        long allCount = this.mongoTemplate.count(query, cla);
+
+        int allPages = (int)(allCount / PAGE_SIZE);
+
+        if((allCount % PAGE_SIZE) > 0){
+            allPages++;
+        }
+        return allPages;
     }
 }

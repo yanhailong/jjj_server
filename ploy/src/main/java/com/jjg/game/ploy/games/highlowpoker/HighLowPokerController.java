@@ -1,6 +1,7 @@
 package com.jjg.game.ploy.games.highlowpoker;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
@@ -14,10 +15,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.ploy.controller.AbstractSinglePloyController;
 import com.jjg.game.ploy.data.PloyBetDivideInfo;
-import com.jjg.game.ploy.games.highlowpoker.data.HighLowChoose;
-import com.jjg.game.ploy.games.highlowpoker.data.HighLowPokerConstant;
-import com.jjg.game.ploy.games.highlowpoker.data.HighLowPokerHistory;
-import com.jjg.game.ploy.games.highlowpoker.data.HighLowPokerPloyGameData;
+import com.jjg.game.ploy.games.highlowpoker.data.*;
 import com.jjg.game.ploy.games.highlowpoker.pb.bean.HighLowRecordInfo;
 import com.jjg.game.ploy.games.highlowpoker.pb.req.ReqHighLowPokerChoose;
 import com.jjg.game.ploy.games.highlowpoker.pb.req.ReqHighLowPokerExchange;
@@ -26,7 +24,6 @@ import com.jjg.game.ploy.games.highlowpoker.util.HighLowUtil;
 import com.jjg.game.ploy.pb.ReqPloyRecord;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PloygameRoomCfg;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -132,6 +129,8 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
         res.chooseRate = highLowUtil.calculateAllChooseRate(playerGameData.getCard(), playerGameData.getCurrentIndex(), returnRate);
         //发送当前牌
         res.currentCard = playerGameData.getCard().get(playerGameData.getCurrentIndex());
+
+        playerGameData.addHistory(Pair.newPair(res.currentCard, ""));
         return res;
     }
 
@@ -177,24 +176,28 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
             //失败了
             res.nextCardId = nextCard.getValue();
             res.currentCoin = 0;
+            res.over = true;
+            res.rate = rate;
             playerGameData.setCurrentCoin(0);
-            playerGameData.addHistory(Pair.newPair(oldCard.getValue(), rate));
+            playerGameData.addHistory(Pair.newPair(nextCard.getValue(), rate));
             resetData(playerGameData, 0);
             return res;
         }
-        //计算可兑换金币
-        long lastBet = playerGameData.getLastBet();
-        long addGold = BigDecimal.valueOf(lastBet).multiply(new BigDecimal(rate)).longValue();
-        playerGameData.setCurrentCoin(playerGameData.getCurrentCoin() + addGold);
-        playerGameData.addHistory(Pair.newPair(oldCard.getValue(), rate));
-        //如果到达30局直接退
-        if (playerGameData.getHistory().size() >= HighLowPokerConstant.Common.MAX_JOIN_TIMES) {
+        //计算可兑换金币：每次倍率乘上一次的金额（复利），首局以本金为基础
+        long prevCoin = playerGameData.getCurrentCoin();
+        long base = prevCoin > 0 ? prevCoin : playerGameData.getLastBet();
+        long newCoin = BigDecimal.valueOf(base).multiply(new BigDecimal(rate)).longValue();
+        playerGameData.setCurrentCoin(newCoin);
+        playerGameData.addHistory(Pair.newPair(nextCard.getValue(), rate));
+
+        //如果到达30局直接退（history 含 1 张初始牌占位，所以阈值是 MAX_JOIN_TIMES + 1）
+        if (playerGameData.getHistory().size() >= HighLowPokerConstant.Common.MAX_JOIN_TIMES + 1) {
             //获胜了
             CommonResult<Pair<PloyBetDivideInfo, Player>> winResult = winFromPool(playerGameData, playerGameData.getCurrentCoin(), cfg.getTaxRate());
             if (!winResult.success()) {
                 //失败回滚
                 playerGameData.getHistory().removeLast();
-                playerGameData.setCurrentCoin(playerGameData.getCurrentCoin() - addGold);
+                playerGameData.setCurrentCoin(prevCoin);
                 log.error("高低扑克发送奖励失败 playerId:{} winGold:{} ", playerController.playerId(), playerGameData.getCurrentCoin());
                 res.code = winResult.code;
                 return res;
@@ -202,7 +205,10 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
             long tax = winResult.data.getFirst().getTax();
             res.exchangeNum = playerGameData.getCurrentCoin() - tax;
             res.nextCardId = nextCard.getValue();
+            res.over = true;
+            res.rate = rate;
             resetData(playerGameData, tax);
+            log.info("玩家达到局数上限自动退 playerId = {},size = {}", playerController.playerId(), playerGameData.getHistory().size());
             return res;
         }
         playerGameData.setCurrentIndex(nextIndex);
@@ -210,6 +216,8 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
         //重新计算赔率
         res.chooseRate = highLowUtil.calculateAllChooseRate(playerGameData.getCard(), playerGameData.getCurrentIndex(), returnRate);
         res.nextCardId = nextCard.getValue();
+        res.rate = rate;
+        log.info("玩家选择成功 playerId = {},chooseId = {},res = {}", playerController.playerId(), req.chooseId, JSON.toJSONString(res));
         return res;
     }
 

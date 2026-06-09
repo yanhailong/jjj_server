@@ -11,35 +11,35 @@ import com.jjg.game.ploy.games.hillo.pb.bean.HilloChooseInfo;
 import java.util.List;
 
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HILLO, cmd = HilloConstant.MsgBean.RES_HILLO_ENTER_GAME, resp = true)
-@ProtoDesc("enter HILLO")
+@ProtoDesc("进入 HILLO")
 public class ResHilloEnterGame extends AbstractResponse {
-    @ProtoDesc("current card")
+    @ProtoDesc("当前公牌")
     public int currentCard;
-    @ProtoDesc("current coin")
+    @ProtoDesc("当前可兑现奖励")
     public long currentCoin;
-    @ProtoDesc("remain round num")
+    @ProtoDesc("本局剩余可猜次数")
     public int remainRoundNum;
-    @ProtoDesc("remain skip times")
+    @ProtoDesc("本局剩余跳过次数")
     public int remainSkipTimes;
-    @ProtoDesc("current bet mode")
+    @ProtoDesc("当前下注模式")
     public int currentBetMode;
-    @ProtoDesc("auto betting")
+    @ProtoDesc("是否正在自动投注")
     public boolean autoBetting;
-    @ProtoDesc("auto bet times is infinite")
+    @ProtoDesc("自动投注是否无限局")
     public boolean autoInfiniteBet;
-    @ProtoDesc("auto bet amount")
+    @ProtoDesc("自动投注每局下注金额")
     public long autoBet;
-    @ProtoDesc("auto guess times")
+    @ProtoDesc("自动投注单局猜测次数")
     public int autoGuessTimes;
-    @ProtoDesc("remain auto bet times, 0 means infinite")
+    @ProtoDesc("剩余自动投注局数，0 配合 autoInfiniteBet 表示无限局")
     public int autoRemainBetTimes;
-    @ProtoDesc("choose infos")
+    @ProtoDesc("当前可选投注项")
     public List<HilloChooseInfo> chooseInfos;
-    @ProtoDesc("history choose")
+    @ProtoDesc("当前局过程记录")
     public List<HilloHistoryInfo> historyChoose;
-    @ProtoDesc("stake list")
+    @ProtoDesc("下注范围配置")
     public List<Integer> stakeList;
-    @ProtoDesc("default bet")
+    @ProtoDesc("默认下注金额")
     public long defaultBet;
 
     public ResHilloEnterGame(int code) {

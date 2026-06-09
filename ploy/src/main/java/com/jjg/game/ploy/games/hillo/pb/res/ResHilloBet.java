@@ -10,15 +10,15 @@ import com.jjg.game.ploy.games.hillo.pb.bean.HilloChooseInfo;
 import java.util.List;
 
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HILLO, cmd = HilloConstant.MsgBean.RES_HILLO_BET, resp = true)
-@ProtoDesc("HILLO bet")
+@ProtoDesc("HILLO 下注结果")
 public class ResHilloBet extends AbstractResponse {
-    @ProtoDesc("current card")
+    @ProtoDesc("当前公牌")
     public int currentCard;
-    @ProtoDesc("remain round num")
+    @ProtoDesc("本局剩余可猜次数")
     public int remainRoundNum;
-    @ProtoDesc("remain skip times")
+    @ProtoDesc("本局剩余跳过次数")
     public int remainSkipTimes;
-    @ProtoDesc("choose infos")
+    @ProtoDesc("当前可选投注项")
     public List<HilloChooseInfo> chooseInfos;
 
     public ResHilloBet(int code) {

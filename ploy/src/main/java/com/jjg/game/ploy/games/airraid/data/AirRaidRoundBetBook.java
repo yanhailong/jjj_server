@@ -17,16 +17,38 @@ public class AirRaidRoundBetBook {
 
     private final Map<Long, AirRaidPlayerInfo> betSlotInfoMap = new ConcurrentHashMap<>();
 
+    //上一回合的坠毁倍率(万分比)
+    private volatile int lastRoundCrashMultiplier;
+    //上一回合的玩家下注/兑现快照(已构造为只读副本)
+    private volatile List<AirRaidPlayerInfo> lastRoundPlayerInfoList = Collections.emptyList();
+
     public void clear() {
         betSlotInfoMap.clear();
     }
 
-    public void recordBet(long playerId, int headImgId, int betIndex, long betAmount) {
+    /**
+     * 把当前回合的数据快照为"上一回合" — 调用方需在 clear() 之前调用
+     */
+    public void snapshotLastRound(int crashMultiplier) {
+        this.lastRoundPlayerInfoList = buildBetInfoList();
+        this.lastRoundCrashMultiplier = crashMultiplier;
+    }
+
+    public int getLastRoundCrashMultiplier() {
+        return lastRoundCrashMultiplier;
+    }
+
+    public List<AirRaidPlayerInfo> getLastRoundPlayerInfoList() {
+        return lastRoundPlayerInfoList;
+    }
+
+    public void recordBet(long playerId, int headImgId, int betIndex, long betAmount,String nick) {
         AirRaidPlayerInfo info = new AirRaidPlayerInfo();
         info.playerId = playerId;
         info.headImgId = headImgId;
         info.betIndex = betIndex;
         info.bet = betAmount;
+        info.nick = nick;
         betSlotInfoMap.put(buildKey(playerId, betIndex), info);
     }
 
@@ -58,6 +80,7 @@ public class AirRaidRoundBetBook {
                     betInfo.cashedOut = info.cashedOut;
                     betInfo.cashOutMultiplier = info.cashOutMultiplier;
                     betInfo.winAmount = info.winAmount;
+                    betInfo.nick = info.nick;
                     list.add(betInfo);
                 });
         return list;

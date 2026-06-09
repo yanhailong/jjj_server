@@ -90,10 +90,17 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         }
         PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
         res.stakeList = cfg.getLineBetScore();
-        res.defaultBet = cfg.getDefaultBet();
+        //优先使用玩家上次选择的下注值；没有则回退到配置默认值
+        long lastBet = playerGameData == null ? 0 : playerGameData.getLastBet();
+        res.defaultBet = lastBet > 0 && cfg.getLineBetScore() != null && cfg.getLineBetScore().contains((int) lastBet)
+                ? lastBet
+                : cfg.getDefaultBet();
 
         if (playerGameData.getFirstCardList() != null && !playerGameData.getFirstCardList().isEmpty() && playerGameData.getSecondCardList() != null && !playerGameData.getSecondCardList().isEmpty()) {
             res.pokerIds = LuckyPokerUtils.card2Ids(playerGameData.getFirstCardList());
+            //断线重连/重新进入时，补发建议保留的牌，保持与下注返回一致
+            List<PloyCard> suggestCards = LuckyPokerUtils.suggestSavePokerIds(playerGameData.getFirstCardList());
+            res.suggestSavePokerIds = LuckyPokerUtils.card2Ids(suggestCards);
         }else {
             playerGameData.setFinalCardList(null);
             playerGameData.setSecondCardList(null);
@@ -146,6 +153,17 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         PropInfo propInfo = this.poolResultLibPropMap.get(poolResultLibCfg.getModelId());
         Integer randKey = propInfo.getRandKey();
         PokerRank pokerRank2 = PokerRank.rankOf(randKey);
+
+        //GM测试用：若设置了强制牌型，则两次手牌都按该牌型生成，方便前端调试
+        Integer forceRank = playerGameData.getTestForceRank();
+        if (forceRank != null) {
+            PokerRank forced = PokerRank.rankOf(forceRank);
+            if (forced != null) {
+                pokerRank1 = forced;
+                pokerRank2 = forced;
+                log.info("GM强制牌型生效 playerId = {},forceRank = {}", playerGameData.playerId(), forced);
+            }
+        }
 
         //生成两次手牌
         List<List<PloyCard>> pokersList = LuckyPokerUtils.getCardIdsByRanks(List.of(pokerRank1, pokerRank2));

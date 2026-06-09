@@ -12,10 +12,12 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Component
 public class HilloUtil {
+    // 文档要求每次发牌都从完整 52 张牌中抽取，因此这里不维护牌堆。
     public int randomCardId() {
         return ThreadLocalRandom.current().nextInt(1, 53);
     }
 
+    // 根据当前公牌生成前端可展示的投注区域、赔率和胜率。
     public List<HilloChooseInfo> buildChooseInfos(int currentCardId, BigDecimal returnRate) {
         int currentRank = new Card(currentCardId).getRank();
         List<HilloChooseInfo> chooseInfos = new ArrayList<>(2);

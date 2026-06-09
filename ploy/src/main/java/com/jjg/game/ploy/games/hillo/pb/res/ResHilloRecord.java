@@ -10,9 +10,9 @@ import com.jjg.game.ploy.games.hillo.pb.bean.HilloRecordInfo;
 import java.util.List;
 
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HILLO, cmd = HilloConstant.MsgBean.RES_HILLO_RECORD, resp = true)
-@ProtoDesc("HILLO record result")
+@ProtoDesc("HILLO 历史记录结果")
 public class ResHilloRecord extends AbstractResponse {
-    @ProtoDesc("history records")
+    @ProtoDesc("历史记录列表")
     public List<HilloRecordInfo> historyInfoList;
 
     public ResHilloRecord(int code) {

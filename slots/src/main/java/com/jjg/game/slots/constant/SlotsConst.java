@@ -44,6 +44,7 @@ public class SlotsConst {
         specialModeJackpotModeIds.put(CoreConst.GameType.ANGRY_BIRDS, Set.of(3));
         specialModeJackpotModeIds.put(CoreConst.GameType.WOLF_MOON, Set.of(4));
         specialModeJackpotModeIds.put(CoreConst.GameType.CANDY_PARTY, Set.of(7, 8, 9));
+        specialModeJackpotModeIds.put(CoreConst.GameType.BOUNTY_DUEL, Set.of(3));
 
         //免费触发局的类型id
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.DOLLAR_EXPRESS, Set.of(6));
@@ -71,6 +72,7 @@ public class SlotsConst {
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.ANGRY_BIRDS, Set.of(2));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.WOLF_MOON, Set.of(3));
         specialModeTriggerFreeModeIds.put(CoreConst.GameType.CANDY_PARTY, Set.of(4, 5, 6));
+        specialModeTriggerFreeModeIds.put(CoreConst.GameType.BOUNTY_DUEL, Set.of(2));
     }
 
     public static class Status {

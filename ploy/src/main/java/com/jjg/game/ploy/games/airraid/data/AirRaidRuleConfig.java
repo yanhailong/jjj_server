@@ -18,6 +18,8 @@ public class AirRaidRuleConfig {
     private int stopBetDurationMs;
     //结算阶段时长(ms)
     private int settleDurationMs;
+    //中大奖结算阶段时长(ms)
+    private int bigRewardSettleDurationMs;
 
     public int getGrowthRate() {
         return growthRate;
@@ -65,5 +67,13 @@ public class AirRaidRuleConfig {
 
     public void setSettleDurationMs(int settleDurationMs) {
         this.settleDurationMs = settleDurationMs;
+    }
+
+    public int getBigRewardSettleDurationMs() {
+        return bigRewardSettleDurationMs;
+    }
+
+    public void setBigRewardSettleDurationMs(int bigRewardSettleDurationMs) {
+        this.bigRewardSettleDurationMs = bigRewardSettleDurationMs;
     }
 }

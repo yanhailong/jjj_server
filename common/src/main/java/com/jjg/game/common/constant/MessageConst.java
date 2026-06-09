@@ -187,6 +187,8 @@ public interface MessageConst {
         int HILLO = 0x52;
         //伽罗宝石3
         int GARA_GEMSTONE_3 = 0x53;
+        // 赏金大对决
+        int BOUNTY_DUEL_TYPE = 0x55;
         //模拟经营游戏
         int SIM_GAME = 0x54;
         //南方前进-血战

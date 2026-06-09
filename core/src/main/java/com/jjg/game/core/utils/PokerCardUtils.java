@@ -43,7 +43,7 @@ public class PokerCardUtils {
      * @param cardId 牌ID
      * @return 点数
      */
-    public static byte getPointId(byte cardId) {
+    public static byte getPointId(int cardId) {
         return (byte) (((cardId - 1) % 13) + 1);
     }
 
@@ -53,7 +53,7 @@ public class PokerCardUtils {
      * @param cardId 点数
      * @return 花色枚举
      */
-    public static EPokerSuit getSuit(byte cardId) {
+    public static EPokerSuit getSuit(int cardId) {
         return EPokerSuit.getPokerSuitById((cardId - 1) / 13 + 1);
     }
 

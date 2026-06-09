@@ -18,6 +18,9 @@ public interface HotFootballConstant {
         //开始游戏
         int REQ_START_GAME = BASE_MSG_PREFIX | 0x3;
         int RES_START_GAME = BASE_MSG_PREFIX | 0x4;
+
+        int REQ_POOL_INFO = BASE_MSG_PREFIX | 0x5;
+        int RES_POOL_INFO = BASE_MSG_PREFIX | 0x6;
     }
 
     interface BaseElement {
@@ -41,10 +44,10 @@ public interface HotFootballConstant {
     }
 
     interface SpecialPlay {
-        //连续中奖倍数
-        int TYPE_CONSECUTIVE_WINS = 4;
-        //增加免费次数
-        int TYPE_ADD_FREE_COUNT = 5;
+        //增加免费次数（免费模式下击中目标图案奖增加免费次数）—— 对应 SpecialPlay 表 playType=1
+        int TYPE_ADD_FREE_COUNT = 1;
+        //连续中奖倍数（免费模式下能量值积满获得奖金乘倍值）—— 对应 SpecialPlay 表 playType=2
+        int TYPE_CONSECUTIVE_WINS = 2;
     }
 
     interface SpecialGird {

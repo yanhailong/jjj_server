@@ -10,7 +10,7 @@ import com.jjg.game.slots.game.tenfoldgoldenbull.constant.TenFoldGoldenBullConst
  * @author 11
  * @date 2025/8/1 17:50
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.PEGASUS_UNBRIDLE, cmd = TenFoldGoldenBullConstant.MsgBean.REQ_TEN_FOLD_GOLDEN_BULL_START_GAME)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TENFOLD_GOLDEN_BULL, cmd = TenFoldGoldenBullConstant.MsgBean.REQ_TEN_FOLD_GOLDEN_BULL_START_GAME)
 @ProtoDesc("请求开始游戏")
 public class ReqTenFoldGoldenBullStartGame extends AbstractMessage {
     @ProtoDesc("下注金额")

@@ -21,6 +21,8 @@ public class ResLuckyPokerEnterGame extends AbstractResponse {
     public long defaultBet;
     @ProtoDesc("第一阶段的牌id")
     public List<Integer> pokerIds;
+    @ProtoDesc("建议保留的牌id")
+    public List<Integer> suggestSavePokerIds;
 
     public ResLuckyPokerEnterGame(int code) {
         super(code);

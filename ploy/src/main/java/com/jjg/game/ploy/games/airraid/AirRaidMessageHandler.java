@@ -10,6 +10,7 @@ import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.ploy.games.airraid.data.AirRaidConstant;
 import com.jjg.game.ploy.games.airraid.pb.ReqAirRaidAutoCashOut;
 import com.jjg.game.ploy.games.airraid.pb.ReqAirRaidCashOut;
+import com.jjg.game.ploy.games.airraid.pb.ReqAirRaidLastRound;
 import com.jjg.game.ploy.games.airraid.pb.ReqAirRaidRank;
 import com.jjg.game.ploy.games.airraid.pb.ResAirRaidAutoCashOut;
 import com.jjg.game.ploy.games.airraid.pb.cluster.BetSync;
@@ -107,6 +108,18 @@ public class AirRaidMessageHandler implements GmListener {
             playerController.send(airRaidPloyController.queryRank(req.rankType, req.period));
         } catch (Exception e) {
             log.error("AirRaid 排行榜查询异常 playerId={}", playerController.playerId(), e);
+        }
+    }
+
+    /**
+     * 获取上一回合信息请求
+     */
+    @Command(AirRaidConstant.MsgBean.REQ_AIR_RAID_LAST_ROUND)
+    public void reqLastRound(PlayerController playerController, ReqAirRaidLastRound req) {
+        try {
+            playerController.send(airRaidPloyController.queryLastRound());
+        } catch (Exception e) {
+            log.error("AirRaid 获取上一回合信息异常 playerId={}", playerController.playerId(), e);
         }
     }
 

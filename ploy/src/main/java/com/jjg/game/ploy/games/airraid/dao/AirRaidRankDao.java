@@ -94,7 +94,7 @@ public class AirRaidRankDao {
      */
     public void addCashOut(long playerId, int headImgId, int headFrame, long time, long bet,
                            long winAmount, int cashOutMultiplier, int crashMultiplier, int betIndex,
-                           int roundId) {
+                           int roundId, String nick) {
         AirRaidRankInfo rankInfo = new AirRaidRankInfo();
         rankInfo.playerInfo = new AirRaidPlayerInfo();
         rankInfo.playerInfo.playerId = playerId;
@@ -104,6 +104,7 @@ public class AirRaidRankDao {
         rankInfo.playerInfo.bet = bet;
         rankInfo.playerInfo.winAmount = winAmount;
         rankInfo.playerInfo.betIndex = betIndex;
+        rankInfo.playerInfo.nick = nick;
 
         rankInfo.crashMultiplier = crashMultiplier;
         rankInfo.roundId = roundId;

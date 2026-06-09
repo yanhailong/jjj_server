@@ -7,6 +7,6 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.ploy.games.hillo.data.HilloConstant;
 
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HILLO, cmd = HilloConstant.MsgBean.REQ_HILLO_SKIP)
-@ProtoDesc("HILLO skip")
+@ProtoDesc("HILLO 跳过")
 public class ReqHilloSkip extends AbstractMessage {
 }

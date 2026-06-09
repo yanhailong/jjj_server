@@ -1,15 +1,16 @@
 package com.jjg.game.ploy.games.hillo;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
-import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.ploy.controller.AbstractSinglePloyController;
@@ -26,13 +27,11 @@ import com.jjg.game.ploy.games.hillo.pb.req.ReqHilloCancelAuto;
 import com.jjg.game.ploy.games.hillo.pb.req.ReqHilloChoose;
 import com.jjg.game.ploy.games.hillo.pb.req.ReqHilloExchange;
 import com.jjg.game.ploy.games.hillo.pb.req.ReqHilloSkip;
-import com.jjg.game.ploy.games.hillo.pb.res.ResHilloAutoBet;
+import com.jjg.game.ploy.games.hillo.pb.res.ResHilloAutoBetStatus;
 import com.jjg.game.ploy.games.hillo.pb.res.ResHilloBet;
 import com.jjg.game.ploy.games.hillo.pb.res.ResHilloChoose;
 import com.jjg.game.ploy.games.hillo.pb.res.ResHilloEnterGame;
-import com.jjg.game.ploy.games.hillo.pb.res.ResHilloExchange;
 import com.jjg.game.ploy.games.hillo.pb.res.ResHilloRecord;
-import com.jjg.game.ploy.games.hillo.pb.res.ResHilloSkip;
 import com.jjg.game.ploy.games.hillo.util.HilloUtil;
 import com.jjg.game.ploy.pb.ReqPloyRecord;
 import com.jjg.game.sampledata.GameDataManager;
@@ -47,7 +46,7 @@ import java.util.List;
 
 @Component
 public class HilloController extends AbstractSinglePloyController<HilloPloyGameData> {
-    private static final String AUTO_TIMER_PREFIX = "hillo:auto:";
+    // 自动投注策略阈值：胜率达到 60% 才主动猜，否则优先跳过。
     private static final BigDecimal AUTO_WIN_RATE_THRESHOLD = BigDecimal.valueOf(HilloConstant.Common.AUTO_WIN_RATE_THRESHOLD)
             .divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.DOWN);
     private final HilloUtil hilloUtil;
@@ -73,7 +72,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
                 HilloHistory history = totalHistories.get(i);
                 HilloRecordInfo recordInfo = new HilloRecordInfo();
                 if (CollectionUtil.isNotEmpty(history.getHistory())) {
-                    recordInfo.historyInfos = new ArrayList<>(history.getHistory());
+                    recordInfo.historyInfos = buildDisplayHistory(history.getHistory());
                 }
                 recordInfo.totalIncome = history.getTotalProfit();
                 recordInfo.startTime = history.getStartTime();
@@ -88,6 +87,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
 
     @Override
     public int beforeMoneyToPoolCheck(HilloPloyGameData playerGameData) {
+        // HILLO 一次只能存在一局未结束游戏，避免重复下注覆盖当前公牌和奖励。
         return playerGameData.hasActiveGame() ? Code.ERROR_REQ : Code.SUCCESS;
     }
 
@@ -107,15 +107,19 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
         res.remainRoundNum = HilloConstant.Common.MAX_JOIN_TIMES;
         res.remainSkipTimes = HilloConstant.Common.MAX_SKIP_TIMES;
         if (playerGameData != null && playerGameData.hasActiveGame()) {
+            // 重连或重新进入时恢复当前局状态，让前端继续展示可猜牌面、可兑现奖励和历史过程。
             res.currentCard = playerGameData.getCurrentCardId();
             res.currentCoin = playerGameData.getCurrentCoin();
-            res.historyChoose = playerGameData.getHistory();
+            res.historyChoose = buildDisplayHistory(playerGameData.getHistory());
             res.remainRoundNum = HilloConstant.Common.MAX_JOIN_TIMES - playerGameData.getSuccessTimes();
             res.remainSkipTimes = playerGameData.getSkipTimes();
             res.currentBetMode = playerGameData.getCurrentBetMode();
+            res.defaultBet = playerGameData.getLastBet();
             res.chooseInfos = hilloUtil.buildChooseInfos(playerGameData.getCurrentCardId(), getReturnRate(cfg));
         }
         if (playerGameData != null) {
+            // 正常退出已在 exit() 中清理自动投注；这里保留 isAutoBetting 状态，
+            // 用于断网重连场景下恢复自动投注，让客户端可继续按原节奏推进。
             res.autoBetting = playerGameData.isAutoBetting();
             res.autoInfiniteBet = playerGameData.isAutoInfiniteBet();
             res.autoBet = playerGameData.getAutoBet();
@@ -145,235 +149,173 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
             return res;
         }
 
+        // 通用下注流程已经完成扣钱和入池，这里只负责初始化 HILLO 的本局数据。
         int currentCardId = hilloUtil.randomCardId();
         playerGameData.setCurrentCardId(currentCardId);
         playerGameData.setCurrentCoin(0);
         playerGameData.setSuccessTimes(0);
         playerGameData.setSkipTimes(HilloConstant.Common.MAX_SKIP_TIMES);
         playerGameData.setCurrentBetMode(value);
-        playerGameData.setCurrentRoundStartTime(System.currentTimeMillis());
+        playerGameData.setCurrentRoundStartTime(System.currentTimeMillis() / 1000);
         playerGameData.setHistory(null);
 
         res.currentCard = currentCardId;
         res.remainRoundNum = HilloConstant.Common.MAX_JOIN_TIMES;
         res.remainSkipTimes = playerGameData.getSkipTimes();
         res.chooseInfos = hilloUtil.buildChooseInfos(currentCardId, getReturnRate(cfg));
-        return res;
+        if (value == HilloConstant.BetMode.AUTO) {
+            return res;
+        }
+        return logBetAndReturn("下注开局", playerGameData.playerId(), res);
     }
 
     public AbstractResponse choose(PlayerController playerController, ReqHilloChoose req) {
+        if (req.chooseId == HilloConstant.Common.AUTO_CHOOSE_ID) {
+            return autoChoose(playerController);
+        }
+
         ResHilloChoose res = new ResHilloChoose(Code.SUCCESS);
         HilloChoose hilloChoose = HilloChoose.getChoose(req.chooseId);
         if (hilloChoose == null) {
             res.code = Code.PARAM_ERROR;
-            return res;
+            return logChooseAndReturn("手动猜牌", playerController.playerId(), res);
         }
+        res.chooseId = req.chooseId;
 
         HilloPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
         if (playerGameData == null || !playerGameData.hasActiveGame()) {
             res.code = Code.NOT_FOUND;
-            return res;
+            return logChooseAndReturn("手动猜牌", playerController.playerId(), res);
         }
 
         PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
         if (cfg == null) {
             res.code = Code.SAMPLE_ERROR;
-            return res;
+            return logChooseAndReturn("手动猜牌", playerController.playerId(), res);
         }
 
-        BigDecimal returnRate = getReturnRate(cfg);
-        List<HilloChooseInfo> chooseInfos = hilloUtil.buildChooseInfos(playerGameData.getCurrentCardId(), returnRate);
-        HilloChooseInfo chooseInfo = chooseInfos.stream()
-                .filter(info -> info.chooseId == req.chooseId)
-                .findFirst()
-                .orElse(null);
-        if (chooseInfo == null) {
-            res.code = Code.PARAM_ERROR;
-            return res;
-        }
-
-        Card currentCard = new Card(playerGameData.getCurrentCardId());
-        int nextCardId = hilloUtil.randomCardId();
-        Card nextCard = new Card(nextCardId);
-
-        if (!hilloChoose.check(currentCard, nextCard)) {
-            playerGameData.addHistory(playerGameData.getCurrentCardId(), req.chooseId, chooseInfo.odd, nextCardId);
-            settleAndArchive(playerGameData, 0, 0, getCurrentBalance(playerGameData));
-            res.nextCardId = nextCardId;
-            return res;
-        }
-
-        long nextCoin = calculateNextCoin(playerGameData.getLastBet(), playerGameData.getCurrentCoin(), chooseInfo.odd);
-        int successTimes = playerGameData.getSuccessTimes() + 1;
-        if (successTimes >= HilloConstant.Common.MAX_JOIN_TIMES) {
-            CommonResult<Pair<PloyBetDivideInfo, Player>> winResult = winFromPool(playerGameData, nextCoin, cfg.getTaxRate());
-            if (!winResult.success()) {
-                res.code = winResult.code;
-                return res;
-            }
-            long tax = winResult.data.getFirst().getTax();
-            res.nextCardId = nextCardId;
-            res.exchangeNum = nextCoin - tax;
-            playerGameData.addHistory(playerGameData.getCurrentCardId(), req.chooseId, chooseInfo.odd, nextCardId);
-            settleAndArchive(playerGameData, tax, nextCoin, winResult.data.getSecond().getGold());
-            return res;
-        }
-
-        playerGameData.addHistory(playerGameData.getCurrentCardId(), req.chooseId, chooseInfo.odd, nextCardId);
-        playerGameData.setCurrentCardId(nextCardId);
-        playerGameData.setCurrentCoin(nextCoin);
-        playerGameData.setSuccessTimes(successTimes);
-
-        res.nextCardId = nextCardId;
-        res.currentCoin = nextCoin;
-        res.remainRoundNum = HilloConstant.Common.MAX_JOIN_TIMES - successTimes;
-        res.remainSkipTimes = playerGameData.getSkipTimes();
-        res.chooseInfos = hilloUtil.buildChooseInfos(nextCardId, returnRate);
-        return res;
+        ResHilloChoose chooseResult = doChoose(playerGameData, cfg, req.chooseId, false);
+        fillAutoBetStatus(chooseResult, playerGameData);
+        return logChooseAndReturn("手动猜牌", playerController.playerId(), chooseResult);
     }
 
     public AbstractResponse exchange(PlayerController playerController, ReqHilloExchange req) {
-        ResHilloExchange res = new ResHilloExchange(Code.SUCCESS);
+        ResHilloChoose res = new ResHilloChoose(Code.SUCCESS);
         HilloPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
         if (playerGameData == null || !playerGameData.hasActiveGame()) {
             res.code = Code.NOT_FOUND;
-            return res;
+            return logChooseAndReturn("手动兑现", playerController.playerId(), res);
         }
         PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
         if (cfg == null) {
             res.code = Code.SAMPLE_ERROR;
-            return res;
+            return logChooseAndReturn("手动兑现", playerController.playerId(), res);
         }
         if (playerGameData.getCurrentCoin() <= 0) {
             res.code = Code.ERROR_REQ;
-            return res;
+            return logChooseAndReturn("手动兑现", playerController.playerId(), res);
         }
 
+        // currentCoin 是含本金的可兑现奖励，派发时统一走奖池和税率逻辑。
         long settleCoin = playerGameData.getCurrentCoin();
         CommonResult<Pair<PloyBetDivideInfo, Player>> winResult = winFromPool(playerGameData, settleCoin, cfg.getTaxRate());
         if (!winResult.success()) {
             res.code = winResult.code;
-            return res;
+            return logChooseAndReturn("手动兑现", playerController.playerId(), res);
         }
         long tax = winResult.data.getFirst().getTax();
-        res.getGoldNum = settleCoin - tax;
+        res.action = HilloConstant.AutoAction.EXCHANGE;
+        res.currentCoin = settleCoin;
+        res.exchangeNum = settleCoin - tax;
+        fillHistoryChoose(res, playerGameData);
         settleAndArchive(playerGameData, tax, settleCoin, winResult.data.getSecond().getGold());
-        return res;
+        fillAutoBetStatus(res, playerGameData);
+        return logChooseAndReturn("手动兑现", playerController.playerId(), res);
     }
 
     public AbstractResponse skip(PlayerController playerController, ReqHilloSkip req) {
-        ResHilloSkip res = new ResHilloSkip(Code.SUCCESS);
+        ResHilloChoose res = new ResHilloChoose(Code.SUCCESS);
         HilloPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
         if (playerGameData == null || !playerGameData.hasActiveGame()) {
             res.code = Code.NOT_FOUND;
-            return res;
+            return logChooseAndReturn("手动跳过", playerController.playerId(), res);
         }
         // 起手牌（successTimes == 0）不允许跳过
         if (playerGameData.getSuccessTimes() <= 0) {
             res.code = Code.ERROR_REQ;
-            return res;
+            return logChooseAndReturn("手动跳过", playerController.playerId(), res);
         }
         if (playerGameData.getSkipTimes() <= 0) {
             res.code = Code.ERROR_REQ;
-            return res;
+            return logChooseAndReturn("手动跳过", playerController.playerId(), res);
         }
         PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
         if (cfg == null) {
             res.code = Code.SAMPLE_ERROR;
-            return res;
+            return logChooseAndReturn("手动跳过", playerController.playerId(), res);
         }
 
+        // 跳过会把当前公牌记入过程，然后从完整 52 张牌中重新发一张公牌。
         playerGameData.addSkipHistory(playerGameData.getCurrentCardId());
         int newCardId = hilloUtil.randomCardId();
         playerGameData.setCurrentCardId(newCardId);
         playerGameData.setSkipTimes(playerGameData.getSkipTimes() - 1);
 
+        res.action = HilloConstant.AutoAction.SKIP;
         res.currentCard = newCardId;
+        res.currentCoin = playerGameData.getCurrentCoin();
         res.remainSkipTimes = playerGameData.getSkipTimes();
         res.chooseInfos = hilloUtil.buildChooseInfos(newCardId, getReturnRate(cfg));
-        return res;
+        fillHistoryChoose(res, playerGameData);
+        fillAutoBetStatus(res, playerGameData);
+        return logChooseAndReturn("手动跳过", playerController.playerId(), res);
     }
 
     public AbstractResponse startAutoBet(PlayerController playerController, ReqHilloAutoBet req) {
-        ResHilloAutoBet res = new ResHilloAutoBet(Code.SUCCESS);
+        ResHilloAutoBetStatus res = new ResHilloAutoBetStatus(Code.SUCCESS);
         HilloPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
         if (playerGameData == null) {
             res.code = Code.NOT_FOUND;
-            return res;
+            return logAutoBetStatusAndReturn("开启自动投注", playerController.playerId(), res);
         }
         if (req.betTimes < 0) {
             res.code = Code.PARAM_ERROR;
-            return res;
+            return logAutoBetStatusAndReturn("开启自动投注", playerController.playerId(), res);
         }
         if (playerGameData.hasActiveGame() && playerGameData.getCurrentBetMode() != HilloConstant.BetMode.AUTO) {
             res.code = Code.ERROR_REQ;
-            return res;
+            return logAutoBetStatusAndReturn("开启自动投注", playerController.playerId(), res);
         }
 
+        // 保存自动投注配置。betTimes=0 表示无限局，因此需要额外的 autoInfiniteBet 标记区分“无限”和“剩余 0 局”。
         playerGameData.setAutoBetting(true);
         playerGameData.setAutoInfiniteBet(req.betTimes == 0);
         playerGameData.setAutoBet(req.bet);
         playerGameData.setAutoGuessTimes(normalizeAutoGuessTimes(req.guessTimes));
         playerGameData.setAutoRemainBetTimes(req.betTimes);
 
-        res = runAutoStep(playerController, playerGameData);
-        if (playerGameData.isAutoBetting()) {
-            startAutoTimer(playerController.playerId());
+        PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
+        if (cfg == null) {
+            playerGameData.clearAutoBet();
+            res.code = Code.SAMPLE_ERROR;
+            return logAutoBetStatusAndReturn("开启自动投注", playerController.playerId(), res);
         }
-        return res;
+        // 开启自动投注只保存配置；真正推进由前端定时发送 chooseId=-1 触发。
+        res.autoBetting = true;
+        return logAutoBetStatusAndReturn("开启自动投注", playerController.playerId(), res);
     }
 
     public AbstractResponse cancelAutoBet(PlayerController playerController, ReqHilloCancelAuto req) {
-        ResHilloAutoBet res = new ResHilloAutoBet(Code.SUCCESS);
+        ResHilloAutoBetStatus res = new ResHilloAutoBetStatus(Code.SUCCESS);
         HilloPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
         if (playerGameData == null) {
             res.code = Code.NOT_FOUND;
-            return res;
+            return logAutoBetStatusAndReturn("取消自动投注", playerController.playerId(), res);
         }
 
-        stopAutoTimer(playerController.playerId());
-        PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
-        if (cfg != null && playerGameData.hasActiveGame() && playerGameData.getCurrentCoin() > 0) {
-            fillAutoExchangeResult(res, playerGameData, cfg);
-        } else {
-            res.action = HilloConstant.AutoAction.STOP;
-        }
         playerGameData.clearAutoBet();
-        fillAutoState(res, playerGameData, cfg);
-        return res;
-    }
-
-    @Override
-    public void onTimer(TimerEvent<String> e) {
-        String parameter = e.getParameter();
-        if (parameter == null || !parameter.startsWith(AUTO_TIMER_PREFIX)) {
-            return;
-        }
-        long playerId;
-        try {
-            playerId = Long.parseLong(parameter.substring(AUTO_TIMER_PREFIX.length()));
-        } catch (NumberFormatException ex) {
-            timerCenter.remove(this, parameter);
-            return;
-        }
-
-        HilloPloyGameData playerGameData = getPlayerGameData(playerId);
-        if (playerGameData == null || !playerGameData.isAutoBetting()) {
-            timerCenter.remove(this, parameter);
-            return;
-        }
-        PlayerController playerController = playerGameData.getPlayerController();
-        if (playerController == null) {
-            playerGameData.clearAutoBet();
-            timerCenter.remove(this, parameter);
-            return;
-        }
-
-        ResHilloAutoBet res = runAutoStep(playerController, playerGameData);
-        playerController.send(res);
-        if (!playerGameData.isAutoBetting()) {
-            timerCenter.remove(this, parameter);
-        }
+        res.autoBetting = false;
+        return logAutoBetStatusAndReturn("取消自动投注", playerController.playerId(), res);
     }
 
     @Override
@@ -381,12 +323,33 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
         return CoreConst.GameType.HILLO;
     }
 
-    private ResHilloAutoBet runAutoStep(PlayerController playerController, HilloPloyGameData playerGameData) {
-        ResHilloAutoBet res = new ResHilloAutoBet(Code.SUCCESS);
+    @Override
+    public HilloPloyGameData exit(PlayerController playerController, ExitType exitType) {
+        HilloPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
+        if (playerGameData != null && playerGameData.isAutoBetting()) {
+            playerGameData.clearAutoBet();
+            log.info("HILLO玩家退出清理自动投注 playerId={}, exitType={}", playerController.playerId(), exitType);
+        }
+        return super.exit(playerController, exitType);
+    }
+
+    private ResHilloChoose autoChoose(PlayerController playerController) {
+        ResHilloChoose res = new ResHilloChoose(Code.SUCCESS);
+        HilloPloyGameData playerGameData = getPlayerGameData(playerController.playerId());
+        if (playerGameData == null) {
+            res.code = Code.NOT_FOUND;
+            return logChooseAndReturn("自动投注推进", playerController.playerId(), res);
+        }
+        // 自动模式由前端节奏驱动：每次 chooseId=-1 只推进一个自动动作。
+        return logChooseAndReturn("自动投注推进", playerController.playerId(), runAutoStep(playerController, playerGameData));
+    }
+
+    private ResHilloChoose runAutoStep(PlayerController playerController, HilloPloyGameData playerGameData) {
+        ResHilloChoose res = new ResHilloChoose(Code.SUCCESS);
         PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(playerGameData.getRoomCfgId());
         if (cfg == null) {
             res.code = Code.SAMPLE_ERROR;
-            stopAutoBet(playerController.playerId(), playerGameData);
+            stopAutoBet(playerGameData);
             return res;
         }
         if (!playerGameData.isAutoBetting()) {
@@ -397,12 +360,14 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
 
         if (!playerGameData.hasActiveGame()) {
             if (!playerGameData.isAutoInfiniteBet() && playerGameData.getAutoRemainBetTimes() <= 0) {
-                stopAutoBet(playerController.playerId(), playerGameData);
+                // 有限局数已经跑完，自动投注自然停止。
+                stopAutoBet(playerGameData);
                 res.action = HilloConstant.AutoAction.STOP;
                 fillAutoState(res, playerGameData, cfg);
                 return res;
             }
-            return startAutoRound(playerController, playerGameData, cfg);
+            ResHilloChoose startRes = startAutoRound(playerController, playerGameData, cfg);
+            return startRes;
         }
 
         if (playerGameData.getCurrentCoin() > 0 && playerGameData.getSuccessTimes() >= playerGameData.getAutoGuessTimes()) {
@@ -413,25 +378,28 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
 
         AutoDecision decision = buildAutoDecision(playerGameData, cfg);
         if (decision.skip()) {
+            // 两个投注区域胜率都低于阈值时，自动策略选择跳过当前公牌。
             fillAutoSkipResult(res, playerGameData, cfg);
         } else {
-            fillAutoChooseResult(res, playerController.playerId(), playerGameData, cfg, decision.chooseId());
+            res = doChoose(playerGameData, cfg, decision.chooseId(), true);
         }
-        stopAutoIfNoMoreRounds(playerController.playerId(), playerGameData);
+        stopAutoIfNoMoreRounds(playerGameData);
         fillAutoState(res, playerGameData, cfg);
         return res;
     }
 
-    private ResHilloAutoBet startAutoRound(PlayerController playerController, HilloPloyGameData playerGameData, PloygameRoomCfg cfg) {
+    private ResHilloChoose startAutoRound(PlayerController playerController, HilloPloyGameData playerGameData, PloygameRoomCfg cfg) {
+        // 自动开局复用通用下注流程，保证扣钱、入池、下注上下限校验与手动一致。
         AbstractMessage betMessage = bet(playerGameData, playerGameData.getAutoBet(), HilloConstant.BetMode.AUTO);
-        ResHilloAutoBet res = new ResHilloAutoBet(betMessage instanceof AbstractResponse response ? response.code : Code.FAIL);
+        ResHilloChoose res = new ResHilloChoose(betMessage instanceof AbstractResponse response ? response.code : Code.FAIL);
         if (res.code != Code.SUCCESS || !(betMessage instanceof ResHilloBet betRes)) {
-            stopAutoBet(playerController.playerId(), playerGameData);
+            stopAutoBet(playerGameData);
             res.action = HilloConstant.AutoAction.STOP;
             fillAutoState(res, playerGameData, cfg);
             return res;
         }
 
+        // 有限局自动投注在成功开局时扣减剩余局数；无限局 autoRemainBetTimes 始终为 0。
         playerGameData.decreaseAutoRemainBetTimes();
         res.action = HilloConstant.AutoAction.START_ROUND;
         res.currentCard = betRes.currentCard;
@@ -442,8 +410,8 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
         return res;
     }
 
-    private void fillAutoChooseResult(ResHilloAutoBet res, long playerId, HilloPloyGameData playerGameData,
-                                      PloygameRoomCfg cfg, int chooseId) {
+    private ResHilloChoose doChoose(HilloPloyGameData playerGameData, PloygameRoomCfg cfg, int chooseId, boolean stopAutoOnError) {
+        ResHilloChoose res = new ResHilloChoose(Code.SUCCESS);
         BigDecimal returnRate = getReturnRate(cfg);
         HilloChoose hilloChoose = HilloChoose.getChoose(chooseId);
         HilloChooseInfo chooseInfo = hilloUtil.buildChooseInfos(playerGameData.getCurrentCardId(), returnRate).stream()
@@ -452,8 +420,10 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
                 .orElse(null);
         if (hilloChoose == null || chooseInfo == null) {
             res.code = Code.PARAM_ERROR;
-            stopAutoBet(playerId, playerGameData);
-            return;
+            if (stopAutoOnError) {
+                stopAutoBet(playerGameData);
+            }
+            return res;
         }
 
         Card currentCard = new Card(playerGameData.getCurrentCardId());
@@ -464,26 +434,31 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
 
         if (!hilloChoose.check(currentCard, nextCard)) {
             playerGameData.addHistory(playerGameData.getCurrentCardId(), chooseId, chooseInfo.odd, nextCardId);
+            fillHistoryChoose(res, playerGameData);
             settleAndArchive(playerGameData, 0, 0, getCurrentBalance(playerGameData));
             res.action = HilloConstant.AutoAction.ROUND_LOSE;
-            return;
+            return res;
         }
 
         long nextCoin = calculateNextCoin(playerGameData.getLastBet(), playerGameData.getCurrentCoin(), chooseInfo.odd);
         int successTimes = playerGameData.getSuccessTimes() + 1;
-        if (successTimes >= HilloConstant.Common.MAX_JOIN_TIMES || successTimes >= playerGameData.getAutoGuessTimes()) {
+        if (successTimes >= HilloConstant.Common.MAX_JOIN_TIMES) {
             CommonResult<Pair<PloyBetDivideInfo, Player>> winResult = winFromPool(playerGameData, nextCoin, cfg.getTaxRate());
             if (!winResult.success()) {
                 res.code = winResult.code;
-                stopAutoBet(playerId, playerGameData);
-                return;
+                if (stopAutoOnError) {
+                    stopAutoBet(playerGameData);
+                }
+                return res;
             }
             long tax = winResult.data.getFirst().getTax();
             res.action = HilloConstant.AutoAction.EXCHANGE;
+            res.currentCoin = nextCoin;
             res.exchangeNum = nextCoin - tax;
             playerGameData.addHistory(playerGameData.getCurrentCardId(), chooseId, chooseInfo.odd, nextCardId);
+            fillHistoryChoose(res, playerGameData);
             settleAndArchive(playerGameData, tax, nextCoin, winResult.data.getSecond().getGold());
-            return;
+            return res;
         }
 
         playerGameData.addHistory(playerGameData.getCurrentCardId(), chooseId, chooseInfo.odd, nextCardId);
@@ -492,13 +467,16 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
         playerGameData.setSuccessTimes(successTimes);
 
         res.action = HilloConstant.AutoAction.CHOOSE;
+        res.currentCard = nextCardId;
         res.currentCoin = nextCoin;
         res.remainRoundNum = HilloConstant.Common.MAX_JOIN_TIMES - successTimes;
         res.remainSkipTimes = playerGameData.getSkipTimes();
         res.chooseInfos = hilloUtil.buildChooseInfos(nextCardId, returnRate);
+        fillHistoryChoose(res, playerGameData);
+        return res;
     }
 
-    private void fillAutoSkipResult(ResHilloAutoBet res, HilloPloyGameData playerGameData, PloygameRoomCfg cfg) {
+    private void fillAutoSkipResult(ResHilloChoose res, HilloPloyGameData playerGameData, PloygameRoomCfg cfg) {
         playerGameData.addSkipHistory(playerGameData.getCurrentCardId());
         int newCardId = hilloUtil.randomCardId();
         playerGameData.setCurrentCardId(newCardId);
@@ -506,11 +484,13 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
 
         res.action = HilloConstant.AutoAction.SKIP;
         res.currentCard = newCardId;
+        res.currentCoin = playerGameData.getCurrentCoin();
         res.remainSkipTimes = playerGameData.getSkipTimes();
         res.chooseInfos = hilloUtil.buildChooseInfos(newCardId, getReturnRate(cfg));
+        fillHistoryChoose(res, playerGameData);
     }
 
-    private void fillAutoExchangeResult(ResHilloAutoBet res, HilloPloyGameData playerGameData, PloygameRoomCfg cfg) {
+    private void fillAutoExchangeResult(ResHilloChoose res, HilloPloyGameData playerGameData, PloygameRoomCfg cfg) {
         long settleCoin = playerGameData.getCurrentCoin();
         CommonResult<Pair<PloyBetDivideInfo, Player>> winResult = winFromPool(playerGameData, settleCoin, cfg.getTaxRate());
         if (!winResult.success()) {
@@ -520,8 +500,41 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
         }
         long tax = winResult.data.getFirst().getTax();
         res.action = HilloConstant.AutoAction.EXCHANGE;
+        res.currentCoin = settleCoin;
         res.exchangeNum = settleCoin - tax;
+        fillHistoryChoose(res, playerGameData);
         settleAndArchive(playerGameData, tax, settleCoin, winResult.data.getSecond().getGold());
+    }
+
+    private void fillHistoryChoose(ResHilloChoose res, HilloPloyGameData playerGameData) {
+        List<HilloHistoryInfo> history = playerGameData.getHistory();
+        if (CollectionUtil.isNotEmpty(history)) {
+            res.historyChoose = buildDisplayHistory(history);
+        }
+    }
+
+    private void fillAutoBetStatus(ResHilloChoose res, HilloPloyGameData playerGameData) {
+        res.autoBetting = playerGameData.isAutoBetting();
+        res.autoInfiniteBet = playerGameData.isAutoInfiniteBet();
+        res.remainBetTimes = playerGameData.getAutoRemainBetTimes();
+    }
+
+    private ResHilloBet logBetAndReturn(String actionName, long playerId, ResHilloBet res) {
+        log.info("HILLO玩家操作 actionName={}, playerId={}, code={}, res={}",
+                actionName, playerId, res.code, JSON.toJSONString(res));
+        return res;
+    }
+
+    private ResHilloChoose logChooseAndReturn(String actionName, long playerId, ResHilloChoose res) {
+        log.info("HILLO玩家操作 actionName={}, playerId={}, code={}, action={}, res={}",
+                actionName, playerId, res.code, res.action, JSON.toJSONString(res));
+        return res;
+    }
+
+    private ResHilloAutoBetStatus logAutoBetStatusAndReturn(String actionName, long playerId, ResHilloAutoBetStatus res) {
+        log.info("HILLO玩家操作 actionName={}, playerId={}, code={}, autoBetting={}, res={}",
+                actionName, playerId, res.code, res.autoBetting, JSON.toJSONString(res));
+        return res;
     }
 
     private AutoDecision buildAutoDecision(HilloPloyGameData playerGameData, PloygameRoomCfg cfg) {
@@ -537,6 +550,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
         }
 
         BigDecimal bestWinRate = new BigDecimal(bestChooseInfo.winRate);
+        // 文档要求胜率达到 60% 才自动猜；首轮不能跳过，所以首轮无论胜率如何都选最优区域。
         if (bestWinRate.compareTo(AUTO_WIN_RATE_THRESHOLD) >= 0 || playerGameData.getSuccessTimes() <= 0 || playerGameData.getSkipTimes() <= 0) {
             return new AutoDecision(bestChooseInfo.chooseId, false);
         }
@@ -550,7 +564,8 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
         return Math.min(guessTimes, HilloConstant.Common.MAX_JOIN_TIMES);
     }
 
-    private void fillAutoState(ResHilloAutoBet res, HilloPloyGameData playerGameData, PloygameRoomCfg cfg) {
+    private void fillAutoState(ResHilloChoose res, HilloPloyGameData playerGameData, PloygameRoomCfg cfg) {
+        // 自动响应统一补齐当前状态，前端可直接按这一份数据刷新界面。
         res.autoBetting = playerGameData.isAutoBetting();
         res.autoInfiniteBet = playerGameData.isAutoInfiniteBet();
         res.remainBetTimes = playerGameData.getAutoRemainBetTimes();
@@ -559,37 +574,68 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
             res.currentCoin = playerGameData.getCurrentCoin();
             res.remainRoundNum = HilloConstant.Common.MAX_JOIN_TIMES - playerGameData.getSuccessTimes();
             res.remainSkipTimes = playerGameData.getSkipTimes();
-            res.historyChoose = playerGameData.getHistory();
+            res.historyChoose = buildDisplayHistory(playerGameData.getHistory());
             if (cfg != null) {
                 res.chooseInfos = hilloUtil.buildChooseInfos(playerGameData.getCurrentCardId(), getReturnRate(cfg));
             }
         }
     }
 
-    private void startAutoTimer(long playerId) {
-        String timerKey = buildAutoTimerKey(playerId);
-        timerCenter.remove(this, timerKey);
-        timerCenter.add(new TimerEvent<>(this, timerKey, HilloConstant.Common.AUTO_INTERVAL_MS,
-                TimerEvent.INFINITE_CYCLE, HilloConstant.Common.AUTO_INTERVAL_MS));
-    }
-
-    private void stopAutoTimer(long playerId) {
-        timerCenter.remove(this, buildAutoTimerKey(playerId));
-    }
-
-    private void stopAutoBet(long playerId, HilloPloyGameData playerGameData) {
-        playerGameData.clearAutoBet();
-        stopAutoTimer(playerId);
-    }
-
-    private void stopAutoIfNoMoreRounds(long playerId, HilloPloyGameData playerGameData) {
-        if (!playerGameData.hasActiveGame() && !playerGameData.isAutoInfiniteBet() && playerGameData.getAutoRemainBetTimes() <= 0) {
-            stopAutoBet(playerId, playerGameData);
+    private List<HilloHistoryInfo> buildDisplayHistory(List<HilloHistoryInfo> history) {
+        if (CollectionUtil.isEmpty(history)) {
+            return null;
         }
+        List<HilloHistoryInfo> displayHistory = new ArrayList<>();
+        for (int i = 0; i < history.size(); i++) {
+            HilloHistoryInfo info = history.get(i);
+            addOperationHistoryInfo(displayHistory, copyHistoryInfo(info));
+            if (!info.isSkipped() && info.getResultCardId() > 0) {
+                HilloHistoryInfo nextInfo = i + 1 < history.size() ? history.get(i + 1) : null;
+                if (nextInfo == null || nextInfo.getCardId() != info.getResultCardId()) {
+                    HilloHistoryInfo resultInfo = new HilloHistoryInfo();
+                    resultInfo.setCardId(info.getResultCardId());
+                    resultInfo.setChooseId(-1);
+                    resultInfo.setOdd("");
+                    displayHistory.add(resultInfo);
+                }
+            }
+        }
+        return displayHistory;
     }
 
-    private String buildAutoTimerKey(long playerId) {
-        return AUTO_TIMER_PREFIX + playerId;
+    private void addOperationHistoryInfo(List<HilloHistoryInfo> displayHistory, HilloHistoryInfo info) {
+        if (!displayHistory.isEmpty() && isResultPlaceholder(displayHistory.getLast())
+                && displayHistory.getLast().getCardId() == info.getCardId()) {
+            displayHistory.set(displayHistory.size() - 1, info);
+            return;
+        }
+        displayHistory.add(info);
+    }
+
+    private boolean isResultPlaceholder(HilloHistoryInfo info) {
+        return info != null && !info.isSkipped()
+                && info.getResultCardId() <= 0
+                && (info.getOdd() == null || info.getOdd().isEmpty());
+    }
+
+    private HilloHistoryInfo copyHistoryInfo(HilloHistoryInfo info) {
+        HilloHistoryInfo copy = new HilloHistoryInfo();
+        copy.setCardId(info.getCardId());
+        copy.setChooseId(info.getChooseId());
+        copy.setOdd(info.getOdd());
+        copy.setResultCardId(info.getResultCardId());
+        copy.setSkipped(info.isSkipped());
+        return copy;
+    }
+
+    private void stopAutoBet(HilloPloyGameData playerGameData) {
+        playerGameData.clearAutoBet();
+    }
+
+    private void stopAutoIfNoMoreRounds(HilloPloyGameData playerGameData) {
+        if (!playerGameData.hasActiveGame() && !playerGameData.isAutoInfiniteBet() && playerGameData.getAutoRemainBetTimes() <= 0) {
+            stopAutoBet(playerGameData);
+        }
     }
 
     private record AutoDecision(int chooseId, boolean skip) {
@@ -600,6 +646,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
     }
 
     private long calculateNextCoin(long lastBet, long currentCoin, String odd) {
+        // 奖励采用“上一轮可兑金额 x 本轮赔率”的连乘方式；第一轮基数为下注额。
         long baseCoin = currentCoin > 0 ? currentCoin : lastBet;
         return BigDecimal.valueOf(baseCoin)
                 .multiply(new BigDecimal(odd))
@@ -612,6 +659,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
     }
 
     private long getCurrentBalance(HilloPloyGameData playerGameData) {
+        // 猜错归档需要记录余额，优先实时读取玩家金币；下注缓存可能因为重启而丢失。
         Player player = playerService.get(playerGameData.playerId());
         if (player != null) {
             return player.getGold();
@@ -621,6 +669,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
     }
 
     private void settleAndArchive(HilloPloyGameData playerGameData, long tax, long settleCoin, long balanceAfter) {
+        // 本局结束时归档历史，并清空当前局状态；下一次下注会重新发起手牌。
         HilloHistory history = new HilloHistory();
         List<HilloHistoryInfo> roundHistory = playerGameData.getHistory();
         if (CollectionUtil.isNotEmpty(roundHistory)) {

@@ -28,13 +28,20 @@ public interface AirRaidConstant {
         int REQ_AIR_RAID_AUTO_CASH_OUT = BASE_MSG_PREFIX | 0x7;
         //自动兑现响应
         int RES_AIR_RAID_AUTO_CASH_OUT = BASE_MSG_PREFIX | 0x8;
+
+        //获取个人历史记录
         int RES_AIR_RAID_RECORD = BASE_MSG_PREFIX | 0x9;
+
         int NOTIFY_AIR_RAID_BET = BASE_MSG_PREFIX | 0xA;
         //排行榜请求
         int REQ_AIR_RAID_RANK = BASE_MSG_PREFIX | 0xB;
         //排行榜响应
         int RES_AIR_RAID_RANK = BASE_MSG_PREFIX | 0xC;
 
+        //获取上一回合的信息
+        int REQ_AIR_RAID_LAST_ROUND = BASE_MSG_PREFIX | 0xD;
+        //获取上一回合的信息
+        int RES_AIR_RAID_LAST_ROUND = BASE_MSG_PREFIX | 0xE;
 
         //游戏状态同步
         int GAME_STATE_SYNC = BASE_MSG_PREFIX | 0x91;
@@ -45,15 +52,10 @@ public interface AirRaidConstant {
     }
 
     interface Common {
-        //下注阶段时间(真正下注)
-        int BET_PHASE_TIME_MILLS = 5000;
-        //下注阶段最后的时间停止下注
-        int BET_PHASE_TIME_BEFORE_END_MILLS = 2000;
-        //结算阶段
-        int CRASHED_PHASE_TIME_MILLS = 3000;
+        int AIR_BIR_REWARD = 50000;
     }
 
-    interface Odds{
+    interface Odds {
         //倍数增长率
         int GROWTH = 0;
         //风险增量

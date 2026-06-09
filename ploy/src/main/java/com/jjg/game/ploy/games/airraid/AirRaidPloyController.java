@@ -204,6 +204,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
      * 清除旧数据
      */
     private void clearRoundData() {
+        //在清空前把当前回合数据快照为"上一回合"
+        roundBetBook.snapshotLastRound(gameRoom.getCrashMultiplier());
         this.airRaidRobotManager.clear();
         this.pendingCashOuts.clear();
         roundBetBook.clear();
@@ -262,13 +264,18 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         //停止兑现 tick，并把残留的兑现推送出去
         flushAndStopCashOutTick();
         doCrash();
-        gameRoom.setPhaseStopTime(gameRoom.getPhaseStartTime() + this.airRaidRuleConfig.getSettleDurationMs());
+
+        int settleDurationMs = this.airRaidRuleConfig.getSettleDurationMs();
+        if (gameRoom.getCrashMultiplier() >= AirRaidConstant.Common.AIR_BIR_REWARD) {
+            settleDurationMs = this.airRaidRuleConfig.getBigRewardSettleDurationMs();
+        }
+        gameRoom.setPhaseStopTime(gameRoom.getPhaseStartTime() + settleDurationMs);
         gameRoom.setNotifyPhase(true);
         settleCurrentRoundIfNeeded();
         airRaidRankDao.add(gameRoom.getPhaseStopTime(), gameRoom.getCrashMultiplier());
         //广播阶段变化
-        broadcastPhaseChange(this.airRaidRuleConfig.getSettleDurationMs());
-        addPhaseEvent(AirRaidPhase.BETTING, this.airRaidRuleConfig.getSettleDurationMs());
+        broadcastPhaseChange(settleDurationMs);
+        addPhaseEvent(AirRaidPhase.BETTING, settleDurationMs);
         log.debug("坠毁结算阶段");
     }
 
@@ -288,6 +295,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
     private void doSettle() {
         int crashMul = gameRoom.getCrashMultiplier();
         int settleRoundId = gameRoom.getRoundId();
+        long now = System.currentTimeMillis();
         for (AirRaidPlayerPloyGameData playerData : this.gameDataMap.values()) {
             long playerId = playerData.playerId();
             int roomCfgId = playerData.getRoomCfgId();
@@ -316,7 +324,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
                             record.setCrashMultiplier(crashMul);
                             record.setCashOutMultiplier(betData.getCashOutMultiplier());
                             record.setWinAmount(betData.getWinAmount());
-                            record.setCashedOut(betData.isCashedOut());
+                            record.setTimestamp(now);
                             recordDao.saveRecord(record);
                         } catch (Exception ex) {
                             log.error("AirRaid 保存记录异常 playerId={}, betIndex={}", playerId, e.getKey(), ex);
@@ -517,6 +525,21 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         }
 
         res.growthRate = this.airRaidRuleConfig.getGrowthRate();
+
+        if (gameRoom.getPhase() == AirRaidPhase.FLYING) {
+            res.hasFlyms = System.currentTimeMillis() - gameRoom.getPhaseStartTime();
+        }
+
+        if (playerGameData.getAutoCashOutTargetMap() != null && !playerGameData.getAutoCashOutTargetMap().isEmpty()) {
+            res.autoCashOut = new ArrayList<>();
+            playerGameData.getAutoCashOutTargetMap().forEach((k, v) -> {
+                KVInfo kvInfo = new KVInfo();
+                kvInfo.key = k;
+                kvInfo.value = v;
+                res.autoCashOut.add(kvInfo);
+            });
+        }
+
         return res;
     }
 
@@ -568,12 +591,6 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
                 res.code = Code.SAMPLE_ERROR;
                 return res;
             }
-            boolean match = cfg.getLineBetScore().stream().anyMatch(b -> b == bet);
-            if (!match) {
-                res.code = Code.PARAM_ERROR;
-                log.warn("AirRaid 下注额不在配置中 playerId={}, bet={}", playerGameData.playerId(), bet);
-                return res;
-            }
 
             // 检查是否已在此槽位下注(每个槽位只能下一次)
             AirRaidBetData existingBet = playerGameData.getAirRaidBetDataMap().get(betIndex);
@@ -607,7 +624,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             }
 
             // 更新本回合展示簿
-            roundBetBook.recordBet(playerGameData.playerId(), playerGameData.getPlayerController().getPlayer().getHeadImgId(), betIndex, bet);
+            roundBetBook.recordBet(playerGameData.playerId(), playerGameData.getPlayerController().getPlayer().getHeadImgId(), betIndex, bet, playerGameData.getPlayerController().getPlayer().getNickName());
 
             res.gold = moneyResult.data.getPlayerAfterMoney();
             res.betIndex = betIndex;
@@ -619,6 +636,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             AirRaidPlayerInfo airRaidPlayerInfo = new AirRaidPlayerInfo();
             airRaidPlayerInfo.playerId = playerGameData.playerId();
             airRaidPlayerInfo.headImgId = playerGameData.getPlayerController().getPlayer().getHeadImgId();
+            airRaidPlayerInfo.nick = playerGameData.getPlayerController().getPlayer().getNickName();
             airRaidPlayerInfo.bet = bet;
             airRaidPlayerInfo.betIndex = betIndex;
             syncMsg.playerBetInfoList.add(airRaidPlayerInfo);
@@ -731,7 +749,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
             // 写入排行榜
             airRaidRankDao.addCashOut(playerId, playerGameData.getPlayerController().getPlayer().getHeadImgId(), playerGameData.getPlayerController().getPlayer().getHeadFrameId(), now, betData.getBetAmount(),
-                    winAmount, multiplier, gameRoom.getCrashMultiplier(), betIndex, gameRoom.getRoundId());
+                    winAmount, multiplier, gameRoom.getCrashMultiplier(), betIndex, gameRoom.getRoundId(), playerGameData.getPlayerController().getPlayer().getNickName());
 
             this.airRaidAutoCashOutManager.cancelAutoCashOutTimer(playerId, betIndex);
             enqueueCashOut(playerId, betIndex, multiplier, winAmount);
@@ -766,7 +784,38 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
 
     @Override
     public AbstractMessage reqPloyRecord(PlayerController playerController, ReqPloyRecord req) {
-        return null;
+        ResAirRaidRecord res = new ResAirRaidRecord(Code.SUCCESS);
+        List<AirRaidRecord> list = recordDao.findRecords(
+                playerController.playerId(),
+                playerController.getPlayer().getRoomCfgId(),
+                req.pageIndex,
+                AirRaidRecord.class);
+        if (list == null || list.isEmpty()) {
+            return res;
+        }
+        List<AirRaidRecordInfo> infoList = new ArrayList<>(list.size());
+        for (AirRaidRecord r : list) {
+            AirRaidRecordInfo info = new AirRaidRecordInfo();
+            info.betAmount = r.getBetAmount();
+            info.cashOutMultiplier = r.getCashOutMultiplier();
+            info.winAmount = r.getWinAmount();
+            info.timestamp = r.getTimestamp();
+            infoList.add(info);
+        }
+        res.records = infoList;
+        res.pageIndex = req.pageIndex;
+        res.totalPages = recordDao.allPages(playerController.playerId(), playerController.getPlayer().getRoomCfgId(), AirRaidRecord.class);
+        return res;
+    }
+
+    /**
+     * 获取上一回合的信息
+     */
+    public ResAirRaidLastRound queryLastRound() {
+        ResAirRaidLastRound res = new ResAirRaidLastRound(Code.SUCCESS);
+        res.crashMultiplier = roundBetBook.getLastRoundCrashMultiplier();
+        res.roundPlayerInfoList = roundBetBook.getLastRoundPlayerInfoList();
+        return res;
     }
 
     public ResAirRaidRank queryRank(int rankType, int period) {
@@ -775,10 +824,12 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         int currentRoundId = gameRoom.getRoundId();
         boolean currentRoundCrashed = gameRoom.getPhase() == AirRaidPhase.CRASHED;
         switch (rankType) {
-            case 1 -> res.rankList = airRaidRankDao.getMultiplierRank(period, currentRoundId, currentRoundCrashed);
-            case 2 -> res.rankList = airRaidRankDao.getWinRank(period, currentRoundId, currentRoundCrashed);
-            default -> res.rankList = airRaidRankDao.getRoundRank(period);
+            case 1 -> res.rankList = airRaidRankDao.getWinRank(period, currentRoundId, currentRoundCrashed);
+            case 2 -> res.rankList = airRaidRankDao.getRoundRank(period);
+            default -> res.rankList = airRaidRankDao.getMultiplierRank(period, currentRoundId, currentRoundCrashed);
         }
+        res.rankType = rankType;
+        res.period = period;
         return res;
     }
 
@@ -850,6 +901,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             tmpAirRaidRuleConfig.setBettingDurationMs(info.get(0));
             tmpAirRaidRuleConfig.setStopBetDurationMs(info.get(1));
             tmpAirRaidRuleConfig.setSettleDurationMs(info.get(2));
+            tmpAirRaidRuleConfig.setBigRewardSettleDurationMs(info.get(3));
             break;
         }
 
