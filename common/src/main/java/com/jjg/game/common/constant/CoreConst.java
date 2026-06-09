@@ -58,7 +58,7 @@ public class CoreConst {
         //篮球巨星
         public static final int BASKETBALL_STAR = 101800;
         //德古拉黑暗财富
-        public static final int DEGULA_WEALTH = 101900;
+        public static final int DRACULA = 101900;
         //宙斯VS哈迪斯
         public static final int ZEUS_VS_HADES = 102000;
         //杰克船长

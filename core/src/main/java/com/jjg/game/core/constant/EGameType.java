@@ -29,7 +29,7 @@ public enum EGameType {
     WOLF_MOON(CoreConst.GameType.WOLF_MOON, RoomType.SLOTS, "狼月"),
     CHRISTMAS_PARTY(CoreConst.GameType.CHRISTMAS_PARTY, RoomType.SLOTS, "圣诞狂欢夜"),
     BASKETBALL_STAR(CoreConst.GameType.BASKETBALL_STAR, RoomType.SLOTS, "篮球巨星"),
-    DEGULA_WEALTH(CoreConst.GameType.DEGULA_WEALTH, RoomType.SLOTS, "德古拉黑暗财富"),
+    DRACULA(CoreConst.GameType.DRACULA, RoomType.SLOTS, "德古拉黑暗财富"),
     ZEUS_VS_HADES(CoreConst.GameType.ZEUS_VS_HADES, RoomType.SLOTS, "宙斯VS哈迪斯"),
     CAPTAIN_JACK(CoreConst.GameType.CAPTAIN_JACK, RoomType.SLOTS, "杰克船长"),
     THOR(CoreConst.GameType.THOR, RoomType.SLOTS, "雷神"),
