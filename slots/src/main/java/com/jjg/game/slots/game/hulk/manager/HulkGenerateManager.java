@@ -123,40 +123,51 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
     }
 
     /**
-     * 检查第三列是否有wild
-     *
-     * @param arr
-     * @return
+     * 检查2/3/4轴上的 wild 情况，返回值用于直接和 BaseElementReward.rewardNum 严格匹配。
+     * 规则（与策划文档一致）：
+     *   - 2/3/4 三轴都有 wild   → 返回 3（命中 rewardNum=3，触发三轴扩列+1重转）
+     *   - 否则只要第3轴有 wild  → 返回 1（命中 rewardNum=1，触发第3轴单轴扩列+2重转）
+     *   - 第3轴没有 wild         → 返回 0（不触发）
+     * 注意：第3轴有 wild 但 2/4 只有其中一轴有 wild 的情况，按"第3轴单轴"处理，
+     * 不再像旧实现那样返回 2 卡在两条配置中间什么都不触发。
      */
     private int wildColumCount(int[] arr) {
-        if (arr == null || arr.length < 1) {
+        if (arr == null || arr.length < 13) {
             return 0;
         }
 
-        int count = 0;
+        boolean col3HasWild = false;
         for (int i = 7; i <= 9; i++) {
             if (arr[i] == HulkConstant.BaseElement.SPECIAL_WILD) {
-                count = 1;
+                col3HasWild = true;
+                break;
+            }
+        }
+        if (!col3HasWild) {
+            return 0;
+        }
+
+        boolean col2HasWild = false;
+        for (int i = 4; i <= 6; i++) {
+            if (arr[i] == HulkConstant.BaseElement.SPECIAL_WILD) {
+                col2HasWild = true;
                 break;
             }
         }
 
-        if (count > 0) {
-            for (int i = 4; i <= 6; i++) {
-                if (arr[i] == HulkConstant.BaseElement.SPECIAL_WILD) {
-                    count++;
-                    break;
-                }
-            }
-
-            for (int i = 10; i <= 12; i++) {
-                if (arr[i] == HulkConstant.BaseElement.SPECIAL_WILD) {
-                    count++;
-                    break;
-                }
+        boolean col4HasWild = false;
+        for (int i = 10; i <= 12; i++) {
+            if (arr[i] == HulkConstant.BaseElement.SPECIAL_WILD) {
+                col4HasWild = true;
+                break;
             }
         }
-        return count;
+
+        //2/3/4 全有 → 三轴扩列；否则只要第3轴有就按"单轴扩列"
+        if (col2HasWild && col4HasWild) {
+            return 3;
+        }
+        return 1;
     }
 
     @Override
@@ -287,6 +298,38 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
         return times;
     }
 
+    /**
+     * 把免费局内的扩列(INNER_ONE_WILD / INNER_THREE_WILD)重转子局的 times 乘以 factor
+     * 注意：只改写子局 JSON 的 times 字段供客户端按局展示；总倍数累计由外层 freeSpinLib.times * factor 统一负担
+     */
+    private void multiplyInnerWildFreeGames(HulkResultLib freeLib, int factor) {
+        if (freeLib == null || freeLib.getSpecialAuxiliaryInfoList() == null || freeLib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            return;
+        }
+        for (SpecialAuxiliaryInfo info : freeLib.getSpecialAuxiliaryInfoList()) {
+            SpecialAuxiliaryCfg cfg = GameDataManager.getSpecialAuxiliaryCfg(info.getCfgId());
+            if (cfg == null) {
+                continue;
+            }
+            if (cfg.getType() != HulkConstant.SpecialAuxiliary.INNER_ONE_WILD
+                    && cfg.getType() != HulkConstant.SpecialAuxiliary.INNER_THREE_WILD) {
+                continue;
+            }
+            if (info.getFreeGames() == null || info.getFreeGames().isEmpty()) {
+                continue;
+            }
+            List<JSONObject> newInnerFreeGames = new ArrayList<>();
+            for (JSONObject jsonObject : info.getFreeGames()) {
+                HulkResultLib innerLib = JSON.parseObject(jsonObject.toJSONString(), this.resultLibClazz);
+                if (innerLib.getTimes() > 0) {
+                    innerLib.setTimes(innerLib.getTimes() * factor);
+                }
+                newInnerFreeGames.add((JSONObject) JSON.toJSON(innerLib));
+            }
+            info.setFreeGames(newInnerFreeGames);
+        }
+    }
+
     @Override
     protected long calFree(HulkResultLib lib) throws Exception {
         if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
@@ -312,12 +355,18 @@ public class HulkGenerateManager extends AbstractSlotsGenerateManager<HulkAwardL
                 for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
                     HulkResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), this.resultLibClazz);
 //                    tmpFreeAllTimes += tmpLib.getTimes();
+                    //免费中触发的扩列(INNER_ONE_WILD / INNER_THREE_WILD)子局奖励也需 x3
+                    multiplyInnerWildFreeGames(tmpLib, 3);
                     if (tmpLib.getTimes() > 0) {
                         tmpLib.setTimes(tmpLib.getTimes() * 3);
-                        newFreeGames.add((JSONObject) JSON.toJSON(tmpLib));
-                    } else {
-                        newFreeGames.add(jsonObject);
                     }
+                    //当该免费局触发了扩列时，AbstractHulkGameManager.free() 派发给玩家的金额是
+                    //freeGame.getTriggerTimes()（触发局自己的连线奖励+bet），而不是 times。
+                    //所以 triggerTimes 也必须 x3，否则扩列触发局玩家拿到的是 1 倍奖励。
+                    if (tmpLib.getTriggerTimes() > 0) {
+                        tmpLib.setTriggerTimes(tmpLib.getTriggerTimes() * 3);
+                    }
+                    newFreeGames.add((JSONObject) JSON.toJSON(tmpLib));
                     times += tmpLib.getTimes();
                 }
                 specialAuxiliaryInfo.setFreeGames(newFreeGames);

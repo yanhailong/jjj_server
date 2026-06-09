@@ -6,11 +6,13 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRollerCfg;
 import com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.data.FullAwardLineInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.game.wolfmoon.WolfMoonConstant;
@@ -40,39 +42,114 @@ public class WolfMoonGenerateManager extends AbstractSlotsGenerateManager<WolfMo
     private Pair<Integer, Integer> freeAddCfg;
     //图标icon 增加次数
     private Pair<Integer, Integer> freeIconAddCfg;
+    //当前结果计算是否处于"许愿百搭模式(WILD_MODEL)"：此模式下涉及 wild 的奖励不再 x2
+    //ThreadLocal 隔离多线程并发，由 checkAward 入口设置 / 清理
+    private final ThreadLocal<Boolean> skipWildBetTimes = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
     @Override
     public WolfMoonResultLib checkAward(int[] arr, WolfMoonResultLib lib, boolean freeModel) throws Exception {
         lib.setGameType(this.gameType);
         lib.setIconArr(arr);
 
-        //检查满线图案_x连
-        List<WolfMoonAwardLineInfo> fullLineInfoList = fullLine(lib);
-        lib.addAllAwardLineInfo(fullLineInfoList);
+        //许愿百搭模式：涉及 wild 的奖励不再 x2（文档第2条规则）
+        boolean wildMode = lib.getLibTypeSet() != null
+                && lib.getLibTypeSet().contains(WolfMoonConstant.SpecialMode.WILD_MODEL);
+        skipWildBetTimes.set(wildMode);
+        try {
+            //检查满线图案_x连
+            List<WolfMoonAwardLineInfo> fullLineInfoList = fullLine(lib);
+            lib.addAllAwardLineInfo(fullLineInfoList);
 
-        //检查全局分散图案
-        List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
-        lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
+            //检查全局分散图案
+            List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
+            lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
 
-        //存储消除后添加的图标
-        List<WolfMoonAddIconInfo> addIconInfoList = new ArrayList<>();
-        //拷贝数组
-        int[] newArr = new int[arr.length];
-        System.arraycopy(arr, 0, newArr, 0, arr.length);
-        //是否有消除
-        Set<Integer> immutableElements = Set.of();
-        //固定堆叠百搭符号处理
-        if (lib.getLibTypeSet().contains(WolfMoonConstant.SpecialMode.FREE_FIXED_STACKED_WILD)) {
-            immutableElements = freeImmutableElements;
+            //存储消除后添加的图标
+            List<WolfMoonAddIconInfo> addIconInfoList = new ArrayList<>();
+            //拷贝数组
+            int[] newArr = new int[arr.length];
+            System.arraycopy(arr, 0, newArr, 0, arr.length);
+            //是否有消除
+            Set<Integer> immutableElements = Set.of();
+            //固定堆叠百搭符号处理
+            if (lib.getLibTypeSet().contains(WolfMoonConstant.SpecialMode.FREE_FIXED_STACKED_WILD)) {
+                immutableElements = freeImmutableElements;
+            }
+            repairIcons(newArr, lib.getAwardLineInfoList(), addIconInfoList, immutableElements);
+            initAddFreeCount(lib);
+            if (!addIconInfoList.isEmpty()) {
+                lib.setAddIconInfos(addIconInfoList);
+            }
+            //计算倍数
+            calTimes(lib);
+            return lib;
+        } finally {
+            skipWildBetTimes.remove();
         }
-        repairIcons(newArr, lib.getAwardLineInfoList(), addIconInfoList, immutableElements);
-        initAddFreeCount(lib);
-        if (!addIconInfoList.isEmpty()) {
-            lib.setAddIconInfos(addIconInfoList);
+    }
+
+    /**
+     * 重写父类的连线奖励计算：在许愿百搭模式下，跳过 wild 图标对应的 betTimes 乘数。
+     * 父类逻辑见 AbstractSlotsGenerateManager#addFullLineAwardInfo
+     */
+    @Override
+    protected WolfMoonAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg, int[] arr) {
+        if (!Boolean.TRUE.equals(skipWildBetTimes.get())) {
+            return (WolfMoonAwardLineInfo) super.addFullLineAwardInfo(sameIconIndexSet, cfg, arr);
         }
-        //计算倍数
-        calTimes(lib);
-        return lib;
+
+        //许愿百搭模式：自行计算 baseTimes，betTimes 里 icon == WILD 的条目直接跳过
+        WolfMoonAwardLineInfo info = (WolfMoonAwardLineInfo) getAwardLineInfo();
+        if (!(info instanceof FullAwardLineInfo)) {
+            return info;
+        }
+        info.setSameIconSet(sameIconIndexSet);
+        info.setSameIcon(cfg.getElementId().getFirst());
+        if (sameIconIndexSet != null && !sameIconIndexSet.isEmpty()) {
+            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+            Map<Integer, Integer> iconNum = new HashMap<>();
+            Map<Integer, Integer> columIconCountMap = new HashMap<>();
+            for (int index : sameIconIndexSet) {
+                int colId = index / baseInitCfg.getRows();
+                if ((index % baseInitCfg.getRows()) != 0) {
+                    colId++;
+                }
+                columIconCountMap.merge(colId, 1, Integer::sum);
+                iconNum.merge(arr[index], 1, Integer::sum);
+            }
+            int addTimes = getAddTimesIgnoreWild(cfg, iconNum);
+            for (Map.Entry<Integer, Integer> en : columIconCountMap.entrySet()) {
+                addTimes *= en.getValue();
+            }
+            info.setBaseTimes(cfg.getBet() * addTimes);
+        } else {
+            info.setBaseTimes(cfg.getBet());
+        }
+        return info;
+    }
+
+    /**
+     * 与父类 getAddTimes 相同，但跳过 icon == WILD 的 betTimes 条目。
+     */
+    private int getAddTimesIgnoreWild(BaseElementRewardCfg cfg, Map<Integer, Integer> iconNum) {
+        int addTimes = 1;
+        if (CollectionUtil.isNotEmpty(cfg.getBetTimes())) {
+            for (List<Integer> betTime : cfg.getBetTimes()) {
+                if (betTime.size() != 3) {
+                    continue;
+                }
+                Integer icon = betTime.get(0);
+                if (icon != null && icon == WolfMoonConstant.BaseElement.WILD) {
+                    continue;
+                }
+                Integer num = iconNum.get(icon);
+                if (num == null || num < betTime.get(1)) {
+                    continue;
+                }
+                return betTime.get(2);
+            }
+        }
+        return addTimes;
     }
 
     private void initAddFreeCount(WolfMoonResultLib lib) {
