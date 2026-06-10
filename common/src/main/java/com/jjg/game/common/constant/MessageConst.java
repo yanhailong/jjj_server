@@ -191,6 +191,10 @@ public interface MessageConst {
         int BOUNTY_DUEL_TYPE = 0x55;
         //模拟经营游戏
         int SIM_GAME = 0x54;
+        //聊天
+        int SOCIAL = 0x56;
+        //联盟
+        int ALLIANCE = 0x57;
         //南方前进-血战
         int TO_SOUTH_BLOOD = 0x5A;
         //南方前进-免费

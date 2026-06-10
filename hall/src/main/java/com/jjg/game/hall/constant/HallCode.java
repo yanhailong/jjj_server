@@ -19,5 +19,4 @@ public interface HallCode extends Code {
      * 游戏状态:关闭
      */
     int GAME_STATUS_CLOSE = 2;
-
 }

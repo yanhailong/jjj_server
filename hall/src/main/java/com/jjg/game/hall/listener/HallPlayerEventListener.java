@@ -41,6 +41,9 @@ import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.service.SimNodeService;
+import com.jjg.game.social.constant.SocialConst;
+import com.jjg.game.social.service.SocialRateLimiter;
+import com.jjg.game.social.service.SocialStatusService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,6 +107,10 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private SimManager simManager;
     @Autowired
     private SimNodeService simNodeService;
+    @Autowired
+    private SocialStatusService socialStatusService;
+    @Autowired
+    private SocialRateLimiter socialRateLimiter;
 
     public void init() {
     }
@@ -332,6 +339,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             SystemInterfaceHolder.callGameSysAction(
                     IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, finalPlayer, account, dayOfFirstLogin));
             simManager.onEnterSim(playerController, true);
+            //向在线好友广播本人上线状态
+            socialStatusService.broadcastStatus(player.getId(), SocialConst.FriendOnlineStatus.ONLINE);
             //加载任务数据
             taskManager.loadTaskData(player.getId());
             rechargeService.loadOfflineRecharge(player.getId());
@@ -354,6 +363,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 hallLogger.logout(playerId, playerSessionInfo.getCreateTime());
             }
             accountDao.checkAndSave(playerId, a -> a.setLastOfflineTime(System.currentTimeMillis()));
+            //向在线好友广播本人下线状态, 并清理聊天频率限制缓存
+            socialStatusService.broadcastStatus(playerId, SocialConst.FriendOnlineStatus.OFFLINE);
+            socialRateLimiter.remove(playerId);
             log.info("玩家登出 playerId={}", playerId);
         }
     }
@@ -383,6 +395,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
         //推送红点信息
         redDotManager.notifyReddot(playerController, null, 0);
         simManager.onEnterSim(playerController, false);
+        //回到大厅节点(含切换节点)时同步好友状态
+        socialStatusService.broadcastStatus(player.getId(), SocialConst.FriendOnlineStatus.ONLINE);
         rechargeService.loadOfflineRecharge(player.getId());
         log.debug("玩家进入大厅节点 playerId={}", playerId);
     }

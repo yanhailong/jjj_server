@@ -16,6 +16,8 @@ import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
+import com.jjg.game.social.constant.SocialConst;
+import com.jjg.game.social.service.SocialStatusService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +49,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     private TaskManager taskManager;
     @Autowired
     private RechargeService rechargeService;
+    @Autowired
+    private SocialStatusService socialStatusService;
 
     @Override
     public void sessionClose(PFSession session) {
@@ -94,6 +98,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             } else {
                 enterRoomSlotsGame(session, player, playerController, info, gameManager);
             }
+            socialStatusService.broadcastStatus(playerId, SocialConst.FriendOnlineStatus.IN_GAME);
         } catch (Exception e) {
             log.error("", e);
         }

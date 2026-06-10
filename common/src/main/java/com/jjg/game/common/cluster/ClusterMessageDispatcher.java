@@ -15,7 +15,6 @@ import org.slf4j.MDC;
 import org.springframework.context.ApplicationContext;
 
 import java.lang.reflect.Constructor;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -104,15 +103,13 @@ public class ClusterMessageDispatcher {
             final PFMessage finalMsg = msg;
             final PFSession finalPFSession = session;
             final Connect<ClusterMessage> finalConnect = connect;
-            boolean tryPublish = executorGroup.tryPublish(bindId, msg.cmd, new BaseHandler<String>() {
+            //ring 满时经 fallback 线程池阻塞发布到原槽位, 不丢消息 (拒绝详情由 tryPublish 内部记录)
+            executorGroup.publishWithFallback(bindId, msg.cmd, new BaseHandler<String>() {
                 @Override
                 public void action() {
                     handle(finalConnect, finalPFSession, finalMsg);
                 }
             });
-            if (!tryPublish) {
-                log.error("消息消费失败 msgId:{} data:{} session:{}", msg, Arrays.toString(msg.data), sessionId);
-            }
         } catch (Exception e) {
             log.warn("节点消息分发异常!", e);
         }

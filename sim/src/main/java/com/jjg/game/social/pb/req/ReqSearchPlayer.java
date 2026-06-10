@@ -1,0 +1,20 @@
+package com.jjg.game.social.pb.req;
+
+import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractMessage;
+import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.social.constant.SocialConst;
+
+/**
+ * 按玩家id搜索玩家(加好友前)。
+ *
+ * @author 11
+ * @date 2026/6/9
+ */
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SOCIAL, cmd = SocialConst.MsgBean.REQ_SEARCH_PLAYER)
+@ProtoDesc("搜索玩家")
+public class ReqSearchPlayer extends AbstractMessage {
+    @ProtoDesc("目标玩家id")
+    public long playerId;
+}

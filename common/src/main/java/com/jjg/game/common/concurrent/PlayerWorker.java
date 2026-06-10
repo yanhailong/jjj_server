@@ -63,9 +63,12 @@ public class PlayerWorker {
                     totalLatencyNanos.addAndGet(Math.max(0, latency));
                 }
             }
-            long pendingCount = getPendingCount();
-            if (pendingCount > 512) {
-                log.error("等待的队列过长 pendingCount:{}", pendingCount);
+            //积压告警按 sequence 取模防刷屏 (积压期间每 512 个事件报一次)
+            if ((sequence & 511) == 0) {
+                long pendingCount = getPendingCount();
+                if (pendingCount > 512) {
+                    log.error("等待的队列过长 pendingCount:{}", pendingCount);
+                }
             }
             // clear to avoid retaining references
             event.clear();
@@ -112,12 +115,11 @@ public class PlayerWorker {
     }
 
     /**
-     * 估算 pending 数量：cursor - consumer sequence
+     * 估算 pending 数量：cursor - consumer sequence。
+     * 消费者 sequence 取 ringBuffer 的最小 gating sequence (handleEventsWith 注册的事件处理器)。
      */
     public long getPendingCount() {
-        long cursor = ringBuffer.getCursor();
-        // consumer sequence is last processed
-        long pending = cursor - disruptor.getRingBuffer().getCursor();
+        long pending = ringBuffer.getCursor() - ringBuffer.getMinimumGatingSequence();
         if (pending < 0) return 0;
         if (pending > Integer.MAX_VALUE) return Integer.MAX_VALUE;
         return pending;

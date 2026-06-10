@@ -42,8 +42,22 @@ public class PlayerExecutorGroupDisruptor {
         for (int i = 0; i < this.slotCount; i++) {
             this.workers[i] = new PlayerWorker(threadNamePrefix + "-" + i, this.bufferSize);
         }
+        //ring 满时的降级执行器: 没有它 publishWithFallback 会静默丢任务
+        this.fallbackExecutor = defaultFallbackExecutor(threadNamePrefix, cores);
         log.info("PlayerExecutorGroupDisruptor initialized: slots={}, bufferSize={}",
                 this.slotCount, this.bufferSize);
+    }
+
+    /** 默认降级线程池: 有界队列 + CallerRunsPolicy, 防止大量降级任务失控 */
+    private static ExecutorService defaultFallbackExecutor(String threadNamePrefix, int cores) {
+        return new ThreadPoolExecutor(
+                Math.max(2, cores / 2),
+                Math.max(2, cores),
+                60, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(1024),
+                r -> new Thread(r, threadNamePrefix + "-fallback"),
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
     }
 
     public static PlayerExecutorGroupDisruptor getDefaultExecutor() {
@@ -73,14 +87,7 @@ public class PlayerExecutorGroupDisruptor {
             this.fallbackExecutor = fallbackExecutor;
         } else {
             // default bounded thread pool for fallback: protect system if many rejects
-            this.fallbackExecutor = new ThreadPoolExecutor(
-                    Math.max(2, cores / 2),
-                    Math.max(2, cores),
-                    60, TimeUnit.SECONDS,
-                    new LinkedBlockingQueue<>(1024),
-                    r -> new Thread(r, threadNamePrefix + "-fallback"),
-                    new ThreadPoolExecutor.CallerRunsPolicy()
-            );
+            this.fallbackExecutor = defaultFallbackExecutor(threadNamePrefix, cores);
         }
         log.info("PlayerExecutorGroupDisruptor initialized: slots={}, bufferSize={}, fallbackExec={}",
                 this.slotCount, this.bufferSize, this.fallbackExecutor);
@@ -134,7 +141,7 @@ public class PlayerExecutorGroupDisruptor {
                 fallbackExecutor.execute(() -> {
                     try {
                         // second attempt: try blocking publish (not on IO thread)
-                        int idx = calcSlot(bindId);
+                        int idx = bindId == 0 ? RandomUtil.randomInt(workers.length) : calcSlot(bindId);
                         workers[idx].publishBlocking(msgId, task);
                     } catch (Throwable t) {
                         // last resort: run directly
