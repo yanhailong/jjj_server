@@ -11,6 +11,7 @@ import com.jjg.game.slots.game.bountyduel.manager.BountyDuelGameManager;
 import com.jjg.game.slots.game.bountyduel.manager.BountyDuelRoomGameManager;
 import com.jjg.game.slots.game.bountyduel.manager.BountyDuelSendMessageManager;
 import com.jjg.game.slots.game.bountyduel.pb.ReqBountyDuelEnterGame;
+import com.jjg.game.slots.game.bountyduel.pb.ReqBountyDuelPoolValue;
 import com.jjg.game.slots.game.bountyduel.pb.ReqBountyDuelStartGame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +68,25 @@ public class BountyDuelMessageHandler {
                 return;
             }
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    @Command(BountyDuelConstant.MsgBean.REQ_POOL_INFO)
+    public void reqPoolValue(PlayerController playerController, ReqBountyDuelPoolValue req) {
+        try {
+            log.info("收到赏金大对决奖池查询请求 playerId={}, req={}", playerController.playerId(), JSONObject.toJSONString(req));
+            BountyDuelGameRunInfo gameRunInfo;
+            if (playerController.getScene() == null) {
+                gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+            } else if (playerController.getScene() instanceof SlotsRoomController) {
+                gameRunInfo = roomGameManager.getPoolValue(playerController, req.stakeVlue);
+            } else {
+                log.warn("playerController.getScene() is error, scene={}", playerController.getScene());
+                return;
+            }
+            sendMessageManager.sendPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

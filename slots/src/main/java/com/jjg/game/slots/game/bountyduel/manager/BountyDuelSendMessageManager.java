@@ -16,6 +16,7 @@ import com.jjg.game.slots.game.bountyduel.pb.BountyDuelAddTimesInfo;
 import com.jjg.game.slots.game.bountyduel.pb.BountyDuelCascade;
 import com.jjg.game.slots.game.bountyduel.pb.BountyDuelIconInfo;
 import com.jjg.game.slots.game.bountyduel.pb.ResBountyDuelEnterGame;
+import com.jjg.game.slots.game.bountyduel.pb.ResBountyDuelPoolValue;
 import com.jjg.game.slots.game.bountyduel.pb.ResBountyDuelStartGame;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,6 +109,26 @@ public class BountyDuelSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回赏金大对决押注结果", false);
+    }
+
+    /**
+     * 返回奖池金额
+     */
+    public void sendPoolValue(PlayerController playerController, BountyDuelGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+
+        ResBountyDuelPoolValue res = new ResBountyDuelPoolValue(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+            res.mini = gameRunInfo.getMini();
+            res.minor = gameRunInfo.getMinor();
+            res.major = gameRunInfo.getMajor();
+            res.grand = gameRunInfo.getGrand();
+        } else {
+            log.debug("赏金大对决奖池查询错误 playerId={}, code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendRun(playerController, sendInfo, "返回赏金大对决奖池金额", false);
     }
 
     private BountyDuelIconInfo addRewardIcons(List<BountyDuelAwardLineInfo> awardLineInfoList, long oneBetScore) {
