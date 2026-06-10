@@ -288,12 +288,14 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                         res.gameWareInfo.isFriendRoom = (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START && warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.SVIP_ROOM_TYPE_START);
                     }
                 }
+                PlayerController playerController = new PlayerController(session, player);
+                session.setReference(playerController);
+                session.setWorkId(player.getId());
+
                 session.send(res);
 
                 hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice(), playerSessionToken.getMac(), playerSessionToken.getFcm());
                 // 调用登录接口类
-                PlayerController playerController = new PlayerController(session, player);
-                session.setReference(playerController);
                 Player finalPlayerLogin = player;
                 SystemInterfaceHolder.callGameSysAction(
                         IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, finalPlayerLogin, account, dayOfFirstLogin));
@@ -311,15 +313,15 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                     log.warn("登录重置玩家房间数据失败 playerId={}", player.getId());
                 }
             }
-            //返回登录消息
-            session.send(res);
-            hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice(), playerSessionToken.getMac(), playerSessionToken.getFcm());
-
             //创建 playerController
             PlayerController playerController = new PlayerController(session, player);
             session.setReference(playerController);
             //需要设置workId，否则hall模块所有的请求都将处于多线程环境，当连点发生时不能保证逻辑顺序执行
             session.setWorkId(player.getId());
+
+            //返回登录消息
+            session.send(res);
+            hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice(), playerSessionToken.getMac(), playerSessionToken.getFcm());
 
             if (register[0]) {
                 hallService.saveDefaultAvatar(req.playerId);

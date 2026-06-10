@@ -15,8 +15,12 @@
 
     <modules>
         <module>common</module>
+        <module>sampledata</module>
         <module>core</module>
         <module>room</module>
+        <module>activity</module>
+        <module>sim</module>
+
         <module>gm</module>
         <module>hall</module>
         <module>account</module>
@@ -24,10 +28,7 @@
         <module>slots</module>
         <module>table</module>
         <module>poker</module>
-        <module>sampledata</module>
-        <module>activity</module>
         <module>recharge</module>
         <module>ploy</module>
-        <module>sim</module>
     </modules>
 </project>

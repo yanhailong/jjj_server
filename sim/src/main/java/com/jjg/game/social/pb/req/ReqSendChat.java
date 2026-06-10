@@ -15,9 +15,9 @@ import com.jjg.game.social.constant.SocialConst;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SOCIAL, cmd = SocialConst.MsgBean.REQ_SEND_CHAT)
 @ProtoDesc("发送聊天")
 public class ReqSendChat extends AbstractMessage {
-    @ProtoDesc("频道 1世界2系统3私聊4联盟5房间")
+    @ProtoDesc("频道 1.世界 2.系统 3.私聊 4.联盟 5.房间")
     public int channel;
-    @ProtoDesc("目标玩家id(私聊用)")
+    @ProtoDesc("目标  channel=3时为玩家id  channel=4时为联盟id  channel=5时为房间id")
     public long targetId;
     @ProtoDesc("内容")
     public String content;

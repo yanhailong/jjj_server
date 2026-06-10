@@ -7,6 +7,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.social.constant.ChatChannelType;
 import com.jjg.game.social.constant.SocialConst;
 import com.jjg.game.social.manager.SocialManager;
 import com.jjg.game.social.pb.req.*;
@@ -16,26 +17,22 @@ import com.jjg.game.social.service.ChatService;
 import com.jjg.game.social.service.FriendService;
 import com.jjg.game.social.service.PlayerCardInfoService;
 import com.jjg.game.social.service.PrivateChatService;
-import com.jjg.game.social.constant.ChatChannelType;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * 社交(好友 + 聊天)消息处理器。
  * <p>
- * 只读重 IO 接口(列表/历史/搜索/信息卡)经虚拟线程执行后直接回包, 不占用玩家绑定的
- * Disruptor worker 线程 —— 这些接口每次同步串多次 Mongo/Redis 往返, 留在 worker 上
- * 会阻塞同槽位其他玩家的全部消息。写路径(发消息/好友关系变更/领礼)仍在 worker 上
- * 串行执行, 保持同一玩家操作的顺序与内存态安全。
+ * 只读重 IO 接口(列表/历史/搜索/信息卡)经虚拟线程执行后直接回包, 不占用玩家绑定的Disruptor worker 线程
+ * 这些接口每次同步串多次 Mongo/Redis 往返, 留在 worker 上会阻塞同槽位其他玩家的全部消息。
+ * 写路径(发消息/好友关系变更/领礼)仍在 worker 上串行执行, 保持同一玩家操作的顺序与内存态安全。
  *
  * @author 11
  * @date 2026/6/9
@@ -266,15 +263,11 @@ public class SocialMessageHandler implements GmListener {
         try {
             String cmd = gmOrders[0];
             if ("socialSys".equalsIgnoreCase(cmd)) {
-                //socialSys <content...> 下发系统消息
-                String content = Arrays.stream(gmOrders).skip(1).collect(Collectors.joining(" "));
-                socialManager.sendSystemMessage(content);
+                socialManager.sendSystemMessage(gmOrders[1]);
             } else if ("socialWorld".equalsIgnoreCase(cmd)) {
-                //socialWorld <content...> 以本人身份发世界聊天
-                String content = Arrays.stream(gmOrders).skip(1).collect(Collectors.joining(" "));
                 ReqSendChat req = new ReqSendChat();
                 req.channel = ChatChannelType.WORLD.getCode();
-                req.content = content;
+                req.content = gmOrders[1];
                 reqSendChat(pc, req);
             } else if ("socialFriends".equalsIgnoreCase(cmd)) {
                 reqFriendList(pc, null);
