@@ -132,10 +132,13 @@ public class PrivateChatService {
             enqueue(pm);
         }
 
-        //在线对端实时收到(不等落库)
+        //在线对端实时收到
         NotifyChat notify = new NotifyChat(Code.SUCCESS);
         notify.msg = SocialPbConverter.toChatMsgInfo(msg);
-        sender.sendTo(msg.getToId(), notify);
+        boolean send = sender.sendTo(msg.getToId(), notify);
+        if (!send) {
+            log.warn("发送私聊信息失败 playerId={},toId={}", msg.getFromId(), msg.getToId());
+        }
     }
 
     /**
