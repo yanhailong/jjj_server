@@ -77,7 +77,7 @@ public class SlotsPlayerGameData {
     @Transient
     protected transient PlayerAllSlotsData playerAllSlotsData;
     @Transient
-    protected transient SimSkillsData simSkillsData;
+    protected transient Map<Integer, Integer> skillsMap;
     @Transient
     protected transient Set<Long> tmpSkillStakeSet;
     @Transient
@@ -393,12 +393,12 @@ public class SlotsPlayerGameData {
         this.id = id;
     }
 
-    public SimSkillsData getSimSkillsData() {
-        return simSkillsData;
+    public Map<Integer, Integer> getSkillsMap() {
+        return skillsMap;
     }
 
-    public void setSimSkillsData(SimSkillsData simSkillsData) {
-        this.simSkillsData = simSkillsData;
+    public void setSkillsMap(Map<Integer, Integer> skillsMap) {
+        this.skillsMap = skillsMap;
     }
 
     public Set<Long> getTmpSkillStakeSet() {

@@ -37,8 +37,6 @@ public class SimCasinoData extends AbstractData {
     private int prosperity;
     //知名度 (赌场宣传度)
     private int awareness;
-    //研究点 (类型 -> 数量; 类型: 1.普通 2.珍惜)
-    private Map<Integer, Integer> researchPointMap;
     //建筑数据
     private Map<Integer, BuildingData> buildingData;
     //拥有的游客 VisitorQuest表
@@ -179,14 +177,6 @@ public class SimCasinoData extends AbstractData {
         this.lastOutputTime = lastOutputTime;
     }
 
-    public Map<Integer, Integer> getResearchPointMap() {
-        return researchPointMap;
-    }
-
-    public void setResearchPointMap(Map<Integer, Integer> researchPointMap) {
-        this.researchPointMap = researchPointMap;
-    }
-
     /**
      * 根据 playerId 和 casinoId 构建联合主键
      */
@@ -262,44 +252,6 @@ public class SimCasinoData extends AbstractData {
             }
         }
         return this.recentGenerateTimes.size();
-    }
-
-    public void addResearchPoint(int type,int num){
-        if(this.researchPointMap == null){
-            this.researchPointMap = new HashMap<>();
-        }
-        this.researchPointMap.merge(type,num,Integer::sum);
-    }
-
-    /**
-     * 查询某类型研究点的当前数量
-     */
-    public int findResearchPoint(int type) {
-        if (this.researchPointMap == null || this.researchPointMap.isEmpty()) {
-            return 0;
-        }
-        Integer v = this.researchPointMap.get(type);
-        return v == null ? 0 : v;
-    }
-
-    /**
-     * 扣除研究点 (内部已做余额校验); 余额不足返回 false
-     */
-    public boolean deductResearchPoint(int type, int points) {
-        if (this.researchPointMap == null || this.researchPointMap.isEmpty()) {
-            return false;
-        }
-        Integer before = this.researchPointMap.get(type);
-        if (before == null || before < points) {
-            return false;
-        }
-        int after = before - points;
-        if (after < 1) {
-            this.researchPointMap.remove(type);
-        } else {
-            this.researchPointMap.put(type, after);
-        }
-        return true;
     }
 
     public boolean containsManageEmploy(int buildingType) {

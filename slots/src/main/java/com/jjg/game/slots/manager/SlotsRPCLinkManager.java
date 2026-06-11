@@ -6,6 +6,7 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.ItemUtils;
@@ -90,6 +91,22 @@ public class SlotsRPCLinkManager {
         } catch (Exception e) {
             log.error("", e);
         }
+    }
+
+    public int skillLevelUp(SlotsPlayerGameData slotsPlayerGameData, int skillId) {
+        if (slotsPlayerGameData.getSimClient() == null) {
+            return Code.FAIL;
+        }
+
+        GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(slotsPlayerGameData.getSimClient()).setTryMillisPerClient(1000));
+
+        CommonResult<Map<Integer, Integer>> result = toSimBridge.skillLevelUp(slotsPlayerGameData.getPlayerId(), slotsPlayerGameData.getGameType(), skillId);
+        if (!result.success()) {
+            log.warn("技能设置失败 playerId={},gameTpye={},skillId={},code={}", slotsPlayerGameData.getPlayerId(), slotsPlayerGameData.getGameType(), skillId, result.code);
+            return result.code;
+        }
+        slotsPlayerGameData.setSkillsMap(result.data);
+        return result.code;
     }
 
     private void handleSpinResult(PlayerController playerController, long playerId, int gameType, int winTimes, CommonResult<SlotsSpinResult> result) {

@@ -59,13 +59,6 @@ public class SimPlayerContext {
         this.skillsDataMap = skillsDataMap;
     }
 
-    public SimSkillsData getSkillData(int gameType) {
-        if (this.skillsDataMap == null || this.skillsDataMap.isEmpty()) {
-            return null;
-        }
-        return this.skillsDataMap.get(gameType);
-    }
-
     public Map<Integer, SimEmployeeData> getEmployeeMap() {
         return employeeMap;
     }
@@ -173,5 +166,19 @@ public class SimPlayerContext {
         for (Map.Entry<Integer, BuildingData> en : buildingMap.entrySet()) {
             System.out.println(JSONObject.toJSONString(en.getValue()));
         }
+    }
+
+    public SimSkillsData getSkillData(int gameType) {
+        if (this.skillsDataMap == null || this.skillsDataMap.isEmpty()) {
+            return null;
+        }
+        return this.skillsDataMap.get(gameType);
+    }
+
+    public void addSkillData(SimSkillsData data) {
+        if (this.skillsDataMap == null || this.skillsDataMap.isEmpty()) {
+            this.skillsDataMap = new HashMap<>();
+        }
+        this.skillsDataMap.put(data.getGameType(), data);
     }
 }

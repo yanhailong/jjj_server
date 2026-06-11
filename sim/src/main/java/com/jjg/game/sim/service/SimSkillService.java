@@ -2,6 +2,7 @@ package com.jjg.game.sim.service;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.GameDataManager;
@@ -94,9 +95,9 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 res.skills.add(SimPbConverter.toGameSkills(data));
             }
 
-            if (ctx.getCurrentCasino().getResearchPointMap() != null && !ctx.getCurrentCasino().getResearchPointMap().isEmpty()) {
+            if (ctx.getSimBaseData().getResearchPointMap() != null && !ctx.getSimBaseData().getResearchPointMap().isEmpty()) {
                 res.researchPoints = new ArrayList<>();
-                for (Map.Entry<Integer, Integer> en : ctx.getCurrentCasino().getResearchPointMap().entrySet()) {
+                for (Map.Entry<Integer, Integer> en : ctx.getSimBaseData().getResearchPointMap().entrySet()) {
                     KVInfo kvInfo = new KVInfo();
                     kvInfo.key = en.getKey();
                     kvInfo.value = en.getValue();
@@ -175,19 +176,9 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 return;
             }
 
-            //研究点在当前赌场上
-            SimCasinoData casino = ctx.getCurrentCasino();
-            if (casino == null) {
-                log.warn("升级技能失败，当前赌场不存在 playerId={}", skillData.getPlayerId());
-                res.code = Code.NOT_FOUND;
-                ctx.send(res);
-                return;
-            }
-
-
             //检查研究点是否足够
             for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
-                int researchPoint = casino.findResearchPoint(en.getKey());
+                int researchPoint = ctx.getSimBaseData().findResearchPoint(en.getKey());
                 if (researchPoint < en.getValue()) {
                     log.warn("升级技能失败，研究点不足 playerId={},propId={},newLevelCfgId={},researchPoint={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId(), researchPoint);
                     res.code = Code.NOT_ENOUGH;
@@ -198,7 +189,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
 
             //扣除研究点
             for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
-                casino.deductResearchPoint(en.getKey(), en.getValue());
+                ctx.getSimBaseData().deductResearchPoint(en.getKey(), en.getValue());
             }
             skillData.changeSkillLevel(skillPropId, newLevelCfg.getGrade());
 
@@ -207,7 +198,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             res.nowLevel = newLevelCfg.getGrade();
 
             res.researchPoints = new ArrayList<>();
-            for (Map.Entry<Integer, Integer> en : ctx.getCurrentCasino().getResearchPointMap().entrySet()) {
+            for (Map.Entry<Integer, Integer> en : ctx.getSimBaseData().getResearchPointMap().entrySet()) {
                 KVInfo kvInfo = new KVInfo();
                 kvInfo.key = en.getKey();
                 kvInfo.value = en.getValue();
@@ -247,4 +238,31 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
         ctx.send(res);
     }
 
+    public CommonResult<Map<Integer, Integer>> skillLevelUp(SimPlayerContext ctx, int gameType, int skillId) {
+        CommonResult<Map<Integer, Integer>> result = new CommonResult<>(Code.SUCCESS);
+        try {
+            //加载技能数据
+            SimSkillsData data = ctx.getSkillData(gameType);
+            if (data == null) {
+                data = simSkillsDao.findByGameType(ctx.playerId(), gameType);
+                if (data != null) {
+                    ctx.getSkillsDataMap().put(data.getGameType(), data);
+                } else {
+                    data = new SimSkillsData();
+                    data.setPlayerId(ctx.playerId());
+                    data.setGameType(gameType);
+                }
+            }
+
+            result.code = addSkill(data, skillId);
+            if (result.code == Code.SUCCESS) {
+                ctx.addSkillData(data);
+                result.data = data.getSkillsMap();
+            }
+        } catch (Exception e) {
+            log.error("", e);
+            result.code = Code.EXCEPTION;
+        }
+        return result;
+    }
 }

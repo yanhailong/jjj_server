@@ -29,5 +29,24 @@ public interface ToSimBridge extends IGameRpc {
      */
     CommonResult<SimSkillsData> addSkillById(long playerId, int gameType, int skillId);
 
+    /**
+     * slots spin
+     *
+     * @param playerId
+     * @param gameType
+     * @param winTimes
+     * @param changeNode
+     * @return
+     */
     CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode);
+
+    /**
+     * 升级技能
+     *
+     * @param playerId
+     * @param gameType
+     * @param skillId
+     * @return
+     */
+    CommonResult<Map<Integer, Integer>> skillLevelUp(long playerId, int gameType, int skillId);
 }

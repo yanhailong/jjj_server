@@ -4,16 +4,13 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
-import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.pb.ActivityItemDropInfo;
-import com.jjg.game.core.pb.NotifyItemDropInfo;
 import com.jjg.game.core.service.PlayerSessionService;
-import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
@@ -75,7 +72,7 @@ public class SimManager {
     @Autowired
     private SimSkillsDao simSkillsDao;
     @Autowired
-    private SimItemService simItemService;
+    private SimDropService simDropService;
     @Autowired
     private SimSkillService simSkillService;
     @Autowired
@@ -145,14 +142,9 @@ public class SimManager {
             }
 
             res.awareness = ctx.getCurrentCasino().getAwareness();
-            res.power=ctx.getSimBaseData().getPower();
+            res.power = ctx.getSimBaseData().getPower();
 
-            if(ctx.getCurrentCasino().getResearchPointMap() != null && !ctx.getCurrentCasino().getResearchPointMap().isEmpty()) {
-                Integer num = ctx.getCurrentCasino().getResearchPointMap().get(1);
-                if(num != null){
-                    res.researchPoint = num;
-                }
-            }
+            res.researchPoint = ctx.getSimBaseData().findResearchPoint(SimConstant.ResearchPoint.NORMAL_TPYE);
             //离线收益已在登录时结算, 这里仅从快照构建下发
             res.offlineReward = buildingService.buildOfflineRewardPb(ctx.getPendingOffline());
             log.info("玩家进入游戏 playerId={},res={}", playerController.playerId(), JSONObject.toJSONString(res));
@@ -340,7 +332,7 @@ public class SimManager {
                 }
             }
 
-            return simItemService.onSpin(ctx, gameType, winTimes);
+            return simDropService.onSpin(ctx, gameType, winTimes);
         } catch (Exception e) {
             log.error("", e);
             result.code = Code.EXCEPTION;

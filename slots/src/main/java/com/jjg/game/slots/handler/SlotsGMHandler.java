@@ -12,6 +12,7 @@ import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.manager.SlotsFactoryManager;
+import com.jjg.game.slots.manager.SlotsRPCLinkManager;
 import com.jjg.game.slots.manager.SlotsRoomManager;
 import com.jjg.game.slots.service.SlotsSkillService;
 import org.slf4j.Logger;
@@ -37,6 +38,8 @@ public class SlotsGMHandler implements GmListener {
     private SlotsRoomManager slotsRoomManager;
     @Autowired
     private SlotsSkillService slotsSkillService;
+    @Autowired
+    private SlotsRPCLinkManager slotsRPCLinkManager;
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
@@ -107,16 +110,7 @@ public class SlotsGMHandler implements GmListener {
                     return res;
                 }
 
-                if(playerGameData.getSimSkillsData() == null){
-                    SimSkillsData simSkillsData = slotsSkillService.getSkillDataByGameType(playerController.playerId(), playerGameData.getGameType());
-                    if(simSkillsData == null){
-                        simSkillsData = new SimSkillsData();
-                        simSkillsData.setPlayerId(playerController.playerId());
-                        simSkillsData.setGameType(playerGameData.getGameType());
-                    }
-                    playerGameData.setSimSkillsData(simSkillsData);
-                }
-                res.code = slotsSkillService.addSkill(playerGameData.getSimSkillsData(), skillId);
+                res.code = slotsRPCLinkManager.skillLevelUp(playerGameData,skillId);
             } else {
                 res.code = Code.NOT_FOUND;
             }

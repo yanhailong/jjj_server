@@ -287,7 +287,7 @@ public class SimMessageHandler implements GmListener {
                 int type = Integer.parseInt(gmOrders[1]);
                 int num = Integer.parseInt(gmOrders[2]);
                 SimPlayerContext context = simManager.getContext(playerController.playerId());
-                context.getCurrentCasino().addResearchPoint(type, num);
+                context.getSimBaseData().addResearchPoint(type, num);
             } else if ("addPower".equalsIgnoreCase(gmOrders[0])) {
                 int num = Integer.parseInt(gmOrders[1]);
                 SimPlayerContext context = simManager.getContext(playerController.playerId());
