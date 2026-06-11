@@ -1,10 +1,12 @@
 package com.jjg.game.sim.service;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.pb.KVInfo;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
@@ -630,7 +632,15 @@ public class SimBuildingService implements SimPlayerTickListener {
             return null;
         }
         OfflineReward rewards = new OfflineReward();
-//        rewards.rewards = ItemUtils.buildItemInfo(reward.getBaseReward());
+        if (reward.getBaseReward() != null && !reward.getBaseReward().isEmpty()) {
+            rewards.rewards = new ArrayList<>();
+            for (Map.Entry<BuildingOutputType, Long> en : reward.getBaseReward().entrySet()) {
+                ItemInfo itemInfo = new ItemInfo();
+                itemInfo.itemId = en.getKey().getCode();
+                itemInfo.count = en.getValue();
+                rewards.rewards.add(itemInfo);
+            }
+        }
         rewards.offlineMinutes = reward.getEffectiveMinutes();
         rewards.capMinutes = reward.getCapMinutes();
         rewards.adMultiplier = reward.getAdMultiplier();

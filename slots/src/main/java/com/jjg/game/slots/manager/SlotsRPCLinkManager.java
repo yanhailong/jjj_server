@@ -7,6 +7,7 @@ import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.SlotsSpinResult;
@@ -46,8 +47,10 @@ public class SlotsRPCLinkManager {
      */
     public void notifySpin(SlotsPlayerGameData playerGameData, int gameType, int winTimes) {
         try {
+            long playerId = playerGameData.getPlayerId();
+            PlayerController playerController = playerGameData.getPlayerController();
             if (playerGameData.getSimClient() == null) {
-                log.warn("获取sim节点为空 playerId = {}", playerGameData.getPlayerId());
+                log.warn("获取sim节点为空 playerId = {}", playerId);
                 return;
             }
 
@@ -55,35 +58,55 @@ public class SlotsRPCLinkManager {
             boolean changeNode = false;
             ClusterClient client = clusterSystem.getClusterByPath(playerGameData.getSimClient().marsNode.getNodePath());
             if (client == null) {
-                client = simNodeService.getSimClusterClient(playerGameData.getPlayerId(), playerGameData.getPlayerController().ipAddress());
+                client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
                 if (client == null) {
-                    log.warn("获取sim节点为空 playerId = {}", playerGameData.getPlayerId());
+                    log.warn("获取sim节点为空 playerId = {}", playerId);
                     return;
                 }
                 playerGameData.setSimClient(client);
                 changeNode = true;
             }
 
-
-            GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
-            CommonResult<SlotsSpinResult> result = toSimBridge.onSlotsSpin(playerGameData.getPlayerId(), gameType, winTimes, changeNode);
-            if (!result.success()) {
-                log.warn("sim道具掉落失败 playerId={},gameType={},winTimes={},code={}", playerGameData.getPlayerId(), gameType, winTimes, result.code);
-                return;
+            GameRpcContext rpcContext = GameRpcContext.getContext();
+            RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+            try {
+                rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
+                boolean finalChangeNode = changeNode;
+                rpcContext.asyncCall(() -> toSimBridge.onSlotsSpin(playerId, gameType, winTimes, finalChangeNode))
+                        .whenComplete((result, throwable) -> {
+                            if (throwable != null) {
+                                log.warn("sim道具掉落异步调用异常 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes, throwable);
+                                return;
+                            }
+                            try {
+                                handleSpinResult(playerController, playerId, gameType, winTimes, result);
+                            } catch (Exception e) {
+                                log.error("处理sim道具掉落异步结果异常 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes, e);
+                            }
+                        });
+            } finally {
+                rpcContext.setReqParameterBuilder(previousBuilder);
             }
-
-            Map<Integer, Long> newMap = new HashMap<>();
-            for (Map.Entry en : result.data.getItemsMap().entrySet()) {
-                newMap.put(Integer.parseInt(en.getKey().toString()), Long.parseLong(en.getValue().toString()));
-            }
-            NotifySimDropItem notify = new NotifySimDropItem();
-            notify.itemMap = ItemUtils.buildItemInfo(newMap);
-            notify.power = result.data.getPower();
-            notify.researchPoint = result.data.getResearchPoints();
-            playerGameData.getPlayerController().send(notify);
-            log.info("通知道具掉落 playerId={},notify={}", playerGameData.getPlayerId(), JSON.toJSONString(notify));
         } catch (Exception e) {
             log.error("", e);
         }
+    }
+
+    private void handleSpinResult(PlayerController playerController, long playerId, int gameType, int winTimes, CommonResult<SlotsSpinResult> result) {
+        if (result == null || !result.success()) {
+            log.warn("sim道具掉落失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result == null ? null : result.code);
+            return;
+        }
+
+        Map<Integer, Long> newMap = new HashMap<>();
+        for (Map.Entry en : result.data.getItemsMap().entrySet()) {
+            newMap.put(Integer.parseInt(en.getKey().toString()), Long.parseLong(en.getValue().toString()));
+        }
+        NotifySimDropItem notify = new NotifySimDropItem();
+        notify.itemMap = ItemUtils.buildItemInfo(newMap);
+        notify.power = result.data.getPower();
+        notify.researchPoint = result.data.getResearchPoints();
+        playerController.send(notify);
+        log.info("通知道具掉落 playerId={},notify={}", playerId, JSON.toJSONString(notify));
     }
 }
