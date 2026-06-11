@@ -8,6 +8,7 @@ import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PropCfg;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimSkillsDao;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -178,7 +179,17 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
 
             //检查研究点是否足够
             for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
-                int researchPoint = ctx.getSimBaseData().findResearchPoint(en.getKey());
+                int itemId = en.getKey();
+                int type = 0;
+                if (itemId == SimConstant.Item.ID_RESEARCH_POINT) {
+                    type = SimConstant.ResearchPoint.NORMAL_TPYE;
+                } else if (itemId == SimConstant.Item.ID_RARE_RESEARCH_POINT) {
+                    type = SimConstant.ResearchPoint.RARE_TPYE;
+                } else {
+                    log.warn("研究点道具id错误 playerId={},propId={},itemId={}", skillData.getPlayerId(), skillPropId, itemId);
+                    continue;
+                }
+                int researchPoint = ctx.getSimBaseData().findResearchPoint(type);
                 if (researchPoint < en.getValue()) {
                     log.warn("升级技能失败，研究点不足 playerId={},propId={},newLevelCfgId={},researchPoint={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId(), researchPoint);
                     res.code = Code.NOT_ENOUGH;
