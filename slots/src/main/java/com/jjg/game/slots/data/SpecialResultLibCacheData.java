@@ -127,6 +127,7 @@ public class SpecialResultLibCacheData {
     public Map<Integer, PropInfo> getPropMap(int modelId, long betValue, int slotsVipType, int allBetCount, int prizelessCount) {
         Map<Integer, PropInfo> basePropMap = this.resultLibSectionPropMap.get(SlotsConst.Common.DEFAULT_SPECIAL_RESULT_LIB_MODELID);
 
+        System.out.println("modelId: " + modelId + ",betValue: " + betValue + ",slotsVipType: " + slotsVipType + ",allBetCount: " + allBetCount + ",prizelessCount: " + prizelessCount);
         //1.判断 vip
         if (slotsVipType > 0 && this.markResultLibSectionPropMap != null && !this.markResultLibSectionPropMap.isEmpty()) {
             List<ChangeSectionData2> tmpList = this.markResultLibSectionPropMap.get(modelId);
@@ -139,7 +140,7 @@ public class SpecialResultLibCacheData {
         }
 
         //2.玩家累计下注次数
-        if (allBetCount > 0 && this.accumulateResultLibSectionPropMap != null && !this.accumulateResultLibSectionPropMap.isEmpty()) {
+        if (allBetCount >= 0 && this.accumulateResultLibSectionPropMap != null && !this.accumulateResultLibSectionPropMap.isEmpty()) {
             List<ChangeSectionData2> tmpList = this.accumulateResultLibSectionPropMap.get(modelId);
             if (tmpList != null && !tmpList.isEmpty()) {
                 ChangeSectionData2 data2 = tmpList.stream().filter(d -> allBetCount <= d.getType()).findFirst().orElse(null);

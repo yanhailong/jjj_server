@@ -19,10 +19,7 @@ import com.jjg.game.sim.pb.res.ResSimUpgradeSkill;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * slots 技能服务
@@ -178,6 +175,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             }
 
             //检查研究点是否足够
+            Map<Integer, Integer> tmpMap = new HashMap<>();
             for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
                 int itemId = en.getKey();
                 int type = 0;
@@ -196,10 +194,11 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                     ctx.send(res);
                     return;
                 }
+                tmpMap.put(type, en.getValue());
             }
 
             //扣除研究点
-            for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
+            for (Map.Entry<Integer, Integer> en : tmpMap.entrySet()) {
                 ctx.getSimBaseData().deductResearchPoint(en.getKey(), en.getValue());
             }
             skillData.changeSkillLevel(skillPropId, newLevelCfg.getGrade());
@@ -219,6 +218,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             //新解锁的技能
             List<PropCfg> propCfgList = simConfigCacheService.getPropCfgList(gameType);
             if (propCfgList != null && !propCfgList.isEmpty()) {
+                res.newUnlockSkills = new ArrayList<>();
                 for (PropCfg cfg : propCfgList) {
                     //检查该技能是否解锁
                     Integer level = skillData.findSkilLevelByPropId(cfg.getId());
