@@ -196,5 +196,7 @@ public class SlotsConst {
         //获取游戏状态
         public static final int REQ_SLOTS_STATUS = BASE_MSG_PREFIX | 0x3;
         public static final int RES_SLOTS_STATUS = BASE_MSG_PREFIX | 0x4;
+
+        public static final int NOTIFY_SIM_DROP_ITEM = BASE_MSG_PREFIX | 0x5;
     }
 }

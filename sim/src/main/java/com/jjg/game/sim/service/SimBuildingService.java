@@ -166,13 +166,13 @@ public class SimBuildingService implements SimPlayerTickListener {
                 ctx.send(res);
                 return;
             }
-            //前置建筑必须已解锁
-            if (cfg.getUnlockMethod() > 0 && casino.findBuilding(cfg.getUnlockMethod()) == null) {
-                log.warn("解锁建筑失败, 前置建筑未解锁 playerId={},buildingId={},prereq={}", ctx.playerId(), buildingId, cfg.getUnlockMethod());
-                res.code = Code.PARAM_ERROR;
-                ctx.send(res);
-                return;
-            }
+            //todo 前置建筑必须已解锁
+//            if (cfg.getUnlockMethod() > 0 && casino.findBuilding(cfg.getUnlockMethod()) == null) {
+//                log.warn("解锁建筑失败, 前置建筑未解锁 playerId={},buildingId={},prereq={}", ctx.playerId(), buildingId, cfg.getUnlockMethod());
+//                res.code = Code.PARAM_ERROR;
+//                ctx.send(res);
+//                return;
+//            }
             //资源足够?
             boolean remove = simItemService.removeItems(ctx, cfg.getUnlockCost(), AddType.SIM_BUILDING_UPGRADE, null);
             if (!remove) {

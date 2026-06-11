@@ -1,5 +1,6 @@
 package com.jjg.game.sim.service;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
@@ -15,10 +16,7 @@ import com.jjg.game.sampledata.bean.DropNumCfg;
 import com.jjg.game.sampledata.bean.DropTypeCfg;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
-import com.jjg.game.sim.data.SimBaseData;
-import com.jjg.game.sim.data.SimCasinoData;
-import com.jjg.game.sim.data.SimItemOperationResult;
-import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.data.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,8 +51,8 @@ public class SimItemService {
      * @param gameType slots 游戏类型 (如 SuperStar=100300)
      * @param winTimes 本次中奖倍数 (allWinGold / allBetScore)
      */
-    public CommonResult<Map<Integer, Long>> onSpin(SimPlayerContext ctx, int gameType, int winTimes) {
-        CommonResult<Map<Integer, Long>> result = new CommonResult<>(Code.SUCCESS);
+    public CommonResult<SlotsSpinResult> onSpin(SimPlayerContext ctx, int gameType, int winTimes) {
+        CommonResult<SlotsSpinResult> result = new CommonResult<>(Code.SUCCESS);
 
         SimBaseData base = ctx.getSimBaseData();
         SimCasinoData casino = ctx.getCurrentCasino();
@@ -77,7 +75,7 @@ public class SimItemService {
         checkLevelUp(casino);
         //掉落
         Map<Integer, Long> dropResult = rollDrop(base, gameType, winTimes);
-        result.data = dropResult;
+
         //入账 (掉落可能含能量/知名度等特殊资源, 统一走 addItems 路由)
         if (!dropResult.isEmpty()) {
             CommonResult<SimItemOperationResult> addResult = addItems(ctx, dropResult, AddType.SIM_SLOTS_DROP, null, false);
@@ -87,6 +85,11 @@ public class SimItemService {
                 return result;
             }
         }
+
+        SlotsSpinResult slotsSpinResult = new SlotsSpinResult();
+        slotsSpinResult.setItemsMap(dropResult);
+        slotsSpinResult.setPower(base.getPower());
+        result.data = slotsSpinResult;
         return result;
     }
 
@@ -244,7 +247,7 @@ public class SimItemService {
             if (itemResult.success() && itemResult.data != null) {
                 data = SimItemOperationResult.createFromItemResult(itemResult.data);
             }
-            log.info("道具入账 playerId={},items={},addType={}", ctx.playerId(), packItems, addType);
+            log.info("道具入账 playerId={},items={},addType={},code={}", ctx.playerId(), packItems, addType,itemResult.code);
         }
         //回填 sim 特殊资源最新值, 供下发客户端
         data.setPower(ctx.getSimBaseData().getPower());

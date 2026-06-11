@@ -14,6 +14,7 @@ import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.manager.SimManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -145,5 +146,10 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
         log.info("添加技能成功 playerId={},gameType={},skillId={},propId={},grade={}",
                 playerId, gameType, skillId, cfg.getAttr(), cfg.getGrade());
         return new CommonResult<>(Code.SUCCESS, data);
+    }
+
+    @Override
+    public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode) {
+        return simManager.onSlotsSpin(playerId, gameType, winTimes, changeNode);
     }
 }

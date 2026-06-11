@@ -35,7 +35,6 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.data.SimSkillsData;
-import com.jjg.game.sim.pb.res.NotifyServerPlayerSpin;
 import com.jjg.game.sim.service.SimNodeService;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.controller.SlotsRoomController;
@@ -104,6 +103,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected SlotsSkillService simSkillService;
     @Autowired
     protected SimNodeService simNodeService;
+    @Autowired
+    protected SlotsRPCLinkManager slotsRPCLinkManager;
 
     protected AtomicBoolean open = new AtomicBoolean(false);
 
@@ -377,51 +378,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         G gameRunInfo = startGame(playerController, playerGameData, betValue, false);
         //公共: 旋转成功后通知 sim 联动 (扣能量/加经验/赌场升级/道具掉落), winTimes 取各游戏写入的 allWinTimes
         if (gameRunInfo != null && gameRunInfo.success()) {
-            notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes());
+            slotsRPCLinkManager.notifySpin(playerGameData,getGameType(),gameRunInfo.getAllWinTimes());
         }
         return gameRunInfo;
-    }
-
-    /**
-     * 通知sim节点
-     * 非阻塞，异步通知
-     *
-     * @param playerGameData
-     * @param gameType
-     * @param winTimes
-     */
-    public void notifySpin(T playerGameData, int gameType, int winTimes) {
-        try {
-            if (playerGameData.getSimClient() == null) {
-                log.warn("获取sim节点为空 playerId = {}", playerGameData.getPlayerId());
-                return;
-            }
-
-            //检查该节点是否有效
-            boolean changeNode = false;
-            ClusterClient client = clusterSystem.getClusterByPath(playerGameData.getSimClient().marsNode.getNodePath());
-            if (client == null) {
-                client = simNodeService.getSimClusterClient(playerGameData.getPlayerId(), playerGameData.getPlayerController().ipAddress());
-                if (client == null) {
-                    log.warn("获取sim节点为空 playerId = {}", playerGameData.getPlayerId());
-                    return;
-                }
-                playerGameData.setSimClient(client);
-                changeNode = true;
-            }
-
-            NotifyServerPlayerSpin notify = new NotifyServerPlayerSpin();
-            notify.playerId = playerGameData.getPlayerId();
-            notify.gameType = gameType;
-            notify.winTimes = winTimes;
-            notify.sessionId = playerGameData.getPlayerController().getSession().sessionId();
-            notify.sessionPath = playerGameData.getPlayerController().getSession().gatePath;
-            notify.changeNode = changeNode;
-            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
-            playerGameData.getSimClient().write(new ClusterMessage(pfMessage));
-        } catch (Exception e) {
-            log.error("", e);
-        }
     }
 
     /**

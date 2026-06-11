@@ -145,6 +145,14 @@ public class SimManager {
             }
 
             res.awareness = ctx.getCurrentCasino().getAwareness();
+            res.power=ctx.getSimBaseData().getPower();
+
+            if(ctx.getCurrentCasino().getResearchPointMap() != null && !ctx.getCurrentCasino().getResearchPointMap().isEmpty()) {
+                Integer num = ctx.getCurrentCasino().getResearchPointMap().get(1);
+                if(num != null){
+                    res.researchPoint = num;
+                }
+            }
             //离线收益已在登录时结算, 这里仅从快照构建下发
             res.offlineReward = buildingService.buildOfflineRewardPb(ctx.getPendingOffline());
             log.info("玩家进入游戏 playerId={},res={}", playerController.playerId(), JSONObject.toJSONString(res));
@@ -315,7 +323,8 @@ public class SimManager {
         }
     }
 
-    public void onSlotsSpin(long playerId, int gameType, int winTimes, String sessionId, String sessionPath, boolean changeNode) {
+    public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode) {
+        CommonResult<SlotsSpinResult> result = new CommonResult<>(Code.SUCCESS);
         try {
             SimPlayerContext ctx = getContext(playerId);
             if (ctx == null) {
@@ -326,35 +335,16 @@ public class SimManager {
                 if (ctx == null) {
                     //玩家未在 sim 在线: 跳过联动, 不影响 slots 旋转
                     log.warn("slots 联动跳过, 玩家未在 sim 在线 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes);
-                    return;
+                    result.code = Code.NOT_FOUND;
+                    return result;
                 }
             }
 
-            CommonResult<Map<Integer, Long>> result = simItemService.onSpin(ctx, gameType, winTimes);
-            if (!result.success()) {
-                log.warn("slots 联动失败, onSpin执行失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result.code);
-                return;
-            }
-
-            if (result.data == null || result.data.isEmpty()) {
-                return;
-            }
-
-            PFSession session = playerSessionService.getSession(sessionPath, sessionId, playerId);
-            if (session != null) {
-                Map<Integer, Long> newMap = new HashMap<>();
-                for (Map.Entry en : result.data.entrySet()) {
-                    newMap.put(Integer.parseInt(en.getKey().toString()), Long.parseLong(en.getValue().toString()));
-                }
-                NotifyItemDropInfo notify = new NotifyItemDropInfo();
-                notify.itemDropInfos = new ArrayList<>();
-                ActivityItemDropInfo dropInfo = new ActivityItemDropInfo();
-                dropInfo.itemMap = ItemUtils.buildItemInfo(newMap);
-                notify.itemDropInfos.add(dropInfo);
-                session.send(notify);
-            }
+            return simItemService.onSpin(ctx, gameType, winTimes);
         } catch (Exception e) {
             log.error("", e);
+            result.code = Code.EXCEPTION;
         }
+        return result;
     }
 }
