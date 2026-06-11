@@ -200,24 +200,35 @@ public class GaraGemstone3GenerateManager extends AbstractSlotsGenerateManager<G
         List<Integer> elements = rollerCfg.getElements();
         int size = elements.size();
 
-        // 找出目标符号在 elements 中所有出现的位置
-        List<Integer> positions = new ArrayList<>();
-        for (int i = 0; i < size; i++) {
-            if (elements.get(i).equals(selectedInfo.getIconId())) {
-                positions.add(i);
-            }
-        }
-
         int centerPos;
-        if (positions.isEmpty()) {
-            log.warn("倍数轴滚轴中未找到符号 iconId={}", selectedInfo.getIconId());
+        boolean isJackpool = selectedInfo.getIconId() == GaraGemstone3Constant.BaseElement.ID_JACKPOOL;
+        if (isJackpool) {
+            //JACKPOOL 的 icon=9 是代码合成的"虚拟符号"，roller elements 里本来就不存在，
+            //直接随机取一个中心位置（前/后两格仍从 roller 取真符号），最后由后面的代码强写中格为 9
             int first = rollerCfg.getAxleCountScope() != null && rollerCfg.getAxleCountScope().size() >= 2
                     ? rollerCfg.getAxleCountScope().get(0) - 1 : 0;
             int last = rollerCfg.getAxleCountScope() != null && rollerCfg.getAxleCountScope().size() >= 2
                     ? rollerCfg.getAxleCountScope().get(1) - 1 : size - 1;
             centerPos = RandomUtils.randomMinMax(first, last);
         } else {
-            centerPos = positions.get(RandomUtils.nextInt(positions.size()));
+            // 找出目标符号在 elements 中所有出现的位置
+            List<Integer> positions = new ArrayList<>();
+            for (int i = 0; i < size; i++) {
+                if (elements.get(i).equals(selectedInfo.getIconId())) {
+                    positions.add(i);
+                }
+            }
+
+            if (positions.isEmpty()) {
+                log.warn("倍数轴滚轴中未找到符号 iconId={}", selectedInfo.getIconId());
+                int first = rollerCfg.getAxleCountScope() != null && rollerCfg.getAxleCountScope().size() >= 2
+                        ? rollerCfg.getAxleCountScope().get(0) - 1 : 0;
+                int last = rollerCfg.getAxleCountScope() != null && rollerCfg.getAxleCountScope().size() >= 2
+                        ? rollerCfg.getAxleCountScope().get(1) - 1 : size - 1;
+                centerPos = RandomUtils.randomMinMax(first, last);
+            } else {
+                centerPos = positions.get(RandomUtils.nextInt(positions.size()));
+            }
         }
 
         // 取前、中、后（首尾相连）
