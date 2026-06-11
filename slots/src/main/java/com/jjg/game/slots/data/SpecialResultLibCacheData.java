@@ -1,8 +1,11 @@
 package com.jjg.game.slots.data;
 
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.PropInfo;
 import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
 import com.jjg.game.slots.constant.SlotsConst;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -14,6 +17,7 @@ import java.util.Map;
  * @date 2025/7/25 9:28
  */
 public class SpecialResultLibCacheData {
+    private static final Logger log = LoggerFactory.getLogger(SpecialResultLibCacheData.class);
     private int defaultRewardSectionIndex = -1;
     //modelId -> cfg
     private Map<Integer, SpecialResultLibCfg> resultLibMap;
@@ -127,13 +131,14 @@ public class SpecialResultLibCacheData {
     public Map<Integer, PropInfo> getPropMap(int modelId, long betValue, int slotsVipType, int allBetCount, int prizelessCount) {
         Map<Integer, PropInfo> basePropMap = this.resultLibSectionPropMap.get(SlotsConst.Common.DEFAULT_SPECIAL_RESULT_LIB_MODELID);
 
-        System.out.println("modelId: " + modelId + ",betValue: " + betValue + ",slotsVipType: " + slotsVipType + ",allBetCount: " + allBetCount + ",prizelessCount: " + prizelessCount);
+        log.warn("modelId: " + modelId + ",betValue: " + betValue + ",slotsVipType: " + slotsVipType + ",allBetCount: " + allBetCount + ",prizelessCount: " + prizelessCount);
         //1.判断 vip
         if (slotsVipType > 0 && this.markResultLibSectionPropMap != null && !this.markResultLibSectionPropMap.isEmpty()) {
             List<ChangeSectionData2> tmpList = this.markResultLibSectionPropMap.get(modelId);
             if (tmpList != null && !tmpList.isEmpty()) {
                 ChangeSectionData2 data2 = tmpList.stream().filter(d -> slotsVipType == d.getType()).findFirst().orElse(null);
                 if (data2 != null) {
+                    log.warn("vip修改");
                     return data2.applyTo(basePropMap);
                 }
             }
@@ -143,8 +148,9 @@ public class SpecialResultLibCacheData {
         if (allBetCount >= 0 && this.accumulateResultLibSectionPropMap != null && !this.accumulateResultLibSectionPropMap.isEmpty()) {
             List<ChangeSectionData2> tmpList = this.accumulateResultLibSectionPropMap.get(modelId);
             if (tmpList != null && !tmpList.isEmpty()) {
-                ChangeSectionData2 data2 = tmpList.stream().filter(d -> allBetCount <= d.getType()).findFirst().orElse(null);
+                ChangeSectionData2 data2 = tmpList.stream().filter(d -> allBetCount < d.getType()).findFirst().orElse(null);
                 if (data2 != null) {
+                    log.warn("玩家累计下注次数 data2={}", JSONObject.toJSONString(data2));
                     return data2.applyTo(basePropMap);
                 }
             }
@@ -156,6 +162,7 @@ public class SpecialResultLibCacheData {
             if (tmpList != null && !tmpList.isEmpty()) {
                 ChangeSectionData2 data2 = tmpList.stream().filter(d -> prizelessCount == d.getType()).findFirst().orElse(null);
                 if (data2 != null) {
+                    log.warn("玩家连续未中奖次数");
                     return data2.applyTo(basePropMap);
                 }
             }
@@ -167,6 +174,7 @@ public class SpecialResultLibCacheData {
             if (tmpList != null && !tmpList.isEmpty()) {
                 ChangeSectionData data = tmpList.stream().filter(d -> betValue >= d.getBetMin() && betValue < d.getBetMax()).findFirst().orElse(null);
                 if (data != null) {
+                    log.warn("检查是否有被修改的概率");
                     return data.applyTo(basePropMap);
                 }
             }
