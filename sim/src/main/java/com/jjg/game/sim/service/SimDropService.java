@@ -83,6 +83,8 @@ public class SimDropService {
         SlotsSpinResult slotsSpinResult = new SlotsSpinResult();
         slotsSpinResult.setItemsMap(dropResult);
         slotsSpinResult.setPower(base.getPower());
+
+        slotsSpinResult.setResearchPoints(base.findResearchPoint(SimConstant.ResearchPoint.NORMAL_TPYE));
         result.data = slotsSpinResult;
         return result;
     }
