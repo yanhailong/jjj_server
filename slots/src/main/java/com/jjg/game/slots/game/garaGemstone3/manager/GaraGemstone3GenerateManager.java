@@ -10,7 +10,6 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialGirdInfo;
-import com.jjg.game.slots.game.garaGemstone2.GaraGemstone2Constant;
 import com.jjg.game.slots.game.garaGemstone3.GaraGemstone3Constant;
 import com.jjg.game.slots.game.garaGemstone3.data.GaraGemstone3AwardLineInfo;
 import com.jjg.game.slots.game.garaGemstone3.data.GaraGemstone3MultiplyAxisInfo;
@@ -245,8 +244,8 @@ public class GaraGemstone3GenerateManager extends AbstractSlotsGenerateManager<G
         newArr[originalArr.length + 1] = centerIcon;  // index 11: 第四轴中格（倍数选定格）
         newArr[originalArr.length + 2] = nextIcon;    // index 12: 第四轴下格
 
-        if (selectedInfo.getIconId() == GaraGemstone2Constant.BaseElement.ID_JACKPOOL) {
-            newArr[originalArr.length + 1] = GaraGemstone2Constant.BaseElement.ID_JACKPOOL;  // index 11: 第四轴中格（倍数选定格）
+        if (selectedInfo.getIconId() == GaraGemstone3Constant.BaseElement.ID_JACKPOOL) {
+            newArr[originalArr.length + 1] = GaraGemstone3Constant.BaseElement.ID_JACKPOOL;  // index 11: 第四轴中格（倍数选定格）
         }
 
         log.debug("倍数轴生成完毕 iconId={} times={} axisJackpotId={} axisIcons=[{},{},{}]",
