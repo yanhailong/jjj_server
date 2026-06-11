@@ -2004,7 +2004,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
             if (!weightChanges.isEmpty()) {
                 ChangeSectionData2 changeSectionData2 = new ChangeSectionData2();
-                changeSectionData2.setType(key);
+                changeSectionData2.setType(key - 1);
                 changeSectionData2.setWeightChanges(weightChanges);
                 dataList.add(changeSectionData2);
             }
