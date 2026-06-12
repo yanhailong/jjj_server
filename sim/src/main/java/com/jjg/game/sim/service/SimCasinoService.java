@@ -225,6 +225,7 @@ public class SimCasinoService {
         CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(statsId);
         if (statsCfg != null) {
             casino.setProsperity(statsCfg.getProsperity());
+            casino.setCasinoLevel(statsCfg.getLevel());
         }
 
         updateCasinoUnlock(ctx.playerId(), casinoId, INITIAL_BUILDING_LEVEL);
