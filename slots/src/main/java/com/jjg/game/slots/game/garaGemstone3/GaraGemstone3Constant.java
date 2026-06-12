@@ -39,6 +39,9 @@ public interface GaraGemstone3Constant {
     interface SpecialMode{
         int NORMAL = 1;
         int JACKPOOL = 2;
+        //多格图标模式触发（分裂）。SpecialResultLib 里按 libType 权重抽中此值时才执行分裂逻辑，
+        //对应 SpecialMode.xlsx id=1055023
+        int SPLIT = 3;
     }
 
     interface BaseRollerGroup{

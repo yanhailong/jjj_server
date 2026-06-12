@@ -352,6 +352,14 @@ public class GaraGemstone3GenerateManager extends AbstractSlotsGenerateManager<G
             return;
         }
 
+        //只有当本局是 SPLIT 模式（libType=3，由 SpecialResultLib 权重抽中）才走随机分裂。
+        //非 SPLIT 模式下保留 GM 预置的多格图标处理，跳过随机扩展，避免每局都触发分裂。
+        if (lib.getLibTypeSet() == null
+                || !lib.getLibTypeSet().contains(GaraGemstone3Constant.SpecialMode.SPLIT)) {
+            applySplitTimes(lib, replacedMap);
+            return;
+        }
+
         // 1. 随机出本次替换个数
         int replaceCount = 0;
         {
