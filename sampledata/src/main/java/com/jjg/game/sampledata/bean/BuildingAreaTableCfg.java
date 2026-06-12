@@ -32,7 +32,7 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   /** 解锁消耗 */
   protected Map<Integer,Long> UnlockCost;
   /** 解锁方式 */
-  protected int UnlockMethod;
+  protected Map<Integer,Integer> UnlockMethod;
   /** 建筑分类 */
   protected int type;
   /** 建筑属性分类 */
@@ -69,7 +69,7 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   }
 
   /** 返回解锁方式 */
-  public int getUnlockMethod() {
+  public Map<Integer,Integer> getUnlockMethod() {
     return UnlockMethod;
   }
 

@@ -90,7 +90,7 @@ public interface SimConstant {
         //默认解锁的场景id
         int DEFAULT_CASINO_ID = 1;
         //默认赌场STATS id (CasinoStatsSheetCfg level=0)
-        int DEFAULT_CASINO_STATS_ID = 1000;
+        int DEFAULT_CASINO_STATS_ID = 1001;
         //"赌场满员"判定窗口 (ms) — 10 分钟
         long CAPACITY_WINDOW_MS = 10 * 60 * 1000L;
 
