@@ -80,6 +80,10 @@ public interface SimConstant {
         //切换场景
         int REQ_SWITCH_CASINO = BASE_MSG_PREFIX | 0x22;
         int RES_SWITCH_CASINO = BASE_MSG_PREFIX | 0x23;
+
+        //获取场景信息
+        int REQ_CASINO_INFO = BASE_MSG_PREFIX | 0x24;
+        int RES_CASINO_INFO = BASE_MSG_PREFIX | 0x25;
     }
 
     interface Common {

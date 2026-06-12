@@ -76,7 +76,7 @@ public class SimMessageHandler implements GmListener {
     //--------------------------Casino相关 begin--------------------------
 
     /**
-     * 开辟新赌场
+     * 开辟新场景
      */
     @Command(SimConstant.MsgBean.REQ_UNLOCK_CASINO)
     public void reqUnlockCasino(PlayerController playerController, ReqUnlockCasino req) {
@@ -86,12 +86,22 @@ public class SimMessageHandler implements GmListener {
     }
 
     /**
-     * 切换赌场
+     * 切换场景
      */
     @Command(SimConstant.MsgBean.REQ_SWITCH_CASINO)
     public void reqSwitchCasino(PlayerController playerController, ReqSwitchCasino req) {
         execute(playerController, ctx -> {
             casinoService.onSwitchCasino(ctx, req.casinoId);
+        });
+    }
+
+    /**
+     * 获取当前场景信息
+     */
+    @Command(SimConstant.MsgBean.REQ_CASINO_INFO)
+    public void reqSimCasinoInfo(PlayerController playerController, ReqSimCasinoInfo req) {
+        execute(playerController, ctx -> {
+            casinoService.onCasinoInfo(ctx);
         });
     }
 
