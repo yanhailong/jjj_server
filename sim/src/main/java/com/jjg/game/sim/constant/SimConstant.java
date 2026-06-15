@@ -90,7 +90,7 @@ public interface SimConstant {
         //默认解锁的场景id
         int DEFAULT_CASINO_ID = 1;
         //默认赌场STATS id (CasinoStatsSheetCfg level=0)
-        int DEFAULT_CASINO_STATS_ID = 1000;
+        int DEFAULT_CASINO_STATS_ID = 1001;
         //"赌场满员"判定窗口 (ms) — 10 分钟
         long CAPACITY_WINDOW_MS = 10 * 60 * 1000L;
 
@@ -124,8 +124,19 @@ public interface SimConstant {
         int ID_POWER = 1024001;
         //知名度
         int ID_AWARENESS = 1024002;
-
+        //曝光度
+        int ID_EXPOD = 1024003;
+        //研究点
+        int ID_RESEARCH_POINT = 1024005;
+        //稀有研究点
+        int ID_RARE_RESEARCH_POINT = 1024006;
+        //加速卡
         int ID_CLEAR_CD = 1024007;
+
+        //联盟-声誉值
+        int ID_ALLIANCE_REPUTATION = 1024011;
+        //联盟-贡献值
+        int ID_ALLIANCE_Contribution = 1024012;
     }
 
     /**
@@ -139,5 +150,13 @@ public interface SimConstant {
     interface Building {
         //运营部id
         int ID_OPERATIONS_DEPART = 1303;
+    }
+
+    interface ResearchPoint {
+        //研究点类型
+        //普通
+        int NORMAL_TPYE = 1;
+        //稀有
+        int RARE_TPYE = 2;
     }
 }

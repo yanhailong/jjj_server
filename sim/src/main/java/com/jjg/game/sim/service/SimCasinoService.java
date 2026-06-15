@@ -11,6 +11,7 @@ import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.pb.SimPbConverter;
+import com.jjg.game.sim.pb.res.ResSimCasinoInfo;
 import com.jjg.game.sim.pb.res.ResSwitchCasino;
 import com.jjg.game.sim.pb.res.ResUnlockCasino;
 import org.slf4j.Logger;
@@ -134,6 +135,33 @@ public class SimCasinoService {
         ctx.send(res);
     }
 
+    /**
+     * 获取场景信息
+     *
+     * @param ctx
+     */
+    public void onCasinoInfo(SimPlayerContext ctx) {
+        ResSimCasinoInfo res = new ResSimCasinoInfo(Code.SUCCESS);
+        try {
+            SimCasinoData casinoData = ctx.getCurrentCasino();
+            if (casinoData == null) {
+                log.warn("获取场景信息失败, 当前场景为空 playerId={}", ctx.playerId());
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+            res.level = casinoData.getCasinoLevel();
+            res.exp = casinoData.getExp();
+
+            CasinoStatsSheetCfg cfg = configCacheService.getCasinoStatsSheetCfg(casinoData.getCasinoId(), casinoData.getCasinoLevel());
+            res.upgradeCost = cfg.getUpgradeCost();
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+    }
+
 
     /**
      * 加载场景数据
@@ -197,6 +225,7 @@ public class SimCasinoService {
         CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(statsId);
         if (statsCfg != null) {
             casino.setProsperity(statsCfg.getProsperity());
+            casino.setCasinoLevel(statsCfg.getLevel());
         }
 
         updateCasinoUnlock(ctx.playerId(), casinoId, INITIAL_BUILDING_LEVEL);

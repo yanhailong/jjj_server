@@ -71,16 +71,11 @@ public class SlotsSkillService extends AbstractSkillService {
     /**
      * 使用技能
      *
-     * @param simSkillsData
      * @param propInfo
      * @return
      */
-    public PropInfo useLibTypeSkill(SimSkillsData simSkillsData, PropInfo propInfo) {
-        if (simSkillsData == null) {
-            return propInfo;
-        }
-
-        List<ResearchSkillsCfg> skillsCfgList = transSkills(simSkillsData);
+    public PropInfo useLibTypeSkill(int gameType, Map<Integer, Integer> skillsMap, PropInfo propInfo) {
+        List<ResearchSkillsCfg> skillsCfgList = transSkills(gameType, skillsMap);
         if (skillsCfgList.isEmpty()) {
             return propInfo;
         }
@@ -95,16 +90,11 @@ public class SlotsSkillService extends AbstractSkillService {
     /**
      * 使用技能
      *
-     * @param simSkillsData
      * @param propInfo
      * @return
      */
-    public PropInfo useSectionSkill(SimSkillsData simSkillsData, PropInfo propInfo, int libType) {
-        if (simSkillsData == null) {
-            return propInfo;
-        }
-
-        List<ResearchSkillsCfg> skillsCfgList = transSkills(simSkillsData);
+    public PropInfo useSectionSkill(int gameType, Map<Integer, Integer> skillsMap, PropInfo propInfo, int libType) {
+        List<ResearchSkillsCfg> skillsCfgList = transSkills(gameType, skillsMap);
         if (skillsCfgList.isEmpty()) {
             return propInfo;
         }
@@ -119,17 +109,16 @@ public class SlotsSkillService extends AbstractSkillService {
     /**
      * 将玩家身上的 propId->level 转化成 List<ResearchSkillsCfg>
      *
-     * @param data
      * @return
      */
-    public List<ResearchSkillsCfg> transSkills(SimSkillsData data) {
-        Map<Integer, Map<Integer, ResearchSkillsCfg>> cfgMap = this.skillsCfgMap.get(data.getGameType());
-        if (data.getSkillsMap() == null || data.getSkillsMap().isEmpty() || cfgMap == null || cfgMap.isEmpty()) {
+    public List<ResearchSkillsCfg> transSkills(int gameType, Map<Integer, Integer> skillsMap) {
+        Map<Integer, Map<Integer, ResearchSkillsCfg>> cfgMap = this.skillsCfgMap.get(gameType);
+        if (skillsMap == null || skillsMap.isEmpty() || cfgMap == null || cfgMap.isEmpty()) {
             return Collections.emptyList();
         }
 
         List<ResearchSkillsCfg> list = new ArrayList<>();
-        for (Map.Entry<Integer, Integer> en : data.getSkillsMap().entrySet()) {
+        for (Map.Entry<Integer, Integer> en : skillsMap.entrySet()) {
             Map<Integer, ResearchSkillsCfg> tmpMap = cfgMap.get(en.getKey());
             if (tmpMap != null && !tmpMap.isEmpty()) {
                 ResearchSkillsCfg cfg = tmpMap.get(en.getValue());

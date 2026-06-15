@@ -487,8 +487,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             int rollerMode = specialAuxiliaryCfg.getRollerMode();
             if (rollerMode < 1 || !hasRollerColumns(rollerMode, specialModeCfg.getCols())) {
                 if (rollerMode > 0) {
-                    log.warn("免费游戏滚轴列数不足，回退到特殊模式滚轴 gameType={},specialModeType={},miniGameId={},rollerMode={},cols={}",
-                            this.gameType, specialModeType, specialAuxiliaryCfg.getId(), rollerMode, specialModeCfg.getCols());
+                    log.warn("免费游戏滚轴列数不足，回退到特殊模式滚轴 gameType={},specialModeType={},miniGameId={},rollerMode={},cols={}", this.gameType, specialModeType, specialAuxiliaryCfg.getId(), rollerMode, specialModeCfg.getCols());
                 }
                 rollerMode = specialModeCfg.getRollerMode();
             }
@@ -1948,6 +1947,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 if (tmpPrizelessResultLibSectionPropMap == null) tmpPrizelessResultLibSectionPropMap = new HashMap<>();
                 //降序排列，findFirst取最大满足阈值
                 prizelessList.sort((a, b) -> Integer.compare(b.getType(), a.getType()));
+
+                prizelessList.forEach(changeSectionData2 -> {
+                    changeSectionData2.setType(changeSectionData2.getType() - 1);
+                });
                 tmpPrizelessResultLibSectionPropMap.put(cfg.getModelId(), prizelessList);
             }
         }

@@ -1,6 +1,7 @@
 package com.jjg.game.core.service;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.redis.RedisLock;
@@ -161,9 +162,6 @@ public class PlayerPackService implements IPlayerRegister {
                         playerId, itemId, item.getItemCount(), addType, desc);
                 continue;
             }
-            if(!itemCfg.getIsBag()){
-                continue;
-            }
             if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
                 addGold += Math.abs(item.getItemCount());
                 continue;
@@ -174,6 +172,9 @@ public class PlayerPackService implements IPlayerRegister {
             }
             if (itemCfg.getType() == GameConstant.Item.TYPE_SHELL) {
                 addShell += Math.abs(item.getItemCount());
+                continue;
+            }
+            if(!itemCfg.getIsBag()){
                 continue;
             }
             itemList.add(item);
@@ -837,7 +838,7 @@ public class PlayerPackService implements IPlayerRegister {
         List<PackItemInfo> packItemInfos = new ArrayList<>();
         playerPack.getItems().forEach((key, value) -> {
             ItemCfg itemCfg = GameDataManager.getItemCfg(value.getId());
-            if (itemCfg != null && itemCfg.getDisplayOrNot() == 0) {
+            if (itemCfg != null) {
                 PackItemInfo info = new PackItemInfo();
                 info.girdId = key;
                 info.item = new ItemInfo();

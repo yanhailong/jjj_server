@@ -13,7 +13,12 @@ import com.jjg.game.sim.constant.SimConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.RES_CASINO_INFO, resp = true)
 @ProtoDesc("获取场景信息")
 public class ResSimCasinoInfo extends AbstractResponse {
-
+    @ProtoDesc("场景等级")
+    public int level;
+    @ProtoDesc("场景经验")
+    public int exp;
+    @ProtoDesc("升级消耗的经验")
+    public int upgradeCost;
 
 
     public ResSimCasinoInfo(int code) {

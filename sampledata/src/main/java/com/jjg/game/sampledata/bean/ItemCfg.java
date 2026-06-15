@@ -24,7 +24,7 @@ public class ItemCfg extends BaseCfgBean {
   /** 激活的装扮 */
   protected int avatarID;
   /** 是否允许在背包内展示 */
-  protected int displayOrNot;
+  protected boolean displayOrNot;
   /** 掉落ID */
   protected int dropId;
   /** 使用道具后获得道具 */
@@ -57,7 +57,7 @@ public class ItemCfg extends BaseCfgBean {
   }
 
   /** 返回是否允许在背包内展示 */
-  public int getDisplayOrNot() {
+  public boolean getDisplayOrNot() {
     return displayOrNot;
   }
 

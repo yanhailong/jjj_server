@@ -24,7 +24,6 @@ import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureServic
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.hall.service.NoticeService;
 import com.jjg.game.sim.manager.SimManager;
-import com.jjg.game.sim.pb.res.NotifyServerPlayerSpin;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -119,13 +118,5 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
     @Command(MessageConst.ToServer.NOTIFY_LOAD_NOTICE_LIST)
     public void notifyLoadNoticeConfig(NotifyLoadNoticeConfig notify) {
         noticeService.loadNotice(false);
-    }
-
-    /**
-     * 通知slots旋转
-     */
-    @Command(MessageConst.ToServer.NOTICE_SLOTS_SPIN)
-    public void notifySlotsSpin(NotifyServerPlayerSpin notify) {
-        simManager.onSlotsSpin(notify.playerId, notify.gameType, notify.winTimes, notify.sessionId, notify.sessionPath, notify.changeNode);
     }
 }

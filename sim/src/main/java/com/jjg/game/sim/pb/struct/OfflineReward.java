@@ -15,7 +15,7 @@ import java.util.List;
 @ProtobufMessage
 @ProtoDesc("离线收益结算")
 public class OfflineReward {
-    @ProtoDesc("1倍可领取收益")
+    @ProtoDesc("1倍可领取收益  itemId = 1.金币  2.能量  3.服务能力  4.游戏上限  5.知名度  6.曝光度")
     public List<ItemInfo> rewards;
     @ProtoDesc("有效结算时长(分)")
     public int offlineMinutes;

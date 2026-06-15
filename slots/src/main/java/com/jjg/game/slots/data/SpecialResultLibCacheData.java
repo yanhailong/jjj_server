@@ -1,8 +1,11 @@
 package com.jjg.game.slots.data;
 
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.PropInfo;
 import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
 import com.jjg.game.slots.constant.SlotsConst;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -14,6 +17,7 @@ import java.util.Map;
  * @date 2025/7/25 9:28
  */
 public class SpecialResultLibCacheData {
+    private static final Logger log = LoggerFactory.getLogger(SpecialResultLibCacheData.class);
     private int defaultRewardSectionIndex = -1;
     //modelId -> cfg
     private Map<Integer, SpecialResultLibCfg> resultLibMap;
@@ -139,10 +143,10 @@ public class SpecialResultLibCacheData {
         }
 
         //2.玩家累计下注次数
-        if (allBetCount > 0 && this.accumulateResultLibSectionPropMap != null && !this.accumulateResultLibSectionPropMap.isEmpty()) {
+        if (allBetCount >= 0 && this.accumulateResultLibSectionPropMap != null && !this.accumulateResultLibSectionPropMap.isEmpty()) {
             List<ChangeSectionData2> tmpList = this.accumulateResultLibSectionPropMap.get(modelId);
             if (tmpList != null && !tmpList.isEmpty()) {
-                ChangeSectionData2 data2 = tmpList.stream().filter(d -> allBetCount <= d.getType()).findFirst().orElse(null);
+                ChangeSectionData2 data2 = tmpList.stream().filter(d -> allBetCount < d.getType()).findFirst().orElse(null);
                 if (data2 != null) {
                     return data2.applyTo(basePropMap);
                 }

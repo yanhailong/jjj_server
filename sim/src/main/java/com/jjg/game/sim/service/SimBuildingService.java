@@ -2,6 +2,7 @@ package com.jjg.game.sim.service;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.alliance.service.AllianceHelpService;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -51,7 +52,9 @@ public class SimBuildingService implements SimPlayerTickListener {
     @Autowired
     private SimEmployeeService employeeService;
     @Autowired
-    private SimItemService simItemService;
+    private SimDropService simDropService;
+    @Autowired
+    private SimPackService simPackService;
     @Autowired
     private AllianceHelpService allianceHelpService;
 
@@ -170,15 +173,15 @@ public class SimBuildingService implements SimPlayerTickListener {
                 ctx.send(res);
                 return;
             }
-            //前置建筑必须已解锁
-            if (cfg.getUnlockMethod() > 0 && casino.findBuilding(cfg.getUnlockMethod()) == null) {
-                log.warn("解锁建筑失败, 前置建筑未解锁 playerId={},buildingId={},prereq={}", ctx.playerId(), buildingId, cfg.getUnlockMethod());
-                res.code = Code.PARAM_ERROR;
-                ctx.send(res);
-                return;
-            }
+            //todo 前置建筑必须已解锁
+//            if (cfg.getUnlockMethod() > 0 && casino.findBuilding(cfg.getUnlockMethod()) == null) {
+//                log.warn("解锁建筑失败, 前置建筑未解锁 playerId={},buildingId={},prereq={}", ctx.playerId(), buildingId, cfg.getUnlockMethod());
+//                res.code = Code.PARAM_ERROR;
+//                ctx.send(res);
+//                return;
+//            }
             //资源足够?
-            boolean remove = simItemService.removeItems(ctx, cfg.getUnlockCost(), AddType.SIM_BUILDING_UPGRADE, null);
+            boolean remove = simPackService.removeItems(ctx, cfg.getUnlockCost(), AddType.SIM_BUILDING_UPGRADE, null);
             if (!remove) {
                 log.warn("解锁建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, cfg.getUnlockCost());
                 res.code = Code.NOT_ENOUGH;
@@ -241,7 +244,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                 if (data.getProgress() < currentCfg.getCostPerLevel().size()) {
 
                     List<Integer> list = currentCfg.getCostPerLevel().get(data.getProgress());
-                    boolean remove = simItemService.removeItem(ctx, list.get(0), list.get(1), AddType.SIM_BUILDING_UPGRADE);
+                    boolean remove = simPackService.removeItem(ctx, list.get(0), list.get(1), AddType.SIM_BUILDING_UPGRADE);
                     if (!remove) {
                         log.warn("建筑添加进度条失败, 未找到获取配置表 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
                         res.code = Code.PARAM_ERROR;
@@ -275,7 +278,7 @@ public class SimBuildingService implements SimPlayerTickListener {
 //                ctx.send(res);
 //                return;
 //            }
-            boolean remove = simItemService.removeItems(ctx, next.getUpgradeCost(), AddType.SIM_BUILDING_UPGRADE, null);
+            boolean remove = simPackService.removeItems(ctx, next.getUpgradeCost(), AddType.SIM_BUILDING_UPGRADE, null);
             if (!remove) {
                 log.warn("升级建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, next.getUpgradeCost());
                 res.code = Code.NOT_ENOUGH;
@@ -377,7 +380,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                 data.setCdEndTime(data.getCdEndTime() - reduceMs);
                 data.setAdClearCount(data.getAdClearCount() + 1);
             } else {
-                boolean remove = simItemService.removeItem(ctx, SimConstant.Item.ID_CLEAR_CD, costCount, AddType.SIM_BUILDING_UPGRADE);
+                boolean remove = simPackService.removeItem(ctx, SimConstant.Item.ID_CLEAR_CD, costCount, AddType.SIM_BUILDING_UPGRADE);
                 if (!remove) {
                     res.code = Code.NOT_ENOUGH;
                     ctx.send(res);
@@ -436,7 +439,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             Map<BuildingOutputType, Long> perMinute = computePerMinuteOutput(ctx, casino);
             if (!perMinute.isEmpty()) {
                 Map<BuildingOutputType, Long> total = multiply(perMinute, fullMinutes);
-                simItemService.addItem(ctx, total, AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
+                simPackService.addItem(ctx, total, AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
             }
             //仅推进已结算的整分钟, 保留余量
             casino.setLastOutputTime(casino.getLastOutputTime() + fullMinutes * TimeHelper.ONE_MINUTE_OF_MILLIS);
@@ -651,7 +654,15 @@ public class SimBuildingService implements SimPlayerTickListener {
             return null;
         }
         OfflineReward rewards = new OfflineReward();
-//        rewards.rewards = ItemUtils.buildItemInfo(reward.getBaseReward());
+        if (reward.getBaseReward() != null && !reward.getBaseReward().isEmpty()) {
+            rewards.rewards = new ArrayList<>();
+            for (Map.Entry<BuildingOutputType, Long> en : reward.getBaseReward().entrySet()) {
+                ItemInfo itemInfo = new ItemInfo();
+                itemInfo.itemId = en.getKey().getCode();
+                itemInfo.count = en.getValue();
+                rewards.rewards.add(itemInfo);
+            }
+        }
         rewards.offlineMinutes = reward.getEffectiveMinutes();
         rewards.capMinutes = reward.getCapMinutes();
         rewards.adMultiplier = reward.getAdMultiplier();
@@ -710,7 +721,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             multiplier = Double.parseDouble(reward.getAdMultiplier());
         }
         Map<BuildingOutputType, Long> finalReward = scale(reward.getBaseReward(), multiplier);
-        simItemService.addItem(ctx, finalReward, AddType.SIM_BUILD_OFFLINE_REWARDS, null, false);
+        simPackService.addItem(ctx, finalReward, AddType.SIM_BUILD_OFFLINE_REWARDS, null, false);
         //领取后重置
         ctx.setPendingOffline(null);
         log.info("领取离线收益 playerId={},watchAd={},multiplier={},reward={}", ctx.playerId(), watchAd, multiplier, finalReward);

@@ -33,6 +33,10 @@ public class ResSimEnterGame extends AbstractResponse {
     public List<KVInfo> managerEmployInfos;
     @ProtoDesc("雇员信息")
     public List<EmployeeInfo> employInfos;
+    @ProtoDesc("能量值")
+    public int power;
+    @ProtoDesc("普通研究点")
+    public int researchPoint;
 
 
     public ResSimEnterGame(int code) {

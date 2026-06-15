@@ -3,6 +3,7 @@ package com.jjg.game.sim.bridge;
 import com.jjg.game.common.rpc.IGameRpc;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.data.SlotsSpinResult;
 
 import java.util.Map;
 
@@ -27,4 +28,25 @@ public interface ToSimBridge extends IGameRpc {
      * @return
      */
     CommonResult<SimSkillsData> addSkillById(long playerId, int gameType, int skillId);
+
+    /**
+     * slots spin
+     *
+     * @param playerId
+     * @param gameType
+     * @param winTimes
+     * @param changeNode
+     * @return
+     */
+    CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode);
+
+    /**
+     * 升级技能
+     *
+     * @param playerId
+     * @param gameType
+     * @param skillId
+     * @return
+     */
+    CommonResult<Map<Integer, Integer>> skillLevelUp(long playerId, int gameType, int skillId);
 }

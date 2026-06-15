@@ -378,8 +378,5 @@ public interface MessageConst {
         int NOTICE_GENERATE_TO_SOUTH_LIB = BASE_MSG_PREFIX | 0x16;
         //刷新游戏配置
         int REQ_REFRESH_GLOBAL_CONFIG = BASE_MSG_PREFIX | 0x17;
-
-        //通知slots旋转
-        int NOTICE_SLOTS_SPIN = BASE_MSG_PREFIX | 0x18;
     }
 }

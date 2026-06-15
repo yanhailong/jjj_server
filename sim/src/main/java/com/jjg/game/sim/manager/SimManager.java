@@ -5,16 +5,14 @@ import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
-import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.pb.ActivityItemDropInfo;
-import com.jjg.game.core.pb.NotifyItemDropInfo;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimEmployeeDao;
@@ -77,7 +75,7 @@ public class SimManager {
     @Autowired
     private SimSkillsDao simSkillsDao;
     @Autowired
-    private SimItemService simItemService;
+    private SimDropService simDropService;
     @Autowired
     private SimSkillService simSkillService;
     @Autowired
@@ -149,6 +147,9 @@ public class SimManager {
             }
 
             res.awareness = ctx.getCurrentCasino().getAwareness();
+            res.power = ctx.getSimBaseData().getPower();
+
+            res.researchPoint = ctx.getSimBaseData().findResearchPoint(SimConstant.ResearchPoint.NORMAL_TPYE);
             //离线收益已在登录时结算, 这里仅从快照构建下发
             res.offlineReward = buildingService.buildOfflineRewardPb(ctx.getPendingOffline());
             log.info("玩家进入游戏 playerId={},res={}", playerController.playerId(), JSONObject.toJSONString(res));
@@ -319,7 +320,8 @@ public class SimManager {
         }
     }
 
-    public void onSlotsSpin(long playerId, int gameType, int winTimes, String sessionId, String sessionPath, boolean changeNode) {
+    public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode) {
+        CommonResult<SlotsSpinResult> result = new CommonResult<>(Code.SUCCESS);
         try {
             SimPlayerContext ctx = getContext(playerId);
             if (ctx == null) {
@@ -330,7 +332,8 @@ public class SimManager {
                 if (ctx == null) {
                     //玩家未在 sim 在线: 跳过联动, 不影响 slots 旋转
                     log.warn("slots 联动跳过, 玩家未在 sim 在线 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes);
-                    return;
+                    result.code = Code.NOT_FOUND;
+                    return result;
                 }
             }
 
@@ -347,21 +350,11 @@ public class SimManager {
                 return;
             }
 
-            PFSession session = playerSessionService.getSession(sessionPath, sessionId, playerId);
-            if (session != null) {
-                Map<Integer, Long> newMap = new HashMap<>();
-                for (Map.Entry en : result.data.entrySet()) {
-                    newMap.put(Integer.parseInt(en.getKey().toString()), Long.parseLong(en.getValue().toString()));
-                }
-                NotifyItemDropInfo notify = new NotifyItemDropInfo();
-                notify.itemDropInfos = new ArrayList<>();
-                ActivityItemDropInfo dropInfo = new ActivityItemDropInfo();
-                dropInfo.itemMap = ItemUtils.buildItemInfo(newMap);
-                notify.itemDropInfos.add(dropInfo);
-                session.send(notify);
-            }
+            return simDropService.onSpin(ctx, gameType, winTimes);
         } catch (Exception e) {
             log.error("", e);
+            result.code = Code.EXCEPTION;
         }
+        return result;
     }
 }

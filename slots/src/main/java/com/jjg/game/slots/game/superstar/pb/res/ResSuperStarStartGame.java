@@ -13,7 +13,6 @@ import com.jjg.game.slots.game.superstar.pb.SuperStarSpinInfo;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SUPER_STAR_TYPE, cmd = SuperStarConstant.MsgBean.RES_START_GAME, resp = true)
 @ProtoDesc("开始游戏结果返回")
 public class ResSuperStarStartGame extends AbstractResponse {
-
     @ProtoDesc("累计中奖金币")
     public long allWinGold;
     @ProtoDesc("玩家当前金币")

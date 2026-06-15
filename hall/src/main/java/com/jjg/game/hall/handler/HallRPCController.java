@@ -17,7 +17,9 @@ import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.manager.SimManager;
+import com.jjg.game.sim.service.SimSkillService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +40,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private HallService hallService;
     @Autowired
     private SimManager simManager;
+    @Autowired
+    private SimSkillService simSkillService;
     @Autowired
     private AllianceEventService allianceEventService;
     @Autowired
@@ -108,22 +112,16 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             log.warn("扣除研究点失败，未找到玩家 sim 数据 playerId={}", playerId);
             return Code.NOT_FOUND;
         }
-        //研究点在当前赌场上, 哪个赌场玩 slots 就扣哪个赌场
-        SimCasinoData casino = ctx.getCurrentCasino();
-        if (casino == null) {
-            log.warn("扣除研究点失败，当前赌场不存在 playerId={}", playerId);
-            return Code.NOT_FOUND;
-        }
         //先校验
         for (Map.Entry<Integer, Integer> en : deductMap.entrySet()) {
-            if (casino.findResearchPoint(en.getKey()) < en.getValue()) {
+            if (ctx.getSimBaseData().findResearchPoint(en.getKey()) < en.getValue()) {
                 log.warn("扣除研究点失败，研究点不足 playerId={},type={},need={}", playerId, en.getKey(), en.getValue());
                 return Code.NOT_ENOUGH;
             }
         }
         //再扣
         for (Map.Entry<Integer, Integer> en : deductMap.entrySet()) {
-            casino.deductResearchPoint(en.getKey(), en.getValue());
+            ctx.getSimBaseData().deductResearchPoint(en.getKey(), en.getValue());
         }
         return Code.SUCCESS;
     }
@@ -152,6 +150,21 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
         log.info("添加技能成功 playerId={},gameType={},skillId={},propId={},grade={}",
                 playerId, gameType, skillId, cfg.getAttr(), cfg.getGrade());
         return new CommonResult<>(Code.SUCCESS, data);
+    }
+
+    @Override
+    public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode) {
+        return simManager.onSlotsSpin(playerId, gameType, winTimes, changeNode);
+    }
+
+    @Override
+    public CommonResult<Map<Integer, Integer>> skillLevelUp(long playerId, int gameType, int skillId) {
+        SimPlayerContext ctx = simManager.getContext(playerId);
+        if (ctx == null) {
+            log.warn("技能升级失败，未找到SimPlayerContext playerId={}", playerId);
+            return new CommonResult<>(Code.NOT_FOUND);
+        }
+        return simSkillService.skillLevelUp(ctx, gameType, skillId);
     }
 
     // --------------------------- ToAllianceBridge (联盟跨节点入口) ---------------------------

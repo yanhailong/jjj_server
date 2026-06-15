@@ -35,7 +35,6 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.data.SimSkillsData;
-import com.jjg.game.sim.pb.res.NotifyServerPlayerSpin;
 import com.jjg.game.sim.service.SimNodeService;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.controller.SlotsRoomController;
@@ -104,6 +103,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected SlotsSkillService simSkillService;
     @Autowired
     protected SimNodeService simNodeService;
+    @Autowired
+    protected SlotsRPCLinkManager slotsRPCLinkManager;
 
     protected AtomicBoolean open = new AtomicBoolean(false);
 
@@ -377,51 +378,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         G gameRunInfo = startGame(playerController, playerGameData, betValue, false);
         //公共: 旋转成功后通知 sim 联动 (扣能量/加经验/赌场升级/道具掉落), winTimes 取各游戏写入的 allWinTimes
         if (gameRunInfo != null && gameRunInfo.success()) {
-            notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes());
+            slotsRPCLinkManager.notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes());
         }
         return gameRunInfo;
-    }
-
-    /**
-     * 通知sim节点
-     * 非阻塞，异步通知
-     *
-     * @param playerGameData
-     * @param gameType
-     * @param winTimes
-     */
-    public void notifySpin(T playerGameData, int gameType, int winTimes) {
-        try {
-            if (playerGameData.getSimClient() == null) {
-                log.warn("获取sim节点为空 playerId = {}", playerGameData.getPlayerId());
-                return;
-            }
-
-            //检查该节点是否有效
-            boolean changeNode = false;
-            ClusterClient client = clusterSystem.getClusterByPath(playerGameData.getSimClient().marsNode.getNodePath());
-            if (client == null) {
-                client = simNodeService.getSimClusterClient(playerGameData.getPlayerId(), playerGameData.getPlayerController().ipAddress());
-                if (client == null) {
-                    log.warn("获取sim节点为空 playerId = {}", playerGameData.getPlayerId());
-                    return;
-                }
-                playerGameData.setSimClient(client);
-                changeNode = true;
-            }
-
-            NotifyServerPlayerSpin notify = new NotifyServerPlayerSpin();
-            notify.playerId = playerGameData.getPlayerId();
-            notify.gameType = gameType;
-            notify.winTimes = winTimes;
-            notify.sessionId = playerGameData.getPlayerController().getSession().sessionId();
-            notify.sessionPath = playerGameData.getPlayerController().getSession().gatePath;
-            notify.changeNode = changeNode;
-            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
-            playerGameData.getSimClient().write(new ClusterMessage(pfMessage));
-        } catch (Exception e) {
-            log.error("", e);
-        }
     }
 
     /**
@@ -1027,7 +986,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setPlayerController(playerController);
             playerGameData.setOfflineEventMap(initOffLineEvent());
             playerGameData.setPlayerAllSlotsData(playerAllSlotsData);
-            playerGameData.setSimSkillsData(simSkillsData);
+
+            if (simSkillsData != null) {
+                playerGameData.setSkillsMap(simSkillsData.getSkillsMap());
+            }
             playerGameData.setSimClient(simClusterClient);
             return playerGameData;
         }
@@ -1061,7 +1023,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setOfflineEventMap(initOffLineEvent());
         playerGameData.setPlayerAllSlotsData(playerAllSlotsData);
 
-        playerGameData.setSimSkillsData(simSkillsData);
+        if (simSkillsData != null) {
+            playerGameData.setSkillsMap(simSkillsData.getSkillsMap());
+        }
         playerGameData.setSimClient(simClusterClient);
 
         //保存到缓存中
@@ -1097,7 +1061,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         //应用玩家技能的 specialMode 加成
-        propInfo = simSkillService.useLibTypeSkill(playerGameData.getSimSkillsData(), propInfo);
+        propInfo = simSkillService.useLibTypeSkill(this.gameType, playerGameData.getSkillsMap(), propInfo);
 
         Integer type = propInfo.getRandKey();
         if (type == null) {
@@ -1138,7 +1102,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         //应用玩家技能的 winRate / specialModeProbUp 加成
-        propInfo = simSkillService.useSectionSkill(playerGameData.getSimSkillsData(), propInfo, libType);
+        propInfo = simSkillService.useSectionSkill(this.gameType, playerGameData.getSkillsMap(), propInfo, libType);
 
         Integer index = propInfo.getRandKey();
         if (index == null) {
@@ -1547,9 +1511,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     protected void offlineSaveGameData(T gameData) {
         playerGameDataDao.savePlayerGameData(gameData);
-        if (gameData.getSimSkillsData() != null) {
-            simSkillService.save(gameData.getSimSkillsData());
-        }
     }
 
 /*****************************************************************************************************************************/
@@ -1710,12 +1671,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
             //playerAllSlotsData 只要退出就要落库
             playerAllSlotsDataDao.saveToRedis(playerGameData.getPlayerAllSlotsData());
-        }
-
-        //推出后立马保存skill数据
-        if (playerGameData.getSimSkillsData() != null) {
-            simSkillService.save(playerGameData.getSimSkillsData());
-            playerGameData.setSimSkillsData(null);
         }
 
         taskManager.onExit(playerController.playerId());
@@ -2467,9 +2422,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         //追加技能解锁的下注额
-        if (playerGameData.getSimSkillsData() != null && playerGameData.getSimSkillsData().getSkillsMap() != null
-                && !playerGameData.getSimSkillsData().getSkillsMap().isEmpty()) {
-            for (Map.Entry<Integer, Integer> en : playerGameData.getSimSkillsData().getSkillsMap().entrySet()) {
+        if (playerGameData.getSkillsMap() != null && !playerGameData.getSkillsMap().isEmpty()) {
+            for (Map.Entry<Integer, Integer> en : playerGameData.getSkillsMap().entrySet()) {
                 ResearchSkillsCfg cfg = this.simSkillService.getResearchSkillsCfg(this.gameType, en.getKey(), en.getValue());
                 if (cfg == null) {
                     continue;
@@ -2509,4 +2463,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         return betScoreArr;
     }
 
+    public Map<Integer, Integer> getSkills(PlayerController playerController) {
+        T playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.info("获取技能失败，playerId={},gameType = {}", playerController.playerId(), this.gameType);
+            return null;
+        }
+        return playerGameData.getSkillsMap();
+    }
 }

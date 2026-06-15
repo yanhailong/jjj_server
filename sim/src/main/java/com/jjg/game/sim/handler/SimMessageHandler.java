@@ -9,6 +9,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -75,7 +76,7 @@ public class SimMessageHandler implements GmListener {
     //--------------------------Casino相关 begin--------------------------
 
     /**
-     * 开辟新赌场
+     * 开辟新场景
      */
     @Command(SimConstant.MsgBean.REQ_UNLOCK_CASINO)
     public void reqUnlockCasino(PlayerController playerController, ReqUnlockCasino req) {
@@ -85,12 +86,22 @@ public class SimMessageHandler implements GmListener {
     }
 
     /**
-     * 切换赌场
+     * 切换场景
      */
     @Command(SimConstant.MsgBean.REQ_SWITCH_CASINO)
     public void reqSwitchCasino(PlayerController playerController, ReqSwitchCasino req) {
         execute(playerController, ctx -> {
             casinoService.onSwitchCasino(ctx, req.casinoId);
+        });
+    }
+
+    /**
+     * 获取当前场景信息
+     */
+    @Command(SimConstant.MsgBean.REQ_CASINO_INFO)
+    public void reqSimCasinoInfo(PlayerController playerController, ReqSimCasinoInfo req) {
+        execute(playerController, ctx -> {
+            casinoService.onCasinoInfo(ctx);
         });
     }
 
@@ -238,6 +249,16 @@ public class SimMessageHandler implements GmListener {
                 ReqUnlockBuilding req = new ReqUnlockBuilding();
                 req.id = Integer.parseInt(gmOrders[1]);
                 reqUnlockBuilding(playerController, req);
+            } else if ("unlockAllBuilding".equalsIgnoreCase(gmOrders[0])) {
+                SimPlayerContext ctx = simManager.getContext(playerController.playerId());
+                for (BuildingAreaTableCfg cfg : GameDataManager.getBuildingAreaTableCfgList()) {
+                    if (cfg.getRegionID() != ctx.getCurrentCasino().getCasinoId()) {
+                        continue;
+                    }
+                    ReqUnlockBuilding req = new ReqUnlockBuilding();
+                    req.id = cfg.getId();
+                    reqUnlockBuilding(playerController, req);
+                }
             } else if ("buildingInfo".equalsIgnoreCase(gmOrders[0])) {
                 ReqBuildingInfo req = new ReqBuildingInfo();
                 req.id = Integer.parseInt(gmOrders[1]);
@@ -276,11 +297,13 @@ public class SimMessageHandler implements GmListener {
                 int type = Integer.parseInt(gmOrders[1]);
                 int num = Integer.parseInt(gmOrders[2]);
                 SimPlayerContext context = simManager.getContext(playerController.playerId());
-                context.getCurrentCasino().addResearchPoint(type, num);
+                context.getSimBaseData().addResearchPoint(type, num);
             } else if ("addPower".equalsIgnoreCase(gmOrders[0])) {
                 int num = Integer.parseInt(gmOrders[1]);
                 SimPlayerContext context = simManager.getContext(playerController.playerId());
                 context.getSimBaseData().setPower(num + context.getSimBaseData().getPower());
+            } else if ("caLevel".equalsIgnoreCase(gmOrders[0])) {
+                reqSimCasinoInfo(playerController, null);
             } else if ("genGuest".equalsIgnoreCase(gmOrders[0])) {
                 SimPlayerContext ctx = simManager.getContext(playerController.playerId());
                 int num = Integer.parseInt(gmOrders[1]);
