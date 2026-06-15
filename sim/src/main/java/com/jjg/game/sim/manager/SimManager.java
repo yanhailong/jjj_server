@@ -11,8 +11,6 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.PlayerSessionService;
-import com.jjg.game.core.utils.ItemUtils;
-import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimEmployeeDao;
@@ -29,7 +27,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -321,7 +322,6 @@ public class SimManager {
     }
 
     public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode) {
-        CommonResult<SlotsSpinResult> result = new CommonResult<>(Code.SUCCESS);
         try {
             SimPlayerContext ctx = getContext(playerId);
             if (ctx == null) {
@@ -332,29 +332,22 @@ public class SimManager {
                 if (ctx == null) {
                     //玩家未在 sim 在线: 跳过联动, 不影响 slots 旋转
                     log.warn("slots 联动跳过, 玩家未在 sim 在线 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes);
-                    result.code = Code.NOT_FOUND;
-                    return result;
+                    return new CommonResult<>(Code.NOT_FOUND);
                 }
             }
 
-            CommonResult<Map<Integer, Long>> result = simItemService.onSpin(ctx, gameType, winTimes);
+            CommonResult<SlotsSpinResult> result = simDropService.onSpin(ctx, gameType, winTimes);
             if (!result.success()) {
                 log.warn("slots 联动失败, onSpin执行失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result.code);
-                return;
+                return result;
             }
 
             //联盟联动: 消耗体力/中奖倍数 -> 任务进度 + 对决积分掉落 (内部吞异常, 不影响主流程)
             allianceEventService.onSpin(playerId, gameType, winTimes, SimConstant.Common.SPIN_COST_POWER);
-
-            if (result.data == null || result.data.isEmpty()) {
-                return;
-            }
-
-            return simDropService.onSpin(ctx, gameType, winTimes);
+            return result;
         } catch (Exception e) {
             log.error("", e);
-            result.code = Code.EXCEPTION;
+            return new CommonResult<>(Code.EXCEPTION);
         }
-        return result;
     }
 }
