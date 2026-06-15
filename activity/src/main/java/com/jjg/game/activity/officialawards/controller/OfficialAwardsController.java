@@ -159,7 +159,7 @@ public class OfficialAwardsController extends BaseActivityController {
             return res;
         }
         //发送日志
-        activityLogger.sendOfficialAwardsLog(player, activityData, 2, activityData.getValueParam().getLast().intValue(), needPoints,
+        activityLogger.sendOfficialAwardsLog(player, activityData, 2, activityData.getValueParam().get(activityData.getValueParam().size() - 2).intValue(), needPoints,
                 remainPoint, reducedPair.getSecond(), addResult.data, Map.of(id, totalGet));
         addPlayerRecord(player, activityData.getId(), getRewards);
         res.infoList = new ArrayList<>();
