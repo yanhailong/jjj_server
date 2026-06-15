@@ -215,6 +215,7 @@ public class GameDataManager {
     containerMap.put(TexasCfg.class, new TexasCfgContainer());
     containerMap.put(UndergarmentCfg.class, new UndergarmentCfgContainer());
     containerMap.put(UpcomingMobileGameCfg.class, new UpcomingMobileGameCfgContainer());
+    containerMap.put(VideoRewardCfg.class, new VideoRewardCfgContainer());
     containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
     containerMap.put(VisitorLevelCfg.class, new VisitorLevelCfgContainer());
     containerMap.put(VisitorQuestCfg.class, new VisitorQuestCfgContainer());
@@ -1785,6 +1786,18 @@ public class GameDataManager {
 
   public static List<UpcomingMobileGameCfg> getUpcomingMobileGameCfgList() {
     return getInstance().getCfgContainer(UpcomingMobileGameCfg.class).getCfgBeanList();
+  }
+
+  public static VideoRewardCfg getVideoRewardCfg(int key) {
+    return getInstance().getCfgContainer(VideoRewardCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, VideoRewardCfg> getVideoRewardCfgMap() {
+    return getInstance().getCfgContainer(VideoRewardCfg.class).getCfgBeanMap();
+  }
+
+  public static List<VideoRewardCfg> getVideoRewardCfgList() {
+    return getInstance().getCfgContainer(VideoRewardCfg.class).getCfgBeanList();
   }
 
   public static ViplevelCfg getViplevelCfg(int key) {

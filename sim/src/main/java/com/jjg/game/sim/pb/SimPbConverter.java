@@ -29,6 +29,17 @@ public final class SimPbConverter {
         return info;
     }
 
+    /**
+     * PurchasedGuestData → GuestInfo (uid + 目的地; 用于生成下发 / 重连补发, 目的地此时奖励为空)
+     */
+    public static GuestInfo toGuestInfo(PurchasedGuestData data) {
+        GuestInfo info = new GuestInfo();
+        info.id = data.getGuestId();
+        info.uid = data.getUid();
+        info.destinations = data.getDestinations();
+        return info;
+    }
+
     public static BuildingInfo toBuildingInfo(BuildingData buildingData) {
         BuildingInfo info = new BuildingInfo();
         info.id = buildingData.getId();

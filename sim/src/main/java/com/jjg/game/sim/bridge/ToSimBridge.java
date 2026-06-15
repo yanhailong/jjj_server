@@ -4,6 +4,7 @@ import com.jjg.game.common.rpc.IGameRpc;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SlotsSpinResult;
+import com.jjg.game.sim.data.SpinStatInfo;
 
 import java.util.Map;
 
@@ -36,9 +37,10 @@ public interface ToSimBridge extends IGameRpc {
      * @param gameType
      * @param winTimes
      * @param changeNode
+     * @param statInfo   本次旋转统计明细 (用于经营信息 SPINE游戏面板; 可为 null)
      * @return
      */
-    CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode);
+    CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode, SpinStatInfo statInfo);
 
     /**
      * 升级技能

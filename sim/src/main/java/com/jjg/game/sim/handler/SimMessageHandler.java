@@ -46,6 +46,8 @@ public class SimMessageHandler implements GmListener {
     private SimSkillService skillService;
     @Autowired
     private SimCasinoService casinoService;
+    @Autowired
+    private SimStatsService statsService;
 
 
     /**
@@ -176,7 +178,7 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_RECRUIT_EMPLOYEE)
     public void reqRecruitEmployee(PlayerController playerController, ReqRecruitEmployee req) {
         execute(playerController, ctx -> {
-            employeeService.onRecruitEmployee(ctx, req.employeeId);
+            employeeService.onRecruitEmployee(ctx, req.count);
         });
     }
 
@@ -210,6 +212,17 @@ public class SimMessageHandler implements GmListener {
         });
     }
 
+
+    /**
+     * 获取所有雇员
+     */
+    @Command(SimConstant.MsgBean.REQ_ALL_EMPLOYEE)
+    public void reqAllEmployee(PlayerController playerController, ReqAllEmployee req) {
+        execute(playerController, ctx -> {
+            employeeService.onAllEmployee(ctx);
+        });
+    }
+
     //--------------------------雇员相关 end--------------------------
 
 
@@ -226,6 +239,74 @@ public class SimMessageHandler implements GmListener {
             skillService.onUpgradeSkill(ctx, req.gameType, req.skillId);
         });
     }
+
+    //--------------------------游客相关 begin--------------------------
+
+    /**
+     * 生成购买游客 (点击购买后立即生成, 只预生成目的地)
+     */
+    @Command(SimConstant.MsgBean.REQ_GEN_PURCHASED_GUEST)
+    public void reqGenPurchasedGuest(PlayerController playerController, ReqGenPurchasedGuest req) {
+        execute(playerController, ctx -> {
+            guestService.generatePurchasedGuest(ctx, req.guestId);
+        });
+    }
+
+    /**
+     * 领取购买游客奖励 (凭 uid 结算奖励)
+     */
+    @Command(SimConstant.MsgBean.REQ_PURCHASED_GUEST_REWARD)
+    public void reqPurchasedGuestReward(PlayerController playerController, ReqPurchasedGuestReward req) {
+        execute(playerController, ctx -> {
+            guestService.claimPurchasedGuestReward(ctx, req.uid, req.index);
+        });
+    }
+
+    /**
+     * 获取所有游客
+     */
+    @Command(SimConstant.MsgBean.REQ_ALL_GUEST)
+    public void reqAllGuest(PlayerController playerController, ReqAllGuest req) {
+        execute(playerController, ctx -> {
+            guestService.onAllGuest(ctx);
+        });
+    }
+
+    /**
+     * 招募游客
+     */
+    @Command(SimConstant.MsgBean.REQ_RECRUIT_GUEST)
+    public void reqRecruitGuest(PlayerController playerController, ReqRecruitGuest req) {
+        execute(playerController, ctx -> {
+//            guestService.onAllGuest(ctx);
+        });
+    }
+
+    //--------------------------游客相关 end--------------------------
+
+    //--------------------------经营信息 begin--------------------------
+
+    /**
+     * 经营信息-运营数据
+     */
+    @Command(SimConstant.MsgBean.REQ_OPERATION_DATA)
+    public void reqOperationData(PlayerController playerController, ReqOperationData req) {
+        execute(playerController, ctx -> {
+            statsService.onOperationData(ctx);
+        });
+    }
+
+    /**
+     * 经营信息-SPINE游戏数据 (指定游戏)
+     */
+    @Command(SimConstant.MsgBean.REQ_SLOT_STAT)
+    public void reqSlotStat(PlayerController playerController, ReqSlotStat req) {
+        execute(playerController, ctx -> {
+            statsService.onSlotStat(ctx, req.gameType);
+        });
+    }
+
+    //--------------------------经营信息 end--------------------------
 
 
     @Override
@@ -278,7 +359,6 @@ public class SimMessageHandler implements GmListener {
                 reqAssignSupervisor(playerController, req);
             } else if ("recruitEmployee".equalsIgnoreCase(gmOrders[0])) {
                 ReqRecruitEmployee req = new ReqRecruitEmployee();
-                req.employeeId = Integer.parseInt(gmOrders[1]);
                 reqRecruitEmployee(playerController, req);
             } else if ("claimOffline".equalsIgnoreCase(gmOrders[0])) {
                 boolean watchAd = gmOrders.length > 1 && "1".equals(gmOrders[1]);
@@ -342,6 +422,23 @@ public class SimMessageHandler implements GmListener {
 
                 SimPlayerContext context = simManager.getContext(playerController.playerId());
                 guestService.batchGenerateSpecifyQualityGuest(context, quality, num);
+            } else if ("genPurchasedGuest".equalsIgnoreCase(gmOrders[0])) {
+                int guestId = Integer.parseInt(gmOrders[1]);
+                execute(playerController, ctx -> {
+                    guestService.generatePurchasedGuest(ctx, guestId);
+                });
+            } else if ("claimPurchasedGuest".equalsIgnoreCase(gmOrders[0])) {
+                long uid = Long.parseLong(gmOrders[1]);
+                int index = Integer.parseInt(gmOrders[2]);
+                execute(playerController, ctx -> {
+                    guestService.claimPurchasedGuestReward(ctx, uid, index);
+                });
+            } else if ("operationData".equalsIgnoreCase(gmOrders[0])) {
+                reqOperationData(playerController, null);
+            } else if ("slotStat".equalsIgnoreCase(gmOrders[0])) {
+                ReqSlotStat req = new ReqSlotStat();
+                req.gameType = gmOrders.length > 1 ? Integer.parseInt(gmOrders[1]) : 0;
+                reqSlotStat(playerController, req);
             } else {
                 res.code = Code.NOT_FOUND;
             }

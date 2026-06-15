@@ -37,10 +37,22 @@ public class SimCasinoData extends AbstractData {
     private int prosperity;
     //知名度 (赌场宣传度)
     private int awareness;
+    //经营信息-接待游客人次 (累计)
+    private long receptionCount;
+    //经营信息-经营收益 (累计金币)
+    private long businessIncome;
+    //经营信息-观看广告数 (累计)
+    private int watchAdCount;
+    //经营信息-完成任务数 (累计; 待任务系统接入后累加)
+    private int finishedTaskCount;
+    //经营信息-SPINE游戏统计 gameType -> 统计
+    private Map<Integer, SlotGameStatsData> slotStatsMap;
     //建筑数据
     private Map<Integer, BuildingData> buildingData;
     //拥有的游客 VisitorQuest表
     private Map<Integer, GuestData> guestMap;
+    //已生成待领奖的购买游客 (uid -> data, 落库用于断线重连)
+    private Map<Long, PurchasedGuestData> purchasedGuestMap;
     //主管id
     private Map<Integer, Integer> managerEmployMap;
     //上次生成游客时间(ms) — 运行时, 不持久化
@@ -213,6 +225,44 @@ public class SimCasinoData extends AbstractData {
         this.guestMap.put(guestData.getId(), guestData);
     }
 
+    public Map<Long, PurchasedGuestData> getPurchasedGuestMap() {
+        return purchasedGuestMap;
+    }
+
+    public void setPurchasedGuestMap(Map<Long, PurchasedGuestData> purchasedGuestMap) {
+        this.purchasedGuestMap = purchasedGuestMap;
+    }
+
+    /**
+     * 添加待领奖的购买游客
+     */
+    public void addPurchasedGuest(PurchasedGuestData data) {
+        if (this.purchasedGuestMap == null) {
+            this.purchasedGuestMap = new HashMap<>();
+        }
+        this.purchasedGuestMap.put(data.getUid(), data);
+    }
+
+    /**
+     * 按 uid 查询购买游客
+     */
+    public PurchasedGuestData findPurchasedGuest(long uid) {
+        if (this.purchasedGuestMap == null || this.purchasedGuestMap.isEmpty()) {
+            return null;
+        }
+        return this.purchasedGuestMap.get(uid);
+    }
+
+    /**
+     * 领奖后移除购买游客
+     */
+    public PurchasedGuestData removePurchasedGuest(long uid) {
+        if (this.purchasedGuestMap == null || this.purchasedGuestMap.isEmpty()) {
+            return null;
+        }
+        return this.purchasedGuestMap.remove(uid);
+    }
+
     /**
      * 记录一次生成时刻; 同时丢弃窗口外的旧记录
      *
@@ -266,5 +316,94 @@ public class SimCasinoData extends AbstractData {
             this.managerEmployMap = new HashMap<>();
         }
         this.managerEmployMap.put(buildingType, employId);
+    }
+
+    // ---------------------------------------------------------------------
+    // 经营信息统计
+    // ---------------------------------------------------------------------
+
+    public long getReceptionCount() {
+        return receptionCount;
+    }
+
+    public void setReceptionCount(long receptionCount) {
+        this.receptionCount = receptionCount;
+    }
+
+    /**
+     * 累加接待游客人次
+     */
+    public void addReceptionCount(long count) {
+        if (count > 0) {
+            this.receptionCount += count;
+        }
+    }
+
+    public long getBusinessIncome() {
+        return businessIncome;
+    }
+
+    public void setBusinessIncome(long businessIncome) {
+        this.businessIncome = businessIncome;
+    }
+
+    /**
+     * 累加经营收益 (金币)
+     */
+    public void addBusinessIncome(long gold) {
+        if (gold > 0) {
+            this.businessIncome += gold;
+        }
+    }
+
+    public int getWatchAdCount() {
+        return watchAdCount;
+    }
+
+    public void setWatchAdCount(int watchAdCount) {
+        this.watchAdCount = watchAdCount;
+    }
+
+    /**
+     * 观看广告数 +1
+     */
+    public void incWatchAdCount() {
+        this.watchAdCount++;
+    }
+
+    public int getFinishedTaskCount() {
+        return finishedTaskCount;
+    }
+
+    public void setFinishedTaskCount(int finishedTaskCount) {
+        this.finishedTaskCount = finishedTaskCount;
+    }
+
+    public Map<Integer, SlotGameStatsData> getSlotStatsMap() {
+        return slotStatsMap;
+    }
+
+    public void setSlotStatsMap(Map<Integer, SlotGameStatsData> slotStatsMap) {
+        this.slotStatsMap = slotStatsMap;
+    }
+
+    /**
+     * 按 gameType 查询 slots 统计 (不存在返回 null)
+     */
+    public SlotGameStatsData findSlotStats(int gameType) {
+        if (this.slotStatsMap == null || this.slotStatsMap.isEmpty()) {
+            return null;
+        }
+        return this.slotStatsMap.get(gameType);
+    }
+
+    /**
+     * 按 gameType 查询 slots 统计, 不存在则创建
+     */
+    public SlotGameStatsData findOrCreateSlotStats(int gameType) {
+        if (this.slotStatsMap == null) {
+            this.slotStatsMap = new HashMap<>();
+        }
+        return this.slotStatsMap.computeIfAbsent(gameType, k -> new SlotGameStatsData());
     }
 }

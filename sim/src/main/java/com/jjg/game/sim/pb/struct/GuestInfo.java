@@ -14,8 +14,8 @@ import java.util.List;
 public class GuestInfo {
     @ProtoDesc("游客id")
     public int id;
-    @ProtoDesc("唯一id，有值表示这是一次性的")
-    public long uid;
     @ProtoDesc("剩余未完成的目的地序列")
     public List<DestinationInfo> destinations;
+    @ProtoDesc("唯一id，如果需要同步位置，则传该uid")
+    public long uid;
 }

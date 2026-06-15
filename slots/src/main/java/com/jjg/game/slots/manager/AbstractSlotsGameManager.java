@@ -35,6 +35,7 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.service.SimNodeService;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.controller.SlotsRoomController;
@@ -378,9 +379,26 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         G gameRunInfo = startGame(playerController, playerGameData, betValue, false);
         //公共: 旋转成功后通知 sim 联动 (扣能量/加经验/赌场升级/道具掉落), winTimes 取各游戏写入的 allWinTimes
         if (gameRunInfo != null && gameRunInfo.success()) {
-            slotsRPCLinkManager.notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes());
+            slotsRPCLinkManager.notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes(), buildSpinStatInfo(gameRunInfo));
         }
         return gameRunInfo;
+    }
+
+    /**
+     * 由本次旋转结果构建上报 sim 的统计明细 (经营信息 SPINE游戏面板)
+     */
+    private SpinStatInfo buildSpinStatInfo(G gameRunInfo) {
+        SpinStatInfo statInfo = new SpinStatInfo();
+        statInfo.setBet(gameRunInfo.getStake());
+        statInfo.setWin(gameRunInfo.getAllWinGold());
+        statInfo.setMultiple(gameRunInfo.getAllWinTimes());
+        statInfo.setBigShowId(gameRunInfo.getBigShowId());
+        statInfo.setMini(gameRunInfo.getMini());
+        statInfo.setMinor(gameRunInfo.getMinor());
+        statInfo.setMajor(gameRunInfo.getMajor());
+        statInfo.setGrand(gameRunInfo.getGrand());
+        statInfo.setRemainFreeCount(gameRunInfo.getRemainFreeCount());
+        return statInfo;
     }
 
     /**

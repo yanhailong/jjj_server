@@ -80,6 +80,8 @@ public class SimManager {
     @Autowired
     private SimSkillService simSkillService;
     @Autowired
+    private SimStatsService simStatsService;
+    @Autowired
     private ClusterSystem clusterSystem;
     @Autowired
     private PlayerSessionService playerSessionService;
@@ -151,6 +153,16 @@ public class SimManager {
             res.power = ctx.getSimBaseData().getPower();
 
             res.researchPoint = ctx.getSimBaseData().findResearchPoint(SimConstant.ResearchPoint.NORMAL_TPYE);
+
+            //已生成待领奖的购买游客 (断线重连补发, 客户端凭 uid 领奖)
+            Map<Long, PurchasedGuestData> purchasedGuestMap = ctx.getCurrentCasino().getPurchasedGuestMap();
+            if (purchasedGuestMap != null && !purchasedGuestMap.isEmpty()) {
+                res.purchasedGuests = new ArrayList<>(purchasedGuestMap.size());
+                for (PurchasedGuestData data : purchasedGuestMap.values()) {
+                    res.purchasedGuests.add(SimPbConverter.toGuestInfo(data));
+                }
+            }
+
             //离线收益已在登录时结算, 这里仅从快照构建下发
             res.offlineReward = buildingService.buildOfflineRewardPb(ctx.getPendingOffline());
             log.info("玩家进入游戏 playerId={},res={}", playerController.playerId(), JSONObject.toJSONString(res));
@@ -321,7 +333,7 @@ public class SimManager {
         }
     }
 
-    public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode) {
+    public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode, SpinStatInfo statInfo) {
         try {
             SimPlayerContext ctx = getContext(playerId);
             if (ctx == null) {
@@ -335,6 +347,9 @@ public class SimManager {
                     return new CommonResult<>(Code.NOT_FOUND);
                 }
             }
+
+            //经营信息: 先记录 SPINE 游戏统计 (与掉落联动解耦, 旋转必计数)
+            simStatsService.recordSpin(ctx.getCurrentCasino(), gameType, statInfo);
 
             CommonResult<SlotsSpinResult> result = simDropService.onSpin(ctx, gameType, winTimes);
             if (!result.success()) {

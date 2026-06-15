@@ -4,26 +4,23 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.EmployeeLevelCfg;
-import com.jjg.game.sampledata.bean.EmployeeProfileCfg;
 import com.jjg.game.sampledata.bean.EmployeeStarCfg;
 import com.jjg.game.sim.constant.BonusType;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimEmployeeData;
 import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.pb.res.ResAllEmployee;
 import com.jjg.game.sim.pb.res.ResAssignSupervisor;
-import com.jjg.game.sim.pb.res.ResRecruitEmployee;
 import com.jjg.game.sim.pb.res.ResStarUpEmployee;
 import com.jjg.game.sim.pb.res.ResUpgradeEmployee;
+import com.jjg.game.sim.pb.struct.EmployDetailInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 雇员服务: 招募(解锁)、升级、升星、任命主管
@@ -47,38 +44,37 @@ public class SimEmployeeService {
     /**
      * 招募雇员
      */
-    public void onRecruitEmployee(SimPlayerContext ctx, int employeeId) {
-        ResRecruitEmployee res = new ResRecruitEmployee(Code.SUCCESS);
-        res.employeeId = employeeId;
-        try {
-
-            EmployeeProfileCfg profile = GameDataManager.getEmployeeProfileCfg(employeeId);
-            if (profile == null) {
-                log.warn("招募雇员失败, 配置不存在 playerId={},employeeId={}", ctx.playerId(), employeeId);
-                res.code = Code.NOT_FOUND;
-                ctx.send(res);
-                return;
-            }
-            SimEmployeeData data = ctx.getEmployee(employeeId);
-            if (data == null) {
-                data = new SimEmployeeData();
-                data.setPlayerId(ctx.playerId());
-                data.setEmployeeId(employeeId);
-                data.setLevel(INITIAL_LEVEL);
-                data.setStar(INITIAL_STAR);
-                ctx.getEmployeeMap().put(employeeId, data);
-                log.info("招募雇员成功 playerId={},employeeId={}", ctx.playerId(), employeeId);
-            } else {
-                //已解锁: 自动转化为碎片
-                data.addFragment(1);
-                ctx.getEmployeeMap().put(employeeId, data);
-                log.info("雇员已解锁, 转化为碎片 playerId={},employeeId={},fragment={}", ctx.playerId(), employeeId, data.getFragment());
-            }
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        ctx.send(res);
+    public void onRecruitEmployee(SimPlayerContext ctx, int count) {
+//        ResRecruitEmployee res = new ResRecruitEmployee(Code.SUCCESS);
+//        res.employeeId = employeeId;
+//        try {
+//            EmployeeProfileCfg profile = GameDataManager.getEmployeeProfileCfg(employeeId);
+//            if (profile == null) {
+//                log.warn("招募雇员失败, 配置不存在 playerId={},employeeId={}", ctx.playerId(), employeeId);
+//                res.code = Code.NOT_FOUND;
+//                ctx.send(res);
+//                return;
+//            }
+//            SimEmployeeData data = ctx.getEmployee(employeeId);
+//            if (data == null) {
+//                data = new SimEmployeeData();
+//                data.setPlayerId(ctx.playerId());
+//                data.setEmployeeId(employeeId);
+//                data.setLevel(INITIAL_LEVEL);
+//                data.setStar(INITIAL_STAR);
+//                ctx.getEmployeeMap().put(employeeId, data);
+//                log.info("招募雇员成功 playerId={},employeeId={}", ctx.playerId(), employeeId);
+//            } else {
+//                //已解锁: 自动转化为碎片
+//                data.addFragment(1);
+//                ctx.getEmployeeMap().put(employeeId, data);
+//                log.info("雇员已解锁, 转化为碎片 playerId={},employeeId={},fragment={}", ctx.playerId(), employeeId, data.getFragment());
+//            }
+//        } catch (Exception e) {
+//            log.error("", e);
+//            res.code = Code.EXCEPTION;
+//        }
+//        ctx.send(res);
     }
 
 
@@ -206,6 +202,32 @@ public class SimEmployeeService {
 
             ctx.getCurrentCasino().addManagerEmploy(cfg.getType(), employeeId);
             log.info("任命主管 playerId={},casinoId={},type={},employeeId={}", ctx.playerId(), ctx.getCurrentCasino().getCasinoId(), buildingId, employeeId);
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+    }
+
+    /**
+     * 获取所有雇员
+     *
+     * @param ctx
+     */
+    public void onAllEmployee(SimPlayerContext ctx) {
+        ResAllEmployee res = new ResAllEmployee(Code.SUCCESS);
+        try {
+            if (ctx.getEmployeeMap() != null && !ctx.getEmployeeMap().isEmpty()) {
+                res.employees = new ArrayList<>();
+                for (Map.Entry<Integer, SimEmployeeData> en : ctx.getEmployeeMap().entrySet()) {
+                    SimEmployeeData value = en.getValue();
+                    EmployDetailInfo detailInfo = new EmployDetailInfo();
+                    detailInfo.id = value.getEmployeeId();
+                    detailInfo.level = value.getLevel();
+                    detailInfo.star = value.getStar();
+                    res.employees.add(detailInfo);
+                }
+            }
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

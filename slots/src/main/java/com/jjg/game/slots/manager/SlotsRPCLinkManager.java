@@ -12,6 +12,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.SlotsSpinResult;
+import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.service.SimNodeService;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.pb.NotifySimDropItem;
@@ -46,7 +47,7 @@ public class SlotsRPCLinkManager {
      * @param gameType
      * @param winTimes
      */
-    public void notifySpin(SlotsPlayerGameData playerGameData, int gameType, int winTimes) {
+    public void notifySpin(SlotsPlayerGameData playerGameData, int gameType, int winTimes, SpinStatInfo statInfo) {
         try {
             long playerId = playerGameData.getPlayerId();
             PlayerController playerController = playerGameData.getPlayerController();
@@ -73,7 +74,7 @@ public class SlotsRPCLinkManager {
             try {
                 rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
                 boolean finalChangeNode = changeNode;
-                rpcContext.asyncCall(() -> toSimBridge.onSlotsSpin(playerId, gameType, winTimes, finalChangeNode))
+                rpcContext.asyncCall(() -> toSimBridge.onSlotsSpin(playerId, gameType, winTimes, finalChangeNode, statInfo))
                         .whenComplete((result, throwable) -> {
                             if (throwable != null) {
                                 log.warn("sim道具掉落异步调用异常 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes, throwable);

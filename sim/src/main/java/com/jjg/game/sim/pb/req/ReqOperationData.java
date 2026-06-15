@@ -8,11 +8,9 @@ import com.jjg.game.sim.constant.SimConstant;
 
 /**
  * @author 11
- * @date 2026/5/28
+ * @date 2026/6/15
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.REQ_RECRUIT_EMPLOYEE)
-@ProtoDesc("招募雇员")
-public class ReqRecruitEmployee extends AbstractMessage {
-    @ProtoDesc("招募次数")
-    public int count;
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.REQ_OPERATION_DATA)
+@ProtoDesc("经营信息-运营数据")
+public class ReqOperationData extends AbstractMessage {
 }

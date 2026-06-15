@@ -19,6 +19,8 @@ public class GuestData {
     private int level;
     //当前经验
     private int exp;
+    //碎片数量 (升星消耗)
+    private int fragment;
 
     public int getId() {
         return id;
@@ -50,6 +52,14 @@ public class GuestData {
 
     public void setExp(int exp) {
         this.exp = exp;
+    }
+
+    public int getFragment() {
+        return fragment;
+    }
+
+    public void setFragment(int fragment) {
+        this.fragment = fragment;
     }
 
     /**

@@ -15,6 +15,7 @@ import com.jjg.game.sim.constant.BonusType;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.BuildingType;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.constant.SimStatKey;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimOfflineReward;
@@ -238,6 +239,13 @@ public class SimBuildingService implements SimPlayerTickListener {
                 return;
             }
 
+            if (currentCfg.getUpgradeCost() == null || currentCfg.getUpgradeCost().isEmpty()) {
+                log.warn("升级建筑失败, 没有配置升级消耗道具 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
             //先检查是不是添加进度条
             if (currentCfg.getCostPerLevel() != null && !currentCfg.getCostPerLevel().isEmpty()) {
                 //添加进度条
@@ -270,22 +278,22 @@ public class SimBuildingService implements SimPlayerTickListener {
                 return;
             }
             //建筑等级 <= 经营等级 (简化: 以赌场 stats level 为经营等级)
-//            CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
-//            int operationLevel = statsCfg == null ? 0 : statsCfg.getLevel();
-//            if (targetLevel > operationLevel + 1) {
-//                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},targetLevel={},operationLevel={}", ctx.playerId(), buildingId, targetLevel, operationLevel);
-//                res.code = Code.NOT_ENOUGH;
-//                ctx.send(res);
-//                return;
-//            }
-            boolean remove = simPackService.removeItems(ctx, next.getUpgradeCost(), AddType.SIM_BUILDING_UPGRADE, null);
-            if (!remove) {
-                log.warn("升级建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, next.getUpgradeCost());
+            CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
+            int operationLevel = statsCfg == null ? 0 : statsCfg.getLevel();
+            if (targetLevel > operationLevel + 1) {
+                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},targetLevel={},operationLevel={}", ctx.playerId(), buildingId, targetLevel, operationLevel);
                 res.code = Code.NOT_ENOUGH;
                 ctx.send(res);
                 return;
             }
-            long cdMs = (long) next.getUpgradeCD() * 60_000L;
+            boolean remove = simPackService.removeItems(ctx, currentCfg.getUpgradeCost(), AddType.SIM_BUILDING_UPGRADE, null);
+            if (!remove) {
+                log.warn("升级建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, currentCfg.getUpgradeCost());
+                res.code = Code.NOT_ENOUGH;
+                ctx.send(res);
+                return;
+            }
+            long cdMs = (long) currentCfg.getUpgradeCD() * 60_000L;
             allianceHelpService.consumeSpeedupSeconds(ctx.playerId(), buildingId);
             data.setCdEndTime(now + cdMs);
             res.buildingInfo = SimPbConverter.toBuildingInfo(data);
@@ -379,6 +387,8 @@ public class SimBuildingService implements SimPlayerTickListener {
                 long reduceMs = (long) cfgMin * TimeHelper.ONE_MINUTE_OF_MILLIS;
                 data.setCdEndTime(data.getCdEndTime() - reduceMs);
                 data.setAdClearCount(data.getAdClearCount() + 1);
+                //经营信息: 观看广告数 +1
+                casino.incWatchAdCount();
             } else {
                 boolean remove = simPackService.removeItem(ctx, SimConstant.Item.ID_CLEAR_CD, costCount, AddType.SIM_BUILDING_UPGRADE);
                 if (!remove) {
@@ -440,6 +450,8 @@ public class SimBuildingService implements SimPlayerTickListener {
             if (!perMinute.isEmpty()) {
                 Map<BuildingOutputType, Long> total = multiply(perMinute, fullMinutes);
                 simPackService.addItem(ctx, total, AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
+                //经营信息: 累加每分钟自产金币收益
+                casino.addBusinessIncome(total.getOrDefault(BuildingOutputType.GOLD, 0L));
             }
             //仅推进已结算的整分钟, 保留余量
             casino.setLastOutputTime(casino.getLastOutputTime() + fullMinutes * TimeHelper.ONE_MINUTE_OF_MILLIS);
@@ -464,49 +476,184 @@ public class SimBuildingService implements SimPlayerTickListener {
 
         Map<BuildingOutputType, Long> total = new HashMap<>();
         for (BuildingData building : casino.getBuildingData().values()) {
-            //获取建筑的基础产出，不包含加成
-            Map<BuildingOutputType, Long> base = getBaseOutput(building.getId(), building.getLevel());
-            if (base.isEmpty()) {
-                continue;
-            }
+            Map<BuildingOutputType, Long> actual = buildingActualPerMinute(ctx, building, bonusesMap);
+            actual.forEach((buildingOutputType, count) -> total.merge(buildingOutputType, count, Long::sum));
+        }
+        return total;
+    }
 
+    /**
+     * 计算单个建筑每分钟实际产出 (含普通雇员 + 主管加成); 非每分钟产出类型返回空。
+     *
+     * @param bonusesMap 已汇总的普通雇员加成 (按类型)
+     */
+    private Map<BuildingOutputType, Long> buildingActualPerMinute(SimPlayerContext ctx, BuildingData building, Map<BonusType, Integer> bonusesMap) {
+        //获取建筑的基础产出，不包含加成
+        Map<BuildingOutputType, Long> base = getBaseOutput(building.getId(), building.getLevel());
+        if (base.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
+        if (areaCfg == null) {
+            return Collections.emptyMap();
+        }
+
+        BuildingType buildingType = BuildingType.fromCode(areaCfg.getType());
+        if (buildingType == null) {
+            return Collections.emptyMap();
+        }
+        //获取加成
+        BonusType bonusType = BonusType.fromBuildingType(buildingType);
+        //检查是不是每分钟产出的建筑类型
+        if (bonusType != null && !bonusType.isMin()) {
+            return Collections.emptyMap();
+        }
+        return applyBuildingBonus(ctx, building, base, bonusType, bonusesMap);
+    }
+
+    /**
+     * 为单个建筑的基础产出叠加 (普通雇员 + 主管) 加成; 不做每分钟产出类型过滤。
+     */
+    private Map<BuildingOutputType, Long> applyBuildingBonus(SimPlayerContext ctx, BuildingData building,
+                                                             Map<BuildingOutputType, Long> base, BonusType bonusType,
+                                                             Map<BonusType, Integer> bonusesMap) {
+        //主管加成
+        Map<BonusType, Integer> manageBonusesMap = employeeService.manageEmployeeBonus(ctx, building.getManagerEmployId());
+        //合并
+        Map<BonusType, Integer> tmpMap;
+        if (manageBonusesMap != null && !manageBonusesMap.isEmpty()) {
+            tmpMap = new HashMap<>();
+            tmpMap.putAll(bonusesMap);
+            tmpMap.putAll(manageBonusesMap);
+        } else {
+            tmpMap = bonusesMap;
+        }
+
+        int bonus = 0;
+        if (bonusType != null) {
+            bonus = tmpMap.getOrDefault(bonusType, 0);
+        }
+        return applyBonus(base, bonus);
+    }
+
+    /**
+     * 经营信息-按房间分类统计每分钟产量:
+     * 能量房间(休息区 POWER) / SLOT房间 / 扑克房间 / 捕鱼房间(游戏区 GOLD)。
+     * <p>
+     * 用于看板展示, 取各建筑配置的每分钟产出 (含加成), 不受在线产出结算的 isMin 门控影响。
+     *
+     * @return 房间统计KEY ({@link com.jjg.game.sim.constant.SimStatKey.Operation}) -> 每分钟产量
+     */
+    public Map<Integer, Long> computeRoomOutputs(SimPlayerContext ctx, SimCasinoData casino) {
+        Map<Integer, Long> result = new HashMap<>();
+        if (casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
+            return result;
+        }
+        Map<BonusType, Integer> bonusesMap = new HashMap<>();
+        employeeService.computeTypeBonusFixed(ctx, bonusesMap);
+
+        for (BuildingData building : casino.getBuildingData().values()) {
             BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
             if (areaCfg == null) {
                 continue;
             }
-
             BuildingType buildingType = BuildingType.fromCode(areaCfg.getType());
-            if (buildingType == null) {
+            if (buildingType != BuildingType.REST && buildingType != BuildingType.GAME) {
                 continue;
             }
-            //获取加成
-            BonusType bonusType = BonusType.fromBuildingType(buildingType);
-            //检查是不是每分钟产出的建筑类型
-            if (bonusType != null && !bonusType.isMin()) {
+            Map<BuildingOutputType, Long> base = getBaseOutput(building.getId(), building.getLevel());
+            if (base.isEmpty()) {
                 continue;
             }
-
-            //主管加成
-            Map<BonusType, Integer> manageBonusesMap = employeeService.manageEmployeeBonus(ctx, building.getManagerEmployId());
-            //合并
-            Map<BonusType, Integer> tmpMap;
-            if (manageBonusesMap != null && !manageBonusesMap.isEmpty()) {
-                tmpMap = new HashMap<>();
-                tmpMap.putAll(bonusesMap);
-                tmpMap.putAll(manageBonusesMap);
+            Map<BuildingOutputType, Long> actual = applyBuildingBonus(ctx, building, base, BonusType.fromBuildingType(buildingType), bonusesMap);
+            if (buildingType == BuildingType.REST) {
+                //能量房间: 休息区 POWER 产量
+                result.merge(SimStatKey.Operation.ENERGY_ROOM, actual.getOrDefault(BuildingOutputType.POWER, 0L), Long::sum);
             } else {
-                tmpMap = bonusesMap;
+                //游戏区 GOLD 产量; TODO 待建筑细分(SLOT/扑克/捕鱼)配置后区分, 暂统一计入 SLOT房间
+                result.merge(SimStatKey.Operation.SLOT_ROOM, actual.getOrDefault(BuildingOutputType.GOLD, 0L), Long::sum);
             }
-
-            int bonus = 0;
-            if (bonusType != null) {
-                bonus = tmpMap.getOrDefault(bonusType, 0);
-            }
-
-            Map<BuildingOutputType, Long> actual = applyBonus(base, bonus);
-            actual.forEach((buildingOutputType, count) -> total.merge(buildingOutputType, count, Long::sum));
         }
-        return total;
+        return result;
+    }
+
+    /**
+     * 经营信息-当前可容纳游客人数: 已解锁的游戏区+休息区建筑当前等级的最大交互数量之和。
+     */
+    public int computeCurrentCapacity(SimCasinoData casino) {
+        if (casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
+            return 0;
+        }
+        int sum = 0;
+        for (BuildingData building : casino.getBuildingData().values()) {
+            BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
+            if (areaCfg == null) {
+                continue;
+            }
+            BuildingType buildingType = BuildingType.fromCode(areaCfg.getType());
+            if (buildingType != BuildingType.GAME && buildingType != BuildingType.REST) {
+                continue;
+            }
+            BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(building.getId(), building.getLevel());
+            if (cfg == null) {
+                continue;
+            }
+            sum += cfg.getMaxInteractionCount();
+        }
+        return sum;
+    }
+
+    /**
+     * 经营信息-职能部门 (管理区) 当前等级的属性值 (含雇员加成):
+     * 接待区(服务能力) / 营销部(曝光度) / 运营部(知名度)。
+     *
+     * @param outputType 部门对应的产出类型 (按建筑 typeValue 匹配)
+     * @param bonusType  对应的雇员加成类型 (无则传 null, 仅返回基础值)
+     * @return 部门属性值; 未解锁对应建筑返回 0
+     */
+    public long computeDeptValue(SimPlayerContext ctx, SimCasinoData casino, BuildingOutputType outputType, BonusType bonusType) {
+        BuildingData dept = findDeptBuilding(casino, outputType);
+        if (dept == null) {
+            return 0;
+        }
+        BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(dept.getId(), dept.getLevel());
+        if (cfg == null || cfg.getUpgradeOutput() < 1) {
+            return 0;
+        }
+        long base = cfg.getUpgradeOutput();
+        if (bonusType == null) {
+            return base;
+        }
+        Map<BonusType, Integer> bonusesMap = new HashMap<>();
+        employeeService.computeTypeBonusFixed(ctx, bonusesMap);
+        Integer bonus = bonusesMap.get(bonusType);
+        if (bonus == null || bonus < 1) {
+            return base;
+        }
+        return base + base * bonus / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR;
+    }
+
+    /**
+     * 查找已解锁的管理区建筑中 typeValue 匹配指定产出类型的部门建筑
+     */
+    private BuildingData findDeptBuilding(SimCasinoData casino, BuildingOutputType outputType) {
+        if (casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
+            return null;
+        }
+        for (BuildingData building : casino.getBuildingData().values()) {
+            BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
+            if (areaCfg == null) {
+                continue;
+            }
+            if (BuildingType.fromCode(areaCfg.getType()) != BuildingType.MANAGE) {
+                continue;
+            }
+            if (BuildingOutputType.fromCode(areaCfg.getTypeValue()) == outputType) {
+                return building;
+            }
+        }
+        return null;
     }
 
     /**
@@ -722,6 +869,11 @@ public class SimBuildingService implements SimPlayerTickListener {
         }
         Map<BuildingOutputType, Long> finalReward = scale(reward.getBaseReward(), multiplier);
         simPackService.addItem(ctx, finalReward, AddType.SIM_BUILD_OFFLINE_REWARDS, null, false);
+        //经营信息: 离线产出金币计入经营收益; 看广告领取计入观看广告数
+        casino.addBusinessIncome(finalReward.getOrDefault(BuildingOutputType.GOLD, 0L));
+        if (watchAd) {
+            casino.incWatchAdCount();
+        }
         //领取后重置
         ctx.setPendingOffline(null);
         log.info("领取离线收益 playerId={},watchAd={},multiplier={},reward={}", ctx.playerId(), watchAd, multiplier, finalReward);

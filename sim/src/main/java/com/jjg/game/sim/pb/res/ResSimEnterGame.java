@@ -8,6 +8,7 @@ import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.pb.struct.BuildingInfo;
 import com.jjg.game.sim.pb.struct.EmployeeInfo;
+import com.jjg.game.sim.pb.struct.GuestInfo;
 import com.jjg.game.sim.pb.struct.OfflineReward;
 
 import java.util.List;
@@ -37,6 +38,8 @@ public class ResSimEnterGame extends AbstractResponse {
     public int power;
     @ProtoDesc("普通研究点")
     public int researchPoint;
+    @ProtoDesc("已生成待领奖的购买游客 (断线重连补发, 凭 uid 领奖)")
+    public List<GuestInfo> purchasedGuests;
 
 
     public ResSimEnterGame(int code) {

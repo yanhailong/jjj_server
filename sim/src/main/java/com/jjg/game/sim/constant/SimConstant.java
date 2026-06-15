@@ -84,6 +84,34 @@ public interface SimConstant {
         //获取场景信息
         int REQ_CASINO_INFO = BASE_MSG_PREFIX | 0x24;
         int RES_CASINO_INFO = BASE_MSG_PREFIX | 0x25;
+
+        //生成购买游客 (点击购买后立即生成, 只预生成目的地)
+        int REQ_GEN_PURCHASED_GUEST = BASE_MSG_PREFIX | 0x26;
+        int RES_GEN_PURCHASED_GUEST = BASE_MSG_PREFIX | 0x27;
+
+        //领取购买游客奖励 (凭 uid 结算奖励)
+        int REQ_PURCHASED_GUEST_REWARD = BASE_MSG_PREFIX | 0x28;
+        int RES_PURCHASED_GUEST_REWARD = BASE_MSG_PREFIX | 0x29;
+
+        //经营信息-运营数据
+        int REQ_OPERATION_DATA = BASE_MSG_PREFIX | 0x2A;
+        int RES_OPERATION_DATA = BASE_MSG_PREFIX | 0x2B;
+
+        //经营信息-SPINE游戏数据 (指定游戏)
+        int REQ_SLOT_STAT = BASE_MSG_PREFIX | 0x2C;
+        int RES_SLOT_STAT = BASE_MSG_PREFIX | 0x2D;
+
+        //获取所有游客
+        int REQ_ALL_GUEST = BASE_MSG_PREFIX | 0x2E;
+        int RES_ALL_GUEST = BASE_MSG_PREFIX | 0x2F;
+
+        //获取所有雇员
+        int REQ_ALL_EMPLOYEE = BASE_MSG_PREFIX | 0x30;
+        int RES_ALL_EMPLOYEE = BASE_MSG_PREFIX | 0x31;
+
+        //招募游客
+        int REQ_RECRUIT_GUEST = BASE_MSG_PREFIX | 0x32;
+        int RES_RECRUIT_GUEST = BASE_MSG_PREFIX | 0x33;
     }
 
     interface Common {
@@ -158,5 +186,16 @@ public interface SimConstant {
         int NORMAL_TPYE = 1;
         //稀有
         int RARE_TPYE = 2;
+    }
+
+    /**
+     * 大奖展示等级 (镜像 slots SlotsConst.BigWinShow, 用于 SPINE游戏统计的大奖次数分类)
+     */
+    interface BigWinShow {
+        int SWEET = 1;
+        int BIG = 2;
+        int MEGA = 3;
+        int EPIC = 4;
+        int LEGENDARY = 5;
     }
 }
