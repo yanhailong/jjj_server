@@ -80,6 +80,10 @@ public interface SimConstant {
         //切换场景
         int REQ_SWITCH_CASINO = BASE_MSG_PREFIX | 0x22;
         int RES_SWITCH_CASINO = BASE_MSG_PREFIX | 0x23;
+
+        //获取场景信息
+        int REQ_CASINO_INFO = BASE_MSG_PREFIX | 0x24;
+        int RES_CASINO_INFO = BASE_MSG_PREFIX | 0x25;
     }
 
     interface Common {
@@ -105,7 +109,7 @@ public interface SimConstant {
         int SPIN_ADD_EXP = 1;
     }
 
-    interface Global{
+    interface Global {
         //每次观看广告清除的时间(分钟)
         int ID_WATCH_AD_CLEAR_TIME = 136;
         //观看广告次数限制

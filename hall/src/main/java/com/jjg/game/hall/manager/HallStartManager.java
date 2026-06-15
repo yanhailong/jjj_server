@@ -1,6 +1,7 @@
 package com.jjg.game.hall.manager;
 
 import com.jjg.game.activity.manager.ActivityManager;
+import com.jjg.game.alliance.manager.AllianceManager;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.dao.CommonDao;
@@ -73,6 +74,8 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private SimManager simManager;
     @Autowired
     private SocialManager socialManager;
+    @Autowired
+    private AllianceManager allianceManager;
 
     private ApplicationContext context;
 
@@ -96,12 +99,14 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         commonDao.init();
         simManager.init();
         socialManager.init();
+        allianceManager.init();
 
         running = true;
     }
 
     @Override
     public void stop() {
+        allianceManager.shutdown();
         socialManager.shutdown();
         simManager.shutdown();
         casinoManager.shutdown();

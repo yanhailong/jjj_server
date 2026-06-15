@@ -1,6 +1,7 @@
 package com.jjg.game.sim.manager;
 
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
@@ -14,6 +15,7 @@ import com.jjg.game.core.pb.ActivityItemDropInfo;
 import com.jjg.game.core.pb.NotifyItemDropInfo;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
@@ -82,6 +84,8 @@ public class SimManager {
     private ClusterSystem clusterSystem;
     @Autowired
     private PlayerSessionService playerSessionService;
+    @Autowired
+    private AllianceEventService allianceEventService;
 
 
     /**
@@ -335,6 +339,9 @@ public class SimManager {
                 log.warn("slots 联动失败, onSpin执行失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result.code);
                 return;
             }
+
+            //联盟联动: 消耗体力/中奖倍数 -> 任务进度 + 对决积分掉落 (内部吞异常, 不影响主流程)
+            allianceEventService.onSpin(playerId, gameType, winTimes, SimConstant.Common.SPIN_COST_POWER);
 
             if (result.data == null || result.data.isEmpty()) {
                 return;

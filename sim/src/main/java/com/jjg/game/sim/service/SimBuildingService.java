@@ -1,6 +1,7 @@
 package com.jjg.game.sim.service;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.alliance.service.AllianceHelpService;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -51,6 +52,8 @@ public class SimBuildingService implements SimPlayerTickListener {
     private SimEmployeeService employeeService;
     @Autowired
     private SimItemService simItemService;
+    @Autowired
+    private AllianceHelpService allianceHelpService;
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
@@ -87,6 +90,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                 return;
             }
 
+            applyAllianceSpeedup(ctx.playerId(), buildingData, System.currentTimeMillis());
             res.buildingInfo = SimPbConverter.toBuildingInfo(buildingData);
             //建筑的基础产出，不包含加成
             Map<BuildingOutputType, Long> base = getBaseOutput(buildingData.getId(), buildingData.getLevel());
@@ -279,6 +283,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                 return;
             }
             long cdMs = (long) next.getUpgradeCD() * 60_000L;
+            allianceHelpService.consumeSpeedupSeconds(ctx.playerId(), buildingId);
             data.setCdEndTime(now + cdMs);
             res.buildingInfo = SimPbConverter.toBuildingInfo(data);
             log.info("升级建筑启动 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
@@ -309,7 +314,9 @@ public class SimBuildingService implements SimPlayerTickListener {
                 return;
             }
 
-            res.code = completeBuildingUpgrade(casino, data, System.currentTimeMillis());
+            long now = System.currentTimeMillis();
+            applyAllianceSpeedup(ctx.playerId(), data, now);
+            res.code = completeBuildingUpgrade(casino, data, now);
             if (res.code == Code.SUCCESS) {
                 res.level = data.getLevel();
             }
@@ -334,10 +341,24 @@ public class SimBuildingService implements SimPlayerTickListener {
             }
             BuildingData data = casino.findBuilding(buildingId);
             long now = System.currentTimeMillis();
-            if (data == null || !data.isUpgrading(now)) {
+            if (data == null) {
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 log.warn("清除建筑升级 CD失败，当前建筑没有处于cd状态 playerId={},buildingId={}", ctx.playerId(), buildingId);
+                return;
+            }
+
+            applyAllianceSpeedup(ctx.playerId(), data, now);
+            if (!data.isUpgrading(now)) {
+                if (data.isUpgradeReady(now)) {
+                    completeBuildingUpgrade(casino, data, now);
+                    res.buildingInfo = SimPbConverter.toBuildingInfo(data);
+                    ctx.send(res);
+                    return;
+                }
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                log.warn("clear building cd failed, building is not upgrading playerId={},buildingId={}", ctx.playerId(), buildingId);
                 return;
             }
 
@@ -729,6 +750,19 @@ public class SimBuildingService implements SimPlayerTickListener {
     /**
      * 完成建筑升级
      */
+    private long applyAllianceSpeedup(long playerId, BuildingData data, long now) {
+        if (data == null || !data.isUpgrading(now)) {
+            return 0;
+        }
+        long seconds = allianceHelpService.consumeSpeedupSeconds(playerId, data.getId());
+        long reduced = data.applySpeedupSeconds(seconds, now);
+        if (reduced > 0) {
+            log.info("apply alliance building speedup playerId={},buildingId={},seconds={},cdEndTime={}",
+                    playerId, data.getId(), reduced, data.getCdEndTime());
+        }
+        return reduced;
+    }
+
     public void completeAllBuildingUpgrade(SimCasinoData casino) {
         if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
             return;

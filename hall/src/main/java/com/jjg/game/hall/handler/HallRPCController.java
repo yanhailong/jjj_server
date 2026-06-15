@@ -1,5 +1,8 @@
 package com.jjg.game.hall.handler;
 
+import com.jjg.game.alliance.bridge.ToAllianceBridge;
+import com.jjg.game.alliance.service.AllianceCacheService;
+import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
@@ -25,7 +28,7 @@ import java.util.Map;
  * @date 2026/1/19
  */
 @Component
-public class HallRPCController extends CoreRPCController implements GmToHallBridge, ToSimBridge {
+public class HallRPCController extends CoreRPCController implements GmToHallBridge, ToSimBridge, ToAllianceBridge {
 
     @Autowired
     private AccountDao accountDao;
@@ -35,6 +38,10 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private HallService hallService;
     @Autowired
     private SimManager simManager;
+    @Autowired
+    private AllianceEventService allianceEventService;
+    @Autowired
+    private AllianceCacheService allianceCacheService;
 
     @Override
     public int playerBindPhone(long playerId, String phone, int type, boolean reward) {
@@ -145,5 +152,24 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
         log.info("添加技能成功 playerId={},gameType={},skillId={},propId={},grade={}",
                 playerId, gameType, skillId, cfg.getAttr(), cfg.getGrade());
         return new CommonResult<>(Code.SUCCESS, data);
+    }
+
+    // --------------------------- ToAllianceBridge (联盟跨节点入口) ---------------------------
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public void reportEarnGold(long playerId, int gameType, long gold) {
+        allianceEventService.onEarnGold(playerId, gameType, gold);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public void reportAllianceEvent(long playerId, int goalType, long param, long value) {
+        allianceEventService.onEvent(playerId, goalType, param, value);
+    }
+
+    @Override
+    public long getPlayerAllianceId(long playerId) {
+        return allianceCacheService.getAllianceId(playerId);
     }
 }

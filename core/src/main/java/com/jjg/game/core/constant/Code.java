@@ -195,4 +195,36 @@ public interface Code {
     int GAME_IS_MAINTAIN = 9002;
     //无空闲房间，换房失败
     int NO_VACANT_ROOM = 300400068;
+
+    //----------------- 联盟 (号段 57xxx, 对应消息类型 0x57) -----------------
+    //已在联盟中
+    int ALLIANCE_ALREADY_IN = 57001;
+    //联盟人数已满
+    int ALLIANCE_FULL = 57002;
+    //不在联盟中
+    int ALLIANCE_NOT_MEMBER = 57003;
+    //无盟主权限
+    int ALLIANCE_NOT_LEADER = 57004;
+    //已申请过该联盟
+    int ALLIANCE_APPLY_EXIST = 57005;
+    //已有进行中任务/任务已被他人接取
+    int ALLIANCE_TASK_TAKEN = 57006;
+    //今日帮助次数已达上限
+    int ALLIANCE_HELP_LIMIT = 57007;
+    //今日求助次数已达上限
+    int ALLIANCE_SEEK_LIMIT = 57008;
+    //今日捐献次数已达上限
+    int ALLIANCE_DONATE_LIMIT = 57009;
+    //贡献值不足
+    int ALLIANCE_CONTRIBUTION_NOT_ENOUGH = 57010;
+    //商品今日限购已售罄
+    int ALLIANCE_SHOP_SOLD_OUT = 57011;
+    //对决当前阶段不允许该操作
+    int ALLIANCE_BATTLE_STATE = 57012;
+    //盟主需先转让才能退出
+    int ALLIANCE_LEADER_CANT_QUIT = 57013;
+    //操作冷却中
+    int ALLIANCE_IN_CD = 57014;
+    //每个用户最多创建1个联盟
+    int ALLIANCE_CREATED_LIMIT = 57015;
 }

@@ -81,4 +81,19 @@ public class BuildingData {
     public boolean isUpgradeReady(long now) {
         return cdEndTime > 0 && cdEndTime <= now;
     }
+
+    /**
+     * 扣减升级 CD，最多扣到当前时间，避免把完成时间推进到过去。
+     *
+     * @return 实际扣减秒数
+     */
+    public long applySpeedupSeconds(long seconds, long now) {
+        if (seconds <= 0 || !isUpgrading(now)) {
+            return 0;
+        }
+        long remainMs = cdEndTime - now;
+        long reduceMs = Math.min(seconds * 1000L, remainMs);
+        cdEndTime -= reduceMs;
+        return reduceMs / 1000L;
+    }
 }
