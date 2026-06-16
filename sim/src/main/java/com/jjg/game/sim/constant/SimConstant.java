@@ -112,6 +112,10 @@ public interface SimConstant {
         //招募游客
         int REQ_RECRUIT_GUEST = BASE_MSG_PREFIX | 0x32;
         int RES_RECRUIT_GUEST = BASE_MSG_PREFIX | 0x33;
+
+        //升星游客
+        int REQ_STAR_UP_GUEST = BASE_MSG_PREFIX | 0x34;
+        int RES_STAR_UP_GUEST = BASE_MSG_PREFIX | 0x35;
     }
 
     interface Common {
@@ -197,5 +201,10 @@ public interface SimConstant {
         int MEGA = 3;
         int EPIC = 4;
         int LEGENDARY = 5;
+    }
+
+    interface PoolList {
+        int TYPE_GUEST = 1;
+        int TYPE_EMPLOYEE = 2;
     }
 }

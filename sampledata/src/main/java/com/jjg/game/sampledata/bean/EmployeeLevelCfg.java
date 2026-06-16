@@ -19,7 +19,7 @@ public class EmployeeLevelCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "EmployeeLevel";
 
-  /** 技能值 */
+  /** 属性值 */
   protected Map<Integer,Integer> AttributeValue;
   /** 雇员ID */
   protected int EmployeeID;
@@ -28,7 +28,7 @@ public class EmployeeLevelCfg extends BaseCfgBean {
   /** 升级消耗 */
   protected Map<Integer,Integer> UpgradeCost;
 
-  /** 返回技能值 */
+  /** 返回属性值 */
   public Map<Integer,Integer> getAttributeValue() {
     return AttributeValue;
   }

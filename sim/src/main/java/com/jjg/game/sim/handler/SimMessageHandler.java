@@ -278,7 +278,17 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_RECRUIT_GUEST)
     public void reqRecruitGuest(PlayerController playerController, ReqRecruitGuest req) {
         execute(playerController, ctx -> {
-//            guestService.onAllGuest(ctx);
+            guestService.onRecruitGuest(ctx, req.count);
+        });
+    }
+
+    /**
+     * 升星游客
+     */
+    @Command(SimConstant.MsgBean.REQ_STAR_UP_GUEST)
+    public void reqStarUpGuest(PlayerController playerController, ReqStarUpGuest req) {
+        execute(playerController, ctx -> {
+            guestService.onStarUpGuest(ctx, req.guestId);
         });
     }
 
@@ -359,6 +369,7 @@ public class SimMessageHandler implements GmListener {
                 reqAssignSupervisor(playerController, req);
             } else if ("recruitEmployee".equalsIgnoreCase(gmOrders[0])) {
                 ReqRecruitEmployee req = new ReqRecruitEmployee();
+                req.count = gmOrders.length > 1 ? Integer.parseInt(gmOrders[1]) : 1;
                 reqRecruitEmployee(playerController, req);
             } else if ("claimOffline".equalsIgnoreCase(gmOrders[0])) {
                 boolean watchAd = gmOrders.length > 1 && "1".equals(gmOrders[1]);

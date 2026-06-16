@@ -3,23 +3,19 @@ package com.jjg.game.sim.service;
 import cn.hutool.core.lang.Snowflake;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.CasinoListCfg;
-import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
-import com.jjg.game.sampledata.bean.VisitorQuestCfg;
-import com.jjg.game.sampledata.bean.VisitorStarCfg;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.pb.SimPbConverter;
-import com.jjg.game.sim.pb.res.NotifyGenerateGuest;
-import com.jjg.game.sim.pb.res.ResAllGuest;
-import com.jjg.game.sim.pb.res.ResGenPurchasedGuest;
-import com.jjg.game.sim.pb.res.ResPurchasedGuestReward;
+import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.DestinationInfo;
 import com.jjg.game.sim.pb.struct.GuestDetailInfo;
 import com.jjg.game.sim.pb.struct.GuestInfo;
@@ -682,6 +678,176 @@ public class SimGuestService implements SimPlayerTickListener {
                     res.guests.add(guestDetailInfo);
                 }
             }
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+    }
+
+    /**
+     * 升星游客
+     *
+     * @param ctx
+     * @param guestId
+     */
+    public void onStarUpGuest(SimPlayerContext ctx, int guestId) {
+        ResStarUpGuest res = new ResStarUpGuest(Code.SUCCESS);
+        try {
+            SimCasinoData casinoData = ctx.getCurrentCasino();
+            if (casinoData == null) {
+                log.warn("升星游客失败,当前场景为空 playerId={}", ctx.playerId());
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+
+            GuestData guestData = casinoData.findGuestData(guestId);
+            if (guestData == null) {
+                log.warn("升星游客失败,获取该游客数据失败 playerId={},guestId={}", ctx.playerId(), guestId);
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+
+            VisitorStarCfg cfg = configCache.getVisitorStarCfgByGuest(guestId, guestData.getStar());
+            if (cfg == null) {
+                log.warn("升星游客失败,获取游客星级配置失败 playerId={},guestId={},star={}", ctx.playerId(), guestId, guestData.getStar());
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+
+            VisitorQuestCfg visitorQuestCfg = GameDataManager.getVisitorQuestCfg(guestId);
+            if (visitorQuestCfg == null) {
+                log.warn("升星游客失败,获取游客配置失败 playerId={},guestId={}", ctx.playerId(), guestId);
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+
+            boolean remove = simPackService.removeItem(ctx, visitorQuestCfg.getDuplicatetoShard().get(1), cfg.getAscend(), AddType.SIM_GUEST_STAR_UP);
+            if (!remove) {
+                log.warn("升星游客失败,扣除道具失败 playerId={},guestId={}", ctx.playerId(), guestId);
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+            res.guestId = guestData.getId();
+            res.star = guestData.getStar();
+            log.info("升星游客成功 playerId={},guestId={},star={}", ctx.playerId(), guestId, guestData.getStar());
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+    }
+
+    /**
+     * 招募游客
+     *
+     * @param ctx
+     * @param count
+     */
+    public void onRecruitGuest(SimPlayerContext ctx, int count) {
+        ResRecruitGuest res = new ResRecruitGuest(Code.SUCCESS);
+        try {
+            if (count != 1 && count != 10) {
+                log.warn("招募游客失败,次数参数错误 playerId={},count={}", ctx.playerId(), count);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            long now = System.currentTimeMillis();
+            PoolListCfg tmpCfg = null;
+            for (PoolListCfg cfg : GameDataManager.getPoolListCfgList()) {
+                if (cfg.getType() != SimConstant.PoolList.TYPE_GUEST) {
+                    continue;
+                }
+
+                if (!cfg.getOpen()) {
+                    continue;
+                }
+
+                if (cfg.getTime_start() != null && !cfg.getTime_start().isEmpty() && cfg.getTime_end() != null && !cfg.getTime_end().isEmpty()) {
+                    long startTime = TimeHelper.getTimeMillisBy(cfg.getTime_start());
+                    long endTime = TimeHelper.getTimeMillisBy(cfg.getTime_end());
+                    if (startTime >= endTime) {
+                        continue;
+                    }
+                    if (now >= startTime && now <= endTime) {
+                        tmpCfg = cfg;
+                        break;
+                    }
+                } else {
+                    tmpCfg = cfg;
+                    break;
+                }
+            }
+
+            if (tmpCfg == null) {
+                log.warn("招募游客失败,获取配置失败 playerId={},count={}", ctx.playerId(), count);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            WeightRandom<List<Integer>> poolRand = configCache.getPoolRand(tmpCfg.getId());
+            if (poolRand == null) {
+                log.warn("招募游客失败,获取配置失败1 playerId={},count={}", ctx.playerId(), count);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            Map<Integer, Long> addItems = new HashMap<>();
+            Map<Integer, Integer> addGuest = new HashMap<>();
+            for (int i = 0; i < count; i++) {
+                List<Integer> next = poolRand.next();
+                if (next == null || next.size() < 3) {
+                    log.warn("招募游客失败,获取配置失败2 playerId={},count={},i={}", ctx.playerId(), count, i);
+                    return;
+                }
+
+                VisitorQuestCfg visitorQuestCfg = configCache.getVisitorQuestCfgByItemId(next.get(1));
+                if (visitorQuestCfg == null) {
+                    log.warn("招募游客失败,根据itemId获取VisitorQuestCfg失败 playerId={},count={},itemId={},i={}", ctx.playerId(), count, next.get(1), i);
+                    return;
+                }
+
+                int rewardCount = next.get(2);
+                for (int j = 0; j < rewardCount; j++) {
+                    GuestData guestData = ctx.getCurrentCasino().findGuestData(visitorQuestCfg.getId());
+                    if (guestData == null) {
+                        guestData = new GuestData();
+                        guestData.setStar(1);
+                        guestData.setLevel(1);
+                        ctx.getCurrentCasino().addGuest(guestData);
+
+                        addGuest.merge(visitorQuestCfg.getId(), 1, Integer::sum);
+                    } else { //分解成碎片
+                        List<Integer> tmpList = visitorQuestCfg.getDuplicatetoShard();
+                        addItems.merge(tmpList.get(1), tmpList.get(2).longValue(), Long::sum);
+                    }
+                }
+            }
+
+            if (!addItems.isEmpty()) {
+                res.items = ItemUtils.buildItemInfo(addItems);
+                simPackService.addItems(ctx, addItems, AddType.SIM_GUEST_RECRUIT, count + "", false);
+            }
+
+            if (!addGuest.isEmpty()) {
+                res.guests = new ArrayList<>();
+                for (Map.Entry<Integer, Integer> en : addGuest.entrySet()) {
+                    KVInfo kvInfo = new KVInfo();
+                    kvInfo.key = en.getKey();
+                    kvInfo.value = en.getValue();
+                    res.guests.add(kvInfo);
+                }
+            }
+            log.info("招募游客成功 playerId={},count={},newEmployee={},shard={}", ctx.playerId(), count, addGuest, addItems);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

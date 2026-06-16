@@ -21,14 +21,25 @@ public class EmployeeSkillConfigCfg extends BaseCfgBean {
 
   /** 固定值加成 */
   protected Map<Integer,Long> Buff;
+  /** 序列 */
+  protected int Index;
   /** 加成（百分比） */
   protected Map<Integer,Long> Modifier;
-  /** 技能 */
-  protected int Skill;
+  /** 品质 */
+  protected int Quality;
+  /** 技能名称多语言 */
+  protected int SkillName;
+  /** 类型 */
+  protected int type;
 
   /** 返回固定值加成 */
   public Map<Integer,Long> getBuff() {
     return Buff;
+  }
+
+  /** 返回序列 */
+  public int getIndex() {
+    return Index;
   }
 
   /** 返回加成（百分比） */
@@ -36,9 +47,19 @@ public class EmployeeSkillConfigCfg extends BaseCfgBean {
     return Modifier;
   }
 
-  /** 返回技能 */
-  public int getSkill() {
-    return Skill;
+  /** 返回品质 */
+  public int getQuality() {
+    return Quality;
+  }
+
+  /** 返回技能名称多语言 */
+  public int getSkillName() {
+    return SkillName;
+  }
+
+  /** 返回类型 */
+  public int getType() {
+    return type;
   }
 
   @Override

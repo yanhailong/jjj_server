@@ -26,17 +26,25 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //ResearchInstitute配置 regionID -> gameTypeSet
     private Map<Integer, Set<Integer>> unlockGamesMap;
 
+    //VisitorQuest配置 itemId -> cfg
+    private Map<Integer, VisitorQuestCfg> visitorQuestItemCfgMap;
     //VisitorQuest配置 quality -> cfg
     private Map<Integer, List<VisitorQuestCfg>> visitorQuestCfgMap;
     //VisitorLevel配置 guestId -> level -> cfg
     private Map<Integer, Map<Integer, VisitorLevelCfg>> visitorLevelCfgMap;
     //VisitorStar配置 guestId -> star -> cfg
     private Map<Integer, Map<Integer, VisitorStarCfg>> visitorStarCfgMap;
+    //visitorPool 的drop item的权重
+    private Map<Integer, WeightRandom<List<Integer>>> visitorPoolRandomMap;
 
     //EmployeeLevel配置 employeeId -> level -> cfg
     private Map<Integer, Map<Integer, EmployeeLevelCfg>> employeeLevelCfgMap;
     //EmployeeStar配置 employeeId -> star -> cfg
     private Map<Integer, Map<Integer, EmployeeStarCfg>> employeeStarCfgMap;
+    //EmployeeProfile配置 道具id(角色道具) -> cfg
+    private Map<Integer, EmployeeProfileCfg> employeeProfileItemCfgMap;
+    //employeePool 的drop item的权重
+    private Map<Integer, WeightRandom<List<Integer>>> employeePoolRandomMap;
 
     //建筑解锁链 casinoId -> type -> sequenceId升序的建筑ID列表
     private Map<Integer, Map<Integer, List<Integer>>> buildingChainMap;
@@ -61,10 +69,13 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
         loadEmployeeLevelConfig();
         loadEmployeeStarConfig();
+        loadEmployeeProfileConfig();
+        loadEmployeePoolConfig();
 
         loadVisitorQuestConfig();
         loadVisitorLevelConfig();
         loadVisitorStarConfig();
+        loadVisitorPoolConfig();
 
         loadGlobalConfig();
 
@@ -98,10 +109,17 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
      */
     private void loadVisitorQuestConfig() {
         Map<Integer, List<VisitorQuestCfg>> tmpVisitorQuestCfgMap = new HashMap<>();
+        Map<Integer, VisitorQuestCfg> tmpVisitorQuestItemCfgMap = new HashMap<>();
         for (VisitorQuestCfg cfg : GameDataManager.getVisitorQuestCfgList()) {
             tmpVisitorQuestCfgMap.computeIfAbsent(cfg.getQuality(), k -> new ArrayList<>()).add(cfg);
+
+            List<Integer> tmpList = cfg.getDuplicatetoShard();
+            if (tmpList != null && tmpList.size() >= 3) {
+                tmpVisitorQuestItemCfgMap.put(tmpList.getFirst(), cfg);
+            }
         }
         this.visitorQuestCfgMap = tmpVisitorQuestCfgMap;
+        this.visitorQuestItemCfgMap = tmpVisitorQuestItemCfgMap;
     }
 
     /**
@@ -127,6 +145,21 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     }
 
     /**
+     * 加载 VisitorPool 配置
+     */
+    private void loadVisitorPoolConfig() {
+        Map<Integer, WeightRandom<List<Integer>>> tmpVisitorPoolRandomMap = new HashMap<>();
+        for (VisitorPoolCfg cfg : GameDataManager.getVisitorPoolCfgList()) {
+            WeightRandom<List<Integer>> random = WeightRandom.create();
+            for (List<Integer> list : cfg.getDetailedDropItem()) {
+                random.add(list, list.getFirst());
+            }
+            tmpVisitorPoolRandomMap.put(cfg.getId(), random);
+        }
+        this.visitorPoolRandomMap = tmpVisitorPoolRandomMap;
+    }
+
+    /**
      * 加载 EmployeeLevel 配置
      */
     private void loadEmployeeLevelConfig() {
@@ -146,6 +179,35 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             tmp.computeIfAbsent(cfg.getEmployeeID(), k -> new HashMap<>()).put(cfg.getStar(), cfg);
         }
         this.employeeStarCfgMap = tmp;
+    }
+
+    /**
+     * 加载 EmployeeProfile 配置 (按角色道具id索引, 用于卡池招募)
+     */
+    private void loadEmployeeProfileConfig() {
+        Map<Integer, EmployeeProfileCfg> tmp = new HashMap<>();
+        for (EmployeeProfileCfg cfg : GameDataManager.getEmployeeProfileCfgList()) {
+            List<Integer> shard = cfg.getDuplicatetoShard();
+            if (shard != null && shard.size() >= 3) {
+                tmp.put(shard.getFirst(), cfg);
+            }
+        }
+        this.employeeProfileItemCfgMap = tmp;
+    }
+
+    /**
+     * 加载 EmployeePool 配置
+     */
+    private void loadEmployeePoolConfig() {
+        Map<Integer, WeightRandom<List<Integer>>> tmp = new HashMap<>();
+        for (EmployeePoolCfg cfg : GameDataManager.getEmployeePoolCfgList()) {
+            WeightRandom<List<Integer>> random = WeightRandom.create();
+            for (List<Integer> list : cfg.getDetailedDropItem()) {
+                random.add(list, list.getFirst());
+            }
+            tmp.put(cfg.getId(), random);
+        }
+        this.employeePoolRandomMap = tmp;
     }
 
     /**
@@ -243,9 +305,12 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         addInitSampleFileObserveWithCallBack(VisitorQuestCfg.EXCEL_NAME, this::loadVisitorQuestConfig);
         addInitSampleFileObserveWithCallBack(VisitorLevelCfg.EXCEL_NAME, this::loadVisitorLevelConfig);
         addInitSampleFileObserveWithCallBack(VisitorStarCfg.EXCEL_NAME, this::loadVisitorStarConfig);
+        addInitSampleFileObserveWithCallBack(VisitorPoolCfg.EXCEL_NAME, this::loadVisitorPoolConfig);
 
         addInitSampleFileObserveWithCallBack(EmployeeLevelCfg.EXCEL_NAME, this::loadEmployeeLevelConfig);
         addInitSampleFileObserveWithCallBack(EmployeeStarCfg.EXCEL_NAME, this::loadEmployeeStarConfig);
+        addInitSampleFileObserveWithCallBack(EmployeeProfileCfg.EXCEL_NAME, this::loadEmployeeProfileConfig);
+        addInitSampleFileObserveWithCallBack(EmployeePoolCfg.EXCEL_NAME, this::loadEmployeePoolConfig);
 
         addInitSampleFileObserveWithCallBack(BuildingAreaTableCfg.EXCEL_NAME, this::loadBuildingChain);
         addInitSampleFileObserveWithCallBack(BuildingUpgradeTableCfg.EXCEL_NAME, this::loadBuildingUpgradeConfig);
@@ -387,5 +452,44 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             return null;
         }
         return this.visitorQuestCfgMap.get(quality);
+    }
+
+    public VisitorStarCfg getVisitorStarCfgByGuest(int guestId, int star) {
+        if (this.visitorStarCfgMap == null || this.visitorStarCfgMap.isEmpty()) {
+            return null;
+        }
+        Map<Integer, VisitorStarCfg> tmpMap = this.visitorStarCfgMap.get(guestId);
+        if (tmpMap == null || tmpMap.isEmpty()) {
+            return null;
+        }
+        return tmpMap.get(star);
+    }
+
+    public VisitorQuestCfg getVisitorQuestCfgByItemId(int itemId) {
+        if (this.visitorQuestItemCfgMap == null || this.visitorQuestItemCfgMap.isEmpty()) {
+            return null;
+        }
+        return this.visitorQuestItemCfgMap.get(itemId);
+    }
+
+    public WeightRandom<List<Integer>> getPoolRand(int cfgId) {
+        if (this.visitorPoolRandomMap == null || this.visitorPoolRandomMap.isEmpty()) {
+            return null;
+        }
+        return this.visitorPoolRandomMap.get(cfgId);
+    }
+
+    public EmployeeProfileCfg getEmployeeProfileCfgByItemId(int itemId) {
+        if (this.employeeProfileItemCfgMap == null || this.employeeProfileItemCfgMap.isEmpty()) {
+            return null;
+        }
+        return this.employeeProfileItemCfgMap.get(itemId);
+    }
+
+    public WeightRandom<List<Integer>> getEmployeePoolRand(int cfgId) {
+        if (this.employeePoolRandomMap == null || this.employeePoolRandomMap.isEmpty()) {
+            return null;
+        }
+        return this.employeePoolRandomMap.get(cfgId);
     }
 }

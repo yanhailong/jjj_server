@@ -279,21 +279,27 @@ public enum AddType {
     SIM_BUILDING_UPGRADE(1804),
     //sim slots 旋转掉落
     SIM_SLOTS_DROP(1805),
+    //sim游客升星
+    SIM_GUEST_STAR_UP(1806),
+    //sim游客招募
+    SIM_GUEST_RECRUIT(1807),
+    //sim雇员招募
+    SIM_EMPLOYEE_RECRUIT(1808),
 
     //创建联盟消耗
-    ALLIANCE_CREATE(1810),
+    ALLIANCE_CREATE(2001),
     //联盟商店兑换
-    ALLIANCE_SHOP_BUY(1811),
+    ALLIANCE_SHOP_BUY(2002),
     //联盟捐献消耗
-    ALLIANCE_DONATE(1812),
+    ALLIANCE_DONATE(2003),
     //联盟任务奖励
-    ALLIANCE_TASK_REWARD(1813),
+    ALLIANCE_TASK_REWARD(2004),
     //联盟互助奖励
-    ALLIANCE_HELP_REWARD(1814),
+    ALLIANCE_HELP_REWARD(2005),
     //联盟对决奖励
-    ALLIANCE_BATTLE_REWARD(1815),
+    ALLIANCE_BATTLE_REWARD(2006),
     //联盟排行榜奖励
-    ALLIANCE_RANK_REWARD(1816);
+    ALLIANCE_RANK_REWARD(2007);
     private int value;
 
     AddType(int value) {

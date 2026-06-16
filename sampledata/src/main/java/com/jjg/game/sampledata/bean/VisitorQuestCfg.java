@@ -23,6 +23,8 @@ public class VisitorQuestCfg extends BaseCfgBean {
   protected int BaseServiceCapacity;
   /** 基础刷新权重 */
   protected int BaseWeight;
+  /** 道具ID_碎片ID_碎片数量 */
+  protected List<Integer> DuplicatetoShard;
   /** 建筑交互权重 */
   protected Map<Integer,Integer> InteractionWeight;
   /** 游客品质 */
@@ -31,8 +33,6 @@ public class VisitorQuestCfg extends BaseCfgBean {
   protected int ServiceCapacity;
   /** 指定区域 */
   protected List<Integer> TargetArea;
-  /** 游客 */
-  protected int Tourist;
   /** 知名度 */
   protected int awareness;
 
@@ -44,6 +44,11 @@ public class VisitorQuestCfg extends BaseCfgBean {
   /** 返回基础刷新权重 */
   public int getBaseWeight() {
     return BaseWeight;
+  }
+
+  /** 返回道具ID_碎片ID_碎片数量 */
+  public List<Integer> getDuplicatetoShard() {
+    return DuplicatetoShard;
   }
 
   /** 返回建筑交互权重 */
@@ -64,11 +69,6 @@ public class VisitorQuestCfg extends BaseCfgBean {
   /** 返回指定区域 */
   public List<Integer> getTargetArea() {
     return TargetArea;
-  }
-
-  /** 返回游客 */
-  public int getTourist() {
-    return Tourist;
   }
 
   /** 返回知名度 */

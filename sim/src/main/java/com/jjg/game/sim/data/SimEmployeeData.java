@@ -23,8 +23,6 @@ public class SimEmployeeData extends AbstractData {
     private int level;
     //当前星级
     private int star;
-    //碎片数量 (升星消耗)
-    private int fragment;
 
     public String getId() {
         return id;
@@ -64,21 +62,6 @@ public class SimEmployeeData extends AbstractData {
 
     public void setStar(int star) {
         this.star = star;
-    }
-
-    public int getFragment() {
-        return fragment;
-    }
-
-    public void setFragment(int fragment) {
-        this.fragment = fragment;
-    }
-
-    public void addFragment(int delta) {
-        this.fragment += delta;
-        if (this.fragment < 0) {
-            this.fragment = 0;
-        }
     }
 
     /**

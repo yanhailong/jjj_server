@@ -1,17 +1,26 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.common.utils.WeightRandom;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.pb.KVInfo;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.EmployeeLevelCfg;
+import com.jjg.game.sampledata.bean.EmployeeProfileCfg;
 import com.jjg.game.sampledata.bean.EmployeeStarCfg;
+import com.jjg.game.sampledata.bean.PoolListCfg;
 import com.jjg.game.sim.constant.BonusType;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimEmployeeData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.pb.res.ResAllEmployee;
 import com.jjg.game.sim.pb.res.ResAssignSupervisor;
+import com.jjg.game.sim.pb.res.ResRecruitEmployee;
 import com.jjg.game.sim.pb.res.ResStarUpEmployee;
 import com.jjg.game.sim.pb.res.ResUpgradeEmployee;
 import com.jjg.game.sim.pb.struct.EmployDetailInfo;
@@ -40,41 +49,123 @@ public class SimEmployeeService {
     private SimConfigCacheService configCache;
     @Autowired
     private SimEmployeeDao simEmployeeDao;
+    @Autowired
+    private SimPackService simPackService;
 
     /**
-     * 招募雇员
+     * 招募雇员 (卡池抽取):
+     * 命中未拥有的雇员则解锁, 命中已拥有的雇员则转化为对应碎片
+     *
+     * @param ctx
+     * @param count 招募次数 (1/10)
      */
     public void onRecruitEmployee(SimPlayerContext ctx, int count) {
-//        ResRecruitEmployee res = new ResRecruitEmployee(Code.SUCCESS);
-//        res.employeeId = employeeId;
-//        try {
-//            EmployeeProfileCfg profile = GameDataManager.getEmployeeProfileCfg(employeeId);
-//            if (profile == null) {
-//                log.warn("招募雇员失败, 配置不存在 playerId={},employeeId={}", ctx.playerId(), employeeId);
-//                res.code = Code.NOT_FOUND;
-//                ctx.send(res);
-//                return;
-//            }
-//            SimEmployeeData data = ctx.getEmployee(employeeId);
-//            if (data == null) {
-//                data = new SimEmployeeData();
-//                data.setPlayerId(ctx.playerId());
-//                data.setEmployeeId(employeeId);
-//                data.setLevel(INITIAL_LEVEL);
-//                data.setStar(INITIAL_STAR);
-//                ctx.getEmployeeMap().put(employeeId, data);
-//                log.info("招募雇员成功 playerId={},employeeId={}", ctx.playerId(), employeeId);
-//            } else {
-//                //已解锁: 自动转化为碎片
-//                data.addFragment(1);
-//                ctx.getEmployeeMap().put(employeeId, data);
-//                log.info("雇员已解锁, 转化为碎片 playerId={},employeeId={},fragment={}", ctx.playerId(), employeeId, data.getFragment());
-//            }
-//        } catch (Exception e) {
-//            log.error("", e);
-//            res.code = Code.EXCEPTION;
-//        }
-//        ctx.send(res);
+        ResRecruitEmployee res = new ResRecruitEmployee(Code.SUCCESS);
+        try {
+            if (count != 1 && count != 10) {
+                log.warn("招募雇员失败,次数参数错误 playerId={},count={}", ctx.playerId(), count);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            long now = System.currentTimeMillis();
+            PoolListCfg tmpCfg = null;
+            for (PoolListCfg cfg : GameDataManager.getPoolListCfgList()) {
+                if (cfg.getType() != SimConstant.PoolList.TYPE_EMPLOYEE) {
+                    continue;
+                }
+
+                if (!cfg.getOpen()) {
+                    continue;
+                }
+
+                if (cfg.getTime_start() != null && !cfg.getTime_start().isEmpty() && cfg.getTime_end() != null && !cfg.getTime_end().isEmpty()) {
+                    long startTime = TimeHelper.getTimeMillisBy(cfg.getTime_start());
+                    long endTime = TimeHelper.getTimeMillisBy(cfg.getTime_end());
+                    if (startTime >= endTime) {
+                        continue;
+                    }
+                    if (now >= startTime && now <= endTime) {
+                        tmpCfg = cfg;
+                        break;
+                    }
+                } else {
+                    tmpCfg = cfg;
+                    break;
+                }
+            }
+
+            if (tmpCfg == null) {
+                log.warn("招募雇员失败,获取卡池配置失败 playerId={},count={}", ctx.playerId(), count);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            WeightRandom<List<Integer>> poolRand = configCache.getEmployeePoolRand(tmpCfg.getId());
+            if (poolRand == null) {
+                log.warn("招募雇员失败,获取卡池权重失败 playerId={},count={},poolId={}", ctx.playerId(), count, tmpCfg.getId());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            Map<Integer, Long> addItems = new HashMap<>();
+            Map<Integer, Integer> addEmployee = new HashMap<>();
+            for (int i = 0; i < count; i++) {
+                List<Integer> next = poolRand.next();
+                if (next == null || next.size() < 3) {
+                    log.warn("招募雇员失败,卡池掉落配置异常 playerId={},count={},i={}", ctx.playerId(), count, i);
+                    return;
+                }
+
+                EmployeeProfileCfg profileCfg = configCache.getEmployeeProfileCfgByItemId(next.get(1));
+                if (profileCfg == null) {
+                    log.warn("招募雇员失败,根据itemId获取EmployeeProfileCfg失败 playerId={},count={},itemId={},i={}", ctx.playerId(), count, next.get(1), i);
+                    return;
+                }
+
+                int rewardCount = next.get(2);
+                for (int j = 0; j < rewardCount; j++) {
+                    SimEmployeeData data = ctx.getEmployee(profileCfg.getId());
+                    if (data == null) {
+                        data = new SimEmployeeData();
+                        data.setPlayerId(ctx.playerId());
+                        data.setEmployeeId(profileCfg.getId());
+                        data.setLevel(INITIAL_LEVEL);
+                        data.setStar(INITIAL_STAR);
+                        ctx.putEmployee(data);
+
+                        addEmployee.merge(profileCfg.getId(), 1, Integer::sum);
+                    } else { //已拥有,转化成碎片
+                        List<Integer> shard = profileCfg.getDuplicatetoShard();
+                        addItems.merge(shard.get(1), shard.get(2).longValue(), Long::sum);
+                    }
+                }
+            }
+
+            if (!addItems.isEmpty()) {
+                res.items = ItemUtils.buildItemInfo(addItems);
+                simPackService.addItems(ctx, addItems, AddType.SIM_EMPLOYEE_RECRUIT, count + "", false);
+            }
+
+            if (!addEmployee.isEmpty()) {
+                res.employees = new ArrayList<>();
+                for (Map.Entry<Integer, Integer> en : addEmployee.entrySet()) {
+                    KVInfo kvInfo = new KVInfo();
+                    kvInfo.key = en.getKey();
+                    kvInfo.value = en.getValue();
+                    res.employees.add(kvInfo);
+                }
+            }
+
+            log.info("招募雇员成功 playerId={},count={},newEmployee={},shard={}", ctx.playerId(), count, addEmployee, addItems);
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
     }
 
 
@@ -144,13 +235,13 @@ public class SimEmployeeService {
                 ctx.send(res);
                 return;
             }
-            if (data.getFragment() < curCfg.getStarUpCost()) {
-                log.warn("升星雇员失败, 碎片不足 playerId={},employeeId={},need={},have={}", ctx.playerId(), employeeId, curCfg.getStarUpCost(), data.getFragment());
-                res.code = Code.NOT_ENOUGH;
-                ctx.send(res);
-                return;
-            }
-            data.addFragment(-curCfg.getStarUpCost());
+//            if (data.getFragment() < curCfg.getStarUpCost()) {
+//                log.warn("升星雇员失败, 碎片不足 playerId={},employeeId={},need={},have={}", ctx.playerId(), employeeId, curCfg.getStarUpCost(), data.getFragment());
+//                res.code = Code.NOT_ENOUGH;
+//                ctx.send(res);
+//                return;
+//            }
+//            data.addFragment(-curCfg.getStarUpCost());
             data.setStar(data.getStar() + 1);
             res.star = data.getStar();
             log.info("升星雇员成功 playerId={},employeeId={},newStar={}", ctx.playerId(), employeeId, data.getStar());

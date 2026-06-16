@@ -159,6 +159,7 @@ public class GameDataManager {
     containerMap.put(DropNumCfg.class, new DropNumCfgContainer());
     containerMap.put(DropTypeCfg.class, new DropTypeCfgContainer());
     containerMap.put(EmployeeLevelCfg.class, new EmployeeLevelCfgContainer());
+    containerMap.put(EmployeePoolCfg.class, new EmployeePoolCfgContainer());
     containerMap.put(EmployeeProfileCfg.class, new EmployeeProfileCfgContainer());
     containerMap.put(EmployeeSkillConfigCfg.class, new EmployeeSkillConfigCfgContainer());
     containerMap.put(EmployeeStarCfg.class, new EmployeeStarCfgContainer());
@@ -188,6 +189,7 @@ public class GameDataManager {
     containerMap.put(PointsAwardTurntableCfg.class, new PointsAwardTurntableCfgContainer());
     containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
     containerMap.put(PoolCfg.class, new PoolCfgContainer());
+    containerMap.put(PoolListCfg.class, new PoolListCfgContainer());
     containerMap.put(PoolResultLibCfg.class, new PoolResultLibCfgContainer());
     containerMap.put(PoolResultsCfg.class, new PoolResultsCfgContainer());
     containerMap.put(PrivilegeCardCfg.class, new PrivilegeCardCfgContainer());
@@ -217,7 +219,9 @@ public class GameDataManager {
     containerMap.put(UpcomingMobileGameCfg.class, new UpcomingMobileGameCfgContainer());
     containerMap.put(VideoRewardCfg.class, new VideoRewardCfgContainer());
     containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
+    containerMap.put(VisitorBondsCfg.class, new VisitorBondsCfgContainer());
     containerMap.put(VisitorLevelCfg.class, new VisitorLevelCfgContainer());
+    containerMap.put(VisitorPoolCfg.class, new VisitorPoolCfgContainer());
     containerMap.put(VisitorQuestCfg.class, new VisitorQuestCfgContainer());
     containerMap.put(VisitorStarCfg.class, new VisitorStarCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
@@ -1116,6 +1120,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(EmployeeLevelCfg.class).getCfgBeanList();
   }
 
+  public static EmployeePoolCfg getEmployeePoolCfg(int key) {
+    return getInstance().getCfgContainer(EmployeePoolCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, EmployeePoolCfg> getEmployeePoolCfgMap() {
+    return getInstance().getCfgContainer(EmployeePoolCfg.class).getCfgBeanMap();
+  }
+
+  public static List<EmployeePoolCfg> getEmployeePoolCfgList() {
+    return getInstance().getCfgContainer(EmployeePoolCfg.class).getCfgBeanList();
+  }
+
   public static EmployeeProfileCfg getEmployeeProfileCfg(int key) {
     return getInstance().getCfgContainer(EmployeeProfileCfg.class).getCfgBeanMap().get(key);
   }
@@ -1462,6 +1478,18 @@ public class GameDataManager {
 
   public static List<PoolCfg> getPoolCfgList() {
     return getInstance().getCfgContainer(PoolCfg.class).getCfgBeanList();
+  }
+
+  public static PoolListCfg getPoolListCfg(int key) {
+    return getInstance().getCfgContainer(PoolListCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PoolListCfg> getPoolListCfgMap() {
+    return getInstance().getCfgContainer(PoolListCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PoolListCfg> getPoolListCfgList() {
+    return getInstance().getCfgContainer(PoolListCfg.class).getCfgBeanList();
   }
 
   public static PoolResultLibCfg getPoolResultLibCfg(int key) {
@@ -1812,6 +1840,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(ViplevelCfg.class).getCfgBeanList();
   }
 
+  public static VisitorBondsCfg getVisitorBondsCfg(int key) {
+    return getInstance().getCfgContainer(VisitorBondsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, VisitorBondsCfg> getVisitorBondsCfgMap() {
+    return getInstance().getCfgContainer(VisitorBondsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<VisitorBondsCfg> getVisitorBondsCfgList() {
+    return getInstance().getCfgContainer(VisitorBondsCfg.class).getCfgBeanList();
+  }
+
   public static VisitorLevelCfg getVisitorLevelCfg(int key) {
     return getInstance().getCfgContainer(VisitorLevelCfg.class).getCfgBeanMap().get(key);
   }
@@ -1822,6 +1862,18 @@ public class GameDataManager {
 
   public static List<VisitorLevelCfg> getVisitorLevelCfgList() {
     return getInstance().getCfgContainer(VisitorLevelCfg.class).getCfgBeanList();
+  }
+
+  public static VisitorPoolCfg getVisitorPoolCfg(int key) {
+    return getInstance().getCfgContainer(VisitorPoolCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, VisitorPoolCfg> getVisitorPoolCfgMap() {
+    return getInstance().getCfgContainer(VisitorPoolCfg.class).getCfgBeanMap();
+  }
+
+  public static List<VisitorPoolCfg> getVisitorPoolCfgList() {
+    return getInstance().getCfgContainer(VisitorPoolCfg.class).getCfgBeanList();
   }
 
   public static VisitorQuestCfg getVisitorQuestCfg(int key) {
