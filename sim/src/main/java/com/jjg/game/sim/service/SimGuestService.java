@@ -212,15 +212,13 @@ public class SimGuestService implements SimPlayerTickListener {
             return;
         }
 
-        //星级/等级取已解锁游客的快照, 未解锁则默认 1
-        GuestData guest = new GuestData();
-        guest.setId(guestId);
-        guest.setStar(1);
-        guest.setLevel(1);
-        GuestData unlocked = casino.findGuestData(guestId);
-        if (unlocked != null) {
-            guest.setStar(unlocked.getStar());
-            guest.setLevel(unlocked.getLevel());
+        GuestData guest = casino.findGuestData(guestId);
+        if (guest == null) {
+            guest = new GuestData();
+            guest.setId(guestId);
+            guest.setStar(1);
+            guest.setLevel(1);
+            casino.addGuest(guest);
         }
 
         //本次交互次数 (有奖励 + 无奖励)
@@ -251,9 +249,17 @@ public class SimGuestService implements SimPlayerTickListener {
         data.setDestinations(destinations);
         casino.addPurchasedGuest(data);
 
-        log.info("生成购买游客成功 playerId={},guestId={},uid={},destSize={}", ctx.playerId(), guestId, data.getUid(), destinations.size());
         res.guest = SimPbConverter.toGuestInfo(data);
         ctx.send(res);
+
+        //累加经验
+        guest.addExp(configCache.getVisitorLevelCfgMap());
+        NotifyGenerateGuest notify = new NotifyGenerateGuest(Code.SUCCESS);
+        notify.guests = new ArrayList<>();
+        notify.guests.add(res.guest);
+        ctx.send(notify);
+
+        log.info("生成购买游客成功 playerId={},guestId={},uid={},destSize={}", ctx.playerId(), guestId, data.getUid(), destinations.size());
     }
 
     /**
