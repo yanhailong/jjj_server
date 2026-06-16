@@ -14,7 +14,7 @@ package com.jjg.game.sim.constant;
 public interface SimStatKey {
 
     /**
-     * 运营数据 (当前赌场)
+     * 运营数据 (当前场景)
      */
     interface Operation {
         //容纳游客人数 (value=当前可容纳, max=升满级最大容纳)
@@ -51,7 +51,7 @@ public interface SimStatKey {
      * SPINE游戏数据 (指定游戏)
      */
     interface Slot {
-        //解锁游戏数 (当前赌场)
+        //解锁游戏数 (当前场景)
         int UNLOCK_GAME = 101;
         //投注总数 (累计)
         int TOTAL_BET = 102;

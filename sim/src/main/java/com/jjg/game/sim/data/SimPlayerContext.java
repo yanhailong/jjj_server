@@ -22,9 +22,9 @@ public class SimPlayerContext {
     private SimBaseData simBaseData;
     //技能 gameType -> data
     private Map<Integer, SimSkillsData> skillsDataMap = new HashMap<>();
-    //雇员 employeeId -> data (玩家级, 跨赌场共享)
+    //雇员 employeeId -> data (玩家级, 跨场景共享)
     private Map<Integer, SimEmployeeData> employeeMap = new HashMap<>();
-    //当前所在赌场 (内存中仅保留当前赌场, 切换时落库旧赌场并加载新赌场)
+    //当前所在场景 (内存中仅保留当前场景, 切换时落库旧场景并加载新场景)
     private SimCasinoData currentCasino;
 
     //待领取的离线收益 (上线计算, 领取后清空)
@@ -88,25 +88,25 @@ public class SimPlayerContext {
     }
 
     // ---------------------------------------------------------------------
-    // 赌场数据访问 (内存仅保留当前赌场)
+    // 场景数据访问 (内存仅保留当前场景)
     // ---------------------------------------------------------------------
 
     /**
-     * 获取当前所在赌场
+     * 获取当前所在场景
      */
     public SimCasinoData getCurrentCasino() {
         return currentCasino;
     }
 
     /**
-     * 设置当前赌场实体 (由 SimCasinoService 在加载/切换时维护)
+     * 设置当前场景实体 (由 SimCasinoService 在加载/切换时维护)
      */
     public void setCurrentCasino(SimCasinoData currentCasino) {
         this.currentCasino = currentCasino;
     }
 
     /**
-     * 切换当前赌场 id (内存赌场实体替换由 SimCasinoService 完成)
+     * 切换当前场景 id (内存场景实体替换由 SimCasinoService 完成)
      */
     public void switchCasino(int casinoId) {
         this.simBaseData.setCurrentCasinoId(casinoId);

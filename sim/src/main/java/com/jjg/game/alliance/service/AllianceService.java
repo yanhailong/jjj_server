@@ -124,7 +124,7 @@ public class AllianceService {
     }
 
     /**
-     * 可加入联盟列表: 按声誉降序, 只含满足"我的赌场等级 >= 门槛"且未满员的联盟。
+     * 可加入联盟列表: 按声誉降序, 只含满足"我的场景等级 >= 门槛"且未满员的联盟。
      */
     public ResAllianceList allianceList(long playerId) {
         ResAllianceList res = new ResAllianceList(Code.SUCCESS);
@@ -718,7 +718,7 @@ public class AllianceService {
     }
 
     /**
-     * 玩家赌场等级: 在线取 ctx 当前赌场, 离线回源赌场文档取最高等级。
+     * 玩家场景等级: 在线取 ctx 当前场景, 离线回源场景文档取最高等级。
      */
     public int casinoLevelOf(long playerId) {
         SimPlayerContext ctx = simManager.getContext(playerId);

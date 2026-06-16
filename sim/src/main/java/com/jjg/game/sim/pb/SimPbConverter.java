@@ -85,7 +85,7 @@ public final class SimPbConverter {
     }
 
     /**
-     * 赌场建筑列表 -> 协议结构 (无建筑返回 null)
+     * 场景建筑列表 -> 协议结构 (无建筑返回 null)
      */
     public static List<BuildingInfo> toBuildingInfos(SimCasinoData casino) {
         if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
@@ -99,7 +99,7 @@ public final class SimPbConverter {
     }
 
     /**
-     * 赌场主管列表 -> 协议结构 (无主管返回 null)
+     * 场景主管列表 -> 协议结构 (无主管返回 null)
      */
     public static List<KVInfo> toManagerInfos(SimCasinoData casino) {
         if (casino == null || casino.getManagerEmployMap() == null || casino.getManagerEmployMap().isEmpty()) {

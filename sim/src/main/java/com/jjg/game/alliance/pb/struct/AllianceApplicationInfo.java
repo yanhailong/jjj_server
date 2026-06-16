@@ -18,7 +18,7 @@ public class AllianceApplicationInfo {
     public String nick;
     @ProtoDesc("头像id")
     public int headImg;
-    @ProtoDesc("赌场等级(申请时快照)")
+    @ProtoDesc("场景等级(申请时快照)")
     public int casinoLevel;
     @ProtoDesc("申请时间(ms)")
     public long applyTime;

@@ -96,7 +96,7 @@ public class SimManager {
     }
 
     /**
-     * 玩家登录: 立即加载 sim 数据 (入 contextMap 后赌场后台 tick 运行), 并结算离线收益。
+     * 玩家登录: 立即加载 sim 数据 (入 contextMap 后场景后台 tick 运行), 并结算离线收益。
      */
     public void onEnterSim(PlayerController playerController, boolean login) {
         try {

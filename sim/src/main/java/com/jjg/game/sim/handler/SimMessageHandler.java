@@ -63,7 +63,7 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_EXIT_GAME)
     public void reqExitGame(PlayerController playerController, ReqSimExitGame req) {
-        //退出 sim 界面不卸载 ctx, 赌场后台继续运行直到玩家下线
+        //退出 sim 界面不卸载 ctx, 场景后台继续运行直到玩家下线
         playerController.setScene(null);
     }
 
@@ -403,7 +403,7 @@ public class SimMessageHandler implements GmListener {
                     res.code = Code.FAIL;
                     return res;
                 }
-                //赌场配置
+                //场景配置
                 CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(ctx.getCurrentCasino().getStatsId());
                 if (casinoCfg == null) {
                     log.warn("生成游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), ctx.getCurrentCasino().getStatsId());
@@ -450,6 +450,16 @@ public class SimMessageHandler implements GmListener {
                 ReqSlotStat req = new ReqSlotStat();
                 req.gameType = gmOrders.length > 1 ? Integer.parseInt(gmOrders[1]) : 0;
                 reqSlotStat(playerController, req);
+            } else if ("casinoLevelUp".equalsIgnoreCase(gmOrders[0])) {
+                int statsId = Integer.parseInt(gmOrders[1]);
+                CasinoStatsSheetCfg cfg = GameDataManager.getCasinoStatsSheetCfg(statsId);
+                if (cfg == null) {
+                    res.code = Code.FAIL;
+                    log.warn("未找到该配置 statsId={}", statsId);
+                    return res;
+                }
+                SimPlayerContext ctx = simManager.getContext(playerController.playerId());
+                ctx.getCurrentCasino().setStatsId(statsId);
             } else {
                 res.code = Code.NOT_FOUND;
             }

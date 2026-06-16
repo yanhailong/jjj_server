@@ -30,7 +30,7 @@ public class PlayerCardInfo {
     public long diamond;
     @ProtoDesc("联盟名称, 无则空")
     public String allianceName;
-    @ProtoDesc("赌场图标列表")
+    @ProtoDesc("场景图标列表")
     public List<CasinoIconInfo> casinos;
     @ProtoDesc("与我的关系 0陌生1好友")
     public int relation;

@@ -267,19 +267,18 @@ public class SimBuildingService implements SimPlayerTickListener {
                 }
             }
 
-            int targetLevel = data.getLevel() + 1;
-            BuildingUpgradeTableCfg next = configCache.getBuildingUpgradeCfg(buildingId, targetLevel);
+            int buildingNextLevel = data.getLevel() + 1;
+            BuildingUpgradeTableCfg next = configCache.getBuildingUpgradeCfg(buildingId, buildingNextLevel);
             if (next == null) {
                 log.warn("升级建筑失败, 已达上限 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;
             }
-            //建筑等级 <= 经营等级 (简化: 以赌场 stats level 为经营等级)
+            //建筑等级 <= 经营等级 (简化: 以场景 stats level 为经营等级)
             CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
-            int operationLevel = statsCfg == null ? 0 : statsCfg.getLevel();
-            if (targetLevel > operationLevel + 1) {
-                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},targetLevel={},operationLevel={}", ctx.playerId(), buildingId, targetLevel, operationLevel);
+            if (buildingNextLevel > statsCfg.getLevel()) {
+                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},buildingNextLevel={},casinoLevel={}", ctx.playerId(), buildingId, buildingNextLevel, statsCfg.getLevel());
                 res.code = Code.NOT_ENOUGH;
                 ctx.send(res);
                 return;
@@ -349,7 +348,6 @@ public class SimBuildingService implements SimPlayerTickListener {
                 return;
             }
             BuildingData data = casino.findBuilding(buildingId);
-            long now = System.currentTimeMillis();
             if (data == null) {
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
@@ -357,6 +355,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                 return;
             }
 
+            long now = System.currentTimeMillis();
             applyAllianceSpeedup(ctx.playerId(), data, now);
             if (!data.isUpgrading(now)) {
                 if (data.isUpgradeReady(now)) {
@@ -416,7 +415,7 @@ public class SimBuildingService implements SimPlayerTickListener {
 
 
     /**
-     * 立即结算当前赌场已积累的整分钟在线产出 (切换赌场前调用, 避免余量丢失)
+     * 立即结算当前场景已积累的整分钟在线产出 (切换场景前调用, 避免余量丢失)
      */
     public void settleOnlineOutput(SimPlayerContext ctx) {
         output(ctx, System.currentTimeMillis());
@@ -459,7 +458,7 @@ public class SimBuildingService implements SimPlayerTickListener {
     }
 
     /**
-     * 计算当前赌场所有游戏区/休息区建筑每分钟产出 (含雇员加成) 之和
+     * 计算当前场景所有游戏区/休息区建筑每分钟产出 (含雇员加成) 之和
      *
      * @return itemId -> 每分钟数量 (金币/能量混合)
      */

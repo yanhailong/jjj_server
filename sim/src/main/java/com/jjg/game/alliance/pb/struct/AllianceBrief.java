@@ -30,7 +30,7 @@ public class AllianceBrief {
     public int memberCount;
     @ProtoDesc("人数上限")
     public int memberCap;
-    @ProtoDesc("入盟最低赌场等级")
+    @ProtoDesc("入盟最低场景等级")
     public int joinMinCasinoLevel;
     @ProtoDesc("入盟是否需要审核")
     public boolean joinNeedAudit;

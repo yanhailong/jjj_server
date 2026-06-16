@@ -121,9 +121,9 @@ public interface SimConstant {
     interface Common {
         //默认解锁的场景id
         int DEFAULT_CASINO_ID = 1;
-        //默认赌场STATS id (CasinoStatsSheetCfg level=0)
+        //默认场景STATS id (CasinoStatsSheetCfg level=0)
         int DEFAULT_CASINO_STATS_ID = 1001;
-        //"赌场满员"判定窗口 (ms) — 10 分钟
+        //"场景满员"判定窗口 (ms) — 10 分钟
         long CAPACITY_WINDOW_MS = 10 * 60 * 1000L;
 
         //服务能力加成系数基数 (VisitorStarCfg.Additioncoefficient, 100 表示 +0%)
@@ -137,7 +137,7 @@ public interface SimConstant {
 
         //slots 每次旋转消耗的能量
         int SPIN_COST_POWER = 1;
-        //slots 每次旋转增加的赌场经验 (与消耗的能量保持一致)
+        //slots 每次旋转增加的场景经验 (与消耗的能量保持一致)
         int SPIN_ADD_EXP = 1;
     }
 

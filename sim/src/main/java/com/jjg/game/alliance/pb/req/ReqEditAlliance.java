@@ -21,7 +21,7 @@ public class ReqEditAlliance extends AbstractMessage {
     public int icon;
     @ProtoDesc("公告")
     public String notice;
-    @ProtoDesc("入盟最低赌场等级")
+    @ProtoDesc("入盟最低场景等级")
     public int joinMinCasinoLevel;
     @ProtoDesc("入盟是否需要审核")
     public boolean joinNeedAudit;

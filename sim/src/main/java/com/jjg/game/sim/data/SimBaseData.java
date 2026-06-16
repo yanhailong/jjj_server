@@ -18,7 +18,7 @@ public class SimBaseData extends AbstractData {
     private long playerId;
     //体力值
     private int stamina;
-    //当前所在赌场id
+    //当前所在场景id
     private int currentCasinoId;
     //是否已完成新手引导
     private boolean guide;

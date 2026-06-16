@@ -25,7 +25,7 @@ public class SimCasinoDao extends MongoBaseDao<SimCasinoData, String> {
     }
 
     /**
-     * 按 playerId 加载所有赌场
+     * 按 playerId 加载所有场景
      */
     public List<SimCasinoData> findByPlayerId(long playerId) {
         Query query = new Query(Criteria.where("playerId").is(playerId));
@@ -33,14 +33,14 @@ public class SimCasinoDao extends MongoBaseDao<SimCasinoData, String> {
     }
 
     /**
-     * 按联合主键加载单个赌场 (内存仅保留当前赌场, 切换/校验时按需读取)
+     * 按联合主键加载单个场景 (内存仅保留当前场景, 切换/校验时按需读取)
      */
     public SimCasinoData findOne(long playerId, int casinoId) {
         return mongoTemplate.findById(SimCasinoData.buildKey(playerId, casinoId), SimCasinoData.class);
     }
 
     /**
-     * 玩家是否已拥有任意赌场 (判定新老玩家)
+     * 玩家是否已拥有任意场景 (判定新老玩家)
      */
     public boolean existsByPlayerId(long playerId) {
         Query query = new Query(Criteria.where("playerId").is(playerId));
@@ -48,7 +48,7 @@ public class SimCasinoDao extends MongoBaseDao<SimCasinoData, String> {
     }
 
     /**
-     * 任取玩家的一个赌场 (currentCasinoId 失效时回退)
+     * 任取玩家的一个场景 (currentCasinoId 失效时回退)
      */
     public SimCasinoData findFirstByPlayerId(long playerId) {
         Query query = new Query(Criteria.where("playerId").is(playerId)).limit(1);
@@ -56,7 +56,7 @@ public class SimCasinoDao extends MongoBaseDao<SimCasinoData, String> {
     }
 
     /**
-     * 玩家已拥有的赌场 id 列表 (只取 casinoId 字段, 用于下发拥有列表)
+     * 玩家已拥有的场景 id 列表 (只取 casinoId 字段, 用于下发拥有列表)
      */
     public List<Integer> findCasinoIdsByPlayerId(long playerId) {
         Query query = new Query(Criteria.where("playerId").is(playerId));

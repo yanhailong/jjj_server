@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * slots 旋转与 sim 联动: 扣能量 -> 加经验 -> 赌场升级 -> 道具掉落 -> 入背包
+ * slots 旋转与 sim 联动: 扣能量 -> 加经验 -> 场景升级 -> 道具掉落 -> 入背包
  * <p>
  * 数据流参见 dropItem / dropType / dropNum / CasinoLevel 四张配置表。
  *
@@ -51,7 +51,7 @@ public class SimDropService {
         SimBaseData base = ctx.getSimBaseData();
         SimCasinoData casino = ctx.getCurrentCasino();
         if (base == null || casino == null) {
-            log.warn("slots 联动失败, 基础数据或当前赌场为空 playerId={},gameType={}", ctx.playerId(), gameType);
+            log.warn("slots 联动失败, 基础数据或当前场景为空 playerId={},gameType={}", ctx.playerId(), gameType);
             result.code = Code.FAIL;
             return result;
         }
@@ -90,7 +90,7 @@ public class SimDropService {
     }
 
     /**
-     * 按累计经验 (exp) 与 CasinoLevel(RegionID=casinoId) 重算赌场等级。
+     * 按累计经验 (exp) 与 CasinoLevel(RegionID=casinoId) 重算场景等级。
      * levelUpExp 视为"达到该等级所需的累计经验", 取满足 exp>=levelUpExp 的最大等级 id。
      */
     private void checkLevelUp(SimCasinoData casino) {
@@ -104,7 +104,7 @@ public class SimDropService {
         }
         casino.setCasinoLevel(nextLevel);
         casino.setExp(casino.getExp() - cfg.getUpgradeCost());
-        log.info("赌场升级 playerId={},casinoId={},newLevel={}", casino.getPlayerId(), casino.getCasinoId(), nextLevel);
+        log.info("场景升级 playerId={},casinoId={},newLevel={}", casino.getPlayerId(), casino.getCasinoId(), nextLevel);
     }
 
     /**

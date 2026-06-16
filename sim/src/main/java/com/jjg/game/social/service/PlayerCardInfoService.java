@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 玩家信息卡聚合: 基础信息 + 联盟名 + 赌场图标(全部, 标注解锁) + 与本人的关系。
+ * 玩家信息卡聚合: 基础信息 + 联盟名 + 场景图标(全部, 标注解锁) + 与本人的关系。
  *
  * @author 11
  * @date 2026/6/9
@@ -84,7 +84,7 @@ public class PlayerCardInfoService {
     }
 
     /**
-     * 全部赌场图标, 标注目标玩家是否已解锁。
+     * 全部场景图标, 标注目标玩家是否已解锁。
      */
     private List<CasinoIconInfo> buildCasinoIcons(long targetId) {
         Set<Integer> unlocked = new HashSet<>(simCasinoDao.findCasinoIdsByPlayerId(targetId));

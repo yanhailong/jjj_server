@@ -272,13 +272,13 @@ public interface AllianceConst {
         //--------- 创建/加入 ---------
         //创建消耗钻石数
         int CREATE_COST_DIAMOND = 100;
-        //创建/加入所需最低赌场等级
+        //创建/加入所需最低场景等级
         int CREATE_MIN_CASINO_LEVEL = 1;
         //联盟名称最大字符数 (前端限定 11 字符)
         int NAME_MAX_LEN = 11;
         //联盟描述/公告最大字符数
         int NOTICE_MAX_LEN = 30;
-        //入盟最低赌场等级设置范围
+        //入盟最低场景等级设置范围
         int JOIN_LEVEL_MIN = 1;
         int JOIN_LEVEL_MAX = 99;
         //入盟申请列表上限 (防文档无界膨胀, 满则最早的申请被挤掉)

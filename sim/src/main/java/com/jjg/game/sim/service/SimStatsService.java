@@ -45,7 +45,7 @@ public class SimStatsService {
     // ---------------------------------------------------------------------
 
     /**
-     * 记录一次 slots 旋转的统计 (运行在玩家线程; 直接操作当前赌场内存数据)
+     * 记录一次 slots 旋转的统计 (运行在玩家线程; 直接操作当前场景内存数据)
      */
     public void recordSpin(SimCasinoData casino, int gameType, SpinStatInfo info) {
         if (casino == null || info == null) {
@@ -100,14 +100,14 @@ public class SimStatsService {
     // ---------------------------------------------------------------------
 
     /**
-     * 经营信息-运营数据 (实时刷新当前赌场数据)
+     * 经营信息-运营数据 (实时刷新当前场景数据)
      */
     public void onOperationData(SimPlayerContext ctx) {
         ResOperationData res = new ResOperationData(Code.SUCCESS);
         try {
             SimCasinoData casino = ctx.getCurrentCasino();
             if (casino == null) {
-                log.warn("获取运营数据失败, 当前赌场为空 playerId={}", ctx.playerId());
+                log.warn("获取运营数据失败, 当前场景为空 playerId={}", ctx.playerId());
                 res.code = Code.NOT_FOUND;
                 ctx.send(res);
                 return;
@@ -129,7 +129,7 @@ public class SimStatsService {
         try {
             SimCasinoData casino = ctx.getCurrentCasino();
             if (casino == null) {
-                log.warn("获取SPINE游戏数据失败, 当前赌场为空 playerId={}", ctx.playerId());
+                log.warn("获取SPINE游戏数据失败, 当前场景为空 playerId={}", ctx.playerId());
                 res.code = Code.NOT_FOUND;
                 ctx.send(res);
                 return;
@@ -192,7 +192,7 @@ public class SimStatsService {
     private List<StatInfo> buildSlotStats(SimCasinoData casino, int gameType) {
         List<StatInfo> list = new ArrayList<>();
 
-        //解锁游戏数 (当前赌场)
+        //解锁游戏数 (当前场景)
         Set<Integer> unlockGames = configCache.getUnlockGameByRegionId(casino.getCasinoId());
         int unlockCount = unlockGames == null ? 0 : unlockGames.size();
         list.add(new StatInfo(SimStatKey.Slot.UNLOCK_GAME, unlockCount));
@@ -225,7 +225,7 @@ public class SimStatsService {
     }
 
     /**
-     * 统计当前赌场已研发的游戏数 (已拥有技能数据视为已研发)
+     * 统计当前场景已研发的游戏数 (已拥有技能数据视为已研发)
      */
     private int countResearchedGames(SimPlayerContext ctx, Set<Integer> unlockGames) {
         if (unlockGames == null || unlockGames.isEmpty()) {

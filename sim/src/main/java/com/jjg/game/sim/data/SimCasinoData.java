@@ -12,7 +12,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 /**
- * 赌场信息
+ * 场景信息
  *
  * @author 11
  * @date 2026/5/21
@@ -25,17 +25,17 @@ public class SimCasinoData extends AbstractData {
     //玩家id
     @Indexed
     private long playerId;
-    //赌场id (业务 id, 配合 CasinoListCfg)
+    //场景id (业务 id, 配合 CasinoListCfg)
     private int casinoId;
     //经验
     private int exp;
-    //赌场等级 (CasinoStatsSheet.level)
+    //场景等级 (CasinoStatsSheet.level)
     private int casinoLevel;
     //等级id
     private int statsId;
     //当前繁荣度
     private int prosperity;
-    //知名度 (赌场宣传度)
+    //知名度 (场景宣传度)
     private int awareness;
     //经营信息-接待游客人次 (累计)
     private long receptionCount;

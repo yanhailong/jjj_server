@@ -53,7 +53,7 @@ public class SimCasinoService {
     private SimSkillService simSkillService;
 
     /**
-     * 开辟新赌场 (校验 condition 后创建并落库, 不自动切换)
+     * 开辟新场景 (校验 condition 后创建并落库, 不自动切换)
      */
     public void onUnlockCasino(SimPlayerContext ctx, int targetCasinoId) {
         ResUnlockCasino res = new ResUnlockCasino(Code.SUCCESS);
@@ -61,19 +61,19 @@ public class SimCasinoService {
         try {
             CasinoListCfg cfg = GameDataManager.getCasinoListCfg(targetCasinoId);
             if (cfg == null) {
-                log.warn("开辟新赌场失败, 配置不存在 playerId={},casinoId={}", ctx.playerId(), targetCasinoId);
+                log.warn("开辟新场景失败, 配置不存在 playerId={},casinoId={}", ctx.playerId(), targetCasinoId);
                 res.code = Code.NOT_FOUND;
                 ctx.send(res);
                 return;
             }
             //已拥有?
             if (simCasinoDao.findOne(ctx.playerId(), targetCasinoId) != null) {
-                log.warn("开辟新赌场失败, 已拥有 playerId={},casinoId={}", ctx.playerId(), targetCasinoId);
+                log.warn("开辟新场景失败, 已拥有 playerId={},casinoId={}", ctx.playerId(), targetCasinoId);
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;
             }
-            //condition: 前置赌场经营等级达标
+            //condition: 前置场景经营等级达标
             if (!checkCondition(ctx, cfg)) {
                 res.code = Code.NOT_ENOUGH;
                 ctx.send(res);
@@ -81,7 +81,7 @@ public class SimCasinoService {
             }
             SimCasinoData casino = buildNewCasino(ctx, targetCasinoId);
             simCasinoDao.save(casino);
-            log.info("开辟新赌场成功 playerId={},casinoId={}", ctx.playerId(), targetCasinoId);
+            log.info("开辟新场景成功 playerId={},casinoId={}", ctx.playerId(), targetCasinoId);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -90,33 +90,33 @@ public class SimCasinoService {
     }
 
     /**
-     * 切换赌场 (落库旧赌场, 加载并下发目标赌场数据)
+     * 切换场景 (落库旧场景, 加载并下发目标场景数据)
      */
     public void onSwitchCasino(SimPlayerContext ctx, int targetCasinoId) {
         ResSwitchCasino res = new ResSwitchCasino(Code.SUCCESS);
         try {
             if (targetCasinoId == ctx.getSimBaseData().getCurrentCasinoId()) {
-                log.warn("切换赌场失败, 已在该赌场 playerId={},casinoId={}", ctx.playerId(), targetCasinoId);
+                log.warn("切换场景失败, 已在该场景 playerId={},casinoId={}", ctx.playerId(), targetCasinoId);
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;
             }
-            //目标赌场必须已拥有
+            //目标场景必须已拥有
             SimCasinoData target = simCasinoDao.findOne(ctx.playerId(), targetCasinoId);
             if (target == null) {
-                log.warn("切换赌场失败, 目标赌场未拥有 playerId={},casinoId={}", ctx.playerId(), targetCasinoId);
+                log.warn("切换场景失败, 目标场景未拥有 playerId={},casinoId={}", ctx.playerId(), targetCasinoId);
                 res.code = Code.NOT_FOUND;
                 ctx.send(res);
                 return;
             }
-            //结算旧赌场已积累产出, 再同步落库 (先排空异步在途写, 避免旧快照覆盖)
+            //结算旧场景已积累产出, 再同步落库 (先排空异步在途写, 避免旧快照覆盖)
             SimCasinoData old = ctx.getCurrentCasino();
             if (old != null) {
                 simBuildingService.settleOnlineOutput(ctx);
                 autoSaveService.awaitPending();
                 simCasinoDao.save(old);
             }
-            //切换到目标赌场 (新加载实体的运行时 transient 字段天然为初始值)
+            //切换到目标场景 (新加载实体的运行时 transient 字段天然为初始值)
             ctx.setCurrentCasino(target);
             ctx.switchCasino(targetCasinoId);
             simBuildingService.completeAllBuildingUpgrade(target);
@@ -127,7 +127,7 @@ public class SimCasinoService {
             res.managerEmployInfos = SimPbConverter.toManagerInfos(casino);
             res.awareness = casino.getAwareness();
 
-            log.info("切换赌场 playerId={},res={}", ctx.playerId(), JSONObject.toJSONString(res));
+            log.info("切换场景 playerId={},res={}", ctx.playerId(), JSONObject.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -168,15 +168,15 @@ public class SimCasinoService {
      *
      * @param ctx
      * @param baseData
-     * @return 当前赌场; 加载失败返回 null
+     * @return 当前场景; 加载失败返回 null
      */
     public SimCasinoData loadCasinoData(SimPlayerContext ctx, SimBaseData baseData) {
         SimCasinoData currentCasino;
         if (baseData.getCurrentCasinoId() > 0) {
-            //加载当前所在赌场
+            //加载当前所在场景
             currentCasino = simCasinoDao.findOne(ctx.playerId(), baseData.getCurrentCasinoId());
         } else {
-            //新玩家: 初始化默认赌场并落库
+            //新玩家: 初始化默认场景并落库
             currentCasino = initDefaultCasino(ctx);
             if (currentCasino != null) {
                 baseData.setCurrentCasinoId(currentCasino.getCasinoId());
@@ -185,7 +185,7 @@ public class SimCasinoService {
         }
 
         if (currentCasino == null) {
-            log.warn("加载赌场数据失败 playerId={}", ctx.playerId());
+            log.warn("加载场景数据失败 playerId={}", ctx.playerId());
             return null;
         }
 
@@ -196,7 +196,7 @@ public class SimCasinoService {
     }
 
     /**
-     * 初始化新玩家的默认赌场 (取 CasinoList 中无解锁条件的赌场, 通常为 casinoId=1)
+     * 初始化新玩家的默认场景 (取 CasinoList 中无解锁条件的场景, 通常为 casinoId=1)
      */
     public SimCasinoData initDefaultCasino(SimPlayerContext ctx) {
         int defaultCasinoId = SimConstant.Common.DEFAULT_CASINO_ID;
@@ -211,9 +211,9 @@ public class SimCasinoService {
     }
 
     /**
-     * 配置驱动创建一个新赌场 (初始化/开辟共用): 设置经营等级、繁荣度, 并放入该场景的初始建筑。
+     * 配置驱动创建一个新场景 (初始化/开辟共用): 设置经营等级、繁荣度, 并放入该场景的初始建筑。
      *
-     * @param casinoId 赌场id (= CasinoListCfg.id = BuildingAreaTableCfg.RegionID)
+     * @param casinoId 场景id (= CasinoListCfg.id = BuildingAreaTableCfg.RegionID)
      */
     public SimCasinoData buildNewCasino(SimPlayerContext ctx, int casinoId) {
         SimCasinoData casino = new SimCasinoData();
@@ -231,13 +231,13 @@ public class SimCasinoService {
         updateCasinoUnlock(ctx.playerId(), casinoId, INITIAL_BUILDING_LEVEL);
         simSkillService.initUnlock(ctx, casinoId);
         //TODO 初始游客: VisitorQuest 无场景维度配置, 待策划补充配置后在此初始化 guestMap
-        log.info("创建新赌场 playerId={},casinoId={},statsId={},buildingCount={}", ctx.playerId(), casinoId, statsId,
+        log.info("创建新场景 playerId={},casinoId={},statsId={},buildingCount={}", ctx.playerId(), casinoId, statsId,
                 casino.getBuildingData() == null ? 0 : casino.getBuildingData().size());
         return casino;
     }
 
     /**
-     * 取某赌场 (RegionID) level 最小的经营等级 statsId; 未配置则回退默认值
+     * 取某场景 (RegionID) level 最小的经营等级 statsId; 未配置则回退默认值
      */
     private int resolveInitialStatsId(int casinoId) {
         int bestId = SimConstant.Common.DEFAULT_CASINO_STATS_ID;
@@ -254,13 +254,13 @@ public class SimCasinoService {
             }
         }
         if (!found) {
-            log.warn("赌场未配置 CasinoStatsSheet, 回退默认 statsId casinoId={},defaultStatsId={}", casinoId, bestId);
+            log.warn("场景未配置 CasinoStatsSheet, 回退默认 statsId casinoId={},defaultStatsId={}", casinoId, bestId);
         }
         return bestId;
     }
 
     /**
-     * 校验开辟条件: condition 为 (前置赌场id -> 需达经营等级); 任一前置赌场不达标即失败。
+     * 校验开辟条件: condition 为 (前置场景id -> 需达经营等级); 任一前置场景不达标即失败。
      */
     private boolean checkCondition(SimPlayerContext ctx, CasinoListCfg cfg) {
         Map<Integer, Integer> condition = cfg.getCondition();
@@ -272,7 +272,7 @@ public class SimCasinoService {
             int needLevel = en.getValue();
             int level = casinoOperationLevel(ctx, preCasinoId);
             if (level < needLevel) {
-                log.info("开辟新赌场条件不满足 playerId={},targetCasinoId={},preCasinoId={},needLevel={},level={}",
+                log.info("开辟新场景条件不满足 playerId={},targetCasinoId={},preCasinoId={},needLevel={},level={}",
                         ctx.playerId(), cfg.getId(), preCasinoId, needLevel, level);
                 return false;
             }
@@ -281,7 +281,7 @@ public class SimCasinoService {
     }
 
     /**
-     * 取玩家某赌场的经营等级 (优先内存当前赌场, 否则查 DB); 未拥有返回 -1。
+     * 取玩家某场景的经营等级 (优先内存当前场景, 否则查 DB); 未拥有返回 -1。
      */
     private int casinoOperationLevel(SimPlayerContext ctx, int casinoId) {
         SimCasinoData casino;

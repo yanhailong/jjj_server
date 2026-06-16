@@ -64,13 +64,13 @@ public class SimGuestService implements SimPlayerTickListener {
         if (!ctx.getSimBaseData().isGuide()) {
             return;
         }
-        //当前赌场
+        //当前场景
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino == null) {
-            log.warn("生成游客失败，当前赌场数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
+            log.warn("生成游客失败，当前场景数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
             return;
         }
-        //赌场配置
+        //场景配置
         CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
         if (casinoCfg == null) {
             log.warn("生成游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), casino.getStatsId());
@@ -99,10 +99,10 @@ public class SimGuestService implements SimPlayerTickListener {
      * @param num
      */
     public void batchGenerateSpecifyIdGuest(SimPlayerContext ctx, int guestId, int num) {
-        //当前赌场
+        //当前场景
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino == null) {
-            log.warn("生成指定游客id失败，当前赌场数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
+            log.warn("生成指定游客id失败，当前场景数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
             return;
         }
 
@@ -112,7 +112,7 @@ public class SimGuestService implements SimPlayerTickListener {
             return;
         }
 
-        //赌场配置
+        //场景配置
         CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
         if (casinoCfg == null) {
             log.warn("生成指定游客id失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), casino.getStatsId());
@@ -134,13 +134,13 @@ public class SimGuestService implements SimPlayerTickListener {
      * @param num
      */
     public void batchGenerateSpecifyQualityGuest(SimPlayerContext ctx, int quality, int num) {
-        //当前赌场
+        //当前场景
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino == null) {
-            log.warn("生成指定游客quality失败，当前赌场数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
+            log.warn("生成指定游客quality失败，当前场景数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
             return;
         }
-        //赌场配置
+        //场景配置
         CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
         if (casinoCfg == null) {
             log.warn("生成指定游客quality失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), casino.getStatsId());
@@ -192,7 +192,7 @@ public class SimGuestService implements SimPlayerTickListener {
 
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino == null) {
-            log.warn("生成购买游客失败，当前赌场数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
+            log.warn("生成购买游客失败，当前场景数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
             res.code = Code.NOT_FOUND;
             ctx.send(res);
             return;
@@ -278,7 +278,7 @@ public class SimGuestService implements SimPlayerTickListener {
 
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino == null) {
-            log.warn("领取购买游客奖励失败，当前赌场数据不存在 playerId={},uid={}", ctx.playerId(), uid);
+            log.warn("领取购买游客奖励失败，当前场景数据不存在 playerId={},uid={}", ctx.playerId(), uid);
             res.code = Code.NOT_FOUND;
             ctx.send(res);
             return;
@@ -455,7 +455,7 @@ public class SimGuestService implements SimPlayerTickListener {
 
     /**
      * 计算实际来访间隔 (ms)
-     * 当赌场满员 (10 分钟内生成人数 >= 赌场容纳上限) 时降低刷新频率:
+     * 当场景满员 (10 分钟内生成人数 >= 场景容纳上限) 时降低刷新频率:
      * 实际间隔 = 基础间隔 * 当前总人数 / 上限
      */
     private long computeVisitIntervalMs(CasinoStatsSheetCfg casinoCfg, SimCasinoData casino, long now) {
@@ -635,7 +635,7 @@ public class SimGuestService implements SimPlayerTickListener {
     public int unlockGuest(SimPlayerContext ctx, int guestId) {
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino == null) {
-            log.warn("解锁游客时，当前赌场数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
+            log.warn("解锁游客时，当前场景数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
             return Code.NOT_FOUND;
         }
         GuestData guest = casino.findGuestData(guestId);

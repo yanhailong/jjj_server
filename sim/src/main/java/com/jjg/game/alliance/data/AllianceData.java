@@ -44,7 +44,7 @@ public class AllianceData {
     //累计声誉值 (只增不消耗)
     private long reputation;
 
-    //入盟最低赌场等级 (1-99)
+    //入盟最低场景等级 (1-99)
     private int joinMinCasinoLevel = AllianceConst.Cfg.JOIN_LEVEL_MIN;
     //入盟是否需要审核
     private boolean joinNeedAudit;
