@@ -10,7 +10,6 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimEmployeeDao;
@@ -78,13 +77,9 @@ public class SimManager {
     @Autowired
     private SimDropService simDropService;
     @Autowired
-    private SimSkillService simSkillService;
-    @Autowired
     private SimStatsService simStatsService;
     @Autowired
     private ClusterSystem clusterSystem;
-    @Autowired
-    private PlayerSessionService playerSessionService;
     @Autowired
     private AllianceEventService allianceEventService;
 

@@ -103,7 +103,7 @@ public class SimEmployeeService {
                 return;
             }
 
-            WeightRandom<List<Integer>> poolRand = configCache.getEmployeePoolRand(tmpCfg.getId());
+            WeightRandom<List<Integer>> poolRand = configCache.getEmployeePoolRand(tmpCfg.getDropItem());
             if (poolRand == null) {
                 log.warn("招募雇员失败,获取卡池权重失败 playerId={},count={},poolId={}", ctx.playerId(), count, tmpCfg.getId());
                 res.code = Code.PARAM_ERROR;

@@ -29,7 +29,7 @@ public class SimCasinoData extends AbstractData {
     private int casinoId;
     //经验
     private int exp;
-    //赌场等级 (CasinoLevelCfg.id)
+    //赌场等级 (CasinoStatsSheet.level)
     private int casinoLevel;
     //等级id
     private int statsId;

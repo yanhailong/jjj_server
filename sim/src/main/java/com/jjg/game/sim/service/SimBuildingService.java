@@ -53,8 +53,6 @@ public class SimBuildingService implements SimPlayerTickListener {
     @Autowired
     private SimEmployeeService employeeService;
     @Autowired
-    private SimDropService simDropService;
-    @Autowired
     private SimPackService simPackService;
     @Autowired
     private AllianceHelpService allianceHelpService;

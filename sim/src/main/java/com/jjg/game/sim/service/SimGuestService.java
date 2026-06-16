@@ -793,7 +793,7 @@ public class SimGuestService implements SimPlayerTickListener {
                 return;
             }
 
-            WeightRandom<List<Integer>> poolRand = configCache.getPoolRand(tmpCfg.getId());
+            WeightRandom<List<Integer>> poolRand = configCache.getPoolRand(tmpCfg.getDropItem());
             if (poolRand == null) {
                 log.warn("招募游客失败,获取配置失败1 playerId={},count={}", ctx.playerId(), count);
                 res.code = Code.PARAM_ERROR;
