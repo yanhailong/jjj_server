@@ -292,6 +292,16 @@ public class SimMessageHandler implements GmListener {
         });
     }
 
+    /**
+     * 游客羁绊
+     */
+    @Command(SimConstant.MsgBean.REQ_UNLOCK_BONDS)
+    public void reqUnlockBonds(PlayerController playerController, ReqGuestBonds req) {
+        execute(playerController, ctx -> {
+            guestService.onBonds(ctx);
+        });
+    }
+
     //--------------------------游客相关 end--------------------------
 
     //--------------------------经营信息 begin--------------------------

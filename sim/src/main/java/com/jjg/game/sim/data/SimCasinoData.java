@@ -5,11 +5,7 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 场景信息
@@ -55,6 +51,8 @@ public class SimCasinoData extends AbstractData {
     private Map<Long, PurchasedGuestData> purchasedGuestMap;
     //主管id
     private Map<Integer, Integer> managerEmployMap;
+    //游客羁绊
+    private Set<Integer> guestBondsSet;
     //上次生成游客时间(ms) — 运行时, 不持久化
     @Transient
     private transient long lastGenerateTime;
@@ -171,6 +169,14 @@ public class SimCasinoData extends AbstractData {
 
     public void setManagerEmployMap(Map<Integer, Integer> managerEmployMap) {
         this.managerEmployMap = managerEmployMap;
+    }
+
+    public Set<Integer> getGuestBondsSet() {
+        return guestBondsSet;
+    }
+
+    public void setGuestBondsSet(Set<Integer> guestBondsSet) {
+        this.guestBondsSet = guestBondsSet;
     }
 
     public long getLastGenerateTime() {
@@ -405,5 +411,19 @@ public class SimCasinoData extends AbstractData {
             this.slotStatsMap = new HashMap<>();
         }
         return this.slotStatsMap.computeIfAbsent(gameType, k -> new SlotGameStatsData());
+    }
+
+    public boolean containsGuestBonds(int bondsId) {
+        if (this.guestBondsSet == null || this.guestBondsSet.isEmpty()) {
+            return false;
+        }
+        return this.guestBondsSet.contains(bondsId);
+    }
+
+    public void addGuestBonds(int bondsId) {
+        if (this.guestBondsSet == null || this.guestBondsSet.isEmpty()) {
+            this.guestBondsSet = new HashSet<>();
+        }
+        this.guestBondsSet.add(bondsId);
     }
 }

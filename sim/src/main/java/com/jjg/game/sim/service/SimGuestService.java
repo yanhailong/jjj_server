@@ -7,6 +7,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -650,8 +651,8 @@ public class SimGuestService implements SimPlayerTickListener {
             guest.setLevel(1);
             guest.setStar(1);
             casino.addGuest(guest);
+            unlockBonds(ctx, Collections.singletonList(guestId));
         }
-
         log.info("解锁游客成功 guestId={}", guestId);
         return Code.SUCCESS;
     }
@@ -846,12 +847,16 @@ public class SimGuestService implements SimPlayerTickListener {
 
             if (!addGuest.isEmpty()) {
                 res.guests = new ArrayList<>();
+                List<Integer> guestIds = new ArrayList<>();
                 for (Map.Entry<Integer, Integer> en : addGuest.entrySet()) {
                     KVInfo kvInfo = new KVInfo();
                     kvInfo.key = en.getKey();
                     kvInfo.value = en.getValue();
                     res.guests.add(kvInfo);
+
+                    guestIds.add(kvInfo.key);
                 }
+                unlockBonds(ctx, guestIds);
             }
             log.info("招募游客成功 playerId={},count={},newEmployee={},shard={}", ctx.playerId(), count, addGuest, addItems);
         } catch (Exception e) {
@@ -859,5 +864,84 @@ public class SimGuestService implements SimPlayerTickListener {
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+    }
+
+    /**
+     * 获取游客羁绊
+     *
+     * @param ctx
+     */
+    public void onBonds(SimPlayerContext ctx) {
+        ResGuestBonds res = new ResGuestBonds(Code.SUCCESS);
+        try {
+            if (ctx.getCurrentCasino().getGuestBondsSet() != null && !ctx.getCurrentCasino().getGuestBondsSet().isEmpty()) {
+                res.bonds = new ArrayList<>(ctx.getCurrentCasino().getGuestBondsSet());
+            }
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+    }
+
+    /**
+     * 解锁羁绊
+     *
+     * @param ctx
+     */
+    private void unlockBonds(SimPlayerContext ctx, List<Integer> guestIds) {
+        if (guestIds == null || guestIds.isEmpty()) {
+            return;
+        }
+
+        Map<Integer, Long> addItems = new HashMap<>();
+
+        for (int guestId : guestIds) {
+            Set<Integer> bondsIds = configCache.getBondsByGuestId(guestId);
+            if (bondsIds == null || bondsIds.isEmpty()) {
+                continue;
+            }
+
+            bonds:
+            for (int bondsCfgId : bondsIds) {
+                //是否已解锁这个羁绊
+                if (ctx.getCurrentCasino().containsGuestBonds(bondsCfgId)) {
+                    continue;
+                }
+
+                //获取羁绊配置
+                VisitorBondsCfg visitorBondsCfg = GameDataManager.getVisitorBondsCfg(bondsCfgId);
+                if (visitorBondsCfg == null) {
+                    continue;
+                }
+
+                if (visitorBondsCfg.getMembers() != null && !visitorBondsCfg.getMembers().isEmpty()) {
+                    for (int memberGuestId : visitorBondsCfg.getMembers()) {
+                        GuestData guestData = ctx.getCurrentCasino().findGuestData(memberGuestId);
+                        if (guestData == null) {
+                            continue bonds;
+                        }
+                    }
+                }
+                //添加羁绊
+                ctx.getCurrentCasino().addGuestBonds(visitorBondsCfg.getId());
+
+                if (visitorBondsCfg.getReward() != null && !visitorBondsCfg.getReward().isEmpty()) {
+                    for (Map.Entry<Integer, Integer> en : visitorBondsCfg.getReward().entrySet()) {
+                        addItems.merge(en.getKey(), en.getValue().longValue(), Long::sum);
+                    }
+                }
+                log.info("成功解锁羁绊 playerId={},bondsId={}", ctx.playerId(), visitorBondsCfg.getId());
+            }
+        }
+
+        if (!addItems.isEmpty()) {
+            CommonResult<SimItemOperationResult> addResult = simPackService.addItems(ctx, addItems, AddType.SIM_UNLOCK_BONDS, null, true);
+            if (addResult.success()) {
+                log.info("解锁羁绊添加道具成功 playerId={},addItems={}", ctx.playerId(), addItems);
+            } else {
+                log.warn("解锁羁绊添加道具失败 playerId={},addItems={},code={}", ctx.playerId(), addItems, addResult.code);
+            }
+        }
     }
 }

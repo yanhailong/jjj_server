@@ -97,7 +97,7 @@ public class SimPackService {
             if (itemResult.success() && itemResult.data != null) {
                 data = SimItemOperationResult.createFromItemResult(itemResult.data);
             }
-            log.info("添加道具 playerId={},items={},gold={}", ctx.playerId(), packItems, itemResult.data.getGoldNum());
+//            log.info("添加道具 playerId={},items={},gold={}", ctx.playerId(), packItems, itemResult.data.getGoldNum());
         }
         //回填 sim 特殊资源最新值, 供下发客户端
         data.setPower(ctx.getSimBaseData().getPower());

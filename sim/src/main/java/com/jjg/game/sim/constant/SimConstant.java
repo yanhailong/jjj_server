@@ -116,6 +116,10 @@ public interface SimConstant {
         //升星游客
         int REQ_STAR_UP_GUEST = BASE_MSG_PREFIX | 0x34;
         int RES_STAR_UP_GUEST = BASE_MSG_PREFIX | 0x35;
+
+        //获取已解锁羁绊
+        int REQ_UNLOCK_BONDS = BASE_MSG_PREFIX | 0x36;
+        int RES_UNLOCK_BONDS = BASE_MSG_PREFIX | 0x37;
     }
 
     interface Common {

@@ -36,6 +36,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private Map<Integer, Map<Integer, VisitorStarCfg>> visitorStarCfgMap;
     //visitorPool 的drop item的权重
     private Map<Integer, WeightRandom<List<Integer>>> visitorPoolRandomMap;
+    //游客羁绊 guestId -> bondsCfgId
+    private Map<Integer, Set<Integer>> visitorBondsMap = null;
+
 
     //EmployeeLevel配置 employeeId -> level -> cfg
     private Map<Integer, Map<Integer, EmployeeLevelCfg>> employeeLevelCfgMap;
@@ -59,6 +62,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //广告收益倍数随机
     private WeightRandom<String> adMultiplierRandom = null;
 
+
     public void testInit() {
         loadCasinoStatsSheetCfg();
         loadResearchInstituteCfg();
@@ -76,6 +80,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         loadVisitorLevelConfig();
         loadVisitorStarConfig();
         loadVisitorPoolConfig();
+        loadVisitorBondsConfig();
 
         loadGlobalConfig();
 
@@ -157,6 +162,19 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             tmpVisitorPoolRandomMap.put(cfg.getId(), random);
         }
         this.visitorPoolRandomMap = tmpVisitorPoolRandomMap;
+    }
+
+    private void loadVisitorBondsConfig() {
+        Map<Integer, Set<Integer>> tmpVisitorBondsMap = new HashMap<>();
+        for (VisitorBondsCfg cfg : GameDataManager.getVisitorBondsCfgList()) {
+            if (cfg.getMembers() == null || cfg.getMembers().isEmpty()) {
+                continue;
+            }
+            for (int memberGuestId : cfg.getMembers()) {
+                tmpVisitorBondsMap.computeIfAbsent(memberGuestId, k -> new HashSet<>()).add(cfg.getId());
+            }
+        }
+        this.visitorBondsMap = tmpVisitorBondsMap;
     }
 
     /**
@@ -306,6 +324,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         addInitSampleFileObserveWithCallBack(VisitorLevelCfg.EXCEL_NAME, this::loadVisitorLevelConfig);
         addInitSampleFileObserveWithCallBack(VisitorStarCfg.EXCEL_NAME, this::loadVisitorStarConfig);
         addInitSampleFileObserveWithCallBack(VisitorPoolCfg.EXCEL_NAME, this::loadVisitorPoolConfig);
+        addInitSampleFileObserveWithCallBack(VisitorBondsCfg.EXCEL_NAME, this::loadVisitorBondsConfig);
 
         addInitSampleFileObserveWithCallBack(EmployeeLevelCfg.EXCEL_NAME, this::loadEmployeeLevelConfig);
         addInitSampleFileObserveWithCallBack(EmployeeStarCfg.EXCEL_NAME, this::loadEmployeeStarConfig);
@@ -491,5 +510,12 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             return null;
         }
         return this.employeePoolRandomMap.get(cfgId);
+    }
+
+    public Set<Integer> getBondsByGuestId(int guestId) {
+        if (this.visitorBondsMap == null || this.visitorBondsMap.isEmpty()) {
+            return null;
+        }
+        return this.visitorBondsMap.get(guestId);
     }
 }
