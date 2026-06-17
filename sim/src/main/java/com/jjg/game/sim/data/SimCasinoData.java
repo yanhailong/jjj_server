@@ -418,4 +418,12 @@ public class SimCasinoData extends AbstractData {
         }
         this.guestBondsSet.add(bondsId);
     }
+
+
+    public boolean employIsManager(int employeeId) {
+        if(this.managerEmployMap == null || this.managerEmployMap.isEmpty()) {
+            return false;
+        }
+        return this.managerEmployMap.entrySet().stream().anyMatch(e -> e.getValue() == employeeId);
+    }
 }

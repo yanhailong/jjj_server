@@ -317,6 +317,7 @@ public class SimEmployeeService {
                     detailInfo.id = value.getEmployeeId();
                     detailInfo.level = value.getLevel();
                     detailInfo.star = value.getStar();
+                    detailInfo.manager = ctx.getCurrentCasino().employIsManager(value.getEmployeeId());
                     res.employees.add(detailInfo);
                 }
             }
