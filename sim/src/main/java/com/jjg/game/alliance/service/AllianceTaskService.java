@@ -168,6 +168,7 @@ public class AllianceTaskService {
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
             res.code = Code.ALLIANCE_NOT_MEMBER;
+            log.warn("接取联盟任务失败,玩家不在联盟 playerId={},taskUid={}", playerId, taskUid);
             return res;
         }
         long now = System.currentTimeMillis();
@@ -175,12 +176,14 @@ public class AllianceTaskService {
         //放弃冷却
         if (playerData.getAbandonCdUntil() > now) {
             res.code = Code.ALLIANCE_IN_CD;
+            log.warn("接取联盟任务失败,放弃冷却中 playerId={},taskUid={},cdUntil={}", playerId, taskUid, playerData.getAbandonCdUntil());
             return res;
         }
         //每日完成次数上限
         int today = TimeHelper.getDayNumerical();
         if (playerData.taskFinishCountOf(today) >= AllianceConst.Cfg.DAILY_TASK_LIMIT) {
             res.code = Code.ALLIANCE_TASK_TAKEN;
+            log.warn("接取联盟任务失败,今日完成次数已达上限 playerId={},finished={},limit={}", playerId, playerData.taskFinishCountOf(today), AllianceConst.Cfg.DAILY_TASK_LIMIT);
             return res;
         }
         //单次只能接一条 (已有未超期任务)
@@ -188,6 +191,7 @@ public class AllianceTaskService {
         if (current != null) {
             if (!current.expired(now)) {
                 res.code = Code.ALLIANCE_TASK_TAKEN;
+                log.warn("接取联盟任务失败,已有进行中任务 playerId={},currentTaskUid={}", playerId, current.getUid());
                 return res;
             }
             failTask(playerId, current);
@@ -196,16 +200,19 @@ public class AllianceTaskService {
         AllianceTaskSlot slot = alliance.findTask(taskUid);
         if (slot == null || slot.getExpireTime() <= now) {
             res.code = Code.NOT_FOUND;
+            log.warn("接取联盟任务失败,任务不存在或已过期 playerId={},allianceId={},taskUid={}", playerId, allianceId, taskUid);
             return res;
         }
         AllianceConfigService.TaskCfg cfg = configService.taskCfg(slot.getCfgId());
         if (cfg == null) {
             res.code = Code.SAMPLE_ERROR;
+            log.warn("接取联盟任务失败,任务配置缺失 playerId={},taskUid={},cfgId={}", playerId, taskUid, slot.getCfgId());
             return res;
         }
         //原子摘取 (并发接取只有一人成功)
         if (!allianceDao.pullTask(allianceId, taskUid)) {
             res.code = Code.ALLIANCE_TASK_TAKEN;
+            log.warn("接取联盟任务失败,任务已被他人接取 playerId={},allianceId={},taskUid={}", playerId, allianceId, taskUid);
             return res;
         }
         cacheService.publishInvalidate(allianceId);
@@ -230,11 +237,13 @@ public class AllianceTaskService {
         PlayerTakenTask taken = playerData.getTakenTask();
         if (taken == null) {
             res.code = Code.NOT_FOUND;
+            log.warn("放弃联盟任务失败,无进行中任务 playerId={}", playerId);
             return res;
         }
         long cdUntil = System.currentTimeMillis() + AllianceConst.Cfg.ABANDON_TASK_CD_SEC * 1000L;
         if (!clearTask(playerId, taken)) {
             res.code = Code.NOT_FOUND;
+            log.warn("放弃联盟任务失败,清理任务快照失败 playerId={},taskUid={}", playerId, taken.getUid());
             return res;
         }
         alliancePlayerDao.setAbandonCd(playerId, cdUntil);

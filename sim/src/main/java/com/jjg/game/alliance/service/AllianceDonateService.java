@@ -88,11 +88,13 @@ public class AllianceDonateService {
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
             res.code = Code.ALLIANCE_NOT_MEMBER;
+            log.warn("联盟捐献失败,玩家不在联盟 playerId={},donateId={}", playerId, donateId);
             return res;
         }
         AllianceConfigService.DonateCfg cfg = configService.donateCfg(donateId);
         if (cfg == null) {
             res.code = Code.PARAM_ERROR;
+            log.warn("联盟捐献失败,捐献配置不存在 playerId={},donateId={}", playerId, donateId);
             return res;
         }
         AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
@@ -100,6 +102,7 @@ public class AllianceDonateService {
         int donated = playerData.donateCountOf(today);
         if (donated >= AllianceConst.Cfg.DAILY_DONATE_LIMIT) {
             res.code = Code.ALLIANCE_DONATE_LIMIT;
+            log.warn("联盟捐献失败,今日捐献次数已达上限 playerId={},donated={},limit={}", playerId, donated, AllianceConst.Cfg.DAILY_DONATE_LIMIT);
             return res;
         }
 
@@ -107,6 +110,7 @@ public class AllianceDonateService {
         int newDonateCount = alliancePlayerDao.reserveDonate(playerId, today, AllianceConst.Cfg.DAILY_DONATE_LIMIT);
         if (newDonateCount <= 0) {
             res.code = Code.ALLIANCE_DONATE_LIMIT;
+            log.warn("联盟捐献失败,占用捐献次数失败(并发达上限) playerId={},donateId={},limit={}", playerId, donateId, AllianceConst.Cfg.DAILY_DONATE_LIMIT);
             return res;
         }
         boolean free = cfg.firstFree() && newDonateCount == 1;
@@ -116,6 +120,7 @@ public class AllianceDonateService {
             if (!deduct.success()) {
                 alliancePlayerDao.rollbackDonate(playerId, today);
                 res.code = Code.NOT_ENOUGH_ITEM;
+                log.warn("联盟捐献失败,消耗道具不足已回滚 playerId={},donateId={},costItemId={},costCount={}", playerId, donateId, cfg.costItemId(), cfg.costCount());
                 return res;
             }
         }

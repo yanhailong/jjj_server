@@ -288,7 +288,7 @@ public enum AddType {
     //sim解锁羁绊
     SIM_UNLOCK_BONDS(1809),
 
-    //创建联盟消耗
+    //创建联盟
     ALLIANCE_CREATE(2001),
     //联盟商店兑换
     ALLIANCE_SHOP_BUY(2002),

@@ -1,6 +1,7 @@
 package com.jjg.game.alliance.manager;
 
 import com.jjg.game.alliance.constant.AllianceConst;
+import com.jjg.game.alliance.dao.AllianceIdDao;
 import com.jjg.game.alliance.service.AllianceBattleService;
 import com.jjg.game.alliance.service.AllianceRankService;
 import com.jjg.game.alliance.service.AllianceService;
@@ -50,6 +51,8 @@ public class AllianceManager implements IGameClusterLeaderListener, IPlayerLogin
     private AllianceRankService rankService;
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private AllianceIdDao allianceIdDao;
 
     //leader 任务句柄
     private volatile Timeout battleTickTimeout;
@@ -57,6 +60,7 @@ public class AllianceManager implements IGameClusterLeaderListener, IPlayerLogin
     private volatile boolean running = false;
 
     public void init() {
+        allianceIdDao.init();
         running = true;
         log.info("联盟模块初始化完成");
     }

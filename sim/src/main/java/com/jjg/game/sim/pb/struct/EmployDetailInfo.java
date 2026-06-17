@@ -16,4 +16,6 @@ public class EmployDetailInfo {
     public int level;
     @ProtoDesc("星级")
     public int star;
+    @ProtoDesc("是否为主管")
+    public boolean manager;
 }

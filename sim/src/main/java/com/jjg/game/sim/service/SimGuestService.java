@@ -72,9 +72,9 @@ public class SimGuestService implements SimPlayerTickListener {
             return;
         }
         //场景配置
-        CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
+        CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
         if (casinoCfg == null) {
-            log.warn("生成游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), casino.getStatsId());
+            log.warn("生成游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={},level={}", ctx.playerId(), casino.getCasinoId(), casino.getCasinoLevel());
             return;
         }
         //计算实际生成间隔(ms)
@@ -109,14 +109,14 @@ public class SimGuestService implements SimPlayerTickListener {
 
         VisitorQuestCfg visitorQuestCfg = GameDataManager.getVisitorQuestCfg(guestId);
         if (visitorQuestCfg == null) {
-            log.warn("生成指定游客id失败，获取 visitorQuestCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), casino.getStatsId());
+            log.warn("生成指定游客id失败，获取 visitorQuestCfg 配置未找到 playerId={},guestId={}", ctx.playerId(), guestId);
             return;
         }
 
         //场景配置
-        CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
+        CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
         if (casinoCfg == null) {
-            log.warn("生成指定游客id失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), casino.getStatsId());
+            log.warn("生成指定游客id失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={},level={}", ctx.playerId(), casino.getCasinoId(), casino.getCasinoLevel());
             return;
         }
 
@@ -142,9 +142,9 @@ public class SimGuestService implements SimPlayerTickListener {
             return;
         }
         //场景配置
-        CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
+        CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
         if (casinoCfg == null) {
-            log.warn("生成指定游客quality失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), casino.getStatsId());
+            log.warn("生成指定游客quality失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={},level={}", ctx.playerId(), casino.getCasinoId(), casino.getCasinoLevel());
             return;
         }
 
@@ -205,9 +205,9 @@ public class SimGuestService implements SimPlayerTickListener {
             ctx.send(res);
             return;
         }
-        CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
+        CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
         if (casinoCfg == null) {
-            log.warn("生成购买游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), casino.getStatsId());
+            log.warn("生成购买游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={},level={}", ctx.playerId(), casino.getCasinoId(), casino.getCasinoLevel());
             res.code = Code.FAIL;
             ctx.send(res);
             return;

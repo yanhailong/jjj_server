@@ -356,7 +356,7 @@ public interface AllianceConst {
      * Redis key。
      */
     interface RedisKey {
-        //联盟 id 发号器 (INCR, 初始化为 100000, 保证 6 位数字)
+        //联盟 id 发号器 (INCR, 初始化为 100000, 保证 5 位数字)
         String ID_SEQ = "alliance:id:seq";
         //联盟数据变更失效广播频道 (payload=allianceId)
         String INVALIDATE_CHANNEL = "alliance:invalidate";

@@ -3,6 +3,7 @@ package com.jjg.game.sim.service;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.alliance.service.AllianceHelpService;
 import com.jjg.game.common.pb.ItemInfo;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -276,7 +277,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                 return;
             }
             //建筑等级 <= 经营等级 (简化: 以场景 stats level 为经营等级)
-            CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
+            CasinoStatsSheetCfg statsCfg = configCache.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
             if (buildingNextLevel > statsCfg.getLevel()) {
                 log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},buildingNextLevel={},casinoLevel={}", ctx.playerId(), buildingId, buildingNextLevel, statsCfg.getLevel());
                 res.code = Code.NOT_ENOUGH;
@@ -506,17 +507,17 @@ public class SimBuildingService implements SimPlayerTickListener {
         if (bonusType != null && !bonusType.isMin()) {
             return Collections.emptyMap();
         }
-        return applyBuildingBonus(ctx, building, base, bonusType, bonusesMap);
+        return applyBuildingBonus(ctx, base, bonusType, buildingType, bonusesMap);
     }
 
     /**
      * 为单个建筑的基础产出叠加 (普通雇员 + 主管) 加成; 不做每分钟产出类型过滤。
      */
-    private Map<BuildingOutputType, Long> applyBuildingBonus(SimPlayerContext ctx, BuildingData building,
-                                                             Map<BuildingOutputType, Long> base, BonusType bonusType,
+    private Map<BuildingOutputType, Long> applyBuildingBonus(SimPlayerContext ctx, Map<BuildingOutputType, Long> base,
+                                                             BonusType bonusType, BuildingType buildingType,
                                                              Map<BonusType, Integer> bonusesMap) {
         //主管加成
-        Map<BonusType, Integer> manageBonusesMap = employeeService.manageEmployeeBonus(ctx, building.getManagerEmployId());
+        Map<BonusType, Integer> manageBonusesMap = employeeService.manageEmployeeBonus(ctx, buildingType);
         //合并
         Map<BonusType, Integer> tmpMap;
         if (manageBonusesMap != null && !manageBonusesMap.isEmpty()) {
@@ -563,7 +564,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             if (base.isEmpty()) {
                 continue;
             }
-            Map<BuildingOutputType, Long> actual = applyBuildingBonus(ctx, building, base, BonusType.fromBuildingType(buildingType), bonusesMap);
+            Map<BuildingOutputType, Long> actual = applyBuildingBonus(ctx, base, BonusType.fromBuildingType(buildingType), buildingType, bonusesMap);
             if (buildingType == BuildingType.REST) {
                 //能量房间: 休息区 POWER 产量
                 result.merge(SimStatKey.Operation.ENERGY_ROOM, actual.getOrDefault(BuildingOutputType.POWER, 0L), Long::sum);
@@ -665,15 +666,15 @@ public class SimBuildingService implements SimPlayerTickListener {
         if (base == null || base.isEmpty()) {
             return Collections.emptyList();
         }
-        BonusType bonusType = resolveBonusType(buildingData.getId());
-        if (bonusType == null) {
+        Pair<BonusType, BuildingType> pair = resolveBonusType(buildingData.getId());
+        if (pair == null || pair.getFirst() == null) {
             return Collections.emptyList();
         }
 
         //所有已解锁雇员的等级加成 (按类型汇总)
         Map<BonusType, Integer> bonusesMap = new HashMap<>();
         employeeService.computeTypeBonusFixed(ctx, bonusesMap);
-        int bonus = bonusesMap.getOrDefault(bonusType, 0);
+        int bonus = bonusesMap.getOrDefault(pair.getFirst(), 0);
         return buildBonusList(base, bonus);
     }
 
@@ -689,8 +690,8 @@ public class SimBuildingService implements SimPlayerTickListener {
         if (base == null || base.isEmpty()) {
             return Collections.emptyList();
         }
-        BonusType bonusType = resolveBonusType(buildingData.getId());
-        if (bonusType == null) {
+        Pair<BonusType, BuildingType> pair = resolveBonusType(buildingData.getId());
+        if (pair == null || pair.getFirst() == null) {
             return Collections.emptyList();
         }
 
@@ -698,11 +699,11 @@ public class SimBuildingService implements SimPlayerTickListener {
         Map<BonusType, Integer> bonusesMap = new HashMap<>();
         employeeService.computeTypeBonusFixed(ctx, bonusesMap);
         //主管加成
-        Map<BonusType, Integer> withSupervisor = employeeService.manageEmployeeBonus(ctx, buildingData.getManagerEmployId());
+        Map<BonusType, Integer> withSupervisor = employeeService.manageEmployeeBonus(ctx, pair.getSecond());
 
         //仅取主管额外贡献的部分 (总加成 - 普通雇员加成), 避免与普通雇员加成重复计算
-        int normalBonus = bonusesMap.getOrDefault(bonusType, 0);
-        int totalBonus = withSupervisor.getOrDefault(bonusType, 0);
+        int normalBonus = bonusesMap.getOrDefault(pair.getFirst(), 0);
+        int totalBonus = withSupervisor.getOrDefault(pair.getFirst(), 0);
         int managerBonus = totalBonus - normalBonus;
         return buildBonusList(base, managerBonus);
     }
@@ -710,7 +711,7 @@ public class SimBuildingService implements SimPlayerTickListener {
     /**
      * 根据建筑id解析对应的加成类型
      */
-    private BonusType resolveBonusType(int buildingId) {
+    private Pair<BonusType, BuildingType> resolveBonusType(int buildingId) {
         BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
         if (areaCfg == null) {
             return null;
@@ -719,7 +720,8 @@ public class SimBuildingService implements SimPlayerTickListener {
         if (buildingType == null) {
             return null;
         }
-        return BonusType.fromBuildingType(buildingType);
+        BonusType bonusType = BonusType.fromBuildingType(buildingType);
+        return new Pair<>(bonusType, buildingType);
     }
 
     /**
@@ -825,7 +827,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             return null;
         }
         //离线上限时长 (按当前经营等级)
-        CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
+        CasinoStatsSheetCfg statsCfg = configCache.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
         int capMinutes = statsCfg == null ? 0 : statsCfg.getOfflineDuration();
         int effectiveMinutes = capMinutes > 0 ? (int) Math.min(offlineMinutes, capMinutes) : (int) offlineMinutes;
         if (effectiveMinutes <= 0) {

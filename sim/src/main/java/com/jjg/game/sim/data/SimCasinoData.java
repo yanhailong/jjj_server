@@ -103,14 +103,6 @@ public class SimCasinoData extends AbstractData {
         this.casinoLevel = casinoLevel;
     }
 
-    public int getStatsId() {
-        return statsId;
-    }
-
-    public void setStatsId(int statsId) {
-        this.statsId = statsId;
-    }
-
     public int getProsperity() {
         return prosperity;
     }
@@ -310,11 +302,11 @@ public class SimCasinoData extends AbstractData {
         return this.recentGenerateTimes.size();
     }
 
-    public boolean containsManageEmploy(int buildingType) {
+    public int manageEmploy(int buildingType) {
         if (this.managerEmployMap == null || this.managerEmployMap.isEmpty()) {
-            return false;
+            return 0;
         }
-        return this.managerEmployMap.containsKey(buildingType);
+        return this.managerEmployMap.get(buildingType);
     }
 
     public void addManagerEmploy(int buildingType, int employId) {

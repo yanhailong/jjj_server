@@ -15,8 +15,6 @@ public class BuildingData {
     private long cdEndTime;
     //已发起的清 CD 广告次数; 用于限流
     private int adClearCount;
-    //主管id
-    private int managerEmployId;
     //进度条 BuildingUpgradeTable.CostPerLevel 的下标，默认为0
     private int progress;
 
@@ -50,14 +48,6 @@ public class BuildingData {
 
     public void setAdClearCount(int adClearCount) {
         this.adClearCount = adClearCount;
-    }
-
-    public int getManagerEmployId() {
-        return managerEmployId;
-    }
-
-    public void setManagerEmployId(int managerEmployId) {
-        this.managerEmployId = managerEmployId;
     }
 
     public int getProgress() {

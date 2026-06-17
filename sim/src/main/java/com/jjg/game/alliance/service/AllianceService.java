@@ -2,26 +2,23 @@ package com.jjg.game.alliance.service;
 
 import com.jjg.game.alliance.constant.AllianceConst;
 import com.jjg.game.alliance.dao.AllianceDao;
+import com.jjg.game.alliance.dao.AllianceIdDao;
 import com.jjg.game.alliance.dao.AlliancePlayerDao;
 import com.jjg.game.alliance.data.AllianceApplication;
 import com.jjg.game.alliance.data.AllianceData;
 import com.jjg.game.alliance.data.AllianceMember;
 import com.jjg.game.alliance.data.AlliancePlayerData;
 import com.jjg.game.alliance.pb.AlliancePbConverter;
+import com.jjg.game.alliance.pb.res.*;
 import com.jjg.game.alliance.pb.struct.AllianceApplicationInfo;
 import com.jjg.game.alliance.pb.struct.AllianceBrief;
 import com.jjg.game.alliance.pb.struct.AllianceMemberInfo;
-import com.jjg.game.alliance.pb.res.*;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.PlayerSessionInfo;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
-import com.jjg.game.sim.dao.SimCasinoDao;
-import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.social.channel.AllianceChatChannel;
@@ -29,7 +26,6 @@ import com.jjg.game.social.service.SocialStatusService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -75,11 +71,9 @@ public class AllianceService {
     @Autowired
     private SimManager simManager;
     @Autowired
-    private SimCasinoDao simCasinoDao;
-    @Autowired
-    private StringRedisTemplate stringRedisTemplate;
-    @Autowired
     private AllianceChatChannel allianceChatChannel;
+    @Autowired
+    private AllianceIdDao allianceIdDao;
 
     // =====================================================================
     // 信息查询
@@ -260,33 +254,31 @@ public class AllianceService {
         int code = validateSettings(name, notice, joinMinCasinoLevel);
         if (code != Code.SUCCESS) {
             res.code = code;
+            log.warn("创建联盟失败,校验设置失败 playerId={},code={}", playerId, code);
             return res;
         }
-        if (casinoLevelOf(playerId) < AllianceConst.Cfg.CREATE_MIN_CASINO_LEVEL) {
+
+        int allLevel = casinoLevelOf(playerId);
+        if (allLevel < AllianceConst.Cfg.CREATE_MIN_CASINO_LEVEL) {
             res.code = Code.LEVEL_NOT_ENOUGH;
+            log.warn("创建联盟失败,场景等级不足 playerId={},allLevel={}", playerId, allLevel);
             return res;
         }
 
-        //1. 发号 + 玩家文档条件占位 (同时锁定"未入盟"与"未创建过")
-        long allianceId = nextAllianceId();
-        long now = System.currentTimeMillis();
-        if (!alliancePlayerDao.tryOccupyCreate(playerId, allianceId, now)) {
-            AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
-            res.code = playerData.inAlliance() ? Code.ALLIANCE_ALREADY_IN : Code.ALLIANCE_CREATED_LIMIT;
-            return res;
-        }
-
-        //2. 扣钻石; 失败回滚占位
+        //扣除资源
         Map<Integer, Long> cost = Map.of(ItemUtils.getDiamondItemId(), (long) AllianceConst.Cfg.CREATE_COST_DIAMOND);
-        var deduct = playerPackService.removeItems(pc.getPlayer(), cost, AddType.ALLIANCE_CREATE, "创建联盟");
+        CommonResult<ItemOperationResult> deduct = playerPackService.removeItems(pc.getPlayer(), cost, AddType.ALLIANCE_CREATE, "");
         if (!deduct.success()) {
-            alliancePlayerDao.rollbackCreate(playerId, allianceId);
-            cacheService.invalidatePlayer(playerId);
             res.code = Code.NOT_ENOUGH_ITEM;
+            log.warn("创建联盟失败,余额不足 playerId={},allLevel={}", playerId, allLevel);
             return res;
         }
 
-        //3. 建档
+        //获取联盟id
+        long allianceId = allianceIdDao.nextAllianceId();
+        long now = System.currentTimeMillis();
+
+        //建档
         AllianceData alliance = new AllianceData();
         alliance.setAllianceId(allianceId);
         alliance.setName(name);
@@ -299,20 +291,10 @@ public class AllianceService {
         alliance.setJoinNeedAudit(joinNeedAudit);
         alliance.setMemberCount(1);
         alliance.getMembers().put(playerId, new AllianceMember(AllianceConst.Position.LEADER, now));
-        try {
-            allianceDao.save(alliance);
-        } catch (Exception e) {
-            //建档失败: 退钻石 + 回滚占位
-            log.error("创建联盟建档失败, 回滚 playerId={},allianceId={}", playerId, allianceId, e);
-            playerPackService.addItems(playerId, cost, AddType.ALLIANCE_CREATE, "创建联盟失败返还");
-            alliancePlayerDao.rollbackCreate(playerId, allianceId);
-            cacheService.invalidatePlayer(playerId);
-            res.code = Code.EXCEPTION;
-            return res;
-        }
+        allianceDao.save(alliance);
         cacheService.invalidatePlayer(playerId);
-        log.info("创建联盟成功 playerId={},allianceId={},name={}", playerId, allianceId, name);
         res.alliance = AlliancePbConverter.toBrief(alliance, configService);
+        log.info("创建联盟成功 playerId={},allianceId={},name={}", playerId, allianceId, name);
         return res;
     }
 
@@ -328,11 +310,13 @@ public class AllianceService {
         AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
         if (playerData.inAlliance()) {
             res.code = Code.ALLIANCE_ALREADY_IN;
+            log.warn("加入联盟失败,玩家已有所属联盟 playerId={},oldAllianceId={}", playerId, playerData.getAllianceId());
             return res;
         }
         int myCasinoLevel = casinoLevelOf(playerId);
         if (myCasinoLevel < AllianceConst.Cfg.CREATE_MIN_CASINO_LEVEL) {
             res.code = Code.LEVEL_NOT_ENOUGH;
+            log.warn("加入联盟失败,玩家场景等级不足 playerId={},allLevel={}", playerId, myCasinoLevel);
             return res;
         }
         if (allianceId > 0) {
@@ -348,14 +332,17 @@ public class AllianceService {
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
             res.code = Code.NOT_FOUND;
+            log.warn("加入单个联盟失败,未找到该联盟数据 playerId={},allianceId={}", playerId, allianceId);
             return res;
         }
         if (alliance.getJoinMinCasinoLevel() > myCasinoLevel) {
             res.code = Code.LEVEL_NOT_ENOUGH;
+            log.warn("加入单个联盟失败,不满足该联盟的入门等级要求 playerId={},myCasinoLevel={},joinMinLevel={}", playerId, myCasinoLevel, alliance.getJoinMinCasinoLevel());
             return res;
         }
         if (alliance.getMemberCount() >= configService.memberCap(alliance.getLevel())) {
             res.code = Code.ALLIANCE_FULL;
+            log.warn("加入单个联盟失败,该联盟人数已满 playerId={},allianceId={}", playerId, allianceId);
             return res;
         }
         if (!alliance.isJoinNeedAudit()) {
@@ -722,19 +709,14 @@ public class AllianceService {
      */
     public int casinoLevelOf(long playerId) {
         SimPlayerContext ctx = simManager.getContext(playerId);
-        if (ctx != null && ctx.getCurrentCasino() != null) {
-            return ctx.getCurrentCasino().getCasinoLevel();
+        if (ctx == null) {
+            return 0;
         }
-        int max = 0;
-        for (SimCasinoData casino : simCasinoDao.findByPlayerId(playerId)) {
-            max = Math.max(max, casino.getCasinoLevel());
-        }
-        return max;
+        return ctx.getSimBaseData().getAllLevel();
     }
 
     /**
      * 名称/公告/入盟等级合法性校验。
-     * TODO 敏感词过滤: 项目暂无统一敏感词工具, 接入后在此处补充。
      */
     private int validateSettings(String name, String notice, int joinMinCasinoLevel) {
         if (name == null || name.isBlank() || name.length() > AllianceConst.Cfg.NAME_MAX_LEN) {
@@ -747,15 +729,6 @@ public class AllianceService {
             return Code.PARAM_ERROR;
         }
         return Code.SUCCESS;
-    }
-
-    /**
-     * 联盟 id 发号: Redis INCR, 首号 100000 (6 位数字)。
-     * 注: 6 位号段耗尽(90万联盟)后自然进位为 7 位, 客户端输入框需同步放宽; 当前量级远未触及。
-     */
-    private long nextAllianceId() {
-        Long seq = stringRedisTemplate.opsForValue().increment(AllianceConst.RedisKey.ID_SEQ);
-        return 99999 + (seq == null ? 1 : seq);
     }
 
     public List<AllianceBrief> toBriefs(List<AllianceData> list) {

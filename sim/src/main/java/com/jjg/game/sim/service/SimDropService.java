@@ -66,7 +66,9 @@ public class SimDropService {
         //加经验
         casino.setExp(casino.getExp() + SimConstant.Common.SPIN_ADD_EXP);
         //升级检查
-        checkLevelUp(casino);
+        if(checkLevelUp(casino)){
+            ctx.getSimBaseData().addAllLevel(1);
+        }
         //掉落
         Map<Integer, Long> dropResult = rollDrop(base, gameType, winTimes);
 
@@ -93,18 +95,19 @@ public class SimDropService {
      * 按累计经验 (exp) 与 CasinoLevel(RegionID=casinoId) 重算场景等级。
      * levelUpExp 视为"达到该等级所需的累计经验", 取满足 exp>=levelUpExp 的最大等级 id。
      */
-    private void checkLevelUp(SimCasinoData casino) {
+    private boolean checkLevelUp(SimCasinoData casino) {
         int nextLevel = casino.getCasinoLevel() + 1;
         CasinoStatsSheetCfg cfg = configCacheService.getCasinoStatsSheetCfg(casino.getCasinoId(), nextLevel);
         if (cfg == null) {
-            return;
+            return false;
         }
         if (casino.getExp() < cfg.getUpgradeCost()) {
-            return;
+            return false;
         }
         casino.setCasinoLevel(nextLevel);
         casino.setExp(casino.getExp() - cfg.getUpgradeCost());
         log.info("场景升级 playerId={},casinoId={},newLevel={}", casino.getPlayerId(), casino.getCasinoId(), nextLevel);
+        return true;
     }
 
     /**

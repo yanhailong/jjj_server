@@ -48,6 +48,8 @@ public class SimMessageHandler implements GmListener {
     private SimCasinoService casinoService;
     @Autowired
     private SimStatsService statsService;
+    @Autowired
+    private SimConfigCacheService configCacheService;
 
 
     /**
@@ -414,9 +416,9 @@ public class SimMessageHandler implements GmListener {
                     return res;
                 }
                 //场景配置
-                CasinoStatsSheetCfg casinoCfg = GameDataManager.getCasinoStatsSheetCfg(ctx.getCurrentCasino().getStatsId());
+                CasinoStatsSheetCfg casinoCfg = configCacheService.getCasinoStatsSheetCfg(ctx.getCurrentCasino().getCasinoId(), ctx.getCurrentCasino().getCasinoLevel());
                 if (casinoCfg == null) {
-                    log.warn("生成游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={}", ctx.playerId(), ctx.getCurrentCasino().getStatsId());
+                    log.warn("生成游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={},level={}", ctx.playerId(), ctx.getCurrentCasino().getCasinoId(), ctx.getCurrentCasino().getCasinoLevel());
                     res.code = Code.FAIL;
                     return res;
                 }
@@ -469,7 +471,7 @@ public class SimMessageHandler implements GmListener {
                     return res;
                 }
                 SimPlayerContext ctx = simManager.getContext(playerController.playerId());
-                ctx.getCurrentCasino().setStatsId(statsId);
+                ctx.getCurrentCasino().setCasinoLevel(cfg.getLevel());
             } else {
                 res.code = Code.NOT_FOUND;
             }

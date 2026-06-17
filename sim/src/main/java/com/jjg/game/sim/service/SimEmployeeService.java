@@ -13,6 +13,7 @@ import com.jjg.game.sampledata.bean.EmployeeProfileCfg;
 import com.jjg.game.sampledata.bean.EmployeeStarCfg;
 import com.jjg.game.sampledata.bean.PoolListCfg;
 import com.jjg.game.sim.constant.BonusType;
+import com.jjg.game.sim.constant.BuildingType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.data.BuildingData;
@@ -283,8 +284,8 @@ public class SimEmployeeService {
                 return;
             }
 
-            boolean contains = ctx.getCurrentCasino().containsManageEmploy(cfg.getType());
-            if (contains) {
+            int manaerId = ctx.getCurrentCasino().manageEmploy(cfg.getType());
+            if (manaerId > 0) {
                 log.warn("任命主管失败, 该类建筑已有主管 playerId={},buildingId={},type={}", ctx.playerId(), buildingId, cfg.getType());
                 res.code = Code.FORBID;
                 ctx.send(res);
@@ -361,18 +362,24 @@ public class SimEmployeeService {
      * 仅仅获取主管的加成
      *
      * @param ctx
-     * @param supervisorEmployId
+     * @param buildingType
      * @return
      */
-    public Map<BonusType, Integer> manageEmployeeBonus(SimPlayerContext ctx, int supervisorEmployId) {
-        if (supervisorEmployId < 1) {
+    public Map<BonusType, Integer> manageEmployeeBonus(SimPlayerContext ctx, BuildingType buildingType) {
+        if (buildingType == null) {
             return Collections.emptyMap();
         }
-        SimEmployeeData supervisor = ctx.getEmployee(supervisorEmployId);
+
+        int managerId = ctx.getCurrentCasino().manageEmploy(buildingType.code());
+        if (managerId < 1) {
+            return Collections.emptyMap();
+        }
+
+        SimEmployeeData supervisor = ctx.getEmployee(managerId);
         if (supervisor == null) {
             return Collections.emptyMap();
         }
-        EmployeeStarCfg starCfg = getStarCfg(supervisorEmployId, supervisor.getStar());
+        EmployeeStarCfg starCfg = getStarCfg(managerId, supervisor.getStar());
         if (starCfg == null) {
             return Collections.emptyMap();
         }

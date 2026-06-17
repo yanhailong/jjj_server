@@ -86,15 +86,18 @@ public class AllianceShopService {
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
             res.code = Code.ALLIANCE_NOT_MEMBER;
+            log.warn("联盟商店兑换失败,玩家不在联盟 playerId={},goodsId={}", playerId, goodsId);
             return res;
         }
         AllianceConfigService.ShopGoodsCfg cfg = configService.shopGoods(goodsId);
         if (cfg == null) {
             res.code = Code.PARAM_ERROR;
+            log.warn("联盟商店兑换失败,商品配置不存在 playerId={},goodsId={}", playerId, goodsId);
             return res;
         }
         if (alliance.getLevel() < cfg.unlockLevel()) {
             res.code = Code.NOT_UNLOCKED;
+            log.warn("联盟商店兑换失败,联盟等级未解锁该商品 playerId={},goodsId={},allianceLevel={},unlockLevel={}", playerId, goodsId, alliance.getLevel(), cfg.unlockLevel());
             return res;
         }
         AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
@@ -102,6 +105,7 @@ public class AllianceShopService {
         int bought = playerData.shopPurchasedOf(today, goodsId);
         if (bought >= cfg.dailyLimit()) {
             res.code = Code.ALLIANCE_SHOP_SOLD_OUT;
+            log.warn("联盟商店兑换失败,今日限购已达上限 playerId={},goodsId={},bought={},limit={}", playerId, goodsId, bought, cfg.dailyLimit());
             return res;
         }
         //条件扣减贡献值 (余额不足返回 false)
@@ -109,9 +113,11 @@ public class AllianceShopService {
             AlliancePlayerData latest = alliancePlayerDao.getOrEmpty(playerId);
             if (latest.shopPurchasedOf(today, goodsId) >= cfg.dailyLimit()) {
                 res.code = Code.ALLIANCE_SHOP_SOLD_OUT;
+                log.warn("联盟商店兑换失败,今日限购已达上限(并发) playerId={},goodsId={},limit={}", playerId, goodsId, cfg.dailyLimit());
                 return res;
             }
             res.code = Code.ALLIANCE_CONTRIBUTION_NOT_ENOUGH;
+            log.warn("联盟商店兑换失败,贡献值不足 playerId={},goodsId={},price={},myContribution={}", playerId, goodsId, cfg.price(), latest.getContribution());
             return res;
         }
         //限购计数 (跨天首次购买重置 map)

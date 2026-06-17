@@ -221,7 +221,6 @@ public class SimCasinoService {
         casino.setCasinoId(casinoId);
 
         int statsId = resolveInitialStatsId(casinoId);
-        casino.setStatsId(statsId);
         CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(statsId);
         if (statsCfg != null) {
             casino.setProsperity(statsCfg.getProsperity());
@@ -230,6 +229,7 @@ public class SimCasinoService {
 
         updateCasinoUnlock(ctx.playerId(), casinoId, INITIAL_BUILDING_LEVEL);
         simSkillService.initUnlock(ctx, casinoId);
+        ctx.getSimBaseData().addAllLevel(casino.getCasinoLevel());
         //TODO 初始游客: VisitorQuest 无场景维度配置, 待策划补充配置后在此初始化 guestMap
         log.info("创建新场景 playerId={},casinoId={},statsId={},buildingCount={}", ctx.playerId(), casinoId, statsId,
                 casino.getBuildingData() == null ? 0 : casino.getBuildingData().size());
@@ -293,7 +293,7 @@ public class SimCasinoService {
         if (casino == null) {
             return -1;
         }
-        CasinoStatsSheetCfg statsCfg = GameDataManager.getCasinoStatsSheetCfg(casino.getStatsId());
+        CasinoStatsSheetCfg statsCfg = configCacheService.getCasinoStatsSheetCfg(casinoId, casino.getCasinoLevel());
         return statsCfg == null ? 0 : statsCfg.getLevel();
     }
 

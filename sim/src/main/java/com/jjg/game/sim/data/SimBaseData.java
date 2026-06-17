@@ -32,6 +32,8 @@ public class SimBaseData extends AbstractData {
     private int dropResetDay;
     //研究点 (类型 -> 数量; 类型: 1.普通 2.珍惜)
     private Map<Integer, Integer> researchPointMap;
+    //所有场景等级之和
+    private int allLevel;
 
     public long getPlayerId() {
         return playerId;
@@ -105,6 +107,14 @@ public class SimBaseData extends AbstractData {
         this.researchPointMap = researchPointMap;
     }
 
+    public int getAllLevel() {
+        return allLevel;
+    }
+
+    public void setAllLevel(int allLevel) {
+        this.allLevel = allLevel;
+    }
+
     /**
      * 跨天则重置每日掉落计数
      *
@@ -139,11 +149,11 @@ public class SimBaseData extends AbstractData {
         this.dailyDropCount.merge(dropItemId, 1, Integer::sum);
     }
 
-    public void addResearchPoint(int type,int num){
-        if(this.researchPointMap == null){
+    public void addResearchPoint(int type, int num) {
+        if (this.researchPointMap == null) {
             this.researchPointMap = new HashMap<>();
         }
-        this.researchPointMap.merge(type,num,Integer::sum);
+        this.researchPointMap.merge(type, num, Integer::sum);
     }
 
     /**
@@ -175,5 +185,9 @@ public class SimBaseData extends AbstractData {
             this.researchPointMap.put(type, after);
         }
         return true;
+    }
+
+    public void addAllLevel(int level) {
+        this.allLevel += level;
     }
 }

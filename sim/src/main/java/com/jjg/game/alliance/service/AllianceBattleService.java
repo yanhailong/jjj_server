@@ -207,14 +207,17 @@ public class AllianceBattleService {
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
             res.code = Code.ALLIANCE_NOT_MEMBER;
+            log.warn("联盟对决报名失败,玩家不在联盟 playerId={}", playerId);
             return res;
         }
         if (!alliance.isLeader(playerId)) {
             res.code = Code.ALLIANCE_NOT_LEADER;
+            log.warn("联盟对决报名失败,非盟主 playerId={},allianceId={},leaderId={}", playerId, allianceId, alliance.getLeaderId());
             return res;
         }
         if (alliance.getLevel() < AllianceConst.Cfg.BATTLE_MIN_LEVEL) {
             res.code = Code.LEVEL_NOT_ENOUGH;
+            log.warn("联盟对决报名失败,联盟等级不足 allianceId={},level={},minLevel={}", allianceId, alliance.getLevel(), AllianceConst.Cfg.BATTLE_MIN_LEVEL);
             return res;
         }
         //人数门槛: 模式1=总人数 / 模式2=近N天活跃人数 (登录时维护的 lastActiveTime, 单文档统计)
@@ -223,6 +226,7 @@ public class AllianceBattleService {
                 : alliance.activeMemberCount(AllianceConst.Cfg.BATTLE_ACTIVE_DAYS);
         if (count < AllianceConst.Cfg.BATTLE_MIN_MEMBERS) {
             res.code = Code.NOT_ENOUGH;
+            log.warn("联盟对决报名失败,人数不足 allianceId={},mode={},count={},minMembers={}", allianceId, AllianceConst.Cfg.BATTLE_SIGNUP_MODE, count, AllianceConst.Cfg.BATTLE_MIN_MEMBERS);
             return res;
         }
         long now = System.currentTimeMillis();
@@ -230,11 +234,13 @@ public class AllianceBattleService {
         AllianceBattleData battle = battleDao.findById(period).orElse(null);
         if (battle == null || battle.getState() != AllianceConst.BattleState.SIGNUP) {
             res.code = Code.ALLIANCE_BATTLE_STATE;
+            log.warn("联盟对决报名失败,非报名阶段 allianceId={},period={},state={}", allianceId, period, battle == null ? -1 : battle.getState());
             return res;
         }
         if (!battleDao.addSignup(period, allianceId,
                 new BattleSignup(alliance.getLevel(), now, playerId), AllianceConst.BattleState.SIGNUP)) {
             res.code = Code.REPEAT_OP;
+            log.warn("联盟对决报名失败,重复报名或阶段已变更 allianceId={},period={}", allianceId, period);
             return res;
         }
         battleCache.invalidate(period);
@@ -364,28 +370,33 @@ public class AllianceBattleService {
         AllianceBattleData battle = cachedBattle();
         if (allianceId <= 0 || battle == null) {
             res.code = Code.ALLIANCE_NOT_MEMBER;
+            log.warn("领取对决阶段奖励失败,玩家不在联盟或无进行中对决 playerId={},allianceId={},stage={}", playerId, allianceId, stage);
             return res;
         }
         AllianceConfigService.BattleStageCfg cfg = configService.battleStages().stream()
                 .filter(s -> s.stage() == stage).findFirst().orElse(null);
         if (cfg == null) {
             res.code = Code.PARAM_ERROR;
+            log.warn("领取对决阶段奖励失败,阶段配置不存在 playerId={},stage={}", playerId, stage);
             return res;
         }
         AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
         int claimedMask = playerData.battleClaimedMask(battle.getPeriod());
         if ((claimedMask & (1 << stage)) != 0) {
             res.code = Code.REPEAT_OP;
+            log.warn("领取对决阶段奖励失败,已领取过 playerId={},period={},stage={}", playerId, battle.getPeriod(), stage);
             return res;
         }
         long personalScore = rankService.getPoints(personalKey(battle.getPeriod(), allianceId), playerId);
         if (personalScore < cfg.scoreThreshold()) {
             res.code = Code.NOT_ENOUGH;
+            log.warn("领取对决阶段奖励失败,个人积分不足 playerId={},period={},stage={},score={},threshold={}", playerId, battle.getPeriod(), stage, personalScore, cfg.scoreThreshold());
             return res;
         }
         int stageMask = 1 << stage;
         if (!alliancePlayerDao.tryClaimBattleStage(playerId, battle.getPeriod(), stageMask)) {
             res.code = Code.REPEAT_OP;
+            log.warn("领取对决阶段奖励失败,并发重复领取 playerId={},period={},stage={}", playerId, battle.getPeriod(), stage);
             return res;
         }
         playerPackService.addItems(playerId, cfg.rewards(), AddType.ALLIANCE_BATTLE_REWARD, "联盟对决阶段奖励", true);

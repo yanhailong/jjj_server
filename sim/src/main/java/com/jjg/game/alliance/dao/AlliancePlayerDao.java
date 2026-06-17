@@ -160,15 +160,6 @@ public class AlliancePlayerDao extends MongoBaseDao<AlliancePlayerData, Long> {
     }
 
     /**
-     * 创建回滚: 占位成功但后续步骤失败时, 连同 createdAllianceId 一起清零 (允许再次创建)。
-     */
-    public void rollbackCreate(long playerId, long allianceId) {
-        Query query = new Query(Criteria.where("_id").is(playerId).and("createdAllianceId").is(allianceId));
-        mongoTemplate.updateFirst(query,
-                new Update().set("allianceId", 0L).set("createdAllianceId", 0L), AlliancePlayerData.class);
-    }
-
-    /**
      * 批量清除占位 (解散联盟): 同样带 allianceId 条件防误清。
      */
     public void clearAllianceBulk(Collection<Long> playerIds, long allianceId) {
