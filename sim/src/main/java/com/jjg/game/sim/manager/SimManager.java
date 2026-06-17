@@ -227,12 +227,11 @@ public class SimManager {
             baseData.setPlayerId(playerId);
             baseData.setPower(10000);
         }
-
+        ctx.setSimBaseData(baseData);
         //加载场景数据
         simCasinoService.loadCasinoData(ctx, baseData);
         //加载雇员数据
         employeeService.loadEmployeeData(ctx);
-        ctx.setSimBaseData(baseData);
         this.contextMap.put(playerId, ctx);
         simNodeService.save(playerId, clusterSystem.getNodePath());
         return ctx;
