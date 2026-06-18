@@ -21,6 +21,8 @@ public class PropCfg extends BaseCfgBean {
 
   /** 游戏id */
   protected int gameType;
+  /** 属性图标 */
+  protected String icon;
   /** 多语言id */
   protected int languageID;
   /** 解锁属性id_等级 */
@@ -31,6 +33,11 @@ public class PropCfg extends BaseCfgBean {
   /** 返回游戏id */
   public int getGameType() {
     return gameType;
+  }
+
+  /** 返回属性图标 */
+  public String getIcon() {
+    return icon;
   }
 
   /** 返回多语言id */

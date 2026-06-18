@@ -104,6 +104,16 @@ public class SimEmployeeService {
                 return;
             }
 
+            if (tmpCfg.getDrawCost() != null && !tmpCfg.getDrawCost().isEmpty()) {
+                boolean remove = simPackService.removeItems(ctx, tmpCfg.getDrawCost(), AddType.SIM_EMPLOYEE_RECRUIT, null);
+                if (!remove) {
+                    log.warn("招募雇员失败,扣除道具失败 playerId={},count={},poolId={}", ctx.playerId(), count, tmpCfg.getId());
+                    res.code = Code.PARAM_ERROR;
+                    ctx.send(res);
+                    return;
+                }
+            }
+
             Map<Integer, Long> addItems = new HashMap<>();
             Map<Integer, Integer> addEmployee = new HashMap<>();
             for (int i = 0; i < count; i++) {

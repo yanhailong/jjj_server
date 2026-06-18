@@ -19,6 +19,8 @@ public class PoolListCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "PoolList";
 
+  /** 抽奖消耗 */
+  protected Map<Integer,Long> DrawCost;
   /** 掉落物品 */
   protected int DropItem;
   /** 开启状态 */
@@ -29,6 +31,11 @@ public class PoolListCfg extends BaseCfgBean {
   protected String time_start;
   /** 卡池类型 */
   protected int type;
+
+  /** 返回抽奖消耗 */
+  public Map<Integer,Long> getDrawCost() {
+    return DrawCost;
+  }
 
   /** 返回掉落物品 */
   public int getDropItem() {

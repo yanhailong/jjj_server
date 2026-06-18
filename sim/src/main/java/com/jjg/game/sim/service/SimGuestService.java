@@ -800,6 +800,16 @@ public class SimGuestService implements SimPlayerTickListener {
                 return;
             }
 
+            if (tmpCfg.getDrawCost() != null && !tmpCfg.getDrawCost().isEmpty()) {
+                boolean remove = simPackService.removeItems(ctx, tmpCfg.getDrawCost(), AddType.SIM_GUEST_RECRUIT, null);
+                if (!remove) {
+                    log.warn("招募游客失败,扣除道具失败 playerId={},count={},poolId={}", ctx.playerId(), count, tmpCfg.getId());
+                    res.code = Code.PARAM_ERROR;
+                    ctx.send(res);
+                    return;
+                }
+            }
+
             Map<Integer, Long> addItems = new HashMap<>();
             Map<Integer, Integer> addGuest = new HashMap<>();
             for (int i = 0; i < count; i++) {
@@ -948,7 +958,7 @@ public class SimGuestService implements SimPlayerTickListener {
             long now = System.currentTimeMillis();
             PoolListCfg tmpCfg = null;
             for (PoolListCfg cfg : GameDataManager.getPoolListCfgList()) {
-                if (cfg.getType() != SimConstant.PoolList.TYPE_EMPLOYEE) {
+                if (cfg.getType() != SimConstant.PoolList.TYPE_GUEST) {
                     continue;
                 }
 
@@ -981,7 +991,7 @@ public class SimGuestService implements SimPlayerTickListener {
 
             VisitorPoolCfg visitorPoolCfg = GameDataManager.getVisitorPoolCfg(tmpCfg.getDropItem());
             if (visitorPoolCfg == null || visitorPoolCfg.getDetailedDropItem() == null) {
-                log.warn("获取游客卡池失败2,playerId={}", ctx.playerId());
+                log.warn("获取游客卡池失败2,playerId={},dropItem={}", ctx.playerId(), tmpCfg.getDropItem());
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;

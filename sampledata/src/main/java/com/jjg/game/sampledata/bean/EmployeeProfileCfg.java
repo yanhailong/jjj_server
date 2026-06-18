@@ -23,6 +23,8 @@ public class EmployeeProfileCfg extends BaseCfgBean {
   protected List<Integer> DuplicatetoShard;
   /** 雇员品质 */
   protected int EmployeeQuality;
+  /** 雇员名称 */
+  protected int NameId;
   /** 职业ID */
   protected int ProfessionID;
   /** 序列ID */
@@ -38,6 +40,11 @@ public class EmployeeProfileCfg extends BaseCfgBean {
   /** 返回雇员品质 */
   public int getEmployeeQuality() {
     return EmployeeQuality;
+  }
+
+  /** 返回雇员名称 */
+  public int getNameId() {
+    return NameId;
   }
 
   /** 返回职业ID */
